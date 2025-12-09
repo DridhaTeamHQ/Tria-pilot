@@ -205,8 +205,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Optimized - only select id
     const dbUser = await prisma.user.findUnique({
-      where: { email: authUser.email! },
+      where: { email: authUser.email!.toLowerCase().trim() },
+      select: { id: true },
     })
 
     if (!dbUser) {
@@ -216,15 +218,29 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const type = searchParams.get('type') // 'sent' | 'received'
 
+    // Optimized queries - use select instead of include
     let collaborations
     if (type === 'sent') {
       // Brands viewing requests they sent to influencers
       collaborations = await prisma.collaborationRequest.findMany({
         where: { brandId: dbUser.id },
-        include: {
+        select: {
+          id: true,
+          message: true,
+          status: true,
+          proposalDetails: true,
+          createdAt: true,
           influencer: {
-            include: {
-              influencerProfile: true,
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              influencerProfile: {
+                select: {
+                  bio: true,
+                  followers: true,
+                },
+              },
             },
           },
         },
@@ -234,10 +250,22 @@ export async function GET(request: Request) {
       // Influencers viewing requests they received from brands (type === 'received' or no type)
       collaborations = await prisma.collaborationRequest.findMany({
         where: { influencerId: dbUser.id },
-        include: {
+        select: {
+          id: true,
+          message: true,
+          status: true,
+          proposalDetails: true,
+          createdAt: true,
           brand: {
-            include: {
-              brandProfile: true,
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              brandProfile: {
+                select: {
+                  companyName: true,
+                },
+              },
             },
           },
         },
@@ -245,7 +273,12 @@ export async function GET(request: Request) {
       })
     }
 
-    return NextResponse.json(collaborations)
+    // Add caching headers - collaborations don't change frequently
+    return NextResponse.json(collaborations, {
+      headers: {
+        'Cache-Control': 'private, max-age=30, stale-while-revalidate=60', // 30 sec cache
+      },
+    })
   } catch (error) {
     console.error('Collaboration fetch error:', error)
     return NextResponse.json(

@@ -13,26 +13,40 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Optimized - only select needed fields
     const dbUser = await prisma.user.findUnique({
       where: { email: authUser.email! },
+      select: { id: true },
     })
 
     if (!dbUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
+    // Optimized query - use select instead of include, reduce nested queries
     const favorites = await prisma.favorite.findMany({
       where: {
         userId: dbUser.id,
       },
-      include: {
+      select: {
         product: {
-          include: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            category: true,
+            price: true,
+            link: true,
+            audience: true,
+            createdAt: true,
             brand: {
-              include: {
+              select: {
+                id: true,
+                companyName: true,
                 user: {
                   select: {
                     name: true,
+                    slug: true,
                   },
                 },
               },
@@ -42,6 +56,10 @@ export async function GET(request: Request) {
                 isCoverImage: true,
               },
               take: 1,
+              select: {
+                id: true,
+                imagePath: true,
+              },
             },
           },
         },
@@ -51,7 +69,15 @@ export async function GET(request: Request) {
       },
     })
 
-    return NextResponse.json(favorites.map((f: any) => f.product))
+    // Add caching headers - favorites don't change frequently
+    return NextResponse.json(
+      favorites.map((f: any) => f.product),
+      {
+        headers: {
+          'Cache-Control': 'private, max-age=60, stale-while-revalidate=120', // 1 min cache
+        },
+      }
+    )
   } catch (error) {
     console.error('Get favorites error:', error)
     return NextResponse.json(
@@ -72,8 +98,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Optimized - only select needed fields
     const dbUser = await prisma.user.findUnique({
       where: { email: authUser.email! },
+      select: { id: true },
     })
 
     if (!dbUser) {
@@ -129,8 +157,10 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Optimized - only select needed fields
     const dbUser = await prisma.user.findUnique({
       where: { email: authUser.email! },
+      select: { id: true },
     })
 
     if (!dbUser) {

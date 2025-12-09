@@ -39,11 +39,23 @@ export default async function MarketplacePage({
     ]
   }
 
+  // Optimized query - use select instead of include, limit results
   const products = await prisma.product.findMany({
     where,
-    include: {
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        category: true,
+        price: true,
+        link: true,
+        audience: true,
+        imagePath: true, // Keep for backward compatibility
+        createdAt: true,
       brand: {
-        include: {
+        select: {
+          id: true,
+          companyName: true,
           user: {
             select: {
               name: true,
@@ -57,11 +69,16 @@ export default async function MarketplacePage({
           isCoverImage: true,
         },
         take: 1,
+        select: {
+          id: true,
+          imagePath: true,
+        },
       },
     },
     orderBy: {
       createdAt: 'desc',
     },
+    take: 50, // Limit to 50 products initially - add pagination later
   })
 
   const categories = ['All Products', 'Clothing', 'Accessories', 'Footwear', 'Beauty', 'Lifestyle']
@@ -121,7 +138,7 @@ export default async function MarketplacePage({
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {products.map((product) => {
-              const coverImage = product.images[0]?.imagePath || product.imagePath
+              const coverImage = product.images[0]?.imagePath || product.imagePath || null
               return (
                 <Link key={product.id} href={`/marketplace/${product.id}`}>
                   <div className="group bg-white rounded-2xl border border-subtle overflow-hidden hover:shadow-lg hover:border-charcoal/20 transition-all">

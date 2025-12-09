@@ -14,10 +14,18 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Optimized query - only select needed fields
     const dbUser = await prisma.user.findUnique({
-      where: { email: authUser.email! },
-      include: {
-        influencerProfile: true,
+      where: { email: authUser.email!.toLowerCase().trim() },
+      select: {
+        id: true,
+        role: true,
+        influencerProfile: {
+          select: {
+            bio: true,
+            niches: true,
+          },
+        },
       },
     })
 
@@ -31,11 +39,86 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const productId = searchParams.get('productId')
 
-    // Get all products
+    // Optimized - only get products we need, use select instead of include
+    // For productId-based recommendations, only fetch similar products
+    if (productId) {
+      const currentProduct = await prisma.product.findUnique({
+        where: { id: productId },
+        select: {
+          id: true,
+          category: true,
+          brandId: true,
+          audience: true,
+        },
+      })
+
+      if (!currentProduct) {
+        return NextResponse.json([], {
+          headers: {
+            'Cache-Control': 'public, max-age=600, stale-while-revalidate=1800',
+          },
+        })
+      }
+
+      // Get similar products only (much faster than all products)
+      const similarProducts = await prisma.product.findMany({
+        where: {
+          OR: [
+            { category: currentProduct.category },
+            { brandId: currentProduct.brandId },
+            { audience: currentProduct.audience },
+          ],
+          id: { not: productId },
+        },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          category: true,
+          price: true,
+          link: true,
+          audience: true,
+          brand: {
+            select: {
+              id: true,
+              companyName: true,
+              user: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+          images: {
+            where: { isCoverImage: true },
+            take: 1,
+            select: {
+              id: true,
+              imagePath: true,
+            },
+          },
+        },
+        take: 8,
+      })
+
+      return NextResponse.json(similarProducts, {
+        headers: {
+          'Cache-Control': 'public, max-age=600, stale-while-revalidate=1800',
+        },
+      })
+    }
+
+    // For AI recommendations, we still need all products but optimize the query
     const allProducts = await prisma.product.findMany({
-      include: {
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        category: true,
         brand: {
-          include: {
+          select: {
+            id: true,
+            companyName: true,
             user: {
               select: {
                 name: true,
@@ -48,8 +131,13 @@ export async function GET(request: Request) {
             isCoverImage: true,
           },
           take: 1,
+          select: {
+            id: true,
+            imagePath: true,
+          },
         },
       },
+      take: 100, // Limit to 100 products for AI recommendations (much faster)
     })
 
     let recommendedProducts

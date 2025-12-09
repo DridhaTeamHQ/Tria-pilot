@@ -12,11 +12,23 @@ export default async function Dashboard() {
     redirect('/login')
   }
 
+  // Optimized query - only select needed fields for redirect logic
   const user = await prisma.user.findUnique({
-    where: { email: authUser.email! },
-    include: {
-      influencerProfile: true,
-      brandProfile: true,
+    where: { email: authUser.email!.toLowerCase().trim() },
+    select: {
+      id: true,
+      role: true,
+      email: true,
+      influencerProfile: {
+        select: {
+          onboardingCompleted: true,
+        },
+      },
+      brandProfile: {
+        select: {
+          onboardingCompleted: true,
+        },
+      },
     },
   })
 

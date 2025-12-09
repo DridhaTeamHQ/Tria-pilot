@@ -13,8 +13,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Optimized query - use indexed email field, minimal select
     const dbUser = await prisma.user.findUnique({
-      where: { email: authUser.email! },
+      where: { email: authUser.email!.toLowerCase().trim() }, // Normalize email
       select: {
         id: true,
         name: true,

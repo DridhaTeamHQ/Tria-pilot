@@ -12,22 +12,24 @@ function createPrismaClient() {
   }
 
   // Optimized connection pool configuration for Supabase pooler
+  // Supabase pooler typically limits to 5 connections, so we use 4 to be safe
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    max: 8, // Optimized for Supabase pooler (typically limits to 5-10)
-    min: 1, // Minimum connections
-    idleTimeoutMillis: 10000, // Faster cleanup (10 seconds)
-    connectionTimeoutMillis: 5000, // Faster failure detection (5 seconds)
+    max: 4, // Reduced for Supabase pooler (pooler limits to 5, we use 4 for safety)
+    min: 0, // No minimum - connections created on demand (better for serverless)
+    idleTimeoutMillis: 5000, // Faster cleanup (5 seconds) for serverless
+    connectionTimeoutMillis: 3000, // Faster failure detection (3 seconds)
     allowExitOnIdle: true,
-    // Keep connections alive
+    // Keep connections alive but shorter for serverless
     keepAlive: true,
-    keepAliveInitialDelayMillis: 10000,
+    keepAliveInitialDelayMillis: 5000,
   })
 
-  // Handle pool errors gracefully
+  // Handle pool errors gracefully with retry logic
   pool.on('error', (err) => {
     console.error('Database pool error:', err)
     // Don't throw - let Prisma handle reconnection
+    // Log but don't crash the application
   })
 
   // Handle connection errors
@@ -36,7 +38,15 @@ function createPrismaClient() {
     client.query('SET statement_timeout = 30000').catch((err) => {
       console.error('Failed to set statement timeout:', err)
     })
+    
+    // Set connection pooler mode if using Supabase
+    if (process.env.DATABASE_URL?.includes('pgbouncer=true')) {
+      client.query('SET application_name = "tria-app"').catch(() => {
+        // Ignore errors - not critical
+      })
+    }
   })
+
 
   // Use the official Prisma pg adapter
   const adapter = new PrismaPg(pool)

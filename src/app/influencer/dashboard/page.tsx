@@ -15,28 +15,60 @@ export default async function InfluencerDashboard() {
     redirect('/login')
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email: authUser.email! },
-    include: {
-      influencerProfile: true,
-      generationJobs: {
-        take: 6,
-        orderBy: { createdAt: 'desc' },
+  // Optimized query - use select instead of include, parallel queries for better performance
+  const [user, generationJobs, portfolio] = await Promise.all([
+    prisma.user.findUnique({
+      where: { email: authUser.email!.toLowerCase().trim() },
+      select: {
+        id: true,
+        name: true,
+        role: true,
+        influencerProfile: {
+          select: {
+            id: true,
+            bio: true,
+          },
+        },
       },
-      portfolio: {
-        take: 6,
-        orderBy: { createdAt: 'desc' },
+    }),
+    prisma.generationJob.findMany({
+      where: {
+        user: {
+          email: authUser.email!.toLowerCase().trim(),
+        },
       },
-    },
-  })
+      select: {
+        id: true,
+        status: true,
+        outputImagePath: true,
+        createdAt: true,
+      },
+      take: 6,
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.portfolio.findMany({
+      where: {
+        user: {
+          email: authUser.email!.toLowerCase().trim(),
+        },
+      },
+      select: {
+        id: true,
+        imagePath: true,
+        createdAt: true,
+      },
+      take: 6,
+      orderBy: { createdAt: 'desc' },
+    }),
+  ])
 
   if (!user || user.role !== 'INFLUENCER') {
     redirect('/')
   }
 
   const stats = [
-    { label: 'Try-Ons Generated', value: user.generationJobs.length, icon: Sparkles, color: 'bg-peach/20 text-orange-600' },
-    { label: 'Portfolio Items', value: user.portfolio.length, icon: Camera, color: 'bg-blue-100 text-blue-600' },
+    { label: 'Try-Ons Generated', value: generationJobs.length, icon: Sparkles, color: 'bg-peach/20 text-orange-600' },
+    { label: 'Portfolio Items', value: portfolio.length, icon: Camera, color: 'bg-blue-100 text-blue-600' },
     { label: 'Collaborations', value: 0, icon: Users, color: 'bg-green-100 text-green-600' },
     { label: 'Profile Views', value: 0, icon: TrendingUp, color: 'bg-purple-100 text-purple-600' },
   ]
@@ -146,9 +178,9 @@ export default async function InfluencerDashboard() {
             </Link>
           </div>
 
-          {user.generationJobs.length > 0 ? (
+          {generationJobs.length > 0 ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {user.generationJobs.map((job: any) => (
+              {generationJobs.map((job: any) => (
                 <div
                   key={job.id}
                   className="bg-white rounded-2xl overflow-hidden border border-subtle group hover:border-charcoal/20 transition-all"
