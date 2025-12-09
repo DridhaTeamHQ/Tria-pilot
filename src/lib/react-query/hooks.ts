@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
-// User data hook
+// User data hook - optimized for performance
 export function useUser() {
   return useQuery({
     queryKey: ['user'],
@@ -21,12 +21,12 @@ export function useUser() {
       const data = await res.json()
       return data.user || null
     },
-    staleTime: 30 * 1000, // Consider data stale after 30 seconds
-    gcTime: 60 * 1000, // Keep in cache for 1 minute
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes (user data doesn't change often)
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
     retry: false, // Don't retry on 401 errors
-    refetchOnMount: 'always', // Always refetch when component mounts
-    refetchOnWindowFocus: true, // Refetch when window regains focus
-    refetchOnReconnect: true, // Refetch when network reconnects
+    refetchOnMount: false, // Don't refetch if data is fresh (reduces API calls)
+    refetchOnWindowFocus: false, // Don't refetch on focus (reduces unnecessary calls)
+    refetchOnReconnect: true, // Only refetch when network reconnects
   })
 }
 

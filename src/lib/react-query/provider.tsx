@@ -9,20 +9,22 @@ export function ReactQueryProvider({ children }: { children: React.ReactNode }) 
       new QueryClient({
         defaultOptions: {
           queries: {
-            // Stale time: data is considered fresh for 30 seconds
-            staleTime: 30 * 1000,
-            // Cache time: data stays in cache for 5 minutes
-            gcTime: 5 * 60 * 1000,
+            // Stale time: data is considered fresh for 60 seconds (increased for better caching)
+            staleTime: 60 * 1000,
+            // Cache time: data stays in cache for 10 minutes (increased)
+            gcTime: 10 * 60 * 1000,
             // Retry failed requests once
             retry: 1,
-            // Refetch on window focus only for critical data
+            // Don't refetch on window focus (reduces unnecessary calls)
             refetchOnWindowFocus: false,
-            // Refetch on reconnect
+            // Refetch on reconnect (important for offline/online transitions)
             refetchOnReconnect: true,
             // Don't refetch on mount if data is fresh (reduces API calls)
             refetchOnMount: false,
             // Network mode: prefer cache first
             networkMode: 'online',
+            // Enable structural sharing for better performance
+            structuralSharing: true,
           },
           mutations: {
             // Retry mutations once

@@ -25,7 +25,7 @@ export default function Header() {
     const pathname = usePathname()
     const router = useRouter()
     const queryClient = useQueryClient()
-    const { data: user, isLoading, refetch: refetchUser } = useUser()
+    const { data: user, isLoading } = useUser()
     const [scrolled, setScrolled] = useState(false)
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
@@ -40,13 +40,8 @@ export default function Header() {
         return () => window.removeEventListener('scroll', handleScroll)
     }, [])
 
-    // Refetch user data when navigating to brand/influencer pages to ensure fresh data
-    useEffect(() => {
-        if (pathname && (pathname.startsWith('/brand') || pathname.startsWith('/influencer'))) {
-            // Refetch user data to ensure we have the latest role
-            refetchUser()
-        }
-    }, [pathname, refetchUser])
+    // No need to refetch - React Query cache is shared and fresh
+    // The useUser hook already handles caching and will refetch when needed
 
     if (isAuthPage) {
         return null
