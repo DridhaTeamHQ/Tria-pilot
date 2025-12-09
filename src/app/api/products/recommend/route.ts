@@ -115,6 +115,7 @@ export async function GET(request: Request) {
         name: true,
         description: true,
         category: true,
+        audience: true, // Added for similarity matching
         brand: {
           select: {
             id: true,
@@ -155,8 +156,8 @@ export async function GET(request: Request) {
         .filter((p: any) => {
           // Same category
           if (p.category === currentProduct.category) return true
-          // Same brand
-          if (p.brandId === currentProduct.brandId) return true
+          // Same brand (access via brand.id since we're using select)
+          if (p.brand?.id === currentProduct.brand?.id) return true
           // Similar audience
           if (p.audience === currentProduct.audience) return true
           return false
