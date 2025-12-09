@@ -29,7 +29,7 @@ function createPrismaClient() {
 
   // Handle pool errors gracefully - don't crash on connection errors
   // In serverless, connections can be terminated abruptly
-  pool.on('error', (err) => {
+  pool.on('error', (err: Error & { code?: string }) => {
     // Only log fatal errors, ignore connection termination errors
     if (err.code === 'XX000' || err.message?.includes('DbHandler exited')) {
       // This is a connection termination - expected in serverless
