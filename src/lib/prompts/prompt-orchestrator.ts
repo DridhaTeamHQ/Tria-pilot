@@ -35,6 +35,8 @@ PRESERVE CLOTHING (Exact Match):
 - Color, texture, pattern - EXACT MATCH
 - Accessories: ONLY if they exist in input image - NEVER ADD
 - Never add: chains, jackets, glasses, earrings, new patterns
+- CRITICAL: Clothing reference image is for GARMENT EXTRACTION ONLY - COMPLETELY IGNORE any face, person, or identity in clothing image
+- ONLY ONE PERSON in output - the person from person image. NO second person from clothing image
 
 PRESERVE BODY LANGUAGE:
 - Pose, silhouette, body language - EXACT MATCH
@@ -47,6 +49,9 @@ YOU MUST NEVER:
 - ADD BEARD OR STUBBLE TO CLEAN-SHAVEN PERSON
 - Alter gender characteristics (CRITICAL: female/woman MUST stay female/woman, male/man MUST stay male/man)
 - Change body proportions that are gender-specific (curves, hip-to-waist ratio, breast shape for women; shoulder width, masculine structure for men)
+- Extract or use ANY face from clothing reference image - COMPLETELY IGNORE any face in clothing image
+- Create multiple people - ONLY ONE PERSON in output (from person image)
+- Use any identity/face/body from clothing image - it is GARMENT EXTRACTION ONLY
 - Add or remove tattoos, piercings
 - Change clothing category
 

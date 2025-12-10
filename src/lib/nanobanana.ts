@@ -124,13 +124,22 @@ export async function generateTryOn(options: TryOnOptions): Promise<string> {
   • NO "Westernizing" or altering ethnicity
   • NO "Face Swapping" with a generic model - USE THE SOURCE FACE.
   • NO Gender Alteration - if person is female/woman, output MUST be female/woman with correct body proportions. If person is male/man, output MUST be male/man.
+  • NO extracting faces from clothing image - COMPLETELY IGNORE any face in clothing reference
+  • NO creating multiple people - ONLY ONE PERSON in output (from Person Image)
+  • NO using any identity/face/body from clothing image - it is GARMENT ONLY
 
 ═══════════════════════════════════════════════════════════════════════════
- 2. CLOTHING EXECUTION:
+ 2. CLOTHING EXECUTION (CRITICAL - READ CAREFULLY):
 ═══════════════════════════════════════════════════════════════════════════
- • Extract garment from Clothing Image.
- • Apply it naturally to the subject.
- • IGNORE the model in the clothing image (cut the head off mentally).
+ ⚠️⚠️⚠️ CLOTHING IMAGE IS FOR GARMENT EXTRACTION ONLY ⚠️⚠️⚠️
+ 
+ • Extract ONLY the garment/clothing from Clothing Image: color, pattern, texture, buttons, zippers, fabric details
+ • COMPLETELY IGNORE ANY FACE in the clothing image - DO NOT extract, copy, or use ANY facial features from it
+ • COMPLETELY IGNORE ANY PERSON in the clothing image - DO NOT extract, copy, or use ANY body parts, skin, hair, or identity from it
+ • DO NOT create a second person from the clothing image - ONLY ONE PERSON should appear in the output (the person from Person Image)
+ • If you see a face in the clothing image, PRETEND IT DOES NOT EXIST - focus ONLY on the garment itself
+ • Apply the extracted garment naturally to the person from Person Image
+ • The output must show ONLY the person from Person Image wearing the extracted garment - NO other people, NO faces from clothing image
 
 ═══════════════════════════════════════════════════════════════════════════
  3. SCENE & STYLE (ATMOSPHERE ONLY):
@@ -162,6 +171,8 @@ ${prompt}
  • PRESERVE: Hair length and style (Short stays short).
 
  ⛔ DO NOT BE CREATIVE WITH THE FACE. COPY IT.
+ ⛔ DO NOT extract or use ANY face from the clothing image - ONLY use the person from Image 1.
+ ⛔ ONLY ONE PERSON in output - the person from Image 1. NO second person from clothing image.
 
 ═══════════════════════════════════════════════════════════════════════════
  STYLE INSTRUCTIONS:
@@ -174,7 +185,7 @@ ${prompt}
  If style prompts differ from the face in Image 1, IGNORE style.
  IDENTITY IS KING.
  
- OUTPUT: The SAME PERSON from Image 1, wearing the new clothes.`
+ OUTPUT: The SAME PERSON from Image 1, wearing the new clothes. ONLY ONE PERSON. NO second person from clothing image.`)
 
     contents.push(enhancedPrompt)
 
@@ -236,8 +247,23 @@ ${prompt}
     }
 
     // 3. Add clothing image if provided
-    // USE SAME APPROACH FOR BOTH MODELS - single clothing image
+    // CRITICAL: Add strict instructions BEFORE clothing image to ignore faces
     if (clothingImage) {
+      contents.push(`⚠️⚠️⚠️ CRITICAL CLOTHING IMAGE RULES - READ CAREFULLY ⚠️⚠️⚠️
+      
+THE NEXT IMAGE IS A CLOTHING REFERENCE IMAGE ONLY.
+
+STRICT RULES FOR CLOTHING IMAGE:
+1. EXTRACT ONLY THE GARMENT/CLOTHING - color, pattern, texture, buttons, zippers, fabric details
+2. COMPLETELY IGNORE ANY FACE in this image - DO NOT extract, copy, or use ANY facial features
+3. COMPLETELY IGNORE ANY PERSON in this image - DO NOT extract, copy, or use ANY body parts, skin, hair, or identity
+4. DO NOT create a second person from this image - ONLY ONE PERSON should appear in the output (the person from the Person Image)
+5. This image is ONLY for CLOTHING/GARMENT extraction - treat it like a flat lay or product photo
+6. If you see a face in the clothing image, PRETEND IT DOES NOT EXIST - focus ONLY on the garment itself
+7. The output must show ONLY the person from the Person Image wearing this garment - NO other people
+
+REMEMBER: Clothing image = GARMENT ONLY. Person image = IDENTITY ONLY.`)
+
       const cleanClothingImage = clothingImage.replace(/^data:image\/[a-z]+;base64,/, '')
       if (cleanClothingImage && cleanClothingImage.length >= 100) {
         contents.push({
@@ -246,7 +272,15 @@ ${prompt}
             mimeType: 'image/jpeg',
           },
         } as any)
-        console.log('👕 Added clothing image (1x) for clothing reference')
+        
+        // Add reinforcement after clothing image
+        contents.push(`✅ CLOTHING IMAGE PROCESSED:
+- Did you extract ONLY the garment details? (color, pattern, texture, buttons, zippers)
+- Did you COMPLETELY IGNORE any face in that image?
+- Did you COMPLETELY IGNORE any person/body in that image?
+- Remember: ONLY ONE PERSON in output (from Person Image), wearing the extracted garment.`)
+        
+        console.log('👕 Added clothing image (1x) for clothing reference with strict face-ignoring rules')
       } else {
         console.warn('Clothing image appears invalid, skipping')
       }
@@ -262,12 +296,14 @@ ${prompt}
     } as any)
     contents.push(`FINAL IDENTITY CONFIRMATION:
 THIS IS A CLONING TASK - NOT A GENERATION TASK.
-1. The FACE in output MUST be an exact digital copy of this person.
-2. The GENDER EXPRESSION MUST match exactly (female/woman stays female/woman, male/man stays male/man) - CRITICAL.
-3. The HAIR MUST match this person's length and style (Short stays short).
-4. The BODY MUST match this person's build and gender-specific characteristics (No slimming, preserve curves for women, masculine structure for men).
-5. The CLOTHING MUST match the specific garment provided.
-DO NOT GENERATE A RANDOM PERSON. REPLICATE THIS IDENTITY EXACTLY.`)
+1. The FACE in output MUST be an exact digital copy of THIS person (from Person Image) - NO other faces.
+2. ONLY ONE PERSON in the output - the person from Person Image. NO second person from clothing image.
+3. The GENDER EXPRESSION MUST match exactly (female/woman stays female/woman, male/man stays male/man) - CRITICAL.
+4. The HAIR MUST match this person's length and style (Short stays short).
+5. The BODY MUST match this person's build and gender-specific characteristics (No slimming, preserve curves for women, masculine structure for men).
+6. The CLOTHING MUST match the specific garment from clothing image (color, pattern, texture) - but IGNORE any face/person in clothing image.
+7. COMPLETELY IGNORE any face, person, or identity in the clothing image - it is for GARMENT EXTRACTION ONLY.
+DO NOT GENERATE A RANDOM PERSON. DO NOT CREATE A SECOND PERSON. REPLICATE THIS IDENTITY EXACTLY.`)
     console.log('🔒 Added person image AGAIN at end for identity anchor')
 
     // Build image config
