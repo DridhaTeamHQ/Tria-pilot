@@ -220,7 +220,7 @@ PRIORITY ORDER: IDENTITY > CLOTHING > BODY > STYLE/PRESET
 
 IDENTITY IS KING. CLOTHING IS QUEEN. STYLE IS SERVANT.
 
-OUTPUT: The SAME PERSON from Image 1 wearing the new clothes. ONLY ONE PERSON. NO second person from clothing image.`)
+OUTPUT: The SAME PERSON from Image 1 wearing the new clothes. ONLY ONE PERSON. NO second person from clothing image.`;
 
     contents.push(enhancedPrompt)
 
