@@ -8,7 +8,8 @@ const getClient = () => {
 }
 
 export interface TryOnOptions {
-  personImage: string // base64 (with or without data URI prefix)
+  personImage: string // base64 (with or without data URI prefix) - primary image
+  personImages?: string[] // Optional: additional person images for Pro model (up to 5 total for character consistency)
   clothingImage?: string // base64 (with or without data URI prefix)
   prompt: string
   model?: 'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview'
@@ -74,6 +75,7 @@ export interface TryOnOptions {
 export async function generateTryOn(options: TryOnOptions): Promise<string> {
   const {
     personImage,
+    personImages = [], // Additional person images for Pro model
     clothingImage,
     prompt,
     model = 'gemini-2.5-flash-image', // Default to Flash (faster, cheaper, good quality)
@@ -93,62 +95,90 @@ export async function generateTryOn(options: TryOnOptions): Promise<string> {
     const contents: ContentListUnion = []
 
     // 1. Pro-specific vs Flash prompting
-    // Pro needs "character DNA" approach, Flash works with simpler prompts
+    // SIMPLIFIED: Complex prompts confuse Pro model. Simpler is better.
     const isPro = model === 'gemini-3-pro-image-preview'
 
     const enhancedPrompt = isPro
-      ? `STRICT IDENTITY PRESERVATION - CHARACTER REFERENCE SYSTEM
+      ? `TASK: HIGH-FIDELITY FACE CLONING & CLOTHING COMPOSITING
+═══════════════════════════════════════════════════════════════════════════
+ OBJECTIVE:
+═══════════════════════════════════════════════════════════════════════════
+ Clone the exact identity (face, features, skin) from the PERSON IMAGES.
+ Composite them wearing the garment from the CLOTHING IMAGE.
+ This is NOT a "creative generation" - this is a REPLICATION task.
 
-The person image is the IDENTITY ANCHOR. You MUST copy this person EXACTLY.
+═══════════════════════════════════════════════════════════════════════════
+ 1. IDENTITY EXECUTION (CRITICAL):
+═══════════════════════════════════════════════════════════════════════════
+ START with the Person Image (Image 1).
+ PRESERVE EXACT facial topography:
+  • Exact Bone Structure (jawline, cheekbones, chin)
+  • Exact Feature Shapes (eyes, nose, lips are UNCHANGEABLE constants)
+  • Exact Skin Details (moles, pores, scars, texture - DO NOT SMOOTH)
+  • Exact Hair (length, color, style - DO NOT GROW HAIR)
+  • Exact Body Type (weight, build, proportions - DO NOT SLIM)
 
-⛔ CRITICAL FACIAL HAIR RULE:
-- If the person is CLEAN-SHAVEN → output MUST be CLEAN-SHAVEN (NO beard, NO stubble, NO facial hair)
-- If the person HAS A BEARD → output MUST have the EXACT SAME beard
-- NEVER add facial hair that doesn't exist in the reference
-- NEVER remove facial hair that exists in the reference
+ ⛔ FORBIDDEN:
+  • NO "Beautification" (do not fix skin, do not slim face)
+  • NO "De-aging" (preserve nasolabial folds, age signs)
+  • NO "Westernizing" or altering ethnicity
+  • NO "Face Swapping" with a generic model - USE THE SOURCE FACE.
+  • NO Gender Alteration - if person is female/woman, output MUST be female/woman with correct body proportions. If person is male/man, output MUST be male/man.
 
-⛔ FACE IDENTITY RULES (100% MATCH REQUIRED):
-- Face shape: EXACT same width, length, jawline angle
-- Eyes: EXACT same shape, size, spacing, color
-- Nose: EXACT same shape and size
-- Lips: EXACT same shape and fullness
-- Skin tone: EXACT same color and texture
-- Hair: EXACT same style, color, length
-- Glasses: If present in reference, MUST be in output
+═══════════════════════════════════════════════════════════════════════════
+ 2. CLOTHING EXECUTION:
+═══════════════════════════════════════════════════════════════════════════
+ • Extract garment from Clothing Image.
+ • Apply it naturally to the subject.
+ • IGNORE the model in the clothing image (cut the head off mentally).
 
-CHARACTER DNA (from person image):
-- This person's face is SACRED - do not modify it
-- Use this exact person's face, body shape, skin tone, hair
-- Face must be 100% identical to the reference
+═══════════════════════════════════════════════════════════════════════════
+ 3. SCENE & STYLE (ATMOSPHERE ONLY):
+═══════════════════════════════════════════════════════════════════════════
+${prompt}
 
-CLOTHING (from clothing image):
-- Dress the character in this exact outfit
-- Match the exact color, pattern, and style
+═══════════════════════════════════════════════════════════════════════════
+ FINAL OVERRIDE:
+═══════════════════════════════════════════════════════════════════════════
+ IF Style conflicts with Identity (e.g. style says "smile" but person is serious),
+ IDENTITY WINS. IGNORE STYLE. KEEP ORIGINAL FACE.
 
-SCENE: ${prompt}
+ OUTPUT: PHOTOREALISTIC CLONE OF THE PERSON IN THE CLOTHES.`
+      : `TASK: EXACT FACE REPLICATION & TRY-ON
+═══════════════════════════════════════════════════════════════════════════
+ OBJECTIVE: TRANSFER CLOTHING TO THIS EXACT PERSON
+═══════════════════════════════════════════════════════════════════════════
+ • IMAGE 1 (PERSON): SOURCE OF TRUTH. Copy this face piixel-perfectly.
+ • IMAGE 2 (CLOTHING): Source of garment.
 
-OUTPUT: Same character from reference (EXACT FACE - no modifications to facial hair), wearing the clothing, in the scene.`
-      : `STRICT IDENTITY PRESERVATION - VIRTUAL TRY-ON
+═══════════════════════════════════════════════════════════════════════════
+ IDENTITY RULES (NON-NEGOTIABLE):
+═══════════════════════════════════════════════════════════════════════════
+ • The face in the output MUST be a digital clone of Image 1.
+ • PRESERVE: Face shape, nose width, jawline, cheek fullness.
+ • PRESERVE: Gender expression EXACTLY (female/woman stays female/woman, male/man stays male/man) - CRITICAL.
+ • PRESERVE: Skin irregularities, moles, signs of age (No beautification).
+ • PRESERVE: Body size and proportions (No slimming). For women: preserve curves, hip-to-waist ratio, breast shape. For men: preserve masculine structure, shoulder width.
+ • PRESERVE: Hair length and style (Short stays short).
 
-⛔ CRITICAL FACIAL HAIR RULE:
-- If the person is CLEAN-SHAVEN → output MUST be CLEAN-SHAVEN (NO beard, NO stubble)
-- If the person HAS A BEARD → output MUST have the EXACT SAME beard
-- NEVER add or remove facial hair
+ ⛔ DO NOT BE CREATIVE WITH THE FACE. COPY IT.
 
-⛔ FACE IDENTITY RULES:
-- Face shape, eyes, nose, lips, skin tone: EXACT MATCH to reference
-- Hair style and color: EXACT MATCH
-- Glasses if present: MUST remain
+═══════════════════════════════════════════════════════════════════════════
+ STYLE INSTRUCTIONS:
+═══════════════════════════════════════════════════════════════════════════
+${prompt}
 
-PERSON: Use the exact face, body, and features from the person reference image. Face 100% same as reference.
-CLOTHING: Put the exact clothing from the product reference onto the person.
-SCENE: ${prompt}
-
-Keep the person's face, hair, glasses, facial hair (or lack thereof) EXACTLY as shown in the reference photo. Do not modify the person's appearance.`
+═══════════════════════════════════════════════════════════════════════════
+ PRIORITY FINAL CHECK:
+═══════════════════════════════════════════════════════════════════════════
+ If style prompts differ from the face in Image 1, IGNORE style.
+ IDENTITY IS KING.
+ 
+ OUTPUT: The SAME PERSON from Image 1, wearing the new clothes.`
 
     contents.push(enhancedPrompt)
 
-    // 2. Add person image (CRITICAL for identity)
+    // 2. Add person image(s) (CRITICAL for identity)
     if (!personImage) {
       throw new Error('Person image is required for try-on generation')
     }
@@ -158,18 +188,52 @@ Keep the person's face, hair, glasses, facial hair (or lack thereof) EXACTLY as 
       throw new Error('Invalid person image: image data is too short or empty')
     }
 
-    // Pro model: Add person image 3x for stronger character DNA (uses human reference slots)
-    // Flash model: Single image works best
-    const personCopies = isPro ? 3 : 1
-    for (let i = 0; i < personCopies; i++) {
+    // Pro model: Use multiple person images for stronger character DNA (up to 5 human references)
+    // If user provided additional images, use them. Otherwise, duplicate the primary image 3x
+    if (isPro) {
+      // Collect all person images (primary + additional)
+      const allPersonImages = [cleanPersonImage]
+
+      // Add any additional person images provided by user
+      for (const additionalImage of personImages.slice(0, 4)) { // Max 4 additional = 5 total
+        const cleanAdditional = additionalImage.replace(/^data:image\/[a-z]+;base64,/, '')
+        if (cleanAdditional && cleanAdditional.length >= 100) {
+          allPersonImages.push(cleanAdditional)
+        }
+      }
+
+      // If user didn't provide multiple images, duplicate the primary for reinforcement
+      while (allPersonImages.length < 3) {
+        allPersonImages.push(cleanPersonImage)
+      }
+
+      // Add all person images to contents
+      for (let i = 0; i < allPersonImages.length; i++) {
+        contents.push({
+          inlineData: {
+            data: allPersonImages[i],
+            mimeType: 'image/jpeg',
+          },
+        } as any)
+      }
+      console.log(`📸 Added ${allPersonImages.length} person image(s) for Pro character DNA(${personImages.length > 0 ? 'user provided' : 'auto-replicated'})`)
+    } else {
+      // Flash model: Boosting identity signal with key duplication
+      // Send image twice to force attention
       contents.push({
         inlineData: {
           data: cleanPersonImage,
           mimeType: 'image/jpeg',
         },
       } as any)
+      contents.push({
+        inlineData: {
+          data: cleanPersonImage,
+          mimeType: 'image/jpeg',
+        },
+      } as any)
+      console.log('📸 Added person image 2x for Flash face reference')
     }
-    console.log(`📸 Added person image ${personCopies}x for ${isPro ? 'character DNA' : 'face reference'}`)
 
     // 3. Add clothing image if provided
     // USE SAME APPROACH FOR BOTH MODELS - single clothing image
@@ -187,6 +251,24 @@ Keep the person's face, hair, glasses, facial hair (or lack thereof) EXACTLY as 
         console.warn('Clothing image appears invalid, skipping')
       }
     }
+
+    // 4. Add person image AGAIN at the end to reinforce face identity
+    // Research shows repeating the reference face helps preserve identity
+    contents.push({
+      inlineData: {
+        data: cleanPersonImage,
+        mimeType: 'image/jpeg',
+      },
+    } as any)
+    contents.push(`FINAL IDENTITY CONFIRMATION:
+THIS IS A CLONING TASK - NOT A GENERATION TASK.
+1. The FACE in output MUST be an exact digital copy of this person.
+2. The GENDER EXPRESSION MUST match exactly (female/woman stays female/woman, male/man stays male/man) - CRITICAL.
+3. The HAIR MUST match this person's length and style (Short stays short).
+4. The BODY MUST match this person's build and gender-specific characteristics (No slimming, preserve curves for women, masculine structure for men).
+5. The CLOTHING MUST match the specific garment provided.
+DO NOT GENERATE A RANDOM PERSON. REPLICATE THIS IDENTITY EXACTLY.`)
+    console.log('🔒 Added person image AGAIN at end for identity anchor')
 
     // Build image config
     const imageConfig = {
@@ -216,7 +298,7 @@ Keep the person's face, hair, glasses, facial hair (or lack thereof) EXACTLY as 
     })
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(2)
-    console.log(`✅ Gemini responded in ${duration}s`)
+    console.log(`✅ Gemini responded in ${duration} s`)
 
     // Extract image from response
     if (response.data) {
@@ -230,7 +312,7 @@ Keep the person's face, hair, glasses, facial hair (or lack thereof) EXACTLY as 
       if (candidate.content && candidate.content.parts) {
         for (const part of candidate.content.parts) {
           if (part.inlineData && part.inlineData.mimeType?.startsWith('image/')) {
-            console.log(`✅ Image extracted from candidates (${part.inlineData.mimeType})`)
+            console.log(`✅ Image extracted from candidates(${part.inlineData.mimeType})`)
             return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`
           }
         }
@@ -255,7 +337,7 @@ Keep the person's face, hair, glasses, facial hair (or lack thereof) EXACTLY as 
         throw error // Re-throw validation errors as-is
       }
       // Re-throw with original message
-      throw new Error(`Gemini generation failed: ${error.message}`)
+      throw new Error(`Gemini generation failed: ${error.message} `)
     }
 
     throw new Error('Failed to generate image with Gemini')

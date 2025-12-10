@@ -24,10 +24,11 @@ Your job: keep identity, clothing, face structure, body shape, and real features
 
 PRESERVE IDENTITY (Zero Deviation):
 - Face structure: jaw, cheekbones, eyes, nose, eyebrows, lips - EXACT MATCH
+- Gender expression: EXACT MATCH (female/woman stays female/woman, male/man stays male/man) - CRITICAL
 - Facial hair: EXACT MATCH (clean-shaven stays clean-shaven, beard stays beard)
 - Hair: length, density, placement - EXACT MATCH
 - Skin tone and undertone - EXACT MATCH
-- Body proportions and shape - EXACT MATCH
+- Body proportions and shape - EXACT MATCH (preserve gender-specific characteristics: curves, hip-to-waist ratio for women; shoulder width, masculine structure for men)
 
 PRESERVE CLOTHING (Exact Match):
 - Garment type: T-shirt stays T-shirt, kurta stays kurta - NO CATEGORY CHANGES
@@ -44,7 +45,8 @@ YOU MUST NEVER:
 - Alter hair
 - Alter face
 - ADD BEARD OR STUBBLE TO CLEAN-SHAVEN PERSON
-- Alter gender characteristics
+- Alter gender characteristics (CRITICAL: female/woman MUST stay female/woman, male/man MUST stay male/man)
+- Change body proportions that are gender-specific (curves, hip-to-waist ratio, breast shape for women; shoulder width, masculine structure for men)
 - Add or remove tattoos, piercings
 - Change clothing category
 
@@ -280,8 +282,8 @@ function buildUserMessage(
   }
 
   message += `Generate a production-level prompt in this EXACT format:\n\n`
-  message += `IDENTITY:\n[Preserve EXACT face structure (jawline, cheekbones, eyes, nose, lips - IDENTICAL to input), hair (length/color/texture), skin tone from analysis JSON]\n\n`
-  message += `BODY:\n[Preserve body proportions from analysis JSON. Apply pose guidance from preset if specified.]\n\n`
+  message += `IDENTITY:\n[Preserve EXACT face structure (jawline, cheekbones, eyes, nose, lips - IDENTICAL to input), hair (length/color/texture), skin tone from analysis JSON. CRITICAL: Preserve gender_expression EXACTLY - if person is female/woman, output MUST be female/woman with correct body proportions, curves, and characteristics. If person is male/man, output MUST be male/man. NEVER alter gender characteristics.]\n\n`
+  message += `BODY:\n[Preserve body proportions from analysis JSON EXACTLY. If gender_expression is female/woman: preserve natural curves, hip-to-waist ratio, breast shape, and feminine body characteristics. If gender_expression is male/man: preserve masculine body structure, shoulder width, and male proportions. Apply pose guidance from preset if specified, but NEVER alter gender-specific body characteristics.]\n\n`
   message += `CLOTHING:\n[Preserve EXACT garment type, color, pattern, texture from analysis JSON]\n\n`
   if (preset) {
     const backgroundDesc = preset.background || (preset.positive?.join(', ') || 'preset style')
@@ -383,9 +385,16 @@ function validatePrompt(prompt: string): void {
 function generateFallbackPrompt(analysis: GeminiAnalysis, preset: TryOnPreset | null): string {
   let prompt = `IDENTITY:\n`
   prompt += `- Preserve exact face structure: ${analysis.person.face_shape}, ${analysis.person.eye_shape} eyes, ${analysis.person.nose_shape} nose, ${analysis.person.lips} lips\n`
+  prompt += `- CRITICAL: Preserve exact gender expression: ${analysis.person.gender_expression} - output MUST match this exactly\n`
   prompt += `- Preserve exact hair: ${analysis.person.hair_length}, ${analysis.person.hair_texture}, ${analysis.person.hair_color}\n`
   prompt += `- Preserve exact skin tone: ${analysis.person.skin_tone}\n`
-  prompt += `- Preserve exact body proportions: ${analysis.body.build}, ${analysis.body.height_range}\n\n`
+  prompt += `- Preserve exact body proportions: ${analysis.body.build}, ${analysis.body.height_range}\n`
+  if (analysis.person.gender_expression?.toLowerCase().includes('female') || analysis.person.gender_expression?.toLowerCase().includes('woman')) {
+    prompt += `- CRITICAL FOR WOMEN: Preserve natural curves, hip-to-waist ratio, breast shape, and all feminine body characteristics\n`
+  } else if (analysis.person.gender_expression?.toLowerCase().includes('male') || analysis.person.gender_expression?.toLowerCase().includes('man')) {
+    prompt += `- CRITICAL FOR MEN: Preserve masculine body structure, shoulder width, and male proportions\n`
+  }
+  prompt += `\n`
 
   prompt += `BODY:\n`
   prompt += `- Preserve exact pose: ${analysis.body.pose}\n`

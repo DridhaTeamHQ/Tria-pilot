@@ -32,12 +32,22 @@ export function buildPrompt(
   clothingDescription?: string
 ): string {
   // Base instruction
-  const baseInstruction = `You are generating a virtual clothing try-on image.
-
+  const baseInstruction = `You are performing a FACE PRESERVATION and CLOTHING COMPOSITE task.
+  
 Rules:
+- PRIMARY GOAL: The face pixels in the output must match the Input Person Image EXACTLY.
+- SECONDARY GOAL: Apply the clothing from the Input Clothing Image.
 - Keep the person's identity, face, posture, expression and anatomy exactly as they appear in the input photo.
 - Interpret the style preset only as guidance for atmosphere, lighting mood, background interpretation and camera feel.
-- Do not reinterpret or redesign the person.`
+- Do not reinterpret or redesign the person.
+
+ANTI-BEAUTIFICATION (CRITICAL - DO NOT VIOLATE):
+- Face SHAPE: Preserve EXACTLY - round face stays round, DO NOT slim or elongate
+- CHEEKS: Full cheeks MUST stay full - DO NOT reduce cheek fullness
+- NOSE: Preserve exact nose WIDTH - DO NOT thin or narrow the nose bridge
+- BODY BUILD: Preserve exact body size - DO NOT slim or shrink the body
+- The AI naturally wants to "beautify" - RESIST this tendency completely
+- The reference person is PERFECT AS-IS - do not "improve" any features`
 
   // Scene Style (from preset positive modifiers)
   const sceneStyle = preset?.positive && preset.positive.length > 0
@@ -335,12 +345,25 @@ export function buildTryOnPrompt(
 
   let prompt = ''
 
-  // PUT SCENE/BACKGROUND FIRST for maximum impact
+  // Add "no preset" default instruction - Higgsfield style
+  if (!presetUsed) {
+    prompt += `CLOTHING CHANGE - PRESERVE ORIGINAL CONTEXT\n`
+    prompt += `The reference person remains in their original environment, the authentic backdrop preserved exactly as captured. Only the garment changes—the new clothing drapes naturally over their frame with visible fabric texture, realistic creases, and subtle shadows where cloth meets skin. Their face retains every genuine detail: subtle pores, natural shadows, the lived-in quality of real human skin. Same apparent age, same features, same identity.\n\n`
+  }
+
+  // Scene change with Higgsfield-style descriptive language
   if (presetUsed) {
-    prompt += `🎬 SCENE/BACKGROUND (APPLY THIS SCENE - THIS IS THE MAIN VISUAL CHANGE)\n`
-    prompt += `=================================================================\n`
-    prompt += `**PRESET: ${presetUsed.name}**\n`
+    // CRITICAL: Explicit clothing preservation instruction
+    prompt += `⚠️ CRITICAL CLOTHING RULE - DO NOT OVERRIDE:\n`
+    prompt += `The clothing MUST be EXACTLY what is shown in the clothing reference image. DO NOT invent, replace, or modify the clothing based on the preset description. The preset ONLY controls the scene, background, lighting, and pose - NEVER the clothing.\n\n`
+
+    prompt += `SCENE: ${presetUsed.name}\n`
     prompt += `${presetUsed.description}\n\n`
+
+    // Photography Style
+    if ((presetUsed as any).photographyStyle) {
+      prompt += `STYLE: ${(presetUsed as any).photographyStyle}\n\n`
+    }
 
     if (presetUsed.background) {
       prompt += `📍 LOCATION/BACKGROUND: ${presetUsed.background}\n`
@@ -358,44 +381,88 @@ export function buildTryOnPrompt(
       }
     }
 
+    // Enhanced lighting with shadows
     if (presetUsed.lighting) {
       prompt += `💡 LIGHTING: ${presetUsed.lighting.type} from ${presetUsed.lighting.source}, ${presetUsed.lighting.quality}, ${presetUsed.lighting.colorTemp}\n`
+      if ((presetUsed.lighting as any).shadows) {
+        prompt += `🌑 SHADOWS: ${(presetUsed.lighting as any).shadows}\n`
+      }
     }
 
+    // Enhanced camera with device and film grain
     if (presetUsed.camera_style) {
-      prompt += `📷 CAMERA: ${presetUsed.camera_style.angle}, ${presetUsed.camera_style.lens}, ${presetUsed.camera_style.framing}\n`
+      let cameraLine = `📷 CAMERA: ${presetUsed.camera_style.angle}, ${presetUsed.camera_style.lens}, ${presetUsed.camera_style.framing}`
+      if ((presetUsed.camera_style as any).device) {
+        cameraLine += `, ${(presetUsed.camera_style as any).device}`
+      }
+      if ((presetUsed.camera_style as any).filmGrain) {
+        cameraLine += `, ${(presetUsed.camera_style as any).filmGrain}`
+      }
+      prompt += cameraLine + '\n'
+    }
+
+    // NEW: Texture Details for Hyper-Realism
+    if ((presetUsed as any).textureDetails) {
+      const tex = (presetUsed as any).textureDetails
+      prompt += `\n🔬 TEXTURE FIDELITY (CRITICAL FOR REALISM):\n`
+      if (tex.skin) {
+        prompt += `  • SKIN: ${tex.skin}\n`
+      }
+      if (tex.fabric) {
+        prompt += `  • FABRIC: ${tex.fabric}\n`
+      }
+      if (tex.environment) {
+        prompt += `  • ENVIRONMENT: ${tex.environment}\n`
+      }
+      if (tex.accessories) {
+        prompt += `  • ACCESSORIES: ${tex.accessories}\n`
+      }
     }
 
     if (presetUsed.pose) {
       prompt += `🧍 POSE: ${presetUsed.pose.stance}. Arms: ${presetUsed.pose.arms}. Expression: ${presetUsed.pose.expression}\n`
     }
 
-    prompt += `\n⚠️ THIS SCENE/BACKGROUND IS MANDATORY - The output MUST show this environment.\n`
-    prompt += `=================================================================\n\n`
+    prompt += `\nCAMERA (Higgsfield-style): Casual framing with slight tilt, authentic skin texture with subtle highlights, natural shadows from mixed ambient light, minor grain—intimate and immediate like an iPhone snap.\n\n`
   }
 
-  prompt += '### ⛔ IDENTITY LOCK (MANDATORY - COPY FACE EXACTLY)\n'
-  prompt += '• COPY the EXACT face from the reference - DO NOT generate a different face\n'
-  prompt += '• COPY the EXACT jawline, face width, face length - NO changes allowed\n'
-  prompt += '• COPY the EXACT eyes, nose, lips, skin tone - NO changes allowed\n'
-  prompt += '• COPY the EXACT beard/facial hair - DO NOT modify\n'
-  prompt += '• COPY the EXACT glasses if present - DO NOT remove\n'
-  prompt += '• THIS IS THE SAME PERSON - IDENTITY PRESERVED\n\n'
+  // Identity with Higgsfield-style descriptive prose
+  prompt += 'IDENTITY PRESERVATION:\n'
+  prompt += 'The reference person\'s authentic skin texture reveals subtle pores, faint natural shadows, and genuine imperfections—the lived-in quality of actual human skin. Same apparent age preserved in every detail: the specific way skin creases, the precise facial hair density (or complete absence if clean-shaven), glasses if present. CRITICAL: Preserve gender expression EXACTLY - if the person is female/woman, the output MUST be female/woman with correct body proportions, curves, and feminine characteristics. If the person is male/man, the output MUST be male/man with masculine structure. Same body proportions with natural hand anatomy (5 fingers each). Zero beautification, zero de-aging, zero gender alteration.\n\n'
 
-  prompt += '### Clothing Rules\n'
-  prompt += '- Apply the clothing from the reference garment image onto the person.\n'
-  prompt += '- Match exact color, pattern, and texture from clothing reference.\n\n'
+  prompt += 'CLOTHING:\n'
+  prompt += 'The garment drapes naturally over their frame—visible fabric weave, realistic creases where fabric bends, subtle shadows where cloth meets skin.\n\n'
+
+  if (!presetUsed) {
+    prompt += 'BACKGROUND: The original environment preserved exactly as captured.\n\n'
+  }
 
   if (presetUsed) {
-    prompt += '### Apply These Style Modifiers:\n'
+    prompt += 'SCENE DETAILS:\n'
     prompt += styleBlock + '\n\n'
+
+    // Add explicit background texture requirements
+    prompt += 'BACKGROUND TEXTURE REALISM (NO BOKEH TO HIDE DETAIL):\n'
+    prompt += '• DO NOT use heavy bokeh to blur backgrounds - this is an AI crutch\n'
+    prompt += '• Keep backgrounds SHARP enough to see: building cracks, individual leaves, weathered textures\n'
+    prompt += '• Surfaces: hairline cracks, weathered edges, dust catching light, worn patina\n'
+    prompt += '• Stone/brick: mortar lines, moss in crevices, water stains clearly visible\n'
+    prompt += '• Ground: fallen leaves with visible veins, scattered debris, uneven textures\n'
+    prompt += '• Foliage: individual leaf detail with edges and veins, natural wilting, color variations\n'
+    prompt += '• Indoor: unmade beds, scattered items, worn furniture, dust motes in light beams\n'
+    prompt += '• Light: dappled shadows, uneven exposure, warmer highlights, cooler shadows\n'
+    prompt += '• NO heavy bokeh, NO artificially blurred backgrounds, NO CGI smooth surfaces\n\n'
+
+    // Color temperature rules to avoid AI look
+    prompt += 'COLOR TEMPERATURE (CRITICAL):\n'
+    prompt += '• Shadows MUST be cool (blue-gray), NOT warm throughout\n'
+    prompt += '• Only sun-touched highlights should be warm\n'
+    prompt += '• DO NOT uniformly warm-grade the entire image - this is the #1 AI tell\n\n'
   }
 
-  prompt += '### Avoid\n'
-  prompt += avoidBlock + '\n\n'
+  prompt += 'AVOID: Smooth plastic skin, de-aging, strange hands, overly polished advertisement look, CGI backgrounds, perfectly smooth surfaces, rendered lighting, HEAVY BOKEH TO HIDE BACKGROUND, clean sterile environments, artificial backdrop feel, UNIFORM WARM COLOR GRADING.\n\n'
 
-  prompt += '### Output\n'
-  prompt += 'Generate: SAME PERSON (face copied from reference) + CLOTHING + SCENE.'
+  prompt += 'OUTPUT: THE EXACT REFERENCE PERSON (Identity preserved) appearing in the new scene. Real face, real details, no AI generation artifacts.'
 
   const sanitizedPrompt = FORBIDDEN_PHRASES.reduce((acc, p) => {
     const replacement = SAFE_REPLACEMENTS[p] ?? 'preserve identity'
