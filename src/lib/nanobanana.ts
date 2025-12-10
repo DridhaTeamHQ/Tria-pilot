@@ -98,7 +98,7 @@ export async function generateTryOn(options: TryOnOptions): Promise<string> {
     // SIMPLIFIED: Complex prompts confuse Pro model. Simpler is better.
     const isPro = model === 'gemini-3-pro-image-preview'
 
-    const enhancedPrompt = isPro
+    const enhancedPrompt: string = isPro
       ? `TASK: HIGH-FIDELITY FACE CLONING & CLOTHING COMPOSITING
 ═══════════════════════════════════════════════════════════════════════════
  OBJECTIVE:
@@ -219,8 +219,8 @@ If style/preset prompts differ from the clothing, IGNORE style.
 PRIORITY ORDER: IDENTITY > CLOTHING > BODY > STYLE/PRESET
 
 IDENTITY IS KING. CLOTHING IS QUEEN. STYLE IS SERVANT.
- 
- OUTPUT: The SAME PERSON from Image 1 wearing the new clothes. ONLY ONE PERSON. NO second person from clothing image.`)
+
+OUTPUT: The SAME PERSON from Image 1 wearing the new clothes. ONLY ONE PERSON. NO second person from clothing image.`)
 
     contents.push(enhancedPrompt)
 
