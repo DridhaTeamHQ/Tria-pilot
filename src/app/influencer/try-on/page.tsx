@@ -5,820 +5,930 @@ import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { ShoppingBag, Upload, Sparkles, Palette, Download, RefreshCw, ArrowRight, X, Check, PartyPopper } from 'lucide-react'
+import { ShoppingBag, Upload, Sparkles, Palette, Download, RefreshCw, ArrowRight, X, Check, PartyPopper, AlertTriangle } from 'lucide-react'
 import { getAllPresets, type TryOnPreset } from '@/lib/prompts/try-on-presets'
 import { useProduct } from '@/lib/react-query/hooks'
 import { GeneratingOverlay } from '@/components/tryon/GeneratingOverlay'
 import { bounceInVariants } from '@/lib/animations'
 
 interface Product {
-  id: string
-  name: string
-  category?: string
-  brand?: {
-    companyName: string
-  }
-  tryOnImage?: string
+    id: string
+    name: string
+    category?: string
+    brand?: {
+        companyName: string
+    }
+    tryOnImage?: string
 }
 
 function TryOnPageContent() {
-  const searchParams = useSearchParams()
-  const productId = searchParams.get('productId')
+    const searchParams = useSearchParams()
+    const productId = searchParams.get('productId')
 
-  const [personImage, setPersonImage] = useState<string>('')
-  const [personImageBase64, setPersonImageBase64] = useState<string>('')
-  const [additionalPersonImages, setAdditionalPersonImages] = useState<string[]>([]) // For Pro model
-  const [additionalPersonImagesBase64, setAdditionalPersonImagesBase64] = useState<string[]>([]) // For Pro model
-  const [clothingImage, setClothingImage] = useState<string>('')
-  const [clothingImageBase64, setClothingImageBase64] = useState<string>('')
-  const [loading, setLoading] = useState(false)
-  const [uploadingImage, setUploadingImage] = useState<'person' | 'clothing' | 'additional' | null>(null)
-  const [result, setResult] = useState<{ jobId: string; imageUrl: string } | null>(null)
-  const [product, setProduct] = useState<Product | null>(null)
-  const [selectedPreset, setSelectedPreset] = useState<string>('')
-  const [presetCategory, setPresetCategory] = useState<string>('all')
-  const [selectedModel, setSelectedModel] = useState<'flash' | 'pro'>('flash')
-  const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '3:4' | '9:16'>('4:5')
-  const [quality, setQuality] = useState<'1K' | '2K' | '4K'>('2K')
-  const [dragOver, setDragOver] = useState<'person' | 'clothing' | null>(null)
-  const [showCelebration, setShowCelebration] = useState(false)
-  const presets = getAllPresets()
+    const [personImage, setPersonImage] = useState<string>('')
+    const [personImageBase64, setPersonImageBase64] = useState<string>('')
+    const [additionalPersonImages, setAdditionalPersonImages] = useState<string[]>([]) // For Pro model
+    const [additionalPersonImagesBase64, setAdditionalPersonImagesBase64] = useState<string[]>([]) // For Pro model
+    const [clothingImage, setClothingImage] = useState<string>('')
+    const [clothingImageBase64, setClothingImageBase64] = useState<string>('')
+    // NEW: Accessory states for Edit Mode
+    const [accessoryImages, setAccessoryImages] = useState<string[]>([])
+    const [accessoryTypes, setAccessoryTypes] = useState<('purse' | 'shoes' | 'hat' | 'jewelry' | 'bag' | 'watch' | 'sunglasses' | 'scarf' | 'other')[]>([])
+    const [loading, setLoading] = useState(false)
+    const [uploadingImage, setUploadingImage] = useState<'person' | 'clothing' | 'additional' | 'accessory' | null>(null)
+    const [result, setResult] = useState<{ jobId: string; imageUrl: string } | null>(null)
+    const [product, setProduct] = useState<Product | null>(null)
+    const [selectedPreset, setSelectedPreset] = useState<string>('')
+    const [presetCategory, setPresetCategory] = useState<string>('all')
+    const [selectedModel, setSelectedModel] = useState<'flash' | 'pro'>('flash')
+    const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '3:4' | '9:16'>('4:5')
+    const [quality, setQuality] = useState<'1K' | '2K' | '4K'>('2K')
+    const [dragOver, setDragOver] = useState<'person' | 'clothing' | null>(null)
+    const [showCelebration, setShowCelebration] = useState(false)
+    // Image Intelligence Analysis State
+    const [analyzing, setAnalyzing] = useState(false)
+    const [analysisWarnings, setAnalysisWarnings] = useState<string[]>([])
+    const [presetGroups, setPresetGroups] = useState<{ excellent: string[]; good: string[]; warning: string[] }>({ excellent: [], good: [], warning: [] })
+    const [suggestedAction, setSuggestedAction] = useState<string | null>(null)
+    const [bestPresetId, setBestPresetId] = useState<string | null>(null)
+    const presets = getAllPresets()
 
-  const { data: productData, isLoading: productLoading } = useProduct(productId)
+    const { data: productData, isLoading: productLoading } = useProduct(productId)
 
-  useEffect(() => {
-    if (productData && productData.id) {
-      const tryOnImageUrl = productData.images?.find((img: any) => img.isTryOnReference)?.imagePath
+    useEffect(() => {
+        if (productData && productData.id) {
+            const tryOnImageUrl = productData.images?.find((img: any) => img.isTryOnReference)?.imagePath
 
-      setProduct({
-        id: productData.id,
-        name: productData.name,
-        category: productData.category,
-        brand: productData.brand,
-        tryOnImage: tryOnImageUrl,
-      })
+            setProduct({
+                id: productData.id,
+                name: productData.name,
+                category: productData.category,
+                brand: productData.brand,
+                tryOnImage: tryOnImageUrl,
+            })
 
-      if (tryOnImageUrl && !clothingImage) {
-        setClothingImage(tryOnImageUrl)
+            if (tryOnImageUrl && !clothingImage) {
+                setClothingImage(tryOnImageUrl)
 
-        fetch(tryOnImageUrl)
-          .then((res) => res.blob())
-          .then((blob) => {
-            const reader = new FileReader()
-            reader.onloadend = () => {
-              const base64 = reader.result as string
-              setClothingImageBase64(base64)
-              toast.success(`Loaded try-on reference for ${productData.name}`)
+                fetch(tryOnImageUrl)
+                    .then((res) => res.blob())
+                    .then((blob) => {
+                        const reader = new FileReader()
+                        reader.onloadend = () => {
+                            const base64 = reader.result as string
+                            setClothingImageBase64(base64)
+                            toast.success(`Loaded try-on reference for ${productData.name}`)
+                        }
+                        reader.readAsDataURL(blob)
+                    })
+                    .catch((error) => {
+                        console.error('Failed to load image:', error)
+                        toast.error('Failed to load product image')
+                    })
             }
-            reader.readAsDataURL(blob)
-          })
-          .catch((error) => {
-            console.error('Failed to load image:', error)
-            toast.error('Failed to load product image')
-          })
-      }
+        }
+    }, [productData, productId, clothingImage])
+
+    // Auto-analyze image when uploaded
+    useEffect(() => {
+        if (!personImageBase64 || personImageBase64.length < 100) {
+            // Reset analysis when image is cleared
+            setAnalysisWarnings([])
+            setPresetGroups({ excellent: [], good: [], warning: [] })
+            setSuggestedAction(null)
+            setBestPresetId(null)
+            return
+        }
+
+        const analyzeImage = async () => {
+            setAnalyzing(true)
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ imageBase64: personImageBase64 }),
+                })
+
+                if (response.ok) {
+                    const data = await response.json()
+                    setAnalysisWarnings(data.warnings || [])
+                    setPresetGroups(data.presetGroups || { excellent: [], good: [], warning: [] })
+                    setSuggestedAction(data.suggestedAction)
+                    setBestPresetId(data.bestPresetId)
+
+                    // Show toast if there are warnings
+                    if (data.warnings && data.warnings.length > 0) {
+                        toast.info(`📊 ${data.warnings.length} recommendation${data.warnings.length > 1 ? 's' : ''} for this image`, {
+                            duration: 4000,
+                        })
+                    }
+
+                    // Auto-select best preset if none selected
+                    if (data.bestPresetId && !selectedPreset) {
+                        setSelectedPreset(data.bestPresetId)
+                        toast.success(`✨ Auto-selected: Best preset for your image`)
+                    }
+                }
+            } catch (error) {
+                console.error('Image analysis failed:', error)
+            } finally {
+                setAnalyzing(false)
+            }
+        }
+
+        analyzeImage()
+    }, [personImageBase64])
+
+    const handleImageUpload = useCallback((file: File, type: 'person' | 'clothing') => {
+        if (!file.type.startsWith('image/')) {
+            toast.error('Please select an image file')
+            return
+        }
+
+        const maxSize = 10 * 1024 * 1024
+        if (file.size > maxSize) {
+            toast.error('Image size must be less than 10MB')
+            return
+        }
+
+        setUploadingImage(type)
+
+        const reader = new FileReader()
+        reader.onload = (event) => {
+            const base64 = event.target?.result as string
+            if (!base64 || base64.length < 100) {
+                toast.error('Invalid image data')
+                setUploadingImage(null)
+                return
+            }
+
+            if (type === 'person') {
+                setPersonImage(base64)
+                setPersonImageBase64(base64)
+                toast.success('Person image uploaded')
+            } else {
+                setClothingImage(base64)
+                setClothingImageBase64(base64)
+                toast.success('Clothing image uploaded')
+            }
+            setUploadingImage(null)
+        }
+        reader.onerror = () => {
+            toast.error('Failed to read image file')
+            setUploadingImage(null)
+        }
+        reader.readAsDataURL(file)
+    }, [])
+
+    // Handler for additional person images (Pro model)
+    const handleAdditionalImageUpload = useCallback((file: File) => {
+        if (additionalPersonImages.length >= 4) {
+            toast.error('Maximum 4 additional images allowed (5 total)')
+            return
+        }
+
+        if (!file.type.startsWith('image/')) {
+            toast.error('Please select an image file')
+            return
+        }
+
+        setUploadingImage('additional')
+        const reader = new FileReader()
+        reader.onload = (event) => {
+            const base64 = event.target?.result as string
+            if (base64 && base64.length >= 100) {
+                setAdditionalPersonImages(prev => [...prev, base64])
+                setAdditionalPersonImagesBase64(prev => [...prev, base64])
+                toast.success(`Additional photo ${additionalPersonImages.length + 1} added`)
+            }
+            setUploadingImage(null)
+        }
+        reader.onerror = () => {
+            toast.error('Failed to read image file')
+            setUploadingImage(null)
+        }
+        reader.readAsDataURL(file)
+    }, [additionalPersonImages.length])
+
+    const handleRemoveAdditionalImage = (index: number) => {
+        setAdditionalPersonImages(prev => prev.filter((_, i) => i !== index))
+        setAdditionalPersonImagesBase64(prev => prev.filter((_, i) => i !== index))
     }
-  }, [productData, productId, clothingImage])
 
-  const handleImageUpload = useCallback((file: File, type: 'person' | 'clothing') => {
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file')
-      return
+    // NEW: Accessory upload handlers for Edit Mode
+    const handleAccessoryUpload = useCallback((file: File, type: 'purse' | 'shoes' | 'hat' | 'jewelry' | 'bag' | 'watch' | 'sunglasses' | 'scarf' | 'other') => {
+        if (accessoryImages.length >= 5) {
+            toast.error('Maximum 5 accessories allowed')
+            return
+        }
+
+        if (!file.type.startsWith('image/')) {
+            toast.error('Please select an image file')
+            return
+        }
+
+        setUploadingImage('accessory')
+        const reader = new FileReader()
+        reader.onload = (event) => {
+            const base64 = event.target?.result as string
+            if (base64 && base64.length >= 100) {
+                setAccessoryImages(prev => [...prev, base64])
+                setAccessoryTypes(prev => [...prev, type])
+                toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} added!`)
+            }
+            setUploadingImage(null)
+        }
+        reader.onerror = () => {
+            toast.error('Failed to read image file')
+            setUploadingImage(null)
+        }
+        reader.readAsDataURL(file)
+    }, [accessoryImages.length])
+
+    const handleRemoveAccessory = (index: number) => {
+        setAccessoryImages(prev => prev.filter((_, i) => i !== index))
+        setAccessoryTypes(prev => prev.filter((_, i) => i !== index))
     }
 
-    const maxSize = 10 * 1024 * 1024
-    if (file.size > maxSize) {
-      toast.error('Image size must be less than 10MB')
-      return
+    const handleDrop = useCallback((e: React.DragEvent, type: 'person' | 'clothing') => {
+        e.preventDefault()
+        setDragOver(null)
+        const file = e.dataTransfer.files[0]
+        if (file) handleImageUpload(file, type)
+    }, [handleImageUpload])
+
+    const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'person' | 'clothing') => {
+        const file = e.target.files?.[0]
+        if (file) handleImageUpload(file, type)
     }
 
-    setUploadingImage(type)
+    const handleGenerate = async () => {
+        if (!personImage) {
+            toast.error('Please upload a person image')
+            return
+        }
 
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string
-      if (!base64 || base64.length < 100) {
-        toast.error('Invalid image data')
-        setUploadingImage(null)
-        return
-      }
+        setLoading(true)
+        try {
+            const response = await fetch('/api/tryon', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    personImage: personImageBase64 || personImage,
+                    personImages: selectedModel === 'pro' ? additionalPersonImagesBase64 : undefined,
+                    clothingImage: clothingImageBase64 || clothingImage || undefined,
+                    accessoryImages: accessoryImages.length > 0 ? accessoryImages : undefined, // NEW: accessories
+                    accessoryTypes: accessoryTypes.length > 0 ? accessoryTypes : undefined, // NEW: accessory labels
+                    model: selectedModel,
+                    stylePreset: selectedPreset || undefined,
+                    aspectRatio,
+                    resolution: quality,
+                }),
+            })
 
-      if (type === 'person') {
-        setPersonImage(base64)
-        setPersonImageBase64(base64)
-        toast.success('Person image uploaded')
-      } else {
-        setClothingImage(base64)
-        setClothingImageBase64(base64)
-        toast.success('Clothing image uploaded')
-      }
-      setUploadingImage(null)
-    }
-    reader.onerror = () => {
-      toast.error('Failed to read image file')
-      setUploadingImage(null)
-    }
-    reader.readAsDataURL(file)
-  }, [])
+            const data = await response.json()
+            console.log('API Response:', data) // Debug: see what we got back
 
-  // Handler for additional person images (Pro model)
-  const handleAdditionalImageUpload = useCallback((file: File) => {
-    if (additionalPersonImages.length >= 4) {
-      toast.error('Maximum 4 additional images allowed (5 total)')
-      return
-    }
+            if (!response.ok) {
+                throw new Error(data.error || 'Generation failed')
+            }
 
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file')
-      return
-    }
-
-    setUploadingImage('additional')
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string
-      if (base64 && base64.length >= 100) {
-        setAdditionalPersonImages(prev => [...prev, base64])
-        setAdditionalPersonImagesBase64(prev => [...prev, base64])
-        toast.success(`Additional photo ${additionalPersonImages.length + 1} added`)
-      }
-      setUploadingImage(null)
-    }
-    reader.onerror = () => {
-      toast.error('Failed to read image file')
-      setUploadingImage(null)
-    }
-    reader.readAsDataURL(file)
-  }, [additionalPersonImages.length])
-
-  const handleRemoveAdditionalImage = (index: number) => {
-    setAdditionalPersonImages(prev => prev.filter((_, i) => i !== index))
-    setAdditionalPersonImagesBase64(prev => prev.filter((_, i) => i !== index))
-  }
-
-  const handleDrop = useCallback((e: React.DragEvent, type: 'person' | 'clothing') => {
-    e.preventDefault()
-    setDragOver(null)
-    const file = e.dataTransfer.files[0]
-    if (file) handleImageUpload(file, type)
-  }, [handleImageUpload])
-
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'person' | 'clothing') => {
-    const file = e.target.files?.[0]
-    if (file) handleImageUpload(file, type)
-  }
-
-  const handleGenerate = async () => {
-    if (!personImage) {
-      toast.error('Please upload a person image')
-      return
+            console.log('Setting result with imageUrl:', data.imageUrl) // Debug
+            setResult(data)
+            setShowCelebration(true)
+            toast.success('Try-on generated successfully!')
+            // Show celebration for 5 seconds to let success video play fully
+            setTimeout(() => setShowCelebration(false), 5000)
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Generation failed')
+        } finally {
+            setLoading(false)
+        }
     }
 
-    setLoading(true)
-    try {
-      const response = await fetch('/api/tryon', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          personImage: personImageBase64 || personImage,
-          personImages: selectedModel === 'pro' ? additionalPersonImagesBase64 : undefined, // Pro model multi-image
-          clothingImage: clothingImageBase64 || clothingImage || undefined,
-          model: selectedModel,
-          stylePreset: selectedPreset || undefined,
-          aspectRatio,
-          resolution: quality,
-        }),
-      })
-
-      const data = await response.json()
-      console.log('API Response:', data) // Debug: see what we got back
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Generation failed')
-      }
-
-      console.log('Setting result with imageUrl:', data.imageUrl) // Debug
-      setResult(data)
-      setShowCelebration(true)
-      toast.success('Try-on generated successfully!')
-      // Show celebration for 5 seconds to let success video play fully
-      setTimeout(() => setShowCelebration(false), 5000)
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Generation failed')
-    } finally {
-      setLoading(false)
+    const handleDownload = async () => {
+        if (!result?.imageUrl) return
+        try {
+            const response = await fetch(result.imageUrl)
+            const blob = await response.blob()
+            const blobUrl = window.URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.href = blobUrl
+            link.download = `try-on-${Date.now()}.jpg`
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            window.URL.revokeObjectURL(blobUrl)
+            toast.success('Image downloaded!')
+        } catch (error) {
+            toast.error('Failed to download image')
+        }
     }
-  }
 
-  const handleDownload = async () => {
-    if (!result?.imageUrl) return
-    try {
-      const response = await fetch(result.imageUrl)
-      const blob = await response.blob()
-      const blobUrl = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = blobUrl
-      link.download = `try-on-${Date.now()}.jpg`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(blobUrl)
-      toast.success('Image downloaded!')
-    } catch (error) {
-      toast.error('Failed to download image')
-    }
-  }
-
-  return (
-    <div className="min-h-screen bg-cream pt-24">
-      {/* Gamified Generating Overlay */}
-      <GeneratingOverlay isVisible={loading} modelType={selectedModel} />
-
-      {/* Success Celebration Overlay with Mascot Video */}
-      <AnimatePresence>
-        {showCelebration && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 flex items-center justify-center pointer-events-none"
-          >
-            {/* Backdrop blur */}
-            <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" />
-
-            {/* Confetti particles */}
-            {[...Array(30)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute w-3 h-3 rounded-full"
-                style={{
-                  background: ['#E8796D', '#FFD700', '#4CAF50', '#2196F3', '#9C27B0', '#FF69B4'][i % 6],
-                  left: '50%',
-                  top: '50%',
-                }}
-                initial={{ x: 0, y: 0, scale: 0 }}
-                animate={{
-                  x: (Math.random() - 0.5) * 500,
-                  y: (Math.random() - 0.5) * 500,
-                  scale: [0, 1.2, 0],
-                  rotate: Math.random() * 720,
-                }}
-                transition={{
-                  duration: 2,
-                  delay: i * 0.03,
-                  ease: 'easeOut',
-                }}
-              />
-            ))}
-
-            {/* Mascot Success Video Popup */}
-            <motion.div
-              initial={{ scale: 0, rotate: -10 }}
-              animate={{ scale: [0, 1.1, 1], rotate: 0 }}
-              exit={{ scale: 0, opacity: 0 }}
-              transition={{ type: 'spring', damping: 15, stiffness: 300 }}
-              className="relative z-10"
-            >
-              {/* Glow effect */}
-              <div className="absolute inset-0 bg-gradient-to-br from-green-400/50 to-emerald-500/50 rounded-3xl blur-2xl scale-110" />
-
-              {/* Video container */}
-              <div className="relative w-56 h-56 rounded-3xl overflow-hidden border-4 border-white shadow-2xl bg-gradient-to-br from-green-50 to-emerald-50">
-                <video
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  className="w-full h-full object-cover"
-                  style={{ objectPosition: 'center 20%' }}
-                >
-                  <source src="/mascot/success.mp4" type="video/mp4" />
-                </video>
-              </div>
-
-              {/* Success badge */}
-              <motion.div
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.3 }}
-                className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-green-500 text-white px-6 py-2 rounded-full font-bold text-sm shadow-lg whitespace-nowrap"
-              >
-                ✨ Ready!
-              </motion.div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="container mx-auto px-6 py-8">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-serif text-charcoal mb-1 sm:mb-2">
-              Virtual Try-On <span className="italic">Studio</span>
-            </h1>
-            <p className="text-charcoal/60 text-sm sm:text-base">
-              Upload your photo and see how products look on you with AI
-            </p>
-          </div>
-          <Link
-            href="/marketplace"
-            className="self-start sm:self-auto inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 border border-charcoal/20 text-charcoal rounded-full hover:bg-charcoal/5 transition-colors text-sm"
-          >
-            <ShoppingBag className="w-4 h-4" />
-            <span className="hidden sm:inline">Browse</span> Products
-          </Link>
-        </div>
-
-        {/* Product Banner */}
-        <AnimatePresence>
-          {product && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="mb-8 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-4 flex items-center justify-between"
-            >
-              <div className="flex items-center gap-4">
-                {product.tryOnImage && (
-                  <img
-                    src={product.tryOnImage}
-                    alt={product.name}
-                    className="w-16 h-16 rounded-xl object-cover border-2 border-green-300"
-                  />
-                )}
-                <div>
-                  <p className="text-sm text-green-700 font-medium">Product Selected</p>
-                  <p className="text-charcoal font-semibold">{product.name}</p>
-                  {product.category && (
-                    <p className="text-sm text-charcoal/60">{product.category} • {product.brand?.companyName}</p>
-                  )}
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  setProduct(null)
-                  setClothingImage('')
-                  setClothingImageBase64('')
-                }}
-                className="p-2 text-charcoal/40 hover:text-charcoal transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Left Column - Inputs */}
-          <div className="space-y-6">
-            {/* Upload Areas */}
-            <div className="bg-white rounded-2xl border border-subtle p-6">
-              <h2 className="text-xl font-semibold text-charcoal mb-6">Upload Images</h2>
-
-              <div className="space-y-4">
-                {/* Person Upload */}
-                <div>
-                  <label className="block text-sm font-medium text-charcoal mb-2">
-                    Your Photo <span className="text-red-500">*</span>
-                  </label>
-                  <div
-                    onDragOver={(e) => { e.preventDefault(); setDragOver('person') }}
-                    onDragLeave={() => setDragOver(null)}
-                    onDrop={(e) => handleDrop(e, 'person')}
-                    className={`relative border-2 border-dashed rounded-xl transition-all ${dragOver === 'person'
-                      ? 'border-peach bg-peach/5'
-                      : personImage
-                        ? 'border-green-300 bg-green-50'
-                        : 'border-subtle hover:border-charcoal/30'
-                      }`}
-                  >
-                    {personImage ? (
-                      <div className="relative">
-                        <img src={personImage} alt="Person" className="w-full h-64 object-cover rounded-xl" />
-                        <button
-                          onClick={() => { setPersonImage(''); setPersonImageBase64('') }}
-                          className="absolute top-2 right-2 p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
-                        >
-                          <X className="w-4 h-4 text-charcoal" />
-                        </button>
-                        <div className="absolute bottom-2 left-2 px-2 py-1 bg-green-500 text-white text-xs rounded-full flex items-center gap-1">
-                          <Check className="w-3 h-3" /> Uploaded
-                        </div>
-                      </div>
-                    ) : (
-                      <label className="flex flex-col items-center justify-center h-48 cursor-pointer">
-                        <Upload className="w-10 h-10 text-charcoal/30 mb-3" />
-                        <p className="text-sm text-charcoal/60 mb-1">
-                          {uploadingImage === 'person' ? 'Uploading...' : 'Drag & drop or click to upload'}
-                        </p>
-                        <p className="text-xs text-charcoal/40">PNG, JPG up to 10MB</p>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handleFileInputChange(e, 'person')}
-                          className="hidden"
-                          disabled={loading}
-                        />
-                      </label>
-                    )}
-                  </div>
-                </div>
-
-                {/* Additional Photos for Pro Model */}
-                {selectedModel === 'pro' && personImage && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="mt-4"
-                  >
-                    <label className="block text-sm font-medium text-charcoal mb-2">
-                      Additional Photos <span className="text-charcoal/50 font-normal">(Pro: Better face accuracy)</span>
-                    </label>
-                    <p className="text-xs text-charcoal/50 mb-3">
-                      Add up to 4 more photos of the same person from different angles for better identity preservation
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {/* Show existing additional images */}
-                      {additionalPersonImages.map((img, index) => (
-                        <div key={index} className="relative w-16 h-16 rounded-lg overflow-hidden border-2 border-green-300">
-                          <img src={img} alt={`Additional ${index + 1}`} className="w-full h-full object-cover" />
-                          <button
-                            onClick={() => handleRemoveAdditionalImage(index)}
-                            className="absolute top-0.5 right-0.5 p-0.5 bg-white/90 rounded-full hover:bg-white"
-                          >
-                            <X className="w-3 h-3 text-charcoal" />
-                          </button>
-                        </div>
-                      ))}
-
-                      {/* Add more button */}
-                      {additionalPersonImages.length < 4 && (
-                        <label className="w-16 h-16 rounded-lg border-2 border-dashed border-charcoal/20 flex flex-col items-center justify-center cursor-pointer hover:border-peach transition-colors">
-                          <span className="text-xl text-charcoal/30">+</span>
-                          <span className="text-[10px] text-charcoal/40">{additionalPersonImages.length}/4</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0]
-                              if (file) handleAdditionalImageUpload(file)
-                            }}
-                            className="hidden"
-                            disabled={loading || uploadingImage === 'additional'}
-                          />
-                        </label>
-                      )}
-                    </div>
-                    {additionalPersonImages.length > 0 && (
-                      <p className="text-xs text-green-600 mt-2">
-                        ✓ {additionalPersonImages.length + 1} total reference images for character DNA
-                      </p>
-                    )}
-                  </motion.div>
-                )}
-
-                {/* Clothing Upload */}
-                <div>
-                  <label className="block text-sm font-medium text-charcoal mb-2">
-                    Clothing Reference {product ? '(Auto-loaded)' : '(Optional)'}
-                  </label>
-                  <div
-                    onDragOver={(e) => { e.preventDefault(); setDragOver('clothing') }}
-                    onDragLeave={() => setDragOver(null)}
-                    onDrop={(e) => handleDrop(e, 'clothing')}
-                    className={`relative border-2 border-dashed rounded-xl transition-all ${dragOver === 'clothing'
-                      ? 'border-peach bg-peach/5'
-                      : clothingImage
-                        ? 'border-green-300 bg-green-50'
-                        : 'border-subtle hover:border-charcoal/30'
-                      }`}
-                  >
-                    {clothingImage ? (
-                      <div className="relative">
-                        <img src={clothingImage} alt="Clothing" className="w-full h-48 object-cover rounded-xl" />
-                        <button
-                          onClick={() => { setClothingImage(''); setClothingImageBase64(''); setProduct(null) }}
-                          className="absolute top-2 right-2 p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
-                        >
-                          <X className="w-4 h-4 text-charcoal" />
-                        </button>
-                        {product && (
-                          <div className="absolute bottom-2 left-2 px-2 py-1 bg-green-500 text-white text-xs rounded-full">
-                            From Product
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <label className="flex flex-col items-center justify-center h-32 cursor-pointer">
-                        <Upload className="w-8 h-8 text-charcoal/30 mb-2" />
-                        <p className="text-sm text-charcoal/60">
-                          {uploadingImage === 'clothing' ? 'Uploading...' : 'Optional: Add clothing reference'}
-                        </p>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handleFileInputChange(e, 'clothing')}
-                          className="hidden"
-                          disabled={loading}
-                        />
-                      </label>
-                    )}
-                  </div>
-                </div>
-              </div>
+    return (
+        <div className="relative min-h-screen pt-24 pb-12 overflow-hidden bg-cream">
+            {/* Animated Gradient Background from Hero */}
+            <div className="absolute inset-0 -z-10">
+                <motion.div
+                    animate={{
+                        scale: [1, 1.2, 1],
+                        x: [0, 50, 0],
+                        y: [0, -30, 0],
+                    }}
+                    transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] bg-gradient-to-br from-peach/40 to-rose/30 rounded-full blur-[120px]"
+                />
+                <motion.div
+                    animate={{
+                        scale: [1, 1.1, 1],
+                        x: [0, -40, 0],
+                        y: [0, 40, 0],
+                    }}
+                    transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+                    className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-gradient-to-tl from-orange-200/40 to-amber-100/30 rounded-full blur-[120px]"
+                />
             </div>
 
-            {/* Model Selection */}
-            <div className="bg-white rounded-2xl border border-subtle p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Sparkles className="w-5 h-5 text-charcoal" />
-                <h2 className="text-lg font-semibold text-charcoal">AI Model</h2>
-              </div>
-              <div className="flex gap-3">
-                {[
-                  { id: 'flash', name: 'Flash', desc: 'Fast (~10s), good quality' },
-                  { id: 'pro', name: 'Pro', desc: 'Best quality (~40s), 4K' },
-                ].map((model) => (
-                  <button
-                    key={model.id}
-                    onClick={() => setSelectedModel(model.id as 'flash' | 'pro')}
-                    disabled={loading}
-                    className={`flex-1 p-4 rounded-xl border-2 transition-all text-left ${selectedModel === model.id
-                      ? 'border-charcoal bg-charcoal text-cream'
-                      : 'border-subtle hover:border-charcoal/30'
-                      }`}
-                  >
-                    <p className="font-medium">{model.name}</p>
-                    <p className={`text-xs mt-1 ${selectedModel === model.id ? 'text-cream/70' : 'text-charcoal/60'}`}>
-                      {model.desc}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            </div>
+            <div className="container mx-auto px-4 md:px-6 z-10 relative">
+                {/* Generating Overlay */}
+                <GeneratingOverlay isVisible={loading} modelType={selectedModel} />
 
-            {/* Style Preset - Visual Grid Selector */}
-            <div className="bg-white rounded-2xl border border-subtle p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Palette className="w-5 h-5 text-charcoal" />
-                <h2 className="text-lg font-semibold text-charcoal">Scene Preset</h2>
-                <span className="text-xs text-charcoal/50">(Choose background & style)</span>
-              </div>
+                {/* Success Celebration */}
+                <AnimatePresence>
+                    {showCelebration && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+                        >
+                            <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" />
+                            <motion.div
+                                initial={{ scale: 0.5, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.5, opacity: 0 }}
+                                className="bg-white p-6 rounded-2xl shadow-xl z-50 flex items-center gap-4 border border-peach/20"
+                            >
+                                <div className="p-3 bg-peach/20 rounded-full">
+                                    <PartyPopper className="w-8 h-8 text-peach" />
+                                </div>
+                                <div className="text-left">
+                                    <h3 className="font-bold text-charcoal font-serif">Amazing!</h3>
+                                    <p className="text-sm text-charcoal/60">Your try-on is ready to view</p>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
-              {/* Category Tabs */}
-              <div className="flex flex-wrap gap-2 mb-4">
-                {[
-                  { id: 'all', label: 'All' },
-                  { id: 'best', label: '⭐ Best' },
-                  { id: 'indian', label: '🇮🇳 Indian' },
-                  { id: 'travel', label: '✈️ Travel' },
-                  { id: 'lifestyle', label: '🏠 Lifestyle' },
-                  { id: 'editorial', label: '📸 Editorial' },
-                  { id: 'street', label: '🏙️ Street' },
-                ].map((cat) => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => setPresetCategory(cat.id)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${presetCategory === cat.id
-                      ? 'bg-charcoal text-cream'
-                      : 'bg-cream text-charcoal/70 hover:bg-charcoal/10'
-                      }`}
-                  >
-                    {cat.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Preset Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[300px] overflow-y-auto pr-1">
-                {/* None option */}
-                <button
-                  type="button"
-                  onClick={() => setSelectedPreset('')}
-                  className={`p-3 rounded-xl border-2 text-left transition-all ${selectedPreset === ''
-                    ? 'border-charcoal bg-charcoal/5'
-                    : 'border-subtle hover:border-charcoal/30'
-                    }`}
-                >
-                  <p className="text-sm font-medium text-charcoal">None</p>
-                  <p className="text-xs text-charcoal/50 mt-0.5">Clothing only</p>
-                </button>
-
-                {/* Filter presets by category */}
-                {presets
-                  .filter((p) => presetCategory === 'all' || p.category === presetCategory)
-                  .map((preset) => (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      onClick={() => setSelectedPreset(preset.id)}
-                      disabled={loading}
-                      className={`p-3 rounded-xl border-2 text-left transition-all ${selectedPreset === preset.id
-                        ? 'border-charcoal bg-charcoal/5'
-                        : 'border-subtle hover:border-charcoal/30'
-                        }`}
+                {/* Header */}
+                <div className="mb-8 text-center md:text-left">
+                    <motion.h1
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-4xl md:text-5xl font-serif text-charcoal tracking-tight"
                     >
-                      <p className="text-sm font-medium text-charcoal truncate">{preset.name}</p>
-                      <p className="text-xs text-charcoal/50 mt-0.5 line-clamp-2">{preset.description}</p>
-                    </button>
-                  ))}
-              </div>
-
-              {selectedPreset && (
-                <div className="mt-3 p-3 bg-cream rounded-xl">
-                  <p className="text-xs text-charcoal/70">
-                    <span className="font-medium">Selected:</span> {presets.find((p) => p.id === selectedPreset)?.name}
-                  </p>
+                        Virtual <span className="italic text-peach">Try-On Studio</span>
+                    </motion.h1>
+                    <motion.p
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="mt-2 text-charcoal/60 max-w-2xl"
+                    >
+                        Upload your photo and see how products look on you with AI magic.
+                    </motion.p>
                 </div>
-              )}
-            </div>
 
-            {/* Aspect Ratio Selection */}
-            <div className="bg-white rounded-2xl border border-subtle p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <svg className="w-5 h-5 text-charcoal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="2" />
-                </svg>
-                <h2 className="text-lg font-semibold text-charcoal">Aspect Ratio</h2>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {[
-                  { id: '1:1', name: 'Square', icon: '□' },
-                  { id: '4:5', name: 'Portrait', icon: '▯' },
-                  { id: '3:4', name: 'Tall', icon: '▮' },
-                  { id: '9:16', name: 'Story', icon: '▯▯' },
-                ].map((ratio) => (
-                  <button
-                    key={ratio.id}
-                    onClick={() => setAspectRatio(ratio.id as '1:1' | '4:5' | '3:4' | '9:16')}
-                    disabled={loading}
-                    className={`p-3 rounded-xl border-2 transition-all text-center ${aspectRatio === ratio.id
-                      ? 'border-charcoal bg-charcoal text-cream'
-                      : 'border-subtle hover:border-charcoal/30'
-                      }`}
-                  >
-                    <span className="text-lg">{ratio.icon}</span>
-                    <p className={`text-xs mt-1 ${aspectRatio === ratio.id ? 'text-cream/70' : 'text-charcoal/60'}`}>
-                      {ratio.name}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            </div>
+                {/* Product Badge */}
+                {product && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mb-8 p-4 rounded-2xl bg-white/40 backdrop-blur-md border border-white/40 flex items-center justify-between shadow-sm"
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-peach/20 flex items-center justify-center">
+                                <ShoppingBag className="w-6 h-6 text-peach" />
+                            </div>
+                            <div>
+                                <div className="text-xs text-charcoal/50 font-medium tracking-wider uppercase">Product Selected</div>
+                                <div className="font-serif text-charcoal text-lg">{product.name}</div>
+                            </div>
+                        </div>
+                        <Link href="/marketplace" className="p-2 hover:bg-charcoal/5 rounded-full transition-colors">
+                            <X className="w-5 h-5 text-charcoal/40 scale-90 hover:scale-100 transition-transform" />
+                        </Link>
+                    </motion.div>
+                )}
 
-            {/* Quality Selection */}
-            <div className="bg-white rounded-2xl border border-subtle p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <svg className="w-5 h-5 text-charcoal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <h2 className="text-lg font-semibold text-charcoal">Quality</h2>
-              </div>
-              <div className="flex gap-3">
-                {[
-                  { id: '1K', name: '1K', desc: 'Fast', disabled: false },
-                  { id: '2K', name: '2K', desc: 'Balanced', disabled: false },
-                  { id: '4K', name: '4K', desc: 'Best', disabled: selectedModel === 'flash' },
-                ].map((q) => (
-                  <button
-                    key={q.id}
-                    onClick={() => !q.disabled && setQuality(q.id as '1K' | '2K' | '4K')}
-                    disabled={loading || q.disabled}
-                    className={`flex-1 p-3 rounded-xl border-2 transition-all text-center ${quality === q.id
-                      ? 'border-charcoal bg-charcoal text-cream'
-                      : q.disabled
-                        ? 'border-subtle/50 text-charcoal/30 cursor-not-allowed'
-                        : 'border-subtle hover:border-charcoal/30'
-                      }`}
-                  >
-                    <p className="font-medium">{q.name}</p>
-                    <p className={`text-xs mt-0.5 ${quality === q.id ? 'text-cream/70' : q.disabled ? 'text-charcoal/30' : 'text-charcoal/60'}`}>
-                      {q.disabled ? 'Pro only' : q.desc}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            </div>
-            <motion.button
-              onClick={handleGenerate}
-              disabled={loading || !personImageBase64}
-              whileHover={{ scale: loading || !personImageBase64 ? 1 : 1.02 }}
-              whileTap={{ scale: loading || !personImageBase64 ? 1 : 0.98 }}
-              className="w-full py-4 bg-charcoal text-cream font-medium rounded-full flex items-center justify-center gap-2 hover:bg-charcoal/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <>
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                  >
-                    <Sparkles className="w-5 h-5" />
-                  </motion.div>
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-5 h-5" />
-                  Generate Try-On
-                </>
-              )}
-            </motion.button>
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    {/* LEFT PANEL: Inputs */}
+                    <div className="lg:col-span-5 space-y-6">
 
-            {!product && (
-              <p className="text-center text-sm text-charcoal/50">
-                Tip: Select a product from the marketplace to auto-load the clothing reference
-              </p>
-            )}
-          </div>
+                        {/* Upload Section Card */}
+                        <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.2 }}
+                            className="p-6 rounded-3xl bg-white/40 backdrop-blur-md border border-white/50 shadow-xl shadow-peach/5 space-y-6"
+                        >
+                            <h3 className="font-serif text-xl text-charcoal flex items-center gap-2">
+                                <Upload className="w-5 h-5 text-peach" />
+                                Upload Images
+                            </h3>
 
-          {/* Right Column - Result */}
-          <div>
-            <AnimatePresence mode="wait">
-              {result ? (
-                <motion.div
-                  key="result"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="bg-white rounded-2xl border border-subtle overflow-hidden"
-                >
-                  <div className="p-6 border-b border-subtle">
-                    <h2 className="text-xl font-semibold text-charcoal">Generated Result</h2>
-                    <p className="text-sm text-charcoal/60">Your virtual try-on is ready!</p>
-                  </div>
-                  <div className="p-6">
-                    <img
-                      src={result.imageUrl}
-                      alt="Generated Try-On"
-                      className="w-full rounded-xl border border-subtle"
-                    />
-                    <div className="flex gap-3 mt-6">
-                      <button
-                        onClick={handleDownload}
-                        className="flex-1 py-3 bg-charcoal text-cream rounded-full flex items-center justify-center gap-2 hover:bg-charcoal/90 transition-colors"
-                      >
-                        <Download className="w-4 h-4" />
-                        Download
-                      </button>
-                      <button
-                        onClick={() => {
-                          setResult(null)
-                          setPersonImage('')
-                          setPersonImageBase64('')
-                          if (!product) {
-                            setClothingImage('')
-                            setClothingImageBase64('')
-                          }
-                        }}
-                        className="flex-1 py-3 border border-charcoal/20 text-charcoal rounded-full flex items-center justify-center gap-2 hover:bg-charcoal/5 transition-colors"
-                      >
-                        <RefreshCw className="w-4 h-4" />
-                        Try Another
-                      </button>
+                            {/* Person Upload */}
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-sm">
+                                    <span className="font-medium text-charcoal/80">Your Photo <span className="text-rose-400">*</span></span>
+                                    {personImage && (
+                                        <button
+                                            onClick={() => { setPersonImage(''); setPersonImageBase64(''); }}
+                                            className="text-xs text-charcoal/40 hover:text-rose-500 transition-colors"
+                                        >
+                                            Remove
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div
+                                    onDragOver={(e) => { e.preventDefault(); setDragOver('person'); }}
+                                    onDragLeave={() => setDragOver(null)}
+                                    onDrop={(e) => handleDrop(e, 'person')}
+                                    className={`
+                    relative aspect-[4/5] rounded-2xl overflow-hidden transition-all duration-300 border-2 border-dashed
+                    ${personImage ? 'border-transparent shadow-lg' : dragOver === 'person' ? 'border-peach bg-peach/10' : 'border-charcoal/10 hover:border-peach/50 bg-white/30'}
+                  `}
+                                >
+                                    {personImage ? (
+                                        <img src={personImage} alt="Person" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+                                            <div className="w-16 h-16 mb-4 rounded-full bg-white/50 flex items-center justify-center shadow-sm">
+                                                {uploadingImage === 'person' ? (
+                                                    <RefreshCw className="w-6 h-6 text-peach animate-spin" />
+                                                ) : (
+                                                    <Upload className="w-6 h-6 text-charcoal/40" />
+                                                )}
+                                            </div>
+                                            <p className="text-sm font-medium text-charcoal/70">Click or Drag Photo</p>
+                                            <p className="text-xs text-charcoal/40 mt-1">Best results: Good lighting, facing camera</p>
+                                        </div>
+                                    )}
+                                    <input
+                                        type="file"
+                                        onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'person')}
+                                        accept="image/*"
+                                        className="absolute inset-0 opacity-0 cursor-pointer"
+                                    />
+
+                                    {/* Validation Badge */}
+                                    {personImage && (
+                                        <div className="absolute bottom-3 left-3 px-3 py-1 bg-emerald-500/90 backdrop-blur-sm text-white text-xs font-medium rounded-full flex items-center gap-1 shadow-sm">
+                                            <Check className="w-3 h-3" /> Uploaded
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Additional Person Images (Pro Only) */}
+                            {selectedModel === 'pro' && personImage && (
+                                <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    className="pt-4 border-t border-charcoal/5"
+                                >
+                                    <div className="flex justify-between items-center mb-2">
+                                        <label className="text-xs font-semibold text-charcoal/70 uppercase tracking-wide flex items-center gap-1">
+                                            <Sparkles className="w-3 h-3 text-peach" /> Enhance Face Consistency
+                                        </label>
+                                        <span className="text-xs text-charcoal/40">{additionalPersonImages.length}/4 added</span>
+                                    </div>
+
+                                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
+                                        {additionalPersonImages.map((img, idx) => (
+                                            <div key={idx} className="relative w-16 h-16 flex-shrink-0 rounded-xl overflow-hidden border border-white/50 shadow-sm group">
+                                                <img src={img} className="w-full h-full object-cover" />
+                                                <button
+                                                    onClick={() => handleRemoveAdditionalImage(idx)}
+                                                    className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ))}
+
+                                        {additionalPersonImages.length < 4 && (
+                                            <div className="relative w-16 h-16 flex-shrink-0 rounded-xl border-2 border-dashed border-peach/30 bg-peach/5 flex items-center justify-center hover:bg-peach/10 transition-colors cursor-pointer text-peach">
+                                                {uploadingImage === 'additional' ? (
+                                                    <RefreshCw className="w-4 h-4 animate-spin" />
+                                                ) : (
+                                                    <span className="text-2xl font-light">+</span>
+                                                )}
+                                                <input type="file" accept="image/*" onChange={(e) => e.target.files && handleAdditionalImageUpload(e.target.files[0])} className="absolute inset-0 opacity-0 cursor-pointer" />
+                                            </div>
+                                        )}
+                                    </div>
+                                </motion.div>
+                            )}
+
+                            {/* Clothing Upload */}
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-sm">
+                                    <span className="font-medium text-charcoal/80">Clothing Reference</span>
+                                    {clothingImage && !product && (
+                                        <button
+                                            onClick={() => { setClothingImage(''); setClothingImageBase64(''); }}
+                                            className="text-xs text-charcoal/40 hover:text-rose-500 transition-colors"
+                                        >
+                                            Remove
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div
+                                    onDragOver={(e) => { e.preventDefault(); setDragOver('clothing'); }}
+                                    onDragLeave={() => setDragOver(null)}
+                                    onDrop={(e) => handleDrop(e, 'clothing')}
+                                    className={`
+                    relative aspect-[16/9] rounded-2xl overflow-hidden transition-all duration-300 border-2 border-dashed
+                    ${clothingImage ? 'border-transparent shadow-md' : dragOver === 'clothing' ? 'border-peach bg-peach/10' : 'border-charcoal/10 hover:border-peach/50 bg-white/30'}
+                  `}
+                                >
+                                    {clothingImage ? (
+                                        <img src={clothingImage} alt="Clothing" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-white/50 flex items-center justify-center shadow-sm">
+                                                    {uploadingImage === 'clothing' ? (
+                                                        <RefreshCw className="w-5 h-5 text-peach animate-spin" />
+                                                    ) : (
+                                                        <ShoppingBag className="w-5 h-5 text-charcoal/40" />
+                                                    )}
+                                                </div>
+                                                <div className="text-left">
+                                                    <p className="text-sm font-medium text-charcoal/70">Upload Garment</p>
+                                                    <p className="text-xs text-charcoal/40">Or select from Marketplace</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <input
+                                        type="file"
+                                        onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'clothing')}
+                                        accept="image/*"
+                                        className="absolute inset-0 opacity-0 cursor-pointer"
+                                        disabled={!!product}
+                                    />
+
+                                    {product && clothingImage && (
+                                        <div className="absolute top-2 right-2 px-2 py-1 bg-charcoal/80 backdrop-blur-sm text-cream text-[10px] font-medium rounded-full">
+                                            Auto-Loaded
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* ACCESSORIES SECTION (Pro Only) */}
+                            <div className="pt-4 border-t border-charcoal/5">
+                                <div className="flex justify-between items-center mb-3">
+                                    <div className="flex items-center gap-2">
+                                        <div className="p-1.5 bg-purple-100 rounded-md">
+                                            <ShoppingBag className="w-3 h-3 text-purple-600" />
+                                        </div>
+                                        <h3 className="text-sm font-bold text-charcoal">Add Accessories</h3>
+                                    </div>
+                                    <span className="text-xs text-charcoal/40">{accessoryImages.length}/5</span>
+                                </div>
+
+                                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                                    {['purse', 'shoes', 'hat', 'jewelry', 'other'].map((type) => (
+                                        <div key={type} className="relative aspect-square rounded-xl border border-dashed border-charcoal/10 hover:border-purple-400 hover:bg-purple-50 transition-colors cursor-pointer flex flex-col items-center justify-center gap-1 group bg-white/30">
+                                            <span className="text-[10px] capitalize text-charcoal/50 group-hover:text-purple-600 font-medium">{type}</span>
+                                            <span className="text-xl text-charcoal/20 group-hover:text-purple-400">+</span>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                className="absolute inset-0 opacity-0 cursor-pointer"
+                                                onChange={(e) => e.target.files && handleAccessoryUpload(e.target.files[0], type as any)}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Accessory Preview List */}
+                                {accessoryImages.length > 0 && (
+                                    <div className="mt-3 flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
+                                        {accessoryImages.map((img, idx) => (
+                                            <div key={idx} className="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden border border-white shadow-sm group">
+                                                <img src={img} className="w-full h-full object-cover" />
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                                    <button onClick={() => handleRemoveAccessory(idx)} className="text-white hover:text-red-400">
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                                <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-[8px] text-white text-center truncate px-1">
+                                                    {accessoryTypes[idx]}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                        </motion.div>
+
+                        {/* Model & Settings Card */}
+                        <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.3 }}
+                            className="p-6 rounded-3xl bg-white/40 backdrop-blur-md border border-white/50 shadow-xl shadow-peach/5 space-y-6"
+                        >
+                            <h3 className="font-serif text-xl text-charcoal flex items-center gap-2">
+                                <Sparkles className="w-5 h-5 text-peach" />
+                                AI Model & Settings
+                            </h3>
+
+                            {/* Model Selector */}
+                            <div className="grid grid-cols-2 gap-3 p-1 bg-charcoal/5 rounded-2xl">
+                                <button
+                                    onClick={() => setSelectedModel('flash')}
+                                    className={`
+                     relative py-3 px-4 rounded-xl text-sm font-medium transition-all duration-300
+                     ${selectedModel === 'flash' ? 'bg-charcoal text-cream shadow-lg' : 'text-charcoal/60 hover:text-charcoal'}
+                   `}
+                                >
+                                    <span className="relative z-10 flex flex-col items-start gap-1">
+                                        <span className="text-xs opacity-70 uppercase tracking-widest font-bold">Fast</span>
+                                        <span className="font-serif text-lg">Flash</span>
+                                    </span>
+                                </button>
+                                <button
+                                    onClick={() => setSelectedModel('pro')}
+                                    className={`
+                     relative py-3 px-4 rounded-xl text-sm font-medium transition-all duration-300
+                     ${selectedModel === 'pro' ? 'bg-white text-charcoal shadow-lg ring-1 ring-charcoal/5' : 'text-charcoal/60 hover:text-charcoal'}
+                   `}
+                                >
+                                    <span className="relative z-10 flex flex-col items-start gap-1">
+                                        <span className="text-xs opacity-70 uppercase tracking-widest font-bold">Quality</span>
+                                        {selectedModel === 'pro' && (
+                                            <span className="absolute top-3 right-3 w-2 h-2 bg-peach rounded-full animate-pulse" />
+                                        )}
+                                        <span className="font-serif text-lg">Pro</span>
+                                    </span>
+                                </button>
+                            </div>
+
+                            {/* Aspect Ratio */}
+                            <div>
+                                <label className="text-xs font-semibold text-charcoal/40 uppercase tracking-widest mb-3 block">Aspect Ratio</label>
+                                <div className="flex gap-2">
+                                    {['1:1', '4:5', '9:16'].map((ratio) => (
+                                        <button
+                                            key={ratio}
+                                            onClick={() => setAspectRatio(ratio as any)}
+                                            className={`
+                              flex-1 py-2 rounded-lg border text-sm font-medium transition-all
+                              ${aspectRatio === ratio
+                                                    ? 'border-charcoal bg-charcoal text-cream'
+                                                    : 'border-charcoal/10 bg-white/20 text-charcoal/60 hover:border-charcoal/30'}
+                           `}
+                                        >
+                                            {ratio}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </motion.div>
                     </div>
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="placeholder"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="bg-white rounded-2xl border border-dashed border-subtle p-12 h-full min-h-[500px] flex flex-col items-center justify-center text-center"
-                >
-                  <div className="w-20 h-20 rounded-full bg-cream flex items-center justify-center mb-6">
-                    <Sparkles className="w-10 h-10 text-charcoal/30" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-charcoal mb-2">Ready to Generate</h3>
-                  <p className="text-charcoal/60 max-w-sm">
-                    Upload your photo and select a clothing reference. Your AI-generated try-on will appear here.
-                  </p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+
+                    {/* RIGHT PANEL: Output & Presets */}
+                    <div className="lg:col-span-7 space-y-6">
+
+                        {/* Analysis Warnings & Recommendations */}
+                        {(analysisWarnings.length > 0 || suggestedAction || analyzing) && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                className="bg-amber-50 border border-amber-200 rounded-xl p-4"
+                            >
+                                {analyzing ? (
+                                    <div className="flex items-center gap-2 text-amber-700">
+                                        <RefreshCw className="w-4 h-4 animate-spin" />
+                                        <span className="text-sm font-medium">Analyzing your image...</span>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="flex items-start gap-2">
+                                            <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                                            <div>
+                                                <p className="text-sm font-medium text-amber-800">Image Analysis</p>
+                                                <ul className="mt-1 space-y-1">
+                                                    {analysisWarnings.slice(0, 3).map((warning, i) => (
+                                                        <li key={i} className="text-xs text-amber-700">{warning}</li>
+                                                    ))}
+                                                </ul>
+                                                {suggestedAction && (
+                                                    <p className="mt-2 text-xs text-amber-800 font-medium">
+                                                        💡 {suggestedAction}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                            </motion.div>
+                        )}
+
+                        {/* Presets Gallery */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.4 }}
+                        >
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="font-serif text-xl text-charcoal flex items-center gap-2">
+                                    <Palette className="w-5 h-5 text-peach" />
+                                    Scene Preset
+                                </h3>
+                                <div className="flex gap-2">
+                                    {['all', 'indian', 'travel', 'lifestyle'].map(cat => (
+                                        <button
+                                            key={cat}
+                                            onClick={() => setPresetCategory(cat)}
+                                            className={`
+                               px-3 py-1 rounded-full text-xs font-medium transition-all capitalize
+                               ${presetCategory === cat
+                                                    ? 'bg-peach/10 text-peach border border-peach/20'
+                                                    : 'bg-white/30 text-charcoal/40 hover:bg-white/50 border border-transparent'}
+                            `}
+                                        >
+                                            {cat}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                <button
+                                    onClick={() => setSelectedPreset('')}
+                                    className={`
+                         group relative p-3 rounded-2xl border text-left transition-all duration-300 overflow-hidden
+                         ${selectedPreset === ''
+                                            ? 'bg-charcoal text-cream border-charcoal ring-2 ring-charcoal/20 ring-offset-2'
+                                            : 'bg-white/40 border-white/50 hover:border-peach/50 hover:bg-white/60'}
+                      `}
+                                >
+                                    <div className="relative z-10 flex flex-col h-full justify-between">
+                                        <div className={`w-8 h-8 rounded-full mb-2 flex items-center justify-center ${selectedPreset === '' ? 'bg-white/10' : 'bg-charcoal/5'}`}>
+                                            <X className="w-4 h-4" />
+                                        </div>
+                                        <div>
+                                            <div className="font-serif text-sm">None</div>
+                                            <div className="text-[10px] opacity-60">Original BG</div>
+                                        </div>
+                                    </div>
+                                </button>
+
+                                {presets
+                                    .filter(p => presetCategory === 'all' || p.category === presetCategory)
+                                    .slice(0, 7) // Show 7 + None = 8 items (2 rows)
+                                    .map(preset => (
+                                        <button
+                                            key={preset.id}
+                                            onClick={() => setSelectedPreset(preset.id)}
+                                            className={`
+                            group relative p-3 rounded-2xl border text-left transition-all duration-300 overflow-hidden h-28
+                            ${selectedPreset === preset.id
+                                                    ? 'border-peach ring-2 ring-peach/20 ring-offset-2'
+                                                    : 'border-white/50 hover:border-peach/50'}
+                         `}
+                                        >
+                                            {/* Background Preview */}
+                                            <div className="absolute inset-0 z-0">
+                                                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/60" />
+                                                {/* Color code background based on category */}
+                                                <div className={`w-full h-full opacity-30 ${preset.category === 'indian' ? 'bg-orange-500' :
+                                                    preset.category === 'travel' ? 'bg-blue-500' :
+                                                        'bg-purple-500'
+                                                    }`} />
+                                            </div>
+
+                                            <div className="relative z-10 h-full flex flex-col justify-between text-charcoal group-hover:text-charcoal px-1">
+                                                {/* Compatibility Badge */}
+                                                <div className="flex justify-end">
+                                                    {presetGroups.excellent.includes(preset.id) && (
+                                                        <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center" title="Excellent match">
+                                                            <Check className="w-3 h-3 text-white" />
+                                                        </div>
+                                                    )}
+                                                    {presetGroups.good.includes(preset.id) && (
+                                                        <div className="w-5 h-5 rounded-full bg-amber-400 flex items-center justify-center" title="Good match">
+                                                            <Check className="w-3 h-3 text-white" />
+                                                        </div>
+                                                    )}
+                                                    {presetGroups.warning.includes(preset.id) && (
+                                                        <div className="w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center" title="May not work well with current image">
+                                                            <AlertTriangle className="w-3 h-3 text-white" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className={`font-serif text-sm text-white`}>
+                                                    <span className="relative inline-block">
+                                                        {preset.name}
+                                                        {selectedPreset === preset.id && (
+                                                            <motion.div layoutId="underline" className="absolute left-0 right-0 bottom-0 h-0.5 bg-peach" />
+                                                        )}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </button>
+                                    ))}
+                            </div>
+                        </motion.div>
+
+                        {/* RESULT DISPLAY */}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.98 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.5 }}
+                            className="relative rounded-[2rem] overflow-hidden bg-charcoal/5 border border-white/20 shadow-2xl min-h-[500px] flex items-center justify-center group"
+                        >
+                            {/* Result Image */}
+                            {result ? (
+                                <>
+                                    <img src={result.imageUrl} alt="Generated Result" className="w-full h-full object-contain max-h-[700px] bg-charcoal/90" />
+
+                                    {/* Overlay Controls */}
+                                    <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4">
+                                        <a
+                                            href={result.imageUrl}
+                                            download={`tria-tryon-${result.jobId}.jpg`}
+                                            className="px-6 py-3 bg-white text-charcoal rounded-full font-medium flex items-center gap-2 hover:bg-peach hover:text-white transition-colors"
+                                        >
+                                            <Download className="w-4 h-4" /> Download
+                                        </a>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="text-center p-10">
+                                    <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
+                                        <Sparkles className="w-10 h-10 text-peach/50" />
+                                    </div>
+                                    <h3 className="text-2xl font-serif text-charcoal/40 mb-2">Ready to Create</h3>
+                                    <p className="text-charcoal/30 max-w-xs mx-auto">
+                                        Upload your photo and clothing to start the magic.
+                                    </p>
+                                </div>
+                            )}
+                        </motion.div>
+
+                        {/* Generate Button */}
+                        <div className="pt-4 pb-12">
+                            <button
+                                onClick={handleGenerate}
+                                disabled={loading || !personImageBase64 || !clothingImageBase64}
+                                className={`
+                    w-full py-4 rounded-full font-serif text-xl flex items-center justify-center gap-3 transition-all duration-300 shadow-xl
+                    ${loading || !personImageBase64 || !clothingImageBase64
+                                        ? 'bg-charcoal/10 text-charcoal/30 cursor-not-allowed'
+                                        : 'bg-charcoal text-cream hover:bg-peach hover:scale-[1.02] hover:shadow-peach/30'}
+                  `}
+                            >
+                                {loading ? (
+                                    'Creating Magic...'
+                                ) : (
+                                    <>
+                                        <Sparkles className="w-5 h-5" />
+                                        Generate Try-On
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  )
+    )
 }
 
 export default function TryOnPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-cream pt-24 flex items-center justify-center">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-        >
-          <Sparkles className="w-8 h-8 text-charcoal/30" />
-        </motion.div>
-      </div>
-    }>
-      <TryOnPageContent />
-    </Suspense>
-  )
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-cream pt-24 flex items-center justify-center">
+                <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                >
+                    <Sparkles className="w-8 h-8 text-charcoal/30" />
+                </motion.div>
+            </div>
+        }>
+            <TryOnPageContent />
+        </Suspense>
+    )
 }

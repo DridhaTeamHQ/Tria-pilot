@@ -1209,23 +1209,179 @@ export const tryOnPresets: TryOnPreset[] = [
   },
 ]
 
+// ==========================================
+// INDIAN STYLE PRESETS - Added for Indian market
+// All use deep depth of field for sharp backgrounds
+// ==========================================
+
+const indianPresets: TryOnPreset[] = [
+  {
+    id: 'mumbai_street_candid',
+    name: 'Mumbai Street Candid',
+    description: 'Authentic Mumbai street scene with deep focus, colorful buildings, and natural daylight',
+    category: 'indian',
+    positive: [
+      'Authentic Mumbai street aesthetic with colorful painted buildings',
+      'Deep depth of field - f/8 aperture - background in SHARP FOCUS',
+      'Natural diffused daylight (5500-6000K) - neutral, not warm',
+      'Visible architectural details in background - no blur',
+      'Real skin texture with natural shine from humidity',
+      'Authentic street life elements in background',
+      'iPhone-style candid capture, slightly imperfect framing',
+    ],
+    negative: [
+      'No bokeh blur - background must be sharp',
+      'No orange/warm color grading',
+      'No beautification or skin smoothing',
+      'No shallow depth of field',
+    ],
+    deviation: 0.05,
+    safe: true,
+    background: 'Mumbai street with colorful buildings, all details sharp and visible',
+    lighting: {
+      type: 'Natural diffused daylight',
+      source: 'Overcast sky or building shade',
+      direction: 'Soft even lighting',
+      quality: 'Authentic street photography',
+      colorTemp: '5500-6000K (Neutral)',
+    },
+    camera_style: {
+      angle: 'Eye level candid',
+      lens: '35mm equivalent at f/8 for deep focus',
+      framing: 'Candid street photography',
+      depthOfField: 'DEEP - everything in focus',
+    },
+    pose: {
+      stance: 'Natural walking or standing',
+      arms: 'Natural relaxed',
+      expression: 'Natural/Neutral (matches input identity)',
+      energy: 'casual',
+      bodyAngle: 'Natural',
+    },
+  },
+  {
+    id: 'jaipur_palace_courtyard',
+    name: 'Jaipur Palace Courtyard',
+    description: 'Elegant Jaipur-style palace courtyard with intricate architecture in sharp focus',
+    category: 'indian',
+    positive: [
+      'Rajasthani palace architecture with carved stone details',
+      'Deep depth of field - f/11 aperture - ALL architecture details visible',
+      'Neutral daylight (5500K) - not warm golden',
+      'Intricate carved pillars and jali screens in sharp focus',
+      'Traditional sandstone/marble flooring visible',
+      'Real skin texture, natural appearance',
+      'Elegant but candid pose',
+    ],
+    negative: [
+      'No bokeh blur - architecture MUST be sharp',
+      'No warm orange grading - keep neutral',
+      'No beautification',
+      'No soft focus or dreamy effects',
+    ],
+    deviation: 0.05,
+    safe: true,
+    background: 'Rajasthani palace courtyard with carved stone pillars and arches, all in sharp focus',
+    lighting: {
+      type: 'Natural courtyard light',
+      source: 'Open sky filtered through arches',
+      direction: 'Soft directional from courtyard opening',
+      quality: 'Even, revealing architectural detail',
+      colorTemp: '5500K (Neutral daylight)',
+    },
+    camera_style: {
+      angle: 'Eye level or slightly low',
+      lens: '35mm at f/11 for maximum sharpness',
+      framing: 'Person with architectural context',
+      depthOfField: 'MAXIMUM DEPTH - everything sharp',
+    },
+    pose: {
+      stance: 'Standing elegantly',
+      arms: 'Natural or touching architecture',
+      expression: 'Natural/Neutral (matches input identity)',
+      energy: 'elegant',
+      bodyAngle: 'Three-quarter or facing camera',
+    },
+  },
+  {
+    id: 'south_indian_temple',
+    name: 'South Indian Temple',
+    description: 'Traditional South Indian temple backdrop with ornate gopuram carvings in focus',
+    category: 'indian',
+    positive: [
+      'Ornate South Indian temple architecture (gopuram style)',
+      'Deep depth of field - f/8 - all carvings visible and sharp',
+      'Neutral daylight (5500-6500K) - NOT warm',
+      'Detailed stone sculptures and temple carvings in background',
+      'Traditional temple courtyard or entrance',
+      'Natural skin texture, authentic appearance',
+    ],
+    negative: [
+      'No bokeh blur - temple details must be visible',
+      'No warm color grading',
+      'No beautification effects',
+      'No soft dreamy focus',
+    ],
+    deviation: 0.05,
+    safe: true,
+    background: 'South Indian temple with carved gopuram and stone sculptures, all details sharp',
+    lighting: {
+      type: 'Natural outdoor daylight',
+      source: 'Sun (diffused or shade)',
+      direction: 'Even lighting for detail visibility',
+      quality: 'Clear and detailed',
+      colorTemp: '5500-6500K (Neutral)',
+    },
+    camera_style: {
+      angle: 'Eye level',
+      lens: '35mm at f/8',
+      framing: 'Person with temple background',
+      depthOfField: 'DEEP - temple details visible',
+    },
+    pose: {
+      stance: 'Standing naturally',
+      arms: 'Natural or traditional gesture',
+      expression: 'Natural/Neutral (matches input identity)',
+      energy: 'relaxed',
+      bodyAngle: 'Natural',
+    },
+  },
+]
+
+// Add Indian presets to main array
+tryOnPresets.push(...indianPresets)
+
 /**
- * Get preset by ID
+ * RELIABLE PRESET IDs - Only presets that preserve face consistency
+ * REMOVED: misty_dawn_meadow (loses face in fog)
+ * ADDED: Indian presets with deep DoF
+ */
+const REALISTIC_PRESET_IDS = [
+  'candid_iphone_snapshot',      // ✅ Best - works reliably
+  'mumbai_street_candid',        // ✅ NEW - Indian street
+  'jaipur_palace_courtyard',     // ✅ NEW - Indian palace
+  'south_indian_temple',         // ✅ NEW - Temple backdrop
+  'urban_brick_candid',          // ✅ Overcast, neutral
+]
+
+/**
+ * Get all presets - FILTERED to realistic only (no warm/dramatic)
+ */
+export function getAllPresets(): TryOnPreset[] {
+  // Filter to only realistic presets
+  return tryOnPresets.filter(p => REALISTIC_PRESET_IDS.includes(p.id))
+}
+
+/**
+ * Get preset by ID (still allows access to all presets by ID)
  */
 export function getPresetById(id: string): TryOnPreset | undefined {
   return tryOnPresets.find((p) => p.id === id)
 }
 
 /**
- * Get presets by category
+ * Get presets by category (filtered to realistic)
  */
 export function getPresetsByCategory(category: TryOnPreset['category']): TryOnPreset[] {
-  return tryOnPresets.filter((p) => p.category === category)
-}
-
-/**
- * Get all presets
- */
-export function getAllPresets(): TryOnPreset[] {
-  return tryOnPresets
+  return tryOnPresets.filter((p) => p.category === category && REALISTIC_PRESET_IDS.includes(p.id))
 }

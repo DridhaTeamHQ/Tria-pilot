@@ -16,6 +16,9 @@ export const tryOnSchema = z.object({
   personImage: z.string(),
   personImages: z.array(z.string()).optional(), // Additional person images for Pro model
   clothingImage: z.string().optional(),
+  // NEW: Accessory support for edit mode
+  accessoryImages: z.array(z.string()).optional(), // Array of base64 accessory images
+  accessoryTypes: z.array(z.enum(['purse', 'shoes', 'hat', 'jewelry', 'bag', 'watch', 'sunglasses', 'scarf', 'other'])).optional(),
   model: z.enum(['flash', 'pro']).optional().default('flash'),
   stylePreset: z.string().optional(),
   background: z.string().optional(),

@@ -108,7 +108,7 @@ export async function analyzePersonImage(imageBase64: string): Promise<GeminiAna
     const apiKey = getGeminiKey()
     const modelVersion = getGeminiModelVersion()
     const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({ 
+    const model = genAI.getGenerativeModel({
       model: modelVersion,
       generationConfig: {
         responseMimeType: 'application/json',
@@ -130,7 +130,7 @@ export async function analyzePersonImage(imageBase64: string): Promise<GeminiAna
 
     const response = await result.response
     const text = response.text()
-    
+
     // Parse JSON response
     let analysis: GeminiAnalysis
     try {
@@ -168,7 +168,7 @@ export async function analyzeClothingImage(imageBase64: string): Promise<GeminiA
     const apiKey = getGeminiKey()
     const modelVersion = getGeminiModelVersion()
     const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({ 
+    const model = genAI.getGenerativeModel({
       model: modelVersion,
       generationConfig: {
         responseMimeType: 'application/json',
@@ -210,7 +210,7 @@ Rules:
 
     const response = await result.response
     const text = response.text()
-    
+
     // Parse JSON response
     let clothing: GeminiAnalysis['clothing']
     try {

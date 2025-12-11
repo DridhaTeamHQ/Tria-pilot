@@ -70,8 +70,21 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { personImage, personImages, clothingImage, model, stylePreset, background, pose, expression, addOns, aspectRatio: reqAspectRatio, resolution: reqResolution } =
-      tryOnSchema.parse(body)
+    const {
+      personImage,
+      personImages,
+      clothingImage,
+      accessoryImages, // NEW: accessory images
+      accessoryTypes,  // NEW: accessory type labels
+      model,
+      stylePreset,
+      background,
+      pose,
+      expression,
+      addOns,
+      aspectRatio: reqAspectRatio,
+      resolution: reqResolution
+    } = tryOnSchema.parse(body)
 
     // Map user-friendly model names to Gemini model IDs
     const geminiModel = model === 'pro' ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image'
@@ -253,6 +266,8 @@ export async function POST(request: Request) {
           personImage: normalizedPerson,
           personImages: personImages?.map(img => normalizeBase64(img)), // Additional person images for Pro
           clothingImage: normalizedClothing,
+          accessoryImages: accessoryImages?.map(img => normalizeBase64(img)), // NEW: accessories
+          accessoryTypes, // NEW: accessory type labels
           prompt: finalPrompt,
           model: geminiModel as 'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview',
           aspectRatio,

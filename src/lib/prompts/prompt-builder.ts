@@ -32,22 +32,23 @@ export function buildPrompt(
   clothingDescription?: string
 ): string {
   // Base instruction
-  const baseInstruction = `You are performing a FACE PRESERVATION and CLOTHING COMPOSITE task.
+  const baseInstruction = `You are performing STRICT IMAGE EDITING with FACE IDENTITY LOCK.
   
 Rules:
-- PRIMARY GOAL: The face pixels in the output must match the Input Person Image EXACTLY.
-- SECONDARY GOAL: Apply the clothing from the Input Clothing Image.
-- Keep the person's identity, face, posture, expression and anatomy exactly as they appear in the input photo.
-- Interpret the style preset only as guidance for atmosphere, lighting mood, background interpretation and camera feel.
-- Do not reinterpret or redesign the person.
+- FACE LOCK: The facial features (eyes, nose, lips, jawline, skin tone) must be IDENTICAL to the input
+- CAN CHANGE: Pose, expression, background, lighting, clothing, accessories
+- CANNOT CHANGE: Facial bone structure, eye/nose/lip shape, skin tone, age, ethnicity
 
-ANTI-BEAUTIFICATION (CRITICAL - DO NOT VIOLATE):
+FACE IDENTITY VERIFICATION:
+- The person in the output MUST be recognizable as the SAME PERSON from the input
+- If someone who knows this person saw the output, they should immediately recognize them
+- Copy exact: jawline shape, cheekbone position, eye shape, nose bridge width, lip fullness
+
+ANTI-BEAUTIFICATION (CRITICAL):
 - Face SHAPE: Preserve EXACTLY - round face stays round, DO NOT slim or elongate
 - CHEEKS: Full cheeks MUST stay full - DO NOT reduce cheek fullness
 - NOSE: Preserve exact nose WIDTH - DO NOT thin or narrow the nose bridge
-- BODY BUILD: Preserve exact body size - DO NOT slim or shrink the body
-- The AI naturally wants to "beautify" - RESIST this tendency completely
-- The reference person is PERFECT AS-IS - do not "improve" any features`
+- The AI naturally wants to "beautify" - RESIST this tendency completely`
 
   // Scene Style (from preset positive modifiers)
   const sceneStyle = preset?.positive && preset.positive.length > 0
@@ -263,17 +264,9 @@ export function buildTryOnPrompt(
   clothingImageBase64: string,
   preset: TryOnPreset | null
 ): string {
-  const { presetUsed, positive, negative, deviation, warnings, blocked } = sanitizePreset(preset)
+  const { presetUsed, positive, warnings, blocked } = sanitizePreset(preset)
   console.log('Try-On Preset Applied:', presetUsed ? presetUsed.id : 'neutral')
-  console.log('Preset Fields Injected:', {
-    positive,
-    negative,
-    deviation,
-    background: presetUsed?.background,
-    lighting: presetUsed?.lighting,
-    camera: presetUsed?.camera_style,
-    safe: presetUsed ? true : true,
-  })
+
   if (warnings.length > 0) {
     console.warn('Preset Warnings:', warnings)
   }
@@ -281,10 +274,50 @@ export function buildTryOnPrompt(
     console.warn('Preset contained unsafe keywords and was blocked')
   }
 
+  // SIMPLIFIED PROMPT - Focus on face consistency first
+  let prompt = ''
+
+  // CRITICAL: Face consistency instruction
+  prompt += 'FACE: Use the EXACT face from the person image. Copy jawline, eyes, nose, lips, skin tone exactly.\n'
+  prompt += 'DO NOT use any face from the clothing reference image.\n\n'
+
+  // Clothing instruction
+  prompt += 'CLOTHING: Put the garment from the clothing image on the person.\n'
+  prompt += 'Match the garment color, pattern, and style exactly.\n\n'
+
+  // Scene/Background
+  if (presetUsed) {
+    prompt += `SCENE: ${presetUsed.name}\n`
+    if (presetUsed.background) {
+      prompt += `Background: ${presetUsed.background}\n`
+    }
+    if (presetUsed.lighting) {
+      prompt += `Lighting: ${presetUsed.lighting.type}, ${presetUsed.lighting.colorTemp}\n`
+    }
+    if (positive.length > 0) {
+      prompt += `Style: ${positive.slice(0, 3).join(', ')}\n`
+    }
+  } else {
+    prompt += 'SCENE: Keep the original background from the person image.\n'
+  }
+
+  prompt += '\nOUTPUT: The same person wearing the new clothes.'
+
+  console.log('Final Prompt:', prompt)
+  return prompt
+}
+
+// Keep the old detailed function for backward compatibility but unused
+function buildTryOnPromptDetailed(
+  personImageBase64: string,
+  clothingImageBase64: string,
+  preset: TryOnPreset | null
+): string {
+  const { presetUsed, positive, negative, deviation, warnings, blocked } = sanitizePreset(preset)
+
   const styleBlock = positive.length > 0 ? positive.join('\n') : ''
   const avoidBlock = negative.length > 0 ? negative.join('\n') : ''
 
-  // Build preset-specific sections for background, lighting, camera
   let presetDetails = ''
   if (presetUsed) {
     presetDetails += `\n### Preset: ${presetUsed.name}\n`
@@ -294,7 +327,6 @@ export function buildTryOnPrompt(
       presetDetails += `### Background/Scene\n${presetUsed.background}\n\n`
     }
 
-    // Add background elements (people, objects, atmosphere) for realism
     if (presetUsed.backgroundElements) {
       presetDetails += `### Scene Elements for Realism (IMPORTANT)\n`
       if (presetUsed.backgroundElements.people) {
@@ -329,7 +361,6 @@ export function buildTryOnPrompt(
       presetDetails += '\n'
     }
 
-    // Add pose guidance if preset defines it
     if (presetUsed.pose) {
       presetDetails += `### Pose & Expression Guidance\n`
       presetDetails += `- Stance: ${presetUsed.pose.stance}\n`
@@ -348,7 +379,7 @@ export function buildTryOnPrompt(
   // Add "no preset" default instruction - Higgsfield style
   if (!presetUsed) {
     prompt += `CLOTHING CHANGE - PRESERVE ORIGINAL CONTEXT\n`
-    prompt += `The reference person remains in their original environment, the authentic backdrop preserved exactly as captured. Only the garment changes—the new clothing drapes naturally over their frame with visible fabric texture, realistic creases, and subtle shadows where cloth meets skin. Their face retains every genuine detail: subtle pores, natural shadows, the lived-in quality of real human skin. Same apparent age, same features, same identity.\n\n`
+    prompt += `The reference person remains in their original environment, the authentic backdrop preserved exactly as captured. Only the garment changes—the new clothing drapes naturally over their frame with visible fabric texture, realistic creases, and subtle shadows where cloth meets skin. Their face retains every genuine detail: subtle pores, natural shadows, the lived-in quality of actual human skin. Same apparent age, same features, same identity.\n\n`
   }
 
   // Scene change with Higgsfield-style descriptive language

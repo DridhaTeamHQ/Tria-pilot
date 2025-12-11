@@ -118,26 +118,10 @@ function buildFinalPromptWithPreset(
   preset: TryOnPreset | null,
   chatGPTPrompt?: string
 ): string {
-  // Validate preset if provided
-  if (preset) {
-    const validation = validatePreset(preset)
-    if (!validation.valid) {
-      console.error(`⚠️ Preset "${preset.name}" contains banned verbs:`, validation.errors)
-      // Continue anyway but log the issue
-    }
-  }
-
+  // SIMPLIFIED: Just use the base prompt builder
+  // The nanobanana.ts now handles all the strict face instructions
   const basePrompt = buildTryOnPrompt('', '', preset)
-
-  // If ChatGPT provided a detailed prompt, append our guardrail base template so Gemini gets both
-  let mergedPrompt: string
-  if (chatGPTPrompt && chatGPTPrompt.trim().length > 0) {
-    mergedPrompt = `${chatGPTPrompt.trim()}\n\n---\n\n${basePrompt}`
-  } else {
-    mergedPrompt = basePrompt
-  }
-
-  return applySafetyRules(mergedPrompt)
+  return applySafetyRules(basePrompt)
 }
 
 export async function generatePromptFromAnalysis(
