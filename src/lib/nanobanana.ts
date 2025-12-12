@@ -66,26 +66,57 @@ export async function generateTryOn(options: TryOnOptions): Promise<string> {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // JSON STRUCTURED PROMPTING FOR BEST RESULTS
-    // Clear separation of what to KEEP vs what to CHANGE
+    // SIMPLE DIRECT APPROACH - Nano Banana "this person" method
+    // Key insight: Simple prompts work better than complex JSON
     // ═══════════════════════════════════════════════════════════════════════
 
-    // STEP 1: Person image (the subject to edit)
-    contents.push('Subject image:')
+    // STEP 1: Person image FIRST (this establishes "this person")
     contents.push({
       inlineData: {
         data: cleanPersonImage,
         mimeType: 'image/jpeg',
       },
     } as any)
-    console.log('📸 Added person image')
+    console.log('📸 Added person image (identity source)')
 
-    // STEP 2: Clothing reference - ALWAYS add if provided (regardless of editType)
-    // This is critical for presets that have multiple editTypes
+    // STEP 2: Build simple, direct prompt
+    const hasSceneChange = !!sceneDescription
+    const hasClothingChange = !!clothingImage
+    const hasLightingChange = !!lightingDescription
+
+    // Extract garment description from prompt if available
+    let garmentDesc = "the garment shown in the next image"
+    if (prompt && prompt.includes('GARMENT:')) {
+      const match = prompt.match(/GARMENT:\s*([^\n]+)/)
+      if (match) garmentDesc = match[1].trim()
+    }
+
+    // Build simple instruction
+    let simplePrompt = `Edit this photo of this person:\n\n`
+    
+    if (hasClothingChange) {
+      simplePrompt += `• Dress this person in ${garmentDesc}\n`
+    }
+    if (hasSceneChange) {
+      simplePrompt += `• Place this person in: ${sceneDescription}\n`
+    }
+    if (hasLightingChange) {
+      simplePrompt += `• Apply ${lightingDescription}\n`
+    }
+    
+    simplePrompt += `\nCRITICAL: Keep this person's EXACT same face - same eyes, nose, lips, skin tone, facial structure. Do not generate a new face.`
+    
+    if (hasClothingChange) {
+      simplePrompt += `\n\nClothing reference image follows (use ONLY the garment, ignore any face in it):`
+    }
+
+    contents.push(simplePrompt)
+    console.log('📝 Added simple edit instruction')
+
+    // STEP 3: Clothing reference image
     if (clothingImage) {
       const cleanClothingImage = clothingImage.replace(/^data:image\/[a-z]+;base64,/, '')
       if (cleanClothingImage && cleanClothingImage.length >= 100) {
-        contents.push('Clothing reference (apply this garment to the subject):')
         contents.push({
           inlineData: {
             data: cleanClothingImage,
@@ -96,7 +127,7 @@ export async function generateTryOn(options: TryOnOptions): Promise<string> {
       }
     }
 
-    // STEP 3: Background reference image - add if provided
+    // STEP 4: Background reference image (if provided)
     if (backgroundImage) {
       const cleanBgImage = backgroundImage.replace(/^data:image\/[a-z]+;base64,/, '')
       if (cleanBgImage && cleanBgImage.length >= 100) {
@@ -111,101 +142,8 @@ export async function generateTryOn(options: TryOnOptions): Promise<string> {
       }
     }
 
-    // STEP 4: JSON structured edit instruction
-    // Determine what changes to make based on available inputs
-    const hasSceneChange = !!sceneDescription
-    const hasClothingChange = !!clothingImage
-    const hasLightingChange = !!lightingDescription
-    
-    // Build change object dynamically
-    const changes: Record<string, any> = {}
-    
-    if (hasClothingChange) {
-      changes.clothing = {
-        action: "Replace with garment from clothing reference image",
-        fit: "Natural draping and realistic fabric shadows"
-      }
-    }
-    
-    if (hasSceneChange) {
-      changes.background = {
-        action: "Change background/environment",
-        target: sceneDescription
-      }
-    }
-    
-    if (hasLightingChange) {
-      changes.lighting = {
-        action: "Adjust lighting",
-        target: lightingDescription
-      }
-    }
-    
-    // Determine primary action description
-    let primaryAction = "Virtual try-on edit"
-    if (hasClothingChange && hasSceneChange) {
-      primaryAction = "Replace clothing AND change background/scene"
-    } else if (hasClothingChange) {
-      primaryAction = "Replace clothing only"
-    } else if (hasSceneChange) {
-      primaryAction = "Change background/scene"
-    }
-
-    const jsonPrompt = {
-      task: "image_edit",
-      mode: "virtual_try_on",
-      primary_action: primaryAction,
-      preserve: {
-        face: "MUST keep exact same face from subject image - this is NON-NEGOTIABLE",
-        identity: "Same person, same facial features, same skin tone, same expression",
-        hair: "Same hair color, style, and texture",
-        body: "Same body proportions",
-        skin_quality: "Preserve natural skin texture, pores, imperfections - no smoothing"
-      },
-      change: changes,
-      ignore: {
-        clothing_reference_face: "If clothing reference shows a person/model, completely IGNORE their face - use ONLY the garment"
-      },
-      quality: {
-        output: "Photo-realistic edit, not AI generation",
-        skin: "Maintain realistic skin texture with natural pores",
-        lighting: hasLightingChange ? lightingDescription : "Match scene naturally",
-        coherence: "All elements must look naturally composited"
-      },
-      additional_context: prompt
-    }
-    
-    // Build clear, direct execution summary
-    const actions: string[] = []
-    if (hasClothingChange) {
-      actions.push("DRESS the subject in the garment from the clothing reference")
-    }
-    if (hasSceneChange) {
-      actions.push(`PLACE the subject in: ${sceneDescription}`)
-    }
-    if (hasLightingChange) {
-      actions.push(`APPLY lighting: ${lightingDescription}`)
-    }
-    
-    // Critical reminder
-    const executionSummary = `
-## EXECUTE THIS EDIT:
-${actions.map((a, i) => `${i + 1}. ${a}`).join('\n')}
-
-## CRITICAL RULES:
-- The output MUST show the SAME PERSON from the subject image
-- The output MUST show them WEARING the clothing from the clothing reference
-- The face MUST be IDENTICAL to the subject image - no new face generation
-- If the clothing reference shows a different person, IGNORE their face completely
-${hasSceneChange ? `- The background MUST be: ${sceneDescription}` : ''}
-${hasLightingChange ? `- The lighting MUST be: ${lightingDescription}` : ''}
-
-Generate ONE edited image showing the subject wearing the new clothing.`
-
-    contents.push(`
-${JSON.stringify(jsonPrompt, null, 2)}
-
-${executionSummary}`)
+    // STEP 5: Final reinforcement
+    contents.push(`\nRemember: The output must show THIS EXACT PERSON from the first image, just with different clothing${hasSceneChange ? ' and in the new setting' : ''}. The face must be identical.`)
 
     // STEP 5: Add accessories if any
     if (accessoryImages.length > 0) {
