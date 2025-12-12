@@ -109,7 +109,15 @@ EXACT FACE REQUIRED:
 - EXACT same eyes, EXACT same nose, EXACT same lips
 - EXACT same skin tone, EXACT same facial structure  
 - EXACT same hair color and style
-- Do NOT generate a new face - use the EXACT face from the photo above`
+- Do NOT generate a new face - use the EXACT face from the photo above
+
+PHOTO QUALITY POLISH:
+- Preserve skin micro-texture (pores, natural imperfections)
+- No skin smoothing or beautification
+- Natural skin sheen and realistic lighting on face
+- Sharp facial details, no blur
+- Match lighting direction on face with the scene
+- Seamless blend between face and new environment`
     
     if (hasClothingChange) {
       simplePrompt += `\n\nClothing reference (use ONLY the garment, IGNORE any face):`
@@ -147,8 +155,15 @@ EXACT FACE REQUIRED:
       }
     }
 
-    // STEP 5: Final reinforcement with EXACT
-    contents.push(`\nFINAL REQUIREMENT: Output must show the EXACT same person with the EXACT same face from the first image. Only the clothing changes${hasSceneChange ? ' and background' : ''}. EXACT face, EXACT features, EXACT skin.`)
+    // STEP 5: Final reinforcement with EXACT + quality
+    contents.push(`
+FINAL OUTPUT REQUIREMENTS:
+- EXACT same person, EXACT same face from the first image
+- Only clothing${hasSceneChange ? ' and background' : ''} should change
+- Photo-realistic quality - looks like a real photograph, not AI generated
+- Natural lighting on face matching the scene
+- Crisp details, realistic skin texture with pores visible
+- Professional fashion photography quality`)
 
     // STEP 5: Add accessories if any
     if (accessoryImages.length > 0) {
