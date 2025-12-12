@@ -4,6 +4,7 @@ import { tryOnSchema } from '@/lib/validation'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { getGeminiKey, getOpenAIKey } from '@/lib/config/api-keys'
 import { getPresetById } from '@/lib/prompts/try-on-presets'
+import { getNanoBananaPreset, buildPresetPrompt } from '@/lib/prompts/nano-banana-presets'
 import { generateTryOn } from '@/lib/nanobanana'
 import { buildEditPrompt } from '@/lib/prompts/edit-templates'
 import { writePromptFromImages } from '@/lib/openai'
@@ -140,7 +141,13 @@ export async function POST(request: Request) {
       const normalizedClothing = clothingImage ? normalizeBase64(clothingImage) : undefined
       const normalizedBackground = backgroundImage ? normalizeBase64(backgroundImage) : undefined
 
-      // Merge preset hints into simple fields (optional)
+      // Check for Nano Banana preset (new system)
+      const nanoBananaPreset = stylePreset ? getNanoBananaPreset(stylePreset) : null
+      if (nanoBananaPreset) {
+        console.log(`🍌 Using Nano Banana preset: ${nanoBananaPreset.name}`)
+      }
+
+      // Legacy preset hints (for backward compatibility)
       const presetBackground = preset?.background
       const presetLighting = preset?.lighting
         ? `${preset.lighting.type}, ${preset.lighting.direction}, ${preset.lighting.colorTemp}`
@@ -152,7 +159,8 @@ export async function POST(request: Request) {
       const presetExpression = preset?.pose?.expression
 
       // =========================================================================
-      // STEP 1: Use GPT-4o mini to analyze images and write a detailed prompt
+      // STEP 1: Use GPT-4o mini to analyze images and write prompt
+      // If Nano Banana preset selected, use its template with GPT descriptions
       // =========================================================================
       let finalPrompt: string
       let promptWriterResult: { personDescription: string; referenceDescription: string } | null = null
@@ -168,39 +176,44 @@ export async function POST(request: Request) {
 
       if (useGptPromptWriter) {
         try {
-          console.log('🤖 Using GPT-4o mini to analyze images and write prompt...')
+          console.log('🤖 Using GPT-4o mini to analyze images...')
           const writerResult = await writePromptFromImages({
             personImage: normalizedPerson,
             clothingImage: normalizedClothing,
             backgroundImage: normalizedBackground,
             editType,
-            userRequest: [
-              userRequest,
-              background ?? presetBackground ? `Background: ${background ?? presetBackground}` : '',
-              pose ?? presetPose ? `Pose: ${pose ?? presetPose}` : '',
-              expression ?? presetExpression ? `Expression: ${expression ?? presetExpression}` : '',
-              camera ?? presetCamera ? `Camera: ${camera ?? presetCamera}` : '',
-              lighting ?? presetLighting ? `Lighting: ${lighting ?? presetLighting}` : '',
-            ].filter(Boolean).join('. ') || undefined,
+            userRequest: userRequest || undefined,
             model: model === 'pro' ? 'pro' : 'flash',
           })
 
-          finalPrompt = writerResult.prompt
           promptWriterResult = {
             personDescription: writerResult.personDescription,
             referenceDescription: writerResult.referenceDescription,
           }
-          console.log('✅ GPT-4o mini prompt ready')
+
+          // If Nano Banana preset selected, use its template with GPT's descriptions
+          if (nanoBananaPreset) {
+            finalPrompt = buildPresetPrompt(
+              nanoBananaPreset,
+              writerResult.referenceDescription, // garment description
+              writerResult.personDescription      // face description
+            )
+            console.log(`✅ Built prompt using ${nanoBananaPreset.name} preset template`)
+          } else {
+            // Use GPT's generated prompt directly
+            finalPrompt = writerResult.prompt
+            console.log('✅ Using GPT-4o mini generated prompt')
+          }
         } catch (gptError) {
           console.error('❌ GPT-4o mini failed, falling back to templates:', gptError)
           finalPrompt = buildEditPrompt({
             editType,
             userRequest,
-            background: background ?? presetBackground,
+            background: nanoBananaPreset?.background ?? background ?? presetBackground,
             pose: pose ?? presetPose,
             expression: expression ?? presetExpression,
             camera: camera ?? presetCamera,
-            lighting: lighting ?? presetLighting,
+            lighting: nanoBananaPreset?.lighting ?? lighting ?? presetLighting,
             model: model === 'pro' ? 'pro' : 'flash',
           })
         }
