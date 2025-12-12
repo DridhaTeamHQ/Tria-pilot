@@ -115,11 +115,16 @@ export async function generateTryOn(options: TryOnOptions): Promise<string> {
 ${prompt}
 
 CRITICAL RULES:
-1. The OUTPUT face must be IDENTICAL to IMAGE 1 (the person)
-2. The OUTPUT clothing must match IMAGE 2 (the garment reference)
-3. If IMAGE 2 shows a person wearing clothes, IGNORE their face - only use the clothing
+1. FACE: The OUTPUT face must be IDENTICAL to IMAGE 1 (the person) - same exact features
+2. CLOTHING: The OUTPUT clothing must be an EXACT REPLICA of IMAGE 2:
+   - Same EXACT color (if maroon, output maroon - not similar shades)
+   - Same EXACT pattern (same motifs, same placement, same spacing)
+   - Same EXACT neckline, sleeves, fit, silhouette
+   - Same buttons, placket, or details if visible
+3. If IMAGE 2 shows a person wearing clothes, IGNORE their face/body - only replicate the clothing
 4. Preserve skin texture, pores, and natural imperfections from IMAGE 1
 5. No beautification, no smoothing, no haloing
+6. The garment from IMAGE 2 should be placed on the person from IMAGE 1 EXACTLY as it appears
 `)
 
     // STEP 4: Add accessories if any
@@ -142,14 +147,20 @@ CRITICAL RULES:
     }
 
     // STEP 5: Final reminder with person image again
-    contents.push('[FINAL REMINDER] Generate the image now. The person in the output must look like this (same face, same features):')
+    contents.push('[FINAL REMINDER] Generate the image now.')
     contents.push({
       inlineData: {
         data: cleanPersonImage,
         mimeType: 'image/jpeg',
       },
     } as any)
-    contents.push('Output: The person from IMAGE 1 wearing the clothing from IMAGE 2. Photo-realistic, no beautification.')
+    contents.push(`
+FINAL CHECK:
+- Face: Must be this exact person (same features, same expression tendency)
+- Clothing: Must be EXACT replica of IMAGE 2 (same color, same pattern, same style)
+- Quality: Photo-realistic, preserve skin texture, no beautification
+
+Generate now.`)
 
     console.log('✅ Contents prepared')
 

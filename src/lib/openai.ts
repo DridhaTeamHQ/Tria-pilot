@@ -151,15 +151,24 @@ Describe every identifiable feature for preservation:
 - Current expression and pose
 - Current clothing (what to replace)
 
-### TASK 2: Analyze GARMENT/REFERENCE IMAGE (Image 2) - CLOTHING ONLY
-⚠️ CRITICAL: If there is a person/face in this image, COMPLETELY IGNORE IT.
-Extract ONLY garment details:
-- Type (kurti, dress, shirt, etc.)
-- Color: exact shade with descriptors
-- Pattern: type, colors, scale
-- Fabric: material, texture, sheen
-- Neckline, sleeves, fit
-- Special details: embroidery, buttons, borders
+### TASK 2: Analyze GARMENT/REFERENCE IMAGE (Image 2) - EXACT CLOTHING REPLICATION
+⚠️ CRITICAL: If there is a person/face in this image, COMPLETELY IGNORE IT. Extract ONLY the garment.
+⚠️ CRITICAL: The output must have the EXACT SAME GARMENT - same color, same pattern, same everything.
+
+Describe the garment with EXTREME precision for exact replication:
+- **Type**: Exact garment type (sleeveless kurti, A-line dress, fitted blouse, etc.)
+- **Color**: EXACT shade (e.g., "deep maroon/burgundy wine color", not just "red")
+- **Pattern**: EXACT pattern description (e.g., "small white cross-stitch/geometric embroidered motifs scattered across the fabric")
+- **Pattern placement**: Where patterns appear (all over, on yoke, at hem, etc.)
+- **Pattern spacing**: Dense, scattered, clustered, etc.
+- **Fabric**: Material, texture, weight (lightweight cotton, smooth silk, etc.)
+- **Neckline**: Exact style (round, V-neck, boat neck, with/without placket, buttons)
+- **Sleeves**: Sleeveless, cap sleeve, full sleeve, etc.
+- **Fit**: A-line, fitted, loose, etc.
+- **Special details**: Front placket, buttons, piping, pleats, slit, etc.
+- **Silhouette**: Overall shape when worn
+
+THE GOAL: Someone reading your description should be able to visualize the EXACT garment.
 
 ### TASK 3: Write the PROMPT
 
@@ -196,11 +205,15 @@ For background change:
 
 ## RULES
 - Start with an ACTION WORD: Replace, Change, Add, Make, Remove
-- Be specific about the garment details (color, pattern, fabric)
+- Be EXTREMELY SPECIFIC about the garment - the AI must replicate it EXACTLY
+- Include EXACT color (not generic "red" but "deep maroon/burgundy wine")
+- Include EXACT pattern details (not generic "embroidery" but "small white cross-stitch geometric motifs")
+- Include ALL visible details: neckline, buttons, placket, fit, silhouette
 - Be specific about the face details to preserve
 - End with style/lighting notes
 - Keep it concise but complete
-- NEVER include face details from the garment reference image`
+- NEVER include face details from the garment reference image
+- The output garment MUST be identical to the reference garment`
 
   // =========================================================================
   // USER PROMPT: Photo-quality edit task instruction

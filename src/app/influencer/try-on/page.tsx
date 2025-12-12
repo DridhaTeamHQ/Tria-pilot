@@ -5,9 +5,16 @@ import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { ShoppingBag, Upload, Sparkles, Palette, Download, RefreshCw, ArrowRight, X, Check, PartyPopper, AlertTriangle } from 'lucide-react'
-import { getAllPresets, type TryOnPreset } from '@/lib/prompts/try-on-presets'
+import { ShoppingBag, Upload, Sparkles, Palette, Download, RefreshCw, ArrowRight, X, Check, PartyPopper, AlertTriangle, Loader2 } from 'lucide-react'
 import { useProduct } from '@/lib/react-query/hooks'
+
+// Intelligent Preset type
+interface IntelligentPreset {
+    id: string
+    name: string
+    description: string
+    category: 'indian' | 'street' | 'studio' | 'outdoor' | 'lifestyle' | 'editorial' | 'fantasy'
+}
 import { GeneratingOverlay } from '@/components/tryon/GeneratingOverlay'
 import { bounceInVariants } from '@/lib/animations'
 
@@ -53,7 +60,30 @@ function TryOnPageContent() {
     const [quality, setQuality] = useState<'1K' | '2K' | '4K'>('2K')
     const [dragOver, setDragOver] = useState<'person' | 'clothing' | null>(null)
     const [showCelebration, setShowCelebration] = useState(false)
-    const presets = getAllPresets()
+    
+    // Intelligent Presets
+    const [presets, setPresets] = useState<IntelligentPreset[]>([])
+    const [presetsLoading, setPresetsLoading] = useState(true)
+    const [presetCategories, setPresetCategories] = useState<string[]>([])
+
+    // Fetch intelligent presets
+    useEffect(() => {
+        async function fetchPresets() {
+            try {
+                const res = await fetch('/api/presets')
+                const data = await res.json()
+                if (res.ok && data.presets) {
+                    setPresets(data.presets)
+                    setPresetCategories(data.categories || [])
+                }
+            } catch (e) {
+                console.error('Failed to fetch presets:', e)
+            } finally {
+                setPresetsLoading(false)
+            }
+        }
+        fetchPresets()
+    }, [])
 
     const { data: productData, isLoading: productLoading } = useProduct(productId)
 
@@ -892,19 +922,31 @@ function TryOnPageContent() {
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="font-serif text-xl text-charcoal flex items-center gap-2">
                                     <Palette className="w-5 h-5 text-peach" />
-                                    Scene Preset
+                                    Intelligent Presets
+                                    <span className="text-xs font-normal text-charcoal/40">(100 scenarios each)</span>
                                 </h3>
-                                <div className="flex gap-2">
-                                    {['all', 'indian', 'travel', 'lifestyle'].map(cat => (
+                                <div className="flex gap-2 flex-wrap">
+                                    <button
+                                        onClick={() => setPresetCategory('all')}
+                                        className={`
+                                            px-3 py-1 rounded-full text-xs font-medium transition-all capitalize
+                                            ${presetCategory === 'all'
+                                                ? 'bg-peach/10 text-peach border border-peach/20'
+                                                : 'bg-white/30 text-charcoal/40 hover:bg-white/50 border border-transparent'}
+                                        `}
+                                    >
+                                        All
+                                    </button>
+                                    {presetCategories.map(cat => (
                                         <button
                                             key={cat}
                                             onClick={() => setPresetCategory(cat)}
                                             className={`
-                               px-3 py-1 rounded-full text-xs font-medium transition-all capitalize
-                               ${presetCategory === cat
+                                                px-3 py-1 rounded-full text-xs font-medium transition-all capitalize
+                                                ${presetCategory === cat
                                                     ? 'bg-peach/10 text-peach border border-peach/20'
                                                     : 'bg-white/30 text-charcoal/40 hover:bg-white/50 border border-transparent'}
-                            `}
+                                            `}
                                         >
                                             {cat}
                                         </button>
@@ -912,65 +954,89 @@ function TryOnPageContent() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                <button
-                                    onClick={() => setSelectedPreset('')}
-                                    className={`
-                         group relative p-3 rounded-2xl border text-left transition-all duration-300 overflow-hidden
-                         ${selectedPreset === ''
-                                            ? 'bg-charcoal text-cream border-charcoal ring-2 ring-charcoal/20 ring-offset-2'
-                                            : 'bg-white/40 border-white/50 hover:border-peach/50 hover:bg-white/60'}
-                      `}
-                                >
-                                    <div className="relative z-10 flex flex-col h-full justify-between">
-                                        <div className={`w-8 h-8 rounded-full mb-2 flex items-center justify-center ${selectedPreset === '' ? 'bg-white/10' : 'bg-charcoal/5'}`}>
-                                            <X className="w-4 h-4" />
-                                        </div>
-                                        <div>
-                                            <div className="font-serif text-sm">None</div>
-                                            <div className="text-[10px] opacity-60">Original BG</div>
-                                        </div>
-                                    </div>
-                                </button>
-
-                                {presets
-                                    .filter(p => presetCategory === 'all' || p.category === presetCategory)
-                                    .slice(0, 7) // Show 7 + None = 8 items (2 rows)
-                                    .map(preset => (
-                                        <button
-                                            key={preset.id}
-                                            onClick={() => setSelectedPreset(preset.id)}
-                                            className={`
-                            group relative p-3 rounded-2xl border text-left transition-all duration-300 overflow-hidden h-28
-                            ${selectedPreset === preset.id
-                                                    ? 'border-peach ring-2 ring-peach/20 ring-offset-2'
-                                                    : 'border-white/50 hover:border-peach/50'}
-                         `}
-                                        >
-                                            {/* Background Preview */}
-                                            <div className="absolute inset-0 z-0">
-                                                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/60" />
-                                                {/* Color code background based on category */}
-                                                <div className={`w-full h-full opacity-30 ${preset.category === 'indian' ? 'bg-orange-500' :
-                                                    preset.category === 'travel' ? 'bg-blue-500' :
-                                                        'bg-purple-500'
-                                                    }`} />
+                            {presetsLoading ? (
+                                <div className="flex items-center justify-center py-8">
+                                    <Loader2 className="w-6 h-6 animate-spin text-peach" />
+                                    <span className="ml-2 text-sm text-charcoal/60">Loading presets...</span>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                    {/* No Preset Option */}
+                                    <button
+                                        onClick={() => setSelectedPreset('')}
+                                        className={`
+                                            group relative p-3 rounded-2xl border text-left transition-all duration-300 overflow-hidden h-28
+                                            ${selectedPreset === ''
+                                                ? 'bg-charcoal text-cream border-charcoal ring-2 ring-charcoal/20 ring-offset-2'
+                                                : 'bg-white/40 border-white/50 hover:border-peach/50 hover:bg-white/60'}
+                                        `}
+                                    >
+                                        <div className="relative z-10 flex flex-col h-full justify-between">
+                                            <div className={`w-8 h-8 rounded-full mb-2 flex items-center justify-center ${selectedPreset === '' ? 'bg-white/10' : 'bg-charcoal/5'}`}>
+                                                <X className="w-4 h-4" />
                                             </div>
-
-                                            <div className="relative z-10 h-full flex flex-col justify-between text-charcoal group-hover:text-charcoal px-1">
-                                                <div className="flex justify-end" />
-                                                <div className={`font-serif text-sm text-white`}>
-                                                    <span className="relative inline-block">
-                                                        {preset.name}
-                                                        {selectedPreset === preset.id && (
-                                                            <motion.div layoutId="underline" className="absolute left-0 right-0 bottom-0 h-0.5 bg-peach" />
-                                                        )}
-                                                    </span>
-                                                </div>
+                                            <div>
+                                                <div className="font-serif text-sm">Clothing Only</div>
+                                                <div className="text-[10px] opacity-60">No scene change</div>
                                             </div>
-                                        </button>
-                                    ))}
-                            </div>
+                                        </div>
+                                    </button>
+
+                                    {/* Preset Cards */}
+                                    {presets
+                                        .filter(p => presetCategory === 'all' || p.category === presetCategory)
+                                        .slice(0, 11) // Show 11 + None = 12 items (3 rows)
+                                        .map(preset => {
+                                            const categoryColors: Record<string, string> = {
+                                                indian: 'from-orange-500/40 to-amber-600/40',
+                                                street: 'from-slate-500/40 to-zinc-600/40',
+                                                studio: 'from-gray-400/40 to-slate-500/40',
+                                                outdoor: 'from-green-500/40 to-emerald-600/40',
+                                                lifestyle: 'from-pink-400/40 to-rose-500/40',
+                                                editorial: 'from-purple-500/40 to-violet-600/40',
+                                                fantasy: 'from-indigo-500/40 to-blue-600/40',
+                                            }
+                                            const bgGradient = categoryColors[preset.category] || 'from-gray-400/40 to-gray-500/40'
+
+                                            return (
+                                                <button
+                                                    key={preset.id}
+                                                    onClick={() => setSelectedPreset(preset.id)}
+                                                    className={`
+                                                        group relative p-3 rounded-2xl border text-left transition-all duration-300 overflow-hidden h-28
+                                                        ${selectedPreset === preset.id
+                                                            ? 'border-peach ring-2 ring-peach/20 ring-offset-2'
+                                                            : 'border-white/50 hover:border-peach/50'}
+                                                    `}
+                                                >
+                                                    {/* Background Gradient */}
+                                                    <div className={`absolute inset-0 z-0 bg-gradient-to-br ${bgGradient}`} />
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent z-0" />
+
+                                                    <div className="relative z-10 h-full flex flex-col justify-between">
+                                                        {/* Category Badge */}
+                                                        <div className="flex justify-between items-start">
+                                                            <span className="text-[9px] uppercase tracking-wider text-white/70 bg-black/20 px-1.5 py-0.5 rounded">
+                                                                {preset.category}
+                                                            </span>
+                                                            {selectedPreset === preset.id && (
+                                                                <Check className="w-4 h-4 text-peach" />
+                                                            )}
+                                                        </div>
+                                                        
+                                                        {/* Name & Description */}
+                                                        <div className="text-white">
+                                                            <div className="font-serif text-sm">{preset.name}</div>
+                                                            <div className="text-[9px] opacity-70 line-clamp-2">
+                                                                {preset.description}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </button>
+                                            )
+                                        })}
+                                </div>
+                            )}
                         </motion.div>
 
                         {/* RESULT DISPLAY */}
