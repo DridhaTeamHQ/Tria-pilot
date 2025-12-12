@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Fix Windows builds when Next.js infers the wrong workspace root due to multiple lockfiles.
+  // Ensures output file tracing stays within this project folder.
+  outputFileTracingRoot: process.cwd(),
+
   // Disable ESLint during build to avoid compatibility warnings
   // ESLint is still run during development
   eslint: {

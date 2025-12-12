@@ -22,13 +22,13 @@ async function getDbUserId(): Promise<string | null> {
   return dbUser?.id ?? null
 }
 
-export async function PATCH(request: Request, ctx: { params: { id: string } }) {
+export async function PATCH(request: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
     const userId = await getDbUserId()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const db = prisma as any
-    const { id } = ctx.params
+    const { id } = await ctx.params
     const body = await request.json().catch(() => null)
     const label: unknown = body?.label
     const makePrimary: unknown = body?.makePrimary
@@ -61,13 +61,13 @@ export async function PATCH(request: Request, ctx: { params: { id: string } }) {
   }
 }
 
-export async function DELETE(_request: Request, ctx: { params: { id: string } }) {
+export async function DELETE(_request: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
     const userId = await getDbUserId()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const db = prisma as any
-    const { id } = ctx.params
+    const { id } = await ctx.params
     const existing = await db.userProfileImage.findFirst({
       where: { id, userId },
       select: { id: true, imagePath: true, isPrimary: true },
