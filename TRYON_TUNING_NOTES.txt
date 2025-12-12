@@ -1,0 +1,19 @@
+Tria Try-On Tuning Notes
+========================
+
+Latest updates (Dec 2025):
+- Face consistency: enforce "EXACT" identity preservation and no new face generation.
+- Clothing consistency: pass explicit garmentDescription into Gemini and require exact garment copy.
+- Pose consistency: require EXACT pose preservation (no body/arm/head changes).
+- Studio presets: constrain scenarios to realistic studio-only lighting (indoor, neutral/warm) to avoid "blue hour" mixes.
+
+How to verify quickly:
+1) Select preset: Professional Studio
+2) Upload person photo + clothing reference
+3) Generate Try-On
+Expected:
+- Same face, same pose
+- Clothing matches reference (color/pattern/design)
+- Studio lighting looks natural and consistent (no surreal blue-hour tone)
+
+
