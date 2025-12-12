@@ -22,6 +22,7 @@ export interface TryOnOptions {
   // NEW: Text-based scene/background description (for presets)
   sceneDescription?: string // e.g. "Golden hour in open fields with warm natural light"
   lightingDescription?: string // e.g. "Soft warm golden hour light"
+  garmentDescription?: string // Detailed garment description (from GPT-4o mini)
   background?: string
   pose?: string
   expression?: string
@@ -49,6 +50,7 @@ export async function generateTryOn(options: TryOnOptions): Promise<string> {
     resolution = '2K',
     sceneDescription,
     lightingDescription,
+    garmentDescription,
   } = options
 
   try {
@@ -84,24 +86,31 @@ export async function generateTryOn(options: TryOnOptions): Promise<string> {
     const hasClothingChange = !!clothingImage
     const hasLightingChange = !!lightingDescription
 
-    // Extract garment description from prompt if available
-    let garmentDesc = "the garment shown in the next image"
-    if (prompt && prompt.includes('GARMENT:')) {
-      const match = prompt.match(/GARMENT:\s*([^\n]+)/)
-      if (match) garmentDesc = match[1].trim()
+    // Prefer explicit garment description (so clothing doesn't get ignored)
+    // Fallback: try to parse legacy prompt text
+    let garmentDesc = (garmentDescription || '').trim()
+    if (!garmentDesc) {
+      garmentDesc = "the garment shown in the clothing reference image"
+      if (prompt && prompt.includes('GARMENT:')) {
+        const match = prompt.match(/GARMENT:\s*([^\n]+)/)
+        if (match) garmentDesc = match[1].trim()
+      }
     }
 
     // Build simple instruction with EXACT emphasis for BOTH face AND clothing
     let simplePrompt = `Edit this photo. Keep the EXACT same person, EXACT same face.\n\n`
     
     if (hasClothingChange) {
-      simplePrompt += `• Dress this EXACT person in the EXACT clothing from the reference image\n`
+      simplePrompt += `• Replace the person's current clothing with the EXACT garment from the clothing reference image: ${garmentDesc}\n`
     }
     if (hasSceneChange) {
       simplePrompt += `• Place this EXACT person in: ${sceneDescription}\n`
     }
     if (hasLightingChange) {
       simplePrompt += `• Apply ${lightingDescription}\n`
+    }
+    if (hasClothingChange) {
+      simplePrompt += `\nIMPORTANT: Clothing replacement is REQUIRED. Do NOT keep the original clothing. Replace the visible clothing region cleanly with the reference garment.\n`
     }
     
     simplePrompt += `

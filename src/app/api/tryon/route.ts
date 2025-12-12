@@ -97,15 +97,11 @@ export async function POST(request: Request) {
     console.log(`📊 Selected model: ${model} (${geminiModel})`)
 
     // Get preset if provided
+    // NOTE: Legacy preset lookup is only for fallback paths.
+    // Prefer Intelligent Presets; avoid confusing "not found" logs for new preset ids.
     const preset = stylePreset ? getPresetById(stylePreset) ?? null : null
     if (stylePreset) {
       console.log(`🎨 Preset requested: ${stylePreset}`)
-      if (preset) {
-        console.log(`✅ Preset found: ${preset.name} (${preset.category})`)
-        console.log(`   Deviation: ${preset.deviation}, Positive: ${preset.positive?.length || 0} modifiers`)
-      } else {
-        console.warn(`⚠️ Preset not found: ${stylePreset}`)
-      }
     } else {
       console.log('📝 No preset selected - using default (clothing only)')
     }
@@ -192,6 +188,7 @@ export async function POST(request: Request) {
             accessoryImages: accessoryImages?.map(img => normalizeBase64(img)),
             accessoryTypes,
             prompt: presetResult.prompt,
+            garmentDescription: presetResult.garmentDescription,
             model: geminiModel as 'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview',
             aspectRatio: reqAspectRatio as any,
             resolution: reqResolution as any,
@@ -355,6 +352,7 @@ export async function POST(request: Request) {
           accessoryImages: accessoryImages?.map(img => normalizeBase64(img)), // NEW: accessories
           accessoryTypes, // NEW: accessory type labels
           prompt: finalPrompt,
+          garmentDescription: promptWriterResult?.referenceDescription,
           model: geminiModel as 'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview',
           aspectRatio,
           resolution,

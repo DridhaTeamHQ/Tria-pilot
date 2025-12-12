@@ -116,6 +116,62 @@ function generateScenarios(
   return scenarios
 }
 
+function generateStudioScenarios(
+  backgroundVariations: string[],
+  moodVariations: string[],
+  count: number = 100
+): ScenarioVariation[] {
+  const scenarios: ScenarioVariation[] = []
+  let id = 0
+
+  const STUDIO_CAMERA_ANGLES: ScenarioVariation['camera']['angle'][] = ['eye_level', 'low_angle', 'high_angle']
+  const STUDIO_CAMERA_LENS: ScenarioVariation['camera']['lens'][] = ['50mm_portrait', '85mm_telephoto']
+  const STUDIO_CAMERA_FRAMING: ScenarioVariation['camera']['framing'][] = ['three_quarter', 'half_body', 'bust']
+  const STUDIO_CAMERA_DEPTH: ScenarioVariation['camera']['depth'][] = ['medium_f2.8', 'deep_f5.6']
+
+  const STUDIO_LIGHT_TYPES: ScenarioVariation['lighting']['type'][] = ['studio']
+  const STUDIO_LIGHT_DIRECTIONS: ScenarioVariation['lighting']['direction'][] = ['front', 'butterfly', 'rembrandt', 'loop', 'side']
+  const STUDIO_LIGHT_QUALITY: ScenarioVariation['lighting']['quality'][] = ['soft', 'diffused']
+  const STUDIO_LIGHT_COLORS: ScenarioVariation['lighting']['color'][] = ['neutral', 'warm_orange']
+  const STUDIO_LIGHT_TIMES: ScenarioVariation['lighting']['time'][] = ['indoor']
+
+  const STUDIO_POSES_STANCE: ScenarioVariation['pose']['stance'][] = ['standing_straight', 'standing_relaxed']
+  const STUDIO_POSES_ARMS: ScenarioVariation['pose']['arms'][] = ['relaxed_sides', 'one_hip']
+  const STUDIO_POSES_HEAD: ScenarioVariation['pose']['headTilt'][] = ['straight', 'slight_left', 'slight_right']
+
+  for (let i = 0; i < count && id < count; i++) {
+    const bgIndex = i % backgroundVariations.length
+    const moodIndex = i % moodVariations.length
+
+    scenarios.push({
+      id: `scenario_${++id}`,
+      camera: {
+        angle: STUDIO_CAMERA_ANGLES[id % STUDIO_CAMERA_ANGLES.length],
+        lens: STUDIO_CAMERA_LENS[id % STUDIO_CAMERA_LENS.length],
+        framing: STUDIO_CAMERA_FRAMING[id % STUDIO_CAMERA_FRAMING.length],
+        depth: STUDIO_CAMERA_DEPTH[id % STUDIO_CAMERA_DEPTH.length],
+      },
+      lighting: {
+        type: STUDIO_LIGHT_TYPES[0],
+        direction: STUDIO_LIGHT_DIRECTIONS[id % STUDIO_LIGHT_DIRECTIONS.length],
+        quality: STUDIO_LIGHT_QUALITY[id % STUDIO_LIGHT_QUALITY.length],
+        color: STUDIO_LIGHT_COLORS[id % STUDIO_LIGHT_COLORS.length],
+        time: STUDIO_LIGHT_TIMES[0],
+      },
+      background: backgroundVariations[bgIndex],
+      pose: {
+        stance: STUDIO_POSES_STANCE[id % STUDIO_POSES_STANCE.length],
+        arms: STUDIO_POSES_ARMS[id % STUDIO_POSES_ARMS.length],
+        headTilt: STUDIO_POSES_HEAD[id % STUDIO_POSES_HEAD.length],
+      },
+      expression: EXPRESSIONS[id % EXPRESSIONS.length],
+      mood: moodVariations[moodIndex],
+    })
+  }
+
+  return scenarios
+}
+
 // ============================================================================
 // PRESET DEFINITIONS
 // ============================================================================
@@ -292,7 +348,7 @@ export const intelligentPresets: IntelligentPreset[] = [
     category: 'studio',
     editTypes: ['clothing_change', 'lighting_change', 'camera_change'],
     basePrompt: 'Place the person in a professional photography studio. Clean, controlled lighting.',
-    scenarios: generateScenarios(
+    scenarios: generateStudioScenarios(
       [
         'Seamless white backdrop with three-point lighting',
         'Light grey gradient background with soft shadows',
