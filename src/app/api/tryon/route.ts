@@ -190,7 +190,7 @@ export async function POST(request: Request) {
 
           // Save and return
           const imagePath = `tryon/${dbUser.id}/${job.id}.png`
-          const imageUrl = await saveUpload(generatedImage, imagePath, 'generations')
+          const imageUrl = await saveUpload(generatedImage, imagePath, 'try-ons')
 
           await prisma.generationJob.update({
             where: { id: job.id },
