@@ -80,11 +80,12 @@ export async function generateTryOn(options: TryOnOptions): Promise<string> {
     } as any)
     console.log('📸 Added person image')
 
-    // STEP 2: Clothing reference (if clothing change)
-    if (editType === 'clothing_change' && clothingImage) {
+    // STEP 2: Clothing reference - ALWAYS add if provided (regardless of editType)
+    // This is critical for presets that have multiple editTypes
+    if (clothingImage) {
       const cleanClothingImage = clothingImage.replace(/^data:image\/[a-z]+;base64,/, '')
       if (cleanClothingImage && cleanClothingImage.length >= 100) {
-        contents.push('Clothing reference:')
+        contents.push('Clothing reference (apply this garment to the subject):')
         contents.push({
           inlineData: {
             data: cleanClothingImage,
@@ -95,8 +96,8 @@ export async function generateTryOn(options: TryOnOptions): Promise<string> {
       }
     }
 
-    // STEP 3: Background reference (if background change)
-    if (editType === 'background_change' && backgroundImage) {
+    // STEP 3: Background reference image - add if provided
+    if (backgroundImage) {
       const cleanBgImage = backgroundImage.replace(/^data:image\/[a-z]+;base64,/, '')
       if (cleanBgImage && cleanBgImage.length >= 100) {
         contents.push('Background reference:')
@@ -174,21 +175,34 @@ export async function generateTryOn(options: TryOnOptions): Promise<string> {
       additional_context: prompt
     }
     
-    // Build execution summary based on what's being changed
-    let executionSummary = "Execute this edit: "
+    // Build clear, direct execution summary
+    const actions: string[] = []
     if (hasClothingChange) {
-      executionSummary += "Replace the clothing with the garment from the reference. "
+      actions.push("DRESS the subject in the garment from the clothing reference")
     }
     if (hasSceneChange) {
-      executionSummary += `Place the subject in: ${sceneDescription}. `
+      actions.push(`PLACE the subject in: ${sceneDescription}`)
     }
     if (hasLightingChange) {
-      executionSummary += `Apply lighting: ${lightingDescription}. `
+      actions.push(`APPLY lighting: ${lightingDescription}`)
     }
-    executionSummary += "The face MUST remain exactly the same person from the subject image."
+    
+    // Critical reminder
+    const executionSummary = `
+## EXECUTE THIS EDIT:
+${actions.map((a, i) => `${i + 1}. ${a}`).join('\n')}
+
+## CRITICAL RULES:
+- The output MUST show the SAME PERSON from the subject image
+- The output MUST show them WEARING the clothing from the clothing reference
+- The face MUST be IDENTICAL to the subject image - no new face generation
+- If the clothing reference shows a different person, IGNORE their face completely
+${hasSceneChange ? `- The background MUST be: ${sceneDescription}` : ''}
+${hasLightingChange ? `- The lighting MUST be: ${lightingDescription}` : ''}
+
+Generate ONE edited image showing the subject wearing the new clothing.`
 
     contents.push(`
-Edit instruction (JSON format):
 ${JSON.stringify(jsonPrompt, null, 2)}
 
 ${executionSummary}`)

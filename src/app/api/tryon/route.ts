@@ -182,10 +182,11 @@ export async function POST(request: Request) {
           console.log(`💡 Lighting: ${lightingDescription}`)
 
           // Generate the image with the intelligent preset prompt + scene/lighting
+          // Always use 'clothing_change' as primary since we're doing try-on
           const generatedImage = await generateTryOn({
             personImage: normalizedPerson,
             personImages: personImages?.map(img => normalizeBase64(img)),
-            editType: presetResult.editTypes[0] as any || 'clothing_change',
+            editType: 'clothing_change', // Always clothing_change for try-on - scene/lighting handled via descriptions
             clothingImage: normalizedClothing,
             backgroundImage: normalizedBackground,
             accessoryImages: accessoryImages?.map(img => normalizeBase64(img)),
