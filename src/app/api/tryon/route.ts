@@ -2,21 +2,18 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { tryOnSchema } from '@/lib/validation'
 import { checkRateLimit } from '@/lib/rate-limit'
-import { getOpenAIKey, getGeminiKey } from '@/lib/config/api-keys'
-import { analyzePersonImage, analyzeClothingImage } from '@/lib/analysis/gemini-analyzer'
-import { generatePromptFromAnalysis } from '@/lib/prompts/prompt-orchestrator'
+import { getGeminiKey } from '@/lib/config/api-keys'
 import { getPresetById } from '@/lib/prompts/try-on-presets'
 import { generateTryOn } from '@/lib/nanobanana'
-import { normalizeBase64, redactClothingRefFaces, autoGarmentCrop } from '@/lib/image-processing'
+import { buildEditPrompt } from '@/lib/prompts/edit-templates'
+import { normalizeBase64 } from '@/lib/image-processing'
 import { saveUpload } from '@/lib/storage'
-import { validateImageGeneration } from '@/lib/validation/image-validator'
 import prisma from '@/lib/prisma'
 
 export async function POST(request: Request) {
   try {
     // Validate API keys using unified config
     try {
-      getOpenAIKey()
       getGeminiKey()
     } catch (keyError) {
       return NextResponse.json(
@@ -73,14 +70,19 @@ export async function POST(request: Request) {
     const {
       personImage,
       personImages,
+      editType,
       clothingImage,
+      backgroundImage,
       accessoryImages, // NEW: accessory images
       accessoryTypes,  // NEW: accessory type labels
       model,
       stylePreset,
+      userRequest,
       background,
       pose,
       expression,
+      camera,
+      lighting,
       addOns,
       aspectRatio: reqAspectRatio,
       resolution: reqResolution
@@ -111,12 +113,17 @@ export async function POST(request: Request) {
         inputs: {
           personImage,
           clothingImage,
+          backgroundImage,
+          editType,
         },
         settings: {
           stylePreset,
           background,
           pose,
           expression,
+          camera,
+          lighting,
+          userRequest,
           addOns,
           model: geminiModel,
         },
@@ -130,122 +137,29 @@ export async function POST(request: Request) {
       // Normalize images
       const normalizedPerson = normalizeBase64(personImage)
       const normalizedClothing = clothingImage ? normalizeBase64(clothingImage) : undefined
+      const normalizedBackground = backgroundImage ? normalizeBase64(backgroundImage) : undefined
 
-      console.log('Step 1/5: Analyzing person image with Gemini Nano...')
+      // Merge preset hints into simple fields (optional)
+      const presetBackground = preset?.background
+      const presetLighting = preset?.lighting
+        ? `${preset.lighting.type}, ${preset.lighting.direction}, ${preset.lighting.colorTemp}`
+        : undefined
+      const presetCamera = preset?.camera_style
+        ? `${preset.camera_style.angle}, ${preset.camera_style.lens}, ${preset.camera_style.framing}`
+        : undefined
+      const presetPose = preset?.pose ? `${preset.pose.stance}. Arms: ${preset.pose.arms}.` : undefined
+      const presetExpression = preset?.pose?.expression
 
-      // NEW PIPELINE: Use Gemini Nano for analysis
-      let personAnalysis
-      try {
-        personAnalysis = await analyzePersonImage(normalizedPerson)
-        console.log('✅ Person analysis complete')
-        console.log(`Person: ${personAnalysis.person.skin_tone} skin, ${personAnalysis.person.hair_color} hair, ${personAnalysis.person.face_shape} face`)
-      } catch (error) {
-        console.error('Person analysis failed:', error)
-        throw new Error('Failed to analyze person image. Please ensure the image clearly shows a person.')
-      }
-
-      console.log('Step 2/5: Analyzing clothing image with Gemini Nano...')
-
-      // Analyze clothing if provided
-      let clothingAnalysis
-      if (normalizedClothing) {
-        try {
-          const redactedClothing = await redactClothingRefFaces(normalizedClothing)
-          const croppedClothing = await autoGarmentCrop(redactedClothing)
-          clothingAnalysis = await analyzeClothingImage(croppedClothing)
-          console.log('✅ Clothing analysis complete')
-          console.log(`Clothing: ${clothingAnalysis.upper_wear_color} ${clothingAnalysis.upper_wear_type}`)
-
-          // Merge clothing analysis into person analysis
-          personAnalysis.clothing = clothingAnalysis
-        } catch (error) {
-          console.error('Clothing analysis failed:', error)
-          console.warn('Continuing without clothing analysis - will use person image clothing')
-        }
-      }
-
-      console.log('Step 3/5: Generating prompt with ChatGPT...')
-
-      // NEW PIPELINE: Use ChatGPT prompt orchestrator
-      let finalPrompt: string
-      try {
-        finalPrompt = await generatePromptFromAnalysis(
-          personAnalysis,
-          preset,
-          undefined, // userRequest - can be added later
-          {
-            model: geminiModel,
-            resolution: '2K',
-          }
-        )
-        console.log('✅ Prompt generated')
-        console.log(`Prompt length: ${finalPrompt.length} characters`)
-
-        // Validate preset data is included in final prompt
-        if (preset) {
-          // Check for preset content in the actual prompt format (not section headers)
-          // The prompt uses "Scene Style:" and "Avoid:" sections, not "STYLE SECTION"
-          const hasSceneStyle = finalPrompt.includes('Scene Style:') || finalPrompt.includes('Scene Style')
-          const hasAvoid = finalPrompt.includes('Avoid:') || finalPrompt.includes('Avoid')
-
-          // Check if preset name or description is mentioned
-          const hasPresetName = finalPrompt.includes(preset.name)
-          const hasPresetSection = finalPrompt.includes('PRESET:') || finalPrompt.includes(`PRESET: ${preset.name}`)
-          const hasPresetDescription = preset.description ? finalPrompt.includes(preset.description.substring(0, 20)) : false
-
-          // Check if specific modifiers are present (if they exist) - this is the most important check
-          const hasPositiveMods = preset.positive && preset.positive.length > 0
-            ? preset.positive.some((mod: string) => finalPrompt.includes(mod))
-            : true // If no positive mods defined, that's okay
-          const hasNegativeMods = preset.negative && preset.negative.length > 0
-            ? preset.negative.some((mod: string) => finalPrompt.includes(mod))
-            : true // If no negative mods defined, that's okay
-
-          // Check for preset background if specified
-          const hasBackground = preset.background ? finalPrompt.includes(preset.background) : true
-
-          // Check for lighting if specified
-          const hasLighting = preset.lighting
-            ? (finalPrompt.includes(preset.lighting.type) || finalPrompt.includes(preset.lighting.source))
-            : true
-
-          // Check for camera if specified
-          const hasCamera = preset.camera_style
-            ? (finalPrompt.includes(preset.camera_style.angle) || finalPrompt.includes(preset.camera_style.lens))
-            : true
-
-          console.log(`🔍 Preset validation in final prompt:`)
-          console.log(`   Scene Style Section: ${hasSceneStyle ? '✅' : '❌'}`)
-          console.log(`   Avoid Section: ${hasAvoid ? '✅' : '❌'}`)
-          console.log(`   Preset Section: ${hasPresetSection ? '✅' : '⚠️'}`)
-          console.log(`   Preset Name/Description: ${hasPresetName || hasPresetDescription ? '✅' : '⚠️'}`)
-          console.log(`   Positive Modifiers Content: ${hasPositiveMods ? '✅' : '❌'}`)
-          console.log(`   Negative Modifiers Content: ${hasNegativeMods ? '✅' : '❌'}`)
-          console.log(`   Background: ${hasBackground ? '✅' : '⚠️'}`)
-          console.log(`   Lighting: ${hasLighting ? '✅' : '⚠️'}`)
-          console.log(`   Camera: ${hasCamera ? '✅' : '⚠️'}`)
-
-          // Critical validation: must have positive modifiers if they exist
-          // This is the most important check - the actual preset content must be present
-          if (preset.positive && preset.positive.length > 0 && !hasPositiveMods) {
-            console.error('⚠️ CRITICAL ERROR: Preset positive modifiers not found in final prompt!')
-            throw new Error('Preset data was not properly merged into final prompt - missing positive modifiers')
-          }
-
-          // Warn if sections are missing but don't fail (these are format checks, not critical)
-          if (!hasSceneStyle || !hasAvoid) {
-            console.warn('⚠️ WARNING: Prompt format may not match expected structure, but content validation passed')
-          }
-
-          // Log success if all critical checks pass
-          if (hasPositiveMods && hasNegativeMods) {
-            console.log('✅ Preset validation passed: All critical preset content is present in final prompt')
-          }
-        }
-      } catch (error) {
-        console.error('Prompt generation failed:', error)
-        throw new Error('Failed to generate try-on prompt. Please try again.')
-      }
+      const finalPrompt = buildEditPrompt({
+        editType,
+        userRequest,
+        background: background ?? presetBackground,
+        pose: pose ?? presetPose,
+        expression: expression ?? presetExpression,
+        camera: camera ?? presetCamera,
+        lighting: lighting ?? presetLighting,
+        model: model === 'pro' ? 'pro' : 'flash',
+      })
 
       // Log final prompt before sending to Gemini
       console.log('\n📌 FINAL PROMPT BEFORE GEMINI:')
@@ -265,7 +179,9 @@ export async function POST(request: Request) {
         generatedImage = await generateTryOn({
           personImage: normalizedPerson,
           personImages: personImages?.map(img => normalizeBase64(img)), // Additional person images for Pro
+          editType,
           clothingImage: normalizedClothing,
+          backgroundImage: normalizedBackground,
           accessoryImages: accessoryImages?.map(img => normalizeBase64(img)), // NEW: accessories
           accessoryTypes, // NEW: accessory type labels
           prompt: finalPrompt,
@@ -279,23 +195,7 @@ export async function POST(request: Request) {
         throw new Error('Failed to generate try-on image. Please try again.')
       }
 
-      console.log('Step 5/5: Validating and saving...')
-
-      // Validate image generation
-      const validation = validateImageGeneration(
-        personAnalysis,
-        { image: generatedImage }, // Placeholder - would use actual image analysis
-        preset,
-        finalPrompt
-      )
-
-      console.log(`Validation score: ${(validation.score * 100).toFixed(1)}%`)
-      if (validation.warnings.length > 0) {
-        console.warn('Validation warnings:', validation.warnings)
-      }
-      if (validation.errors.length > 0) {
-        console.error('Validation errors:', validation.errors)
-      }
+      console.log('Saving generated image...')
 
       // Save image to storage
       const imagePath = `${dbUser.id}/${job.id}.jpg`
@@ -313,20 +213,6 @@ export async function POST(request: Request) {
             settings: {
               ...(job.settings as any),
               generatedPrompt: finalPrompt,
-              analysis: {
-                person: {
-                  skin_tone: personAnalysis.person.skin_tone,
-                  hair_color: personAnalysis.person.hair_color,
-                  face_shape: personAnalysis.person.face_shape,
-                },
-                clothing: personAnalysis.clothing,
-              },
-              validation: {
-                score: validation.score,
-                passed: validation.passed,
-                warnings: validation.warnings,
-                errors: validation.errors,
-              },
             },
           },
         })
@@ -341,18 +227,8 @@ export async function POST(request: Request) {
         jobId: job.id,
         imageUrl,
         status: 'completed',
-        validation: {
-          score: validation.score,
-          passed: validation.passed,
-          warnings: validation.warnings,
-          errors: validation.errors,
-        },
         debug: {
           prompt: finalPrompt,
-          analysis: {
-            person: personAnalysis.person,
-            clothing: personAnalysis.clothing,
-          },
         },
       })
     } catch (error) {
@@ -376,10 +252,8 @@ export async function POST(request: Request) {
 
       // Provide user-friendly error messages
       let userMessage = errorMessage
-      if (errorMessage.includes('analyze')) {
-        userMessage = 'Unable to analyze the provided image. Please ensure the image is clear and shows the subject well.'
-      } else if (errorMessage.includes('prompt')) {
-        userMessage = 'Unable to generate try-on description. Please try again.'
+      if (errorMessage.includes('prompt')) {
+        userMessage = 'Unable to build edit instructions. Please try again.'
       } else if (errorMessage.includes('generate') || errorMessage.includes('Gemini')) {
         userMessage = 'Image generation service is experiencing issues. Please try again in a moment.'
       }

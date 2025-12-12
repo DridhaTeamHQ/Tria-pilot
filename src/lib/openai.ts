@@ -360,17 +360,33 @@ export async function generateIntelligentTryOnPrompt(
   }
 ): Promise<string> {
   try {
+    // NOTE: The new pipeline uses strict edit templates (no analysis/orchestration).
+    // Keep this function for backward compatibility with callers, but delegate to the new template builder.
     const { getPresetById } = await import('./prompts/try-on-presets')
-    const { buildTryOnPrompt } = await import('./prompts/prompt-builder')
+    const { buildEditPrompt } = await import('./prompts/edit-templates')
 
     const selectedPreset = options?.stylePreset ? getPresetById(options.stylePreset) : undefined
-    if (selectedPreset) {
-      console.log('Preset selected:', { id: selectedPreset.id, name: selectedPreset.name, category: selectedPreset.category, deviation: selectedPreset.deviation })
-    } else {
-      console.log('No preset selected, using neutral style')
-    }
-    const finalPrompt = buildTryOnPrompt(personImageBase64, clothingImageBase64, selectedPreset || null)
-    return finalPrompt
+
+    const presetBackground = selectedPreset?.background
+    const presetLighting = selectedPreset?.lighting
+      ? `${selectedPreset.lighting.type}, ${selectedPreset.lighting.direction}, ${selectedPreset.lighting.colorTemp}`
+      : undefined
+    const presetCamera = selectedPreset?.camera_style
+      ? `${selectedPreset.camera_style.angle}, ${selectedPreset.camera_style.lens}, ${selectedPreset.camera_style.framing}`
+      : undefined
+    const presetPose = selectedPreset?.pose ? `${selectedPreset.pose.stance}. Arms: ${selectedPreset.pose.arms}.` : undefined
+    const presetExpression = selectedPreset?.pose?.expression
+
+    return buildEditPrompt({
+      editType: 'clothing_change',
+      userRequest: undefined,
+      background: options?.background ?? presetBackground,
+      pose: options?.pose ?? presetPose,
+      expression: options?.expression ?? presetExpression,
+      camera: presetCamera,
+      lighting: presetLighting,
+      model: 'flash',
+    })
   } catch (error) {
     console.error('❌ Intelligent prompt generation error:', error)
     console.error('Error details:', error instanceof Error ? error.message : String(error))

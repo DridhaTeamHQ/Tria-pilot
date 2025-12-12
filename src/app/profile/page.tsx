@@ -20,11 +20,21 @@ import {
   Star,
   Award,
   Settings,
+  Trash2,
+  Crown,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useUser, useProfileStats } from '@/lib/react-query/hooks'
 import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
+
+type ProfileImage = {
+  id: string
+  imageUrl: string
+  label: string | null
+  isPrimary: boolean
+  createdAt: string
+}
 
 export default function ProfilePage() {
   const { data: userData, isLoading: userLoading } = useUser()
@@ -33,12 +43,37 @@ export default function ProfilePage() {
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState('')
   const [saving, setSaving] = useState(false)
+  const [profileImages, setProfileImages] = useState<ProfileImage[]>([])
+  const [profileImagesLoading, setProfileImagesLoading] = useState(false)
+  const [profileImagesUploading, setProfileImagesUploading] = useState(false)
 
   useEffect(() => {
     if (userData?.name) {
       setName(userData.name)
     }
   }, [userData?.name])
+
+  const fetchProfileImages = async () => {
+    setProfileImagesLoading(true)
+    try {
+      const res = await fetch('/api/profile-images', { cache: 'no-store' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to fetch profile images')
+      setProfileImages((data.images || []) as ProfileImage[])
+    } catch (e) {
+      console.warn(e)
+      // Silent: profile page still usable even if images fail
+    } finally {
+      setProfileImagesLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (userData?.id) {
+      fetchProfileImages()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userData?.id])
 
   const loading = userLoading || statsLoading
   const profile = userData
@@ -89,6 +124,70 @@ export default function ProfilePage() {
       })
     } catch {
       return 'Recently joined'
+    }
+  }
+
+  const fileToBase64 = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(String(reader.result))
+      reader.onerror = () => reject(new Error('Failed to read image'))
+      reader.readAsDataURL(file)
+    })
+
+  const handleUploadProfileImages = async (files: FileList | null) => {
+    if (!files || files.length === 0) return
+    const fileArr = Array.from(files)
+    setProfileImagesUploading(true)
+    try {
+      for (let i = 0; i < fileArr.length; i++) {
+        const base64 = await fileToBase64(fileArr[i])
+        const res = await fetch('/api/profile-images', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imageBase64: base64,
+            label: fileArr[i].name.slice(0, 60),
+            makePrimary: profileImages.length === 0 && i === 0,
+          }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Upload failed')
+      }
+      toast.success('Photo(s) uploaded')
+      await fetchProfileImages()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to upload photo(s)')
+    } finally {
+      setProfileImagesUploading(false)
+    }
+  }
+
+  const handleDeleteProfileImage = async (id: string) => {
+    try {
+      const res = await fetch(`/api/profile-images/${id}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Delete failed')
+      toast.success('Photo deleted')
+      await fetchProfileImages()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to delete photo')
+    }
+  }
+
+  const handleSetPrimaryProfileImage = async (id: string) => {
+    try {
+      const res = await fetch(`/api/profile-images/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ makePrimary: true }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Update failed')
+      toast.success('Primary photo updated')
+      await fetchProfileImages()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to set primary photo')
     }
   }
 
@@ -274,6 +373,79 @@ export default function ProfilePage() {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Profile Images */}
+            <div className="bg-white rounded-3xl border border-subtle p-8">
+              <div className="flex items-start justify-between gap-4 mb-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-charcoal">Your Photos</h3>
+                  <p className="text-sm text-charcoal/60 mt-1">
+                    Use these photos in Try-On. You can store up to 10.
+                  </p>
+                </div>
+                <label className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-charcoal/70 bg-white border border-charcoal/10 rounded-xl hover:bg-charcoal hover:text-cream transition-all cursor-pointer">
+                  <ImageIcon className="w-4 h-4" />
+                  {profileImagesUploading ? 'Uploading...' : 'Add Photos'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    disabled={profileImagesUploading}
+                    onChange={(e) => handleUploadProfileImages(e.target.files)}
+                  />
+                </label>
+              </div>
+
+              {profileImagesLoading ? (
+                <div className="flex items-center justify-center py-10">
+                  <Loader2 className="w-6 h-6 animate-spin text-charcoal/40" />
+                </div>
+              ) : profileImages.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-charcoal/15 p-10 text-center">
+                  <p className="text-charcoal/60">No photos yet. Add at least one to improve face consistency.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {profileImages.map((img) => (
+                    <div key={img.id} className="group relative rounded-2xl overflow-hidden border border-subtle">
+                      <img
+                        src={img.imageUrl}
+                        alt={img.label || 'profile image'}
+                        className="w-full h-44 object-cover bg-cream"
+                      />
+                      <div className="absolute top-2 left-2 flex items-center gap-2">
+                        {img.isPrimary && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-white/90 rounded-full text-charcoal">
+                            <Crown className="w-3.5 h-3.5 text-amber-500" />
+                            Primary
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-100">
+                        <div className="flex items-center justify-between gap-2">
+                          <button
+                            onClick={() => handleSetPrimaryProfileImage(img.id)}
+                            className="text-xs font-medium text-white/95 hover:text-white underline-offset-2 hover:underline"
+                          >
+                            Set primary
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProfileImage(img.id)}
+                            className="inline-flex items-center gap-1 text-xs font-medium text-white/95 hover:text-white"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Delete
+                          </button>
+                        </div>
+                        {img.label && <p className="text-[11px] text-white/80 mt-1 truncate">{img.label}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </motion.div>
 

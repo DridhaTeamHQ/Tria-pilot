@@ -16,6 +16,8 @@ export default function InfluencerOnboardingPage() {
   const router = useRouter()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
+  const [photoFiles, setPhotoFiles] = useState<File[]>([])
+  const [uploadingPhotos, setUploadingPhotos] = useState(false)
   const [formData, setFormData] = useState({
     gender: '',
     niches: [] as string[],
@@ -58,7 +60,7 @@ export default function InfluencerOnboardingPage() {
   }, [router])
 
   const handleNext = async () => {
-    if (step < 6) {
+    if (step < 7) {
       // Save progress
       await saveProgress()
       setStep(step + 1)
@@ -102,6 +104,39 @@ export default function InfluencerOnboardingPage() {
       }
 
       if (data.onboardingCompleted) {
+        // Optional: upload profile photos selected in step 7
+        if (photoFiles.length > 0) {
+          setUploadingPhotos(true)
+          try {
+            const toBase64 = (file: File) =>
+              new Promise<string>((resolve, reject) => {
+                const reader = new FileReader()
+                reader.onload = () => resolve(String(reader.result))
+                reader.onerror = () => reject(new Error('Failed to read image'))
+                reader.readAsDataURL(file)
+              })
+
+            const files = photoFiles.slice(0, 3) // onboarding: limit initial upload
+            for (let i = 0; i < files.length; i++) {
+              const base64 = await toBase64(files[i])
+              await fetch('/api/profile-images', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  imageBase64: base64,
+                  label: i === 0 ? 'primary' : `onboarding_${i + 1}`,
+                  makePrimary: i === 0,
+                }),
+              })
+            }
+          } catch (e) {
+            console.warn('Profile photo upload failed (non-blocking):', e)
+            toast.error('Onboarding completed, but photo upload failed. You can add photos in Profile.')
+          } finally {
+            setUploadingPhotos(false)
+          }
+        }
+
         toast.success('Onboarding completed!')
         router.push('/influencer/dashboard')
       } else {
@@ -280,6 +315,33 @@ export default function InfluencerOnboardingPage() {
           </div>
         )
 
+      case 7:
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="photos">Add Your Photos (optional)</Label>
+              <p className="text-sm text-muted-foreground mt-1">
+                Upload up to 3 photos now. You can manage up to 10 photos later in your Profile.
+              </p>
+            </div>
+            <Input
+              id="photos"
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => {
+                const files = Array.from(e.target.files || [])
+                setPhotoFiles(files.slice(0, 3))
+              }}
+            />
+            {photoFiles.length > 0 && (
+              <div className="text-sm text-muted-foreground">
+                Selected: {photoFiles.map((f) => f.name).join(', ')}
+              </div>
+            )}
+          </div>
+        )
+
       default:
         return null
     }
@@ -291,11 +353,11 @@ export default function InfluencerOnboardingPage() {
         <CardHeader>
           <CardTitle>Complete Your Profile</CardTitle>
           <CardDescription>
-            Step {step} of 6 - Let's set up your influencer profile
+            Step {step} of 7 - Let's set up your influencer profile
           </CardDescription>
           <div className="mt-4">
             <div className="flex gap-2">
-              {[1, 2, 3, 4, 5, 6].map((s) => (
+              {[1, 2, 3, 4, 5, 6, 7].map((s) => (
                 <div
                   key={s}
                   className={`h-2 flex-1 rounded ${
@@ -319,8 +381,10 @@ export default function InfluencerOnboardingPage() {
               <Button type="button" variant="outline" onClick={handleBack} disabled={step === 1}>
                 Back
               </Button>
-              <Button type="submit" disabled={loading}>
-                {step === 6 ? (loading ? 'Completing...' : 'Complete') : 'Next'}
+              <Button type="submit" disabled={loading || uploadingPhotos}>
+                {step === 7
+                  ? (loading || uploadingPhotos ? 'Completing...' : 'Complete')
+                  : 'Next'}
               </Button>
             </div>
           </form>

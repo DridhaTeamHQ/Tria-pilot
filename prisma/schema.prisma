@@ -22,6 +22,7 @@ model User {
   
   influencerProfile InfluencerProfile?
   brandProfile      BrandProfile?
+  profileImages     UserProfileImage[]
   generationJobs    GenerationJob[]
   campaigns         Campaign[]
   adCreatives       AdCreative[]
@@ -33,6 +34,23 @@ model User {
 
   @@index([role])
   @@index([email])
+}
+
+model UserProfileImage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Supabase Storage path + public URL (for UI display)
+  imagePath String
+  imageUrl  String
+
+  label     String?
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, isPrimary])
 }
 
 model InfluencerProfile {

@@ -31,6 +31,14 @@ function TryOnPageContent() {
     const [additionalPersonImagesBase64, setAdditionalPersonImagesBase64] = useState<string[]>([]) // For Pro model
     const [clothingImage, setClothingImage] = useState<string>('')
     const [clothingImageBase64, setClothingImageBase64] = useState<string>('')
+    const [backgroundImage, setBackgroundImage] = useState<string>('')
+    const [backgroundImageBase64, setBackgroundImageBase64] = useState<string>('')
+    const [editType, setEditType] = useState<'clothing_change' | 'background_change' | 'lighting_change' | 'pose_change' | 'camera_change'>('clothing_change')
+    const [userRequest, setUserRequest] = useState<string>('')
+
+    const [savedProfileImages, setSavedProfileImages] = useState<Array<{ id: string; imageUrl: string; isPrimary: boolean; label: string | null }>>([])
+    const [savedProfileImagesLoading, setSavedProfileImagesLoading] = useState(false)
+    const [saveUploadedPersonToProfile, setSaveUploadedPersonToProfile] = useState(false)
     // NEW: Accessory states for Edit Mode
     const [accessoryImages, setAccessoryImages] = useState<string[]>([])
     const [accessoryTypes, setAccessoryTypes] = useState<('purse' | 'shoes' | 'hat' | 'jewelry' | 'bag' | 'watch' | 'sunglasses' | 'scarf' | 'other')[]>([])
@@ -45,15 +53,27 @@ function TryOnPageContent() {
     const [quality, setQuality] = useState<'1K' | '2K' | '4K'>('2K')
     const [dragOver, setDragOver] = useState<'person' | 'clothing' | null>(null)
     const [showCelebration, setShowCelebration] = useState(false)
-    // Image Intelligence Analysis State
-    const [analyzing, setAnalyzing] = useState(false)
-    const [analysisWarnings, setAnalysisWarnings] = useState<string[]>([])
-    const [presetGroups, setPresetGroups] = useState<{ excellent: string[]; good: string[]; warning: string[] }>({ excellent: [], good: [], warning: [] })
-    const [suggestedAction, setSuggestedAction] = useState<string | null>(null)
-    const [bestPresetId, setBestPresetId] = useState<string | null>(null)
     const presets = getAllPresets()
 
     const { data: productData, isLoading: productLoading } = useProduct(productId)
+
+    const fetchSavedProfileImages = useCallback(async () => {
+        setSavedProfileImagesLoading(true)
+        try {
+            const res = await fetch('/api/profile-images', { cache: 'no-store' })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Failed to fetch profile images')
+            setSavedProfileImages((data.images || []) as any[])
+        } catch (e) {
+            console.warn('Failed to load profile images:', e)
+        } finally {
+            setSavedProfileImagesLoading(false)
+        }
+    }, [])
+
+    useEffect(() => {
+        fetchSavedProfileImages()
+    }, [fetchSavedProfileImages])
 
     useEffect(() => {
         if (productData && productData.id) {
@@ -89,57 +109,9 @@ function TryOnPageContent() {
         }
     }, [productData, productId, clothingImage])
 
-    // Auto-analyze image when uploaded
-    useEffect(() => {
-        if (!personImageBase64 || personImageBase64.length < 100) {
-            // Reset analysis when image is cleared
-            setAnalysisWarnings([])
-            setPresetGroups({ excellent: [], good: [], warning: [] })
-            setSuggestedAction(null)
-            setBestPresetId(null)
-            return
-        }
+    // NOTE: No image analysis in the new pipeline (strict image edit only)
 
-        const analyzeImage = async () => {
-            setAnalyzing(true)
-            try {
-                const response = await fetch('/api/analyze', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ imageBase64: personImageBase64 }),
-                })
-
-                if (response.ok) {
-                    const data = await response.json()
-                    setAnalysisWarnings(data.warnings || [])
-                    setPresetGroups(data.presetGroups || { excellent: [], good: [], warning: [] })
-                    setSuggestedAction(data.suggestedAction)
-                    setBestPresetId(data.bestPresetId)
-
-                    // Show toast if there are warnings
-                    if (data.warnings && data.warnings.length > 0) {
-                        toast.info(`📊 ${data.warnings.length} recommendation${data.warnings.length > 1 ? 's' : ''} for this image`, {
-                            duration: 4000,
-                        })
-                    }
-
-                    // Auto-select best preset if none selected
-                    if (data.bestPresetId && !selectedPreset) {
-                        setSelectedPreset(data.bestPresetId)
-                        toast.success(`✨ Auto-selected: Best preset for your image`)
-                    }
-                }
-            } catch (error) {
-                console.error('Image analysis failed:', error)
-            } finally {
-                setAnalyzing(false)
-            }
-        }
-
-        analyzeImage()
-    }, [personImageBase64])
-
-    const handleImageUpload = useCallback((file: File, type: 'person' | 'clothing') => {
+    const handleImageUpload = useCallback((file: File, type: 'person' | 'clothing' | 'background') => {
         if (!file.type.startsWith('image/')) {
             toast.error('Please select an image file')
             return
@@ -151,7 +123,7 @@ function TryOnPageContent() {
             return
         }
 
-        setUploadingImage(type)
+        setUploadingImage(type === 'background' ? 'clothing' : type)
 
         const reader = new FileReader()
         reader.onload = (event) => {
@@ -166,10 +138,25 @@ function TryOnPageContent() {
                 setPersonImage(base64)
                 setPersonImageBase64(base64)
                 toast.success('Person image uploaded')
+                if (saveUploadedPersonToProfile) {
+                    fetch('/api/profile-images', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ imageBase64: base64, label: 'tryon_upload' }),
+                    })
+                        .then(() => fetchSavedProfileImages())
+                        .catch(() => { /* non-blocking */ })
+                }
             } else {
-                setClothingImage(base64)
-                setClothingImageBase64(base64)
-                toast.success('Clothing image uploaded')
+                if (type === 'background') {
+                    setBackgroundImage(base64)
+                    setBackgroundImageBase64(base64)
+                    toast.success('Background image uploaded')
+                } else {
+                    setClothingImage(base64)
+                    setClothingImageBase64(base64)
+                    toast.success('Clothing image uploaded')
+                }
             }
             setUploadingImage(null)
         }
@@ -178,7 +165,32 @@ function TryOnPageContent() {
             setUploadingImage(null)
         }
         reader.readAsDataURL(file)
-    }, [])
+    }, [fetchSavedProfileImages, saveUploadedPersonToProfile])
+
+    const loadUrlToBase64 = async (url: string) => {
+        const res = await fetch(url)
+        const blob = await res.blob()
+        return await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onloadend = () => resolve(reader.result as string)
+            reader.onerror = () => reject(new Error('Failed to read image'))
+            reader.readAsDataURL(blob)
+        })
+    }
+
+    const handleSelectSavedPersonImage = async (url: string) => {
+        try {
+            setUploadingImage('person')
+            const base64 = await loadUrlToBase64(url)
+            setPersonImage(base64)
+            setPersonImageBase64(base64)
+            toast.success('Selected saved photo')
+        } catch {
+            toast.error('Failed to load saved photo')
+        } finally {
+            setUploadingImage(null)
+        }
+    }
 
     // Handler for additional person images (Pro model)
     const handleAdditionalImageUpload = useCallback((file: File) => {
@@ -267,6 +279,14 @@ function TryOnPageContent() {
             toast.error('Please upload a person image')
             return
         }
+        if (editType === 'clothing_change' && !(clothingImageBase64 || clothingImage)) {
+            toast.error('Please upload a clothing reference')
+            return
+        }
+        if (editType === 'background_change' && !(backgroundImageBase64 || backgroundImage)) {
+            toast.error('Please upload a background reference')
+            return
+        }
 
         setLoading(true)
         try {
@@ -276,11 +296,14 @@ function TryOnPageContent() {
                 body: JSON.stringify({
                     personImage: personImageBase64 || personImage,
                     personImages: selectedModel === 'pro' ? additionalPersonImagesBase64 : undefined,
+                    editType,
                     clothingImage: clothingImageBase64 || clothingImage || undefined,
+                    backgroundImage: backgroundImageBase64 || backgroundImage || undefined,
                     accessoryImages: accessoryImages.length > 0 ? accessoryImages : undefined, // NEW: accessories
                     accessoryTypes: accessoryTypes.length > 0 ? accessoryTypes : undefined, // NEW: accessory labels
                     model: selectedModel,
                     stylePreset: selectedPreset || undefined,
+                    userRequest: userRequest || undefined,
                     aspectRatio,
                     resolution: quality,
                 }),
@@ -438,6 +461,97 @@ function TryOnPageContent() {
                                 Upload Images
                             </h3>
 
+                            {/* Saved Profile Photos */}
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs font-semibold text-charcoal/50 uppercase tracking-widest">
+                                        Use Saved Photos (Profile)
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={fetchSavedProfileImages}
+                                        className="text-xs text-charcoal/50 hover:text-charcoal transition-colors"
+                                    >
+                                        Refresh
+                                    </button>
+                                </div>
+                                {savedProfileImagesLoading ? (
+                                    <div className="flex items-center gap-2 text-xs text-charcoal/50">
+                                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                        Loading...
+                                    </div>
+                                ) : savedProfileImages.length === 0 ? (
+                                    <div className="text-xs text-charcoal/50">
+                                        No saved photos yet. Add some in your Profile.
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {savedProfileImages.slice(0, 8).map((img) => (
+                                            <button
+                                                key={img.id}
+                                                type="button"
+                                                onClick={() => handleSelectSavedPersonImage(img.imageUrl)}
+                                                className={`relative rounded-xl overflow-hidden border transition-all ${
+                                                    personImage && personImage === img.imageUrl
+                                                        ? 'border-peach ring-2 ring-peach/20'
+                                                        : 'border-white/60 hover:border-peach/40'
+                                                }`}
+                                                title={img.label || 'saved photo'}
+                                            >
+                                                <img src={img.imageUrl} alt={img.label || 'saved'} className="w-full h-14 object-cover" />
+                                                {img.isPrimary && (
+                                                    <div className="absolute top-1 left-1 px-1.5 py-0.5 bg-black/60 text-white text-[10px] rounded-full">
+                                                        Primary
+                                                    </div>
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Edit Type */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-semibold text-charcoal/50 uppercase tracking-widest block">
+                                    Edit Type
+                                </label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {[
+                                        { id: 'clothing_change', label: 'Clothing' },
+                                        { id: 'background_change', label: 'Background' },
+                                        { id: 'lighting_change', label: 'Lighting' },
+                                        { id: 'pose_change', label: 'Pose' },
+                                        { id: 'camera_change', label: 'Camera' },
+                                    ].map((t) => (
+                                        <button
+                                            key={t.id}
+                                            type="button"
+                                            onClick={() => setEditType(t.id as any)}
+                                            className={`py-2 px-3 rounded-xl border text-sm font-medium transition-all ${
+                                                editType === (t.id as any)
+                                                    ? 'border-charcoal bg-charcoal text-cream'
+                                                    : 'border-charcoal/10 bg-white/30 text-charcoal/60 hover:border-charcoal/25'
+                                            }`}
+                                        >
+                                            {t.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Optional User Instruction */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-semibold text-charcoal/50 uppercase tracking-widest block">
+                                    Optional Instruction
+                                </label>
+                                <textarea
+                                    value={userRequest}
+                                    onChange={(e) => setUserRequest(e.target.value)}
+                                    className="w-full min-h-[72px] rounded-2xl border border-charcoal/10 bg-white/30 px-4 py-3 text-sm text-charcoal placeholder:text-charcoal/40 focus:outline-none focus:ring-2 focus:ring-peach/30"
+                                    placeholder="e.g., keep it realistic, slight turn to the left, soft daylight"
+                                />
+                            </div>
+
                             {/* Person Upload */}
                             <div className="space-y-2">
                                 <div className="flex justify-between text-sm">
@@ -490,6 +604,15 @@ function TryOnPageContent() {
                                         </div>
                                     )}
                                 </div>
+
+                                <label className="flex items-center gap-2 text-xs text-charcoal/60">
+                                    <input
+                                        type="checkbox"
+                                        checked={saveUploadedPersonToProfile}
+                                        onChange={(e) => setSaveUploadedPersonToProfile(e.target.checked)}
+                                    />
+                                    Save uploaded photo to Profile
+                                </label>
                             </div>
 
                             {/* Additional Person Images (Pro Only) */}
@@ -590,6 +713,51 @@ function TryOnPageContent() {
                                     )}
                                 </div>
                             </div>
+
+                            {/* Background Reference (only when needed) */}
+                            {editType === 'background_change' && (
+                                <div className="space-y-2">
+                                    <div className="flex justify-between text-sm">
+                                        <span className="font-medium text-charcoal/80">Background Reference <span className="text-rose-400">*</span></span>
+                                        {backgroundImage && (
+                                            <button
+                                                type="button"
+                                                onClick={() => { setBackgroundImage(''); setBackgroundImageBase64(''); }}
+                                                className="text-xs text-charcoal/40 hover:text-rose-500 transition-colors"
+                                            >
+                                                Remove
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div
+                                        className={`relative aspect-[16/9] rounded-2xl overflow-hidden transition-all duration-300 border-2 border-dashed ${
+                                            backgroundImage ? 'border-transparent shadow-md' : 'border-charcoal/10 hover:border-peach/50 bg-white/30'
+                                        }`}
+                                    >
+                                        {backgroundImage ? (
+                                            <img src={backgroundImage} alt="Background" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-full bg-white/50 flex items-center justify-center shadow-sm">
+                                                        <Upload className="w-5 h-5 text-charcoal/40" />
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <p className="text-sm font-medium text-charcoal/70">Upload Background</p>
+                                                        <p className="text-xs text-charcoal/40">Real-to-life environment reference</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                        <input
+                                            type="file"
+                                            onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'background')}
+                                            accept="image/*"
+                                            className="absolute inset-0 opacity-0 cursor-pointer"
+                                        />
+                                    </div>
+                                </div>
+                            )}
 
                             {/* ACCESSORIES SECTION (Pro Only) */}
                             <div className="pt-4 border-t border-charcoal/5">
@@ -709,40 +877,7 @@ function TryOnPageContent() {
                     {/* RIGHT PANEL: Output & Presets */}
                     <div className="lg:col-span-7 space-y-6">
 
-                        {/* Analysis Warnings & Recommendations */}
-                        {(analysisWarnings.length > 0 || suggestedAction || analyzing) && (
-                            <motion.div
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                className="bg-amber-50 border border-amber-200 rounded-xl p-4"
-                            >
-                                {analyzing ? (
-                                    <div className="flex items-center gap-2 text-amber-700">
-                                        <RefreshCw className="w-4 h-4 animate-spin" />
-                                        <span className="text-sm font-medium">Analyzing your image...</span>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <div className="flex items-start gap-2">
-                                            <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                                            <div>
-                                                <p className="text-sm font-medium text-amber-800">Image Analysis</p>
-                                                <ul className="mt-1 space-y-1">
-                                                    {analysisWarnings.slice(0, 3).map((warning, i) => (
-                                                        <li key={i} className="text-xs text-amber-700">{warning}</li>
-                                                    ))}
-                                                </ul>
-                                                {suggestedAction && (
-                                                    <p className="mt-2 text-xs text-amber-800 font-medium">
-                                                        💡 {suggestedAction}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
-                            </motion.div>
-                        )}
+                        {/* No analysis block in new pipeline */}
 
                         {/* Presets Gallery */}
                         <motion.div
@@ -819,24 +954,7 @@ function TryOnPageContent() {
                                             </div>
 
                                             <div className="relative z-10 h-full flex flex-col justify-between text-charcoal group-hover:text-charcoal px-1">
-                                                {/* Compatibility Badge */}
-                                                <div className="flex justify-end">
-                                                    {presetGroups.excellent.includes(preset.id) && (
-                                                        <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center" title="Excellent match">
-                                                            <Check className="w-3 h-3 text-white" />
-                                                        </div>
-                                                    )}
-                                                    {presetGroups.good.includes(preset.id) && (
-                                                        <div className="w-5 h-5 rounded-full bg-amber-400 flex items-center justify-center" title="Good match">
-                                                            <Check className="w-3 h-3 text-white" />
-                                                        </div>
-                                                    )}
-                                                    {presetGroups.warning.includes(preset.id) && (
-                                                        <div className="w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center" title="May not work well with current image">
-                                                            <AlertTriangle className="w-3 h-3 text-white" />
-                                                        </div>
-                                                    )}
-                                                </div>
+                                                <div className="flex justify-end" />
                                                 <div className={`font-serif text-sm text-white`}>
                                                     <span className="relative inline-block">
                                                         {preset.name}

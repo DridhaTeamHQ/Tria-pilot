@@ -15,15 +15,23 @@ export const loginSchema = z.object({
 export const tryOnSchema = z.object({
   personImage: z.string(),
   personImages: z.array(z.string()).optional(), // Additional person images for Pro model
+  editType: z
+    .enum(['clothing_change', 'background_change', 'lighting_change', 'pose_change', 'camera_change'])
+    .optional()
+    .default('clothing_change'),
   clothingImage: z.string().optional(),
+  backgroundImage: z.string().optional(),
   // NEW: Accessory support for edit mode
   accessoryImages: z.array(z.string()).optional(), // Array of base64 accessory images
   accessoryTypes: z.array(z.enum(['purse', 'shoes', 'hat', 'jewelry', 'bag', 'watch', 'sunglasses', 'scarf', 'other'])).optional(),
   model: z.enum(['flash', 'pro']).optional().default('flash'),
   stylePreset: z.string().optional(),
+  userRequest: z.string().optional(),
   background: z.string().optional(),
   pose: z.string().optional(),
   expression: z.string().optional(),
+  camera: z.string().optional(),
+  lighting: z.string().optional(),
   addOns: z.array(z.string()).optional(),
   // New fields for user-configurable quality
   aspectRatio: z.enum(['1:1', '4:5', '3:4', '9:16']).optional().default('4:5'),

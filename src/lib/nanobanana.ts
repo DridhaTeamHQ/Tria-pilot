@@ -10,10 +10,12 @@ const getClient = () => {
 export interface TryOnOptions {
   personImage: string // base64 (with or without data URI prefix) - primary image
   personImages?: string[] // Optional: additional person images for Pro model
-  clothingImage?: string // base64 - optional clothing to add/change
+  editType?: 'clothing_change' | 'background_change' | 'lighting_change' | 'pose_change' | 'camera_change'
+  clothingImage?: string // base64 - garment reference (may include face; must be ignored)
+  backgroundImage?: string // base64 - background reference (optional)
   accessoryImages?: string[] // NEW: base64 images of accessories (purse, shoes, hat, etc.)
   accessoryTypes?: ('purse' | 'shoes' | 'hat' | 'jewelry' | 'bag' | 'watch' | 'sunglasses' | 'scarf' | 'other')[] // NEW: type labels for each accessory
-  prompt: string
+  prompt: string // strict edit prompt built by templates
   model?: 'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview'
   aspectRatio?: '1:1' | '2:3' | '3:2' | '3:4' | '4:3' | '4:5' | '5:4' | '9:16' | '16:9' | '21:9'
   resolution?: '1K' | '2K' | '4K' // Pro model only
@@ -33,7 +35,9 @@ export async function generateTryOn(options: TryOnOptions): Promise<string> {
   const {
     personImage,
     personImages = [],
+    editType = 'clothing_change',
     clothingImage,
+    backgroundImage,
     accessoryImages = [],
     accessoryTypes = [],
     prompt,
@@ -102,33 +106,12 @@ export async function generateTryOn(options: TryOnOptions): Promise<string> {
       console.log('📸 Added person image 2x')
     }
 
-    // STEP 3: Now give the instructions
-    const taskPrompt = `
-TASK: Put THIS PERSON (shown above) in new clothes.
+    // STEP 3: Strict edit prompt (built upstream)
+    contents.push(prompt)
 
-FACE RULES (CRITICAL):
-- The face in output MUST be the EXACT face from the images above
-- Copy: jawline, cheekbones, eyes, nose, lips, skin tone, hair
-- DO NOT use any other face
-- DO NOT beautify or alter the face
-- The person above is the ONLY person in the output
-
-CLOTHING RULES:
-- The next image shows the CLOTHING to use
-- Extract ONLY the garment (color, pattern, texture, style)
-- IGNORE any person/face in the clothing image - it's just for the garment
-- Put the garment on the person shown above
-
-${prompt}
-
-OUTPUT: The person from above wearing the new clothing.
-`.trim()
-
-    contents.push(taskPrompt)
-
-    // STEP 4: Add clothing reference (if provided)
-    if (clothingImage) {
-      contents.push('CLOTHING TO USE (extract garment only, ignore any face):')
+    // STEP 4: Add reference images (role-labelled)
+    if (editType === 'clothing_change' && clothingImage) {
+      contents.push('GARMENT REFERENCE (GARMENT ONLY; IGNORE ANY FACE/PERSON IN THIS IMAGE):')
       const cleanClothingImage = clothingImage.replace(/^data:image\/[a-z]+;base64,/, '')
       if (cleanClothingImage && cleanClothingImage.length >= 100) {
         contents.push({
@@ -137,7 +120,48 @@ OUTPUT: The person from above wearing the new clothing.
             mimeType: 'image/jpeg',
           },
         } as any)
-        console.log('👕 Added clothing image')
+        console.log('👕 Added garment reference image')
+      }
+    }
+
+    if (editType === 'background_change' && backgroundImage) {
+      contents.push('BACKGROUND REFERENCE (ENVIRONMENT ONLY; DO NOT CHANGE SUBJECT IDENTITY):')
+      const cleanBgImage = backgroundImage.replace(/^data:image\/[a-z]+;base64,/, '')
+      if (cleanBgImage && cleanBgImage.length >= 100) {
+        contents.push({
+          inlineData: {
+            data: cleanBgImage,
+            mimeType: 'image/jpeg',
+          },
+        } as any)
+        console.log('🖼️ Added background reference image')
+      }
+    }
+
+    // Optional: allow supplying both refs (future-proof)
+    if (editType !== 'clothing_change' && clothingImage) {
+      contents.push('OPTIONAL GARMENT REFERENCE (GARMENT ONLY; IGNORE ANY FACE/PERSON IN THIS IMAGE):')
+      const cleanClothingImage = clothingImage.replace(/^data:image\/[a-z]+;base64,/, '')
+      if (cleanClothingImage && cleanClothingImage.length >= 100) {
+        contents.push({
+          inlineData: {
+            data: cleanClothingImage,
+            mimeType: 'image/jpeg',
+          },
+        } as any)
+      }
+    }
+
+    if (editType !== 'background_change' && backgroundImage) {
+      contents.push('OPTIONAL BACKGROUND REFERENCE (ENVIRONMENT ONLY):')
+      const cleanBgImage = backgroundImage.replace(/^data:image\/[a-z]+;base64,/, '')
+      if (cleanBgImage && cleanBgImage.length >= 100) {
+        contents.push({
+          inlineData: {
+            data: cleanBgImage,
+            mimeType: 'image/jpeg',
+          },
+        } as any)
       }
     }
 
@@ -168,7 +192,7 @@ OUTPUT: The person from above wearing the new clothing.
         mimeType: 'image/jpeg',
       },
     } as any)
-    contents.push('Generate the image now. The face MUST match the person shown.')
+    contents.push('Generate the edited image now. The face MUST match the person shown.')
 
     console.log('✅ Contents prepared')
 
