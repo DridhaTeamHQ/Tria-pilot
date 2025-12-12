@@ -121,100 +121,55 @@ export async function writePromptFromImages(
   }
 
   // =========================================================================
-  // SYSTEM PROMPT: Strict analysis and prompt writing rules
+  // SYSTEM PROMPT: Simple, direct structure following Nano Banana guide
+  // Formula: Action/Change + Specific Element/Change + Desired Style/Effect + Relevant Details
+  // Action words: Add, Change, Make, Remove, Replace
   // =========================================================================
-  const systemPrompt = `You are an expert prompt engineer for Gemini (Nano Banana) image generation. Your task is to analyze two images and write an extremely precise, narrative prompt that will make Gemini perform a virtual try-on while preserving the person's EXACT identity.
+  const systemPrompt = `You are a prompt writer for Gemini image editing. Analyze the images and write a simple, direct prompt.
 
-## YOUR ANALYSIS TASKS
+## PROMPT FORMULA FOR EDITING IMAGES
+Action/Change + Specific Element/Change + Desired Style/Effect + Relevant Details
 
-### TASK 1: Analyze the PERSON IMAGE (Image 1) in EXTREME detail
-You MUST describe every facial feature precisely because Gemini needs this to preserve identity:
-- Face shape (oval, round, heart, square, oblong)
-- Jawline (sharp, soft, angular, rounded)
-- Cheekbones (high, low, prominent, subtle)
-- Forehead (wide, narrow, high, low)
-- Eye details: shape, size, color, spacing, eyelid type
-- Eyebrow details: shape, thickness, arch, color
-- Nose details: bridge, tip, nostril shape, width
-- Lip details: shape, fullness, cupid's bow
-- Skin: exact tone (e.g., "warm olive", "cool beige", "deep brown"), texture, any marks/moles
-- Hair: color, texture (straight/wavy/curly), length, style, volume
-- Current expression
-- Body pose and proportions
-- Current clothing (what they're wearing now)
+## YOUR TASKS
 
-### TASK 2: Analyze the GARMENT/REFERENCE IMAGE (Image 2) - CLOTHING ONLY
-⚠️ CRITICAL: If there is a person/face in the garment image, COMPLETELY IGNORE IT.
-Extract ONLY the garment details:
-- Garment type (blouse, dress, kurti, shirt, etc.)
-- Color: exact shade (e.g., "deep maroon", "dusty rose", "navy blue")
-- Pattern: type, colors, scale (e.g., "small white geometric motifs", "paisley in gold")
-- Fabric: material, texture, sheen (cotton, silk, linen, matte, shiny)
-- Neckline: type, depth
-- Sleeves: length, style
-- Fit: loose, fitted, A-line, etc.
-- Special details: buttons, embroidery, pleats, borders
-
-### TASK 3: Write the PROMPT for Gemini
-Follow the Nano Banana best practice: "Describe the scene, don't just list keywords."
-Write a NARRATIVE prompt that tells Gemini exactly what to do.
+1. **Analyze PERSON (Image 1):** Describe their face, skin tone, hair, expression, pose
+2. **Analyze GARMENT (Image 2):** Describe ONLY the clothing (color, pattern, fabric, style). IGNORE any face/person in this image.
+3. **Write a simple prompt** using the formula above
 
 ## OUTPUT FORMAT (JSON)
 {
-  "personDescription": "Extremely detailed description of the person from Image 1",
-  "referenceDescription": "Detailed description of the GARMENT ONLY from Image 2 (no face/person details)",
-  "prompt": "The complete narrative prompt for Gemini"
+  "personDescription": "Description of the person's face and appearance",
+  "referenceDescription": "Description of the GARMENT ONLY (ignore any face in garment image)",
+  "prompt": "The edit prompt following the formula"
 }
 
-## PROMPT STRUCTURE (follow this template)
-The prompt field MUST follow this structure:
+## PROMPT EXAMPLES
 
-\`\`\`
-Create a professional fashion photograph of THIS EXACT PERSON wearing a new garment.
+For clothing change:
+"Replace the clothing on this young woman with a deep maroon sleeveless kurti with small white embroidered motifs. Keep her exact face: oval face, warm olive skin, dark brown eyes, thick eyebrows, straight nose, full lips, long wavy black hair, gentle smile. Realistic photo, soft natural light."
 
-SUBJECT (from Image 1 - PRESERVE EXACTLY):
-[Detailed narrative description of the person's face, skin, hair, expression, pose]
+For background change:
+"Change the background to a sunlit palace courtyard with stone pillars. Keep her exact face and clothing unchanged: [face details]. Natural lighting that matches the new environment."
 
-IDENTITY LOCK - NON-NEGOTIABLE:
-The face in the output MUST be identical to the person above. Copy exactly:
-- [Face shape and structure]
-- [Eye details]
-- [Nose and lip details]  
-- [Skin tone and texture including any moles/marks]
-- [Hair color, texture, and style]
-- [Current expression]
-Do NOT beautify, smooth, slim, or alter any facial features.
-
-GARMENT TO APPLY (from Image 2 - CLOTHING ONLY):
-[Detailed description of the garment: color, pattern, fabric, neckline, sleeves, fit]
-Note: Extract only the clothing from the reference. Ignore any face/person in the garment image.
-
-FINAL OUTPUT:
-The exact same person from Image 1, wearing the garment described above.
-Realistic photo, natural lighting, same pose and expression.
-The face MUST be a perfect match to Image 1.
-\`\`\`
-
-Remember: Gemini responds better to detailed, descriptive narratives than keyword lists.`
+## RULES
+- Start with an ACTION WORD: Replace, Change, Add, Make, Remove
+- Be specific about the garment details (color, pattern, fabric)
+- Be specific about the face details to preserve
+- End with style/lighting notes
+- Keep it concise but complete
+- NEVER include face details from the garment reference image`
 
   // =========================================================================
-  // USER PROMPT: Task instruction with context
+  // USER PROMPT: Simple task instruction
   // =========================================================================
-  const userPrompt = `Analyze these two images and write a Gemini prompt for a ${editType.replace('_', ' ')} operation.
+  const userPrompt = `Analyze these images and write a prompt for ${editType.replace('_', ' ')}.
 
-**IMAGE 1: PERSON IMAGE**
-This is the subject whose identity must be preserved EXACTLY. Analyze their face, skin, hair, expression, and pose in extreme detail.
+IMAGE 1: The person (preserve their exact face)
+IMAGE 2: ${editType === 'background_change' ? 'Background reference' : 'Garment reference (IGNORE any face, extract clothing only)'}
 
-**IMAGE 2: ${editType === 'background_change' ? 'BACKGROUND REFERENCE' : 'GARMENT REFERENCE'}**
-${editType === 'background_change' 
-  ? 'Extract only the environment/scene details. The person in the output must still be the person from Image 1.'
-  : 'Extract ONLY the clothing details (color, pattern, fabric, style). If there is a person wearing the garment, COMPLETELY IGNORE their face - we only want the garment.'}
+${userRequest ? `User request: ${userRequest}` : ''}
 
-${userRequest ? `**USER REQUEST:** ${userRequest}` : ''}
-
-**MODEL:** ${model === 'pro' ? 'Gemini 3 Pro (can handle detailed prompts)' : 'Gemini 2.5 Flash (keep prompt focused)'}
-
-Write the prompt following the template in your instructions. Be extremely specific about the person's facial features so Gemini can preserve them exactly.`
+Write a simple, direct prompt following the formula: Action + Element + Style + Details.`
 
   try {
     console.log('🤖 GPT-4o mini: Analyzing images with strict identity extraction...')
