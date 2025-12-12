@@ -538,7 +538,8 @@ export function getPresetList(): { id: string; name: string; category: string; d
 }
 
 /**
- * Build a detailed prompt from a preset and selected scenario
+ * Build a JSON-structured prompt from a preset and selected scenario
+ * JSON format helps Gemini understand exactly what to preserve vs change
  */
 export function buildPresetPromptFromScenario(
   preset: IntelligentPreset,
@@ -547,32 +548,48 @@ export function buildPresetPromptFromScenario(
   personDescription: string,
   userInstruction?: string
 ): string {
-  const cameraDesc = `${scenario.camera.lens.replace('_', ' ')} lens at ${scenario.camera.angle.replace('_', ' ')}, ${scenario.camera.framing.replace('_', ' ')} framing, ${scenario.camera.depth.replace('_', ' ')} depth of field`
-  
-  const lightingDesc = `${scenario.lighting.quality} ${scenario.lighting.type} lighting from ${scenario.lighting.direction}, ${scenario.lighting.color.replace('_', ' ')} color temperature, ${scenario.lighting.time.replace('_', ' ')} atmosphere`
-  
-  const poseDesc = `${scenario.pose.stance.replace('_', ' ')}, arms ${scenario.pose.arms.replace('_', ' ')}, head ${scenario.pose.headTilt.replace('_', ' ')}`
-  
-  return `${preset.basePrompt}
+  const editInstruction = {
+    task: "virtual_try_on_with_scene",
+    
+    preserve: {
+      face: "EXACT same face from subject image - do not generate new face",
+      identity: "Same person, same facial structure, same skin tone",
+      hair: "Same hair color and style",
+      skin_quality: "Natural skin texture with pores and imperfections"
+    },
+    
+    change: {
+      clothing: {
+        action: "Replace with garment from reference",
+        details: garmentDescription,
+        fit: "Natural draping, realistic shadows"
+      },
+      scene: {
+        background: scenario.background,
+        lighting: `${scenario.lighting.quality} ${scenario.lighting.type} light, ${scenario.lighting.color.replace('_', ' ')}`,
+        mood: scenario.mood
+      }
+    },
+    
+    camera: {
+      angle: scenario.camera.angle.replace('_', ' '),
+      framing: scenario.camera.framing.replace('_', ' '),
+      depth_of_field: scenario.camera.depth.replace('_', ' ')
+    },
+    
+    critical_rules: [
+      "The face MUST be the same person from the subject image",
+      "Do NOT use any face from the clothing reference",
+      "This is a photo EDIT, not a new generation",
+      "Preserve skin texture - no smoothing or beautification"
+    ],
+    
+    user_request: userInstruction || null
+  }
 
-GARMENT: ${garmentDescription}
+  return `Edit instruction:
+${JSON.stringify(editInstruction, null, 2)}
 
-PERSON (keep exact face): ${personDescription}
-
-SCENARIO:
-- Background: ${scenario.background}
-- Camera: ${cameraDesc}
-- Lighting: ${lightingDesc}
-- Pose (subtle): ${poseDesc}
-- Expression: ${scenario.expression}
-- Mood: ${scenario.mood}
-
-${userInstruction ? `USER REQUEST: ${userInstruction}` : ''}
-
-RULES:
-- Face must be 100% identical to the person image
-- Apply the garment naturally with proper draping
-- Match lighting to the scene realistically
-- Photo-quality output, no beautification, preserve skin texture`
+Summary: Replace the clothing on the subject with "${garmentDescription}". Set the scene to "${scenario.background}" with ${scenario.lighting.quality} lighting. Keep the EXACT same face from the subject image.`
 }
 

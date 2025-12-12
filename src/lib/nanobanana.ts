@@ -61,28 +61,25 @@ export async function generateTryOn(options: TryOnOptions): Promise<string> {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // CRITICAL: Use IMAGE EDITING mode, not generation
-    // The key is to frame this as "edit the first image" not "generate new"
+    // JSON STRUCTURED PROMPTING FOR BEST RESULTS
+    // Clear separation of what to KEEP vs what to CHANGE
     // ═══════════════════════════════════════════════════════════════════════
 
-    // STEP 1: Start with the EDIT command referencing the image to edit
-    contents.push('Edit this image:')
+    // STEP 1: Person image (the subject to edit)
+    contents.push('Subject image:')
     contents.push({
       inlineData: {
         data: cleanPersonImage,
         mimeType: 'image/jpeg',
       },
     } as any)
-    console.log('📸 Added person image to edit')
+    console.log('📸 Added person image')
 
-    // STEP 2: Build a very direct, simple edit instruction
-    let editInstruction = ''
-    
+    // STEP 2: Clothing reference (if clothing change)
     if (editType === 'clothing_change' && clothingImage) {
       const cleanClothingImage = clothingImage.replace(/^data:image\/[a-z]+;base64,/, '')
       if (cleanClothingImage && cleanClothingImage.length >= 100) {
-        editInstruction = `Replace the clothing in the image above with the clothing shown in this reference image:`
-        contents.push(editInstruction)
+        contents.push('Clothing reference:')
         contents.push({
           inlineData: {
             data: cleanClothingImage,
@@ -93,11 +90,11 @@ export async function generateTryOn(options: TryOnOptions): Promise<string> {
       }
     }
 
+    // STEP 3: Background reference (if background change)
     if (editType === 'background_change' && backgroundImage) {
       const cleanBgImage = backgroundImage.replace(/^data:image\/[a-z]+;base64,/, '')
       if (cleanBgImage && cleanBgImage.length >= 100) {
-        editInstruction = `Change the background in the image above to match this reference:`
-        contents.push(editInstruction)
+        contents.push('Background reference:')
         contents.push({
           inlineData: {
             data: cleanBgImage,
@@ -108,18 +105,40 @@ export async function generateTryOn(options: TryOnOptions): Promise<string> {
       }
     }
 
-    // STEP 3: Final strict instruction - VERY DIRECT
-    contents.push(`
-${prompt}
+    // STEP 4: JSON structured edit instruction
+    const jsonPrompt = {
+      task: "image_edit",
+      mode: "virtual_try_on",
+      instructions: {
+        primary_action: "Replace clothing only",
+        preserve: {
+          face: "MUST keep exact same face from subject image",
+          identity: "Same person, same facial features, same skin tone",
+          hair: "Same hair color, style, and texture",
+          body: "Same body proportions and pose",
+          skin_quality: "Preserve natural skin texture, pores, imperfections"
+        },
+        change: {
+          clothing: "Replace with garment from clothing reference image",
+          fit: "Natural draping and realistic fabric shadows"
+        },
+        ignore: {
+          clothing_reference_face: "If clothing reference shows a person, completely ignore their face"
+        },
+        quality: {
+          style: "Photo-realistic edit, not AI generation",
+          lighting: "Natural, consistent with original image",
+          texture: "Maintain realistic skin and fabric textures"
+        }
+      },
+      additional_notes: prompt
+    }
 
-IMPORTANT:
-- This is an IMAGE EDIT task. Do NOT generate a new person.
-- Keep the EXACT same face from the first image.
-- Keep the same facial features, skin texture, skin tone, and hair.
-- Only replace the clothing with the garment from the reference.
-- If the clothing reference shows a model, IGNORE that model's face.
-- The output must look like a photo edit of the first image, not a new generation.
-- Maintain photo-realistic quality with natural lighting and skin texture.`)
+    contents.push(`
+Edit instruction (JSON format):
+${JSON.stringify(jsonPrompt, null, 2)}
+
+Execute this edit: Take the subject from the first image and replace their clothing with the garment from the clothing reference. The face must remain exactly the same - do not generate a new face.`)
 
     // STEP 5: Add accessories if any
     if (accessoryImages.length > 0) {
