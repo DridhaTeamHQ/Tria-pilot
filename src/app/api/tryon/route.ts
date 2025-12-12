@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { tryOnSchema } from '@/lib/validation'
 import { checkRateLimit } from '@/lib/rate-limit'
-import { getGeminiKey } from '@/lib/config/api-keys'
+import { getGeminiKey, getOpenAIKey } from '@/lib/config/api-keys'
 import { getPresetById } from '@/lib/prompts/try-on-presets'
 import { generateTryOn } from '@/lib/nanobanana'
 import { buildEditPrompt } from '@/lib/prompts/edit-templates'
+import { writePromptFromImages } from '@/lib/openai'
 import { normalizeBase64 } from '@/lib/image-processing'
 import { saveUpload } from '@/lib/storage'
 import prisma from '@/lib/prisma'
@@ -150,16 +151,72 @@ export async function POST(request: Request) {
       const presetPose = preset?.pose ? `${preset.pose.stance}. Arms: ${preset.pose.arms}.` : undefined
       const presetExpression = preset?.pose?.expression
 
-      const finalPrompt = buildEditPrompt({
-        editType,
-        userRequest,
-        background: background ?? presetBackground,
-        pose: pose ?? presetPose,
-        expression: expression ?? presetExpression,
-        camera: camera ?? presetCamera,
-        lighting: lighting ?? presetLighting,
-        model: model === 'pro' ? 'pro' : 'flash',
-      })
+      // =========================================================================
+      // STEP 1: Use GPT-4o mini to analyze images and write a detailed prompt
+      // =========================================================================
+      let finalPrompt: string
+      let promptWriterResult: { personDescription: string; referenceDescription: string } | null = null
+
+      // Check if OpenAI key is available for GPT-4o mini prompt writing
+      let useGptPromptWriter = true
+      try {
+        getOpenAIKey()
+      } catch {
+        console.warn('⚠️ OpenAI key not configured, falling back to template prompts')
+        useGptPromptWriter = false
+      }
+
+      if (useGptPromptWriter) {
+        try {
+          console.log('🤖 Using GPT-4o mini to analyze images and write prompt...')
+          const writerResult = await writePromptFromImages({
+            personImage: normalizedPerson,
+            clothingImage: normalizedClothing,
+            backgroundImage: normalizedBackground,
+            editType,
+            userRequest: [
+              userRequest,
+              background ?? presetBackground ? `Background: ${background ?? presetBackground}` : '',
+              pose ?? presetPose ? `Pose: ${pose ?? presetPose}` : '',
+              expression ?? presetExpression ? `Expression: ${expression ?? presetExpression}` : '',
+              camera ?? presetCamera ? `Camera: ${camera ?? presetCamera}` : '',
+              lighting ?? presetLighting ? `Lighting: ${lighting ?? presetLighting}` : '',
+            ].filter(Boolean).join('. ') || undefined,
+            model: model === 'pro' ? 'pro' : 'flash',
+          })
+
+          finalPrompt = writerResult.prompt
+          promptWriterResult = {
+            personDescription: writerResult.personDescription,
+            referenceDescription: writerResult.referenceDescription,
+          }
+          console.log('✅ GPT-4o mini prompt ready')
+        } catch (gptError) {
+          console.error('❌ GPT-4o mini failed, falling back to templates:', gptError)
+          finalPrompt = buildEditPrompt({
+            editType,
+            userRequest,
+            background: background ?? presetBackground,
+            pose: pose ?? presetPose,
+            expression: expression ?? presetExpression,
+            camera: camera ?? presetCamera,
+            lighting: lighting ?? presetLighting,
+            model: model === 'pro' ? 'pro' : 'flash',
+          })
+        }
+      } else {
+        // Fallback to template-based prompts
+        finalPrompt = buildEditPrompt({
+          editType,
+          userRequest,
+          background: background ?? presetBackground,
+          pose: pose ?? presetPose,
+          expression: expression ?? presetExpression,
+          camera: camera ?? presetCamera,
+          lighting: lighting ?? presetLighting,
+          model: model === 'pro' ? 'pro' : 'flash',
+        })
+      }
 
       // Log final prompt before sending to Gemini
       console.log('\n📌 FINAL PROMPT BEFORE GEMINI:')
@@ -213,6 +270,7 @@ export async function POST(request: Request) {
             settings: {
               ...(job.settings as any),
               generatedPrompt: finalPrompt,
+              gptAnalysis: promptWriterResult,
             },
           },
         })
@@ -229,6 +287,7 @@ export async function POST(request: Request) {
         status: 'completed',
         debug: {
           prompt: finalPrompt,
+          gptAnalysis: promptWriterResult,
         },
       })
     } catch (error) {

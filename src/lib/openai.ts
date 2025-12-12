@@ -43,6 +43,171 @@ export const openai = {
   },
 } as OpenAI
 
+// ============================================================================
+// GPT-4o Mini Vision: Image Analysis & Prompt Writing for Gemini
+// ============================================================================
+
+export type TryOnEditType =
+  | 'clothing_change'
+  | 'background_change'
+  | 'lighting_change'
+  | 'pose_change'
+  | 'camera_change'
+
+export interface PromptWriterInput {
+  personImage: string // base64 with or without data URI prefix
+  clothingImage?: string // base64 - garment reference
+  backgroundImage?: string // base64 - background reference
+  editType: TryOnEditType
+  userRequest?: string
+  model?: 'flash' | 'pro'
+}
+
+export interface PromptWriterResult {
+  prompt: string
+  personDescription: string
+  referenceDescription: string
+}
+
+/**
+ * Use GPT-4o mini with vision to analyze images and write a detailed prompt for Gemini.
+ * This function:
+ * 1. Analyzes the person image (face, body, pose, clothing)
+ * 2. Analyzes the reference image (garment details or background scene)
+ * 3. Writes a strict prompt that preserves identity while applying the edit
+ */
+export async function writePromptFromImages(
+  input: PromptWriterInput
+): Promise<PromptWriterResult> {
+  const { personImage, clothingImage, backgroundImage, editType, userRequest, model = 'flash' } = input
+
+  const openaiClient = getOpenAI()
+
+  // Clean base64 strings and ensure proper format
+  const formatImageUrl = (base64: string) => {
+    if (base64.startsWith('data:image/')) {
+      return base64
+    }
+    return `data:image/jpeg;base64,${base64}`
+  }
+
+  // Build messages with images
+  const imageInputs: OpenAI.Chat.Completions.ChatCompletionContentPart[] = []
+
+  // Add person image
+  imageInputs.push({
+    type: 'image_url',
+    image_url: {
+      url: formatImageUrl(personImage),
+      detail: 'high',
+    },
+  })
+
+  // Add reference image based on edit type
+  const referenceImage = editType === 'background_change' ? backgroundImage : clothingImage
+  if (referenceImage) {
+    imageInputs.push({
+      type: 'image_url',
+      image_url: {
+        url: formatImageUrl(referenceImage),
+        detail: 'high',
+      },
+    })
+  }
+
+  const referenceLabel = editType === 'background_change' ? 'BACKGROUND REFERENCE' : 'GARMENT REFERENCE'
+
+  const systemPrompt = `You are an expert prompt writer for AI image generation. Your job is to analyze images and write precise prompts that will be sent to Gemini for virtual try-on generation.
+
+CRITICAL RULES:
+1. The person's face and identity must be EXACTLY preserved - no beautification, no changes
+2. For clothing edits: describe the garment in detail but IGNORE any face/person in the garment reference
+3. For background edits: describe the environment but keep subject identity unchanged
+4. Be extremely specific about colors, textures, patterns, and proportions
+5. Write prompts that enforce strict identity preservation
+
+OUTPUT FORMAT (JSON):
+{
+  "personDescription": "Detailed description of the person: face shape, skin tone, hair, expression, pose, current clothing",
+  "referenceDescription": "Detailed description of the reference: for garments (color, pattern, fabric, neckline, sleeves, fit) or for backgrounds (scene, lighting, atmosphere)",
+  "prompt": "The complete prompt for Gemini image generation"
+}
+
+The prompt should follow this structure:
+- Start with MODE: IMAGE EDIT
+- IDENTITY PRESERVATION section (face, skin, hair - exact match required)
+- EDIT INSTRUCTIONS section (what to change)
+- REFERENCE DETAILS section (specific attributes from the reference image)
+- QUALITY section (realistic, no beautification)
+- FINAL DIRECTIVE (face must match exactly)`
+
+  const userPrompt = `Analyze these images and write a prompt for a ${editType.replace('_', ' ')} operation.
+
+IMAGE 1: PERSON IMAGE (this is the subject - preserve their exact identity)
+IMAGE 2: ${referenceLabel} (extract only the ${editType === 'background_change' ? 'environment/scene' : 'clothing details'}, ignore any face/person)
+
+${userRequest ? `USER REQUEST: ${userRequest}` : ''}
+
+Model variant: ${model} (${model === 'pro' ? 'can handle more detailed prompts' : 'keep prompt focused and concise'})
+
+Write a detailed prompt that will make Gemini:
+1. Keep the person's exact face, skin texture, hair, and expression
+2. Apply the ${editType === 'background_change' ? 'new background' : 'new clothing'} from the reference
+3. Maintain realistic lighting and proportions
+4. NOT beautify or alter the person's features in any way`
+
+  try {
+    console.log('🤖 GPT-4o mini: Analyzing images and writing prompt...')
+
+    const response = await openaiClient.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: userPrompt },
+            ...imageInputs,
+          ],
+        },
+      ],
+      response_format: { type: 'json_object' },
+      max_tokens: 2000,
+      temperature: 0.3,
+    })
+
+    const content = response.choices[0]?.message?.content
+    if (!content) {
+      throw new Error('No response from GPT-4o mini')
+    }
+
+    const parsed = JSON.parse(content) as PromptWriterResult
+
+    console.log('✅ GPT-4o mini: Prompt written successfully')
+    console.log(`   Person: ${parsed.personDescription.slice(0, 100)}...`)
+    console.log(`   Reference: ${parsed.referenceDescription.slice(0, 100)}...`)
+    console.log(`   Prompt length: ${parsed.prompt.length} chars`)
+
+    return parsed
+  } catch (error) {
+    console.error('❌ GPT-4o mini prompt writing failed:', error)
+
+    // Fallback: return a basic prompt using the edit templates
+    const { buildEditPrompt } = await import('./prompts/edit-templates')
+    const fallbackPrompt = buildEditPrompt({
+      editType,
+      userRequest,
+      model,
+    })
+
+    return {
+      prompt: fallbackPrompt,
+      personDescription: 'Analysis failed - using template',
+      referenceDescription: 'Analysis failed - using template',
+    }
+  }
+}
+
 export interface FaceFeatures {
   faceShape: string
   eyeColor: string
