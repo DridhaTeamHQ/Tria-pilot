@@ -111,6 +111,13 @@ EXACT FACE REQUIRED:
 - EXACT same hair color and style
 - Do NOT generate a new face - use the EXACT face from the photo above
 
+EXACT POSE REQUIRED:
+- EXACT same body position as in the original photo
+- EXACT same arm positions and hand placement
+- EXACT same head angle and tilt
+- EXACT same body angle and orientation
+- Do NOT change the pose - keep it EXACTLY as shown
+
 EXACT CLOTHING REQUIRED:
 - EXACT same garment from the clothing reference image
 - EXACT same color - match the EXACT shade and hue
@@ -126,7 +133,7 @@ PHOTO QUALITY POLISH:
 - Natural skin sheen and realistic lighting on face
 - Sharp facial details, no blur
 - Match lighting direction on face with the scene
-- Seamless blend between face and new environment`
+- Seamless blend between person and new environment`
     
     if (hasClothingChange) {
       simplePrompt += `\n\nEXACT Clothing reference (copy this EXACT garment - EXACT color, EXACT pattern, EXACT design):`
@@ -164,14 +171,16 @@ PHOTO QUALITY POLISH:
       }
     }
 
-    // STEP 5: Final reinforcement with EXACT for face AND clothing
+    // STEP 5: Final reinforcement with EXACT for face, pose AND clothing
     contents.push(`
 FINAL OUTPUT REQUIREMENTS:
 - EXACT same person, EXACT same face from the first image
+- EXACT same pose and body position - do not change how the person is positioned
 - EXACT same clothing as shown in the clothing reference - EXACT color, EXACT pattern, EXACT design
 - The garment must be an EXACT copy - no modifications, no color shifts, no pattern changes
+- Only the background/environment changes, the person stays in their EXACT original pose
 - Photo-realistic quality - looks like a real photograph, not AI generated
-- Natural lighting on face matching the scene
+- Natural lighting on face and body matching the new scene
 - Crisp details, realistic skin texture with pores visible
 - Professional fashion photography quality`)
 
