@@ -91,11 +91,11 @@ export async function generateTryOn(options: TryOnOptions): Promise<string> {
       if (match) garmentDesc = match[1].trim()
     }
 
-    // Build simple instruction with EXACT emphasis
+    // Build simple instruction with EXACT emphasis for BOTH face AND clothing
     let simplePrompt = `Edit this photo. Keep the EXACT same person, EXACT same face.\n\n`
     
     if (hasClothingChange) {
-      simplePrompt += `• Dress this EXACT person in ${garmentDesc}\n`
+      simplePrompt += `• Dress this EXACT person in the EXACT clothing from the reference image\n`
     }
     if (hasSceneChange) {
       simplePrompt += `• Place this EXACT person in: ${sceneDescription}\n`
@@ -111,6 +111,15 @@ EXACT FACE REQUIRED:
 - EXACT same hair color and style
 - Do NOT generate a new face - use the EXACT face from the photo above
 
+EXACT CLOTHING REQUIRED:
+- EXACT same garment from the clothing reference image
+- EXACT same color - match the EXACT shade and hue
+- EXACT same pattern - every detail, motif, and design element
+- EXACT same fabric texture and material appearance
+- EXACT same neckline, sleeves, and silhouette
+- EXACT same embroidery, prints, or decorative elements
+- Do NOT modify or change the garment design in any way
+
 PHOTO QUALITY POLISH:
 - Preserve skin micro-texture (pores, natural imperfections)
 - No skin smoothing or beautification
@@ -120,7 +129,7 @@ PHOTO QUALITY POLISH:
 - Seamless blend between face and new environment`
     
     if (hasClothingChange) {
-      simplePrompt += `\n\nClothing reference (use ONLY the garment, IGNORE any face):`
+      simplePrompt += `\n\nEXACT Clothing reference (copy this EXACT garment - EXACT color, EXACT pattern, EXACT design):`
     }
 
     contents.push(simplePrompt)
@@ -155,11 +164,12 @@ PHOTO QUALITY POLISH:
       }
     }
 
-    // STEP 5: Final reinforcement with EXACT + quality
+    // STEP 5: Final reinforcement with EXACT for face AND clothing
     contents.push(`
 FINAL OUTPUT REQUIREMENTS:
 - EXACT same person, EXACT same face from the first image
-- Only clothing${hasSceneChange ? ' and background' : ''} should change
+- EXACT same clothing as shown in the clothing reference - EXACT color, EXACT pattern, EXACT design
+- The garment must be an EXACT copy - no modifications, no color shifts, no pattern changes
 - Photo-realistic quality - looks like a real photograph, not AI generated
 - Natural lighting on face matching the scene
 - Crisp details, realistic skin texture with pores visible
