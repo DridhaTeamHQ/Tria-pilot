@@ -297,14 +297,7 @@ main {
   }
 }
 
-/* Hide cursor on interactive elements when blob cursor is active */
-@media (min-width: 768px) {
-  [data-cursor],
-  a, button, [role="button"],
-  input, textarea, select {
-    cursor: none !important;
-  }
-}
+/* Blob cursor styles are injected dynamically via GlobalBlobCursor component */
 
 /* Loading progress bar animation */
 @keyframes progressBar {
