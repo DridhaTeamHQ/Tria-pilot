@@ -451,8 +451,9 @@ export default function GenerationsPage() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.3 }}
-                        className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm flex flex-col"
+                        className="fixed inset-0 z-[100] bg-black flex flex-col"
                         onClick={closeLightbox}
+                        data-lightbox="true"
                     >
                         {/* Top toolbar - properly aligned */}
                         <motion.div 
@@ -563,7 +564,7 @@ export default function GenerationsPage() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+                        className="fixed inset-0 z-[110] bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
                         onClick={() => setDeleteConfirm(null)}
                     >
                         <motion.div

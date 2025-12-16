@@ -8,6 +8,7 @@ export default function GlobalBlobCursor() {
     const [isMobile, setIsMobile] = useState(true)
     const [isHovering, setIsHovering] = useState(false)
     const [isPressed, setIsPressed] = useState(false)
+    const [isModalOpen, setIsModalOpen] = useState(false)
     
     const rafRef = useRef<number | null>(null)
     const targetRef = useRef({ x: -100, y: -100 })
@@ -17,7 +18,6 @@ export default function GlobalBlobCursor() {
         const dx = targetRef.current.x - currentRef.current.x
         const dy = targetRef.current.y - currentRef.current.y
         
-        // Smooth easing
         currentRef.current.x += dx * 0.15
         currentRef.current.y += dy * 0.15
         
@@ -42,6 +42,14 @@ export default function GlobalBlobCursor() {
         const handleMouseMove = (e: MouseEvent) => {
             targetRef.current = { x: e.clientX, y: e.clientY }
             if (!isVisible) setIsVisible(true)
+            
+            // Check if mouse is over a modal/lightbox
+            const target = e.target as HTMLElement
+            const inModal = target.closest('[data-lightbox="true"]') || 
+                           target.closest('[role="dialog"]') ||
+                           target.closest('.fixed.z-\\[100\\]') ||
+                           target.closest('.fixed.z-\\[110\\]')
+            setIsModalOpen(!!inModal)
         }
 
         const handleMouseDown = () => setIsPressed(true)
@@ -89,6 +97,10 @@ export default function GlobalBlobCursor() {
     if (isMobile) return null
 
     const size = isPressed ? 12 : isHovering ? 48 : 16
+    
+    // Use white color when in modal/dark background
+    const dotColor = isModalOpen ? '#FFFFFF' : '#1C1C1C'
+    const ringColor = isModalOpen ? 'rgba(255, 255, 255, 0.3)' : 'rgba(28, 28, 28, 0.2)'
 
     return (
         <div
@@ -109,10 +121,10 @@ export default function GlobalBlobCursor() {
                     left: -24,
                     top: -24,
                     borderRadius: '50%',
-                    border: '1.5px solid rgba(28, 28, 28, 0.2)',
+                    border: `1.5px solid ${ringColor}`,
                     transform: `scale(${isHovering && !isPressed ? 1 : 0})`,
                     opacity: isHovering && !isPressed ? 1 : 0,
-                    transition: 'transform 0.3s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.3s ease',
+                    transition: 'transform 0.3s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.3s ease, border-color 0.3s ease',
                 }}
             />
             
@@ -125,8 +137,8 @@ export default function GlobalBlobCursor() {
                     left: -size / 2,
                     top: -size / 2,
                     borderRadius: '50%',
-                    backgroundColor: '#1C1C1C',
-                    transition: 'width 0.25s cubic-bezier(0.23, 1, 0.32, 1), height 0.25s cubic-bezier(0.23, 1, 0.32, 1), left 0.25s cubic-bezier(0.23, 1, 0.32, 1), top 0.25s cubic-bezier(0.23, 1, 0.32, 1)',
+                    backgroundColor: dotColor,
+                    transition: 'width 0.25s cubic-bezier(0.23, 1, 0.32, 1), height 0.25s cubic-bezier(0.23, 1, 0.32, 1), left 0.25s cubic-bezier(0.23, 1, 0.32, 1), top 0.25s cubic-bezier(0.23, 1, 0.32, 1), background-color 0.3s ease',
                 }}
             />
         </div>
