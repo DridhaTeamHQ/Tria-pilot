@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -35,14 +36,14 @@ export default async function MarketplacePage({
     redirect('/')
   }
 
-  const where: any = {}
+  const where: Prisma.ProductWhereInput = {}
   if (resolvedSearchParams.category && resolvedSearchParams.category !== 'all') {
     where.category = resolvedSearchParams.category
   }
   if (resolvedSearchParams.search) {
     where.OR = [
-      { name: { contains: resolvedSearchParams.search, mode: 'insensitive' } },
-      { description: { contains: resolvedSearchParams.search, mode: 'insensitive' } },
+      { name: { contains: resolvedSearchParams.search, mode: 'insensitive' as const } },
+      { description: { contains: resolvedSearchParams.search, mode: 'insensitive' as const } },
     ]
   }
 
