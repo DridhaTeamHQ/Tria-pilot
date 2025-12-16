@@ -54,7 +54,7 @@ export async function runTryOnPipelineV3(params: {
   }
 
   // Step 1: Director (scene-only)
-  const shootPlan = await generateShootPlanV3({
+  const shootPlanRaw = await generateShootPlanV3({
     pose_name,
     lighting_name,
     background_name,
@@ -63,6 +63,17 @@ export async function runTryOnPipelineV3(params: {
     stylePack,
     backgroundFocus,
   })
+
+  // Inject photo constraints into the plan so the renderer always anchors to the real capture
+  // (prevents day-subject + night-background mismatches, and keeps realism consistent).
+  const shootPlan = {
+    ...shootPlanRaw,
+    prompt_text: `${shootPlanRaw.prompt_text}
+PHOTO CONSTRAINTS (must match the original subject photo):
+- ${photoConstraints}
+- Keep time-of-day consistent with the subject photo unless the user explicitly requested otherwise.
+- Prefer adapting the background/grade to match the subject lighting rather than re-lighting/rebuilding the face.`,
+  }
 
   // Step 1.5: Garment extraction (critical to prevent pasted reference-person)
   let garmentOnly = clothingRefBase64
@@ -103,7 +114,9 @@ export async function runTryOnPipelineV3(params: {
     const needsRetryForIdentity =
       !verify.identity_preserved ||
       verify.identity_fidelity === 'low' ||
-      (identityLock === 'high' && verify.identity_fidelity === 'medium')
+      (identityLock === 'high' && verify.identity_fidelity === 'medium') ||
+      // Face consistency: on high-quality runs, treat medium drift as retry-worthy (one retry max).
+      (quality.quality === 'high' && verify.identity_fidelity === 'medium')
     const needsRetryForNoTryOn = verify.output_is_unedited_copy || verify.original_outfit_still_present
     const needsRetryForScene =
       verify.scene_plausible === false || verify.lighting_realism === 'low' || verify.lighting_consistent === false

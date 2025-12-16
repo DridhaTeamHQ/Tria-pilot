@@ -67,7 +67,7 @@ Rules:
     reasons: Array.isArray(parsed.reasons) ? parsed.reasons.map(String) : [],
     has_extra_people: !!parsed.has_extra_people,
     appears_collage: !!parsed.appears_collage,
-    // Conservative defaults: if the model fails to return a field, assume it's NOT ok and trigger retries.
+    // Conservative defaults: if verifier response is missing/invalid, assume it's NOT ok to force retry once.
     scene_plausible: typeof parsed.scene_plausible === 'boolean' ? parsed.scene_plausible : false,
     lighting_realism:
       parsed.lighting_realism === 'high' || parsed.lighting_realism === 'medium' || parsed.lighting_realism === 'low'
@@ -88,4 +88,3 @@ Rules:
     output_is_unedited_copy: !!parsed.output_is_unedited_copy,
   }
 }
-

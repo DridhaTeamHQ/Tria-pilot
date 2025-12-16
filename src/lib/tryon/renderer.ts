@@ -112,6 +112,7 @@ export async function renderTryOnV3(params: {
     'Replace ONLY the clothing worn by the subject in image 1 using the garment reference.',
     'IDENTITY LOCK (EXACT): Keep identity/face/hair/skin tone/body proportions/pose/expression/gaze unchanged.',
     'FACE RULES (EXACT): Do not edit facial features, facial proportions, makeup shape, or skin texture. No beautification. No face retouching.',
+    'LIGHTING RULE (EXACT): Keep the subject lighting consistent with image 1. Prefer adapting the background grade/time-of-day to match the subject. Do NOT rebuild/re-render the face to match new lighting.',
     extraStrict
       ? 'FACE CONSISTENCY (EXACT): Preserve the subject’s facial structure precisely (eyes, nose bridge, lips, jawline). Do NOT re-render a new face to match the new lighting; adjust lighting globally while keeping facial geometry unchanged.'
       : '',
