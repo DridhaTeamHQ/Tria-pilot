@@ -1,11 +1,9 @@
 'use client'
 
 import { useState, useMemo, useCallback } from 'react'
-import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { ShoppingBag, Filter, Sparkles, Search, X } from 'lucide-react'
 import ProductCard from './ProductCard'
-import BlobCursor from './BlobCursor'
 
 interface ProductImage {
     id: string
@@ -58,10 +56,7 @@ export default function MarketplaceClient({ products, categories, activeCategory
     const toggleSearch = useCallback(() => setShowSearch(prev => !prev), [])
 
     return (
-        <>
-            <BlobCursor />
-            
-            <div className="min-h-screen bg-gradient-to-b from-cream via-cream to-white pt-24 pb-16">
+        <div className="min-h-screen bg-gradient-to-b from-cream via-cream to-white pt-24 pb-16">
                 <div className="container mx-auto px-4 sm:px-6">
                     {/* Header */}
                     <div className="mb-10 animate-fade-in">
@@ -199,6 +194,5 @@ export default function MarketplaceClient({ products, categories, activeCategory
                     )}
                 </div>
             </div>
-        </>
     )
 }

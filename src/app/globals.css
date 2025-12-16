@@ -260,3 +260,72 @@
 .image-loaded {
   filter: blur(0);
 }
+
+/* ============================================
+   GLOBAL PERFORMANCE OPTIMIZATIONS
+   ============================================ */
+
+/* GPU acceleration for all animated elements */
+.transform-gpu {
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* Faster default transitions */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+a, button {
+  touch-action: manipulation;
+}
+
+/* Smooth page content */
+main {
+  animation: pageIn 0.3s ease-out;
+}
+
+@keyframes pageIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Hide cursor on interactive elements when blob cursor is active */
+@media (min-width: 768px) {
+  [data-cursor],
+  a, button, [role="button"],
+  input, textarea, select {
+    cursor: none !important;
+  }
+}
+
+/* Loading progress bar animation */
+@keyframes progressBar {
+  0% {
+    width: 0%;
+  }
+  50% {
+    width: 70%;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
+.loading-bar {
+  animation: progressBar 0.8s ease-out forwards;
+}
+
+/* Quick button feedback */
+button:active,
+a:active,
+[role="button"]:active {
+  transform: scale(0.98);
+}

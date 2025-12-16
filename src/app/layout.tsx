@@ -1,20 +1,22 @@
 import type { Metadata } from 'next'
 import { Toaster } from '@/components/ui/sonner'
-// import Navigation from '@/components/layout/Navigation' // Replaced by new Header
 import Header from '@/components/Header'
+import GlobalBlobCursor from '@/components/GlobalBlobCursor'
 import { ReactQueryProvider } from '@/lib/react-query/provider'
 import './globals.css'
 import { Playfair_Display, Inter } from 'next/font/google'
-import { ReactLenis } from '@/lib/lenis' // We need to create this file
+import { ReactLenis } from '@/lib/lenis'
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
   subsets: ["latin"],
+  display: 'swap', // Faster font loading
 });
 
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
+  display: 'swap', // Faster font loading
 });
 
 export const metadata: Metadata = {
@@ -32,9 +34,11 @@ export default function RootLayout({
       <body className={`${playfair.variable} ${inter.variable} antialiased bg-cream text-charcoal`}>
         <ReactQueryProvider>
           <ReactLenis>
-            {/* <Navigation /> */}
+            <GlobalBlobCursor />
             <Header />
-            {children}
+            <main className="animate-fade-in">
+              {children}
+            </main>
             <Toaster />
           </ReactLenis>
         </ReactQueryProvider>
