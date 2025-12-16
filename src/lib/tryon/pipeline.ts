@@ -158,6 +158,39 @@ PHOTO CONSTRAINTS (must match the original subject photo):
         extraStrict: true,
       })
 
+      // If the retry still fails to apply the garment, do one final fallback render that prioritizes clothing only.
+      try {
+        const verify2 = await verifyTryOnImage({
+          outputImageBase64: output,
+          subjectImageBase64,
+          garmentRefBase64: clothingRefBase64,
+        })
+
+        if (!verify2.garment_applied || verify2.original_outfit_still_present) {
+          const clothingOnlyPlan = {
+            ...shootPlan,
+            prompt_text: `${shootPlan.prompt_text}
+CLOTHING-ONLY FALLBACK (highest priority):
+- If background change conflicts with clothing replacement, KEEP the original background from image 1.
+- Replace the outfit EXACTLY with the garment reference. Do not skip clothing replacement.`,
+          }
+
+          output = await renderTryOnV3({
+            subjectImageBase64,
+            garmentImageBase64: garmentOnly,
+            garmentBackupImageBase64: clothingRefBase64,
+            identityImagesBase64: [subjectImageBase64, ...identityImagesBase64],
+            stylePack,
+            backgroundFocus,
+            shootPlan: clothingOnlyPlan,
+            opts: quality,
+            extraStrict: true,
+          })
+        }
+      } catch {
+        // ignore verify2 failures
+      }
+
       return {
         image: output,
         debug: { shootPlanText: shootPlan.prompt_text, usedGarmentExtraction, verify },

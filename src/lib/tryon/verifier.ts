@@ -22,7 +22,7 @@ Rules:
 - scene_plausible is false if the setting is physically impossible or incoherent for the pose (e.g., sitting at a table in the middle of a road, floating furniture, indoor furniture randomly outdoors without context).
 - lighting_realism is high/medium/low based on whether lighting and shadows look like a real photo (avoid studio-perfect, CGI glow, inconsistent shadow directions).
 - lighting_consistent is false if the subject looks like it was shot in a different time-of-day than the background (e.g., daylight subject with night background), or if color temperature/shadow direction clearly mismatch between subject and background.
-- subject_color_preserved is false if the subject's color/exposure/white-balance noticeably changed compared to IMAGE B (e.g., skin/face looks washed out, overly brightened, desaturated, or "whitened"). Clothing replacement can change local shadows, but the subject's overall color should remain consistent.
+- subject_color_preserved is false if the subject's FACE/SKIN color/exposure/white-balance noticeably changed compared to IMAGE B (e.g., skin/face looks washed out, overly brightened, desaturated, or "whitened"). IGNORE clothing color changes (clothing is expected to change).
 - If a small pasted person/cutout appears, set appears_collage=true and ok=false.`
 
   const user = [
@@ -40,7 +40,7 @@ Rules:
 3) SCENE PLAUSIBILITY (true/false): is the background/context physically plausible for the pose? Flag tables/chairs in the middle of roads, floating props, impossible placements.
 4) LIGHTING REALISM (high/medium/low): does the lighting/shadows look like a real photo? Penalize CGI-perfect lighting, mismatched shadow direction, or overly artificial glow.
 5) LIGHTING CONSISTENT (true/false): does the subject lighting/time-of-day match the background? Flag daylight subject with night background or obvious color-temp mismatch.
-6) SUBJECT COLOR PRESERVED (true/false): compared to IMAGE B, did the subject's overall exposure/white balance/skin tone shift noticeably? If the face looks washed out/over-brightened/desaturated, set false.
+6) SUBJECT COLOR PRESERVED (true/false): compared to IMAGE B, did the FACE/SKIN exposure/white balance/skin tone shift noticeably? If the face looks washed out/over-brightened/desaturated, set false. Ignore clothing color changes.
 3) Is the garment from reference worn by the subject?
 4) GARMENT FIDELITY (high/medium/low): does the garment match the reference in color, pattern/embroidery/prints, neckline, buttons/placket, sleeve/armholes, overall shape?
 5) Is the subject identity preserved (same person) compared to subject reference?

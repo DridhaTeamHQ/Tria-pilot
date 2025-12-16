@@ -113,7 +113,7 @@ export async function renderTryOnV3(params: {
     'IDENTITY LOCK (EXACT): Keep identity/face/hair/skin tone/body proportions/pose/expression/gaze unchanged.',
     'FACE RULES (EXACT): Do not edit facial features, facial proportions, makeup shape, or skin texture. No beautification. No face retouching.',
     'LIGHTING RULE (EXACT): Keep the subject lighting consistent with image 1. Prefer adapting the background grade/time-of-day to match the subject. Do NOT rebuild/re-render the face to match new lighting.',
-    'COLOR RULE (EXACT): Do NOT change the subject’s overall exposure, white balance, or skin tone compared to image 1. Do NOT brighten/whiten/desaturate the face. Apply any color grading primarily to the BACKGROUND, not the subject.',
+    'COLOR RULE (EXACT): Do NOT change the subject’s FACE/SKIN exposure, white balance, or skin tone compared to image 1. Do NOT brighten/whiten/desaturate the face. Clothing colors WILL change to match the garment reference (that is intended). Apply any global color grading primarily to the BACKGROUND, not the face/skin.',
     extraStrict
       ? 'FACE CONSISTENCY (EXACT): Preserve the subject’s facial structure precisely (eyes, nose bridge, lips, jawline). Do NOT re-render a new face to match the new lighting; adjust lighting globally while keeping facial geometry unchanged.'
       : '',
@@ -135,6 +135,7 @@ export async function renderTryOnV3(params: {
     'The garment image must NOT appear in the output. Do NOT include its person/mannequin.',
     'Extract ONLY the garment and dress the subject in image 1 with it.',
     'Clothing replacement is REQUIRED: remove the subject’s original outfit and replace with the reference garment.',
+    'PRIORITY: If there is any conflict between background styling and clothing replacement, ALWAYS prioritize clothing replacement. If necessary, keep the original background and only replace the outfit.',
     extraStrict
       ? 'FAIL CONDITION: If the subject is still wearing the original outfit from image 1, the result is WRONG. Regenerate internally until the garment is applied.'
       : '',
