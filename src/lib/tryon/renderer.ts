@@ -147,10 +147,16 @@ export async function renderTryOnV3(params: {
   const sceneText = extraStrict
     ? // if extraStrict, we downplay scene change to avoid confusing edits
       `SCENE INSTRUCTION: Keep background natural and realistic. ${shootPlan.prompt_text}
+SCENE COHERENCE (NON-NEGOTIABLE):
+- The scene must be physically plausible for the pose. No tables/chairs in the middle of roads, no floating furniture, no impossible placements.
+- If the setting is a street, keep the subject on a sidewalk / cafe terrace / curbside seating area — never on the roadway.
 PHOTO REALISM:
 - Background must look like a real photo (not CGI). Add subtle sensor noise/film grain and tiny lens imperfections.
 - Avoid overly-perfect symmetry, overly-clean surfaces, and unrealistic bokeh.`
     : `SCENE INSTRUCTION: ${shootPlan.prompt_text}
+SCENE COHERENCE (NON-NEGOTIABLE):
+- The scene must be physically plausible for the pose. No tables/chairs in the middle of roads, no floating furniture, no impossible placements.
+- If the setting is a street, keep the subject on a sidewalk / cafe terrace / curbside seating area — never on the roadway.
 PHOTO REALISM:
 - Background must look like a real photo (not CGI). Add subtle sensor noise/film grain and tiny lens imperfections.
 - Keep lighting direction/shadows consistent across subject and background. Avoid HDR glow or perfect studio-clean look.`

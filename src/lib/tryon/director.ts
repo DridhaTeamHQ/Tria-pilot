@@ -11,6 +11,13 @@ CRITICAL RULES:
 4) EDIT INTENT: Write like an editor describing a real photo (camera + scene + lighting). Do not invent new characters.
 5) OUTPUT: Return ONLY raw JSON: {"prompt_text":"..."} (no markdown, no extra keys).
 
+PHYSICAL PLAUSIBILITY (VERY IMPORTANT):
+- The scene must be physically possible and match the pose request.
+- If the pose implies sitting at a table/chair/bench, the location MUST support it (cafe/restaurant/park bench/indoor table), never "in the middle of a road".
+- If background is "street", place the subject on a sidewalk / cafe terrace / curbside seating, not on the roadway.
+- Avoid impossible props: floating furniture, random indoor furniture outdoors, tables in traffic, chairs on water, etc.
+- If pose_name is ambiguous, choose the safest plausible context that matches the background_name.
+
 PROMPT STRUCTURE:
 - Subject: The subject + pose (pose only)
 - Context: background/location/time/weather/atmosphere

@@ -15,10 +15,12 @@ export async function verifyTryOnImage(params: {
 
   const system = `You are a strict QA checker for a virtual try-on system.
 Return ONLY JSON with keys:
-ok, reasons (array of strings), has_extra_people, appears_collage, garment_applied, garment_fidelity, identity_preserved, identity_fidelity, original_outfit_still_present, output_is_unedited_copy.
+ok, reasons (array of strings), has_extra_people, appears_collage, scene_plausible, lighting_realism, garment_applied, garment_fidelity, identity_preserved, identity_fidelity, original_outfit_still_present, output_is_unedited_copy.
 
 Rules:
 - ok is true only if: exactly one subject AND no collage/cutout AND garment from reference is worn by subject AND garment closely matches reference (high fidelity) AND the subject's original outfit is NOT still present AND output is not an unedited copy of the subject image AND face/identity matches subject image.
+- scene_plausible is false if the setting is physically impossible or incoherent for the pose (e.g., sitting at a table in the middle of a road, floating furniture, indoor furniture randomly outdoors without context).
+- lighting_realism is high/medium/low based on whether lighting and shadows look like a real photo (avoid studio-perfect, CGI glow, inconsistent shadow directions).
 - If a small pasted person/cutout appears, set appears_collage=true and ok=false.`
 
   const user = [
@@ -33,6 +35,8 @@ Rules:
       text: `Check:
 1) Does output contain exactly one subject (no extra people)?
 2) Does it look like a collage/pasted cutout?
+3) SCENE PLAUSIBILITY (true/false): is the background/context physically plausible for the pose? Flag tables/chairs in the middle of roads, floating props, impossible placements.
+4) LIGHTING REALISM (high/medium/low): does the lighting/shadows look like a real photo? Penalize CGI-perfect lighting, mismatched shadow direction, or overly artificial glow.
 3) Is the garment from reference worn by the subject?
 4) GARMENT FIDELITY (high/medium/low): does the garment match the reference in color, pattern/embroidery/prints, neckline, buttons/placket, sleeve/armholes, overall shape?
 5) Is the subject identity preserved (same person) compared to subject reference?
@@ -61,6 +65,11 @@ Rules:
     reasons: Array.isArray(parsed.reasons) ? parsed.reasons.map(String) : [],
     has_extra_people: !!parsed.has_extra_people,
     appears_collage: !!parsed.appears_collage,
+    scene_plausible: typeof parsed.scene_plausible === 'boolean' ? parsed.scene_plausible : true,
+    lighting_realism:
+      parsed.lighting_realism === 'high' || parsed.lighting_realism === 'medium' || parsed.lighting_realism === 'low'
+        ? parsed.lighting_realism
+        : 'medium',
     garment_applied: !!parsed.garment_applied,
     garment_fidelity:
       parsed.garment_fidelity === 'high' || parsed.garment_fidelity === 'medium' || parsed.garment_fidelity === 'low'

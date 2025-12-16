@@ -105,10 +105,14 @@ export async function runTryOnPipelineV3(params: {
       verify.identity_fidelity === 'low' ||
       (identityLock === 'high' && verify.identity_fidelity === 'medium')
     const needsRetryForNoTryOn = verify.output_is_unedited_copy || verify.original_outfit_still_present
-    if (!verify.ok || needsRetryForIdentity || needsRetryForNoTryOn) {
+    const needsRetryForScene = verify.scene_plausible === false || verify.lighting_realism === 'low'
+
+    // If clothing is applied but fidelity is only medium, retry once (helps small failures).
+    const needsRetryForGarmentQuality = verify.garment_applied && verify.garment_fidelity === 'medium'
+    if (!verify.ok || needsRetryForIdentity || needsRetryForNoTryOn || needsRetryForScene || needsRetryForGarmentQuality) {
       // If garment wasn't applied OR fidelity is low, try a stronger path:
       // 1) re-extract garment using PRO image model (more reliable), then re-render extraStrict
-      if (!verify.garment_applied || verify.garment_fidelity === 'low') {
+      if (!verify.garment_applied || verify.garment_fidelity === 'low' || needsRetryForGarmentQuality) {
         try {
           garmentOnly = await extractGarmentOnlyImage({
             clothingImageBase64: clothingRefBase64,

@@ -54,6 +54,8 @@ export interface VerifyResult {
   reasons: string[]
   has_extra_people: boolean
   appears_collage: boolean
+  scene_plausible?: boolean
+  lighting_realism?: 'high' | 'medium' | 'low'
   garment_applied: boolean
   garment_fidelity: 'high' | 'medium' | 'low'
   identity_preserved: boolean
