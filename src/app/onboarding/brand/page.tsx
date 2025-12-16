@@ -261,7 +261,7 @@ export default function BrandOnboardingPage() {
         <CardHeader>
           <CardTitle>Complete Your Brand Profile</CardTitle>
           <CardDescription>
-            Step {step} of 7 - Let's set up your brand profile
+            Step {step} of 7 - Let&apos;s set up your brand profile
           </CardDescription>
           <div className="mt-4">
             <div className="flex gap-2">

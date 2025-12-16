@@ -357,7 +357,7 @@ export default function InfluencerOnboardingPage() {
         <CardHeader>
           <CardTitle>Complete Your Profile</CardTitle>
           <CardDescription>
-            Step {step} of 7 - Let's set up your influencer profile
+            Step {step} of 7 - Let&apos;s set up your influencer profile
           </CardDescription>
           <div className="mt-4">
             <div className="flex gap-2">

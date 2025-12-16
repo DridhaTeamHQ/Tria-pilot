@@ -114,7 +114,7 @@ export default async function InfluencerDashboard() {
             Welcome back, <span className="italic">{user.name || 'Creator'}</span>
           </h1>
           <p className="text-charcoal/60">
-            Here's what's happening with your account today.
+            Here&apos;s what&apos;s happening with your account today.
           </p>
         </div>
 

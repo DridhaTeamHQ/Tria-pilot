@@ -20,9 +20,16 @@ export default async function MarketplacePage({
     redirect('/login')
   }
 
-  const dbUser = await prisma.user.findUnique({
-    where: { email: authUser.email! },
-  })
+  let dbUser
+  try {
+    dbUser = await prisma.user.findUnique({
+      where: { email: authUser.email!.toLowerCase().trim() },
+      select: { id: true, role: true },
+    })
+  } catch (error) {
+    console.error('Database error fetching user:', error)
+    redirect('/login')
+  }
 
   if (!dbUser || dbUser.role !== 'INFLUENCER') {
     redirect('/')

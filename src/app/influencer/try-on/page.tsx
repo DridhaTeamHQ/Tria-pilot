@@ -8,12 +8,12 @@ import { toast } from 'sonner'
 import { ShoppingBag, Upload, Sparkles, Palette, Download, RefreshCw, ArrowRight, X, Check, PartyPopper, AlertTriangle, Loader2 } from 'lucide-react'
 import { useProduct } from '@/lib/react-query/hooks'
 
-// Intelligent Preset type
-interface IntelligentPreset {
+// Try-on preset type (v3)
+interface TryOnPreset {
     id: string
     name: string
     description: string
-    category: 'indian' | 'street' | 'studio' | 'outdoor' | 'lifestyle' | 'editorial' | 'fantasy'
+    category: 'studio' | 'street' | 'outdoor' | 'lifestyle' | 'editorial' | 'traditional'
 }
 import { GeneratingOverlay } from '@/components/tryon/GeneratingOverlay'
 import { bounceInVariants } from '@/lib/animations'
@@ -61,12 +61,12 @@ function TryOnPageContent() {
     const [dragOver, setDragOver] = useState<'person' | 'clothing' | null>(null)
     const [showCelebration, setShowCelebration] = useState(false)
     
-    // Intelligent Presets
-    const [presets, setPresets] = useState<IntelligentPreset[]>([])
+    // Presets
+    const [presets, setPresets] = useState<TryOnPreset[]>([])
     const [presetsLoading, setPresetsLoading] = useState(true)
     const [presetCategories, setPresetCategories] = useState<string[]>([])
 
-    // Fetch intelligent presets
+    // Fetch presets
     useEffect(() => {
         async function fetchPresets() {
             try {
@@ -662,7 +662,7 @@ function TryOnPageContent() {
                                     <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
                                         {additionalPersonImages.map((img, idx) => (
                                             <div key={idx} className="relative w-16 h-16 flex-shrink-0 rounded-xl overflow-hidden border border-white/50 shadow-sm group">
-                                                <img src={img} className="w-full h-full object-cover" />
+                                                <img src={img} alt="" className="w-full h-full object-cover" />
                                                 <button
                                                     onClick={() => handleRemoveAdditionalImage(idx)}
                                                     className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity"
@@ -825,7 +825,7 @@ function TryOnPageContent() {
                                     <div className="mt-3 flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
                                         {accessoryImages.map((img, idx) => (
                                             <div key={idx} className="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden border border-white shadow-sm group">
-                                                <img src={img} className="w-full h-full object-cover" />
+                                                <img src={img} alt="" className="w-full h-full object-cover" />
                                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                                                     <button onClick={() => handleRemoveAccessory(idx)} className="text-white hover:text-red-400">
                                                         <X className="w-4 h-4" />
@@ -922,9 +922,12 @@ function TryOnPageContent() {
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="font-serif text-xl text-charcoal flex items-center gap-2">
                                     <Palette className="w-5 h-5 text-peach" />
-                                    Intelligent Presets
-                                    <span className="text-xs font-normal text-charcoal/40">(100 scenarios each)</span>
+                                    Style Presets
+                                    <span className="text-xs font-normal text-charcoal/40">(auto scene + lighting)</span>
                                 </h3>
+                                <div className="text-[11px] text-charcoal/50 mt-1">
+                                    Tip: for “Subtle Pose” presets, use <span className="font-medium">Pro</span> and upload 1–2 extra identity photos for best face consistency.
+                                </div>
                                 <div className="flex gap-2 flex-wrap">
                                     <button
                                         onClick={() => setPresetCategory('all')}
@@ -988,13 +991,12 @@ function TryOnPageContent() {
                                         .slice(0, 11) // Show 11 + None = 12 items (3 rows)
                                         .map(preset => {
                                             const categoryColors: Record<string, string> = {
-                                                indian: 'from-orange-500/40 to-amber-600/40',
-                                                street: 'from-slate-500/40 to-zinc-600/40',
                                                 studio: 'from-gray-400/40 to-slate-500/40',
+                                                street: 'from-slate-500/40 to-zinc-600/40',
                                                 outdoor: 'from-green-500/40 to-emerald-600/40',
                                                 lifestyle: 'from-pink-400/40 to-rose-500/40',
                                                 editorial: 'from-purple-500/40 to-violet-600/40',
-                                                fantasy: 'from-indigo-500/40 to-blue-600/40',
+                                                traditional: 'from-orange-500/40 to-amber-600/40',
                                             }
                                             const bgGradient = categoryColors[preset.category] || 'from-gray-400/40 to-gray-500/40'
 

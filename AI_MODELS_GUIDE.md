@@ -196,10 +196,10 @@ data:image/png;base64,<base64_data>
 
 ```env
 # OpenAI - For GPT-4o Mini prompt generation
-OPENAI_API_KEY="sk-proj-..."
+OPENAI_API_KEY="[YOUR_OPENAI_API_KEY]"
 
 # Google Gemini - For image generation
-GEMINI_API_KEY="AIzaSy..."
+GEMINI_API_KEY="[YOUR_GEMINI_API_KEY]"
 GEMINI_IMAGE_MODEL="gemini-3-pro-image-preview"  # Optional, defaults to Pro
 ```
 

@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
-import { getPresetList, getAllPresetCategories } from '@/lib/prompts/intelligent-presets'
+import { getTryOnPresetListV3, getTryOnPresetCategoriesV3 } from '@/lib/tryon/presets'
 
 export async function GET() {
   try {
-    const presets = getPresetList()
-    const categories = getAllPresetCategories()
+    const presets = getTryOnPresetListV3()
+    const categories = getTryOnPresetCategoriesV3()
 
     // Group presets by category
     const groupedPresets = categories.reduce((acc, category) => {

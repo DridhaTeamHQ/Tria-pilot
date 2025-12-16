@@ -38,6 +38,16 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
+    // Authenticated users should not see public cover pages
+    if (user) {
+        const pathname = request.nextUrl.pathname
+        if (pathname === '/' || pathname === '/login' || pathname === '/register') {
+            const url = request.nextUrl.clone()
+            url.pathname = '/dashboard'
+            return NextResponse.redirect(url)
+        }
+    }
+
     if (
         !user &&
         !request.nextUrl.pathname.startsWith('/login') &&

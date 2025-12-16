@@ -32,8 +32,8 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
 #### AI Services
 ```
-OPENAI_API_KEY=sk-...
-GEMINI_API_KEY=your_gemini_api_key
+OPENAI_API_KEY=[YOUR_OPENAI_API_KEY]
+GEMINI_API_KEY=[YOUR_GEMINI_API_KEY]
 ```
 
 #### Optional

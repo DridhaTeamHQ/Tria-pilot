@@ -224,7 +224,7 @@ export default function Navigation() {
             </div>
             <DialogTitle className="text-center text-2xl">Ready to leave? 🎯</DialogTitle>
             <DialogDescription className="text-center pt-2">
-              You're doing great! Your progress is saved. Come back soon to continue your journey!
+              You&apos;re doing great! Your progress is saved. Come back soon to continue your journey!
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">

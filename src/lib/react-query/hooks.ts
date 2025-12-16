@@ -231,3 +231,18 @@ export function useGenerations() {
     gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
   })
 }
+
+export function useDeleteGeneration() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/generations/${id}`, { method: 'DELETE' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error((data as any)?.error || 'Failed to delete generation')
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['generations'] })
+    },
+  })
+}

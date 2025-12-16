@@ -11,16 +11,20 @@ function createPrismaClient() {
     throw new Error('DATABASE_URL environment variable is not set')
   }
 
-  // Optimized connection pool configuration for Supabase pooler + Vercel serverless
-  // Serverless functions should use minimal connections (1-2 max)
-  // Supabase pooler limits to 5 connections per project, but with multiple functions
-  // running concurrently, we need to be very conservative
+  const isProduction = process.env.NODE_ENV === 'production'
+
+  // Optimized connection pool configuration:
+  // - Production (serverless): minimal connections + fast cleanup
+  // - Development (local dev): allow a few concurrent connections and longer timeouts
+  //
+  // Why: Next.js dev often triggers concurrent SSR requests; a pool max=1 with a 2s timeout
+  // can cause "Connection terminated due to connection timeout" under normal navigation.
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    max: 1, // CRITICAL: Use only 1 connection per serverless function instance
-    min: 0, // No minimum - connections created on demand (better for serverless)
-    idleTimeoutMillis: 2000, // Very fast cleanup (2 seconds) for serverless
-    connectionTimeoutMillis: 2000, // Fast failure detection (2 seconds)
+    max: isProduction ? 1 : 5,
+    min: 0,
+    idleTimeoutMillis: isProduction ? 2000 : 10000,
+    connectionTimeoutMillis: isProduction ? 2000 : 10000,
     allowExitOnIdle: true,
     // Keep connections alive but very short for serverless
     keepAlive: true,

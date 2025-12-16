@@ -196,7 +196,7 @@ export default function LoginPage() {
             transition={{ delay: 0.6 }}
             className="mt-8 text-center text-charcoal/60"
           >
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link href="/register" className="text-charcoal font-medium hover:underline">
               Create one
             </Link>

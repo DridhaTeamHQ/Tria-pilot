@@ -61,7 +61,7 @@ export default async function FavoritesPage() {
           <h1 className="text-3xl font-bold">My Favorites</h1>
         </div>
         <p className="text-zinc-600 dark:text-zinc-400">
-          Products you've saved for later
+          Products you&apos;ve saved for later
         </p>
       </div>
 

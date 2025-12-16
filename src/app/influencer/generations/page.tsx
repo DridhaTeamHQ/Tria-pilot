@@ -13,15 +13,18 @@ import {
     Loader2,
     CheckCircle2,
     Clock,
-    XCircle
+    XCircle,
+    Trash2
 } from 'lucide-react'
-import { useGenerations } from '@/lib/react-query/hooks'
+import { useDeleteGeneration, useGenerations } from '@/lib/react-query/hooks'
 import { toast } from 'sonner'
 
 export default function GenerationsPage() {
     const { data: generations, isLoading } = useGenerations()
+    const deleteMutation = useDeleteGeneration()
     const [selectedImage, setSelectedImage] = useState<string | null>(null)
     const [downloading, setDownloading] = useState<string | null>(null)
+    const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; imageUrl?: string | null } | null>(null)
 
     const handleDownload = async (imageUrl: string, jobId: string) => {
         try {
@@ -105,6 +108,27 @@ export default function GenerationsPage() {
     }
 
     const completedGenerations = generations?.filter((g: any) => g.outputImagePath) || []
+    const deletingId = deleteMutation.isPending ? (deleteMutation.variables as any) : null
+
+    const requestDelete = (job: any) => {
+        setDeleteConfirm({ id: job.id, imageUrl: job.outputImagePath })
+    }
+
+    const confirmDelete = async () => {
+        if (!deleteConfirm?.id) return
+        try {
+            await deleteMutation.mutateAsync(deleteConfirm.id)
+            toast.success('Deleted generation')
+            if (selectedImage && deleteConfirm.imageUrl && selectedImage === deleteConfirm.imageUrl) {
+                setSelectedImage(null)
+            }
+        } catch (error) {
+            const msg = error instanceof Error ? error.message : 'Failed to delete'
+            toast.error(msg)
+        } finally {
+            setDeleteConfirm(null)
+        }
+    }
 
     return (
         <div className="min-h-screen bg-cream pt-24 pb-12">
@@ -204,23 +228,38 @@ export default function GenerationsPage() {
 
                                     {/* Download Button */}
                                     {job.outputImagePath && (
-                                        <button
-                                            onClick={() => handleDownload(job.outputImagePath, job.id)}
-                                            disabled={downloading === job.id}
-                                            className="w-full py-2.5 bg-charcoal/5 hover:bg-charcoal hover:text-cream text-charcoal text-sm font-medium rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-                                        >
-                                            {downloading === job.id ? (
-                                                <>
+                                        <div className="grid grid-cols-[1fr_auto] gap-2">
+                                            <button
+                                                onClick={() => handleDownload(job.outputImagePath, job.id)}
+                                                disabled={downloading === job.id}
+                                                className="py-2.5 bg-charcoal/5 hover:bg-charcoal hover:text-cream text-charcoal text-sm font-medium rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                                            >
+                                                {downloading === job.id ? (
+                                                    <>
+                                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                                        Downloading...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Download className="w-4 h-4" />
+                                                        Download
+                                                    </>
+                                                )}
+                                            </button>
+                                            <button
+                                                onClick={() => requestDelete(job)}
+                                                disabled={deletingId === job.id}
+                                                className="w-11 py-2.5 bg-red-50 hover:bg-red-600 text-red-700 hover:text-white rounded-xl flex items-center justify-center transition-colors disabled:opacity-50"
+                                                aria-label="Delete generation"
+                                                title="Delete"
+                                            >
+                                                {deletingId === job.id ? (
                                                     <Loader2 className="w-4 h-4 animate-spin" />
-                                                    Downloading...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Download className="w-4 h-4" />
-                                                    Download
-                                                </>
-                                            )}
-                                        </button>
+                                                ) : (
+                                                    <Trash2 className="w-4 h-4" />
+                                                )}
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
                             </motion.div>
@@ -262,6 +301,19 @@ export default function GenerationsPage() {
                             Download
                         </button>
 
+                        {/* Delete button */}
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                const job = generations?.find((g: any) => g.outputImagePath === selectedImage)
+                                if (job) requestDelete(job)
+                            }}
+                            className="absolute top-4 left-32 px-4 py-2 bg-red-600 text-white rounded-full text-sm font-medium flex items-center gap-2 hover:bg-red-700 transition-colors"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            Delete
+                        </button>
+
                         {/* Image */}
                         <motion.img
                             initial={{ scale: 0.9, opacity: 0 }}
@@ -272,6 +324,66 @@ export default function GenerationsPage() {
                             className="max-w-full max-h-[90vh] object-contain rounded-lg"
                             onClick={(e) => e.stopPropagation()}
                         />
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Delete confirm modal */}
+            <AnimatePresence>
+                {deleteConfirm && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4"
+                        onClick={() => setDeleteConfirm(null)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            className="w-full max-w-md bg-white rounded-2xl border border-subtle overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="p-6">
+                                <h3 className="text-lg font-semibold text-charcoal mb-2">Delete this image?</h3>
+                                <p className="text-sm text-charcoal/60 mb-4">
+                                    This will permanently delete the generated image from your account.
+                                </p>
+                                {deleteConfirm.imageUrl ? (
+                                    <div className="rounded-xl overflow-hidden border border-subtle mb-5">
+                                        <img
+                                            src={deleteConfirm.imageUrl}
+                                            alt="To delete"
+                                            className="w-full h-48 object-cover"
+                                        />
+                                    </div>
+                                ) : null}
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        onClick={() => setDeleteConfirm(null)}
+                                        className="py-2.5 rounded-xl border border-subtle text-charcoal font-medium hover:bg-cream transition-colors"
+                                        disabled={deleteMutation.isPending}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={confirmDelete}
+                                        className="py-2.5 rounded-xl bg-red-600 text-white font-medium hover:bg-red-700 transition-colors disabled:opacity-60"
+                                        disabled={deleteMutation.isPending}
+                                    >
+                                        {deleteMutation.isPending ? (
+                                            <span className="inline-flex items-center justify-center gap-2">
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                Deleting...
+                                            </span>
+                                        ) : (
+                                            'Delete'
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>

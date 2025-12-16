@@ -114,10 +114,10 @@ This will install all packages listed in `package.json`. It may take a few minut
    SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
    
    # OpenAI
-   OPENAI_API_KEY="sk-proj-..."
+   OPENAI_API_KEY="[YOUR_OPENAI_API_KEY]"
    
    # Gemini
-   GEMINI_API_KEY="AIzaSy..."
+   GEMINI_API_KEY="[YOUR_GEMINI_API_KEY]"
    ```
 
    **⚠️ Important:** Never commit `.env.local` to Git! It's already in `.gitignore`.
