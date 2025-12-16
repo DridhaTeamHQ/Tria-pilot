@@ -57,6 +57,7 @@ export interface VerifyResult {
   scene_plausible?: boolean
   lighting_realism?: 'high' | 'medium' | 'low'
   lighting_consistent?: boolean
+  subject_color_preserved?: boolean
   garment_applied: boolean
   garment_fidelity: 'high' | 'medium' | 'low'
   identity_preserved: boolean
