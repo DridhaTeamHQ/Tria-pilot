@@ -89,7 +89,7 @@ export default async function ProductDetailPage({ params }: any) {
   }
 
   const productImages = product.images.length > 0
-    ? product.images.map(img => img.imagePath)
+    ? product.images.map((img: { imagePath: string }) => img.imagePath)
     : product.imagePath
       ? [product.imagePath]
       : []
