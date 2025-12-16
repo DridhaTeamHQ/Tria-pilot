@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { unstable_cache } from 'next/cache'
 import MarketplaceClient from '@/components/marketplace/MarketplaceClient'
 
-// Cache products for 60 seconds to improve performance
+// Cache products for 30 seconds to improve performance while staying fresh
 const getProducts = unstable_cache(
   async (where: Prisma.ProductWhereInput) => {
     return prisma.product.findMany({
@@ -47,7 +47,7 @@ const getProducts = unstable_cache(
     })
   },
   ['marketplace-products'],
-  { revalidate: 60, tags: ['products'] }
+  { revalidate: 30, tags: ['products'] }
 )
 
 export default async function MarketplacePage({
