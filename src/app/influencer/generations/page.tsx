@@ -14,15 +14,79 @@ import {
     CheckCircle2,
     Clock,
     XCircle,
-    Trash2
+    Trash2,
+    ZoomIn,
+    ImageIcon
 } from 'lucide-react'
 import { useDeleteGeneration, useGenerations } from '@/lib/react-query/hooks'
 import { toast } from 'sonner'
+
+// Animation variants
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.06,
+            delayChildren: 0.1
+        }
+    }
+}
+
+const cardVariants = {
+    hidden: { 
+        opacity: 0, 
+        y: 30,
+        scale: 0.95
+    },
+    visible: { 
+        opacity: 1, 
+        y: 0,
+        scale: 1,
+        transition: {
+            type: "spring",
+            stiffness: 300,
+            damping: 24
+        }
+    }
+}
+
+const fadeInUp = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+        opacity: 1, 
+        y: 0,
+        transition: {
+            type: "spring",
+            stiffness: 400,
+            damping: 30
+        }
+    }
+}
+
+const scaleIn = {
+    hidden: { opacity: 0, scale: 0.8 },
+    visible: { 
+        opacity: 1, 
+        scale: 1,
+        transition: {
+            type: "spring",
+            stiffness: 400,
+            damping: 25
+        }
+    },
+    exit: { 
+        opacity: 0, 
+        scale: 0.9,
+        transition: { duration: 0.2 }
+    }
+}
 
 export default function GenerationsPage() {
     const { data: generations, isLoading } = useGenerations()
     const deleteMutation = useDeleteGeneration()
     const [selectedImage, setSelectedImage] = useState<string | null>(null)
+    const [selectedJob, setSelectedJob] = useState<any>(null)
     const [downloading, setDownloading] = useState<string | null>(null)
     const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; imageUrl?: string | null } | null>(null)
 
@@ -52,28 +116,40 @@ export default function GenerationsPage() {
         switch (status) {
             case 'COMPLETED':
                 return (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                    <motion.span 
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-600 text-xs font-medium rounded-full border border-emerald-100"
+                    >
                         <CheckCircle2 className="w-3 h-3" />
                         Completed
-                    </span>
+                    </motion.span>
                 )
             case 'PROCESSING':
                 return (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-full">
-                        <Clock className="w-3 h-3" />
+                    <motion.span 
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-600 text-xs font-medium rounded-full border border-amber-100"
+                    >
+                        <Clock className="w-3 h-3 animate-pulse" />
                         Processing
-                    </span>
+                    </motion.span>
                 )
             case 'FAILED':
                 return (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full">
+                    <motion.span 
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-50 text-red-600 text-xs font-medium rounded-full border border-red-100"
+                    >
                         <XCircle className="w-3 h-3" />
                         Failed
-                    </span>
+                    </motion.span>
                 )
             default:
                 return (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded-full">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-50 text-gray-600 text-xs font-medium rounded-full border border-gray-100">
                         {status}
                     </span>
                 )
@@ -94,15 +170,34 @@ export default function GenerationsPage() {
         }
     }
 
+    const openLightbox = (job: any) => {
+        setSelectedImage(job.outputImagePath)
+        setSelectedJob(job)
+    }
+
+    const closeLightbox = () => {
+        setSelectedImage(null)
+        setSelectedJob(null)
+    }
+
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-cream pt-24 flex items-center justify-center">
+            <div className="min-h-screen bg-gradient-to-b from-cream to-white pt-24 flex flex-col items-center justify-center gap-4">
                 <motion.div
                     animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+                    className="relative"
                 >
-                    <Loader2 className="w-8 h-8 text-charcoal/30" />
+                    <div className="w-12 h-12 rounded-full border-2 border-charcoal/10 border-t-charcoal/60" />
                 </motion.div>
+                <motion.p 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-charcoal/50 text-sm"
+                >
+                    Loading your generations...
+                </motion.p>
             </div>
         )
     }
@@ -120,7 +215,7 @@ export default function GenerationsPage() {
             await deleteMutation.mutateAsync(deleteConfirm.id)
             toast.success('Deleted generation')
             if (selectedImage && deleteConfirm.imageUrl && selectedImage === deleteConfirm.imageUrl) {
-                setSelectedImage(null)
+                closeLightbox()
             }
         } catch (error) {
             const msg = error instanceof Error ? error.message : 'Failed to delete'
@@ -131,125 +226,205 @@ export default function GenerationsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-cream pt-24 pb-12">
-            <div className="container mx-auto px-6">
+        <div className="min-h-screen bg-gradient-to-b from-cream via-cream to-white pt-24 pb-16">
+            <div className="container mx-auto px-4 sm:px-6">
                 {/* Header */}
-                <div className="mb-8">
+                <motion.div 
+                    initial="hidden"
+                    animate="visible"
+                    variants={fadeInUp}
+                    className="mb-10"
+                >
                     <Link
                         href="/influencer/dashboard"
-                        className="inline-flex items-center gap-2 text-sm text-charcoal/60 hover:text-charcoal mb-4 transition-colors"
+                        className="group inline-flex items-center gap-2 text-sm text-charcoal/50 hover:text-charcoal mb-6 transition-all duration-300"
                     >
-                        <ArrowLeft className="h-4 w-4" />
-                        Back to Dashboard
-                    </Link>
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div>
-                            <h1 className="text-3xl sm:text-4xl font-serif text-charcoal mb-1">
-                                Your <span className="italic">Generations</span>
-                            </h1>
-                            <p className="text-charcoal/60 text-sm sm:text-base">
-                                {completedGenerations.length} try-on images generated
-                            </p>
-                        </div>
-                        <Link
-                            href="/influencer/try-on"
-                            className="self-start sm:self-auto inline-flex items-center gap-2 px-5 py-2.5 bg-charcoal text-cream rounded-full font-medium hover:bg-charcoal/90 transition-colors text-sm"
+                        <motion.span
+                            whileHover={{ x: -3 }}
+                            transition={{ type: "spring", stiffness: 400 }}
                         >
-                            <Camera className="w-4 h-4" />
-                            New Try-On
-                        </Link>
+                            <ArrowLeft className="h-4 w-4" />
+                        </motion.span>
+                        <span className="relative">
+                            Back to Dashboard
+                            <span className="absolute bottom-0 left-0 w-0 h-px bg-charcoal group-hover:w-full transition-all duration-300" />
+                        </span>
+                    </Link>
+                    
+                    <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
+                        <div>
+                            <motion.h1 
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                                className="text-4xl sm:text-5xl font-serif text-charcoal mb-2"
+                            >
+                                Your <span className="italic text-charcoal/70">Generations</span>
+                            </motion.h1>
+                            <motion.p 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.2 }}
+                                className="text-charcoal/50 flex items-center gap-2"
+                            >
+                                <ImageIcon className="w-4 h-4" />
+                                {completedGenerations.length} try-on images generated
+                            </motion.p>
+                        </div>
+                        
+                        <motion.div
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                        >
+                            <Link
+                                href="/influencer/try-on"
+                                className="group inline-flex items-center gap-2.5 px-6 py-3 bg-charcoal text-cream rounded-full font-medium shadow-lg shadow-charcoal/20 hover:shadow-xl hover:shadow-charcoal/30 transition-all duration-300"
+                            >
+                                <Camera className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300" />
+                                New Try-On
+                            </Link>
+                        </motion.div>
                     </div>
-                </div>
+                </motion.div>
 
                 {/* Gallery Grid */}
                 {completedGenerations.length === 0 ? (
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="bg-white rounded-2xl border border-dashed border-subtle p-16 text-center"
+                        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                        className="relative bg-white/80 backdrop-blur-sm rounded-3xl border border-charcoal/5 p-12 sm:p-20 text-center overflow-hidden"
                     >
-                        <Sparkles className="w-16 h-16 text-charcoal/20 mx-auto mb-4" />
-                        <h3 className="text-xl font-semibold text-charcoal mb-2">No generations yet</h3>
-                        <p className="text-charcoal/60 mb-6">Start creating stunning virtual try-ons with AI</p>
-                        <Link
-                            href="/influencer/try-on"
-                            className="inline-flex items-center gap-2 px-6 py-3 bg-charcoal text-cream rounded-full font-medium hover:bg-charcoal/90 transition-colors"
+                        {/* Background decoration */}
+                        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                            <div className="absolute -top-20 -right-20 w-60 h-60 bg-peach/20 rounded-full blur-3xl" />
+                            <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-charcoal/5 rounded-full blur-3xl" />
+                        </div>
+                        
+                        <motion.div
+                            animate={{ 
+                                y: [0, -8, 0],
+                                rotate: [0, 5, 0]
+                            }}
+                            transition={{ 
+                                duration: 4, 
+                                repeat: Infinity,
+                                ease: "easeInOut"
+                            }}
+                            className="relative"
                         >
-                            <Camera className="w-5 h-5" />
-                            Start Generating
-                        </Link>
+                            <Sparkles className="w-20 h-20 text-charcoal/15 mx-auto mb-6" />
+                        </motion.div>
+                        <h3 className="relative text-2xl font-serif text-charcoal mb-3">No generations yet</h3>
+                        <p className="relative text-charcoal/50 mb-8 max-w-sm mx-auto">
+                            Start creating stunning virtual try-ons powered by AI magic
+                        </p>
+                        <motion.div
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
+                        >
+                            <Link
+                                href="/influencer/try-on"
+                                className="relative inline-flex items-center gap-2.5 px-8 py-4 bg-charcoal text-cream rounded-full font-medium shadow-xl shadow-charcoal/20 hover:shadow-2xl hover:shadow-charcoal/30 transition-all duration-300"
+                            >
+                                <Sparkles className="w-5 h-5" />
+                                Start Generating
+                            </Link>
+                        </motion.div>
                     </motion.div>
                 ) : (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-                        {generations?.map((job: any, index: number) => (
+                    <motion.div 
+                        variants={containerVariants}
+                        initial="hidden"
+                        animate="visible"
+                        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6"
+                    >
+                        {generations?.map((job: any) => (
                             <motion.div
                                 key={job.id}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.05 }}
-                                className="group bg-white rounded-2xl overflow-hidden border border-subtle hover:border-charcoal/20 transition-all hover:shadow-lg"
+                                variants={cardVariants}
+                                whileHover={{ y: -6 }}
+                                className="group bg-white rounded-2xl overflow-hidden border border-charcoal/5 shadow-sm hover:shadow-xl hover:border-charcoal/10 transition-all duration-500"
                             >
                                 {/* Image */}
                                 {job.outputImagePath ? (
                                     <div
                                         className="aspect-[3/4] overflow-hidden relative cursor-pointer"
-                                        onClick={() => setSelectedImage(job.outputImagePath)}
+                                        onClick={() => openLightbox(job)}
                                     >
-                                        <img
+                                        <motion.img
                                             src={job.outputImagePath}
                                             alt={`Generation ${job.id.slice(0, 8)}`}
-                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                            className="w-full h-full object-cover"
+                                            whileHover={{ scale: 1.08 }}
+                                            transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
                                         />
-                                        {/* Overlay on hover */}
-                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                                            <span className="opacity-0 group-hover:opacity-100 px-4 py-2 bg-white/90 rounded-full text-sm font-medium text-charcoal transition-opacity">
+                                        {/* Gradient overlay */}
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                        
+                                        {/* View button */}
+                                        <motion.div 
+                                            initial={{ opacity: 0, y: 10 }}
+                                            whileHover={{ opacity: 1, y: 0 }}
+                                            className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300"
+                                        >
+                                            <motion.span 
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                className="px-5 py-2.5 bg-white/95 backdrop-blur-sm rounded-full text-sm font-medium text-charcoal flex items-center gap-2 shadow-lg"
+                                            >
+                                                <ZoomIn className="w-4 h-4" />
                                                 View Full Size
-                                            </span>
-                                        </div>
+                                            </motion.span>
+                                        </motion.div>
                                     </div>
                                 ) : (
-                                    <div className="aspect-[3/4] bg-cream flex items-center justify-center">
-                                        <Sparkles className="w-12 h-12 text-charcoal/20" />
+                                    <div className="aspect-[3/4] bg-gradient-to-br from-cream to-charcoal/5 flex items-center justify-center">
+                                        <Sparkles className="w-12 h-12 text-charcoal/15" />
                                     </div>
                                 )}
 
                                 {/* Info */}
                                 <div className="p-4">
                                     <div className="flex items-center justify-between mb-2">
-                                        <p className="text-sm font-medium text-charcoal">
+                                        <p className="text-sm font-semibold text-charcoal font-mono">
                                             #{job.id.slice(0, 8)}
                                         </p>
                                         {getStatusBadge(job.status)}
                                     </div>
-                                    <div className="flex items-center gap-1 text-xs text-charcoal/50 mb-3">
+                                    <div className="flex items-center gap-1.5 text-xs text-charcoal/40 mb-4">
                                         <Calendar className="w-3 h-3" />
                                         {formatDate(job.createdAt)}
                                     </div>
 
-                                    {/* Download Button */}
+                                    {/* Action Buttons */}
                                     {job.outputImagePath && (
-                                        <div className="grid grid-cols-[1fr_auto] gap-2">
-                                            <button
+                                        <div className="flex gap-2">
+                                            <motion.button
                                                 onClick={() => handleDownload(job.outputImagePath, job.id)}
                                                 disabled={downloading === job.id}
-                                                className="py-2.5 bg-charcoal/5 hover:bg-charcoal hover:text-cream text-charcoal text-sm font-medium rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                                                whileHover={{ scale: 1.02 }}
+                                                whileTap={{ scale: 0.98 }}
+                                                className="flex-1 py-2.5 bg-charcoal/5 hover:bg-charcoal hover:text-cream text-charcoal text-sm font-medium rounded-xl flex items-center justify-center gap-2 transition-all duration-300 disabled:opacity-50"
                                             >
                                                 {downloading === job.id ? (
                                                     <>
                                                         <Loader2 className="w-4 h-4 animate-spin" />
-                                                        Downloading...
+                                                        <span className="hidden sm:inline">Saving...</span>
                                                     </>
                                                 ) : (
                                                     <>
                                                         <Download className="w-4 h-4" />
-                                                        Download
+                                                        <span className="hidden sm:inline">Download</span>
                                                     </>
                                                 )}
-                                            </button>
-                                            <button
+                                            </motion.button>
+                                            <motion.button
                                                 onClick={() => requestDelete(job)}
                                                 disabled={deletingId === job.id}
-                                                className="w-11 py-2.5 bg-red-50 hover:bg-red-600 text-red-700 hover:text-white rounded-xl flex items-center justify-center transition-colors disabled:opacity-50"
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                className="w-11 py-2.5 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white rounded-xl flex items-center justify-center transition-all duration-300 disabled:opacity-50"
                                                 aria-label="Delete generation"
                                                 title="Delete"
                                             >
@@ -258,118 +433,191 @@ export default function GenerationsPage() {
                                                 ) : (
                                                     <Trash2 className="w-4 h-4" />
                                                 )}
-                                            </button>
+                                            </motion.button>
                                         </div>
                                     )}
                                 </div>
                             </motion.div>
                         ))}
-                    </div>
+                    </motion.div>
                 )}
             </div>
 
-            {/* Lightbox Modal */}
+            {/* Lightbox Modal - Redesigned */}
             <AnimatePresence>
-                {selectedImage && (
+                {selectedImage && selectedJob && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-                        onClick={() => setSelectedImage(null)}
+                        transition={{ duration: 0.3 }}
+                        className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm flex flex-col"
+                        onClick={closeLightbox}
                     >
-                        {/* Close button */}
-                        <button
-                            onClick={() => setSelectedImage(null)}
-                            className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
-                        >
-                            <X className="w-6 h-6" />
-                        </button>
-
-                        {/* Download button */}
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                const job = generations?.find((g: any) => g.outputImagePath === selectedImage)
-                                if (job) {
-                                    handleDownload(selectedImage, job.id)
-                                }
-                            }}
-                            className="absolute top-4 left-4 px-4 py-2 bg-white text-charcoal rounded-full text-sm font-medium flex items-center gap-2 hover:bg-white/90 transition-colors"
-                        >
-                            <Download className="w-4 h-4" />
-                            Download
-                        </button>
-
-                        {/* Delete button */}
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                const job = generations?.find((g: any) => g.outputImagePath === selectedImage)
-                                if (job) requestDelete(job)
-                            }}
-                            className="absolute top-4 left-32 px-4 py-2 bg-red-600 text-white rounded-full text-sm font-medium flex items-center gap-2 hover:bg-red-700 transition-colors"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                            Delete
-                        </button>
-
-                        {/* Image */}
-                        <motion.img
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            src={selectedImage}
-                            alt="Full size generation"
-                            className="max-w-full max-h-[90vh] object-contain rounded-lg"
+                        {/* Top toolbar - properly aligned */}
+                        <motion.div 
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ delay: 0.1, type: "spring", stiffness: 300, damping: 25 }}
+                            className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-white/10"
                             onClick={(e) => e.stopPropagation()}
-                        />
+                        >
+                            {/* Left side - Action buttons */}
+                            <div className="flex items-center gap-3">
+                                <motion.button
+                                    onClick={() => handleDownload(selectedImage, selectedJob.id)}
+                                    disabled={downloading === selectedJob.id}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-white text-charcoal rounded-full text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50"
+                                >
+                                    {downloading === selectedJob.id ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Downloading...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Download className="w-4 h-4" />
+                                            Download
+                                        </>
+                                    )}
+                                </motion.button>
+                                
+                                <motion.button
+                                    onClick={() => requestDelete(selectedJob)}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-red-500 text-white rounded-full text-sm font-medium shadow-lg hover:bg-red-600 hover:shadow-xl transition-all duration-300"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                    Delete
+                                </motion.button>
+                            </div>
+
+                            {/* Center - Image info */}
+                            <div className="hidden sm:flex flex-col items-center">
+                                <span className="text-white/60 text-xs">Generation</span>
+                                <span className="text-white font-mono text-sm">#{selectedJob.id.slice(0, 8)}</span>
+                            </div>
+
+                            {/* Right side - Close button */}
+                            <motion.button
+                                onClick={closeLightbox}
+                                whileHover={{ scale: 1.1, rotate: 90 }}
+                                whileTap={{ scale: 0.9 }}
+                                transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                                className="p-2.5 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </motion.button>
+                        </motion.div>
+
+                        {/* Image container - centered */}
+                        <div className="flex-1 flex items-center justify-center p-4 sm:p-8 overflow-hidden">
+                            <motion.img
+                                initial={{ scale: 0.85, opacity: 0, y: 20 }}
+                                animate={{ scale: 1, opacity: 1, y: 0 }}
+                                exit={{ scale: 0.9, opacity: 0, y: 10 }}
+                                transition={{ 
+                                    type: "spring", 
+                                    stiffness: 300, 
+                                    damping: 25,
+                                    delay: 0.05
+                                }}
+                                src={selectedImage}
+                                alt="Full size generation"
+                                className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
+                                onClick={(e) => e.stopPropagation()}
+                                draggable={false}
+                            />
+                        </div>
+
+                        {/* Bottom info bar */}
+                        <motion.div 
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 20 }}
+                            transition={{ delay: 0.15 }}
+                            className="flex items-center justify-center gap-4 px-4 py-3 border-t border-white/10"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <span className="text-white/40 text-xs flex items-center gap-1.5">
+                                <Calendar className="w-3 h-3" />
+                                {formatDate(selectedJob.createdAt)}
+                            </span>
+                            <span className="text-white/20">•</span>
+                            <span className="text-white/40 text-xs">
+                                Click outside or press ESC to close
+                            </span>
+                        </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            {/* Delete confirm modal */}
+            {/* Delete confirm modal - Redesigned */}
             <AnimatePresence>
                 {deleteConfirm && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4"
+                        className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
                         onClick={() => setDeleteConfirm(null)}
                     >
                         <motion.div
-                            initial={{ scale: 0.95, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.95, opacity: 0 }}
-                            className="w-full max-w-md bg-white rounded-2xl border border-subtle overflow-hidden"
+                            variants={scaleIn}
+                            initial="hidden"
+                            animate="visible"
+                            exit="exit"
+                            className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <div className="p-6">
-                                <h3 className="text-lg font-semibold text-charcoal mb-2">Delete this image?</h3>
-                                <p className="text-sm text-charcoal/60 mb-4">
-                                    This will permanently delete the generated image from your account.
+                            {/* Image preview */}
+                            {deleteConfirm.imageUrl && (
+                                <div className="relative h-48 overflow-hidden">
+                                    <img
+                                        src={deleteConfirm.imageUrl}
+                                        alt="To delete"
+                                        className="w-full h-full object-cover"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent" />
+                                </div>
+                            )}
+                            
+                            <div className="p-6 -mt-8 relative">
+                                <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{ type: "spring", stiffness: 400, delay: 0.1 }}
+                                    className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4"
+                                >
+                                    <Trash2 className="w-7 h-7 text-red-500" />
+                                </motion.div>
+                                
+                                <h3 className="text-xl font-serif text-charcoal text-center mb-2">
+                                    Delete this image?
+                                </h3>
+                                <p className="text-sm text-charcoal/50 text-center mb-6">
+                                    This action cannot be undone. The image will be permanently removed from your account.
                                 </p>
-                                {deleteConfirm.imageUrl ? (
-                                    <div className="rounded-xl overflow-hidden border border-subtle mb-5">
-                                        <img
-                                            src={deleteConfirm.imageUrl}
-                                            alt="To delete"
-                                            className="w-full h-48 object-cover"
-                                        />
-                                    </div>
-                                ) : null}
+                                
                                 <div className="grid grid-cols-2 gap-3">
-                                    <button
+                                    <motion.button
                                         onClick={() => setDeleteConfirm(null)}
-                                        className="py-2.5 rounded-xl border border-subtle text-charcoal font-medium hover:bg-cream transition-colors"
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        className="py-3 rounded-xl border border-charcoal/10 text-charcoal font-medium hover:bg-charcoal/5 transition-all duration-300"
                                         disabled={deleteMutation.isPending}
                                     >
                                         Cancel
-                                    </button>
-                                    <button
+                                    </motion.button>
+                                    <motion.button
                                         onClick={confirmDelete}
-                                        className="py-2.5 rounded-xl bg-red-600 text-white font-medium hover:bg-red-700 transition-colors disabled:opacity-60"
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        className="py-3 rounded-xl bg-red-500 text-white font-medium hover:bg-red-600 transition-all duration-300 disabled:opacity-60 shadow-lg shadow-red-500/20"
                                         disabled={deleteMutation.isPending}
                                     >
                                         {deleteMutation.isPending ? (
@@ -378,9 +626,9 @@ export default function GenerationsPage() {
                                                 Deleting...
                                             </span>
                                         ) : (
-                                            'Delete'
+                                            'Delete Forever'
                                         )}
-                                    </button>
+                                    </motion.button>
                                 </div>
                             </div>
                         </motion.div>
