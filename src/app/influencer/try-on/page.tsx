@@ -660,7 +660,7 @@ function TryOnPageContent() {
                                     </div>
 
                                     <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
-                                        {additionalPersonImages.map((img, idx) => (
+                                        {additionalPersonImages.map((img: string, idx: number) => (
                                             <div key={idx} className="relative w-16 h-16 flex-shrink-0 rounded-xl overflow-hidden border border-white/50 shadow-sm group">
                                                 <img src={img} alt="" className="w-full h-full object-cover" />
                                                 <button
@@ -823,7 +823,7 @@ function TryOnPageContent() {
                                 {/* Accessory Preview List */}
                                 {accessoryImages.length > 0 && (
                                     <div className="mt-3 flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
-                                        {accessoryImages.map((img, idx) => (
+                                        {accessoryImages.map((img: string, idx: number) => (
                                             <div key={idx} className="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden border border-white shadow-sm group">
                                                 <img src={img} alt="" className="w-full h-full object-cover" />
                                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">

@@ -182,7 +182,7 @@ export default async function ProductDetailPage({ params }: any) {
               <div className="pt-4">
                 <h2 className="text-sm font-semibold text-charcoal mb-3">Tags</h2>
                 <div className="flex flex-wrap gap-2">
-                  {product.tags.split(',').map((tag, index) => (
+                  {product.tags.split(',').map((tag: string, index: number) => (
                     <span
                       key={index}
                       className="px-3 py-1 text-xs bg-cream rounded-full text-charcoal/70"
