@@ -118,6 +118,7 @@ export async function renderTryOnV3(params: {
       ? 'FACE CONSISTENCY (EXACT): Preserve the subject’s facial structure precisely (eyes, nose bridge, lips, jawline). Do NOT re-render a new face to match the new lighting; adjust lighting globally while keeping facial geometry unchanged.'
       : '',
     'SKIN TEXTURE: preserve pores and micro-texture, no smoothing, no plastic skin, no haloing, no HDR glow.',
+    'REALISM OVERRIDE: Make the final image look like a real camera photo, not an AI render. Avoid neon/cyberpunk color grading, wet reflective streets, heavy glow/bloom, unreal perfect bokeh, plastic skin, and "studio-perfect" lighting unless explicitly requested.',
     styleBlock,
     focusBlock,
     extraStrict
@@ -224,7 +225,7 @@ PHOTO REALISM:
     responseModalities: ['IMAGE'],
     imageConfig,
     // Lower temp reduces identity drift/hallucination.
-    temperature: model === 'gemini-3-pro-image-preview' ? 0.2 : 0.3,
+    temperature: model === 'gemini-3-pro-image-preview' ? 0.15 : 0.25,
   }
 
   let lastErr: unknown

@@ -122,7 +122,8 @@ PHOTO CONSTRAINTS (must match the original subject photo):
       verify.scene_plausible === false ||
       verify.lighting_realism === 'low' ||
       verify.lighting_consistent === false ||
-      verify.subject_color_preserved === false
+      verify.subject_color_preserved === false ||
+      verify.looks_ai_generated === true
 
     // If clothing is applied but fidelity is only medium, retry once (helps small failures).
     const needsRetryForGarmentQuality = verify.garment_applied && verify.garment_fidelity === 'medium'

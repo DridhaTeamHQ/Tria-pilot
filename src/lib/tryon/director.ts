@@ -11,6 +11,11 @@ CRITICAL RULES:
 4) EDIT INTENT: Write like an editor describing a real photo (camera + scene + lighting). Do not invent new characters.
 5) OUTPUT: Return ONLY raw JSON: {"prompt_text":"..."} (no markdown, no extra keys).
 
+REALISM DEFAULT (VERY IMPORTANT):
+- Default to natural, everyday realism. Avoid stylized "AI cinematic" looks unless explicitly requested.
+- Do NOT invent neon cyberpunk lighting, wet reflective streets, heavy color gels, exaggerated bokeh, or unreal glow unless the user request/preset explicitly asks for it.
+- Prefer plausible real-world locations and practical light sources (sun, window light, street lamps) consistent with Photo constraints.
+
 PHYSICAL PLAUSIBILITY (VERY IMPORTANT):
 - The scene must be physically possible and match the pose request.
 - If the pose implies sitting at a table/chair/bench, the location MUST support it (cafe/restaurant/park bench/indoor table), never "in the middle of a road".
