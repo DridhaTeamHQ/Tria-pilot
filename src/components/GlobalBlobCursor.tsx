@@ -2,83 +2,62 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 
-type CursorMood = 'neutral' | 'happy' | 'curious' | 'click' | 'excited' | 'sleepy'
-
 export default function GlobalBlobCursor() {
     const [position, setPosition] = useState({ x: -100, y: -100 })
-    const [mood, setMood] = useState<CursorMood>('neutral')
     const [isVisible, setIsVisible] = useState(false)
     const [isMobile, setIsMobile] = useState(true)
-    const [velocity, setVelocity] = useState({ x: 0, y: 0 })
-    const [eyeOffset, setEyeOffset] = useState({ x: 0, y: 0 })
-    const [blink, setBlink] = useState(false)
-    const [stretch, setStretch] = useState({ x: 1, y: 1 })
+    const [isHovering, setIsHovering] = useState(false)
+    const [isClicking, setIsClicking] = useState(false)
+    const [rotation, setRotation] = useState(0)
+    const [scale, setScale] = useState({ x: 1, y: 1 })
+    const [trail, setTrail] = useState<{ x: number; y: number }[]>([])
     
     const rafRef = useRef<number | null>(null)
     const targetRef = useRef({ x: -100, y: -100 })
     const lastPosRef = useRef({ x: -100, y: -100 })
-    const idleTimerRef = useRef<NodeJS.Timeout | null>(null)
-    const blinkTimerRef = useRef<NodeJS.Timeout | null>(null)
-
-    // Random blink effect
-    useEffect(() => {
-        const doBlink = () => {
-            setBlink(true)
-            setTimeout(() => setBlink(false), 150)
-            
-            // Random next blink between 2-5 seconds
-            blinkTimerRef.current = setTimeout(doBlink, 2000 + Math.random() * 3000)
-        }
-        
-        blinkTimerRef.current = setTimeout(doBlink, 2000)
-        
-        return () => {
-            if (blinkTimerRef.current) clearTimeout(blinkTimerRef.current)
-        }
-    }, [])
+    const velocityRef = useRef({ x: 0, y: 0 })
 
     const animate = useCallback(() => {
         const dx = targetRef.current.x - lastPosRef.current.x
         const dy = targetRef.current.y - lastPosRef.current.y
         
-        // Calculate velocity for stretching effect
-        const speed = Math.sqrt(dx * dx + dy * dy)
-        const maxStretch = 1.3
-        const stretchAmount = Math.min(speed / 50, maxStretch - 1)
-        
-        // Calculate stretch direction
-        if (speed > 2) {
-            const angle = Math.atan2(dy, dx)
-            setStretch({
-                x: 1 + stretchAmount * Math.abs(Math.cos(angle)),
-                y: 1 + stretchAmount * Math.abs(Math.sin(angle)) * 0.5
-            })
-        } else {
-            setStretch(prev => ({
-                x: prev.x + (1 - prev.x) * 0.1,
-                y: prev.y + (1 - prev.y) * 0.1
-            }))
+        // Smooth velocity
+        velocityRef.current = {
+            x: velocityRef.current.x * 0.8 + dx * 0.2,
+            y: velocityRef.current.y * 0.8 + dy * 0.2
         }
         
-        // Eye tracking - eyes look in direction of movement
-        const eyeTrackX = Math.max(-3, Math.min(3, dx * 0.3))
-        const eyeTrackY = Math.max(-2, Math.min(2, dy * 0.3))
-        setEyeOffset(prev => ({
-            x: prev.x + (eyeTrackX - prev.x) * 0.2,
-            y: prev.y + (eyeTrackY - prev.y) * 0.2
-        }))
+        const speed = Math.sqrt(dx * dx + dy * dy)
         
-        setVelocity({ x: dx, y: dy })
+        // Rotation based on movement direction
+        if (speed > 1) {
+            const targetRotation = Math.atan2(dy, dx) * (180 / Math.PI)
+            setRotation(prev => prev + (targetRotation - prev) * 0.1)
+        }
         
-        // Smooth follow
-        const newX = lastPosRef.current.x + dx * 0.15
-        const newY = lastPosRef.current.y + dy * 0.15
+        // Scale/stretch based on speed
+        const stretchFactor = Math.min(speed / 30, 0.5)
+        setScale({
+            x: 1 + stretchFactor,
+            y: 1 - stretchFactor * 0.3
+        })
+        
+        // Update trail
+        setTrail(prev => {
+            const newTrail = [{ x: lastPosRef.current.x, y: lastPosRef.current.y }, ...prev.slice(0, 5)]
+            return newTrail
+        })
+        
+        // Smooth follow with easing
+        const easing = isClicking ? 0.25 : 0.12
+        const newX = lastPosRef.current.x + dx * easing
+        const newY = lastPosRef.current.y + dy * easing
         
         lastPosRef.current = { x: newX, y: newY }
         setPosition({ x: newX, y: newY })
         
         rafRef.current = requestAnimationFrame(animate)
-    }, [])
+    }, [isClicking])
 
     useEffect(() => {
         const checkMobile = () => {
@@ -95,69 +74,24 @@ export default function GlobalBlobCursor() {
         style.textContent = `* { cursor: none !important; }`
         document.head.appendChild(style)
 
-        const resetIdleTimer = () => {
-            if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
-            if (mood === 'sleepy') setMood('neutral')
-            
-            idleTimerRef.current = setTimeout(() => {
-                setMood('sleepy')
-            }, 3000)
-        }
-
         const handleMouseMove = (e: MouseEvent) => {
             targetRef.current = { x: e.clientX, y: e.clientY }
             if (!isVisible) setIsVisible(true)
-            resetIdleTimer()
         }
 
-        const handleMouseDown = () => {
-            setMood('click')
-        }
-        
-        const handleMouseUp = () => {
-            setMood('happy')
-            setTimeout(() => setMood('neutral'), 500)
-        }
+        const handleMouseDown = () => setIsClicking(true)
+        const handleMouseUp = () => setIsClicking(false)
 
         const handleMouseOver = (e: MouseEvent) => {
             const target = e.target as HTMLElement
-            resetIdleTimer()
-            
-            // Check for images
-            if (target.tagName === 'IMG' || target.closest('img')) {
-                setMood('curious')
-                return
-            }
-            
-            // Check for data-cursor (custom interactions)
-            const cursorElement = target.closest('[data-cursor]')
-            if (cursorElement) {
-                setMood('excited')
-                return
-            }
-            
-            // Check for interactive elements
-            const interactiveElement = target.closest('a, button, [role="button"]')
-            if (interactiveElement) {
-                setMood('happy')
-                return
-            }
-            
-            // Check for inputs
-            const inputElement = target.closest('input, textarea, select')
-            if (inputElement) {
-                setMood('curious')
-                return
-            }
+            const interactive = target.closest('a, button, [role="button"], input, textarea, select, [data-cursor], img')
+            if (interactive) setIsHovering(true)
         }
 
         const handleMouseOut = (e: MouseEvent) => {
             const target = e.target as HTMLElement
-            const isInteractive = target.closest('a, button, [role="button"], input, textarea, select, img, [data-cursor]')
-            
-            if (isInteractive && mood !== 'click') {
-                setMood('neutral')
-            }
+            const interactive = target.closest('a, button, [role="button"], input, textarea, select, [data-cursor], img')
+            if (interactive) setIsHovering(false)
         }
 
         const handleMouseLeave = () => setIsVisible(false)
@@ -177,8 +111,6 @@ export default function GlobalBlobCursor() {
             const styleEl = document.getElementById('blob-cursor-style')
             if (styleEl) styleEl.remove()
             if (rafRef.current) cancelAnimationFrame(rafRef.current)
-            if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
-            if (blinkTimerRef.current) clearTimeout(blinkTimerRef.current)
             window.removeEventListener('mousemove', handleMouseMove)
             window.removeEventListener('mousedown', handleMouseDown)
             window.removeEventListener('mouseup', handleMouseUp)
@@ -187,187 +119,139 @@ export default function GlobalBlobCursor() {
             document.removeEventListener('mouseleave', handleMouseLeave)
             document.removeEventListener('mouseenter', handleMouseEnter)
         }
-    }, [animate, isVisible, mood])
+    }, [animate, isVisible])
 
     if (isMobile) return null
 
-    // Size based on mood
-    const getSize = () => {
-        switch (mood) {
-            case 'click': return 28
-            case 'excited': return 48
-            case 'happy': return 40
-            case 'curious': return 44
-            case 'sleepy': return 32
-            default: return 36
-        }
-    }
-
-    // Colors based on mood
-    const getColors = () => {
-        switch (mood) {
-            case 'click': return { bg: '#FF6B6B', eye: '#FFF' }
-            case 'excited': return { bg: '#FFD93D', eye: '#1C1C1C' }
-            case 'happy': return { bg: '#6BCB77', eye: '#1C1C1C' }
-            case 'curious': return { bg: '#4D96FF', eye: '#FFF' }
-            case 'sleepy': return { bg: '#C4B5FD', eye: '#6B5B95' }
-            default: return { bg: '#1C1C1C', eye: '#FFF' }
-        }
-    }
-
-    const size = getSize()
-    const colors = getColors()
-    const offset = size / 2
-
-    // Eye styles based on mood
-    const getEyeStyle = () => {
-        if (blink || mood === 'click') {
-            return { height: 2, borderRadius: '50%' }
-        }
-        
-        switch (mood) {
-            case 'sleepy':
-                return { height: 3, borderRadius: '50%' }
-            case 'excited':
-                return { height: 8, width: 8, borderRadius: '50%' }
-            case 'happy':
-                return { height: 6, borderRadius: '0 0 6px 6px' } // Happy curved eyes
-            case 'curious':
-                return { height: 10, width: 6, borderRadius: '50%' } // Wide eyes
-            default:
-                return { height: 6, width: 6, borderRadius: '50%' }
-        }
-    }
-
-    const eyeStyle = getEyeStyle()
-
-    // Mouth based on mood
-    const getMouth = () => {
-        switch (mood) {
-            case 'click':
-                return <div className="w-3 h-3 rounded-full bg-white/80" /> // O mouth
-            case 'excited':
-                return <div className="w-4 h-2 rounded-full bg-current border-t-2 border-current" style={{ borderColor: colors.eye }} /> // Big smile
-            case 'happy':
-                return (
-                    <div 
-                        className="w-3 h-1.5 rounded-b-full"
-                        style={{ backgroundColor: colors.eye }}
-                    />
-                )
-            case 'curious':
-                return <div className="w-2 h-2 rounded-full" style={{ backgroundColor: colors.eye }} /> // o mouth
-            case 'sleepy':
-                return <div className="w-3 h-0.5 rounded-full" style={{ backgroundColor: colors.eye }} /> // flat line
-            default:
-                return <div className="w-2 h-1 rounded-full" style={{ backgroundColor: colors.eye }} />
-        }
-    }
+    // Dynamic sizing
+    const baseSize = isClicking ? 20 : isHovering ? 56 : 32
+    const size = baseSize
 
     return (
-        <div
-            className={`fixed top-0 left-0 pointer-events-none z-[9999] flex items-center justify-center transition-opacity duration-200 ${
-                isVisible ? 'opacity-100' : 'opacity-0'
-            }`}
-            style={{
-                transform: `translate3d(${position.x - offset}px, ${position.y - offset}px, 0) scaleX(${stretch.x}) scaleY(${stretch.y})`,
-                width: size,
-                height: size,
-                transition: 'width 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), height 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
-            }}
-        >
-            {/* Main blob body */}
-            <div 
-                className="w-full h-full rounded-full flex flex-col items-center justify-center shadow-lg relative overflow-hidden"
+        <>
+            {/* Trail effect */}
+            {trail.map((point, i) => (
+                <div
+                    key={i}
+                    className="fixed pointer-events-none z-[9998]"
+                    style={{
+                        left: point.x,
+                        top: point.y,
+                        width: 8 - i * 1.2,
+                        height: 8 - i * 1.2,
+                        marginLeft: -(8 - i * 1.2) / 2,
+                        marginTop: -(8 - i * 1.2) / 2,
+                        borderRadius: '50%',
+                        backgroundColor: `rgba(255, 140, 105, ${0.4 - i * 0.06})`,
+                        transform: 'translate3d(0, 0, 0)',
+                        transition: 'opacity 0.1s ease',
+                        opacity: isVisible ? 1 : 0,
+                    }}
+                />
+            ))}
+            
+            {/* Main blob */}
+            <div
+                className={`fixed pointer-events-none z-[9999] transition-opacity duration-150 ${
+                    isVisible ? 'opacity-100' : 'opacity-0'
+                }`}
                 style={{
-                    backgroundColor: colors.bg,
-                    transition: 'background-color 0.3s ease, border-radius 0.2s ease',
-                    borderRadius: mood === 'click' ? '40%' : '50%',
+                    left: position.x,
+                    top: position.y,
+                    width: size,
+                    height: size,
+                    marginLeft: -size / 2,
+                    marginTop: -size / 2,
+                    transform: `rotate(${rotation}deg) scaleX(${scale.x}) scaleY(${scale.y})`,
+                    transition: 'width 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), height 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), margin 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
                 }}
             >
-                {/* Shine effect */}
+                {/* Outer glow */}
                 <div 
-                    className="absolute top-1 left-1/4 w-2 h-2 rounded-full bg-white/40"
-                    style={{ filter: 'blur(1px)' }}
+                    className="absolute inset-0 rounded-full"
+                    style={{
+                        background: 'radial-gradient(circle, rgba(255,140,105,0.3) 0%, transparent 70%)',
+                        transform: `scale(${isHovering ? 2 : 1.5})`,
+                        transition: 'transform 0.3s ease',
+                    }}
                 />
                 
-                {/* Eyes container */}
+                {/* Main blob body */}
                 <div 
-                    className="flex gap-1.5 mb-0.5"
+                    className="absolute inset-0 rounded-full overflow-hidden"
                     style={{
-                        transform: `translate(${eyeOffset.x}px, ${eyeOffset.y}px)`,
-                        transition: 'transform 0.1s ease-out'
+                        background: isClicking 
+                            ? 'linear-gradient(135deg, #FF6B6B 0%, #FF8C69 100%)'
+                            : isHovering 
+                                ? 'linear-gradient(135deg, #FF8C69 0%, #FFB088 100%)'
+                                : 'linear-gradient(135deg, #1C1C1C 0%, #2D2D2D 100%)',
+                        boxShadow: isHovering 
+                            ? '0 0 30px rgba(255, 140, 105, 0.5), 0 0 60px rgba(255, 140, 105, 0.2)'
+                            : '0 4px 20px rgba(0, 0, 0, 0.3)',
+                        transition: 'background 0.3s ease, box-shadow 0.3s ease',
                     }}
                 >
-                    {/* Left eye */}
-                    <div
-                        style={{
-                            backgroundColor: colors.eye,
-                            width: eyeStyle.width || 6,
-                            height: eyeStyle.height,
-                            borderRadius: eyeStyle.borderRadius,
-                            transition: 'all 0.15s ease',
-                        }}
-                    />
-                    {/* Right eye */}
-                    <div
-                        style={{
-                            backgroundColor: colors.eye,
-                            width: eyeStyle.width || 6,
-                            height: eyeStyle.height,
-                            borderRadius: eyeStyle.borderRadius,
-                            transition: 'all 0.15s ease',
-                        }}
-                    />
-                </div>
-                
-                {/* Mouth */}
-                <div className="flex items-center justify-center">
-                    {getMouth()}
-                </div>
-                
-                {/* Blush for happy/excited */}
-                {(mood === 'happy' || mood === 'excited') && (
-                    <>
-                        <div 
-                            className="absolute w-2 h-1 rounded-full bg-pink-300/60"
-                            style={{ left: '15%', top: '55%' }}
-                        />
-                        <div 
-                            className="absolute w-2 h-1 rounded-full bg-pink-300/60"
-                            style={{ right: '15%', top: '55%' }}
-                        />
-                    </>
-                )}
-                
-                {/* Z's for sleepy */}
-                {mood === 'sleepy' && (
+                    {/* Inner shine */}
                     <div 
-                        className="absolute -top-1 -right-1 text-[8px] font-bold opacity-60"
-                        style={{ color: colors.eye }}
-                    >
-                        z
-                    </div>
-                )}
+                        className="absolute rounded-full bg-white/20"
+                        style={{
+                            width: '40%',
+                            height: '40%',
+                            top: '15%',
+                            left: '15%',
+                            filter: 'blur(2px)',
+                        }}
+                    />
+                    
+                    {/* Ripple effect on hover */}
+                    {isHovering && (
+                        <div 
+                            className="absolute inset-0 rounded-full animate-ping"
+                            style={{
+                                background: 'rgba(255, 255, 255, 0.2)',
+                                animationDuration: '1s',
+                            }}
+                        />
+                    )}
+                </div>
                 
-                {/* Sparkles for excited */}
-                {mood === 'excited' && (
-                    <>
-                        <div className="absolute -top-1 -left-1 text-[8px]">✨</div>
-                        <div className="absolute -bottom-1 -right-1 text-[8px]">✨</div>
-                    </>
-                )}
+                {/* Center dot */}
+                <div 
+                    className="absolute rounded-full bg-white"
+                    style={{
+                        width: isClicking ? 4 : isHovering ? 8 : 6,
+                        height: isClicking ? 4 : isHovering ? 8 : 6,
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        transition: 'all 0.2s ease',
+                        opacity: isClicking ? 1 : 0.9,
+                    }}
+                />
             </div>
             
-            {/* Shadow */}
-            <div 
-                className="absolute -bottom-1 w-3/4 h-1 rounded-full bg-black/10 blur-sm"
-                style={{
-                    transform: `scaleX(${mood === 'click' ? 1.2 : 1})`,
-                    transition: 'transform 0.15s ease'
-                }}
-            />
-        </div>
+            {/* Click burst effect */}
+            {isClicking && (
+                <div
+                    className="fixed pointer-events-none z-[9997]"
+                    style={{
+                        left: position.x,
+                        top: position.y,
+                        width: 60,
+                        height: 60,
+                        marginLeft: -30,
+                        marginTop: -30,
+                    }}
+                >
+                    <div 
+                        className="w-full h-full rounded-full animate-ping"
+                        style={{
+                            background: 'radial-gradient(circle, rgba(255,140,105,0.4) 0%, transparent 70%)',
+                            animationDuration: '0.4s',
+                        }}
+                    />
+                </div>
+            )}
+        </>
     )
 }
-
