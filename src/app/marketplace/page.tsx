@@ -2,7 +2,53 @@ import { createClient } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { redirect } from 'next/navigation'
+import { unstable_cache } from 'next/cache'
 import MarketplaceClient from '@/components/marketplace/MarketplaceClient'
+
+// Cache products for 60 seconds to improve performance
+const getProducts = unstable_cache(
+  async (where: Prisma.ProductWhereInput) => {
+    return prisma.product.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        category: true,
+        price: true,
+        imagePath: true,
+        brand: {
+          select: {
+            id: true,
+            companyName: true,
+            user: {
+              select: {
+                name: true,
+                slug: true,
+              },
+            },
+          },
+        },
+        images: {
+          select: {
+            id: true,
+            imagePath: true,
+          },
+          orderBy: {
+            order: 'asc',
+          },
+          take: 4, // Limit images for carousel
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 50,
+    })
+  },
+  ['marketplace-products'],
+  { revalidate: 60, tags: ['products'] }
+)
 
 export default async function MarketplacePage({
   searchParams,
@@ -34,6 +80,7 @@ export default async function MarketplacePage({
     redirect('/')
   }
 
+  // Build where clause
   const where: Prisma.ProductWhereInput = {}
   if (resolvedSearchParams.category && resolvedSearchParams.category !== 'all') {
     where.category = resolvedSearchParams.category
@@ -45,52 +92,13 @@ export default async function MarketplacePage({
     ]
   }
 
-  // Fetch products with ALL images for carousel effect
-  const products = await prisma.product.findMany({
-    where,
-    select: {
-      id: true,
-      name: true,
-      description: true,
-      category: true,
-      price: true,
-      link: true,
-      audience: true,
-      imagePath: true,
-      createdAt: true,
-      brand: {
-        select: {
-          id: true,
-          companyName: true,
-          user: {
-            select: {
-              name: true,
-              slug: true,
-            },
-          },
-        },
-      },
-      images: {
-        select: {
-          id: true,
-          imagePath: true,
-        },
-        orderBy: {
-          order: 'asc',
-        },
-        take: 5, // Limit to 5 images for carousel
-      },
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-    take: 50,
-  })
+  // Fetch cached products
+  const products = await getProducts(where)
 
   const categories = ['All Products', 'Clothing', 'Accessories', 'Footwear', 'Beauty', 'Lifestyle']
   const activeCategory = resolvedSearchParams.category || 'all'
 
-  // Transform products to match client component expected type
+  // Transform products to ensure imagePath is always a string
   const transformedProducts = products.map(product => ({
     ...product,
     imagePath: product.imagePath || '',
