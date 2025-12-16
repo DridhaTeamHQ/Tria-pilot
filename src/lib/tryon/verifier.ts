@@ -67,12 +67,13 @@ Rules:
     reasons: Array.isArray(parsed.reasons) ? parsed.reasons.map(String) : [],
     has_extra_people: !!parsed.has_extra_people,
     appears_collage: !!parsed.appears_collage,
-    scene_plausible: typeof parsed.scene_plausible === 'boolean' ? parsed.scene_plausible : true,
+    // Conservative defaults: if the model fails to return a field, assume it's NOT ok and trigger retries.
+    scene_plausible: typeof parsed.scene_plausible === 'boolean' ? parsed.scene_plausible : false,
     lighting_realism:
       parsed.lighting_realism === 'high' || parsed.lighting_realism === 'medium' || parsed.lighting_realism === 'low'
         ? parsed.lighting_realism
-        : 'medium',
-    lighting_consistent: typeof parsed.lighting_consistent === 'boolean' ? parsed.lighting_consistent : true,
+        : 'low',
+    lighting_consistent: typeof parsed.lighting_consistent === 'boolean' ? parsed.lighting_consistent : false,
     garment_applied: !!parsed.garment_applied,
     garment_fidelity:
       parsed.garment_fidelity === 'high' || parsed.garment_fidelity === 'medium' || parsed.garment_fidelity === 'low'
@@ -87,5 +88,4 @@ Rules:
     output_is_unedited_copy: !!parsed.output_is_unedited_copy,
   }
 }
-
 
