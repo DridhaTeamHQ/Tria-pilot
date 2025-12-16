@@ -150,6 +150,7 @@ export async function renderTryOnV3(params: {
 SCENE COHERENCE (NON-NEGOTIABLE):
 - The scene must be physically plausible for the pose. No tables/chairs in the middle of roads, no floating furniture, no impossible placements.
 - If the setting is a street, keep the subject on a sidewalk / cafe terrace / curbside seating area — never on the roadway.
+- Preserve and contextualize any foreground structure the subject is interacting with (wall/pillar/rock). If a wall/pillar remains, it must belong in the new scene (sidewalk stone wall/building column), never floating or in traffic.
 PHOTO REALISM:
 - Background must look like a real photo (not CGI). Add subtle sensor noise/film grain and tiny lens imperfections.
 - Avoid overly-perfect symmetry, overly-clean surfaces, and unrealistic bokeh.`
@@ -157,6 +158,7 @@ PHOTO REALISM:
 SCENE COHERENCE (NON-NEGOTIABLE):
 - The scene must be physically plausible for the pose. No tables/chairs in the middle of roads, no floating furniture, no impossible placements.
 - If the setting is a street, keep the subject on a sidewalk / cafe terrace / curbside seating area — never on the roadway.
+- Preserve and contextualize any foreground structure the subject is interacting with (wall/pillar/rock). If a wall/pillar remains, it must belong in the new scene (sidewalk stone wall/building column), never floating or in traffic.
 PHOTO REALISM:
 - Background must look like a real photo (not CGI). Add subtle sensor noise/film grain and tiny lens imperfections.
 - Keep lighting direction/shadows consistent across subject and background. Avoid HDR glow or perfect studio-clean look.`

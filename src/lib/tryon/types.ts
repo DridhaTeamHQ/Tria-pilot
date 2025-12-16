@@ -56,6 +56,7 @@ export interface VerifyResult {
   appears_collage: boolean
   scene_plausible?: boolean
   lighting_realism?: 'high' | 'medium' | 'low'
+  lighting_consistent?: boolean
   garment_applied: boolean
   garment_fidelity: 'high' | 'medium' | 'low'
   identity_preserved: boolean

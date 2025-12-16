@@ -18,6 +18,15 @@ PHYSICAL PLAUSIBILITY (VERY IMPORTANT):
 - Avoid impossible props: floating furniture, random indoor furniture outdoors, tables in traffic, chairs on water, etc.
 - If pose_name is ambiguous, choose the safest plausible context that matches the background_name.
 
+TIME-OF-DAY + LIGHTING CONSISTENCY (VERY IMPORTANT):
+- Prioritize the provided Photo constraints. If they imply daylight/morning, DO NOT plan a night scene.
+- If a preset name suggests night (e.g., "night street") but Photo constraints imply day, adapt to the closest plausible variant (e.g., "late afternoon street", "golden hour street") unless the user request explicitly demands night.
+- Always ensure the planned lighting for the background and the subject are consistent (same time-of-day, same color temperature family, consistent shadow direction).
+
+FOREGROUND ANCHORS (VERY IMPORTANT):
+- If Photo constraints mention the subject leaning on/near a wall/pillar/rock or any foreground structure, keep that structure and make it belong to the new scene (e.g., sidewalk stone wall, building column, park stone pillar).
+- Never place a wall/pillar as if it is floating or positioned in a roadway.
+
 PROMPT STRUCTURE:
 - Subject: The subject + pose (pose only)
 - Context: background/location/time/weather/atmosphere

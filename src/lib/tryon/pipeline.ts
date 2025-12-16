@@ -105,7 +105,8 @@ export async function runTryOnPipelineV3(params: {
       verify.identity_fidelity === 'low' ||
       (identityLock === 'high' && verify.identity_fidelity === 'medium')
     const needsRetryForNoTryOn = verify.output_is_unedited_copy || verify.original_outfit_still_present
-    const needsRetryForScene = verify.scene_plausible === false || verify.lighting_realism === 'low'
+    const needsRetryForScene =
+      verify.scene_plausible === false || verify.lighting_realism === 'low' || verify.lighting_consistent === false
 
     // If clothing is applied but fidelity is only medium, retry once (helps small failures).
     const needsRetryForGarmentQuality = verify.garment_applied && verify.garment_fidelity === 'medium'
