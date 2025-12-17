@@ -72,16 +72,24 @@ export async function renderTryOnV3(params: {
   // ═══════════════════════════════════════════════════════════════════════════════
 
   // Core instruction - SIMPLE and DIRECT
-  const coreInstruction = `Edit the person's clothing in Image 1 to wear the outfit from Image 2.
+  const coreInstruction = `VIRTUAL TRY-ON: Replace the clothing on the person in Image 1 with the garment from Image 2.
 
-CRITICAL RULES:
-1. DO NOT REGENERATE THE FACE. Copy the face pixel-by-pixel from Image 1.
-2. DO NOT CHANGE the person's identity, skin tone, facial features, or expression.
-3. DO NOT BEAUTIFY or smooth the skin. Keep all texture, pores, imperfections.
-4. DO NOT CHANGE the pose - same body position, same angle, same perspective.
-5. ONLY change the clothing to match Image 2's garment.
+STEP 1 - REMOVE OLD CLOTHING:
+- COMPLETELY REMOVE the person's current outfit from Image 1
+- The original dress/shirt/top must be GONE - not visible at all
+- If Image 2 is sleeveless, show the person's bare arms/shoulders
 
-The output must be the EXACT SAME PERSON from Image 1, just wearing different clothes.`
+STEP 2 - ADD NEW GARMENT:
+- Dress the person in the garment from Image 2
+- Match the EXACT design: neckline, sleeves (or sleeveless), length, pattern, color
+- The garment should fit naturally on their body with realistic folds
+
+STEP 3 - PRESERVE IDENTITY:
+- DO NOT change the face - copy it exactly from Image 1
+- Same skin tone, same expression, same pose
+- No beautification or smoothing
+
+OUTPUT: Same person from Image 1, wearing ONLY the garment from Image 2.`
 
   // Scene/background instruction (simplified)
   const sceneInstruction = shootPlan.scene_text 
@@ -134,12 +142,13 @@ DO NOT generate a new face. COPY the existing face.`
   // Garment emphasis
   const garmentEmphasis = `
 
-GARMENT: Copy the exact outfit from Image 2:
-- Same color and shade
-- Same pattern/print if any
-- Same neckline and sleeves
-- Natural fit and draping on the body
-Remove the original outfit completely.`
+GARMENT DETAILS FROM IMAGE 2:
+- If sleeveless → show bare arms/shoulders (NO sleeves from original outfit)
+- If short sleeves → show short sleeves only
+- If long sleeves → show full sleeves
+- Copy exact neckline shape (V-neck, round, square, etc.)
+- Copy exact color, pattern, and texture
+- The original outfit must be 100% gone - no layering allowed`
 
   // Build the final prompt (simpler structure)
   const finalPrompt = `${coreInstruction}

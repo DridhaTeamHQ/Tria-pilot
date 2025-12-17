@@ -22,15 +22,22 @@ export async function extractGarmentOnlyImage(params: {
   if (!clean || clean.length < 100) throw new Error('Invalid clothing image')
 
   const contents: ContentListUnion = [
-    `TASK: GARMENT EXTRACTION.
-Create a clean garment-only image extracted from the reference.
+    `GARMENT EXTRACTION: Create a flat-lay product photo of ONLY the clothing item.
 
-RULES:
-- Output MUST contain ONLY the clothing item (no person, no mannequin, no body parts).
-- If the garment was worn by a person, remove the person entirely.
-- Preserve exact garment design: shape, neckline, sleeves, length, texture, pattern, embroidery, buttons.
-- Background: plain white or light grey studio background.
-- No text, no watermark, no logos.`,
+EXTRACT AND PRESERVE:
+- The EXACT garment type (dress, top, shirt, etc.)
+- EXACT sleeve style: sleeveless, short sleeve, 3/4 sleeve, long sleeve
+- EXACT neckline: V-neck, round, square, boat, halter, etc.
+- EXACT length: crop, regular, midi, maxi
+- EXACT color and pattern (prints, embroidery, buttons, details)
+
+OUTPUT REQUIREMENTS:
+- ONLY the garment - no person, no mannequin, no body parts
+- Clean white or light grey background
+- Garment shown flat or slightly styled as if on invisible hanger
+- All design details clearly visible
+
+CRITICAL: If the dress/top is SLEEVELESS, show it clearly as sleeveless with no sleeves attached.`,
     {
       inlineData: {
         data: clean,
@@ -56,5 +63,3 @@ RULES:
 
   throw new Error('Garment extraction returned no image')
 }
-
-
