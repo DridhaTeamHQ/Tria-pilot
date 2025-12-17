@@ -36,72 +36,40 @@ function isRetryableGeminiError(err: unknown): boolean {
 }
 
 /**
- * Get camera/lens description based on style pack.
- * Uses real camera terminology for better results.
+ * Build garment-specific instructions based on analysis.
  */
-function getCameraStyle(stylePack?: InstagramStylePack): string {
-  switch (stylePack) {
-    case 'candid_iphone':
-      return `shot on iPhone 14 Pro, natural handheld feel, computational photography, slight noise in shadows, authentic mobile camera look`
-    case 'editorial_ig':
-      return `shot on Canon 5D Mark IV with 85mm f/1.4 lens, professional portrait lighting, shallow depth of field, magazine quality`
-    case 'flash_party':
-      return `shot on point-and-shoot digicam with on-camera flash, harsh direct lighting, deep shadows, party photo aesthetic`
-    case 'travel_journal':
-      return `shot on Fujifilm X100V, 35mm equivalent, warm film simulation, travel photography aesthetic, natural colors`
-    case 'surveillance_doc':
-      return `shot on wide-angle security camera, high angle, documentary aesthetic, gritty realism, available light only`
-    default:
-      return `shot on professional camera, natural lighting, realistic photography`
-  }
-}
-
-/**
- * Get garment-specific instructions for the renderer.
- */
-function getGarmentPromptSection(garmentAnalysis?: GarmentAnalysis): string {
+function getGarmentInstructions(garmentAnalysis?: GarmentAnalysis): string {
   if (!garmentAnalysis) {
-    return `GARMENT: Copy the exact outfit from the reference image.
-- Match the exact color, pattern, and design
-- Natural fit and draping on the body
-- Remove the original outfit completely`
+    return ''
   }
 
-  const lines: string[] = ['GARMENT APPLICATION:']
+  const lines: string[] = []
   
-  // Critical: Sleeve handling
+  // Sleeve type is critical
   if (garmentAnalysis.sleeve_type === 'sleeveless' || garmentAnalysis.sleeve_type === 'spaghetti_strap') {
-    lines.push(`⚠️ THIS IS A SLEEVELESS GARMENT`)
-    lines.push(`- REMOVE all sleeves from the original outfit`)
-    lines.push(`- Show the subject's BARE ARMS and SHOULDERS`)
-    lines.push(`- The garment should have NO sleeves at all`)
+    lines.push(`The garment is SLEEVELESS - show bare arms and shoulders.`)
   } else if (garmentAnalysis.sleeve_type === 'short_sleeve' || garmentAnalysis.sleeve_type === 'cap_sleeve') {
-    lines.push(`- Short sleeves: show upper arms bare, sleeves end above elbow`)
-  } else if (garmentAnalysis.sleeve_type === 'long_sleeve') {
-    lines.push(`- Long sleeves: cover arms to wrists`)
+    lines.push(`Short sleeves - show upper arms.`)
   }
   
   // Neckline
   if (garmentAnalysis.neckline === 'v_neck') {
-    lines.push(`- V-neckline: show appropriate neckline depth`)
+    lines.push(`V-neckline.`)
   } else if (garmentAnalysis.neckline === 'off_shoulder') {
-    lines.push(`- Off-shoulder: show bare shoulders, garment sits below shoulder line`)
-  } else if (garmentAnalysis.neckline === 'halter') {
-    lines.push(`- Halter: exposed shoulders with strap around neck`)
+    lines.push(`Off-shoulder - show bare shoulders.`)
   }
   
-  // Color and pattern
-  lines.push(`- Primary color: ${garmentAnalysis.primary_color}`)
+  // Color
+  if (garmentAnalysis.primary_color && garmentAnalysis.primary_color !== 'unknown') {
+    lines.push(`Color: ${garmentAnalysis.primary_color}.`)
+  }
+  
+  // Pattern
   if (garmentAnalysis.has_pattern && garmentAnalysis.pattern_description) {
-    lines.push(`- Pattern: ${garmentAnalysis.pattern_description} (must be exact)`)
-  }
-  
-  // Details
-  if (garmentAnalysis.notable_details && garmentAnalysis.notable_details.length > 0) {
-    lines.push(`- Preserve details: ${garmentAnalysis.notable_details.join(', ')}`)
+    lines.push(`Pattern: ${garmentAnalysis.pattern_description}.`)
   }
 
-  return lines.join('\n')
+  return lines.length > 0 ? `\nGarment details: ${lines.join(' ')}` : ''
 }
 
 export async function renderTryOnV3(params: {
@@ -121,7 +89,6 @@ export async function renderTryOnV3(params: {
     garmentImageBase64,
     garmentBackupImageBase64,
     identityImagesBase64 = [],
-    stylePack,
     shootPlan,
     opts,
     extraStrict,
@@ -137,69 +104,30 @@ export async function renderTryOnV3(params: {
   if (!cleanSubject || cleanSubject.length < 100) throw new Error('Invalid subject image')
   if (!cleanGarment || cleanGarment.length < 100) throw new Error('Invalid garment image')
 
-  // Camera style based on preset
-  const cameraStyle = getCameraStyle(stylePack)
-  
-  // Garment-specific instructions
-  const garmentSection = getGarmentPromptSection(garmentAnalysis)
+  // Build garment-specific notes
+  const garmentNotes = getGarmentInstructions(garmentAnalysis)
 
-  // Build the prompt using a clear, structured approach
-  const prompt = `VIRTUAL TRY-ON: Edit the person in Image 1 to wear the garment from Image 2.
+  // Scene instruction
+  const sceneText = shootPlan.scene_text || 'natural setting'
 
-═══════════════════════════════════════════════════════════════════
-STEP 1: IDENTITY LOCK (CRITICAL)
-═══════════════════════════════════════════════════════════════════
-The output must show the EXACT SAME PERSON from Image 1.
-- Copy the face EXACTLY: same eyes, nose, lips, jawline, skin tone
-- Same expression, same gaze direction
-- Same pose: head angle, body position, arm placement
-- Do NOT beautify, smooth, or change any facial features
-- Do NOT change skin color or texture
-${extraStrict ? `\n⚠️ STRICT MODE: Previous attempt changed the face. This is UNACCEPTABLE.
-The face must be a pixel-perfect copy from Image 1. Any drift = failure.` : ''}
+  // SIMPLE, DIRECT PROMPT - this works better than complex instructions
+  const prompt = `Edit the person in Image 1 to wear the outfit from Image 2.
 
-═══════════════════════════════════════════════════════════════════
-STEP 2: REMOVE ORIGINAL CLOTHING
-═══════════════════════════════════════════════════════════════════
-COMPLETELY remove the person's current outfit from Image 1.
-- The original clothing must be 100% gone
-- No layering - the new garment is the ONLY garment
-- If the new garment is sleeveless, show bare skin where appropriate
+RULES:
+1. Keep the EXACT same face - do not change any facial features
+2. Keep the EXACT same pose - do not change body position
+3. Keep the same skin tone and expression
+4. REMOVE the original clothing completely
+5. Add the new garment from Image 2${garmentNotes}
 
-═══════════════════════════════════════════════════════════════════
-STEP 3: APPLY NEW GARMENT
-═══════════════════════════════════════════════════════════════════
-${garmentSection}
+Background: ${sceneText}
 
-═══════════════════════════════════════════════════════════════════
-STEP 4: PHOTOGRAPHY (Make it look REAL)
-═══════════════════════════════════════════════════════════════════
-Camera: ${cameraStyle}
-Scene: ${shootPlan.scene_text || 'Natural setting with realistic lighting'}
-
-Make it look like a REAL PHOTO, not AI:
-- Add subtle film grain or sensor noise
-- Natural bokeh (imperfect, not perfect circles)
-- Realistic shadows and highlights
-- Visible skin texture (pores, not smooth plastic)
-- No HDR glow, no bloom, no oversaturation
-
-═══════════════════════════════════════════════════════════════════
-OUTPUT REQUIREMENTS
-═══════════════════════════════════════════════════════════════════
-- Exactly ONE person (from Image 1)
-- Wearing the garment from Image 2
-- Same identity, same pose, same expression
-- Photo-realistic quality
-
-NEGATIVE: Do not include extra people, collage effects, cutouts, text, watermarks, plastic skin, or AI artifacts.`
+Output: Same person, same pose, wearing the new outfit. Make it look like a real photo.${extraStrict ? '\n\nIMPORTANT: The face MUST be identical to Image 1. Any change to the face is unacceptable.' : ''}`
 
   // Build content array
   const additionalIdentity: ContentListUnion = []
   if (identityImagesBase64.length > 0) {
-    additionalIdentity.push(
-      'Additional reference photos of the SAME person (use to maintain identity):'
-    )
+    additionalIdentity.push('Reference photos of the same person:')
     for (const img of identityImagesBase64.slice(0, 2)) {
       const clean = stripDataUrl(img)
       if (clean && clean.length >= 100) {
@@ -212,18 +140,18 @@ NEGATIVE: Do not include extra people, collage effects, cutouts, text, watermark
 
   const contents: ContentListUnion = [
     prompt,
-    'Image 1 - THE PERSON (keep this exact face, pose, and identity):',
+    'Image 1 - The person (keep this exact face and pose):',
     {
       inlineData: { data: cleanSubject, mimeType: 'image/jpeg' },
     } as any,
     ...additionalIdentity,
-    'Image 2 - THE GARMENT (dress the person in this outfit):',
+    'Image 2 - The outfit to wear:',
     {
       inlineData: { data: cleanGarment, mimeType: 'image/jpeg' },
     } as any,
     ...(garmentBackupImageBase64
       ? [
-          'Garment detail reference (for pattern/color accuracy only):',
+          'Garment detail (for color/pattern reference):',
           {
             inlineData: { data: stripDataUrl(garmentBackupImageBase64), mimeType: 'image/jpeg' },
           } as any,
@@ -240,7 +168,6 @@ NEGATIVE: Do not include extra people, collage effects, cutouts, text, watermark
   const config: GenerateContentConfig = {
     responseModalities: ['IMAGE'],
     imageConfig,
-    // Very low temperature for consistency
     temperature: 0.1,
   }
 
