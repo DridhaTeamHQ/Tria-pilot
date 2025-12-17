@@ -43,6 +43,10 @@ export async function runTryOnPipelineV3(params: {
   const backgroundFocus = preset?.background_focus
   const identityLock = preset?.identity_lock || 'normal'
 
+  // Debug: Log what preset we received
+  console.log(`📋 Pipeline preset: background="${background_name}", lighting="${lighting_name}"`)
+  console.log(`📋 Full preset:`, JSON.stringify(preset, null, 2))
+
   // Step 0: Parallel analysis - subject photo AND garment
   let photoConstraints = ''
   let garmentAnalysis: GarmentAnalysis | undefined
@@ -86,6 +90,9 @@ export async function runTryOnPipelineV3(params: {
     realismRecipe,
     selectedRecipeWhy: realismSelection.why,
   })
+
+  // Debug: Log what scene text we're using
+  console.log(`🎬 Scene text: "${shootPlan.scene_text}"`)
 
   // Step 1.5: Garment extraction with intelligent prompting based on analysis
   let garmentOnly = clothingRefBase64

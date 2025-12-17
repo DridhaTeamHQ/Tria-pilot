@@ -3,6 +3,9 @@ import type { BackgroundFocusMode, InstagramStylePack, ShootPlanV3 } from './typ
 /**
  * Simple scene description generator.
  * No AI calls - just direct mapping for reliability.
+ * 
+ * IMPORTANT: The preset's background_name is the PRIMARY scene instruction.
+ * The realism recipe only provides camera/grain/imperfection details, NOT scene.
  */
 export async function generateShootPlanV3(params: {
   pose_name: string
@@ -37,11 +40,12 @@ export async function generateShootPlanV3(params: {
     selectedRecipeWhy,
   } = params
 
-  // Simple, direct scene text - no complex AI generation
+  // The preset's background_name is the PRIMARY scene instruction
+  // DO NOT override it with the realism recipe's scene_template
   let scene_text = background_name
 
-  // Add lighting info
-  if (lighting_name && !lighting_name.includes('keep')) {
+  // Add lighting info if it's not "keep original"
+  if (lighting_name && !lighting_name.toLowerCase().includes('keep') && !lighting_name.toLowerCase().includes('original')) {
     scene_text = `${scene_text} with ${lighting_name}`
   }
 
@@ -50,10 +54,8 @@ export async function generateShootPlanV3(params: {
     scene_text = `${scene_text}. ${userRequest}`
   }
 
-  // Use recipe template if available
-  if (realismRecipe?.scene_template) {
-    scene_text = realismRecipe.scene_template
-  }
+  // NOTE: We deliberately DO NOT use realismRecipe.scene_template here
+  // The preset controls the scene. The recipe only provides technical details.
 
   return {
     prompt_text: scene_text,
