@@ -8,6 +8,18 @@ function stripDataUrl(base64: string): string {
   return (base64 || '').replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '')
 }
 
+function normalizeAspectRatio(ratio: string | undefined): string {
+  // @google/genai ImageConfig supports: "1:1","2:3","3:2","3:4","4:3","9:16","16:9","21:9"
+  const raw = String(ratio || '').trim()
+  if (!raw) return '3:4'
+  const allowed = new Set(['1:1', '2:3', '3:2', '3:4', '4:3', '9:16', '16:9', '21:9'])
+  if (allowed.has(raw)) return raw
+  // map common portrait ratios used in the app to the closest supported ones
+  if (raw === '4:5') return '3:4'
+  if (raw === '5:4') return '4:3'
+  return '3:4'
+}
+
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
@@ -49,7 +61,7 @@ export async function renderTryOnV3(params: {
   const client = getClient()
 
   const model = opts.quality === 'high' ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image'
-  const aspectRatio = opts.aspectRatio || '4:5'
+  const aspectRatio = normalizeAspectRatio(opts.aspectRatio || '4:5')
   const resolution = opts.resolution || '2K'
 
   const cleanSubject = stripDataUrl(subjectImageBase64)
@@ -239,16 +251,14 @@ PHOTO REALISM:
     sceneText,
   ]
 
-  const imageConfig: ImageConfig = {
-    aspectRatio,
-    personGeneration: 'allow_adult',
-  } as any
-  const resolvedSize =
-    opts.quality === 'high'
-      ? (opts.resolution || '2K')
-      : // fast: prefer 1K for speed unless explicitly requested otherwise
-        (opts.resolution || '1K')
-  ;(imageConfig as any).imageSize = resolvedSize as any
+  const imageConfig: ImageConfig = { aspectRatio } as any
+
+  // NOTE: Some models reject unknown/unsupported imageConfig fields with 400 INVALID_ARGUMENT.
+  // imageSize is supported by the SDK types, but to be safest we only set it for the PRO image model.
+  if (model === 'gemini-3-pro-image-preview') {
+    const resolvedSize = opts.resolution || '2K'
+    ;(imageConfig as any).imageSize = resolvedSize as any
+  }
 
   const config: GenerateContentConfig = {
     responseModalities: ['IMAGE'],
