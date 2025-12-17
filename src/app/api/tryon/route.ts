@@ -93,7 +93,10 @@ export async function POST(request: Request) {
 
     const presetV3 = stylePreset ? getTryOnPresetV3(stylePreset) : undefined
     if (stylePreset) {
-      console.log(`🎨 Preset requested: ${stylePreset} ${presetV3 ? `(v3: ${presetV3.name})` : '(not found)'}`)
+      console.log(`🎨 Preset: ${stylePreset} → ${presetV3?.name || 'NOT FOUND'}`)
+      if (presetV3) {
+        console.log(`📸 Background: "${presetV3.background_name}"`)
+      }
     }
 
     // Create generation job
@@ -136,6 +139,7 @@ export async function POST(request: Request) {
 
       const preset = presetV3
         ? {
+            id: presetV3.id,  // Pass preset ID for scene lookup
             pose_name: presetV3.pose_name,
             lighting_name: presetV3.lighting_name,
             background_name: presetV3.background_name,
@@ -143,6 +147,7 @@ export async function POST(request: Request) {
             background_focus: presetV3.background_focus,
           }
         : {
+            id: undefined,
             pose_name: pose ?? 'keep the subject pose unchanged',
             lighting_name: lighting ?? 'match the original photo lighting',
             background_name: background ?? 'keep the original background',
@@ -150,7 +155,7 @@ export async function POST(request: Request) {
             background_focus: 'moderate_bokeh',
           }
 
-      console.log(`🎬 tryon_pipeline_v3`)
+      console.log(`🎬 Running fast pipeline...`)
       const result = await runTryOnPipelineV3({
         subjectImageBase64: normalizedPerson,
         clothingRefBase64: normalizedClothing,
@@ -179,13 +184,8 @@ export async function POST(request: Request) {
           suggestionsJSON: {
             presetId: stylePreset || null,
             presetName: presetV3?.name || null,
-            style_pack: presetV3?.style_pack || null,
-            background_focus: presetV3?.background_focus || null,
             prompt_text: result.debug.shootPlanText,
-            usedGarmentExtraction: result.debug.usedGarmentExtraction,
-            verify: (result.debug as any).verify || null,
-            realismRecipeId: (result.debug as any).realismRecipeId || null,
-            realismWhy: (result.debug as any).realismWhy || null,
+            timeMs: result.debug.timeMs,
           },
         },
       })
