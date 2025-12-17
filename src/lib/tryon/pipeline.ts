@@ -5,6 +5,7 @@ import { renderTryOnV3 } from './renderer'
 import { verifyTryOnImage } from './verifier'
 import { analyzeSubjectPhoto } from './photo-analyzer'
 import { selectRealismRecipe } from './realism-selector'
+import { analyzeGarment, type GarmentAnalysis } from './garment-analyzer'
 
 export async function runTryOnPipelineV3(params: {
   subjectImageBase64: string
@@ -30,6 +31,7 @@ export async function runTryOnPipelineV3(params: {
     realismWhy?: string
     retryCount?: number
     retryReason?: string
+    garmentAnalysis?: GarmentAnalysis
   }
 }> {
   const { subjectImageBase64, clothingRefBase64, identityImagesBase64 = [], preset, userRequest, quality } = params
@@ -41,16 +43,28 @@ export async function runTryOnPipelineV3(params: {
   const backgroundFocus = preset?.background_focus
   const identityLock = preset?.identity_lock || 'normal'
 
-  // Step 0: Analyze the subject photo
+  // Step 0: Parallel analysis - subject photo AND garment
   let photoConstraints = ''
-  try {
-    const analysis = await analyzeSubjectPhoto(subjectImageBase64)
+  let garmentAnalysis: GarmentAnalysis | undefined
+  
+  const [photoAnalysisResult, garmentAnalysisResult] = await Promise.allSettled([
+    analyzeSubjectPhoto(subjectImageBase64),
+    analyzeGarment(clothingRefBase64),
+  ])
+  
+  if (photoAnalysisResult.status === 'fulfilled') {
+    const analysis = photoAnalysisResult.value
     photoConstraints = [
       analysis.camera_summary,
       analysis.lighting_summary,
     ].filter(Boolean).join(' | ')
-  } catch {
+  } else {
     photoConstraints = 'Match original lighting and camera angle.'
+  }
+  
+  if (garmentAnalysisResult.status === 'fulfilled') {
+    garmentAnalysis = garmentAnalysisResult.value
+    console.log(`🎽 Garment analysis: ${garmentAnalysis.garment_type}, ${garmentAnalysis.sleeve_type}, ${garmentAnalysis.neckline}, ${garmentAnalysis.primary_color}`)
   }
 
   // Step 0.5: Select a realism recipe
@@ -73,7 +87,7 @@ export async function runTryOnPipelineV3(params: {
     selectedRecipeWhy: realismSelection.why,
   })
 
-  // Step 1.5: Garment extraction
+  // Step 1.5: Garment extraction with intelligent prompting based on analysis
   let garmentOnly = clothingRefBase64
   let usedGarmentExtraction = false
   try {
@@ -86,7 +100,7 @@ export async function runTryOnPipelineV3(params: {
     garmentOnly = clothingRefBase64
   }
 
-  // Step 2: First render attempt
+  // Step 2: First render attempt WITH garment analysis
   let output = await renderTryOnV3({
     subjectImageBase64,
     garmentImageBase64: garmentOnly,
@@ -97,6 +111,7 @@ export async function runTryOnPipelineV3(params: {
     shootPlan,
     opts: quality,
     extraStrict: identityLock === 'high',
+    garmentAnalysis, // Pass analysis to renderer
   })
 
   // Step 3: Verify and retry if needed
@@ -181,6 +196,7 @@ export async function runTryOnPipelineV3(params: {
         // Upgrade to high quality on retry if was fast
         opts: quality.quality === 'fast' ? { ...quality, quality: 'high' } : quality,
         extraStrict: true,
+        garmentAnalysis,
       })
 
       // Verify retry result
@@ -212,6 +228,7 @@ export async function runTryOnPipelineV3(params: {
             shootPlan: minimalPlan,
             opts: { ...quality, quality: 'high' },
             extraStrict: true,
+            garmentAnalysis,
           })
         }
       } catch {
@@ -228,6 +245,7 @@ export async function runTryOnPipelineV3(params: {
           realismWhy: realismSelection.why,
           retryCount,
           retryReason,
+          garmentAnalysis,
         },
       }
     }
@@ -242,6 +260,7 @@ export async function runTryOnPipelineV3(params: {
         realismRecipeId: realismRecipe.id,
         realismWhy: realismSelection.why,
         retryCount: 0,
+        garmentAnalysis,
       },
     }
   } catch {
@@ -253,6 +272,7 @@ export async function runTryOnPipelineV3(params: {
         usedGarmentExtraction,
         realismRecipeId: realismRecipe.id,
         realismWhy: realismSelection.why,
+        garmentAnalysis,
       },
     }
   }
