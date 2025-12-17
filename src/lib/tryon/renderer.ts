@@ -72,6 +72,15 @@ function getGarmentInstructions(garmentAnalysis?: GarmentAnalysis): string {
   return lines.length > 0 ? `\nGarment details: ${lines.join(' ')}` : ''
 }
 
+/**
+ * Determine if background should be changed based on scene text
+ */
+function shouldChangeBackground(sceneText: string): boolean {
+  const keepKeywords = ['keep', 'original', 'same', 'unchanged']
+  const lowerScene = sceneText.toLowerCase()
+  return !keepKeywords.some(kw => lowerScene.includes(kw))
+}
+
 export async function renderTryOnV3(params: {
   subjectImageBase64: string
   garmentImageBase64: string
@@ -108,21 +117,26 @@ export async function renderTryOnV3(params: {
   const garmentNotes = getGarmentInstructions(garmentAnalysis)
 
   // Scene instruction
-  const sceneText = shootPlan.scene_text || 'natural setting'
+  const sceneText = shootPlan.scene_text || 'keep the original background'
+  const changeBackground = shouldChangeBackground(sceneText)
 
-  // SIMPLE, DIRECT PROMPT - this works better than complex instructions
-  const prompt = `Edit the person in Image 1 to wear the outfit from Image 2.
+  // Build background instruction
+  const backgroundInstruction = changeBackground
+    ? `6. CHANGE the background to: ${sceneText}`
+    : `6. Keep the original background from Image 1`
 
-RULES:
-1. Keep the EXACT same face - do not change any facial features
-2. Keep the EXACT same pose - do not change body position
+  // SIMPLE, DIRECT PROMPT
+  const prompt = `Create a virtual try-on image: Put the person from Image 1 in the outfit from Image 2.
+
+WHAT TO DO:
+1. Keep the EXACT same face from Image 1 - copy it exactly, no changes
+2. Keep the EXACT same pose from Image 1 - same body position
 3. Keep the same skin tone and expression
 4. REMOVE the original clothing completely
-5. Add the new garment from Image 2${garmentNotes}
+5. Dress them in the outfit from Image 2${garmentNotes}
+${backgroundInstruction}
 
-Background: ${sceneText}
-
-Output: Same person, same pose, wearing the new outfit. Make it look like a real photo.${extraStrict ? '\n\nIMPORTANT: The face MUST be identical to Image 1. Any change to the face is unacceptable.' : ''}`
+OUTPUT: A realistic photo of the same person wearing the new outfit${changeBackground ? ` in a ${sceneText}` : ''}.${extraStrict ? '\n\nCRITICAL: The face MUST be identical to Image 1. Any change to facial features is unacceptable.' : ''}`
 
   // Build content array
   const additionalIdentity: ContentListUnion = []
