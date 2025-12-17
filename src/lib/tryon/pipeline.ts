@@ -4,6 +4,7 @@ import { extractGarmentOnlyImage } from './garment-extractor'
 import { renderTryOnV3 } from './renderer'
 import { verifyTryOnImage } from './verifier'
 import { analyzeSubjectPhoto } from './photo-analyzer'
+import { selectRealismRecipe } from './realism-selector'
 
 export async function runTryOnPipelineV3(params: {
   subjectImageBase64: string
@@ -38,6 +39,7 @@ export async function runTryOnPipelineV3(params: {
 
   // Step 0: Analyze the subject photo for camera/light cues (prevents "AI perfect" backgrounds)
   let photoConstraints = ''
+  let photoManifest: Record<string, unknown> | undefined
   try {
     const analysis = await analyzeSubjectPhoto(subjectImageBase64)
     photoConstraints = [
@@ -48,10 +50,27 @@ export async function runTryOnPipelineV3(params: {
     ]
       .filter(Boolean)
       .join(' | ')
+    photoManifest = analysis.camera_manifest as any
   } catch {
     photoConstraints =
       'Match original camera perspective and depth of field; add subtle sensor noise/film grain; avoid CGI-clean backgrounds; keep lighting direction and shadows consistent.'
   }
+
+  // Step 0.5: Select a realism recipe (dataset-driven) for camera/lighting/background detail defaults.
+  const { recipe: realismRecipe, selection: realismSelection } = await selectRealismRecipe({
+    preset: preset
+      ? {
+          pose_name,
+          lighting_name,
+          background_name,
+          style_pack: String(stylePack || ''),
+          background_focus: String(backgroundFocus || ''),
+        }
+      : undefined,
+    photoConstraintsText: photoConstraints,
+    photoManifest,
+    userRequest,
+  })
 
   // Step 1: Director (scene-only)
   const shootPlanRaw = await generateShootPlanV3({
@@ -60,8 +79,11 @@ export async function runTryOnPipelineV3(params: {
     background_name,
     userRequest,
     photoConstraints,
+    photoManifest,
     stylePack,
     backgroundFocus,
+    realismRecipe,
+    selectedRecipeWhy: realismSelection.why,
   })
 
   // Inject photo constraints into the plan so the renderer always anchors to the real capture
@@ -123,7 +145,9 @@ PHOTO CONSTRAINTS (must match the original subject photo):
       verify.lighting_realism === 'low' ||
       verify.lighting_consistent === false ||
       verify.subject_color_preserved === false ||
-      verify.looks_ai_generated === true
+      verify.looks_ai_generated === true ||
+      verify.background_detail_preserved === false ||
+      verify.dof_realistic === false
 
     // If clothing is applied but fidelity is only medium, retry once (helps small failures).
     const needsRetryForGarmentQuality = verify.garment_applied && verify.garment_fidelity === 'medium'
@@ -143,6 +167,16 @@ PHOTO CONSTRAINTS (must match the original subject photo):
       }
 
       // Retry with extraStrict prompt and downplayed scene changes (prevents collage + boosts clothing replace)
+      const retryPlan = needsRetryForScene
+        ? {
+            ...shootPlan,
+            prompt_text: `${shootPlan.prompt_text}
+CAPTURE MATCH OVERRIDE (realism):
+- Match the original capture style from image 1 (camera perspective/DOF/noise/sharpness). Preserve background micro-texture; do NOT smear or painterly-blur the environment.
+- Keep lighting practical and plausible; avoid stylized grading unless explicitly requested.`,
+          }
+        : shootPlan
+
       output = await renderTryOnV3({
         subjectImageBase64,
         garmentImageBase64: garmentOnly,
@@ -154,7 +188,7 @@ PHOTO CONSTRAINTS (must match the original subject photo):
             : identityImagesBase64,
         stylePack,
         backgroundFocus,
-        shootPlan,
+        shootPlan: retryPlan,
         opts: quality,
         extraStrict: true,
       })
@@ -194,19 +228,36 @@ CLOTHING-ONLY FALLBACK (highest priority):
 
       return {
         image: output,
-        debug: { shootPlanText: shootPlan.prompt_text, usedGarmentExtraction, verify },
+        debug: {
+          shootPlanText: shootPlan.prompt_text,
+          usedGarmentExtraction,
+          verify,
+          realismRecipeId: realismRecipe.id,
+          realismWhy: realismSelection.why,
+        } as any,
       }
     }
 
     return {
       image: output,
-      debug: { shootPlanText: shootPlan.prompt_text, usedGarmentExtraction, verify },
+      debug: {
+        shootPlanText: shootPlan.prompt_text,
+        usedGarmentExtraction,
+        verify,
+        realismRecipeId: realismRecipe.id,
+        realismWhy: realismSelection.why,
+      } as any,
     }
   } catch {
     // If verifier fails, still return the image.
     return {
       image: output,
-      debug: { shootPlanText: shootPlan.prompt_text, usedGarmentExtraction },
+      debug: {
+        shootPlanText: shootPlan.prompt_text,
+        usedGarmentExtraction,
+        realismRecipeId: realismRecipe.id,
+        realismWhy: realismSelection.why,
+      } as any,
     }
   }
 }

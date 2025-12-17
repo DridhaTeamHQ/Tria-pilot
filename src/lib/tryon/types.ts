@@ -41,6 +41,12 @@ export interface TryOnStylePreset {
 
 export interface ShootPlanV3 {
   prompt_text: string
+  scene_text?: string
+  camera_text?: string
+  imperfection_text?: string
+  negative_text?: string
+  selected_recipe_id?: string
+  selected_recipe_why?: string
 }
 
 export interface TryOnQualityOptions {
@@ -59,6 +65,8 @@ export interface VerifyResult {
   lighting_consistent?: boolean
   subject_color_preserved?: boolean
   looks_ai_generated?: boolean
+  background_detail_preserved?: boolean
+  dof_realistic?: boolean
   garment_applied: boolean
   garment_fidelity: 'high' | 'medium' | 'low'
   identity_preserved: boolean

@@ -9,7 +9,9 @@ CRITICAL RULES:
 2) NO IDENTITY DETAIL: Do NOT describe face, hair, skin, ethnicity, age, or body shape.
 3) NO CLOTHING DETAIL: Do NOT describe garment colors/patterns/design. The garment is provided as a reference image.
 4) EDIT INTENT: Write like an editor describing a real photo (camera + scene + lighting). Do not invent new characters.
-5) OUTPUT: Return ONLY raw JSON: {"prompt_text":"..."} (no markdown, no extra keys).
+5) OUTPUT: Return ONLY raw JSON with keys:
+{"scene_text":"...","camera_text":"...","imperfection_text":"...","negative_text":"..."}
+No markdown, no extra keys.
 
 REALISM DEFAULT (VERY IMPORTANT):
 - Default to natural, everyday realism. Avoid stylized "AI cinematic" looks unless explicitly requested.
@@ -88,11 +90,47 @@ export async function generateShootPlanV3(params: {
   background_name: string
   userRequest?: string
   photoConstraints?: string
+  photoManifest?: Record<string, unknown>
   stylePack?: InstagramStylePack
   backgroundFocus?: BackgroundFocusMode
+  realismRecipe?: {
+    id: string
+    scene_template: string
+    negative_template: string
+    camera: { lens_hint: string; pov_hint: string; framing_hint: string; dof_hint: string }
+    imperfections: {
+      grain: string
+      compression: string
+      vignette: string
+      chromatic_aberration: string
+      handheld_tilt_ok: boolean
+      motion_blur_hint: string
+    }
+  }
+  selectedRecipeWhy?: string
 }): Promise<ShootPlanV3> {
-  const { pose_name, lighting_name, background_name, userRequest, photoConstraints, stylePack, backgroundFocus } = params
+  const {
+    pose_name,
+    lighting_name,
+    background_name,
+    userRequest,
+    photoConstraints,
+    photoManifest,
+    stylePack,
+    backgroundFocus,
+    realismRecipe,
+    selectedRecipeWhy,
+  } = params
   const openai = getOpenAI()
+
+  const recipeBlock = realismRecipe
+    ? `Selected realism recipe id: ${realismRecipe.id}
+Why selected: ${selectedRecipeWhy || 'best match for subject capture + preset'}
+Recipe scene template (try-on safe): ${realismRecipe.scene_template}
+Recipe camera: ${realismRecipe.camera.lens_hint}; ${realismRecipe.camera.pov_hint}; ${realismRecipe.camera.framing_hint}; ${realismRecipe.camera.dof_hint}
+Recipe imperfections: grain=${realismRecipe.imperfections.grain}; compression=${realismRecipe.imperfections.compression}; vignette=${realismRecipe.imperfections.vignette}; CA=${realismRecipe.imperfections.chromatic_aberration}; handheld_tilt_ok=${realismRecipe.imperfections.handheld_tilt_ok}; motion_blur=${realismRecipe.imperfections.motion_blur_hint}
+Recipe negatives: ${realismRecipe.negative_template}`
+    : ''
 
   const userPrompt = `Pose: ${pose_name}
 Lighting: ${lighting_name}
@@ -101,6 +139,16 @@ Style pack: ${stylePackHints(stylePack)}
 ${focusHints(backgroundFocus)}
 ${userRequest ? `User request (ignore if about face/body/clothing): ${userRequest}` : ''}
 ${photoConstraints ? `\nPhoto constraints (must follow for realism): ${photoConstraints}` : ''}
+${photoManifest ? `\nPhoto manifest (structured; follow when helpful): ${JSON.stringify(photoManifest)}` : ''}
+${recipeBlock ? `\n${recipeBlock}` : ''}
+
+Return ONLY JSON with keys: scene_text, camera_text, imperfection_text, negative_text.
+
+Requirements:
+- scene_text must describe ONLY scene/context/time/weather/atmosphere and the subject pose (pose only). No identity traits. No clothing design details.
+- camera_text must specify lens/POV/framing/DOF consistent with photo constraints + recipe.
+- imperfection_text must specify micro-texture + realistic imperfection budget (grain/noise/compression/vignette/CA) consistent with photo constraints + recipe.
+- negative_text must start with \"NEGATIVE:\" and explicitly forbid AI look, smeary/painterly blur, overly perfect bokeh, CGI glow, extra people, text, watermarks, collage, pasted refs.
 
 Return ONLY JSON.`
 
@@ -119,8 +167,14 @@ Return ONLY JSON.`
   const jsonText = extractJsonObject(content)
   const parsed = JSON.parse(jsonText) as any
 
-  const prompt_text = String(parsed?.prompt_text ?? '').trim()
-  if (!prompt_text) throw new Error('Director output missing prompt_text')
+  const scene_text = String(parsed?.scene_text ?? '').trim()
+  const camera_text = String(parsed?.camera_text ?? '').trim()
+  const imperfection_text = String(parsed?.imperfection_text ?? '').trim()
+  let negative_text = String(parsed?.negative_text ?? '').trim()
+
+  const promptFromParts = [scene_text, camera_text, imperfection_text, negative_text].filter(Boolean).join('\n')
+  const prompt_text = String(parsed?.prompt_text ?? '').trim() || promptFromParts
+  if (!prompt_text) throw new Error('Director output missing prompt content')
 
   // Add a default negative tail if the model forgot it (keeps it robust)
   const hasNegative = /NEGATIVE/i.test(prompt_text)
@@ -128,7 +182,20 @@ Return ONLY JSON.`
     ? prompt_text
     : `${prompt_text}\nNEGATIVE: extra people, duplicate subject, collage, overlay, pasted reference image, cutout, mannequin, picture-in-picture, text, logo, watermark, blurry, distorted hands, plastic skin, halos, AI artifacts, CGI/3D render look, overly perfect background, unrealistic lighting.`
 
-  return { prompt_text: withNegative }
+  if (!negative_text || !/^NEGATIVE:/i.test(negative_text)) {
+    negative_text =
+      'NEGATIVE: extra people, duplicate subject, collage, overlay, pasted reference image, cutout, mannequin, picture-in-picture, text, logo, watermark, smeary blur, painterly background, plastic skin, halos, AI artifacts, CGI/3D render look, overly perfect background, unrealistic lighting, heavy glow/bloom, perfect bokeh.'
+  }
+
+  return {
+    prompt_text: withNegative,
+    scene_text: scene_text || undefined,
+    camera_text: camera_text || undefined,
+    imperfection_text: imperfection_text || undefined,
+    negative_text,
+    selected_recipe_id: realismRecipe?.id,
+    selected_recipe_why: selectedRecipeWhy,
+  }
 }
 
 

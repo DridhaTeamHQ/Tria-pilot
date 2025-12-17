@@ -1,0 +1,189 @@
+{
+  "version": 1,
+  "recipes": [
+    {
+      "id": "iphone_candid_paris_stairs_day",
+      "tags": {
+        "capture_type": "iphone_candid",
+        "lighting_type": "diffused_daylight",
+        "location_type": "city_street",
+        "time_of_day": "day",
+        "vibe": "natural_editorial"
+      },
+      "camera": {
+        "lens_hint": "iPhone main camera (wide, ~24–28mm equivalent)",
+        "pov_hint": "handheld at chest-to-eye height",
+        "framing_hint": "casual off-center framing, slight tilt allowed",
+        "dof_hint": "deep to moderate depth-of-field (background still readable)"
+      },
+      "imperfections": {
+        "grain": "subtle smartphone noise, not film-heavy",
+        "compression": "light JPEG compression, realistic sharpening",
+        "vignette": "none to subtle natural vignette",
+        "chromatic_aberration": "none to very mild",
+        "handheld_tilt_ok": true,
+        "motion_blur_hint": "minimal; slight micro-blur acceptable"
+      },
+      "scene_template": "A candid street photo: the subject seated on a narrow, slightly worn stone stair beside an aged, textured doorway and stone wall. Real Parisian street details: scuffed paint, stone pores, small chips, realistic grime and patina. Keep the environment grounded and plausible, with natural urban textures (door frame, hinge, drainpipe, cobblestone/sidewalk).",
+      "negative_template": "Avoid artificial neon/cyberpunk grading, heavy glow/bloom, plastic skin, painterly backgrounds, smeary blur, and CGI-clean surfaces. Do not over-blur the background; keep background detail readable. No text, logos, watermarks, or extra people."
+    },
+    {
+      "id": "iphone_candid_trattoria_shade",
+      "tags": {
+        "capture_type": "iphone_candid",
+        "lighting_type": "open_shade_daylight",
+        "location_type": "cafe_terrace",
+        "time_of_day": "day",
+        "vibe": "travel_journal"
+      },
+      "camera": {
+        "lens_hint": "iPhone main camera (wide, ~24–28mm equivalent)",
+        "pov_hint": "handheld at seated eye level",
+        "framing_hint": "slight tilt and casual crop, intimate table-level framing",
+        "dof_hint": "deep to moderate depth-of-field (background context visible)"
+      },
+      "imperfections": {
+        "grain": "subtle smartphone noise",
+        "compression": "light JPEG compression",
+        "vignette": "none",
+        "chromatic_aberration": "none to very mild",
+        "handheld_tilt_ok": true,
+        "motion_blur_hint": "minimal"
+      },
+      "scene_template": "A candid outdoor trattoria terrace scene in open shade: rustic wooden tables/chairs, weathered stone wall, creeping vines, terracotta pots. Natural daylight filtered through leaves creates soft, dappled shadows. Keep colors natural and warm without looking stylized.",
+      "negative_template": "No CGI glow, no overly perfect bokeh, no studio-clean lighting. Do not smear or denoise away texture; keep real-world imperfections and micro-texture in stone/wood/plants."
+    },
+    {
+      "id": "film_35mm_soft_afternoon_terrace",
+      "tags": {
+        "capture_type": "film_35mm",
+        "lighting_type": "diffused_afternoon",
+        "location_type": "terrace",
+        "time_of_day": "afternoon",
+        "vibe": "timeless_editorial"
+      },
+      "camera": {
+        "lens_hint": "50mm lens, eye-level",
+        "pov_hint": "steady handheld or tripod, composed but natural",
+        "framing_hint": "clean composition, gentle negative space",
+        "dof_hint": "moderate depth-of-field, natural bokeh (not perfect circles)"
+      },
+      "imperfections": {
+        "grain": "authentic 35mm film grain (subtle, organic)",
+        "compression": "none (film scan feel)",
+        "vignette": "very subtle film vignette",
+        "chromatic_aberration": "very mild",
+        "handheld_tilt_ok": false,
+        "motion_blur_hint": "none"
+      },
+      "scene_template": "A sun-dappled terrace with weathered outdoor furniture and potted plants. Soft, diffused afternoon light with gentle shadows and warm earth tones. Preserve tactile micro-texture (wicker, stone, plaster, leaves) without smoothing.",
+      "negative_template": "No digital HDR glow, no plastic surfaces, no ultra-clean AI background. Avoid exaggerated color grading; keep restrained, natural filmic tonality."
+    },
+    {
+      "id": "flash_party_digicam_night",
+      "tags": {
+        "capture_type": "flash_digicam",
+        "lighting_type": "on_camera_flash",
+        "location_type": "street_night",
+        "time_of_day": "night",
+        "vibe": "flash_party"
+      },
+      "camera": {
+        "lens_hint": "compact camera / iPhone with flash, ~28–35mm equivalent",
+        "pov_hint": "handheld, close to subject",
+        "framing_hint": "cropped, slightly imperfect framing",
+        "dof_hint": "deep depth-of-field; flash makes background visible but darker"
+      },
+      "imperfections": {
+        "grain": "visible noise in shadows",
+        "compression": "mild compression/processing artifacts",
+        "vignette": "none to mild",
+        "chromatic_aberration": "mild",
+        "handheld_tilt_ok": true,
+        "motion_blur_hint": "minimal; slight background motion acceptable"
+      },
+      "scene_template": "A gritty night street scene lit primarily by on-camera flash: harsh highlights, deep shadows, realistic falloff. Background remains believable (street, storefront, concrete) with visible texture and imperfect exposure.",
+      "negative_template": "No surreal glow or neon haze. Avoid painterly blur; keep concrete/metal textures crisp. No extra people or pasted cutouts."
+    },
+    {
+      "id": "neon_taxi_night_iphone",
+      "tags": {
+        "capture_type": "iphone_candid",
+        "lighting_type": "mixed_neon_night",
+        "location_type": "car_interior",
+        "time_of_day": "night",
+        "vibe": "urban_neon"
+      },
+      "camera": {
+        "lens_hint": "front camera selfie, iPhone (~24–28mm equivalent)",
+        "pov_hint": "arm-length selfie in car backseat",
+        "framing_hint": "centered face/upper torso, casual tilt",
+        "dof_hint": "deep depth-of-field typical of phone selfie"
+      },
+      "imperfections": {
+        "grain": "visible low-light noise, subtle sharpening",
+        "compression": "phone processing + mild compression",
+        "vignette": "none",
+        "chromatic_aberration": "none to very mild",
+        "handheld_tilt_ok": true,
+        "motion_blur_hint": "minimal; slight outside light streaking acceptable"
+      },
+      "scene_template": "A night car interior selfie with mixed ambient neon spill from outside signage (green/purple hues) reflecting on window glass and interior fabrics. Keep it grounded: real city lights, real reflections, no foggy neon haze unless weather implies it.",
+      "negative_template": "No cyberpunk exaggeration. No wet reflective streets unless rain context exists. Avoid overly saturated gels; keep neon spill plausible."
+    },
+    {
+      "id": "golden_hour_balcony_selfie_iphone",
+      "tags": {
+        "capture_type": "iphone_candid",
+        "lighting_type": "golden_hour",
+        "location_type": "balcony_city",
+        "time_of_day": "golden_hour",
+        "vibe": "warm_selfie"
+      },
+      "camera": {
+        "lens_hint": "front camera selfie, iPhone (~24–28mm equivalent)",
+        "pov_hint": "arm-length selfie at eye level",
+        "framing_hint": "close framing, casual crop",
+        "dof_hint": "moderate depth; background softly falls off but remains real"
+      },
+      "imperfections": {
+        "grain": "light smartphone noise",
+        "compression": "mild phone processing",
+        "vignette": "none",
+        "chromatic_aberration": "none",
+        "handheld_tilt_ok": true,
+        "motion_blur_hint": "none"
+      },
+      "scene_template": "A balcony selfie at golden hour: warm low-angle sunlight, long soft shadows, city rooftops/buildings behind with natural atmospheric falloff. Keep sky gradients smooth and natural.",
+      "negative_template": "Avoid overdoing orange grading; keep golden light realistic. No AI-smooth skin or cartoonish background."
+    },
+    {
+      "id": "mist_morning_rural_iphone",
+      "tags": {
+        "capture_type": "iphone_candid",
+        "lighting_type": "foggy_morning",
+        "location_type": "rural_field",
+        "time_of_day": "morning",
+        "vibe": "mist_reverie"
+      },
+      "camera": {
+        "lens_hint": "iPhone main camera (~24–28mm equivalent)",
+        "pov_hint": "handheld, slightly downward tilt",
+        "framing_hint": "subject lower in frame, horizon softened by fog",
+        "dof_hint": "deep depth-of-field; fog reduces contrast naturally"
+      },
+      "imperfections": {
+        "grain": "subtle noise in low-contrast fog areas",
+        "compression": "light phone processing",
+        "vignette": "none",
+        "chromatic_aberration": "none",
+        "handheld_tilt_ok": true,
+        "motion_blur_hint": "slight coat hem movement blur acceptable"
+      },
+      "scene_template": "A mist-wrapped rural setting at early morning: pale fog softens the horizon, dew-dark grass, weathered fence posts, bare branches. Natural desaturation from fog (not AI gray wash).",
+      "negative_template": "No fake volumetric fog glow. Avoid painterly blur; keep foreground textures crisp while distance fades naturally."
+    }
+  ]
+}
+
+

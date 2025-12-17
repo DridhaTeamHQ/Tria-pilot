@@ -104,6 +104,17 @@ export async function renderTryOnV3(params: {
       ? 'BACKGROUND FOCUS: keep background sharper with more environmental detail (less blur).'
       : 'BACKGROUND FOCUS: moderate bokeh is ok, but must be realistic (not overly perfect blur).'
 
+  const backgroundDetailRule =
+    backgroundFocus === 'sharper_bg'
+      ? [
+          'BACKGROUND DETAIL (EXACT): Preserve high-frequency detail in the environment. Do NOT smear/denoise/painterly-blur the background.',
+          'Background should remain readable: stone pores, wood grain, signage shapes (no text), fabric weave, concrete texture.',
+        ].join('\n')
+      : [
+          'BACKGROUND DETAIL (EXACT): If using bokeh, keep it realistic and optically plausible (no perfect blur wallpaper).',
+          'Do NOT smear the background; preserve micro-texture where in focus and keep bokeh non-uniform.',
+        ].join('\n')
+
   const roleText = [
     'ROLE: You are an expert Fashion Editor. Generate a professional composite image.',
     'IMPORTANT: This is an EDIT of image 1 (the subject). Do not create a new person.',
@@ -119,6 +130,7 @@ export async function renderTryOnV3(params: {
       : '',
     'SKIN TEXTURE: preserve pores and micro-texture, no smoothing, no plastic skin, no haloing, no HDR glow.',
     'REALISM OVERRIDE: Make the final image look like a real camera photo, not an AI render. Avoid neon/cyberpunk color grading, wet reflective streets, heavy glow/bloom, unreal perfect bokeh, plastic skin, and "studio-perfect" lighting unless explicitly requested.',
+    backgroundDetailRule,
     styleBlock,
     focusBlock,
     extraStrict
@@ -148,24 +160,38 @@ export async function renderTryOnV3(params: {
     .filter(Boolean)
     .join('\n')
 
+  const planScene = (shootPlan as any)?.scene_text ? String((shootPlan as any).scene_text) : ''
+  const planCamera = (shootPlan as any)?.camera_text ? String((shootPlan as any).camera_text) : ''
+  const planImperfections = (shootPlan as any)?.imperfection_text ? String((shootPlan as any).imperfection_text) : ''
+  const planNegative = (shootPlan as any)?.negative_text ? String((shootPlan as any).negative_text) : ''
+  const planFallback = shootPlan.prompt_text
+
   const sceneText = extraStrict
     ? // if extraStrict, we downplay scene change to avoid confusing edits
-      `SCENE INSTRUCTION: Keep background natural and realistic. ${shootPlan.prompt_text}
+      `SCENE INSTRUCTION: Keep background natural and realistic. ${planScene || planFallback}
+${planCamera ? `\nCAMERA:\n${planCamera}` : ''}
+${planImperfections ? `\nIMPERFECTIONS:\n${planImperfections}` : ''}
+${planNegative ? `\n${planNegative}` : ''}
 SCENE COHERENCE (NON-NEGOTIABLE):
 - The scene must be physically plausible for the pose. No tables/chairs in the middle of roads, no floating furniture, no impossible placements.
 - If the setting is a street, keep the subject on a sidewalk / cafe terrace / curbside seating area — never on the roadway.
 - Preserve and contextualize any foreground structure the subject is interacting with (wall/pillar/rock). If a wall/pillar remains, it must belong in the new scene (sidewalk stone wall/building column), never floating or in traffic.
 PHOTO REALISM:
 - Background must look like a real photo (not CGI). Add subtle sensor noise/film grain and tiny lens imperfections.
-- Avoid overly-perfect symmetry, overly-clean surfaces, and unrealistic bokeh.`
-    : `SCENE INSTRUCTION: ${shootPlan.prompt_text}
+- Avoid overly-perfect symmetry, overly-clean surfaces, and unrealistic bokeh.
+- CRITICAL: Do NOT apply Gaussian blur or painterly denoise to the background; preserve micro-texture.`
+    : `SCENE INSTRUCTION: ${planScene || planFallback}
+${planCamera ? `\nCAMERA:\n${planCamera}` : ''}
+${planImperfections ? `\nIMPERFECTIONS:\n${planImperfections}` : ''}
+${planNegative ? `\n${planNegative}` : ''}
 SCENE COHERENCE (NON-NEGOTIABLE):
 - The scene must be physically plausible for the pose. No tables/chairs in the middle of roads, no floating furniture, no impossible placements.
 - If the setting is a street, keep the subject on a sidewalk / cafe terrace / curbside seating area — never on the roadway.
 - Preserve and contextualize any foreground structure the subject is interacting with (wall/pillar/rock). If a wall/pillar remains, it must belong in the new scene (sidewalk stone wall/building column), never floating or in traffic.
 PHOTO REALISM:
 - Background must look like a real photo (not CGI). Add subtle sensor noise/film grain and tiny lens imperfections.
-- Keep lighting direction/shadows consistent across subject and background. Avoid HDR glow or perfect studio-clean look.`
+- Keep lighting direction/shadows consistent across subject and background. Avoid HDR glow or perfect studio-clean look.
+- CRITICAL: Do NOT apply Gaussian blur or painterly denoise to the background; preserve micro-texture.`
 
   const additionalIdentity: ContentListUnion = []
   if (identityImagesBase64.length > 0) {
@@ -217,9 +243,12 @@ PHOTO REALISM:
     aspectRatio,
     personGeneration: 'allow_adult',
   } as any
-  if (model === 'gemini-3-pro-image-preview' && resolution) {
-    ;(imageConfig as any).imageSize = resolution as any
-  }
+  const resolvedSize =
+    opts.quality === 'high'
+      ? (opts.resolution || '2K')
+      : // fast: prefer 1K for speed unless explicitly requested otherwise
+        (opts.resolution || '1K')
+  ;(imageConfig as any).imageSize = resolvedSize as any
 
   const config: GenerateContentConfig = {
     responseModalities: ['IMAGE'],
