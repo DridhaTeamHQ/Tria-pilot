@@ -1,70 +1,138 @@
 import { getOpenAI } from '@/lib/openai'
 import type { BackgroundFocusMode, InstagramStylePack, ShootPlanV3 } from './types'
 
-const SYSTEM_PROMPT = `You are an expert AI Prompt Engineer and Art Director for a virtual try-on system.
-Your goal is to convert simple preset names into a cohesive photorealistic prompt for an IMAGE EDIT model.
+const SYSTEM_PROMPT = `You are an expert Photography Director for a virtual try-on system.
+Your job: convert preset names into detailed PHOTOGRAPHY instructions that make AI output look like REAL PHOTOS.
 
-CRITICAL RULES:
-1) SUBJECT LOCK: Never say "a man", "a woman", "a model", or "a person". Always say "The subject".
-2) NO IDENTITY DETAIL: Do NOT describe face, hair, skin, ethnicity, age, or body shape.
-3) NO CLOTHING DETAIL: Do NOT describe garment colors/patterns/design. The garment is provided as a reference image.
-4) EDIT INTENT: Write like an editor describing a real photo (camera + scene + lighting). Do not invent new characters.
-5) OUTPUT: Return ONLY raw JSON with keys:
-{"scene_text":"...","camera_text":"...","imperfection_text":"...","negative_text":"..."}
-No markdown, no extra keys.
+═══════════════════════════════════════════════════════════════════
+CRITICAL RULES
+═══════════════════════════════════════════════════════════════════
 
-REALISM DEFAULT (VERY IMPORTANT):
-- Default to natural, everyday realism. Avoid stylized "AI cinematic" looks unless explicitly requested.
-- Do NOT invent neon cyberpunk lighting, wet reflective streets, heavy color gels, exaggerated bokeh, or unreal glow unless the user request/preset explicitly asks for it.
-- Prefer plausible real-world locations and practical light sources (sun, window light, street lamps) consistent with Photo constraints.
+1) SUBJECT LOCK: Never describe the person. Always say "The subject" or "they".
+   - NO face/hair/skin/body descriptions
+   - NO ethnicity, age, gender descriptions
+   - NO clothing descriptions (garment is provided separately)
 
-PHYSICAL PLAUSIBILITY (VERY IMPORTANT):
-- The scene must be physically possible and match the pose request.
-- If the pose implies sitting at a table/chair/bench, the location MUST support it (cafe/restaurant/park bench/indoor table), never "in the middle of a road".
-- If background is "street", place the subject on a sidewalk / cafe terrace / curbside seating, not on the roadway.
-- Avoid impossible props: floating furniture, random indoor furniture outdoors, tables in traffic, chairs on water, etc.
-- If pose_name is ambiguous, choose the safest plausible context that matches the background_name.
+2) POSE PRESERVATION: The subject's pose comes from their original photo.
+   - Do NOT invent new poses
+   - Do NOT suggest pose changes unless the preset explicitly requires it
+   - If pose_name is "keep unchanged" → describe the pose as "maintaining their natural pose from the original capture"
 
-TIME-OF-DAY + LIGHTING CONSISTENCY (VERY IMPORTANT):
-- Prioritize the provided Photo constraints. If they imply daylight/morning, DO NOT plan a night scene.
-- If a preset name suggests night (e.g., "night street") but Photo constraints imply day, adapt to the closest plausible variant (e.g., "late afternoon street", "golden hour street") unless the user request explicitly demands night.
-- Always ensure the planned lighting for the background and the subject are consistent (same time-of-day, same color temperature family, consistent shadow direction).
+3) PHOTOGRAPHY FOCUS: You are describing HOW to photograph, not WHAT to photograph.
+   - Lens choice, focal length, aperture
+   - Camera position, angle, framing
+   - Lighting direction, quality, color temperature
+   - Film/sensor characteristics
+   - Imperfections that make it look real
 
-FOREGROUND ANCHORS (VERY IMPORTANT):
-- If Photo constraints mention the subject leaning on/near a wall/pillar/rock or any foreground structure, keep that structure and make it belong to the new scene (e.g., sidewalk stone wall, building column, park stone pillar).
-- Never place a wall/pillar as if it is floating or positioned in a roadway.
+4) REALISM OVER STYLE:
+   - Default to natural, everyday realism
+   - NO neon/cyberpunk unless explicitly requested
+   - NO wet reflective streets unless it's actually raining
+   - NO heavy color gels unless it's a party/club scene
+   - NO studio-perfect lighting for outdoor/casual scenes
 
-PROMPT STRUCTURE:
-- Subject: The subject + pose (pose only)
-- Context: background/location/time/weather/atmosphere
-- Style: photorealistic commercial/editorial photography
-- Composition: lens + framing + depth of field
-- Lighting: technical lighting direction/quality/color
-- Details: realistic texture, natural filmic grading
-- Details must avoid the CGI look: add realistic photography imperfections (subtle sensor noise/film grain, slight lens vignette, mild chromatic aberration, non-uniform bokeh, realistic shadow softness).
-- Negative: forbid extra people, collage, overlays, pasted reference, text, watermark, AI artifacts, CGI/3D render look, overly perfect backgrounds.`
+5) PHYSICAL PLAUSIBILITY:
+   - Scene must make sense for the pose
+   - Sitting pose → needs something to sit on (bench, chair, steps)
+   - Standing in street → sidewalk, not middle of road
+   - NO floating furniture, impossible placements
 
-function stylePackHints(stylePack?: InstagramStylePack): string {
+6) LIGHTING CONSISTENCY:
+   - Match the photo constraints from the original capture
+   - If original is daylight → scene should be daylight
+   - Shadow direction must be consistent
+   - Color temperature must match between subject and background
+
+═══════════════════════════════════════════════════════════════════
+OUTPUT FORMAT (JSON only)
+═══════════════════════════════════════════════════════════════════
+{
+  "scene_text": "Scene/location/time/weather description. Subject pose context.",
+  "camera_text": "Lens, focal length, aperture, camera position, framing, DOF description.",
+  "imperfection_text": "REQUIRED imperfections: grain type, noise level, vignette, CA, lens softness, compression artifacts.",
+  "negative_text": "NEGATIVE: list of things to avoid"
+}
+
+Return ONLY valid JSON. No markdown, no extra text.`
+
+// Photography imperfection presets based on research
+const IMPERFECTION_PRESETS = {
+  iphone: {
+    grain: 'subtle digital noise (ISO 200-400 equivalent), more visible in shadows',
+    vignette: 'minimal (SmartHDR compensates)',
+    ca: 'slight purple fringing on high-contrast edges',
+    compression: 'mild JPEG artifacts visible at 100% zoom',
+    lens: 'slight softness at corners, computational sharpening in center',
+  },
+  dslr_natural: {
+    grain: 'fine film-like grain (ISO 400-800), organic texture',
+    vignette: 'subtle natural falloff at corners (1-2 stops)',
+    ca: 'minimal, corrected in-camera',
+    compression: 'minimal (high quality)',
+    lens: 'sharp center, gradual softness toward edges',
+  },
+  flash_harsh: {
+    grain: 'heavy noise in shadow areas (pushed film look)',
+    vignette: 'strong falloff from flash coverage',
+    ca: 'visible on flash reflections',
+    compression: 'moderate (party photo aesthetic)',
+    lens: 'sharp in flash-lit areas, soft in shadows',
+  },
+  film_35mm: {
+    grain: 'visible organic grain (Kodak Portra 400 or Tri-X 400), consistent across frame',
+    vignette: 'moderate natural lens vignette',
+    ca: 'subtle color fringing typical of film lenses',
+    compression: 'none (film scan)',
+    lens: 'characteristic lens rendering, swirly bokeh possible',
+  },
+  documentary: {
+    grain: 'heavy grain (pushed ISO 1600-3200), gritty texture',
+    vignette: 'strong from wide-angle lens',
+    ca: 'noticeable on edges',
+    compression: 'moderate',
+    lens: 'wide-angle distortion, deep DOF',
+  },
+}
+
+function getImperfectionPreset(stylePack?: InstagramStylePack): typeof IMPERFECTION_PRESETS.iphone {
   switch (stylePack) {
     case 'candid_iphone':
-      return 'Instagram CANDID iPhone: handheld feel, slight tilt, mild SmartHDR look, subtle JPEG compression, natural imperfections, realistic bokeh (not perfect circles).'
+      return IMPERFECTION_PRESETS.iphone
     case 'editorial_ig':
-      return 'Instagram EDITORIAL: premium lens look (50–85mm), controlled lighting, clean color grade, still natural texture (no plastic skin), no CGI perfection.'
+      return IMPERFECTION_PRESETS.dslr_natural
     case 'flash_party':
-      return 'Instagram FLASH PARTY: harsh on-camera flash, deeper shadows, visible noise in dark areas, imperfect crooked framing; still photoreal (no AI glow).'
+      return IMPERFECTION_PRESETS.flash_harsh
     case 'travel_journal':
-      return 'Instagram TRAVEL JOURNAL: warm natural light, light haze, subtle lens flare when appropriate, slightly imperfect handheld framing, realistic atmosphere.'
+      return IMPERFECTION_PRESETS.film_35mm
     case 'surveillance_doc':
-      return 'DOCUMENTARY/SURVEILLANCE: high-angle wide framing, flatter contrast, muted colors, gritty realism, slight motion blur on extremities.'
+      return IMPERFECTION_PRESETS.documentary
     default:
-      return 'Instagram photorealistic post: natural imperfections, real camera look, no CGI.'
+      return IMPERFECTION_PRESETS.dslr_natural
   }
 }
 
-function focusHints(backgroundFocus?: BackgroundFocusMode): string {
+function stylePackDescription(stylePack?: InstagramStylePack): string {
+  switch (stylePack) {
+    case 'candid_iphone':
+      return 'Candid iPhone snapshot: handheld feel, SmartHDR processing, slightly warm, JPEG compression visible, natural imperfect bokeh from small sensor.'
+    case 'editorial_ig':
+      return 'Editorial Instagram: 50-85mm lens, controlled bokeh, clean grade, skin texture visible, professional but not sterile.'
+    case 'flash_party':
+      return 'Flash party/digicam: harsh on-camera flash, deep shadows, high contrast, noise in dark areas, crooked framing OK, no retouching.'
+    case 'travel_journal':
+      return 'Travel journal: warm golden light, light haze, subtle flare, handheld framing, vacation snap aesthetic, rich colors.'
+    case 'surveillance_doc':
+      return 'Documentary/surveillance: high angle, wide lens, flat contrast, muted colors, motion blur OK, gritty and unpolished.'
+    default:
+      return 'Natural photography: real camera imperfections, visible grain, natural bokeh, slight vignette, no CGI look.'
+  }
+}
+
+function focusDescription(backgroundFocus?: BackgroundFocusMode): string {
   return backgroundFocus === 'sharper_bg'
-    ? 'Background focus: keep more environment detail visible (less blur), realistic depth (not ultra-bokeh).'
-    : 'Background focus: moderate bokeh / shallow DOF is ok, but keep it realistic (not perfect blur).'
+    ? 'Background focus: Keep environment sharp (f/5.6-f/8), full context visible, texture preserved, minimal bokeh.'
+    : 'Background focus: Moderate DOF (f/2.8-f/4), natural bokeh with micro-texture preserved, NOT Gaussian blur.'
 }
 
 function extractJsonObject(raw: string): string {
@@ -123,34 +191,63 @@ export async function generateShootPlanV3(params: {
   } = params
   const openai = getOpenAI()
 
+  const imperfections = getImperfectionPreset(stylePack)
+  
   const recipeBlock = realismRecipe
-    ? `Selected realism recipe id: ${realismRecipe.id}
-Why selected: ${selectedRecipeWhy || 'best match for subject capture + preset'}
-Recipe scene template (try-on safe): ${realismRecipe.scene_template}
-Recipe camera: ${realismRecipe.camera.lens_hint}; ${realismRecipe.camera.pov_hint}; ${realismRecipe.camera.framing_hint}; ${realismRecipe.camera.dof_hint}
-Recipe imperfections: grain=${realismRecipe.imperfections.grain}; compression=${realismRecipe.imperfections.compression}; vignette=${realismRecipe.imperfections.vignette}; CA=${realismRecipe.imperfections.chromatic_aberration}; handheld_tilt_ok=${realismRecipe.imperfections.handheld_tilt_ok}; motion_blur=${realismRecipe.imperfections.motion_blur_hint}
+    ? `
+SELECTED REALISM RECIPE: ${realismRecipe.id}
+Reason: ${selectedRecipeWhy || 'best match'}
+Scene template: ${realismRecipe.scene_template}
+Camera: ${realismRecipe.camera.lens_hint}, ${realismRecipe.camera.pov_hint}, ${realismRecipe.camera.framing_hint}, ${realismRecipe.camera.dof_hint}
+Recipe imperfections: grain=${realismRecipe.imperfections.grain}, compression=${realismRecipe.imperfections.compression}, vignette=${realismRecipe.imperfections.vignette}, CA=${realismRecipe.imperfections.chromatic_aberration}
 Recipe negatives: ${realismRecipe.negative_template}`
     : ''
 
-  const userPrompt = `Pose: ${pose_name}
-Lighting: ${lighting_name}
+  const userPrompt = `
+═══════════════════════════════════════════════════════════════════
+INPUT PARAMETERS
+═══════════════════════════════════════════════════════════════════
+Pose: ${pose_name}
+Lighting: ${lighting_name}  
 Background: ${background_name}
-Style pack: ${stylePackHints(stylePack)}
-${focusHints(backgroundFocus)}
-${userRequest ? `User request (ignore if about face/body/clothing): ${userRequest}` : ''}
-${photoConstraints ? `\nPhoto constraints (must follow for realism): ${photoConstraints}` : ''}
-${photoManifest ? `\nPhoto manifest (structured; follow when helpful): ${JSON.stringify(photoManifest)}` : ''}
-${recipeBlock ? `\n${recipeBlock}` : ''}
+Style: ${stylePackDescription(stylePack)}
+${focusDescription(backgroundFocus)}
+${userRequest ? `User request: ${userRequest}` : ''}
 
-Return ONLY JSON with keys: scene_text, camera_text, imperfection_text, negative_text.
+═══════════════════════════════════════════════════════════════════
+PHOTO CONSTRAINTS (from original capture - MUST FOLLOW)
+═══════════════════════════════════════════════════════════════════
+${photoConstraints || 'Match the original photo lighting and camera perspective.'}
+${photoManifest ? `Structured data: ${JSON.stringify(photoManifest)}` : ''}
 
-Requirements:
-- scene_text must describe ONLY scene/context/time/weather/atmosphere and the subject pose (pose only). No identity traits. No clothing design details.
-- camera_text must specify lens/POV/framing/DOF consistent with photo constraints + recipe.
-- imperfection_text must specify micro-texture + realistic imperfection budget (grain/noise/compression/vignette/CA) consistent with photo constraints + recipe.
-- negative_text must start with \"NEGATIVE:\" and explicitly forbid AI look, smeary/painterly blur, overly perfect bokeh, CGI glow, extra people, text, watermarks, collage, pasted refs.
+═══════════════════════════════════════════════════════════════════
+IMPERFECTION REQUIREMENTS (style-specific)
+═══════════════════════════════════════════════════════════════════
+Grain: ${imperfections.grain}
+Vignette: ${imperfections.vignette}
+Chromatic aberration: ${imperfections.ca}
+Compression: ${imperfections.compression}
+Lens character: ${imperfections.lens}
+${recipeBlock}
 
-Return ONLY JSON.`
+═══════════════════════════════════════════════════════════════════
+YOUR TASK
+═══════════════════════════════════════════════════════════════════
+Generate a photography direction that:
+1. Describes the SCENE (location, time, weather, atmosphere) that fits the pose
+2. Specifies CAMERA settings (lens, position, framing, DOF) 
+3. Lists REQUIRED IMPERFECTIONS to make it look like a real photo
+4. Lists what to AVOID (AI artifacts, CGI look, etc.)
+
+CRITICAL:
+- Scene must be physically plausible for the pose
+- If sitting → there must be something to sit on
+- If street → subject on sidewalk, not in traffic
+- Lighting must match the photo constraints
+- Include ALL imperfections - this is what makes it look real
+
+Return ONLY JSON with keys: scene_text, camera_text, imperfection_text, negative_text
+`
 
   const resp = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
@@ -159,8 +256,8 @@ Return ONLY JSON.`
       { role: 'user', content: userPrompt },
     ],
     response_format: { type: 'json_object' },
-    temperature: 0.2,
-    max_tokens: 600,
+    temperature: 0.15, // Lower for more consistent output
+    max_tokens: 700,
   })
 
   const content = resp.choices?.[0]?.message?.content ?? ''
@@ -172,30 +269,48 @@ Return ONLY JSON.`
   const imperfection_text = String(parsed?.imperfection_text ?? '').trim()
   let negative_text = String(parsed?.negative_text ?? '').trim()
 
-  const promptFromParts = [scene_text, camera_text, imperfection_text, negative_text].filter(Boolean).join('\n')
-  const prompt_text = String(parsed?.prompt_text ?? '').trim() || promptFromParts
+  // Ensure imperfection_text includes our requirements if model skipped them
+  const enhancedImperfections = imperfection_text || `
+REQUIRED IMPERFECTIONS:
+- Grain: ${imperfections.grain}
+- Vignette: ${imperfections.vignette}
+- Chromatic aberration: ${imperfections.ca}
+- Compression: ${imperfections.compression}
+- Lens: ${imperfections.lens}
+- Background: preserve micro-texture even in bokeh areas, NO smeary/painterly blur`
+
+  const promptFromParts = [scene_text, camera_text, enhancedImperfections, negative_text].filter(Boolean).join('\n\n')
+  const prompt_text = promptFromParts || String(parsed?.prompt_text ?? '').trim()
   if (!prompt_text) throw new Error('Director output missing prompt content')
 
-  // Add a default negative tail if the model forgot it (keeps it robust)
-  const hasNegative = /NEGATIVE/i.test(prompt_text)
-  const withNegative = hasNegative
-    ? prompt_text
-    : `${prompt_text}\nNEGATIVE: extra people, duplicate subject, collage, overlay, pasted reference image, cutout, mannequin, picture-in-picture, text, logo, watermark, blurry, distorted hands, plastic skin, halos, AI artifacts, CGI/3D render look, overly perfect background, unrealistic lighting.`
-
+  // Ensure negative text is comprehensive
   if (!negative_text || !/^NEGATIVE:/i.test(negative_text)) {
-    negative_text =
-      'NEGATIVE: extra people, duplicate subject, collage, overlay, pasted reference image, cutout, mannequin, picture-in-picture, text, logo, watermark, smeary blur, painterly background, plastic skin, halos, AI artifacts, CGI/3D render look, overly perfect background, unrealistic lighting, heavy glow/bloom, perfect bokeh.'
+    negative_text = `NEGATIVE: extra people, duplicate subject, collage, overlay, pasted reference image, cutout, mannequin, text, logo, watermark, 
+- CGI/3D render look, overly perfect surfaces, plastic skin, waxy texture
+- Perfect bokeh circles, Gaussian blur backgrounds, smeary/painterly blur
+- HDR glow, bloom, haloing around subject
+- Neon/cyberpunk grading (unless explicitly requested)
+- Wet reflective streets without rain
+- Studio-perfect lighting for outdoor scenes
+- AI artifacts, unnatural symmetry, impossible anatomy`
   }
 
+  // Combine into final prompt
+  const finalPrompt = `${scene_text}
+
+${camera_text}
+
+${enhancedImperfections}
+
+${negative_text}`
+
   return {
-    prompt_text: withNegative,
+    prompt_text: finalPrompt,
     scene_text: scene_text || undefined,
     camera_text: camera_text || undefined,
-    imperfection_text: imperfection_text || undefined,
+    imperfection_text: enhancedImperfections || undefined,
     negative_text,
     selected_recipe_id: realismRecipe?.id,
     selected_recipe_why: selectedRecipeWhy,
   }
 }
-
-

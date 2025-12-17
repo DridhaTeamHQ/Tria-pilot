@@ -9,12 +9,10 @@ function stripDataUrl(base64: string): string {
 }
 
 function normalizeAspectRatio(ratio: string | undefined): string {
-  // @google/genai ImageConfig supports: "1:1","2:3","3:2","3:4","4:3","9:16","16:9","21:9"
   const raw = String(ratio || '').trim()
   if (!raw) return '3:4'
   const allowed = new Set(['1:1', '2:3', '3:2', '3:4', '4:3', '9:16', '16:9', '21:9'])
   if (allowed.has(raw)) return raw
-  // map common portrait ratios used in the app to the closest supported ones
   if (raw === '4:5') return '3:4'
   if (raw === '5:4') return '4:3'
   return '3:4'
@@ -35,6 +33,154 @@ function isRetryableGeminiError(err: unknown): boolean {
     msg.includes('socket hang up')
   )
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHOTOGRAPHY REALISM RULES (based on professional photography research)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const IDENTITY_LOCK_RULES = `
+═══════════════════════════════════════════════════════════════════
+IDENTITY LOCK (ABSOLUTE - NO EXCEPTIONS)
+═══════════════════════════════════════════════════════════════════
+You are EDITING image 1, not generating a new person. The subject in the output MUST be the EXACT SAME PERSON as in image 1.
+
+FACE GEOMETRY (EXACT MATCH REQUIRED):
+- Eye shape, size, spacing, and corner positions: UNCHANGED
+- Nose bridge width, nostril shape, nose length: UNCHANGED  
+- Lip shape, thickness, cupid's bow: UNCHANGED
+- Jawline contour, chin shape: UNCHANGED
+- Eyebrow shape, arch, thickness: UNCHANGED
+- Cheekbone prominence and facial structure: UNCHANGED
+- Facial proportions (eye-to-nose, nose-to-lip ratios): UNCHANGED
+
+SKIN & TEXTURE (EXACT MATCH REQUIRED):
+- Skin tone, undertone, and complexion: UNCHANGED from image 1
+- Skin texture, pores, any marks/moles: PRESERVE exactly
+- Do NOT smooth, airbrush, or beautify the skin
+- Do NOT change skin exposure, white balance, or color temperature on the face
+- Any freckles, beauty marks, or skin characteristics: PRESERVE
+
+HAIR (EXACT MATCH REQUIRED):
+- Hair color, highlights, texture: UNCHANGED
+- Hairstyle, parting, volume: UNCHANGED
+- Hair placement and flow: PRESERVE from image 1
+
+EXPRESSION & GAZE (EXACT MATCH REQUIRED):
+- Facial expression: UNCHANGED (same emotion, same micro-expressions)
+- Eye gaze direction: UNCHANGED
+- Mouth position (open/closed/smile): UNCHANGED
+
+FAILURE CONDITIONS:
+- If the output face looks like a "similar person" instead of the EXACT same person → WRONG
+- If facial proportions shifted even slightly → WRONG
+- If skin tone changed (lighter/darker/different undertone) → WRONG
+- If the face was "beautified" or smoothed → WRONG
+`
+
+const POSE_LOCK_RULES = `
+═══════════════════════════════════════════════════════════════════
+POSE LOCK (EXACT - DO NOT MODIFY)
+═══════════════════════════════════════════════════════════════════
+The subject's pose MUST match image 1 exactly. Do NOT generate a new pose.
+
+BODY POSITION (EXACT):
+- Head tilt, angle, and rotation: UNCHANGED
+- Shoulder position and angle: UNCHANGED
+- Arm placement and hand positions: UNCHANGED
+- Torso angle and lean: UNCHANGED
+- If sitting/standing/leaning: SAME position
+- Body proportions and build: UNCHANGED
+
+NATURAL POSE PRINCIPLES:
+- The pose should look natural and relaxed, not stiff or robotic
+- Weight distribution should be realistic
+- Limbs should have natural angles (not perfectly straight or unnaturally bent)
+- Hands should look natural (no claw hands, no missing fingers, no extra fingers)
+
+DO NOT:
+- Invent a new pose
+- "Improve" or "beautify" the pose
+- Make the subject stand straighter or pose more formally
+- Change the camera angle/perspective on the subject
+`
+
+const PHOTOGRAPHY_REALISM_RULES = `
+═══════════════════════════════════════════════════════════════════
+PHOTOGRAPHY REALISM (MAKE IT LOOK LIKE A REAL PHOTO)
+═══════════════════════════════════════════════════════════════════
+The output must look like it was captured by a REAL CAMERA, not rendered by AI.
+
+FILM/SENSOR CHARACTERISTICS (REQUIRED):
+- Add subtle film grain or sensor noise (ISO 400-1600 equivalent)
+- Grain should be visible in shadows and midtones
+- Different grain structure for highlights vs shadows
+- Slight color noise in shadow areas
+
+LENS CHARACTERISTICS (REQUIRED):
+- Subtle vignetting at corners (natural falloff, not heavy)
+- Mild chromatic aberration on high-contrast edges (purple/green fringing)
+- Realistic bokeh: NOT perfect circles, show cat-eye shapes at edges, slight onion rings
+- Lens softness: slight reduction in sharpness at extreme corners
+- Natural lens flare only if strong backlight is present
+
+DEPTH OF FIELD (REALISTIC):
+- Background blur must follow optical physics
+- Focus falloff should be gradual, not a hard cutoff
+- Bokeh shapes should match the aperture (not perfect circles)
+- Objects at different distances should have proportional blur
+- Do NOT apply uniform Gaussian blur - preserve micro-texture in blurred areas
+
+BACKGROUND TEXTURE (CRITICAL):
+- NEVER apply painterly/smeary blur to backgrounds
+- Even blurred backgrounds must retain micro-texture and detail hints
+- Stone/brick should show pores, wood should show grain, fabric should show weave
+- Signage can be blurred but should retain shape (no text needed)
+- Foliage should have individual leaf shapes visible, not smeared green
+
+LIGHTING (REALISTIC):
+- Shadows must have realistic softness (not perfectly hard or perfectly soft)
+- Shadow direction must be consistent across subject and background
+- Specular highlights should match the light source
+- Avoid "studio perfect" even lighting - real photos have lighting falloff
+- Color temperature must match between subject and environment
+
+ANTI-AI MARKERS (AVOID THESE):
+- No plastic/waxy skin
+- No perfect symmetry in faces or backgrounds
+- No HDR glow or bloom
+- No neon/cyberpunk color grading unless explicitly requested
+- No wet reflective streets without rain context
+- No unnatural color saturation
+- No "too clean" surfaces - real world has dust, wear, imperfections
+`
+
+const GARMENT_RULES = `
+═══════════════════════════════════════════════════════════════════
+GARMENT APPLICATION (REQUIRED)
+═══════════════════════════════════════════════════════════════════
+Replace the subject's clothing with the garment from the reference image.
+
+GARMENT FIDELITY (EXACT MATCH):
+- Color/shade: EXACT match to reference garment
+- Pattern/print/embroidery: EXACT match (same motifs, same spacing)
+- Neckline shape: EXACT match
+- Sleeve style/length: EXACT match  
+- Button/placket details: EXACT match
+- Fabric texture: Match the drape and texture visible in reference
+
+FIT & PHYSICS:
+- Garment should fit naturally on the subject's body
+- Realistic folds, creases, and draping based on pose
+- Proper occlusion (garment behind arms, body parts as appropriate)
+- Shadows from garment onto skin/other clothing should be realistic
+
+DO NOT:
+- Keep any of the original outfit from image 1
+- Redesign or "improve" the garment
+- Change the garment color or pattern
+- Add logos, text, or details not in the reference
+- Paste the garment flat - it must wrap around the body realistically
+`
 
 export async function renderTryOnV3(params: {
   subjectImageBase64: string
@@ -62,153 +208,151 @@ export async function renderTryOnV3(params: {
 
   const model = opts.quality === 'high' ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image'
   const aspectRatio = normalizeAspectRatio(opts.aspectRatio || '4:5')
-  const resolution = opts.resolution || '2K'
 
   const cleanSubject = stripDataUrl(subjectImageBase64)
   const cleanGarment = stripDataUrl(garmentImageBase64)
   if (!cleanSubject || cleanSubject.length < 100) throw new Error('Invalid subject image')
   if (!cleanGarment || cleanGarment.length < 100) throw new Error('Invalid garment image')
 
+  // Style pack determines the "camera feel" 
   const styleBlock = (() => {
     switch (stylePack) {
       case 'candid_iphone':
-        return [
-          'STYLE PACK: Candid iPhone / Instagram post',
-          '- handheld feel, slight tilt ok, mild SmartHDR look',
-          '- subtle JPEG compression artifacts, realistic sensor noise',
-          '- natural imperfect bokeh (not perfect circles), avoid CGI cleanliness',
-        ].join('\n')
+        return `
+STYLE: Candid iPhone / Instagram
+- Handheld feel with subtle tilt allowed
+- SmartHDR look with natural dynamic range
+- JPEG compression artifacts visible on close inspection
+- Sensor noise visible in shadows (like iPhone in moderate light)
+- Natural imperfect bokeh from small sensor
+- Slightly warm color cast typical of iPhone processing`
+
       case 'editorial_ig':
-        return [
-          'STYLE PACK: Editorial IG (premium but real)',
-          '- 50–85mm lens look, controlled highlights, clean grade',
-          '- still realistic texture (pores visible), no plastic skin',
-          '- avoid CGI-perfect background; keep real-world imperfections subtle',
-        ].join('\n')
+        return `
+STYLE: Editorial Instagram (premium but real)
+- 50-85mm lens look with controlled bokeh
+- Clean but not sterile color grade
+- Skin texture fully visible (pores, micro-texture)
+- Slight lens character (mild vignette, subtle CA)
+- Professional lighting but not studio-perfect
+- Real environment, not CGI backdrop`
+
       case 'flash_party':
-        return [
-          'STYLE PACK: Flash party / digicam vibe',
-          '- harsh on-camera flash, deeper shadows, visible noise in dark areas',
-          '- slightly crooked framing and imperfect crop is OK',
-          '- keep it photoreal; no AI glow, no haloing',
-        ].join('\n')
+        return `
+STYLE: Flash party / digicam aesthetic
+- Harsh on-camera flash with strong shadows
+- High contrast, crushed blacks in shadows
+- Visible noise in dark areas
+- Slightly crooked framing acceptable
+- Red-eye or flash reflection in eyes possible
+- No beauty retouching - raw and real`
+
       case 'travel_journal':
-        return [
-          'STYLE PACK: Travel journal',
-          '- warm natural light, light haze, subtle lens flare when appropriate',
-          '- slightly imperfect handheld framing, realistic atmosphere',
-          '- keep subject crisp; any motion blur should be minimal and mostly in background',
-        ].join('\n')
+        return `
+STYLE: Travel journal / vacation snap
+- Warm natural light with golden hour feel
+- Light atmospheric haze acceptable
+- Subtle lens flare if backlit
+- Handheld imperfection in framing
+- Rich but not oversaturated colors
+- Environmental context important`
+
       case 'surveillance_doc':
-        return [
-          'STYLE PACK: Documentary / surveillance',
-          '- higher angle / wider framing, flatter contrast, muted palette',
-          '- slight motion blur on extremities is acceptable',
-          '- gritty realism, no beauty retouching, no CGI look',
-        ].join('\n')
+        return `
+STYLE: Documentary / surveillance aesthetic
+- Higher angle, wider framing
+- Flat contrast, muted color palette
+- Motion blur on extremities acceptable
+- Gritty realism, no beautification
+- Available light only, no flash
+- Grain and noise expected`
+
       default:
-        return 'STYLE PACK: Instagram photorealistic post — real camera imperfections, no CGI.'
+        return `
+STYLE: Natural Instagram photo
+- Real camera imperfections required
+- Visible grain/noise in appropriate areas
+- Natural bokeh (not perfect circles)
+- Slight vignetting acceptable
+- No CGI/AI look`
     }
   })()
 
-  const focusBlock =
-    backgroundFocus === 'sharper_bg'
-      ? 'BACKGROUND FOCUS: keep background sharper with more environmental detail (less blur).'
-      : 'BACKGROUND FOCUS: moderate bokeh is ok, but must be realistic (not overly perfect blur).'
+  // Background focus mode
+  const focusBlock = backgroundFocus === 'sharper_bg'
+    ? `
+BACKGROUND: Sharp environmental detail
+- Keep background relatively sharp (f/5.6-f/8 equivalent)
+- Environmental texture must be visible
+- Stone pores, wood grain, fabric weave all readable
+- Minimal bokeh, maximum context`
+    : `
+BACKGROUND: Moderate depth of field
+- Natural bokeh (f/2.8-f/4 equivalent)
+- Background texture still visible through blur
+- Bokeh shapes should be imperfect (cat-eye at edges)
+- NOT Gaussian blur - preserve micro-detail`
 
-  const backgroundDetailRule =
-    backgroundFocus === 'sharper_bg'
-      ? [
-          'BACKGROUND DETAIL (EXACT): Preserve high-frequency detail in the environment. Do NOT smear/denoise/painterly-blur the background.',
-          'Background should remain readable: stone pores, wood grain, signage shapes (no text), fabric weave, concrete texture.',
-        ].join('\n')
-      : [
-          'BACKGROUND DETAIL (EXACT): If using bokeh, keep it realistic and optically plausible (no perfect blur wallpaper).',
-          'Do NOT smear the background; preserve micro-texture where in focus and keep bokeh non-uniform.',
-        ].join('\n')
+  // Scene instructions from director
+  const planScene = shootPlan.scene_text || ''
+  const planCamera = shootPlan.camera_text || ''
+  const planImperfections = shootPlan.imperfection_text || ''
+  const planNegative = shootPlan.negative_text || ''
 
-  const roleText = [
-    'ROLE: You are an expert Fashion Editor. Generate a professional composite image.',
-    'IMPORTANT: This is an EDIT of image 1 (the subject). Do not create a new person.',
-    'Output must contain exactly ONE subject: the subject from image 1.',
-    'Do NOT paste/insert the reference image (no collage, no overlay, no cutout person).',
-    'Replace ONLY the clothing worn by the subject in image 1 using the garment reference.',
-    'IDENTITY LOCK (EXACT): Keep identity/face/hair/skin tone/body proportions/pose/expression/gaze unchanged.',
-    'FACE RULES (EXACT): Do not edit facial features, facial proportions, makeup shape, or skin texture. No beautification. No face retouching.',
-    'LIGHTING RULE (EXACT): Keep the subject lighting consistent with image 1. Prefer adapting the background grade/time-of-day to match the subject. Do NOT rebuild/re-render the face to match new lighting.',
-    'COLOR RULE (EXACT): Do NOT change the subject’s FACE/SKIN exposure, white balance, or skin tone compared to image 1. Do NOT brighten/whiten/desaturate the face. Clothing colors WILL change to match the garment reference (that is intended). Apply any global color grading primarily to the BACKGROUND, not the face/skin.',
-    extraStrict
-      ? 'FACE CONSISTENCY (EXACT): Preserve the subject’s facial structure precisely (eyes, nose bridge, lips, jawline). Do NOT re-render a new face to match the new lighting; adjust lighting globally while keeping facial geometry unchanged.'
-      : '',
-    'SKIN TEXTURE: preserve pores and micro-texture, no smoothing, no plastic skin, no haloing, no HDR glow.',
-    'REALISM OVERRIDE: Make the final image look like a real camera photo, not an AI render. Avoid neon/cyberpunk color grading, wet reflective streets, heavy glow/bloom, unreal perfect bokeh, plastic skin, and "studio-perfect" lighting unless explicitly requested.',
-    backgroundDetailRule,
-    styleBlock,
-    focusBlock,
-    extraStrict
-      ? 'EXTRA STRICT: If face drifts even slightly OR any extra person appears OR the reference gets pasted, regenerate internally and output only the corrected single-subject edit.'
-      : '',
-  ]
-    .filter(Boolean)
-    .join('\n')
+  const sceneInstructions = `
+═══════════════════════════════════════════════════════════════════
+SCENE INSTRUCTIONS
+═══════════════════════════════════════════════════════════════════
+${planScene || shootPlan.prompt_text}
 
-  const identityText =
-    'REFERENCE IDENTITY (EXACT): This is the subject. Maintain strict fidelity to this identity and pose. Do not alter face, hair, skin tone, expression, or body.'
+${planCamera ? `CAMERA:\n${planCamera}` : ''}
 
-  const apparelText = [
-    'REFERENCE APPAREL: This image is the garment reference. Copy it EXACTLY.',
-    'The garment image must NOT appear in the output. Do NOT include its person/mannequin.',
-    'Extract ONLY the garment and dress the subject in image 1 with it.',
-    'Clothing replacement is REQUIRED: remove the subject’s original outfit and replace with the reference garment.',
-    'PRIORITY: If there is any conflict between background styling and clothing replacement, ALWAYS prioritize clothing replacement. If necessary, keep the original background and only replace the outfit.',
-    extraStrict
-      ? 'FAIL CONDITION: If the subject is still wearing the original outfit from image 1, the result is WRONG. Regenerate internally until the garment is applied.'
-      : '',
-    'EXACT GARMENT RULES (no redesign): keep the exact neckline, armholes/sleeves, button/placket details, embroidery/print motifs, motif spacing, and fabric texture.',
-    'No color shifting: match the exact shade/hue and contrast from the reference garment. Do not invent new patterns.',
-    'Ensure realistic fit, drape, folds, occlusion, and shadows consistent with the scene.',
-    'NEGATIVE: extra people, duplicate subject, collage, overlay, pasted reference, cutout, mannequin, text, logo, watermark, deformed hands, plastic skin, halos.',
-  ]
-    .filter(Boolean)
-    .join('\n')
+${planImperfections ? `IMPERFECTIONS (REQUIRED):\n${planImperfections}` : ''}
 
-  const planScene = (shootPlan as any)?.scene_text ? String((shootPlan as any).scene_text) : ''
-  const planCamera = (shootPlan as any)?.camera_text ? String((shootPlan as any).camera_text) : ''
-  const planImperfections = (shootPlan as any)?.imperfection_text ? String((shootPlan as any).imperfection_text) : ''
-  const planNegative = (shootPlan as any)?.negative_text ? String((shootPlan as any).negative_text) : ''
-  const planFallback = shootPlan.prompt_text
+SCENE COHERENCE (MANDATORY):
+- Scene must be physically plausible for the pose
+- No tables/chairs in the middle of roads
+- No floating furniture or impossible placements
+- If street scene: subject on sidewalk/terrace, never in traffic
+- Foreground elements must contextually belong to the scene
 
-  const sceneText = extraStrict
-    ? // if extraStrict, we downplay scene change to avoid confusing edits
-      `SCENE INSTRUCTION: Keep background natural and realistic. ${planScene || planFallback}
-${planCamera ? `\nCAMERA:\n${planCamera}` : ''}
-${planImperfections ? `\nIMPERFECTIONS:\n${planImperfections}` : ''}
-${planNegative ? `\n${planNegative}` : ''}
-SCENE COHERENCE (NON-NEGOTIABLE):
-- The scene must be physically plausible for the pose. No tables/chairs in the middle of roads, no floating furniture, no impossible placements.
-- If the setting is a street, keep the subject on a sidewalk / cafe terrace / curbside seating area — never on the roadway.
-- Preserve and contextualize any foreground structure the subject is interacting with (wall/pillar/rock). If a wall/pillar remains, it must belong in the new scene (sidewalk stone wall/building column), never floating or in traffic.
-PHOTO REALISM:
-- Background must look like a real photo (not CGI). Add subtle sensor noise/film grain and tiny lens imperfections.
-- Avoid overly-perfect symmetry, overly-clean surfaces, and unrealistic bokeh.
-- CRITICAL: Do NOT apply Gaussian blur or painterly denoise to the background; preserve micro-texture.`
-    : `SCENE INSTRUCTION: ${planScene || planFallback}
-${planCamera ? `\nCAMERA:\n${planCamera}` : ''}
-${planImperfections ? `\nIMPERFECTIONS:\n${planImperfections}` : ''}
-${planNegative ? `\n${planNegative}` : ''}
-SCENE COHERENCE (NON-NEGOTIABLE):
-- The scene must be physically plausible for the pose. No tables/chairs in the middle of roads, no floating furniture, no impossible placements.
-- If the setting is a street, keep the subject on a sidewalk / cafe terrace / curbside seating area — never on the roadway.
-- Preserve and contextualize any foreground structure the subject is interacting with (wall/pillar/rock). If a wall/pillar remains, it must belong in the new scene (sidewalk stone wall/building column), never floating or in traffic.
-PHOTO REALISM:
-- Background must look like a real photo (not CGI). Add subtle sensor noise/film grain and tiny lens imperfections.
-- Keep lighting direction/shadows consistent across subject and background. Avoid HDR glow or perfect studio-clean look.
-- CRITICAL: Do NOT apply Gaussian blur or painterly denoise to the background; preserve micro-texture.`
+${planNegative || 'NEGATIVE: extra people, collage, overlay, pasted reference, text, watermark, plastic skin, CGI look, perfect bokeh, smeary blur'}
+`
 
+  // Build the full prompt
+  const roleText = `
+═══════════════════════════════════════════════════════════════════
+ROLE: Expert Fashion Photo Editor
+═══════════════════════════════════════════════════════════════════
+You are editing IMAGE 1 to replace the clothing with the garment from the reference.
+This is a PHOTO EDIT, not image generation. The output must be the SAME PERSON.
+
+OUTPUT REQUIREMENTS:
+- Exactly ONE subject (the person from image 1)
+- Same identity, same pose, same expression
+- Clothing replaced with the reference garment
+- Background styled according to scene instructions
+- Must look like a REAL PHOTOGRAPH (not AI generated)
+
+${IDENTITY_LOCK_RULES}
+${POSE_LOCK_RULES}
+${PHOTOGRAPHY_REALISM_RULES}
+${GARMENT_RULES}
+${styleBlock}
+${focusBlock}
+${extraStrict ? `
+EXTRA STRICT MODE:
+- Any face drift is UNACCEPTABLE - regenerate until exact match
+- Pose must be pixel-perfect to original
+- If garment not applied, regenerate
+- Zero tolerance for AI artifacts` : ''}
+`
+
+  // Build content array with images
   const additionalIdentity: ContentListUnion = []
   if (identityImagesBase64.length > 0) {
     additionalIdentity.push(
-      'ADDITIONAL IDENTITY REFERENCES: The next images show the SAME subject. Use them ONLY to preserve the exact same face/identity. Do not copy clothing from these.'
+      'ADDITIONAL IDENTITY ANCHORS: These show the SAME person from different angles. Use to lock identity. Do NOT copy clothing from these.'
     )
     for (const img of identityImagesBase64.slice(0, 3)) {
       const clean = stripDataUrl(img)
@@ -222,57 +366,45 @@ PHOTO REALISM:
 
   const contents: ContentListUnion = [
     roleText,
+    'IMAGE 1 (SUBJECT - EDIT THIS): This is the source image. Keep this exact person, exact pose, exact expression.',
     {
-      inlineData: {
-        data: cleanSubject,
-        mimeType: 'image/jpeg',
-      },
+      inlineData: { data: cleanSubject, mimeType: 'image/jpeg' },
     } as any,
     ...additionalIdentity,
-    identityText,
+    'GARMENT REFERENCE: Replace the subject\'s clothing with this garment. Copy it EXACTLY. Do NOT include the person/mannequin from this image.',
     {
-      inlineData: {
-        data: cleanGarment,
-        mimeType: 'image/jpeg',
-      },
+      inlineData: { data: cleanGarment, mimeType: 'image/jpeg' },
     } as any,
-    apparelText,
     ...(garmentBackupImageBase64
-      ? ([
-          'BACKUP GARMENT REFERENCE (for fidelity only): This may include a person—IGNORE THE PERSON COMPLETELY. Do NOT paste this image. Use it ONLY to confirm exact garment details (pattern/neckline/buttons).',
+      ? [
+          'BACKUP GARMENT DETAIL: Use ONLY for garment detail verification (pattern/buttons/neckline). IGNORE any person in this image.',
           {
-            inlineData: {
-              data: stripDataUrl(garmentBackupImageBase64),
-              mimeType: 'image/jpeg',
-            },
+            inlineData: { data: stripDataUrl(garmentBackupImageBase64), mimeType: 'image/jpeg' },
           } as any,
-        ] as any)
+        ]
       : []),
-    sceneText,
+    sceneInstructions,
   ]
 
   const imageConfig: ImageConfig = { aspectRatio } as any
 
-  // NOTE: Some models reject unknown/unsupported imageConfig fields with 400 INVALID_ARGUMENT.
-  // imageSize is supported by the SDK types, but to be safest we only set it for the PRO image model.
   if (model === 'gemini-3-pro-image-preview') {
-    const resolvedSize = opts.resolution || '2K'
-    ;(imageConfig as any).imageSize = resolvedSize as any
+    ;(imageConfig as any).imageSize = opts.resolution || '2K'
   }
 
   const config: GenerateContentConfig = {
     responseModalities: ['IMAGE'],
     imageConfig,
-    // Lower temp reduces identity drift/hallucination.
-    temperature: model === 'gemini-3-pro-image-preview' ? 0.15 : 0.25,
+    // Very low temperature for maximum consistency
+    temperature: model === 'gemini-3-pro-image-preview' ? 0.1 : 0.2,
   }
 
   let lastErr: unknown
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const resp = await client.models.generateContent({ model, contents, config })
-      if (resp.data) return `data:image/png;base64,${resp.data}`
-
+      
+      // Extract image from response parts (avoids SDK warnings)
       if (resp.candidates?.length) {
         for (const part of resp.candidates[0]?.content?.parts || []) {
           if (part.inlineData?.mimeType?.startsWith('image/') && part.inlineData?.data) {
@@ -280,6 +412,9 @@ PHOTO REALISM:
           }
         }
       }
+
+      // Fallback accessor
+      if ((resp as any).data) return `data:image/png;base64,${(resp as any).data}`
 
       throw new Error('Renderer returned no image')
     } catch (err) {
@@ -294,5 +429,3 @@ PHOTO REALISM:
 
   throw lastErr instanceof Error ? lastErr : new Error('Renderer failed after retries')
 }
-
-

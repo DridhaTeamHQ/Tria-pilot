@@ -26,6 +26,12 @@ export async function runTryOnPipelineV3(params: {
     shootPlanText: string
     usedGarmentExtraction: boolean
     verify?: any
+    realismRecipeId?: string
+    realismWhy?: string
+    initialQuality?: TryOnQualityOptions['quality']
+    retryQuality?: TryOnQualityOptions['quality']
+    usedQualityUpgrade?: boolean
+    retryReason?: string
   }
 }> {
   const { subjectImageBase64, clothingRefBase64, identityImagesBase64 = [], preset, userRequest, quality } = params
@@ -37,7 +43,7 @@ export async function runTryOnPipelineV3(params: {
   const backgroundFocus = preset?.background_focus
   const identityLock = preset?.identity_lock || 'normal'
 
-  // Step 0: Analyze the subject photo for camera/light cues (prevents "AI perfect" backgrounds)
+  // Step 0: Analyze the subject photo for camera/light cues
   let photoConstraints = ''
   let photoManifest: Record<string, unknown> | undefined
   try {
@@ -56,7 +62,7 @@ export async function runTryOnPipelineV3(params: {
       'Match original camera perspective and depth of field; add subtle sensor noise/film grain; avoid CGI-clean backgrounds; keep lighting direction and shadows consistent.'
   }
 
-  // Step 0.5: Select a realism recipe (dataset-driven) for camera/lighting/background detail defaults.
+  // Step 0.5: Select a realism recipe
   const { recipe: realismRecipe, selection: realismSelection } = await selectRealismRecipe({
     preset: preset
       ? {
@@ -86,18 +92,24 @@ export async function runTryOnPipelineV3(params: {
     selectedRecipeWhy: realismSelection.why,
   })
 
-  // Inject photo constraints into the plan so the renderer always anchors to the real capture
-  // (prevents day-subject + night-background mismatches, and keeps realism consistent).
+  // Inject photo constraints into the plan
   const shootPlan = {
     ...shootPlanRaw,
     prompt_text: `${shootPlanRaw.prompt_text}
-PHOTO CONSTRAINTS (must match the original subject photo):
-- ${photoConstraints}
-- Keep time-of-day consistent with the subject photo unless the user explicitly requested otherwise.
-- Prefer adapting the background/grade to match the subject lighting rather than re-lighting/rebuilding the face.`,
+
+═══════════════════════════════════════════════════════════════════
+PHOTO CONSTRAINTS (ABSOLUTE - from original capture)
+═══════════════════════════════════════════════════════════════════
+${photoConstraints}
+
+MANDATORY RULES:
+- Keep time-of-day consistent with the subject photo
+- Adapt background to match subject lighting (do NOT re-light the face)
+- Add film grain / sensor noise matching the original capture
+- Preserve all facial features exactly as in the original`,
   }
 
-  // Step 1.5: Garment extraction (critical to prevent pasted reference-person)
+  // Step 1.5: Garment extraction
   let garmentOnly = clothingRefBase64
   let usedGarmentExtraction = false
   try {
@@ -107,11 +119,11 @@ PHOTO CONSTRAINTS (must match the original subject photo):
     })
     usedGarmentExtraction = true
   } catch {
-    // If extraction fails, proceed with original reference but rely on stricter prompt + verifier.
     garmentOnly = clothingRefBase64
   }
 
   // Step 2: Render try-on (attempt 1)
+  const initialQuality: TryOnQualityOptions['quality'] = quality.quality
   let output = await renderTryOnV3({
     subjectImageBase64,
     garmentImageBase64: garmentOnly,
@@ -121,11 +133,10 @@ PHOTO CONSTRAINTS (must match the original subject photo):
     backgroundFocus,
     shootPlan,
     opts: quality,
-    // For high-risk lighting presets (flash/neon/hard light), start stricter on attempt 1 to prevent face drift.
     extraStrict: identityLock === 'high',
   })
 
-  // Step 3: Verify and retry once if we see the "cutout person / collage" failure
+  // Step 3: Verify and retry if needed
   try {
     const verify = await verifyTryOnImage({
       outputImageBase64: output,
@@ -133,13 +144,32 @@ PHOTO CONSTRAINTS (must match the original subject photo):
       garmentRefBase64: clothingRefBase64,
     })
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // STRICT RETRY CONDITIONS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    // FACE GEOMETRY CHECK (new - stricter than identity_fidelity alone)
+    const needsRetryForFaceGeometry = 
+      verify.face_geometry_match === 'different' ||
+      (quality.quality === 'high' && verify.face_geometry_match === 'close') // High quality demands exact match
+
+    // POSE CHECK (new)
+    const needsRetryForPose = verify.pose_preserved === false
+
+    // IDENTITY CHECK (existing but enhanced)
     const needsRetryForIdentity =
       !verify.identity_preserved ||
       verify.identity_fidelity === 'low' ||
       (identityLock === 'high' && verify.identity_fidelity === 'medium') ||
-      // Face consistency: on high-quality runs, treat medium drift as retry-worthy (one retry max).
-      (quality.quality === 'high' && verify.identity_fidelity === 'medium')
+      (quality.quality === 'high' && verify.identity_fidelity === 'medium') ||
+      needsRetryForFaceGeometry
+
+    // GARMENT CHECK
     const needsRetryForNoTryOn = verify.output_is_unedited_copy || verify.original_outfit_still_present
+    const needsRetryForGarmentQuality = verify.garment_applied && verify.garment_fidelity !== 'high'
+    const needsRetryForGarment = !verify.garment_applied || needsRetryForGarmentQuality
+
+    // REALISM CHECK (enhanced with grain check)
     const needsRetryForScene =
       verify.scene_plausible === false ||
       verify.lighting_realism === 'low' ||
@@ -147,14 +177,23 @@ PHOTO CONSTRAINTS (must match the original subject photo):
       verify.subject_color_preserved === false ||
       verify.looks_ai_generated === true ||
       verify.background_detail_preserved === false ||
+      verify.background_has_grain === false || // NEW: must have visible grain
       verify.dof_realistic === false
 
-    // If clothing is applied but fidelity is only medium, retry once (helps small failures).
-    const needsRetryForGarmentQuality = verify.garment_applied && verify.garment_fidelity === 'medium'
-    if (!verify.ok || needsRetryForIdentity || needsRetryForNoTryOn || needsRetryForScene || needsRetryForGarmentQuality) {
-      // If garment wasn't applied OR fidelity is low, try a stronger path:
-      // 1) re-extract garment using PRO image model (more reliable), then re-render extraStrict
-      if (!verify.garment_applied || verify.garment_fidelity === 'low' || needsRetryForGarmentQuality) {
+    // Determine retry reason for debugging
+    const retryReasons: string[] = []
+    if (needsRetryForFaceGeometry) retryReasons.push('face_geometry_drift')
+    if (needsRetryForPose) retryReasons.push('pose_changed')
+    if (needsRetryForIdentity) retryReasons.push('identity_drift')
+    if (needsRetryForNoTryOn) retryReasons.push('garment_not_applied')
+    if (needsRetryForGarment) retryReasons.push('garment_quality')
+    if (needsRetryForScene) retryReasons.push('realism_issues')
+
+    const needsRetry = !verify.ok || needsRetryForIdentity || needsRetryForPose || needsRetryForNoTryOn || needsRetryForScene || needsRetryForGarment
+
+    if (needsRetry) {
+      // Re-extract garment with PRO model if needed
+      if (needsRetryForGarment || needsRetryForNoTryOn) {
         try {
           garmentOnly = await extractGarmentOnlyImage({
             clothingImageBase64: clothingRefBase64,
@@ -166,34 +205,83 @@ PHOTO CONSTRAINTS (must match the original subject photo):
         }
       }
 
-      // Retry with extraStrict prompt and downplayed scene changes (prevents collage + boosts clothing replace)
-      const retryPlan = needsRetryForScene
-        ? {
-            ...shootPlan,
-            prompt_text: `${shootPlan.prompt_text}
-CAPTURE MATCH OVERRIDE (realism):
-- Match the original capture style from image 1 (camera perspective/DOF/noise/sharpness). Preserve background micro-texture; do NOT smear or painterly-blur the environment.
-- Keep lighting practical and plausible; avoid stylized grading unless explicitly requested.`,
-          }
-        : shootPlan
+      // Build enhanced retry plan based on failure types
+      let retryPlan = shootPlan
+      
+      if (needsRetryForFaceGeometry || needsRetryForPose || needsRetryForIdentity) {
+        retryPlan = {
+          ...retryPlan,
+          prompt_text: `${retryPlan.prompt_text}
+
+═══════════════════════════════════════════════════════════════════
+FACE & POSE LOCK OVERRIDE (CRITICAL - previous attempt failed)
+═══════════════════════════════════════════════════════════════════
+THE FACE AND POSE MUST BE IDENTICAL TO THE ORIGINAL PHOTO.
+Previous attempt had face/pose drift - this MUST be corrected.
+
+FACE: Copy pixel-perfect from image 1:
+- Exact eye shape, size, and spacing
+- Exact nose bridge and nostril shape
+- Exact lip shape and thickness
+- Exact jawline and chin contour
+- NO smoothing, NO beautification, NO changes
+
+POSE: Copy exactly from image 1:
+- Same head tilt and angle
+- Same shoulder position
+- Same arm placement
+- Same body lean
+- NO pose "improvements" or changes`,
+        }
+      }
+
+      if (needsRetryForScene) {
+        retryPlan = {
+          ...retryPlan,
+          prompt_text: `${retryPlan.prompt_text}
+
+═══════════════════════════════════════════════════════════════════
+REALISM OVERRIDE (CRITICAL - previous attempt looked fake)
+═══════════════════════════════════════════════════════════════════
+The output must look like a REAL PHOTOGRAPH, not AI generated.
+
+REQUIRED IMPERFECTIONS:
+- Visible film grain / sensor noise (ISO 400-800 equivalent)
+- Slight lens vignette at corners
+- Subtle chromatic aberration on contrast edges
+- Natural bokeh (not perfect circles)
+- Micro-texture preserved in background (no smeary blur)
+
+FORBIDDEN:
+- Plastic/waxy skin
+- Perfect symmetry
+- HDR glow or bloom
+- Gaussian blur on background
+- Over-clean/perfect surfaces`,
+        }
+      }
+
+      // Upgrade to PRO model if fast quality failed
+      const retryQuality: TryOnQualityOptions =
+        quality.quality === 'fast' && (needsRetryForScene || needsRetryForGarment || needsRetryForIdentity)
+          ? { ...quality, quality: 'high', resolution: quality.resolution || '2K' }
+          : quality
+      const usedQualityUpgrade = retryQuality.quality !== quality.quality
 
       output = await renderTryOnV3({
         subjectImageBase64,
         garmentImageBase64: garmentOnly,
         garmentBackupImageBase64: clothingRefBase64,
-        // For identity drift: strengthen anchors by re-including the original subject as an extra identity ref.
-        identityImagesBase64:
-          needsRetryForIdentity || needsRetryForNoTryOn
-            ? [subjectImageBase64, ...identityImagesBase64]
-            : identityImagesBase64,
+        // Always include original subject as identity anchor on retry
+        identityImagesBase64: [subjectImageBase64, ...identityImagesBase64],
         stylePack,
         backgroundFocus,
         shootPlan: retryPlan,
-        opts: quality,
+        opts: retryQuality,
         extraStrict: true,
       })
 
-      // If the retry still fails to apply the garment, do one final fallback render that prioritizes clothing only.
+      // Final fallback if garment still not applied
       try {
         const verify2 = await verifyTryOnImage({
           outputImageBase64: output,
@@ -205,9 +293,20 @@ CAPTURE MATCH OVERRIDE (realism):
           const clothingOnlyPlan = {
             ...shootPlan,
             prompt_text: `${shootPlan.prompt_text}
-CLOTHING-ONLY FALLBACK (highest priority):
-- If background change conflicts with clothing replacement, KEEP the original background from image 1.
-- Replace the outfit EXACTLY with the garment reference. Do not skip clothing replacement.`,
+
+═══════════════════════════════════════════════════════════════════
+CLOTHING-ONLY EMERGENCY FALLBACK
+═══════════════════════════════════════════════════════════════════
+CRITICAL: The garment MUST be applied. This is the highest priority.
+
+INSTRUCTIONS:
+1. KEEP the original background from image 1 (no scene change)
+2. KEEP the exact pose from image 1
+3. KEEP the exact face from image 1
+4. ONLY change the clothing to match the garment reference
+5. Apply realistic folds, draping, and shadows on the garment
+
+If you cannot change the background AND apply the garment, PRIORITIZE THE GARMENT.`,
           }
 
           output = await renderTryOnV3({
@@ -218,7 +317,7 @@ CLOTHING-ONLY FALLBACK (highest priority):
             stylePack,
             backgroundFocus,
             shootPlan: clothingOnlyPlan,
-            opts: quality,
+            opts: retryQuality,
             extraStrict: true,
           })
         }
@@ -234,10 +333,15 @@ CLOTHING-ONLY FALLBACK (highest priority):
           verify,
           realismRecipeId: realismRecipe.id,
           realismWhy: realismSelection.why,
-        } as any,
+          initialQuality,
+          retryQuality: retryQuality.quality,
+          usedQualityUpgrade,
+          retryReason: retryReasons.join(', '),
+        },
       }
     }
 
+    // No retry needed - return successful result
     return {
       image: output,
       debug: {
@@ -246,10 +350,13 @@ CLOTHING-ONLY FALLBACK (highest priority):
         verify,
         realismRecipeId: realismRecipe.id,
         realismWhy: realismSelection.why,
-      } as any,
+        initialQuality,
+        retryQuality: initialQuality,
+        usedQualityUpgrade: false,
+      },
     }
   } catch {
-    // If verifier fails, still return the image.
+    // If verifier fails, still return the image
     return {
       image: output,
       debug: {
@@ -257,9 +364,8 @@ CLOTHING-ONLY FALLBACK (highest priority):
         usedGarmentExtraction,
         realismRecipeId: realismRecipe.id,
         realismWhy: realismSelection.why,
-      } as any,
+        initialQuality,
+      },
     }
   }
 }
-
-

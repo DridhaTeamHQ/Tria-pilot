@@ -184,6 +184,8 @@ export async function POST(request: Request) {
             prompt_text: result.debug.shootPlanText,
             usedGarmentExtraction: result.debug.usedGarmentExtraction,
             verify: (result.debug as any).verify || null,
+            realismRecipeId: (result.debug as any).realismRecipeId || null,
+            realismWhy: (result.debug as any).realismWhy || null,
           },
         },
       })
