@@ -564,6 +564,9 @@ COMPOSITING AVOIDANCE:
 
 ${refExplanation}
 
+CHARACTER REFERENCE: Use Images 1-${identityCount + 1} as character reference sheets.
+These images show the EXACT person who must appear. Maintain their exact facial features.
+
 ${identityPrompt}
 
 ${garmentPrompt}
@@ -587,25 +590,39 @@ TASK: SWAP CLOTHING
 3. DRESS them in the garment from the reference - exact same color and style
 4. Keep face, body, pose, background UNCHANGED
 
-⛔ FAILURE MODES (you MUST avoid):
+⛔ NEGATIVE PROMPT (FORBIDDEN):
+- Changing facial structure, different person, morphing features, cartoonish face
+- Widening or narrowing face, changing eye shape, altering nose or lips
+- Lightening or darkening skin tone, smoothing skin texture
+- Changing hairstyle, hair color, or hair texture
+- Beautifying, perfecting, or "improving" the person's appearance
 - Keeping the original outfit (MOST COMMON FAILURE)
-- Generating a similar but different outfit
-- Changing the garment color from reference
-- Hallucinating clothing details not in reference
-- Changing the background or making it look AI-generated
+
+✅ TECHNICAL REQUIREMENTS (For Realistic Texture):
+- Shot on 85mm lens, visible pore details, slight skin imperfections
+- Natural skin texture with micro-details, not plastic or waxy
+- Realistic fabric wrinkles and draping
+- Match original photo's grain, compression, and sharpness
 
 ✅ SUCCESS CRITERIA:
 - Person wears EXACTLY the garment from reference
 - Garment color matches reference exactly
-- Face is identical to input
+- Face is IDENTICAL to character reference images
 - Background is identical to input (same photo quality, not AI-perfect)
 
-OUTPUT: Same person, same background, DIFFERENT outfit (from garment reference).`
+OUTPUT: Same person (from character reference), same background, DIFFERENT outfit (from garment reference).`
     }
 
     return `🔒 CLOTHING TRY-ON - FORENSIC IDENTITY MODE
 
 ${refExplanation}
+
+CHARACTER REFERENCE: Images 1-${identityCount + 1} are character reference sheets.
+Use these as the ground truth for the person's identity. Maintain exact facial features.
+
+${identityPrompt}
+
+${garmentPrompt}
 
 ═══════════════════════════════════════════════════════════════════════════════
 🚨🚨🚨 CRITICAL: YOU MUST CHANGE THE CLOTHING 🚨🚨🚨
@@ -620,23 +637,30 @@ ANTI-HALLUCINATION CHECKLIST:
 □ If garment color/style differs from reference → TASK FAILED
 
 ═══════════════════════════════════════════════════════════════════════════════
-
-${identityPrompt}
-
-${garmentPrompt}
+⛔ NEGATIVE PROMPT (FORBIDDEN - PREVENTS FACE DRIFT):
+═══════════════════════════════════════════════════════════════════════════════
+Ensure consistent identity. FORBIDDEN:
+- Changing facial structure, different person, morphing features, cartoonish face
+- Widening or narrowing face, changing eye shape/size/spacing, altering nose/lips
+- Lightening or darkening skin tone, smoothing skin texture, removing pores
+- Changing hairstyle, hair color, or hair texture
+- Beautifying, perfecting, or "improving" the person's appearance
+- Averaging faces, blending identities, creating a generic face
+- Keeping the original outfit (MOST COMMON FAILURE)
 
 ═══════════════════════════════════════════════════════════════════════════════
-⚠️ FACE GEOMETRY LOCK
+✅ TECHNICAL REQUIREMENTS (Candid Photography Technique):
 ═══════════════════════════════════════════════════════════════════════════════
-❌ Do NOT widen/narrow face, jaw, or cheeks
-❌ Do NOT change eye shape, size, or spacing
-❌ Do NOT alter nose, lips, or skin tone
-❌ Do NOT smooth skin or beautify
+- Shot on 85mm lens, visible pore details, slight skin imperfections
+- Natural skin texture with micro-details, not plastic or waxy
+- Realistic fabric wrinkles and draping
+- Match original photo's grain, compression, and sharpness
+- Candid photography style, not studio-perfect
 
 ═══════════════════════════════════════════════════════════════════════════════
 🔐 SOURCE HIERARCHY
 ═══════════════════════════════════════════════════════════════════════════════
-IDENTITY → Person reference images (Images 1-${identityCount + 1})
+IDENTITY → Character reference images (Images 1-${identityCount + 1}) - use as ground truth
 CLOTHING → Garment reference (LAST image) ← THIS MUST BE APPLIED
 BACKGROUND → Keep ORIGINAL from person image (do NOT regenerate)
 POSE → Keep original
@@ -679,6 +703,13 @@ OUTPUT: SAME person + SAME background + DIFFERENT outfit (from garment ref).`
 
 ${refExplanation}
 
+CHARACTER REFERENCE: Images 1-${identityCount + 1} are character reference sheets.
+Use these as the ground truth for the person's identity. Maintain exact facial features.
+
+${identityPrompt}
+
+${garmentPrompt}
+
 ═══════════════════════════════════════════════════════════════════════════════
 🚨🚨🚨 CRITICAL: YOU MUST CHANGE THE CLOTHING 🚨🚨🚨
 ═══════════════════════════════════════════════════════════════════════════════
@@ -691,23 +722,30 @@ ANTI-HALLUCINATION CHECKLIST:
 □ If output clothing looks like input → TASK FAILED
 
 ═══════════════════════════════════════════════════════════════════════════════
-
-${identityPrompt}
-
-${garmentPrompt}
+⛔ NEGATIVE PROMPT (FORBIDDEN - PREVENTS FACE DRIFT):
+═══════════════════════════════════════════════════════════════════════════════
+Ensure consistent identity. FORBIDDEN:
+- Changing facial structure, different person, morphing features, cartoonish face
+- Widening or narrowing face, changing eye shape/size/spacing, altering nose/lips
+- Lightening or darkening skin tone, smoothing skin texture, removing pores
+- Changing hairstyle, hair color, or hair texture
+- Beautifying, perfecting, or "improving" the person's appearance
+- Averaging faces, blending identities, creating a generic face
+- Keeping the original outfit (MOST COMMON FAILURE)
 
 ═══════════════════════════════════════════════════════════════════════════════
-⚠️ FACE GEOMETRY LOCK
+✅ TECHNICAL REQUIREMENTS (Candid Photography Technique):
 ═══════════════════════════════════════════════════════════════════════════════
-❌ Do NOT widen/narrow face, jaw, or cheeks
-❌ Do NOT change eye shape, size, or color
-❌ Do NOT alter nose, lips, or skin tone
-❌ Do NOT smooth skin or beautify
+- Shot on 85mm lens, visible pore details, slight skin imperfections
+- Natural skin texture with micro-details, not plastic or waxy
+- Realistic fabric wrinkles and draping
+- Match original photo's grain, compression, and sharpness
+- Candid photography style, not studio-perfect
 
 ═══════════════════════════════════════════════════════════════════════════════
 🔐 SOURCE HIERARCHY
 ═══════════════════════════════════════════════════════════════════════════════
-IDENTITY → Person references (Images 1-${identityCount + 1})
+IDENTITY → Character reference images (Images 1-${identityCount + 1}) - use as ground truth
 CLOTHING → Garment reference (LAST image) ← MUST BE APPLIED
 POSE → Keep from person image (${bodyPose.toUpperCase()})
 BACKGROUND → NEW scene (described below)
@@ -771,6 +809,13 @@ OUTPUT: Same person + same pose + DIFFERENT outfit + realistic new scene.`
 
 ${refExplanation}
 
+CHARACTER REFERENCE: Images 1-${identityCount + 1} are character reference sheets.
+Use these as the ground truth for the person's identity. Maintain exact facial features.
+
+${identityPrompt}
+
+${garmentPrompt}
+
 ═══════════════════════════════════════════════════════════════════════════════
 🚨 CRITICAL: YOU MUST CHANGE THE CLOTHING 🚨
 ═══════════════════════════════════════════════════════════════════════════════
@@ -779,35 +824,30 @@ The output person MUST wear THIS garment, NOT their original clothes.
 If output looks like input → TASK FAILED.
 
 ═══════════════════════════════════════════════════════════════════════════════
+⛔ NEGATIVE PROMPT (FORBIDDEN):
+═══════════════════════════════════════════════════════════════════════════════
+- Changing facial structure, different person, morphing features, cartoonish face
+- Widening or narrowing face, changing eye shape/size/spacing, altering nose/lips
+- Lightening or darkening skin tone, smoothing skin texture, removing pores
+- Changing hairstyle, hair color, or hair texture
+- Beautifying, perfecting, or "improving" the person's appearance
+- Keeping the original outfit (MOST COMMON FAILURE)
 
-${identityPrompt}
-
-${garmentPrompt}
+═══════════════════════════════════════════════════════════════════════════════
+✅ TECHNICAL REQUIREMENTS:
+═══════════════════════════════════════════════════════════════════════════════
+- Shot on 85mm lens, visible pore details, slight skin imperfections
+- Natural skin texture with micro-details, not plastic or waxy
+- Realistic fabric wrinkles and draping
 
 ═══════════════════════════════════════════════════════════════════════════════
 🔐 RULES
 ═══════════════════════════════════════════════════════════════════════════════
-IDENTITY → From person references only
+IDENTITY → From character reference images (use as ground truth)
 CLOTHING → From garment reference (LAST image) - MUST apply this
 BACKGROUND → Keep original
 
-═══════════════════════════════════════════════════════════════════════════════
-⛔ FAILURES TO AVOID
-═══════════════════════════════════════════════════════════════════════════════
-❌ Keeping original outfit (MOST COMMON)
-❌ Wrong garment color
-❌ Face changes or beautification
-❌ AI-looking output
-
-═══════════════════════════════════════════════════════════════════════════════
-✅ SUCCESS
-═══════════════════════════════════════════════════════════════════════════════
-✓ Person wears EXACTLY the garment from reference
-✓ Garment color matches reference exactly
-✓ Face identical to input
-✓ Natural fabric and skin texture
-
-OUTPUT: Same person, DIFFERENT outfit (from garment reference).`
+OUTPUT: Same person (from character reference), DIFFERENT outfit (from garment reference).`
 }
 
 // ====================================================================================
@@ -883,7 +923,9 @@ async function renderTwoStepForensic(
 
   const step1Prompt = `STEP 1: DRESS THIS PERSON IN THE NEW GARMENT
 
-You have ${identityCount + 1} reference photos of the SAME PERSON (Images 1-${identityCount + 1}).
+CHARACTER REFERENCE: Images 1-${identityCount + 1} are character reference sheets.
+Use these as the ground truth for the person's identity. Maintain exact facial features.
+
 The LAST image is the NEW GARMENT to apply.
 
 🚨 CRITICAL: YOU MUST CHANGE THEIR CLOTHING 🚨
@@ -897,9 +939,22 @@ ${identityPrompt}
 ═══════════════════════════════════════════════════════════════════════════════
 ${garmentPrompt}
 
+⛔ NEGATIVE PROMPT (FORBIDDEN):
+- Changing facial structure, different person, morphing features, cartoonish face
+- Widening or narrowing face, changing eye shape/size/spacing, altering nose/lips
+- Lightening or darkening skin tone, smoothing skin texture, removing pores
+- Changing hairstyle, hair color, or hair texture
+- Beautifying, perfecting, or "improving" the person's appearance
+- Keeping the original outfit (MOST COMMON FAILURE)
+
+✅ TECHNICAL REQUIREMENTS:
+- Shot on 85mm lens, visible pore details, slight skin imperfections
+- Natural skin texture with micro-details, not plastic or waxy
+- Realistic fabric wrinkles and draping
+
 RULES:
 • CLOTHING from garment reference ONLY - apply this exact garment
-• IDENTITY from person references ONLY - same face exactly
+• IDENTITY from character reference images ONLY - same face exactly
 • IGNORE any person in garment image
 • REMOVE original outfit completely - no traces
 
@@ -910,7 +965,7 @@ TASK:
 4) Use plain grey studio background
 5) VERIFY: Are they wearing the NEW garment? If same as input → redo
 
-OUTPUT: Same person + DIFFERENT outfit (from garment reference) + grey background.`
+OUTPUT: Same person (from character reference) + DIFFERENT outfit (from garment reference) + grey background.`
 
   const step1Contents: ContentListUnion = []
   step1Contents.push({ inlineData: { data: subjectBase64, mimeType: 'image/jpeg' } } as any)
@@ -969,6 +1024,13 @@ Take this person EXACTLY as they appear and place them in a new environment.
 • Clothing: Keep EXACTLY as in input (from Step 1)
 • Pose: Keep EXACTLY (${bodyPose.toUpperCase()})
 • Body: No changes whatsoever
+
+⛔ NEGATIVE PROMPT (FORBIDDEN):
+- Changing facial structure, different person, morphing features, cartoonish face
+- Widening or narrowing face, changing eye shape/size/spacing, altering nose/lips
+- Lightening or darkening skin tone, smoothing skin texture, removing pores
+- Changing hairstyle, hair color, or hair texture
+- Beautifying, perfecting, or "improving" the person's appearance
 
 ═══════════════════════════════════════════════════════════════════════════════
 🎬 NEW SCENE

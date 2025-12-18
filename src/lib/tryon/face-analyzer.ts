@@ -322,8 +322,49 @@ THIS ANALYSIS MUST BE PRECISE ENOUGH TO IDENTIFY THIS PERSON IN A LINEUP.`
 }
 
 /**
+ * Generate an identity anchor (unique name + 3 most distinct features)
+ * Based on Gemini best practices for character consistency
+ */
+function generateIdentityAnchor(analysis: ForensicFaceAnalysis): string {
+  // Create a unique identifier from most distinctive features
+  const topFeatures: string[] = []
+  
+  // Priority 1: Distinctive marks (most unique)
+  if (analysis.distinctiveMarks?.length > 0) {
+    topFeatures.push(analysis.distinctiveMarks[0])
+  }
+  
+  // Priority 2: Unique eye characteristics
+  if (analysis.eyeColor && analysis.eyeColor !== 'brown' && analysis.eyeColor !== 'dark brown') {
+    topFeatures.push(`${analysis.eyeColor} eyes`)
+  } else if (analysis.eyeShape && analysis.eyeShape !== 'almond' && analysis.eyeShape !== 'round') {
+    topFeatures.push(`${analysis.eyeShape} eyes`)
+  }
+  
+  // Priority 3: Unique facial feature
+  if (analysis.faceShape && analysis.faceShape !== 'oval') {
+    topFeatures.push(`${analysis.faceShape} face`)
+  } else if (analysis.jawlineType && analysis.jawlineType !== 'soft' && analysis.jawlineType !== 'rounded') {
+    topFeatures.push(`${analysis.jawlineType} jawline`)
+  }
+  
+  // Priority 4: Skin tone if distinctive
+  if (analysis.skinTone && !analysis.skinTone.includes('medium')) {
+    topFeatures.push(`${analysis.skinTone} skin`)
+  }
+  
+  // Generate unique name from hash of features
+  const featureHash = `${analysis.eyeColor}-${analysis.faceShape}-${analysis.skinTone}`.slice(0, 8)
+  const uniqueName = `Subject-${featureHash}`
+  
+  const anchorFeatures = topFeatures.slice(0, 3).join(', ')
+  return `${uniqueName}, ${anchorFeatures}`
+}
+
+/**
  * Convert forensic analysis to a structured identity prompt section
  * Optimized for Gemini image generation - uses clear hierarchical structure
+ * Includes identity anchor for character consistency
  */
 export function buildIdentityPromptFromAnalysis(analysis: ForensicFaceAnalysis): string {
   const marks = analysis.distinctiveMarks?.length > 0
@@ -334,7 +375,16 @@ export function buildIdentityPromptFromAnalysis(analysis: ForensicFaceAnalysis):
     ? analysis.skinImperfections.join('; ')
     : 'natural skin'
 
-  return `🔒 IDENTITY FINGERPRINT (LOCKED - MUST MATCH EXACTLY)
+  const identityAnchor = generateIdentityAnchor(analysis)
+
+  return `🔒 IDENTITY ANCHOR (CHARACTER REFERENCE - USE THIS EXACT PERSON):
+"${identityAnchor}"
+
+This is the EXACT person who must appear in the output. Use the reference images as character sheets.
+Maintain this person's exact facial features, hairstyle, and physique in all generated images.
+
+═══════════════════════════════════════════════════════════════════════════════
+🔒 IDENTITY FINGERPRINT (LOCKED - MUST MATCH EXACTLY)
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ FACE GEOMETRY (DO NOT ALTER)                                                │
