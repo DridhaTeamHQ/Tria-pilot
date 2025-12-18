@@ -96,11 +96,31 @@ function TryOnPageContent() {
             try {
                 const res = await fetch('/api/identity-images', { cache: 'no-store' })
                 const data = await res.json()
-                if (res.ok && Array.isArray(data)) {
-                    setIdentityImages(data)
-                    if (data.length > 0) {
-                        console.log(`🎭 Loaded ${data.length} identity reference images`)
-                    }
+                if (!res.ok) return
+
+                // API returns { images: [...] , requirements: [...] , ... }
+                const images = Array.isArray(data)
+                  ? data
+                  : (Array.isArray(data?.images) ? data.images : [])
+
+                // Sort by requirements order if provided, otherwise keep stable order
+                const reqOrder = new Map<string, number>(
+                  Array.isArray(data?.requirements)
+                    ? data.requirements.map((r: any) => [String(r.type), Number(r.order ?? 999)])
+                    : []
+                )
+
+                const normalized = images
+                  .map((img: any) => ({
+                    type: String(img.imageType ?? img.type ?? ''),
+                    imageUrl: String(img.imageUrl ?? ''),
+                  }))
+                  .filter((x: any) => x.type && x.imageUrl)
+                  .sort((a: any, b: any) => (reqOrder.get(a.type) ?? 999) - (reqOrder.get(b.type) ?? 999))
+
+                setIdentityImages(normalized)
+                if (normalized.length > 0) {
+                    console.log(`🎭 Loaded ${normalized.length} identity reference images`)
                 }
             } catch (e) {
                 console.warn('Failed to load identity images:', e)
@@ -367,8 +387,15 @@ function TryOnPageContent() {
             
             // Add identity images if available and enabled
             if (useIdentityImages && identityImages.length > 0) {
-                console.log(`🎭 Adding ${identityImages.length} identity references for better face consistency`)
-                for (const idImg of identityImages) {
+                // Flash works best with a couple strong face refs; Pro can use more.
+                const isFlash = selectedModel === 'flash'
+                const faceOnlyTypes = new Set(['face_front', 'face_smile', 'face_left', 'face_right'])
+                const identityForModel = isFlash
+                  ? identityImages.filter((x) => faceOnlyTypes.has(x.type)).slice(0, 2)
+                  : identityImages
+
+                console.log(`🎭 Adding ${identityForModel.length} identity references for better face consistency`)
+                for (const idImg of identityForModel) {
                     const base64 = await urlToBase64(idImg.imageUrl)
                     if (base64) {
                         allAdditionalImages.push(base64)
