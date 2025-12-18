@@ -8,7 +8,7 @@ import {
   type ForensicFaceAnalysis,
   type GarmentAnalysis
 } from './face-analyzer'
-import { analyzeSubjectPhoto, type PhotoAnalysis } from './photo-analyzer'
+import { analyzeSubjectPhoto, type PhotoAnalysis, type BodyPose } from './photo-analyzer'
 
 const getClient = () => new GoogleGenAI({ apiKey: getGeminiKey() })
 
@@ -109,76 +109,164 @@ Instagram lifestyle aesthetic`,
 
 /**
  * SCENE PRESETS - Where the photo takes place
+ * Now with pose-adaptive placement for natural scene integration
  */
-const SCENE_PRESETS: Record<string, {
+interface ScenePreset {
   description: string
   lighting: string
   details: string
-}> = {
+  /** Pose-adaptive placement - scene adapts to user's pose, not the other way around */
+  poseAdaptation: {
+    standing: string
+    sitting: string
+    leaning: string
+    walking: string
+    other: string
+  }
+}
+
+const SCENE_PRESETS: Record<string, ScenePreset> = {
   keep_original: {
     description: 'Keep the original background exactly as it appears',
     lighting: 'Same lighting as the original photo',
     details: 'Do not modify anything about the environment',
+    poseAdaptation: {
+      standing: 'Keep exact original placement',
+      sitting: 'Keep exact original placement',
+      leaning: 'Keep exact original placement',
+      walking: 'Keep exact original placement',
+      other: 'Keep exact original placement',
+    },
   },
   
   studio_white: {
     description: 'Professional photography studio with seamless white paper backdrop',
     lighting: 'Three-point studio lighting: soft key light from 45°, fill light opposite, rim light for separation',
     details: 'Natural paper curve where wall meets floor, subtle shadow gradients, minor creases visible',
+    poseAdaptation: {
+      standing: 'Standing naturally on studio floor, full body or 3/4 framing',
+      sitting: 'Seated on white studio apple box or stool, clean minimal setup',
+      leaning: 'Leaning slightly against white cyclorama wall edge',
+      walking: 'Mid-stride movement captured on studio floor',
+      other: 'Natural placement on studio floor with appropriate framing',
+    },
   },
   
   studio_grey: {
     description: 'Photography studio with grey muslin fabric backdrop',
     lighting: 'Soft box lighting from camera right creating gentle directional shadows',
     details: 'Natural fabric texture and draping, slightly worn edges, uneven neutral tones',
+    poseAdaptation: {
+      standing: 'Standing centered against grey backdrop, professional portrait framing',
+      sitting: 'Seated on wooden stool or low bench, fabric draping behind',
+      leaning: 'Leaning casually against studio wall or posing stand',
+      walking: 'Captured in motion across studio space',
+      other: 'Natural placement with grey backdrop visible behind',
+    },
   },
   
   outdoor_natural: {
     description: 'Lush Indian garden with bougainvillea, tropical plants, and stone pathways',
     lighting: 'Dappled natural sunlight filtering through leaves, organic shadow patterns',
     details: 'Terracotta pots, moss between stones, fallen flowers, weathered textures',
+    poseAdaptation: {
+      standing: 'Standing on weathered stone pathway, garden around, bougainvillea visible',
+      sitting: 'Seated on low garden wall or ornate stone bench among plants',
+      leaning: 'Leaning against old tree trunk or garden pillar with vines',
+      walking: 'Strolling through garden path, plants on either side',
+      other: 'Naturally placed in garden setting with tropical backdrop',
+    },
   },
   
   outdoor_golden: {
     description: 'Indian rooftop terrace at golden hour with city skyline',
     lighting: 'Warm golden sun at 15°, long shadows, orange-pink sky gradient',
     details: 'Potted tulsi and money plant, faded chairs, rusty railing, atmospheric haze',
+    poseAdaptation: {
+      standing: 'Standing by terrace railing, golden light on face, city behind',
+      sitting: 'Seated on old terrace chair or low parapet wall, sunset visible',
+      leaning: 'Leaning on rusty terrace railing, overlooking city at golden hour',
+      walking: 'Walking across rooftop terrace, potted plants around',
+      other: 'Natural terrace placement with golden hour lighting',
+    },
   },
   
   outdoor_beach: {
     description: 'Authentic Goa beach with palm trees and fishing boats in distance',
     lighting: 'Bright coastal sun with water glare, fill from sand reflection',
     details: 'Wet sand with footprints, seaweed, weathered palms, beach shack visible',
+    poseAdaptation: {
+      standing: 'Standing on sandy beach, waves in background, palm trees visible',
+      sitting: 'Seated on beach sand or colorful beach towel, ocean behind',
+      leaning: 'Leaning against weathered palm tree trunk or beach shack post',
+      walking: 'Walking along shoreline, wet sand, footprints trailing',
+      other: 'Natural beach placement with coastal backdrop',
+    },
   },
   
   street_city: {
     description: 'Vibrant Indian city street with colorful buildings and local life',
     lighting: 'Harsh midday sun with strong shadows, slight dust haze in air',
     details: 'Parked scooters, chai stall, tangled wires, hand-painted signs, auto-rickshaw',
+    poseAdaptation: {
+      standing: 'Standing on busy sidewalk, colorful shops behind, urban activity visible',
+      sitting: 'Seated on weathered building steps or chai stall bench, street visible',
+      leaning: 'Leaning against colorful painted wall or old pillar, signs around',
+      walking: 'Walking down busy street, scooters and shops blurred behind',
+      other: 'Natural street placement with urban Indian backdrop',
+    },
   },
   
   street_cafe: {
     description: 'Cozy Indian café with vintage Bollywood posters and fairy lights',
     lighting: 'Warm ambient bulb light mixed with cool window daylight',
     details: 'Mismatched wooden chairs, chipped tables, plants in recycled tins, chai menu',
+    poseAdaptation: {
+      standing: 'Standing at café counter ordering, chalkboard menu visible behind',
+      sitting: 'Seated at wooden café table, chai cup nearby, fairy lights above',
+      leaning: 'Leaning on café counter or doorframe, vintage posters visible',
+      walking: 'Entering café through door, interior visible behind',
+      other: 'Natural café placement with cozy ambiance',
+    },
   },
   
   lifestyle_home: {
     description: 'Real Indian apartment with natural window light and personal touches',
     lighting: 'Natural window light with dust motes, warm afternoon glow',
     details: 'Family photos, indoor plants, colorful cushions, everyday clutter, chai cup',
+    poseAdaptation: {
+      standing: 'Standing by window in living room, afternoon light, home visible',
+      sitting: 'Seated on sofa or floor cushions, coffee table nearby, homey feel',
+      leaning: 'Leaning in doorframe or against kitchen counter at home',
+      walking: 'Walking through home corridor or between rooms',
+      other: 'Natural home placement with lived-in Indian apartment feel',
+    },
   },
   
   lifestyle_office: {
     description: 'Modern Indian corporate office with typical workspace setup',
     lighting: 'Overhead fluorescent mixed with window light from one side',
     details: 'Dual monitors, papers, water bottle, desk plant, motivational poster',
+    poseAdaptation: {
+      standing: 'Standing by office window or near whiteboard, colleagues blurred behind',
+      sitting: 'Seated at desk with ergonomic chair, laptop open, coffee mug nearby',
+      leaning: 'Leaning on cubicle divider or standing desk, office visible',
+      walking: 'Walking through office corridor, glass partitions visible',
+      other: 'Natural office placement with corporate workspace backdrop',
+    },
   },
   
   editorial_minimal: {
     description: 'Minimal industrial space with raw concrete and architectural elements',
     lighting: 'Dramatic directional light creating deep shadows, rim light on hair',
     details: 'Raw concrete walls with form marks, polished floor with scuffs, negative space',
+    poseAdaptation: {
+      standing: 'Standing in vast industrial space, concrete walls, dramatic shadows',
+      sitting: 'Seated on concrete ledge or industrial step, architectural lines visible',
+      leaning: 'Leaning against raw concrete column, dramatic rim lighting',
+      walking: 'Striding through industrial space, motion and architecture combined',
+      other: 'Natural placement in minimal industrial setting',
+    },
   },
 }
 
@@ -428,11 +516,12 @@ export interface SimpleRenderOptions {
 
 /**
  * Build a prompt that includes GPT-4o's forensic analysis
+ * Now with pose-adaptive scene placement
  */
 function buildForensicEnhancedPrompt(
   faceAnalysis: ForensicFaceAnalysis,
   garmentAnalysis: GarmentAnalysis,
-  scene: typeof SCENE_PRESETS[string] | null,
+  scene: ScenePreset | null,
   styleKey: string,
   keepBackground: boolean,
   identityCount: number,
@@ -443,10 +532,17 @@ function buildForensicEnhancedPrompt(
   const identityPrompt = buildIdentityPromptFromAnalysis(faceAnalysis)
   const garmentPrompt = buildGarmentPromptFromAnalysis(garmentAnalysis)
 
+  // Get detected body pose for scene adaptation
+  const bodyPose: BodyPose = photoAnalysis?.body_pose || 'standing'
+  
+  // Get pose-adaptive placement if scene is available
+  const poseSpecificPlacement = scene?.poseAdaptation?.[bodyPose] || ''
+
   const captureHints = photoAnalysis
     ? `CAPTURE MATCH (from original photo):
 - Camera: ${photoAnalysis.camera_summary}
 - Lighting: ${photoAnalysis.lighting_summary}
+- Detected pose: ${bodyPose.toUpperCase()} - adapt scene accordingly
 - Realism: ${photoAnalysis.realism_constraints}
 - Lens hint: ${photoAnalysis.camera_manifest.focal_length_hint_mm}mm, DOF: ${photoAnalysis.camera_manifest.dof_hint}
 - WB: ${photoAnalysis.camera_manifest.wb_family}, Grain: ${photoAnalysis.camera_manifest.imperfections.grain_level}
@@ -559,10 +655,16 @@ STRICT RULES (NON-NEGOTIABLE):
 
 ${captureHints}
 
-SCENE:
+SCENE ENVIRONMENT:
 📍 ${scene.description}
 💡 ${scene.lighting}
 🔍 ${scene.details}
+
+POSE-ADAPTIVE PLACEMENT (CRITICAL):
+🧍 The person is ${bodyPose.toUpperCase()} in the original photo.
+🎯 Keep their EXACT pose unchanged. Adapt the SCENE to fit their pose naturally:
+   → ${poseSpecificPlacement}
+⚠️ Do NOT change their body pose. The scene wraps around them, not the other way around.
 
 STYLE:
 ${style}
@@ -570,17 +672,20 @@ ${style}
 ═══════════════════════════════════════════════════════════════════════════════
 TASK:
 1. Lock identity from the Identity Fingerprint above - this is NON-NEGOTIABLE
-2. Apply the garment with natural fabric behavior
-3. Place in the scene with appropriate lighting
-4. Ensure face matches fingerprint EXACTLY despite scene change
+2. Keep their exact pose from the original photo (${bodyPose})
+3. Apply the garment with natural fabric behavior
+4. Place in the scene adapted to their pose: ${poseSpecificPlacement}
+5. Apply scene lighting naturally to the person
 
 QUALITY:
 • Face geometry, skin tone, features = EXACT match to fingerprint
+• Pose = EXACT match to original (${bodyPose})
 • Visible pores, natural skin texture
 • Sharp detailed background (not blurry)
 • Natural environmental imperfections
+• Scene elements positioned naturally around the person's pose
 
-The person's identity is LOCKED. Only outfit and scene change.`
+The person's identity AND pose are LOCKED. Only outfit and background change.`
   }
 
   return `VIRTUAL TRY-ON - FORENSIC MODE
@@ -656,7 +761,7 @@ async function renderTwoStepForensic(
   identityImages: string[],
   faceAnalysis: ForensicFaceAnalysis,
   garmentAnalysis: GarmentAnalysis,
-  scene: typeof SCENE_PRESETS[string],
+  scene: ScenePreset,
   styleKey: string,
   aspectRatio: string,
   resolution?: string,
@@ -666,6 +771,10 @@ async function renderTwoStepForensic(
   const style = STYLE_SETTINGS[styleKey] || STYLE_SETTINGS.iphone_candid
   const identityPrompt = buildIdentityPromptFromAnalysis(faceAnalysis)
   const garmentPrompt = buildGarmentPromptFromAnalysis(garmentAnalysis)
+  
+  // Get detected body pose for scene adaptation
+  const bodyPose: BodyPose = photoAnalysis?.body_pose || 'standing'
+  const poseSpecificPlacement = scene.poseAdaptation?.[bodyPose] || ''
 
   console.log('🎯 TWO-STEP (FORENSIC)')
   console.log('   Step 1: Identity + Outfit Lock (neutral background)')
@@ -738,12 +847,13 @@ OUTPUT: The same person, same face, wearing the garment.`
 `
     : ''
 
-  const step2Prompt = `STEP 2: SCENE PLACEMENT (IDENTITY LOCKED)
+  const step2Prompt = `STEP 2: SCENE PLACEMENT (IDENTITY + POSE LOCKED)
 
 Take this person EXACTLY as they appear in the provided image and place them in a new environment.
 
 STRICT RULES:
 • DO NOT change the face. Do NOT change skin tone. Do NOT change hairline.
+• DO NOT change their body pose. They are ${bodyPose.toUpperCase()} - keep that exact pose.
 • Never blend identities. Never average faces.
 • Clothing must remain exactly as in Step 1.
 • Anti \"face fattening\": do NOT widen cheeks, do NOT widen jaw, do NOT change face roundness.
@@ -753,6 +863,12 @@ NEW ENVIRONMENT:
 📍 ${scene.description}
 💡 ${scene.lighting}
 🔍 ${scene.details}
+
+POSE-ADAPTIVE PLACEMENT (CRITICAL):
+🧍 Person is ${bodyPose.toUpperCase()}. Keep their exact pose unchanged.
+🎯 Adapt the scene to their pose naturally:
+   → ${poseSpecificPlacement}
+⚠️ Scene wraps around the person's pose, NOT the other way around.
 
 STYLE:
 ${style}
@@ -764,6 +880,7 @@ INTEGRATION (avoid Photoshop look):
 - Match shadow direction and intensity between subject and environment.
 - Add contact shadows: under chin, under arms, around neckline, hair-to-skin edges, where clothing touches body.
 - Match depth-of-field: if background is soft, subject edges should not be unnaturally sharp; if background is sharp, keep realistic micro-contrast.
+- Position scene elements (furniture, props) to match the person's ${bodyPose} pose naturally.
 
 Make the person look naturally photographed in this location. Background must be sharp and realistic (no AI mush).`
 

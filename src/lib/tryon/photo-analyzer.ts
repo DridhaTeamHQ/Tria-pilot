@@ -5,8 +5,12 @@ function formatImageUrl(base64: string) {
   return `data:image/jpeg;base64,${base64}`
 }
 
+export type BodyPose = 'standing' | 'sitting' | 'leaning' | 'walking' | 'other'
+
 export interface PhotoAnalysis {
   pose_summary: string
+  /** Detected body pose for scene adaptation */
+  body_pose: BodyPose
   camera_summary: string
   lighting_summary: string
   realism_constraints: string
@@ -43,9 +47,15 @@ export async function analyzeSubjectPhoto(subjectImageBase64: string): Promise<P
 
   const system = `You are a professional photographer analyzing a single portrait photo.
 Return ONLY JSON with keys:
-pose_summary, camera_summary, lighting_summary, realism_constraints, camera_manifest.
+body_pose, pose_summary, camera_summary, lighting_summary, realism_constraints, camera_manifest.
 
 Rules:
+- body_pose MUST be one of: "standing", "sitting", "leaning", "walking", "other"
+  * "standing" = person is upright on their feet, not supported
+  * "sitting" = person is seated on chair, floor, steps, etc.
+  * "leaning" = person is leaning against wall, railing, or object
+  * "walking" = person appears to be in motion/walking
+  * "other" = any other pose (lying down, crouching, etc.)
 - Do NOT describe the person's identity traits (no face details, no ethnicity, no age guesses).
 - Focus ONLY on photographic/cinematography cues and pose/body position (standing/seated, arm placement).
 - realism_constraints should include: grain/noise level, lens/DOF cues, small imperfections to avoid CGI look,
@@ -79,8 +89,17 @@ If unsure, use 'unknown' and set handheld_tilt_ok=false.`
   const content = resp.choices?.[0]?.message?.content ?? '{}'
   const parsed = JSON.parse(content) as any
 
+  // Normalize body_pose
+  const rawPose = String(parsed.body_pose || '').toLowerCase().trim()
+  let body_pose: BodyPose = 'other'
+  if (rawPose === 'standing') body_pose = 'standing'
+  else if (rawPose === 'sitting') body_pose = 'sitting'
+  else if (rawPose === 'leaning') body_pose = 'leaning'
+  else if (rawPose === 'walking') body_pose = 'walking'
+
   return {
     pose_summary: String(parsed.pose_summary || '').trim(),
+    body_pose,
     camera_summary: String(parsed.camera_summary || '').trim(),
     lighting_summary: String(parsed.lighting_summary || '').trim(),
     realism_constraints: String(parsed.realism_constraints || '').trim(),
