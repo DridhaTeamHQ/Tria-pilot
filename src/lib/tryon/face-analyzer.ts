@@ -383,10 +383,42 @@ Return JSON with:
     const content = response.choices[0]?.message?.content
     if (!content) throw new Error('No response from garment analysis')
     
-    const analysis = JSON.parse(content) as GarmentAnalysis
+    const analysis = JSON.parse(content) as Partial<GarmentAnalysis>
+    const normalized: GarmentAnalysis = {
+      containsPerson: Boolean((analysis as any).containsPerson),
+      containsFace: Boolean((analysis as any).containsFace),
+      garmentType: String((analysis as any).garmentType || '').trim(),
+      sleeveType: String((analysis as any).sleeveType || '').trim(),
+      necklineType: String((analysis as any).necklineType || '').trim(),
+      fitType: String((analysis as any).fitType || '').trim(),
+      fabricType: String((analysis as any).fabricType || '').trim(),
+      fabricTexture: String((analysis as any).fabricTexture || '').trim(),
+      primaryColor: String((analysis as any).primaryColor || '').trim(),
+      colorDetails: String((analysis as any).colorDetails || '').trim(),
+      patternType: String((analysis as any).patternType || '').trim(),
+      patternDescription: String((analysis as any).patternDescription || '').trim(),
+      designElements: Array.isArray((analysis as any).designElements) ? (analysis as any).designElements.map((x: any) => String(x)) : [],
+      lengthStyle: String((analysis as any).lengthStyle || '').trim(),
+      summary: String((analysis as any).summary || '').trim(),
+    }
     console.log(`✅ Garment: ${analysis.summary?.slice(0, 80)}...`)
     
-    return analysis
+    // Ensure required string fields have reasonable fallbacks
+    return {
+      ...normalized,
+      garmentType: normalized.garmentType || 'top',
+      sleeveType: normalized.sleeveType || 'short sleeve',
+      necklineType: normalized.necklineType || 'round',
+      fitType: normalized.fitType || 'regular',
+      fabricType: normalized.fabricType || 'cotton',
+      fabricTexture: normalized.fabricTexture || 'smooth',
+      primaryColor: normalized.primaryColor || 'neutral',
+      colorDetails: normalized.colorDetails || 'solid color',
+      patternType: normalized.patternType || 'solid',
+      patternDescription: normalized.patternDescription || 'no pattern',
+      lengthStyle: normalized.lengthStyle || 'hip length',
+      summary: normalized.summary || 'Garment analysis (normalized)',
+    }
   } catch (error) {
     console.error('❌ Garment analysis failed:', error)
     return {
