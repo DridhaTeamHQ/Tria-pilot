@@ -622,6 +622,28 @@ export interface SimpleRenderOptions {
 // ====================================================================================
 
 /**
+ * Build a dynamic eye lock string from forensic analysis
+ */
+function buildDynamicEyeLock(analysis: ForensicFaceAnalysis): string {
+  return `
+═══════════════════════════════════════════════════════════════════════════════
+👁️ BIOMETRIC EYE LOCK (NON-NEGOTIABLE HIGHEST PRIORITY)
+═══════════════════════════════════════════════════════════════════════════════
+The eyes are the PRIMARY identity vector. You must match these specific forensics:
+
+• COLOR: [${analysis.eyeColor || 'Reference'}] - Exact match required
+• SHAPE: [${analysis.eyeShape || 'Reference'}]
+• EYEBROWS: [${analysis.eyebrowShape || 'Reference'}] - ${analysis.eyebrowThickness || ''}
+• LIDS: [${analysis.eyelidType || 'Reference'}]
+
+⚠️ REJECTION CRITERIA:
+- If eye color is different -> REJECT
+- If eye shape is generic/round -> REJECT
+- If skin around eyes is smoothed -> REJECT
+═══════════════════════════════════════════════════════════════════════════════`
+}
+
+/**
  * Build a prompt that includes GPT-4o's forensic analysis
  * Now with pose-adaptive scene placement
  */
@@ -637,6 +659,7 @@ function buildForensicEnhancedPrompt(
 ): string {
   const style = STYLE_SETTINGS[styleKey] || STYLE_SETTINGS.iphone_candid
   const identityPrompt = buildIdentityPromptFromAnalysis(faceAnalysis)
+  const eyeLockPrompt = buildDynamicEyeLock(faceAnalysis)
   const garmentPrompt = buildGarmentPromptFromAnalysis(garmentAnalysis)
 
   // Get detected body pose for scene adaptation
@@ -729,6 +752,8 @@ Use these as the ground truth for the person's identity. Maintain exact facial f
 
 ${identityPrompt}
 
+${eyeLockPrompt}
+
 ${garmentPrompt}
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -814,6 +839,8 @@ CHARACTER REFERENCE: Images 1 - ${identityCount + 1} are character reference she
 Use these as the ground truth for the person's identity. Maintain exact facial features.
 
 ${identityPrompt}
+
+${eyeLockPrompt}
 
 ${garmentPrompt}
 
@@ -921,6 +948,8 @@ Use these as the ground truth for the person's identity. Maintain exact facial f
 
 ${identityPrompt}
 
+${eyeLockPrompt}
+
 ${garmentPrompt}
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -1019,6 +1048,7 @@ async function renderTwoStepForensic(
   const identityCount = identityImages.length
   const style = STYLE_SETTINGS[styleKey] || STYLE_SETTINGS.iphone_candid
   const identityPrompt = buildIdentityPromptFromAnalysis(faceAnalysis)
+  const eyeLockPrompt = buildDynamicEyeLock(faceAnalysis)
   const garmentPrompt = buildGarmentPromptFromAnalysis(garmentAnalysis)
 
   // Get detected body pose for scene adaptation
@@ -1043,6 +1073,7 @@ The LAST image is the NEW GARMENT to apply.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ${identityPrompt}
+${eyeLockPrompt}
 ═══════════════════════════════════════════════════════════════════════════════
 ${garmentPrompt}
 

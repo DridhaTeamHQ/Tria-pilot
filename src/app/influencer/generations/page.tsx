@@ -358,6 +358,20 @@ export default function GenerationsPage() {
                                             className="w-full h-full object-cover"
                                             whileHover={{ scale: 1.08 }}
                                             transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
+                                            onError={(e) => {
+                                                console.error('Image failed to load:', job.outputImagePath)
+                                                const target = e.target as HTMLImageElement
+                                                target.style.display = 'none'
+                                                const parent = target.parentElement
+                                                if (parent) {
+                                                    parent.innerHTML = `
+                                                        <div class="w-full h-full bg-gradient-to-br from-cream to-charcoal/5 flex flex-col items-center justify-center gap-2">
+                                                            <Sparkles class="w-12 h-12 text-charcoal/15" />
+                                                            <span class="text-charcoal/40 text-xs">Image unavailable</span>
+                                                        </div>
+                                                    `
+                                                }
+                                            }}
                                         />
                                         {/* Gradient overlay */}
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -532,6 +546,21 @@ export default function GenerationsPage() {
                                 className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
                                 onClick={(e) => e.stopPropagation()}
                                 draggable={false}
+                                onError={(e) => {
+                                    console.error('Lightbox image failed to load:', selectedImage)
+                                    const target = e.target as HTMLImageElement
+                                    target.style.display = 'none'
+                                    const parent = target.parentElement
+                                    if (parent) {
+                                        parent.innerHTML = `
+                                            <div class="flex flex-col items-center justify-center gap-4 text-white/60">
+                                                <Sparkles class="w-16 h-16" />
+                                                <p class="text-lg">Image unavailable</p>
+                                                <p class="text-sm">The image may have been deleted or is no longer accessible</p>
+                                            </div>
+                                        `
+                                    }
+                                }}
                             />
                         </div>
 
@@ -577,11 +606,15 @@ export default function GenerationsPage() {
                         >
                             {/* Image preview */}
                             {deleteConfirm.imageUrl && (
-                                <div className="relative h-48 overflow-hidden">
+                                <div className="relative h-48 overflow-hidden bg-cream">
                                     <img
                                         src={deleteConfirm.imageUrl}
                                         alt="To delete"
                                         className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                            const target = e.target as HTMLImageElement
+                                            target.style.display = 'none'
+                                        }}
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent" />
                                 </div>
