@@ -46,6 +46,10 @@ function TryOnPageContent() {
     const [savedProfileImages, setSavedProfileImages] = useState<Array<{ id: string; imageUrl: string; isPrimary: boolean; label: string | null }>>([])
     const [savedProfileImagesLoading, setSavedProfileImagesLoading] = useState(false)
     const [saveUploadedPersonToProfile, setSaveUploadedPersonToProfile] = useState(false)
+    // Identity images for better face consistency (auto-fetched from profile)
+    const [identityImages, setIdentityImages] = useState<Array<{ type: string; imageUrl: string }>>([])
+    const [identityImagesLoading, setIdentityImagesLoading] = useState(false)
+    const [useIdentityImages, setUseIdentityImages] = useState(true) // Toggle for using identity refs
     // NEW: Accessory states for Edit Mode
     const [accessoryImages, setAccessoryImages] = useState<string[]>([])
     const [accessoryTypes, setAccessoryTypes] = useState<('purse' | 'shoes' | 'hat' | 'jewelry' | 'bag' | 'watch' | 'sunglasses' | 'scarf' | 'other')[]>([])
@@ -83,6 +87,28 @@ function TryOnPageContent() {
             }
         }
         fetchPresets()
+    }, [])
+
+    // Fetch identity images for better face consistency
+    useEffect(() => {
+        async function fetchIdentityImages() {
+            setIdentityImagesLoading(true)
+            try {
+                const res = await fetch('/api/identity-images', { cache: 'no-store' })
+                const data = await res.json()
+                if (res.ok && Array.isArray(data)) {
+                    setIdentityImages(data)
+                    if (data.length > 0) {
+                        console.log(`🎭 Loaded ${data.length} identity reference images`)
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to load identity images:', e)
+            } finally {
+                setIdentityImagesLoading(false)
+            }
+        }
+        fetchIdentityImages()
     }, [])
 
     const { data: productData, isLoading: productLoading } = useProduct(productId)
@@ -304,6 +330,22 @@ function TryOnPageContent() {
         if (file) handleImageUpload(file, type)
     }
 
+    // Helper to convert URL to base64
+    const urlToBase64 = async (url: string): Promise<string | null> => {
+        try {
+            const res = await fetch(url)
+            const blob = await res.blob()
+            return await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader()
+                reader.onloadend = () => resolve(reader.result as string)
+                reader.onerror = reject
+                reader.readAsDataURL(blob)
+            })
+        } catch {
+            return null
+        }
+    }
+
     const handleGenerate = async () => {
         if (!personImage) {
             toast.error('Please upload a person image')
@@ -320,17 +362,31 @@ function TryOnPageContent() {
 
         setLoading(true)
         try {
+            // Collect all additional person images including identity refs
+            let allAdditionalImages = [...additionalPersonImagesBase64]
+            
+            // Add identity images if available and enabled
+            if (useIdentityImages && identityImages.length > 0) {
+                console.log(`🎭 Adding ${identityImages.length} identity references for better face consistency`)
+                for (const idImg of identityImages) {
+                    const base64 = await urlToBase64(idImg.imageUrl)
+                    if (base64) {
+                        allAdditionalImages.push(base64)
+                    }
+                }
+            }
+
             const response = await fetch('/api/tryon', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     personImage: personImageBase64 || personImage,
-                    personImages: selectedModel === 'pro' ? additionalPersonImagesBase64 : undefined,
+                    personImages: allAdditionalImages.length > 0 ? allAdditionalImages : undefined,
                     editType,
                     clothingImage: clothingImageBase64 || clothingImage || undefined,
                     backgroundImage: backgroundImageBase64 || backgroundImage || undefined,
-                    accessoryImages: accessoryImages.length > 0 ? accessoryImages : undefined, // NEW: accessories
-                    accessoryTypes: accessoryTypes.length > 0 ? accessoryTypes : undefined, // NEW: accessory labels
+                    accessoryImages: accessoryImages.length > 0 ? accessoryImages : undefined,
+                    accessoryTypes: accessoryTypes.length > 0 ? accessoryTypes : undefined,
                     model: selectedModel,
                     stylePreset: selectedPreset || undefined,
                     userRequest: userRequest || undefined,

@@ -17,113 +17,55 @@ function normalizeAspectRatio(ratio: string | undefined): string {
   return '3:4'
 }
 
-/**
- * IDENTITY ANCHOR - Used at START and END of prompts
- * This "sandwiches" the identity preservation to combat compositional deficit
- */
-const IDENTITY_ANCHOR_START = `IDENTITY ANCHOR: The person in Image 1 is the STRICT REFERENCE SUBJECT.
-Preserve these EXACT features from Image 1:
-- Face shape (jaw width, cheekbone position, chin shape)
-- Eye characteristics (eye size, spacing, iris color, eyelid shape)
-- Nose structure (bridge width, tip shape, nostril size)
-- Mouth/lips (lip thickness, width, natural expression)
-- Skin tone and texture (exact complexion, visible pores, natural marks)
-- Hair style and color
-- Body proportions (weight, build, height ratio)
-- Facial expression and gaze direction`
+// ====================================================================================
+// HIGGSFIELD-STYLE IDENTITY PRESERVATION
+// Based on research: ultra-detailed skin and facial geometry preservation
+// ====================================================================================
 
-const IDENTITY_ANCHOR_END = `CRITICAL IDENTITY CHECK:
-Before finalizing, verify the output face matches Image 1:
-✓ Same face shape and proportions
-✓ Same eye appearance (size, color, shape)
-✓ Same nose structure
-✓ Same lip shape and expression
-✓ Same skin tone (no lightening/darkening)
-✓ Same body build (no slimming/enlarging)
-If ANY facial feature differs from Image 1, the result is INVALID.`
+const IDENTITY_CORE = `IDENTITY PRESERVATION (CRITICAL):
+The person in the reference images is the STRICT subject. Copy their identity with forensic precision:
 
-/**
- * LOOK-ALIKE TIGHTENING - Specific measurable features
- */
-const LOOKALIKE_RULES = `FACIAL GEOMETRY LOCK:
-- Forehead-to-chin ratio: EXACT match to Image 1
-- Eye-to-eye distance: EXACT match
-- Nose-to-mouth distance: EXACT match
-- Jaw width relative to forehead: EXACT match
-- Eyebrow shape and position: EXACT match
+FACIAL GEOMETRY - Exact measurements from reference:
+- Face shape: exact jawline width, cheekbone prominence, chin shape and projection
+- Eye zone: precise eye size, spacing, iris color, eyelid crease depth, lash density
+- Nose structure: bridge width, tip shape, nostril flare, columella angle
+- Mouth: lip thickness ratio (upper/lower), lip width, cupid's bow shape, natural line
+- Brow: arch position, thickness, spacing from eyes
+- Ears: if visible, exact shape and position
 
-SKIN AUTHENTICITY:
-- Copy exact skin tone (no beautification)
-- Keep natural marks, moles, freckles
-- Preserve skin texture (visible pores, not airbrushed)
-- No skin smoothing or whitening
+SKIN AUTHENTICITY - No beautification allowed:
+- Exact skin tone and undertone (warm/cool/neutral) - NO lightening or darkening
+- Visible pores, especially on nose and cheeks
+- Natural texture: fine lines, expression creases
+- All natural marks: moles, freckles, birthmarks, acne scars
+- Skin imperfections are REQUIRED for realism
+- No airbrushing, no smoothing, no filtering
+- Subtle natural shine on T-zone if present in reference
 
-EXPRESSION LOCK:
-- Same micro-expression as Image 1
-- Same eye openness level
-- Same mouth position (open/closed amount)`
+BODY FIDELITY:
+- Exact body proportions (weight, build, muscle tone)
+- Natural body asymmetries preserved
+- Arm and hand proportions from reference
+- Posture and stance matching reference energy`
 
-export interface SimpleRenderOptions {
-  subjectImageBase64: string
-  garmentImageBase64: string
-  identityImagesBase64?: string[] // Additional identity reference images
-  backgroundInstruction: string
-  lightingInstruction: string
-  quality: 'fast' | 'high'
-  aspectRatio?: string
-  resolution?: string
-  stylePresetId?: string
-}
+const ANTI_AI_MARKERS = `ANTI-AI REALISM REQUIREMENTS:
+- Visible skin pores and fine texture
+- Natural micro-expressions (not frozen perfect smile)
+- Subtle skin color variation across face
+- Natural hair texture with flyaways and frizz
+- Clothing wrinkles and natural draping
+- Minor imperfections in fabric alignment
+- No plastic/waxy skin appearance
+- No over-sharpened features
+- No uncanny symmetry`
 
-/**
- * MULTI-REFERENCE IDENTITY ANCHOR
- * When multiple identity images are provided, we use them all to help the AI
- * understand the person's face from multiple angles
- */
-function buildMultiReferenceAnchor(identityCount: number): string {
-  if (identityCount <= 1) {
-    return IDENTITY_ANCHOR_START
-  }
-  
-  return `MULTI-ANGLE IDENTITY REFERENCE:
-You have ${identityCount + 1} reference images of the SAME PERSON from different angles.
+// ====================================================================================
+// HIGGSFIELD-STYLE SCENE PRESETS
+// Each preset has: scene, lighting, camera, texture, style specifications
+// Based on the professional prompts shared by user
+// ====================================================================================
 
-Images 1-${identityCount + 1} show the subject from various angles:
-- These images show the EXACT same person
-- Use ALL of these to understand their complete facial structure
-- Notice how their face looks from front, sides, and with different expressions
-- The last image is the CLOTHING to apply
-
-STRICT IDENTITY RULES:
-- Face shape: Match the consistent jawline, cheekbones, chin across all reference images
-- Eyes: Same eye size, shape, spacing, color visible in all angles
-- Nose: Same nose structure visible from all angles
-- Mouth/Lips: Same lip shape and thickness
-- Skin tone: Exact same complexion (note: lighting varies, but skin tone is constant)
-- Hair: Same style, color, texture across all images
-- Body: Same proportions visible in body shots
-
-The more reference images, the BETTER you understand this person.
-Use this multi-angle knowledge to create a perfect identity match.`
-}
-
-function buildMultiReferenceEnd(): string {
-  return `FINAL IDENTITY VERIFICATION:
-Cross-check the output against ALL provided reference images.
-The output face should match what you see in:
-- The front-facing images
-- The side-angle images  
-- The smiling images
-- The body proportion images
-
-If the face would look out of place in ANY of the reference angles, revise it.
-The goal is a face that is recognizably the SAME PERSON from any angle.`
-}
-
-/**
- * SCENE PRESETS - Indian-focused with sharp backgrounds
- */
-const SCENE_PRESETS: Record<string, {
+const CINEMA_PRESETS: Record<string, {
   scene: string
   lighting: string
   camera: string
@@ -137,184 +79,271 @@ const SCENE_PRESETS: Record<string, {
     texture: '',
     style: '',
   },
+  
+  // STUDIO PRESETS
   studio_white: {
-    scene: 'a real photography studio with white paper backdrop showing slight creases and shadows where it curves',
-    lighting: 'professional soft lighting with subtle shadows under chin and on backdrop, not perfectly flat',
-    camera: '85mm portrait lens with natural bokeh, slight softness at edges, centered composition',
-    texture: 'visible skin pores, fabric weave details, paper backdrop texture with minor wrinkles',
-    style: 'professional fashion photo with authentic studio feel, slight film grain',
+    scene: 'a real photography studio with white seamless paper backdrop, showing natural paper curve where wall meets floor, subtle shadow gradients, minor paper creases visible',
+    lighting: 'professional three-point studio lighting: key light at 45 degrees creating natural cheek shadow, fill light softening opposite side, rim light separating subject from backdrop, catchlights visible in eyes',
+    camera: '85mm portrait lens at f/2.8, eye-level composition, subject centered with breathing room above head, shallow depth of field with backdrop softly out of focus',
+    texture: 'visible skin pores and natural texture, fabric weave clearly defined, paper backdrop texture with minor wrinkles and dust particles, natural hair strands',
+    style: 'professional fashion photography, clean editorial aesthetic with authentic studio feel, subtle film grain, Vogue-tier quality',
   },
+  
   studio_grey: {
-    scene: 'a photography studio with grey fabric backdrop showing natural fabric texture and minor folds',
-    lighting: 'controlled but natural-looking studio lighting, gentle shadows defining face structure',
-    camera: '50mm at eye level, natural depth of field, subject sharp against textured backdrop',
-    texture: 'visible skin texture, fabric grain on both clothing and backdrop, natural imperfections',
-    style: 'editorial portrait with real photography aesthetic, not CGI-perfect',
+    scene: 'a photography studio with grey muslin fabric backdrop, natural fabric texture and gentle draping visible, worn edges of fabric, slightly uneven tone',
+    lighting: 'soft box lighting from camera right creating gentle shadows on face, natural falloff toward backdrop, slight warmth in highlights',
+    camera: '50mm at f/4, three-quarter composition, natural eye-level angle, subject positioned using rule of thirds',
+    texture: 'visible fabric grain on backdrop, clothing texture clearly rendered, skin pores visible, hair texture with natural flyaways, subtle dust particles in light',
+    style: 'editorial portrait photography, LinkedIn professional tier, authentic not CGI-perfect, slight desaturation in shadows',
   },
+  
+  // OUTDOOR INDIAN PRESETS
   outdoor_natural: {
-    scene: 'a real garden with slightly overgrown tropical plants, weathered garden path, fallen leaves on ground, imperfect greenery',
-    lighting: 'natural uneven sunlight through leaves creating dappled shadows, not perfectly even',
-    camera: 'candid iPhone shot with natural depth, slight motion in hair or fabric',
-    texture: 'worn stone path, wilting flower edges, dusty leaf surfaces, natural grass patches',
-    style: 'authentic candid snapshot taken by friend, not posed studio shot',
+    scene: 'a lush Indian garden with overgrown bougainvillea in magenta and white, weathered stone pathway with moss between cracks, tropical ferns and palms, scattered fallen flowers, old terracotta pots with chipped paint, chai-stained table visible in background',
+    lighting: 'dappled natural sunlight filtering through leaves creating organic shadow patterns, bright highlights with warm undertone, natural lens warmth from sun position',
+    camera: 'candid iPhone 15 Pro shot, 24mm wide angle with natural distortion, slightly off-center framing, subtle motion blur suggesting spontaneous moment, natural depth of field',
+    texture: 'worn stone texture with moss and age spots, wilted flower edges, dusty leaf surfaces, rough tree bark, natural grass with dry patches, gravel and dirt',
+    style: 'authentic Indian garden snapshot, shot on iPhone, travel blog aesthetic, candid moment captured by friend, warm and inviting atmosphere',
   },
+  
   outdoor_golden: {
-    scene: 'a weathered rooftop terrace at sunset with old potted plants, worn tiles, rusty railing, lived-in feel',
-    lighting: 'warm golden hour with harsh sun flare, uneven shadows, natural lens warmth',
-    camera: 'handheld phone shot with slight tilt, background in focus with atmospheric haze',
-    texture: 'sun-weathered surfaces, dusty floor, warm skin glow with visible pores',
-    style: 'spontaneous golden hour snapshot, authentic travel photo aesthetic',
+    scene: 'a weathered Indian rooftop terrace at sunset, old potted plants including tulsi and money plant, faded plastic chairs, rusty iron railing, hanging laundry partially visible, water tank in distance, cityscape silhouette',
+    lighting: 'warm golden hour with sun at 15 degrees above horizon, long shadows stretching across terrace, orange-pink gradient in sky, natural sun flare bleeding into frame, warm skin glow',
+    camera: 'handheld phone shot with slight natural tilt, background in sharp focus showing atmospheric haze, 26mm focal length, aperture at f/1.8 for dreamy bokeh on edges',
+    texture: 'sun-weathered concrete with cracks and stains, dusty floor tiles, terracotta pot patina, rusty metal details, warm glowing skin with visible pores, hair catching golden light',
+    style: 'golden hour rooftop snap, shot on iPhone, Indian travel influencer aesthetic, spontaneous and warm, #GoldenHour vibes',
   },
+  
   outdoor_beach: {
-    scene: 'a real beach with uneven wet sand, seaweed, footprints, weathered palm trees with brown fronds, visible beach debris',
-    lighting: 'bright coastal sun with glare on water, natural harsh shadows, not studio-lit',
-    camera: 'candid beach snapshot angle, water splashing near feet, wind in hair',
-    texture: 'grainy sand texture, salt spray on skin, wet footprints, weathered bark on palms',
-    style: 'authentic vacation photo taken on phone, not professional shoot',
+    scene: 'a real Goa/Kerala beach with uneven wet sand, seaweed strands, human footprints, weathered palm trees with brown fronds and coconuts, beach debris like shells and driftwood, distant fishing boats, beach shack barely visible',
+    lighting: 'bright coastal sun with glare on water creating sparkle, natural harsh shadows from overhead sun, fill from sand reflection, slight overexposure on highlights',
+    camera: 'candid beach snapshot from friend, slightly low angle to capture sky, 24mm wide with natural barrel distortion, wind catching hair and fabric, water splash droplets near feet',
+    texture: 'grainy sand with footprint impressions, salt spray residue on skin, wet fabric clinging, weathered palm bark, shell fragments, foam on water edge',
+    style: 'authentic Goa vacation photo, shot on iPhone, beach holiday vibes, travel influencer candid, natural and unposed',
   },
+  
+  // URBAN/STREET INDIAN PRESETS
   street_city: {
-    scene: 'a busy Indian city street with worn painted buildings, peeling posters, parked scooters, tangled wires overhead, stray dogs',
-    lighting: 'harsh midday sun with strong shadows, natural urban lighting with dust particles',
-    camera: 'candid street shot from slight distance, handheld with minor motion blur',
-    texture: 'cracked pavement, faded paint, dusty surfaces, real urban grit',
-    style: 'authentic street photography, documentary candid style, not posed',
+    scene: 'a vibrant Indian city street with colorful painted buildings in peeling pastels, tangled electric wires overhead, parked scooters and bikes, street vendors, chai stall with steel glasses, hand-painted shop signs, stray dog resting, auto-rickshaw passing',
+    lighting: 'harsh midday Indian sun creating strong shadows, slight dust haze in air catching light, natural urban lighting with reflections from shop windows',
+    camera: 'candid street shot from slight distance, 35mm focal length, handheld with minor motion blur suggesting busy street, eye-level documentary style',
+    texture: 'cracked pavement with paan stains, faded paint on walls, dusty surfaces, real urban grit, fabric texture of street vendor cloths, metal rust on railings',
+    style: 'authentic Indian street photography, documentary candid style, National Geographic tier, real India not tourist version, raw and authentic',
   },
+  
   street_cafe: {
-    scene: 'a cozy Indian café with mismatched wooden chairs, chipped tables, plants in old tins, fairy lights, coffee stains',
-    lighting: 'warm ambient bulb light mixed with daylight from windows, uneven shadows',
-    camera: 'casual phone snapshot from across table, slightly off-center framing',
-    texture: 'worn wood grain, scratched table surface, condensation on glass, fabric wrinkles',
-    style: 'authentic café snapshot taken by friend, Instagram casual',
+    scene: 'a cozy Indian café with mismatched wooden chairs showing wear, chipped Formica tables with coffee stains, plants in recycled tins, string fairy lights, vintage Bollywood posters, chai menu on chalkboard, condiment bottles clustered',
+    lighting: 'warm ambient bulb light creating orange cast, mixed with cool daylight from windows creating interesting color temperature blend, soft shadows under furniture',
+    camera: 'casual phone snapshot from across table, slightly off-center framing, 26mm lens, shallow depth with background café patrons softly blurred, warm color grade',
+    texture: 'worn wood grain with scratches, scratched table surfaces, condensation on glass, fabric wrinkles, dust particles in light beam from window, fingerprints on glasses',
+    style: 'authentic Indian café snapshot, Instagram casual #CoffeeTime, taken by friend, warm and cozy vibes, urban India millennial',
   },
+  
+  // LIFESTYLE INDIAN PRESETS  
   lifestyle_home: {
-    scene: 'a real Indian apartment with lived-in feel, some clutter visible, sunlight through curtains, family photos',
-    lighting: 'natural window light with dust motes, warm afternoon glow, uneven brightness',
-    camera: 'casual home photo angle, slightly tilted iPhone shot',
-    texture: 'worn sofa fabric, dusty shelves, rumpled curtains, natural home imperfections',
-    style: 'authentic home photo, real life not staged',
+    scene: 'a real Indian apartment with lived-in feel, sunlight streaming through sheer curtains, family photos on wall, indoor plants like money plant and tulsi, some everyday clutter visible, colorful cushions on sofa, books stacked, chai cup on side table',
+    lighting: 'natural window light creating soft directional illumination, dust motes floating in sunbeam, warm afternoon glow, shadows from window frame creating patterns',
+    camera: 'casual home photo angle, slightly tilted iPhone shot, 24mm wide angle capturing room context, eye-level or slightly above, natural depth of field',
+    texture: 'worn sofa fabric with pilling, dusty shelves, rumpled curtains, fingerprints on photo frames, natural home imperfections, fabric creases',
+    style: 'authentic Indian home photo, real life not staged, #HomeSweetHome vibes, relatable and warm, family album quality',
   },
+  
   lifestyle_office: {
-    scene: 'a real office with papers on desk, monitor screens, water bottles, cables visible, plant needing water',
-    lighting: 'harsh fluorescent mixed with window light, typical office lighting',
-    camera: 'candid office snapshot, colleague taking photo',
-    texture: 'keyboard dust, desk clutter, wrinkled documents, real office environment',
-    style: 'authentic workplace photo, LinkedIn casual',
+    scene: 'a real Indian corporate office with papers on desk, dual monitor setup, water bottle and chai cup, cables visible, slightly wilted desk plant, motivational poster, cubicle dividers, office chair with worn armrests',
+    lighting: 'harsh overhead fluorescent with slight green tint, mixed with natural window light from one side, typical office lighting creating flat shadows',
+    camera: 'candid colleague snapshot, 35mm from across desk, slightly above eye level, office background in sharp focus, natural framing',
+    texture: 'keyboard with dust between keys, desk clutter, wrinkled documents, office carpet texture, synthetic fabric of chair, plastic monitor bezels',
+    style: 'authentic workplace photo, LinkedIn casual professional, colleague taking quick photo, Indian IT office aesthetic',
   },
+  
+  // EDITORIAL/FASHION PRESET
   editorial_minimal: {
-    scene: 'a minimal concrete space with textured walls, some wall cracks, uneven floor, industrial elements',
-    lighting: 'dramatic harsh directional light creating deep shadows, visible light source',
-    camera: 'fashion editorial angle, deliberate composition with negative space',
-    texture: 'raw concrete texture, visible wall imperfections, natural skin pores and texture',
-    style: 'high-fashion editorial with raw aesthetic, not overly polished',
+    scene: 'a minimal industrial space with raw concrete walls showing form marks and slight cracks, polished concrete floor with scuff marks, single geometric light fixture, negative space emphasized, architectural shadow play',
+    lighting: 'dramatic harsh directional light from high window creating deep chiaroscuro, visible light source direction, hard shadows on face adding dimension, rim light on hair',
+    camera: 'fashion editorial angle at 50mm, deliberate composition with subject in lower third, expansive negative space above, f/8 for sharpness throughout',
+    texture: 'raw concrete texture with air bubbles and imperfections, polished floor with dust, natural skin pores and texture visible, fabric grain clear, slight film grain',
+    style: 'high-fashion editorial, Vogue India aesthetic, raw industrial meets luxury, hyper-real texture fidelity, cinematic and intentional',
   },
 }
 
-/**
- * PRO MODEL PROMPTS - With Anchor Technique
- * Identity anchored at START and END to combat compositional deficit
- */
-function buildProPrompt(keepBg: boolean, preset: any, backgroundInstruction: string, lightingInstruction: string): string {
-  // CLOTHING ONLY / KEEP ORIGINAL - Simple swap, strong anchoring
-  if (keepBg) {
-    return `${IDENTITY_ANCHOR_START}
+// ====================================================================================
+// PRO MODEL PROMPTS - Detailed cinematic prompts inspired by Higgsfield Soul
+// ====================================================================================
 
-TASK: Virtual clothing try-on.
-- Image 1: The person (IDENTITY SOURCE)
-- Image 2: The new clothing item
+function buildProPrompt(
+  keepBg: boolean, 
+  preset: typeof CINEMA_PRESETS[string] | null, 
+  backgroundInstruction: string, 
+  lightingInstruction: string,
+  identityCount: number
+): string {
+  const identityRef = identityCount > 0 
+    ? `You have ${identityCount + 1} reference images of the SAME PERSON from different angles. The LAST image is the CLOTHING.`
+    : `Image 1 is the PERSON. Image 2 is the CLOTHING to apply.`
 
-Replace their current outfit with the clothing from Image 2.
-Keep EVERYTHING else identical: face, body, hair, pose, background.
-
-${LOOKALIKE_RULES}
-
-${IDENTITY_ANCHOR_END}`
-  }
-  
-  // SCENE CHANGE - Needs extra anchoring since more things are changing
-  if (preset?.scene) {
-    return `${IDENTITY_ANCHOR_START}
-
-SCENE CHANGE REQUEST:
-Subject: The EXACT person from Image 1 (use their face as reference)
-Outfit: The clothing from Image 2
-Location: ${preset.scene}
-Lighting: ${preset.lighting || 'natural lighting matching the scene'}
-
-${LOOKALIKE_RULES}
-
-IMPORTANT: The new scene and lighting should NOT affect facial features.
-Apply scene lighting to the environment, but keep the face's core features intact.
-
-${IDENTITY_ANCHOR_END}`
-  }
-  
-  // Custom background instruction
-  return `${IDENTITY_ANCHOR_START}
-
-TASK: Show this person wearing the outfit from Image 2.
-Background: ${backgroundInstruction}
-Lighting: ${lightingInstruction}
-
-${LOOKALIKE_RULES}
-
-${IDENTITY_ANCHOR_END}`
-}
-
-/**
- * FLASH MODEL PROMPTS - Simpler but still anchored
- * Flash responds better to concise prompts, but we keep the anchor technique
- */
-function buildFlashPrompt(keepBg: boolean, preset: any, backgroundInstruction: string, lightingInstruction: string): string {
   // CLOTHING ONLY / KEEP ORIGINAL
   if (keepBg) {
-    return `IDENTITY LOCK: Person in Image 1 is the reference. Their face and body are FIXED.
+    return `VIRTUAL CLOTHING TRY-ON
 
-Task: Put the clothing from Image 2 on this person.
-- Keep exact same face (shape, eyes, nose, lips, skin tone)
-- Keep exact same body proportions
-- Keep exact same background and pose
-- Only change: their outfit → use Image 2's clothing
+${identityRef}
 
-VERIFY: Output face must match Image 1's face exactly. Same person, just different clothes.`
+${IDENTITY_CORE}
+
+TASK: Replace ONLY the outfit.
+- Remove current clothing from the person
+- Apply the clothing from the garment image
+- Keep EXACT same: face, body, hair, pose, background, lighting
+- Clothing should fit naturally with proper draping and wrinkles
+- Match clothing to person's body shape and pose
+
+${ANTI_AI_MARKERS}
+
+FINAL CHECK: The face must be indistinguishable from the reference. Same person, just different clothes.`
+  }
+  
+  // SCENE CHANGE WITH PRESET
+  if (preset?.scene) {
+    return `FASHION PHOTOGRAPHY: VIRTUAL TRY-ON + SCENE
+
+${identityRef}
+
+${IDENTITY_CORE}
+
+OUTFIT CHANGE:
+Remove current clothing and apply the garment from the clothing image.
+Natural fit with realistic wrinkles and draping based on pose.
+
+SCENE SETTING:
+${preset.scene}
+
+LIGHTING SETUP:
+${preset.lighting}
+
+CAMERA & COMPOSITION:
+${preset.camera}
+
+TEXTURE FIDELITY:
+${preset.texture}
+${ANTI_AI_MARKERS}
+
+VISUAL STYLE:
+${preset.style}
+
+CRITICAL: The new environment affects lighting on skin and clothes, but NEVER changes facial features.
+The person's identity is LOCKED from reference images.`
+  }
+  
+  // CUSTOM BACKGROUND
+  return `VIRTUAL TRY-ON WITH CUSTOM SETTING
+
+${identityRef}
+
+${IDENTITY_CORE}
+
+OUTFIT: Apply clothing from the garment image with natural fit.
+
+SETTING: ${backgroundInstruction}
+
+LIGHTING: ${lightingInstruction}
+
+${ANTI_AI_MARKERS}
+
+FINAL: Person's face must match reference exactly. Only clothes and background change.`
+}
+
+// ====================================================================================
+// FLASH MODEL PROMPTS - Simpler but effective
+// Flash responds better to concise, direct instructions
+// ====================================================================================
+
+function buildFlashPrompt(
+  keepBg: boolean, 
+  preset: typeof CINEMA_PRESETS[string] | null, 
+  backgroundInstruction: string, 
+  lightingInstruction: string,
+  identityCount: number
+): string {
+  const identityRef = identityCount > 0 
+    ? `First ${identityCount + 1} images = SAME PERSON (different angles). Last image = NEW CLOTHING.`
+    : `Image 1 = PERSON. Image 2 = NEW CLOTHING.`
+
+  // CLOTHING ONLY
+  if (keepBg) {
+    return `CLOTHING SWAP TASK
+
+${identityRef}
+
+RULES:
+1. Keep EXACT same face (every feature identical)
+2. Keep EXACT same body shape and proportions
+3. Keep same background and lighting
+4. Keep same pose and expression
+5. ONLY change: put clothing from last image on person
+
+FACE CHECK: Must look like same person's passport photo. No changes to eyes, nose, lips, skin tone, face shape.
+
+OUTPUT: Same person, same everything, just wearing the new outfit.`
   }
   
   // SCENE CHANGE
   if (preset?.scene) {
-    return `IDENTITY LOCK: Copy the person from Image 1 exactly.
+    return `FASHION PHOTO: TRY-ON + SCENE CHANGE
 
-Show them:
-- Wearing: outfit from Image 2
-- In scene: ${preset.scene}
-- Lighting: ${preset.lighting || 'natural'}
+${identityRef}
 
-CRITICAL: Face must be identical to Image 1.
-- Same face shape and proportions
-- Same eye appearance
-- Same nose and lips
-- Same skin tone (no lightening)
-- Same body build
+STEP 1 - FACE LOCK:
+Copy person's face exactly. Same features, skin tone, expression.
 
-Final check: If the face looks different from Image 1, redo it.`
+STEP 2 - OUTFIT:
+Put the clothing from last image on them. Natural fit.
+
+STEP 3 - SCENE:
+Place them in: ${preset.scene}
+Lighting: ${preset.lighting}
+Style: ${preset.style}
+
+RULES:
+- Face CANNOT change when scene changes
+- Add realistic textures: skin pores, fabric weave, background detail
+- Natural imperfections (not CGI-perfect)
+
+VERIFY: Face matches reference exactly. Only clothes and background are different.`
   }
   
-  // Custom
-  return `IDENTITY LOCK: The person in Image 1 is the subject.
+  // CUSTOM
+  return `TRY-ON: CLOTHES + BACKGROUND
 
-Show them wearing Image 2's outfit in: ${backgroundInstruction}
+${identityRef}
 
-Keep their face IDENTICAL to Image 1:
-- Same facial features
-- Same skin tone
+Put clothing from last image on the person.
+Place in: ${backgroundInstruction}
+Lighting: ${lightingInstruction}
+
+IDENTITY LOCK:
+- Same face shape and features
+- Same skin tone (no lightening)
 - Same body proportions
+- Add natural skin texture (pores visible)
 
-Only change clothes and background.`
+Result: Same person, new outfit, new background.`
 }
 
-/**
- * SINGLE-STEP RENDERER - For clothing-only changes
- * Used when background stays the same
- * Now supports multiple identity reference images
- */
+export interface SimpleRenderOptions {
+  subjectImageBase64: string
+  garmentImageBase64: string
+  identityImagesBase64?: string[]
+  backgroundInstruction: string
+  lightingInstruction: string
+  quality: 'fast' | 'high'
+  aspectRatio?: string
+  resolution?: string
+  stylePresetId?: string
+}
+
+// ====================================================================================
+// SINGLE-STEP RENDERER - For clothing-only changes
+// ====================================================================================
+
 async function renderSingleStep(
   client: GoogleGenAI,
   model: string,
@@ -326,13 +355,12 @@ async function renderSingleStep(
   temperature: number,
   resolution?: string
 ): Promise<string> {
-  // Build contents array with all identity images first, then garment
   const contents: ContentListUnion = []
   
   // Primary subject image
   contents.push({ inlineData: { data: subjectBase64, mimeType: 'image/jpeg' } } as any)
   
-  // Additional identity reference images (if any)
+  // Additional identity reference images
   for (const identityImg of identityImages) {
     const clean = stripDataUrl(identityImg)
     if (clean && clean.length > 100) {
@@ -357,14 +385,14 @@ async function renderSingleStep(
     temperature,
   }
 
-  console.log(`   📷 Using ${1 + identityImages.length} identity reference(s) + 1 garment`)
+  console.log(`   📷 Rendering with ${1 + identityImages.length} identity refs + 1 garment`)
 
   const resp = await client.models.generateContent({ model, contents, config })
 
   if (resp.candidates?.length) {
     for (const part of resp.candidates[0]?.content?.parts || []) {
       if (part.inlineData?.mimeType?.startsWith('image/') && part.inlineData?.data) {
-        return part.inlineData.data // Return raw base64
+        return part.inlineData.data
       }
     }
   }
@@ -374,57 +402,71 @@ async function renderSingleStep(
   throw new Error('No image generated in single step')
 }
 
-/**
- * LAYERED WORKFLOW - For scene changes
- * Step 1: Outfit swap with neutral background (locks identity)
- * Step 2: Change background/lighting (identity already baked in)
- * Now supports multiple identity reference images
- */
+// ====================================================================================
+// LAYERED WORKFLOW - For scene changes
+// Step 1: Outfit swap with identity lock (neutral background)
+// Step 2: Scene change (identity already baked in)
+// ====================================================================================
+
 async function renderLayered(
   client: GoogleGenAI,
   model: string,
   subjectBase64: string,
   garmentBase64: string,
   identityImages: string[],
-  preset: any,
+  preset: typeof CINEMA_PRESETS[string],
   aspectRatio: string,
   temperature: number,
   resolution?: string
 ): Promise<string> {
-  console.log('🎯 LAYERED WORKFLOW: Step 1 - Outfit swap with neutral background')
-  console.log(`   📷 Using ${1 + identityImages.length} identity reference(s)`)
+  const identityCount = identityImages.length
+  const isPro = model.includes('pro')
   
-  // Build identity anchor based on number of reference images
-  const identityAnchor = buildMultiReferenceAnchor(identityImages.length)
-  const identityEnd = identityImages.length > 0 ? buildMultiReferenceEnd() : IDENTITY_ANCHOR_END
+  console.log('🎯 LAYERED WORKFLOW: Step 1 - Outfit swap + identity lock')
+  console.log(`   📷 Using ${1 + identityCount} identity reference(s)`)
   
-  // STEP 1: Generate base image with outfit + identity, neutral background
-  const step1Prompt = `${identityAnchor}
+  // STEP 1: Outfit swap with neutral background (identity focus)
+  const step1Prompt = isPro 
+    ? `STEP 1: IDENTITY-LOCKED OUTFIT SWAP
 
-STEP 1 - OUTFIT SWAP:
-${identityImages.length > 0 
-  ? `Use the identity reference images to understand this person's face from multiple angles.
-The LAST image before this text is the CLOTHING to apply.`
-  : `Put the clothing from the last image onto the person from the first image.`}
-Use a plain, neutral grey studio background.
-Even, flat lighting.
+${identityCount > 0 
+  ? `You have ${identityCount + 1} images of the SAME PERSON from different angles. Study their face from all angles.
+The LAST image is the CLOTHING to apply.`
+  : `Image 1 = PERSON. Image 2 = CLOTHING.`}
 
-Focus on:
-1. PERFECT facial identity match (use ALL reference images to understand the face)
-2. Accurate clothing fit from the garment image
-3. Natural body pose matching the main reference
+${IDENTITY_CORE}
 
-${LOOKALIKE_RULES}
+TASK:
+1. Study the person's face from all reference angles
+2. Remove their current clothing
+3. Apply the garment from the last image
+4. Use plain GREY studio background
+5. Flat, even lighting
 
-${identityEnd}`
+Focus on PERFECT facial identity match using all reference images.
+The clothing should fit naturally based on their body shape.
 
-  // Build contents with all identity images
+${ANTI_AI_MARKERS}
+
+This is the foundation - face must be PERFECT before we add the scene.`
+    : `OUTFIT SWAP - STEP 1
+
+${identityCount > 0 
+  ? `First ${identityCount + 1} images = SAME PERSON. Last = CLOTHING.`
+  : `Image 1 = PERSON. Image 2 = CLOTHING.`}
+
+Put the clothing on the person.
+Use grey studio background.
+Flat lighting.
+
+CRITICAL: Face must be EXACTLY like the reference images.
+Same eyes, nose, lips, skin tone, face shape.
+No beautification. Real skin texture with pores.`
+
+  // Build contents
   const step1Contents: ContentListUnion = []
-  
-  // Primary subject
   step1Contents.push({ inlineData: { data: subjectBase64, mimeType: 'image/jpeg' } } as any)
   
-  // Additional identity references
   for (const identityImg of identityImages) {
     const clean = stripDataUrl(identityImg)
     if (clean && clean.length > 100) {
@@ -432,16 +474,13 @@ ${identityEnd}`
     }
   }
   
-  // Garment (last image)
   step1Contents.push({ inlineData: { data: garmentBase64, mimeType: 'image/jpeg' } } as any)
-  
-  // Prompt
   step1Contents.push(step1Prompt)
 
   const step1Config: GenerateContentConfig = {
     responseModalities: ['IMAGE'],
     imageConfig: { aspectRatio } as any,
-    temperature: 0.02, // Very low for identity preservation
+    temperature: 0.01, // Ultra-low for identity preservation
   }
 
   const step1Start = Date.now()
@@ -450,7 +489,7 @@ ${identityEnd}`
     contents: step1Contents, 
     config: step1Config 
   })
-  console.log(`   Step 1 completed in ${((Date.now() - step1Start) / 1000).toFixed(1)}s`)
+  console.log(`   ✓ Step 1 completed in ${((Date.now() - step1Start) / 1000).toFixed(1)}s`)
 
   let step1Image: string | null = null
   if (step1Resp.candidates?.length) {
@@ -468,23 +507,50 @@ ${identityEnd}`
 
   console.log('🎯 LAYERED WORKFLOW: Step 2 - Apply scene and lighting')
 
-  // STEP 2: Change background/lighting using Step 1 result
-  // The face is now "baked in" to the reference image
-  const step2Prompt = `SCENE CHANGE - Keep the person EXACTLY as they appear.
+  // STEP 2: Scene change using Step 1 result (face is now "baked in")
+  const step2Prompt = isPro
+    ? `SCENE PLACEMENT
 
-Take this person (face, body, clothes, pose) and place them in a new environment:
-- New background: ${preset.scene}
-- New lighting: ${preset.lighting || 'natural lighting matching the scene'}
+Take this person EXACTLY as they appear and place them in a new environment.
 
-CRITICAL RULES:
-- Do NOT modify the person's face AT ALL
-- Do NOT change their body shape
-- Do NOT change their clothes
-- Do NOT change their pose
-- ONLY change the background and apply appropriate scene lighting
+NEW SCENE:
+${preset.scene}
 
-The person should look like they were photographed in this location, 
-but their face must remain EXACTLY as it is in the input image.`
+LIGHTING:
+${preset.lighting}
+
+CAMERA/COMPOSITION:
+${preset.camera}
+
+TEXTURE REQUIREMENTS:
+${preset.texture}
+
+STYLE:
+${preset.style}
+
+ABSOLUTE RULES:
+- DO NOT modify the person's face AT ALL - it is LOCKED
+- DO NOT change body shape or proportions
+- DO NOT change clothes (already correct)
+- ONLY change: background and apply scene-appropriate lighting on surfaces
+
+The person should look naturally photographed in this location.
+Apply realistic environmental lighting to their skin and clothes.
+But their FACE remains IDENTICAL to input.`
+    : `SCENE CHANGE - KEEP PERSON IDENTICAL
+
+Place this person in: ${preset.scene}
+Lighting: ${preset.lighting}
+Style: ${preset.style}
+
+RULES:
+- Face stays EXACTLY the same (do not touch it)
+- Body and clothes stay the same
+- Only change the background
+- Add natural scene lighting to skin/clothes
+
+Make it look like they were photographed there.
+Face is LOCKED - cannot change.`
 
   const step2Contents: ContentListUnion = [
     { inlineData: { data: step1Image, mimeType: 'image/jpeg' } } as any,
@@ -499,7 +565,7 @@ but their face must remain EXACTLY as it is in the input image.`
   const step2Config: GenerateContentConfig = {
     responseModalities: ['IMAGE'],
     imageConfig,
-    temperature: 0.3, // Slightly higher for creative background
+    temperature: 0.25, // Slightly higher for creative background
   }
 
   const step2Start = Date.now()
@@ -508,7 +574,7 @@ but their face must remain EXACTLY as it is in the input image.`
     contents: step2Contents, 
     config: step2Config 
   })
-  console.log(`   Step 2 completed in ${((Date.now() - step2Start) / 1000).toFixed(1)}s`)
+  console.log(`   ✓ Step 2 completed in ${((Date.now() - step2Start) / 1000).toFixed(1)}s`)
 
   if (step2Resp.candidates?.length) {
     for (const part of step2Resp.candidates[0]?.content?.parts || []) {
@@ -518,15 +584,16 @@ but their face must remain EXACTLY as it is in the input image.`
     }
   }
 
-  // If Step 2 fails, return Step 1 result (at least we have correct outfit)
+  // Fallback to Step 1 if Step 2 fails
   console.log('⚠️ Step 2 failed, returning Step 1 result')
   return step1Image
 }
 
-/**
- * MAIN RENDERER - Routes to single-step or layered based on preset
- * Now supports multiple identity reference images for better face consistency
- */
+// ====================================================================================
+// MAIN RENDERER
+// Routes to single-step or layered based on preset type
+// ====================================================================================
+
 export async function renderTryOnFast(params: SimpleRenderOptions): Promise<string> {
   const {
     subjectImageBase64,
@@ -548,7 +615,6 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
   const cleanSubject = stripDataUrl(subjectImageBase64)
   const cleanGarment = stripDataUrl(garmentImageBase64)
   
-  // Clean and filter identity images
   const cleanIdentityImages = (identityImagesBase64 || [])
     .map(img => stripDataUrl(img))
     .filter(img => img && img.length > 100)
@@ -556,7 +622,7 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
   if (!cleanSubject || cleanSubject.length < 100) throw new Error('Invalid subject image')
   if (!cleanGarment || cleanGarment.length < 100) throw new Error('Invalid garment image')
 
-  const preset = stylePresetId ? SCENE_PRESETS[stylePresetId] : null
+  const preset = stylePresetId ? CINEMA_PRESETS[stylePresetId] : null
   
   // Detect "keep background" modes
   const bgLower = backgroundInstruction.toLowerCase()
@@ -568,80 +634,37 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
                  bgLower.includes('unchanged')
 
   // Temperature for identity preservation
-  const temperature = isPro ? 0.02 : 0.05
+  const temperature = isPro ? 0.01 : 0.03
 
-  console.log(`🚀 Render: model=${model}, preset=${stylePresetId || 'custom'}, keepBg=${keepBg}`)
-  console.log(`👤 Identity references: ${1 + cleanIdentityImages.length} images`)
+  console.log(`\n🚀 RENDER START`)
+  console.log(`   Model: ${model}`)
+  console.log(`   Preset: ${stylePresetId || 'none'}`)
+  console.log(`   Mode: ${keepBg ? 'CLOTHING-ONLY' : preset?.scene ? 'LAYERED' : 'CUSTOM'}`)
+  console.log(`   Identity refs: ${1 + cleanIdentityImages.length}`)
+  console.log(`   Resolution: ${resolution || '1K'}`)
 
   const startTime = Date.now()
   let resultBase64: string
-  
-  // Build prompts with multi-reference support if we have extra identity images
-  const hasMultiRef = cleanIdentityImages.length > 0
 
   if (keepBg) {
-    // SINGLE STEP - Just swap clothing, keep background
-    console.log('📸 Mode: SINGLE-STEP (clothing only)')
-    
-    // Build prompt with multi-reference anchor if available
-    let prompt: string
-    if (hasMultiRef) {
-      const anchor = buildMultiReferenceAnchor(cleanIdentityImages.length)
-      const end = buildMultiReferenceEnd()
-      prompt = `${anchor}
-
-TASK: Virtual clothing try-on.
-The first ${cleanIdentityImages.length + 1} images show the SAME PERSON from different angles.
-The LAST image is the clothing item to apply.
-
-Replace their current outfit with the clothing from the last image.
-Keep EVERYTHING else identical: face, body, hair, pose, background.
-
-${LOOKALIKE_RULES}
-
-${end}`
-    } else {
-      prompt = isPro 
-        ? buildProPrompt(true, preset, backgroundInstruction, lightingInstruction)
-        : buildFlashPrompt(true, preset, backgroundInstruction, lightingInstruction)
-    }
-    
-    console.log(`📝 Prompt: ${prompt.substring(0, 100)}...`)
+    // SINGLE STEP - Just swap clothing
+    const prompt = isPro 
+      ? buildProPrompt(true, null, backgroundInstruction, lightingInstruction, cleanIdentityImages.length)
+      : buildFlashPrompt(true, null, backgroundInstruction, lightingInstruction, cleanIdentityImages.length)
     
     resultBase64 = await renderSingleStep(
       client, model, cleanSubject, cleanGarment, cleanIdentityImages, prompt, aspectRatio, temperature, resolution
     )
   } else if (preset?.scene) {
-    // LAYERED WORKFLOW - Outfit first, then scene change
-    console.log('🎬 Mode: LAYERED WORKFLOW (outfit → scene)')
+    // LAYERED WORKFLOW - Outfit first, then scene
     resultBase64 = await renderLayered(
       client, model, cleanSubject, cleanGarment, cleanIdentityImages, preset, aspectRatio, temperature, resolution
     )
   } else {
-    // Custom background - use single step with anchored prompt
-    console.log('📸 Mode: SINGLE-STEP (custom background)')
-    
-    let prompt: string
-    if (hasMultiRef) {
-      const anchor = buildMultiReferenceAnchor(cleanIdentityImages.length)
-      const end = buildMultiReferenceEnd()
-      prompt = `${anchor}
-
-TASK: Show this person wearing the outfit from the last image.
-Background: ${backgroundInstruction}
-Lighting: ${lightingInstruction}
-
-The first ${cleanIdentityImages.length + 1} images show the SAME PERSON.
-Use all angles to understand their face perfectly.
-
-${LOOKALIKE_RULES}
-
-${end}`
-    } else {
-      prompt = isPro 
-        ? buildProPrompt(false, preset, backgroundInstruction, lightingInstruction)
-        : buildFlashPrompt(false, preset, backgroundInstruction, lightingInstruction)
-    }
+    // CUSTOM BACKGROUND - Single step
+    const prompt = isPro 
+      ? buildProPrompt(false, null, backgroundInstruction, lightingInstruction, cleanIdentityImages.length)
+      : buildFlashPrompt(false, null, backgroundInstruction, lightingInstruction, cleanIdentityImages.length)
     
     resultBase64 = await renderSingleStep(
       client, model, cleanSubject, cleanGarment, cleanIdentityImages, prompt, aspectRatio, temperature, resolution
@@ -649,12 +672,12 @@ ${end}`
   }
 
   const elapsed = Date.now() - startTime
-  console.log(`⏱️ Total render time: ${(elapsed / 1000).toFixed(1)}s`)
+  console.log(`✅ RENDER COMPLETE in ${(elapsed / 1000).toFixed(1)}s\n`)
 
   return `data:image/jpeg;base64,${resultBase64}`
 }
 
-// Compatibility wrapper
+// Compatibility wrapper for V3
 export async function renderTryOnV3(params: {
   subjectImageBase64: string
   garmentImageBase64: string
@@ -671,7 +694,7 @@ export async function renderTryOnV3(params: {
   return renderTryOnFast({
     subjectImageBase64: params.subjectImageBase64,
     garmentImageBase64: params.garmentImageBase64,
-    identityImagesBase64: params.identityImagesBase64, // Pass through identity images
+    identityImagesBase64: params.identityImagesBase64,
     backgroundInstruction: params.shootPlan.scene_text || 'keep original background',
     lightingInstruction: 'natural lighting',
     quality: params.opts.quality,
