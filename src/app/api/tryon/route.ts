@@ -155,19 +155,52 @@ export async function POST(request: Request) {
             background_focus: 'moderate_bokeh',
           }
 
-      console.log(`🎬 Running fast pipeline...`)
-      const result = await runTryOnPipelineV3({
-        subjectImageBase64: normalizedPerson,
-        clothingRefBase64: normalizedClothing,
-        identityImagesBase64: normalizedIdentityImages,
-        preset,
-        userRequest: userRequest || undefined,
-        quality: {
-          quality: model === 'pro' ? 'high' : 'fast',
-          aspectRatio: (reqAspectRatio || '4:5') as any,
-          resolution: (reqResolution || '2K') as any,
-        },
-      })
+      // Retry logic with exponential backoff
+      const MAX_RETRIES = 3
+      const RETRY_DELAYS = [1000, 2000, 4000] // ms
+      
+      let result: Awaited<ReturnType<typeof runTryOnPipelineV3>> | null = null
+      let lastError: Error | null = null
+      
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        try {
+          if (attempt > 0) {
+            console.log(`🔄 Retry attempt ${attempt + 1}/${MAX_RETRIES}...`)
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt - 1]))
+          }
+          
+          console.log(`🎬 Running try-on pipeline (attempt ${attempt + 1})...`)
+          result = await runTryOnPipelineV3({
+            subjectImageBase64: normalizedPerson,
+            clothingRefBase64: normalizedClothing,
+            identityImagesBase64: normalizedIdentityImages,
+            preset,
+            userRequest: userRequest || undefined,
+            quality: {
+              quality: model === 'pro' ? 'high' : 'fast',
+              aspectRatio: (reqAspectRatio || '4:5') as any,
+              resolution: (reqResolution || '2K') as any,
+            },
+          })
+          
+          // Success - break out of retry loop
+          break
+        } catch (err) {
+          lastError = err instanceof Error ? err : new Error(String(err))
+          console.error(`❌ Attempt ${attempt + 1} failed:`, lastError.message)
+          
+          // Don't retry on certain errors
+          if (lastError.message.includes('Invalid') || 
+              lastError.message.includes('required') ||
+              lastError.message.includes('Unauthorized')) {
+            break
+          }
+        }
+      }
+      
+      if (!result) {
+        throw lastError || new Error('Generation failed after multiple attempts')
+      }
 
       const generatedImage = result.image
 
