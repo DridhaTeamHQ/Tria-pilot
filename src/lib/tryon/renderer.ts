@@ -468,13 +468,19 @@ COMPOSITING AVOIDANCE:
 
 ${refExplanation}
 
+${identityPrompt}
+
+${garmentPrompt}
+
 TASK:
-- Edit the FIRST image (the person). Replace ONLY their clothing using the LAST image (garment).
+- Edit the FIRST image (the person). REMOVE their current outfit completely and REPLACE it with the LAST image (garment).
+- No layering. No blending. No partial changes.
 
 STRICT IDENTITY LOCK:
 - Keep the same person with the exact same face. Do NOT change face shape, cheeks, jaw, head size, or expression.
 - Do NOT beautify. Keep natural skin texture and pores. Keep hair identical.
 - Never blend identities. Ignore any person/face in the garment reference completely.
+- The person reference images are ONLY for identity. IGNORE their clothing entirely.
 
 STRICT BACKGROUND LOCK:
 - Keep the original background and lighting from the person photo exactly unchanged.

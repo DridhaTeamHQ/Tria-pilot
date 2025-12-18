@@ -460,6 +460,12 @@ Length: ${analysis.lengthStyle}
 Pattern: ${analysis.patternType}${analysis.patternDescription !== 'no pattern' ? ` - ${analysis.patternDescription}` : ''}
 ${elements}
 
+ACTION (NON-NEGOTIABLE):
+- REMOVE the person's current outfit completely. No layering, no blending.
+- The GARMENT reference is the ONLY source of clothing.
+- The PERSON reference images are ONLY for identity (face/body). IGNORE their clothing entirely.
+- Do NOT keep any original clothing. Do NOT copy clothing from identity images.
+
 ${analysis.summary}`
 }
 
