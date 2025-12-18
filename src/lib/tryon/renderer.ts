@@ -456,6 +456,13 @@ ${identityPrompt}
 ${garmentPrompt}
 
 ═══════════════════════════════════════════════════════════════════════════════
+STRICT RULES (NON-NEGOTIABLE):
+• The ONLY identity source is the person reference images (Images 1-${identityCount + 1}).
+• The garment reference must be used ONLY for clothing. IGNORE any person/face in garment reference.
+• If the garment reference contains a human, DO NOT borrow their face, skin, hair, body, pose, or lighting.
+• Never blend identities. Never average faces. Never change eye shape, nose, lips, jaw, skin tone.
+• If any instruction conflicts, PERSON REFERENCES OVERRIDE everything.
+
 TASK:
 1. Study the reference photos - this is the EXACT person who must appear in output
 2. Remove their current clothing COMPLETELY
@@ -485,6 +492,13 @@ ${identityPrompt}
 ${garmentPrompt}
 
 ═══════════════════════════════════════════════════════════════════════════════
+STRICT RULES (NON-NEGOTIABLE):
+• Identity ONLY from person references. Garment reference is clothing ONLY.
+• Ignore any face/person in garment reference completely.
+• Do NOT change facial geometry, eye shape, nose, lips, jaw, skin tone, hairline.
+• Never blend identities. Never average faces.
+• If conflict: PERSON REFERENCES OVERRIDE.
+
 SCENE:
 📍 ${scene.description}
 💡 ${scene.lighting}
@@ -517,8 +531,190 @@ ${identityPrompt}
 
 ${garmentPrompt}
 
+STRICT RULES:
+• Identity ONLY from person references. Garment reference is clothing ONLY.
+• Ignore any face/person in garment reference completely.
+• Never blend identities. Never average faces.
+
 Apply the garment to this person. Keep their identity EXACTLY as described.
 Natural skin texture, visible pores, no beautification.`
+}
+
+// ====================================================================================
+// GARMENT-ONLY EXTRACTION (Prevents face-bleed from garment reference images)
+// ====================================================================================
+
+async function extractGarmentOnlyReference(
+  client: GoogleGenAI,
+  model: string,
+  garmentBase64: string
+): Promise<string> {
+  // Use a fast, deterministic extraction pass to produce a garment-only reference.
+  const extractionPrompt = `GARMENT EXTRACTION (CLOTHING ONLY)
+
+You are given an image that may include a person wearing a garment.
+Your job: output an image that contains ONLY the garment. Remove the person completely.
+
+Requirements:
+- Output a clean garment-only reference image on a plain white background (flat-lay or mannequin is OK, but NO HUMAN).
+- Preserve the garment EXACTLY: color, pattern, fabric texture, neckline, sleeves, trims, logos, embroidery.
+- Do NOT add accessories, do NOT change garment design, do NOT change colors.
+- Keep the garment centered, fully visible, sharp focus, neutral lighting.
+
+Return ONLY the extracted garment image.`
+
+  const contents: ContentListUnion = [
+    { inlineData: { data: garmentBase64, mimeType: 'image/jpeg' } } as any,
+    extractionPrompt,
+  ]
+
+  const config: GenerateContentConfig = {
+    responseModalities: ['IMAGE'],
+    imageConfig: { aspectRatio: '1:1' } as any,
+    temperature: 0.05,
+  }
+
+  const resp = await client.models.generateContent({ model, contents, config })
+  if (resp.candidates?.length) {
+    for (const part of resp.candidates[0]?.content?.parts || []) {
+      if (part.inlineData?.mimeType?.startsWith('image/') && part.inlineData?.data) {
+        return part.inlineData.data
+      }
+    }
+  }
+  throw new Error('Garment extraction failed - no image generated')
+}
+
+async function renderTwoStepForensic(
+  client: GoogleGenAI,
+  model: string,
+  subjectBase64: string,
+  garmentBase64: string,
+  identityImages: string[],
+  faceAnalysis: ForensicFaceAnalysis,
+  garmentAnalysis: GarmentAnalysis,
+  scene: typeof SCENE_PRESETS[string],
+  styleKey: string,
+  aspectRatio: string,
+  resolution?: string
+): Promise<string> {
+  const identityCount = identityImages.length
+  const style = STYLE_SETTINGS[styleKey] || STYLE_SETTINGS.iphone_candid
+  const identityPrompt = buildIdentityPromptFromAnalysis(faceAnalysis)
+  const garmentPrompt = buildGarmentPromptFromAnalysis(garmentAnalysis)
+
+  console.log('🎯 TWO-STEP (FORENSIC)')
+  console.log('   Step 1: Identity + Outfit Lock (neutral background)')
+
+  const step1Prompt = `STEP 1: IDENTITY-LOCKED OUTFIT APPLICATION (FORENSIC)
+
+You have ${identityCount + 1} reference photos of the SAME PERSON (Images 1-${identityCount + 1}).
+The LAST image is the GARMENT reference (clothing only). If you see a person in the garment image, IGNORE them completely.
+
+═══════════════════════════════════════════════════════════════════════════════
+${identityPrompt}
+═══════════════════════════════════════════════════════════════════════════════
+${garmentPrompt}
+
+STRICT RULES:
+• Identity ONLY from person references. Garment reference is clothing ONLY.
+• Do NOT change face geometry, skin tone, hairline, eyes, nose, lips, jaw.
+• Never blend identities. Never average faces.
+• Remove the original outfit completely. No layering.
+
+TASK:
+1) Put the garment on this exact person with natural fit and fabric wrinkles
+2) Use a plain grey studio background
+3) Use neutral, even lighting
+
+OUTPUT: The same person, same face, wearing the garment.`
+
+  const step1Contents: ContentListUnion = []
+  step1Contents.push({ inlineData: { data: subjectBase64, mimeType: 'image/jpeg' } } as any)
+  for (const img of identityImages) {
+    if (img && img.length > 100) {
+      step1Contents.push({ inlineData: { data: img, mimeType: 'image/jpeg' } } as any)
+    }
+  }
+  step1Contents.push({ inlineData: { data: garmentBase64, mimeType: 'image/jpeg' } } as any)
+  step1Contents.push(step1Prompt)
+
+  const step1Config: GenerateContentConfig = {
+    responseModalities: ['IMAGE'],
+    imageConfig: { aspectRatio } as any,
+    temperature: 0.01,
+  }
+
+  const step1Resp = await client.models.generateContent({
+    model,
+    contents: step1Contents,
+    config: step1Config,
+  })
+
+  let step1Image: string | null = null
+  if (step1Resp.candidates?.length) {
+    for (const part of step1Resp.candidates[0]?.content?.parts || []) {
+      if (part.inlineData?.mimeType?.startsWith('image/') && part.inlineData?.data) {
+        step1Image = part.inlineData.data
+        break
+      }
+    }
+  }
+  if (!step1Image) throw new Error('Forensic Step 1 failed - no image generated')
+
+  console.log('   Step 2: Scene Application (identity locked)')
+
+  const step2Prompt = `STEP 2: SCENE PLACEMENT (IDENTITY LOCKED)
+
+Take this person EXACTLY as they appear in the provided image and place them in a new environment.
+
+STRICT RULES:
+• DO NOT change the face. Do NOT change skin tone. Do NOT change hairline.
+• Never blend identities. Never average faces.
+• Clothing must remain exactly as in Step 1.
+
+NEW ENVIRONMENT:
+📍 ${scene.description}
+💡 ${scene.lighting}
+🔍 ${scene.details}
+
+STYLE:
+${style}
+
+Make the person look naturally photographed in this location. Background must be sharp and realistic (no AI mush).`
+
+  const step2Contents: ContentListUnion = [
+    { inlineData: { data: step1Image, mimeType: 'image/jpeg' } } as any,
+    step2Prompt,
+  ]
+
+  const imageConfig: ImageConfig = { aspectRatio } as any
+  if (model.includes('pro') && resolution) {
+    ;(imageConfig as any).imageSize = resolution
+  }
+
+  const step2Config: GenerateContentConfig = {
+    responseModalities: ['IMAGE'],
+    imageConfig,
+    temperature: 0.2,
+  }
+
+  const step2Resp = await client.models.generateContent({
+    model,
+    contents: step2Contents,
+    config: step2Config,
+  })
+
+  if (step2Resp.candidates?.length) {
+    for (const part of step2Resp.candidates[0]?.content?.parts || []) {
+      if (part.inlineData?.mimeType?.startsWith('image/') && part.inlineData?.data) {
+        return part.inlineData.data
+      }
+    }
+  }
+
+  console.log('   ⚠️ Forensic Step 2 failed, returning Step 1 result')
+  return step1Image
 }
 
 /**
@@ -846,6 +1042,7 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
   // Cache for forensic analysis
   let faceAnalysis: ForensicFaceAnalysis | null = null
   let garmentAnalysis: GarmentAnalysis | null = null
+  let garmentForGemini = cleanGarment
 
   try {
     // ============================================================
@@ -864,6 +1061,15 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
       faceAnalysis = faceResult
       garmentAnalysis = garmentResult
       
+      // If garment reference contains a person/face, extract a garment-only reference to prevent face bleed
+      if (garmentAnalysis.containsPerson || garmentAnalysis.containsFace) {
+        console.log('🧩 Garment ref contains a person/face — extracting garment-only reference (prevents identity mixing)...')
+        const extractionModel = isPro ? 'gemini-2.5-flash-image' : model // extraction works well on flash
+        garmentForGemini = await extractGarmentOnlyReference(client, extractionModel, cleanGarment)
+        // Re-analyze the extracted garment-only image for best description fidelity
+        garmentAnalysis = await analyzeGarmentForensic(garmentForGemini)
+      }
+
       console.log(`   ✓ Analysis complete in ${((Date.now() - analysisStart) / 1000).toFixed(1)}s`)
       
       // Build forensic-enhanced prompt
@@ -878,11 +1084,27 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
       
       console.log(`   Prompt length: ${forensicPrompt.length} chars`)
       
-      // Render with forensic prompt
-      resultBase64 = await renderSingleStep(
-        client, model, cleanSubject, cleanGarment, cleanIdentityImages,
-        forensicPrompt, aspectRatio, temperature, resolution
-      )
+      // Render with forensic prompt (use garment-only ref if needed)
+      if (!keepBackground && scene) {
+        resultBase64 = await renderTwoStepForensic(
+          client,
+          model,
+          cleanSubject,
+          garmentForGemini,
+          cleanIdentityImages,
+          faceAnalysis,
+          garmentAnalysis,
+          scene,
+          styleKey,
+          aspectRatio,
+          resolution
+        )
+      } else {
+        resultBase64 = await renderSingleStep(
+          client, model, cleanSubject, garmentForGemini, cleanIdentityImages,
+          forensicPrompt, aspectRatio, temperature, resolution
+        )
+      }
     } 
     // ============================================================
     // STANDARD MODE (Gemini only)

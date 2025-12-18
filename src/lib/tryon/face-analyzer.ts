@@ -312,6 +312,15 @@ EXPRESSION: ${analysis.currentExpression}, head ${analysis.headTilt}, gaze ${ana
  * Analyze garment with GPT-4o Vision for precise clothing replication
  */
 export interface GarmentAnalysis {
+  /**
+   * True if the garment reference image appears to include a person/body.
+   * Used to prevent face-bleed by auto-extracting a garment-only reference.
+   */
+  containsPerson: boolean
+  /**
+   * True if a visible face/head appears in the garment reference image.
+   */
+  containsFace: boolean
   garmentType: string
   sleeveType: string
   necklineType: string
@@ -331,9 +340,13 @@ export async function analyzeGarmentForensic(garmentImageBase64: string): Promis
   const openai = getOpenAI()
   
   const prompt = `Analyze this garment image for EXACT replication in virtual try-on.
-If a person is wearing the garment, IGNORE the person and extract ONLY the clothing details.
+First, detect whether the image includes a person or visible face. This is used to avoid identity mixing.
+
+If a person is wearing the garment, IGNORE the person completely and extract ONLY the clothing details.
 
 Return JSON with:
+- containsPerson: boolean (true if any person/body is visible)
+- containsFace: boolean (true if a face/head is visible)
 - garmentType: exact type (kurti, A-line dress, fitted blouse, crop top, etc.)
 - sleeveType: (sleeveless/cap sleeve/short sleeve/elbow/3-4 sleeve/full sleeve)
 - necklineType: (round/V-neck/scoop/boat/off-shoulder/collared/mandarin/square)
@@ -377,6 +390,8 @@ Return JSON with:
   } catch (error) {
     console.error('❌ Garment analysis failed:', error)
     return {
+      containsPerson: false,
+      containsFace: false,
       garmentType: 'top',
       sleeveType: 'short sleeve',
       necklineType: 'round',
