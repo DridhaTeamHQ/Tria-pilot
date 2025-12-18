@@ -1,5 +1,13 @@
 import { GoogleGenAI, type ContentListUnion, type GenerateContentConfig, type ImageConfig } from '@google/genai'
 import { getGeminiKey } from '@/lib/config/api-keys'
+import { 
+  analyzeFaceForensic, 
+  analyzeGarmentForensic, 
+  buildIdentityPromptFromAnalysis, 
+  buildGarmentPromptFromAnalysis,
+  type ForensicFaceAnalysis,
+  type GarmentAnalysis
+} from './face-analyzer'
 
 const getClient = () => new GoogleGenAI({ apiKey: getGeminiKey() })
 
@@ -409,6 +417,108 @@ export interface SimpleRenderOptions {
   aspectRatio?: string
   resolution?: string
   stylePresetId?: string
+  /** Enable GPT-4o forensic face analysis for enhanced identity preservation */
+  useForensicAnalysis?: boolean
+}
+
+// ====================================================================================
+// FORENSIC-ENHANCED PROMPTS (Dual-Model: GPT-4o → Gemini)
+// ====================================================================================
+
+/**
+ * Build a prompt that includes GPT-4o's forensic analysis
+ */
+function buildForensicEnhancedPrompt(
+  faceAnalysis: ForensicFaceAnalysis,
+  garmentAnalysis: GarmentAnalysis,
+  scene: typeof SCENE_PRESETS[string] | null,
+  styleKey: string,
+  keepBackground: boolean,
+  identityCount: number
+): string {
+  const style = STYLE_SETTINGS[styleKey] || STYLE_SETTINGS.iphone_candid
+  const identityPrompt = buildIdentityPromptFromAnalysis(faceAnalysis)
+  const garmentPrompt = buildGarmentPromptFromAnalysis(garmentAnalysis)
+  
+  const refExplanation = identityCount > 0
+    ? `You have ${identityCount + 1} reference photos of the SAME PERSON. The LAST image is the GARMENT.`
+    : `Image 1 = PERSON reference. Image 2 = GARMENT to apply.`
+
+  if (keepBackground) {
+    return `VIRTUAL TRY-ON - FORENSIC IDENTITY MODE
+
+${refExplanation}
+
+═══════════════════════════════════════════════════════════════════════════════
+${identityPrompt}
+═══════════════════════════════════════════════════════════════════════════════
+
+${garmentPrompt}
+
+═══════════════════════════════════════════════════════════════════════════════
+TASK:
+1. Study the reference photos - this is the EXACT person who must appear in output
+2. Remove their current clothing COMPLETELY
+3. Apply the garment described above with natural fit
+4. Keep EVERYTHING else identical: background, lighting, pose, expression, hair
+
+QUALITY REQUIREMENTS:
+• Face must match the Identity Fingerprint EXACTLY
+• Visible skin pores, natural texture (no smoothing)
+• Natural hair flyaways and imperfections
+• Fabric wrinkles and realistic draping
+• NO plastic/waxy skin, NO over-smoothing
+
+OUTPUT: The SAME person from the references, wearing the new outfit.
+Their mother must recognize them instantly.`
+  }
+
+  if (scene?.description) {
+    return `FASHION PHOTOGRAPHY - FORENSIC IDENTITY MODE
+
+${refExplanation}
+
+═══════════════════════════════════════════════════════════════════════════════
+${identityPrompt}
+═══════════════════════════════════════════════════════════════════════════════
+
+${garmentPrompt}
+
+═══════════════════════════════════════════════════════════════════════════════
+SCENE:
+📍 ${scene.description}
+💡 ${scene.lighting}
+🔍 ${scene.details}
+
+STYLE:
+${style}
+
+═══════════════════════════════════════════════════════════════════════════════
+TASK:
+1. Lock identity from the Identity Fingerprint above - this is NON-NEGOTIABLE
+2. Apply the garment with natural fabric behavior
+3. Place in the scene with appropriate lighting
+4. Ensure face matches fingerprint EXACTLY despite scene change
+
+QUALITY:
+• Face geometry, skin tone, features = EXACT match to fingerprint
+• Visible pores, natural skin texture
+• Sharp detailed background (not blurry)
+• Natural environmental imperfections
+
+The person's identity is LOCKED. Only outfit and scene change.`
+  }
+
+  return `VIRTUAL TRY-ON - FORENSIC MODE
+
+${refExplanation}
+
+${identityPrompt}
+
+${garmentPrompt}
+
+Apply the garment to this person. Keep their identity EXACTLY as described.
+Natural skin texture, visible pores, no beautification.`
 }
 
 /**
@@ -680,6 +790,7 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
     aspectRatio: userAspect,
     resolution,
     stylePresetId,
+    useForensicAnalysis = true, // Enable by default for better face consistency
   } = params
 
   const client = getClient()
@@ -720,15 +831,6 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
   // Temperature settings
   const temperature = isPro ? 0.01 : 0.03
 
-  // Build prompt context
-  const promptCtx: PromptContext = {
-    identityImageCount: cleanIdentityImages.length,
-    presetId: stylePresetId || null,
-    scene,
-    styleKey,
-    keepBackground,
-  }
-
   console.log(`\n🚀 TRY-ON RENDER`)
   console.log(`   Model: ${model}`)
   console.log(`   Preset: ${stylePresetId || 'none'}`)
@@ -736,37 +838,92 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
   console.log(`   Identity refs: ${1 + cleanIdentityImages.length}`)
   console.log(`   Style: ${styleKey}`)
   console.log(`   Resolution: ${resolution || '1K'}`)
+  console.log(`   Forensic Analysis: ${useForensicAnalysis ? 'ENABLED' : 'DISABLED'}`)
 
   const startTime = Date.now()
   let resultBase64: string
+  
+  // Cache for forensic analysis
+  let faceAnalysis: ForensicFaceAnalysis | null = null
+  let garmentAnalysis: GarmentAnalysis | null = null
 
   try {
-    if (keepBackground) {
-      // SINGLE STEP - Just swap clothing
-      const prompt = isPro 
-        ? buildProPrompt(promptCtx)
-        : buildFlashPrompt(promptCtx)
+    // ============================================================
+    // FORENSIC ANALYSIS MODE (GPT-4o → Gemini)
+    // ============================================================
+    if (useForensicAnalysis) {
+      console.log('\n🔬 FORENSIC ANALYSIS MODE')
+      const analysisStart = Date.now()
       
-      resultBase64 = await renderSingleStep(
-        client, model, cleanSubject, cleanGarment, cleanIdentityImages, 
-        prompt, aspectRatio, temperature, resolution
-      )
-    } else if (scene) {
-      // TWO-STEP - Outfit first, then scene
-      resultBase64 = await renderTwoStep(
-        client, model, cleanSubject, cleanGarment, cleanIdentityImages,
-        scene, styleKey, aspectRatio, resolution, isPro
-      )
-    } else {
-      // SINGLE STEP with custom background
-      const prompt = isPro 
-        ? buildProPrompt(promptCtx)
-        : buildFlashPrompt(promptCtx)
+      // Run face and garment analysis in parallel
+      const [faceResult, garmentResult] = await Promise.all([
+        analyzeFaceForensic(cleanSubject, cleanIdentityImages),
+        analyzeGarmentForensic(cleanGarment),
+      ])
       
+      faceAnalysis = faceResult
+      garmentAnalysis = garmentResult
+      
+      console.log(`   ✓ Analysis complete in ${((Date.now() - analysisStart) / 1000).toFixed(1)}s`)
+      
+      // Build forensic-enhanced prompt
+      const forensicPrompt = buildForensicEnhancedPrompt(
+        faceAnalysis,
+        garmentAnalysis,
+        scene,
+        styleKey,
+        keepBackground,
+        cleanIdentityImages.length
+      )
+      
+      console.log(`   Prompt length: ${forensicPrompt.length} chars`)
+      
+      // Render with forensic prompt
       resultBase64 = await renderSingleStep(
         client, model, cleanSubject, cleanGarment, cleanIdentityImages,
-        prompt, aspectRatio, temperature, resolution
+        forensicPrompt, aspectRatio, temperature, resolution
       )
+    } 
+    // ============================================================
+    // STANDARD MODE (Gemini only)
+    // ============================================================
+    else {
+      // Build prompt context
+      const promptCtx: PromptContext = {
+        identityImageCount: cleanIdentityImages.length,
+        presetId: stylePresetId || null,
+        scene,
+        styleKey,
+        keepBackground,
+      }
+
+      if (keepBackground) {
+        // SINGLE STEP - Just swap clothing
+        const prompt = isPro 
+          ? buildProPrompt(promptCtx)
+          : buildFlashPrompt(promptCtx)
+        
+        resultBase64 = await renderSingleStep(
+          client, model, cleanSubject, cleanGarment, cleanIdentityImages, 
+          prompt, aspectRatio, temperature, resolution
+        )
+      } else if (scene) {
+        // TWO-STEP - Outfit first, then scene
+        resultBase64 = await renderTwoStep(
+          client, model, cleanSubject, cleanGarment, cleanIdentityImages,
+          scene, styleKey, aspectRatio, resolution, isPro
+        )
+      } else {
+        // SINGLE STEP with custom background
+        const prompt = isPro 
+          ? buildProPrompt(promptCtx)
+          : buildFlashPrompt(promptCtx)
+        
+        resultBase64 = await renderSingleStep(
+          client, model, cleanSubject, cleanGarment, cleanIdentityImages,
+          prompt, aspectRatio, temperature, resolution
+        )
+      }
     }
 
     const elapsed = Date.now() - startTime
