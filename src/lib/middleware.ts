@@ -34,9 +34,31 @@ export async function updateSession(request: NextRequest) {
         }
     )
 
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
+    // Get user, handling refresh token errors gracefully
+    let user = null
+    try {
+        const {
+            data: { user: authUser },
+            error,
+        } = await supabase.auth.getUser()
+
+        if (error) {
+            // Handle refresh token errors gracefully
+            if (error.message?.includes('refresh_token') || error.message?.includes('Refresh Token')) {
+                // Invalid/expired refresh token - clear cookies and continue as unauthenticated
+                console.log('⚠️  Invalid refresh token, clearing session')
+                // Don't throw - just continue as unauthenticated user
+            } else {
+                console.warn('⚠️  Auth error:', error.message)
+            }
+        } else {
+            user = authUser
+        }
+    } catch (error) {
+        // Catch any unexpected errors
+        console.warn('⚠️  Auth check failed:', error instanceof Error ? error.message : String(error))
+        // Continue as unauthenticated user
+    }
 
     // Authenticated users should not see public cover pages
     if (user) {

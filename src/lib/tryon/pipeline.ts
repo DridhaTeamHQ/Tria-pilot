@@ -28,15 +28,17 @@ export interface TryOnPipelineResult {
 }
 
 /**
- * FAST TRY-ON PIPELINE
+ * FAST TRY-ON PIPELINE (PHASE 3 ARCHITECTURE)
  * 
- * Single API call to Gemini with Higgsfield Soul inspired prompting.
- * Now supports multiple identity reference images for better face consistency.
+ * Single API call to Gemini with:
+ * - Image 1: Person (identity source, pixel-level)
+ * - Image 2: Garment (visual reference only, no face/identity)
+ * - Prompt controls role separation, pose, scene, and style
+ * - Exactly 2 images sent to Gemini
  */
 export async function runTryOnPipelineV3(params: {
   subjectImageBase64: string
   clothingRefBase64: string
-  identityImagesBase64?: string[]
   preset?: TryOnPresetInput
   userRequest?: string
   quality: TryOnQualityOptions
@@ -46,7 +48,6 @@ export async function runTryOnPipelineV3(params: {
   const { 
     subjectImageBase64, 
     clothingRefBase64,
-    identityImagesBase64,
     preset, 
     userRequest,
     quality 
@@ -63,22 +64,20 @@ export async function runTryOnPipelineV3(params: {
     sceneInstruction = `${sceneInstruction}. ${userRequest}`
   }
 
-  const identityCount = (identityImagesBase64 || []).length
-
-  console.log(`\n========== TRY-ON PIPELINE ==========`)
+  console.log(`\n========== TRY-ON PIPELINE (PHASE 3 ARCHITECTURE) ==========`)
   console.log(`🎨 Preset ID: ${presetId || 'none'}`)
   console.log(`📸 Background: "${backgroundName}"`)
   console.log(`💡 Lighting: "${lightingName}"`)
   console.log(`🎯 Quality: ${quality.quality}`)
-  console.log(`👤 Identity images: ${identityCount + 1} (1 main + ${identityCount} extra)`)
+  console.log(`🔒 Identity: Pixel-level from Image 1 only`)
+  console.log(`👗 Garment: Visual reference from Image 2 (no face/identity)`)
+  console.log(`📸 Images to Gemini: 2 (person + garment)`)
   console.log(`=====================================\n`)
 
-  // Single render call with preset ID for scene lookup
-  // Pass identity images for multi-reference support
+  // Single render call - PHASE 3: Image 1 (person) + Image 2 (garment)
   const image = await renderTryOnFast({
-    subjectImageBase64,
-    garmentImageBase64: clothingRefBase64,
-    identityImagesBase64,
+    subjectImageBase64, // Image 1: Person
+    garmentImageBase64: clothingRefBase64, // Image 2: Garment (visual reference)
     backgroundInstruction: sceneInstruction,
     lightingInstruction: lightingName,
     quality: quality.quality,
@@ -97,7 +96,7 @@ export async function runTryOnPipelineV3(params: {
       usedGarmentExtraction: false,
       timeMs: elapsed,
       preset: presetId,
-      identityImagesUsed: identityCount + 1,
+      identityImagesUsed: 1, // Image 1 is person (identity source)
     },
   }
 }

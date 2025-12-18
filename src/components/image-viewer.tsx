@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { X } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { X, ImageOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface ImageViewerProps {
@@ -13,29 +13,56 @@ interface ImageViewerProps {
 export function ImageViewer({ src, alt, className = '' }: ImageViewerProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [hasError, setHasError] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Reset error state when src changes
+  useEffect(() => {
+    if (src) {
+      setHasError(false)
+      setIsLoading(true)
+    }
+  }, [src])
 
   if (!src) return null
 
   if (hasError) {
     return (
-      <div className={`${className} bg-cream flex items-center justify-center`}>
-        <span className="text-charcoal/40 text-sm">Image unavailable</span>
+      <div className={`${className} bg-cream flex flex-col items-center justify-center gap-2`}>
+        <ImageOff className="w-8 h-8 text-charcoal/20" />
+        <span className="text-charcoal/40 text-xs text-center px-2">Image unavailable</span>
+        {src.includes('supabase.co') && (
+          <span className="text-charcoal/30 text-xs text-center px-2">
+            Storage bucket may need to be public
+          </span>
+        )}
       </div>
     )
   }
 
   return (
     <>
-      <img
-        src={src}
-        alt={alt}
-        className={`${className} cursor-pointer hover:opacity-90 transition-opacity`}
-        onClick={() => setIsOpen(true)}
-        onError={() => {
-          console.error('Image failed to load:', src)
-          setHasError(true)
-        }}
-      />
+      <div className={`${className} relative`}>
+        {isLoading && (
+          <div className="absolute inset-0 bg-cream flex items-center justify-center">
+            <div className="w-6 h-6 border-2 border-charcoal/20 border-t-charcoal/60 rounded-full animate-spin" />
+          </div>
+        )}
+        <img
+          src={src}
+          alt={alt}
+          className={`${className} cursor-pointer hover:opacity-90 transition-opacity ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+          onClick={() => setIsOpen(true)}
+          onLoad={() => {
+            setIsLoading(false)
+          }}
+          onError={(e) => {
+            console.error('Image failed to load:', src)
+            console.error('Error details:', e)
+            setHasError(true)
+            setIsLoading(false)
+          }}
+        />
+      </div>
       {isOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"

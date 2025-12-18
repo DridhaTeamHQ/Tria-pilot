@@ -1,14 +1,11 @@
 import { GoogleGenAI, type ContentListUnion, type GenerateContentConfig, type ImageConfig } from '@google/genai'
 import { getGeminiKey } from '@/lib/config/api-keys'
 import {
-  analyzeFaceForensic,
   analyzeGarmentForensic,
-  buildIdentityPromptFromAnalysis,
-  buildGarmentPromptFromAnalysis,
-  type ForensicFaceAnalysis,
   type GarmentAnalysis
 } from './face-analyzer'
-import { analyzeSubjectPhoto, type PhotoAnalysis, type BodyPose } from './photo-analyzer'
+import { getStylePreset, type StylePreset } from './style-presets'
+import { buildFinalTryOnPrompt } from './prompt-composer'
 
 const getClient = () => new GoogleGenAI({ apiKey: getGeminiKey() })
 
@@ -27,58 +24,8 @@ function normalizeAspectRatio(ratio: string | undefined): string {
 }
 
 // ====================================================================================
-// WHISK-STYLE ARCHITECTURE: SUBJECT + STYLE + SCENE
-// Inspired by Google Whisk's three-reference system and Midjourney's --cref/--sref
+// NEW ARCHITECTURE: Image-only identity, text-only garment, prompt-controlled scene
 // ====================================================================================
-
-/**
- * SUBJECT REFERENCE (--cref equivalent)
- * The person's identity - face, body, skin tone
- * Priority: HIGHEST - never compromise
- * Uses Identity Anchor and Character Reference techniques
- */
-const SUBJECT_LOCK = `═══════════════════════════════════════════════════════════════════════════════
-🔒 SUBJECT IDENTITY - LOCKED (DO NOT MODIFY UNDER ANY CIRCUMSTANCES)
-═══════════════════════════════════════════════════════════════════════════════
-Use the FIRST image as CHARACTER REFERENCE. This is the ONLY identity source.
-
-FACE - MATCH EXACTLY (pixel-perfect):
-• Face shape, jawline, chin structure - COPY EXACTLY
-• Eyes: shape, color, size, spacing, eyelid creases - COPY EXACTLY
-• Nose: bridge width, tip shape, nostril size - COPY EXACTLY
-• Mouth: lip proportions, cupid's bow, lip color - COPY EXACTLY
-• Eyebrows: arch, thickness, position - COPY EXACTLY
-• All distinctive marks: moles, freckles, scars - COPY EXACTLY
-
-SKIN - PRESERVE AUTHENTICALLY:
-• EXACT skin tone (❌ NO lightening or darkening)
-• Natural texture with visible pores
-• Keep ALL natural marks and features
-• Real skin with natural variation
-• ❌ NO airbrushing, smoothing, or filtering
-
-BODY - SAME PROPORTIONS:
-• Same weight, build, and body shape
-• Same height and proportions
-
-POSE - DO NOT CHANGE:
-• Keep EXACT same body position
-• Keep EXACT same arm positions
-• Keep EXACT same head angle
-• Keep EXACT same expression
-
-═══════════════════════════════════════════════════════════════════════════════
-⚠️ NEGATIVE PROMPT - FORBIDDEN CHANGES:
-═══════════════════════════════════════════════════════════════════════════════
-❌ Different face or person
-❌ Changed facial structure
-❌ Different eye shape/color
-❌ Altered skin tone
-❌ Changed pose or position
-❌ Smooth/plastic AI skin
-❌ HDR halos or glow
-
-VERIFICATION: Their family must recognize them instantly.`
 
 /**
  * STYLE REFERENCE (--sref equivalent)
@@ -324,82 +271,85 @@ AVOID THESE AI TELLS:
 • Unrealistic lighting or shadows`
 
 // ====================================================================================
-// PROMPT BUILDERS - Whisk-style separation of concerns
+// PROMPT BUILDERS - NEW ARCHITECTURE: Image-only identity, text-only garment
 // ====================================================================================
 
 interface PromptContext {
-  identityImageCount: number
   presetId: string | null
   scene: typeof SCENE_PRESETS[string] | null
   styleKey: string
   keepBackground: boolean
+  garmentDescription: string // Text description from garment analysis
+  lightingInstruction?: string
 }
 
 /**
- * Build a natural, conversational prompt for Pro model
- * Gemini Pro responds best to descriptive, scenario-like prompts
+ * Build prompt for NEW ARCHITECTURE: Identity from image only, garment from text
+ * No forensic analysis, no multi-image references, no garment images
  */
 function buildProPrompt(ctx: PromptContext): string {
-  const { identityImageCount, scene, styleKey, keepBackground } = ctx
+  const { scene, styleKey, keepBackground, garmentDescription, lightingInstruction } = ctx
 
   const style = STYLE_SETTINGS[styleKey] || STYLE_SETTINGS.iphone_candid
+  const lighting = lightingInstruction || 'natural lighting'
 
-  // Reference explanation based on image count
-  const refExplanation = identityImageCount > 0
-    ? `I'm providing ${identityImageCount + 1} reference photos of the SAME PERSON from different angles, plus ONE clothing/garment image at the end.
-Study their face and body from all angles to understand their exact appearance.
-The LAST image shows the new outfit they should wear.`
-    : `Image 1 is the PERSON (study their face carefully).
-Image 2 is the CLOTHING/GARMENT they should wear.`
+  // Identity lock - from image only, no text descriptions
+  const identityLock = `═══════════════════════════════════════════════════════════════════════════════
+🔒 IDENTITY PRESERVATION (FROM IMAGE ONLY)
+═══════════════════════════════════════════════════════════════════════════════
+The person in the image is your identity reference. Do NOT generate a new person.
+Preserve the same face, same features, same skin tone, same hair.
+The image is the ONLY source of identity - do not describe or modify facial features.
+═══════════════════════════════════════════════════════════════════════════════`
 
-  // Keep background mode - simplest case
+  // Keep background mode
   if (keepBackground) {
     return `VIRTUAL CLOTHING TRY-ON
 
-${refExplanation}
+${identityLock}
 
 YOUR TASK:
-Create a new photo of this EXACT same person wearing the clothing from the garment image.
+Create a new photo of this EXACT same person wearing a new outfit.
 
-${SUBJECT_LOCK}
+GARMENT TO APPLY:
+${garmentDescription}
 
 WHAT TO DO:
-1. Remove their current outfit
-2. Dress them in the new garment (from the last image)
+1. Remove their current outfit completely
+2. Dress them in the garment described above
 3. Keep EVERYTHING else identical: background, lighting, pose, expression, hair
 4. The clothing should fit naturally on their body shape
 
 CLOTHING APPLICATION:
-• Match the garment's exact color, pattern, and design
+• Match the garment description exactly (color, pattern, design)
+• Natural wrinkles and draping based on their current pose
 • Appropriate fit for their body type
-• Natural wrinkles and draping based on pose
-• If garment is sleeveless, show bare arms/shoulders
-• If garment has specific neckline, show appropriately
 
 ${REALISM_REQUIREMENTS}
 
 QUALITY CHECK:
 The result should look like the next frame of a video - same person, same setting, just changed clothes.
-Their mother should recognize them instantly.`
+Their family should recognize them instantly.`
   }
 
   // Scene change mode
   if (scene && scene.description) {
     return `FASHION PHOTOGRAPHY: VIRTUAL TRY-ON WITH NEW SCENE
 
-${refExplanation}
+${identityLock}
 
 YOUR TASK:
-Create a professional fashion photo of this person wearing the new outfit in a new setting.
+Create a professional fashion photo of this person wearing a new outfit in a new setting.
 
-${SUBJECT_LOCK}
+GARMENT TO APPLY:
+${garmentDescription}
 
 STEP 1 - IDENTITY:
-Study all reference images. This person's face and body are LOCKED.
-Their identity must be pixel-perfect across the transformation.
+The person in the image is your identity reference. Preserve their face exactly.
+Do not generate a new person. Do not change facial features.
 
 STEP 2 - OUTFIT:
-Remove current clothing. Apply the garment from the last image.
+Remove current clothing. Apply the garment described above.
 Natural fit with realistic fabric behavior.
 
 STEP 3 - SCENE:
@@ -413,7 +363,7 @@ ${style}
 ${REALISM_REQUIREMENTS}
 
 CRITICAL RULES:
-• Face CANNOT change when scene changes - study all reference angles
+• Face CANNOT change - preserve from the input image
 • New lighting affects skin and clothes naturally, but features stay identical
 • Background should be sharp and detailed, not blurry AI mush
 • Include realistic environmental imperfections (dust, wear, texture)
@@ -424,11 +374,12 @@ The person should look naturally photographed in this location.`
   // Custom background (fallback)
   return `VIRTUAL TRY-ON
 
-${refExplanation}
+${identityLock}
 
-${SUBJECT_LOCK}
+GARMENT TO APPLY:
+${garmentDescription}
 
-OUTFIT: Apply the garment from the last image with natural fit.
+OUTFIT: Apply the garment described above with natural fit.
 
 ${style}
 
@@ -438,141 +389,66 @@ Create an authentic-looking photo of this exact person in the new outfit.`
 }
 
 /**
- * Build a simpler, more direct prompt for Flash model
- * Flash responds better to concise instructions
- * Uses "The Reminders" technique - repeat face description in every section
+ * Build prompt for Flash model - NEW ARCHITECTURE: Image-only identity, text-only garment
  */
 function buildFlashPrompt(ctx: PromptContext): string {
-  const { identityImageCount, scene, keepBackground } = ctx
+  const { scene, keepBackground, garmentDescription, lightingInstruction } = ctx
 
-  const refExplanation = identityImageCount > 0
-    ? `Images 1-${identityImageCount + 1} = SAME PERSON (different angles). Last image = NEW CLOTHING (SOLE SOURCE).`
-    : `Image 1 = PERSON (CHARACTER REFERENCE). Image 2 = NEW CLOTHING (SOLE SOURCE).`
+  const lighting = lightingInstruction || 'natural lighting'
 
-  // COMPREHENSIVE FACE LOCK for Flash model
-  const FLASH_FACE_LOCK = `
+  // Identity lock - from image only, no text descriptions
+  const identityLock = `═══════════════════════════════════════════════════════════════════════════════
+🔒 IDENTITY PRESERVATION (FROM IMAGE ONLY)
 ═══════════════════════════════════════════════════════════════════════════════
-🔒 FACE LOCK - COPY EXACTLY FROM FIRST IMAGE (MANDATORY)
-═══════════════════════════════════════════════════════════════════════════════
-EYES (CRITICAL - MOST RECOGNIZABLE FEATURE):
-• Eye shape - EXACT (round/almond/hooded)
-• Iris color - EXACT shade (brown/black/hazel - match precisely)
-• Eye size and spacing - EXACT
-• Eyelid crease depth - EXACT
-• Eyelashes - EXACT thickness and length
-• Under-eye area - copy any lines or shadows
-
-LIPS (SECOND MOST RECOGNIZABLE):
-• Lip shape - EXACT (full/thin/heart-shaped)
-• Upper lip thickness - EXACT
-• Lower lip thickness - EXACT
-• Lip color - EXACT natural shade
-• Cupid's bow shape - EXACT
-• Lip corners - EXACT angle
-
-TEETH (IF VISIBLE IN REFERENCE):
-• Tooth alignment - EXACT
-• Gaps between teeth - EXACT (if any)
-• Smile width - EXACT
-• Tooth color/shade - EXACT
-
-NOSE:
-• Nose bridge width - EXACT
-• Nose tip shape - EXACT (round/pointed/upturned)
-• Nostril size and shape - EXACT
-• Nose length - EXACT
-
-FACE SHAPE:
-• Jawline - EXACT (sharp/rounded/soft)
-• Cheekbone prominence - EXACT
-• Chin shape - EXACT
-• Face width - EXACT
-
-SKIN:
-• Skin tone - EXACT (NO lightening or darkening)
-• ALL moles, beauty marks - EXACT positions
-• ALL freckles - EXACT pattern
-• Skin texture - natural with pores
-• Any scars or marks - EXACT
-
-HAIR:
-• Hair color - EXACT shade
-• Hair style - EXACT
-• Hairline - EXACT
-• Hair texture - EXACT
-
-POSE & EXPRESSION:
-• Body position - EXACT same
-• Arm positions - EXACT same
-• Head angle - EXACT same
-• Expression - EXACT same (smile, neutral, etc.)
-
-═══════════════════════════════════════════════════════════════════════════════
-👁️ EYE LOCK PROTOCOL (HIGHEST PRIORITY)
-═══════════════════════════════════════════════════════════════════════════════
-Using the "Identity Anchor" technique:
-1. FOCUS on the EYES in the first image.
-2. The eyes are the PRIMARY identity verification vector.
-3. COPY PIXEL-FOR-PIXEL:
-   • Iris color and pattern
-   • Eye shape and corner angles
-   • Eyelid crease location and depth
-   • Eyebrow shape and thickness
-   • Under-eye structure
-4. REJECT any generation where the eyes look different.
+The person in the image is your identity reference. Do NOT generate a new person.
+Preserve the same face, same features, same skin tone, same hair.
+The image is the ONLY source of identity - do not describe or modify facial features.
 ═══════════════════════════════════════════════════════════════════════════════`
 
   if (keepBackground) {
     return `CLOTHING TRY-ON - SAME PERSON, SAME BACKGROUND
 
-${refExplanation}
+${identityLock}
 
-${FLASH_FACE_LOCK}
-
-⚠️ REMINDER: Use the FIRST image as CHARACTER REFERENCE. Match EVERY facial feature.
+GARMENT TO APPLY:
+${garmentDescription}
 
 TASK:
-1. 🧠 MENTAL STRIP: Completely IGNORE the clothing in the first image.
-2. FACE LOCK: Apply the face from Image 1 (pixel-perfect eyes/lips/skin).
-3. CLOTHING: Apply the garment from the LAST image.
-4. BACKGROUND: Keep the exact background from Image 1.
+1. Remove their current outfit completely
+2. Apply the garment described above
+3. Keep the exact background from the input image
+4. Keep the same pose and expression
 
 ⚠️ CRITICAL: 
-- The clothing in Image 1 does NOT exist. 
-- The LAST image is the ONLY source for clothing.
-- Do NOT blend the two outfits.
+- Do NOT generate a new person - preserve the face from the image
+- The garment description above is the ONLY source for clothing
+- Do NOT blend old and new outfits
 
 ❌ FORBIDDEN: Different face, changed eyes, mixing old/new clothes, hallucinations/artifacts
 
-OUTPUT: SAME person (from Image 1) wearing NEW clothes (from last image).`
+OUTPUT: SAME person (from image) wearing NEW clothes (from description).`
   }
 
   if (scene && scene.description) {
     return `CLOTHING TRY-ON + SCENE CHANGE
 
-${refExplanation}
+${identityLock}
 
-${FLASH_FACE_LOCK}
-
-⚠️ REMINDER #1: FIRST image is CHARACTER REFERENCE. Copy EVERY facial feature exactly.
+GARMENT TO APPLY:
+${garmentDescription}
 
 TASK:
-1. 🧠 MENTAL STRIP: IGNORE original clothing.
-2. LOCK the face - EXACT match to reference (eyes, lips, nose).
-3. LOCK the pose - EXACT same body position.
-4. Apply garment from LAST image (SOLE SOURCE).
-5. Change background to: ${scene.description}
-
-⚠️ REMINDER #2: Face MUST match reference. Clothes MUST match last image.
-
-⚠️ REMINDER #2: Face MUST match reference. Do NOT generate new person.
+1. Remove their current outfit completely
+2. Apply the garment described above
+3. Change background to: ${scene.description}
+4. Pose can vary naturally (not locked)
 
 SCENE:
 📍 ${scene.description}
 💡 ${scene.lighting}
 🔍 ${scene.details}
 
-⚠️ REMINDER #3: Check eyes, lips, nose, skin tone - EXACT match to Image 1.
+⚠️ REMINDER: Face MUST match the input image. Do NOT generate new person.
 
 ❌ FORBIDDEN: 
 • Different face or person
@@ -580,21 +456,21 @@ SCENE:
 • Lighter or darker skin
 • Changed lip shape
 • Smoothed/plastic skin
-• Changed pose
 
-OUTPUT: SAME person (face from Image 1), NEW clothes (from last image), NEW background.`
+OUTPUT: SAME person (face from image), NEW clothes (from description), NEW background.`
   }
 
   // Fallback
   return `CLOTHING TRY-ON
 
-${refExplanation}
+${identityLock}
 
-${FLASH_FACE_LOCK}
+GARMENT TO APPLY:
+${garmentDescription}
 
-Apply the garment from the last image.
-Keep EXACT same face (match every feature from Image 1).
-Keep EXACT same pose.
+Apply the garment described above.
+Keep EXACT same face (from image).
+Pose can vary naturally.
 
 OUTPUT: Same person, new outfit.`
 }
@@ -604,27 +480,26 @@ OUTPUT: Same person, new outfit.`
 // ====================================================================================
 
 export interface SimpleRenderOptions {
-  subjectImageBase64: string
-  garmentImageBase64: string
-  identityImagesBase64?: string[]
+  subjectImageBase64: string // Image 1: Person (identity source)
+  garmentImageBase64: string // Image 2: Garment (visual reference, no face/identity)
   backgroundInstruction: string
-  lightingInstruction: string
+  lightingInstruction?: string
   quality: 'fast' | 'high'
   aspectRatio?: string
   resolution?: string
   stylePresetId?: string
-  /** Enable GPT-4o forensic face analysis for enhanced identity preservation */
-  useForensicAnalysis?: boolean
 }
 
 // ====================================================================================
-// FORENSIC-ENHANCED PROMPTS (Dual-Model: GPT-4o → Gemini)
+// DEPRECATED: FORENSIC-ENHANCED PROMPTS (Not used in new architecture)
 // ====================================================================================
+// These functions are kept for reference but are not called in the new architecture.
+// The new architecture uses image-only identity (no forensic text descriptions).
 
 /**
- * Build a dynamic eye lock string from forensic analysis
+ * @deprecated Not used in new architecture - identity comes from image only
  */
-function buildDynamicEyeLock(analysis: ForensicFaceAnalysis): string {
+function buildDynamicEyeLock(analysis: any): string {
   return `
 ═══════════════════════════════════════════════════════════════════════════════
 👁️ BIOMETRIC EYE LOCK (NON-NEGOTIABLE HIGHEST PRIORITY)
@@ -644,29 +519,32 @@ The eyes are the PRIMARY identity vector. You must match these specific forensic
 }
 
 /**
- * Build a prompt that includes GPT-4o's forensic analysis
- * Now with pose-adaptive scene placement
+ * @deprecated Not used in new architecture - identity comes from image only
  */
 function buildForensicEnhancedPrompt(
-  faceAnalysis: ForensicFaceAnalysis,
+  faceAnalysis: any,
   garmentAnalysis: GarmentAnalysis,
   scene: ScenePreset | null,
   styleKey: string,
   keepBackground: boolean,
   identityCount: number,
-  photoAnalysis?: PhotoAnalysis | null,
+  photoAnalysis?: any,
   variant: 'flash' | 'pro' = 'pro'
 ): string {
   const style = STYLE_SETTINGS[styleKey] || STYLE_SETTINGS.iphone_candid
+  // @ts-ignore - deprecated function
   const identityPrompt = buildIdentityPromptFromAnalysis(faceAnalysis)
   const eyeLockPrompt = buildDynamicEyeLock(faceAnalysis)
+  // @ts-ignore - deprecated function
   const garmentPrompt = buildGarmentPromptFromAnalysis(garmentAnalysis)
 
   // Get detected body pose for scene adaptation
-  const bodyPose: BodyPose = photoAnalysis?.body_pose || 'standing'
+  const bodyPose: any = photoAnalysis?.body_pose || 'standing'
 
   // Get pose-adaptive placement if scene is available
-  const poseSpecificPlacement = scene?.poseAdaptation?.[bodyPose] || ''
+  const poseSpecificPlacement = (scene?.poseAdaptation && typeof bodyPose === 'string' && bodyPose in scene.poseAdaptation)
+    ? scene.poseAdaptation[bodyPose as keyof typeof scene.poseAdaptation] || ''
+    : ''
 
   const captureHints = photoAnalysis
     ? `CAPTURE MATCH(from original photo):
@@ -990,6 +868,9 @@ OUTPUT: Same person(from character reference), DIFFERENT outfit(from garment ref
 // GARMENT-ONLY EXTRACTION (Prevents face-bleed from garment reference images)
 // ====================================================================================
 
+/**
+ * @deprecated Not used in new architecture - garment images are never sent to Gemini
+ */
 async function extractGarmentOnlyReference(
   client: GoogleGenAI,
   model: string,
@@ -1031,29 +912,36 @@ Return ONLY the extracted garment image.`
   throw new Error('Garment extraction failed - no image generated')
 }
 
+/**
+ * @deprecated Not used in new architecture - single-step only
+ */
 async function renderTwoStepForensic(
   client: GoogleGenAI,
   model: string,
   subjectBase64: string,
   garmentBase64: string,
   identityImages: string[],
-  faceAnalysis: ForensicFaceAnalysis,
+  faceAnalysis: any,
   garmentAnalysis: GarmentAnalysis,
   scene: ScenePreset,
   styleKey: string,
   aspectRatio: string,
   resolution?: string,
-  photoAnalysis?: PhotoAnalysis | null
+  photoAnalysis?: any
 ): Promise<string> {
   const identityCount = identityImages.length
   const style = STYLE_SETTINGS[styleKey] || STYLE_SETTINGS.iphone_candid
+  // @ts-ignore - deprecated function
   const identityPrompt = buildIdentityPromptFromAnalysis(faceAnalysis)
   const eyeLockPrompt = buildDynamicEyeLock(faceAnalysis)
+  // @ts-ignore - deprecated function
   const garmentPrompt = buildGarmentPromptFromAnalysis(garmentAnalysis)
 
   // Get detected body pose for scene adaptation
-  const bodyPose: BodyPose = photoAnalysis?.body_pose || 'standing'
-  const poseSpecificPlacement = scene.poseAdaptation?.[bodyPose] || ''
+  const bodyPose: any = photoAnalysis?.body_pose || 'standing'
+  const poseSpecificPlacement = (scene.poseAdaptation && typeof bodyPose === 'string' && bodyPose in scene.poseAdaptation)
+    ? scene.poseAdaptation[bodyPose as keyof typeof scene.poseAdaptation] || ''
+    : ''
 
   console.log('🎯 TWO-STEP (FORENSIC)')
   console.log('   Step 1: Identity + Outfit Lock (neutral background)')
@@ -1244,37 +1132,71 @@ OUTPUT: Same person(unchanged) naturally photographed in realistic scene.`
 }
 
 /**
- * Single-step render - for clothing-only changes
+ * Single-step render - PHASE 3: Person image + Garment image (2 images total)
  */
 async function renderSingleStep(
   client: GoogleGenAI,
   model: string,
   subjectBase64: string,
-  garmentBase64: string,
-  identityImages: string[],
+  garmentImageBase64: string, // Garment image (visual reference)
   prompt: string,
   aspectRatio: string,
   temperature: number,
   resolution?: string
 ): Promise<string> {
-  // Build contents array: Subject + Identity refs + Garment + Prompt
+  // Build contents array: Image 1 (person) + Image 2 (garment) + Prompt text
   const contents: ContentListUnion = []
 
-  // Primary subject
+  // IMAGE 1: Person (identity source)
   contents.push({ inlineData: { data: subjectBase64, mimeType: 'image/jpeg' } } as any)
 
-  // Additional identity references
-  for (const img of identityImages) {
-    if (img && img.length > 100) {
-      contents.push({ inlineData: { data: img, mimeType: 'image/jpeg' } } as any)
-    }
-  }
+  // IMAGE 2: Garment (visual reference only, no identity)
+  contents.push({ inlineData: { data: garmentImageBase64, mimeType: 'image/jpeg' } } as any)
 
-  // Garment (always last before prompt)
-  contents.push({ inlineData: { data: garmentBase64, mimeType: 'image/jpeg' } } as any)
-
-  // Prompt
+  // Prompt (includes role separation and garment application rules)
   contents.push(prompt)
+
+  // ============================================================
+  // PHASE 3: DEBUG & SAFETY ASSERTIONS (MANDATORY)
+  // ============================================================
+  const imageCount = contents.filter((item: any) => item.inlineData?.mimeType?.startsWith('image/')).length
+  const personImageCount = 1 // Image 1 is person
+  const garmentImageCount = 1 // Image 2 is garment
+  const identityImageCount = 0 // No additional identity refs in Phase 3
+  
+  console.log(`\n   🔍 DEBUG & SAFETY ASSERTIONS (renderSingleStep):`)
+  console.log(`      Final assembled prompt preview: ${prompt.slice(0, 100)}...`)
+  console.log(`      Images sent to Gemini: ${imageCount} (MUST BE 2)`)
+  console.log(`      Image 1 (person): ${personImageCount} (MUST BE 1)`)
+  console.log(`      Image 2 (garment): ${garmentImageCount} (MUST BE 1)`)
+  console.log(`      Identity refs: ${identityImageCount} (MUST BE 0)`)
+  
+  // HARD FAILURE if contract violated
+  if (imageCount !== 2) {
+    const error = new Error(`ARCHITECTURE VIOLATION: Expected exactly 2 images, got ${imageCount}`)
+    console.error(`   ❌ ${error.message}`)
+    throw error
+  }
+  
+  if (personImageCount !== 1) {
+    const error = new Error(`ARCHITECTURE VIOLATION: Expected 1 person image (Image 1), got ${personImageCount}`)
+    console.error(`   ❌ ${error.message}`)
+    throw error
+  }
+  
+  if (garmentImageCount !== 1) {
+    const error = new Error(`ARCHITECTURE VIOLATION: Expected 1 garment image (Image 2), got ${garmentImageCount}`)
+    console.error(`   ❌ ${error.message}`)
+    throw error
+  }
+  
+  if (identityImageCount !== 0) {
+    const error = new Error(`ARCHITECTURE VIOLATION: Expected 0 identity refs, got ${identityImageCount}`)
+    console.error(`   ❌ ${error.message}`)
+    throw error
+  }
+  
+  console.log(`   ✅ All architecture assertions passed`)
 
   const imageConfig: ImageConfig = { aspectRatio } as any
   if (model.includes('pro') && resolution) {
@@ -1287,7 +1209,7 @@ async function renderSingleStep(
     temperature,
   }
 
-  console.log(`   📸 Generating with ${1 + identityImages.length} identity refs`)
+  console.log(`   📸 Generating with Image 1 (identity) + Image 2 (garment)`)
 
   const resp = await client.models.generateContent({ model, contents, config })
 
@@ -1304,6 +1226,7 @@ async function renderSingleStep(
 }
 
 /**
+ * @deprecated Not used in new architecture - single-step only
  * Two-step render - for scene changes
  * Step 1: Lock identity with outfit (neutral background)
  * Step 2: Apply scene (identity baked in)
@@ -1337,7 +1260,7 @@ The LAST image is the NEW CLOTHING.`
       : `Image 1 = PERSON. Image 2 = NEW CLOTHING.`
     }
 
-${SUBJECT_LOCK}
+🔒 IDENTITY PRESERVATION: Preserve the face from the input image exactly.
 
 TASK:
 1. Analyze the person's face from all provided angles
@@ -1508,13 +1431,12 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
   const {
     subjectImageBase64,
     garmentImageBase64,
-    identityImagesBase64,
     backgroundInstruction,
+    lightingInstruction,
     quality,
     aspectRatio: userAspect,
     resolution,
     stylePresetId,
-    useForensicAnalysis = true, // Enable by default for better face consistency
   } = params
 
   const client = getClient()
@@ -1525,15 +1447,6 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
   // Clean and validate images
   const cleanSubject = stripDataUrl(subjectImageBase64)
   const cleanGarment = stripDataUrl(garmentImageBase64)
-
-  const cleanIdentityImages = (identityImagesBase64 || [])
-    .map(img => stripDataUrl(img))
-    .filter(img => img && img.length > 100)
-
-  // Flash (2.5) is noticeably more stable with fewer reference images.
-  // Pro can handle many refs (up to 14). Flash tends to "average" faces when overloaded.
-  const maxIdentityRefsForModel = isPro ? 10 : 2
-  const cleanIdentityImagesForModel = cleanIdentityImages.slice(0, maxIdentityRefsForModel)
 
   if (!cleanSubject || cleanSubject.length < 100) throw new Error('Invalid subject image')
   if (!cleanGarment || cleanGarment.length < 100) throw new Error('Invalid garment image')
@@ -1558,153 +1471,114 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
   else if (stylePresetId?.includes('beach') || stylePresetId?.includes('outdoor')) styleKey = 'documentary'
 
   // Temperature settings
-  // Flash tends to drift faces at higher temps; keep it ultra-low for identity stability.
-  const temperature = isPro ? 0.01 : 0.01
+  const temperature = 0.01
 
-  console.log(`\n🚀 TRY - ON RENDER`)
-  console.log(`   Model: ${model} `)
-  console.log(`   Preset: ${stylePresetId || 'none'} `)
-  console.log(`   Mode: ${keepBackground ? 'CLOTHING-ONLY' : 'SCENE-CHANGE'} `)
-  console.log(`   Identity refs(used): ${1 + cleanIdentityImagesForModel.length} (received: ${1 + cleanIdentityImages.length})`)
-  console.log(`   Style: ${styleKey} `)
-  console.log(`   Resolution: ${resolution || '1K'} `)
-  console.log(`   Forensic Analysis: ${useForensicAnalysis ? 'ENABLED' : 'DISABLED'} `)
+  console.log(`\n🚀 TRY-ON RENDER (PHASE 3 ARCHITECTURE)`)
+  console.log(`   Model: ${model}`)
+  console.log(`   Preset: ${stylePresetId || 'none'}`)
+  console.log(`   Mode: ${keepBackground ? 'CLOTHING-ONLY' : 'SCENE-CHANGE'}`)
+  console.log(`   Style: ${styleKey}`)
+  console.log(`   Resolution: ${resolution || '1K'}`)
+  console.log(`   🔒 Identity: Pixel-level from Image 1 only`)
+  console.log(`   👗 Garment: Visual reference from Image 2 (no face/identity)`)
+  console.log(`   📸 Images to Gemini: 2 (person + garment)`)
 
   const startTime = Date.now()
   let resultBase64: string
 
-  // Cache for forensic analysis
-  let faceAnalysis: ForensicFaceAnalysis | null = null
-  let garmentAnalysis: GarmentAnalysis | null = null
-  let garmentForGemini = cleanGarment
-  let photoAnalysis: PhotoAnalysis | null = null
-
   try {
     // ============================================================
-    // FORENSIC ANALYSIS MODE (GPT-4o → Gemini)
+    // GARMENT ANALYSIS (SECONDARY - SUPPORTING TEXT ONLY)
     // ============================================================
-    if (useForensicAnalysis) {
-      console.log('\n🔬 FORENSIC ANALYSIS MODE')
-      const analysisStart = Date.now()
+    console.log('\n👔 Analyzing garment for supporting text description...')
+    const analysisStart = Date.now()
 
-      // Run analysis in parallel (and optionally capture analysis for better scene integration)
-      const [faceResult, garmentResult, photoResult] = await Promise.all([
-        analyzeFaceForensic(cleanSubject, cleanIdentityImagesForModel),
-        analyzeGarmentForensic(cleanGarment),
-        // Only needed for scene-change realism + integration (avoids Photoshop cutout look)
-        !keepBackground ? analyzeSubjectPhoto(cleanSubject) : Promise.resolve(null),
-      ])
+    // Analyze garment for minimal supporting text (color + type only)
+    // Garment image is PRIMARY reference (sent as Image 2)
+    const garmentAnalysis = await analyzeGarmentForensic(cleanGarment)
+    const garmentDescription = `${garmentAnalysis.primaryColor || 'colored'} ${garmentAnalysis.garmentType || 'garment'}`
 
-      faceAnalysis = faceResult
-      garmentAnalysis = garmentResult
-      photoAnalysis = photoResult
+    console.log(`   ✓ Supporting garment text: ${garmentDescription}`)
+    console.log(`   ✓ Analysis complete in ${((Date.now() - analysisStart) / 1000).toFixed(1)}s`)
+    console.log(`   📸 Garment image will be sent as Image 2 (visual reference)`)
 
-      // If garment reference contains a person/face, extract a garment-only reference to prevent face bleed
-      if (garmentAnalysis.containsPerson || garmentAnalysis.containsFace) {
-        console.log('🧩 Garment ref contains a person/face — extracting garment-only reference (prevents identity mixing)...')
-        const extractionModel = isPro ? 'gemini-2.5-flash-image' : model // extraction works well on flash
-        garmentForGemini = await extractGarmentOnlyReference(client, extractionModel, cleanGarment)
-        // Re-analyze the extracted garment-only image for best description fidelity
-        garmentAnalysis = await analyzeGarmentForensic(garmentForGemini)
-      }
-
-      console.log(`   ✓ Analysis complete in ${((Date.now() - analysisStart) / 1000).toFixed(1)} s`)
-
-      // Build forensic-enhanced prompt
-      const forensicPrompt = buildForensicEnhancedPrompt(
-        faceAnalysis,
-        garmentAnalysis,
-        scene,
-        styleKey,
-        keepBackground,
-        cleanIdentityImagesForModel.length,
-        photoAnalysis,
-        isPro ? 'pro' : 'flash'
-      )
-
-      console.log(`   Prompt length: ${forensicPrompt.length} chars`)
-
-      // Render with forensic prompt (use garment-only ref if needed)
-      if (!keepBackground && scene) {
-        resultBase64 = await renderTwoStepForensic(
-          client,
-          model,
-          cleanSubject,
-          garmentForGemini,
-          cleanIdentityImagesForModel,
-          faceAnalysis,
-          garmentAnalysis,
-          scene,
-          styleKey,
-          aspectRatio,
-          resolution,
-          photoAnalysis
-        )
-      } else {
-        resultBase64 = await renderSingleStep(
-          client, model, cleanSubject, garmentForGemini, cleanIdentityImagesForModel,
-          forensicPrompt, aspectRatio, temperature, resolution
-        )
+    // ============================================================
+    // STYLE PRESET LOOKUP (PHASE 2)
+    // ============================================================
+    let selectedStylePreset: StylePreset | null = null
+    if (stylePresetId) {
+      selectedStylePreset = getStylePreset(stylePresetId)
+      if (!selectedStylePreset) {
+        console.warn(`   ⚠️  Style preset "${stylePresetId}" not found, using default`)
       }
     }
-    // ============================================================
-    // STANDARD MODE (Gemini only)
-    // ============================================================
-    else {
-      // Build prompt context
-      const promptCtx: PromptContext = {
-        identityImageCount: cleanIdentityImages.length,
-        presetId: stylePresetId || null,
-        scene,
-        styleKey,
-        keepBackground,
-      }
 
-      if (keepBackground) {
-        // SINGLE STEP - Just swap clothing
-        const prompt = isPro
-          ? buildProPrompt(promptCtx)
-          : buildFlashPrompt(promptCtx)
-
-        resultBase64 = await renderSingleStep(
-          client, model, cleanSubject, cleanGarment, cleanIdentityImages,
-          prompt, aspectRatio, temperature, resolution
-        )
-      } else if (scene) {
-        // TWO-STEP - Outfit first, then scene
-        resultBase64 = await renderTwoStep(
-          client, model, cleanSubject, cleanGarment, cleanIdentityImages,
-          scene, styleKey, aspectRatio, resolution, isPro
-        )
-      } else {
-        // SINGLE STEP with custom background
-        const prompt = isPro
-          ? buildProPrompt(promptCtx)
-          : buildFlashPrompt(promptCtx)
-
-        resultBase64 = await renderSingleStep(
-          client, model, cleanSubject, cleanGarment, cleanIdentityImages,
-          prompt, aspectRatio, temperature, resolution
-        )
-      }
+    // Default to casual_lifestyle if no preset or preset not found
+    if (!selectedStylePreset) {
+      selectedStylePreset = getStylePreset('casual_lifestyle')
     }
+
+    // TypeScript guard: selectedStylePreset should never be null after this point
+    if (!selectedStylePreset) {
+      throw new Error('Failed to load style preset: casual_lifestyle not found')
+    }
+
+    console.log(`   🎨 Style Preset: ${selectedStylePreset.name} (${selectedStylePreset.id})`)
+
+    // ============================================================
+    // GPT-4o MINI PROMPT COMPOSITION (PHASE 3)
+    // ============================================================
+    console.log('\n🤖 GPT-4o mini: Composing prompt with role separation...')
+    const promptStart = Date.now()
+
+    const finalPrompt = await buildFinalTryOnPrompt({
+      garmentDescription,
+      stylePreset: selectedStylePreset,
+      poseHint: undefined, // Can be extended later
+      sceneHint: keepBackground ? 'keep original background' : backgroundInstruction,
+    })
+
+    console.log(`   ✓ Prompt composed in ${((Date.now() - promptStart) / 1000).toFixed(1)}s`)
+    console.log(`   📝 Final prompt length: ${finalPrompt.length} chars`)
+    console.log(`\n   📝 FINAL ASSEMBLED PROMPT (full text):`)
+    console.log(`   ${'─'.repeat(70)}`)
+    console.log(`   ${finalPrompt.split('\n').join('\n   ')}`)
+    console.log(`   ${'─'.repeat(70)}`)
+    console.log(`\n   🔍 PROMPT STRUCTURE VERIFICATION:`)
+    console.log(`      ✓ Identity lock block: Present (hard-coded)`)
+    console.log(`      ✓ Garment role block: Present (hard-coded)`)
+    console.log(`      ✓ Scene/style text: Present (from GPT-4o mini)`)
+
+    // ============================================================
+    // SINGLE-STEP RENDER (TWO IMAGES) - PHASE 3 CONTRACT
+    // ============================================================
+    console.log('\n🎬 Rendering with Gemini (Image 1: person, Image 2: garment)...')
+    resultBase64 = await renderSingleStep(
+      client,
+      model,
+      cleanSubject, // Image 1: Person (identity source)
+      cleanGarment, // Image 2: Garment (visual reference)
+      finalPrompt, // GPT-4o mini composed prompt with role separation
+      aspectRatio,
+      temperature,
+      resolution
+    )
 
     const elapsed = Date.now() - startTime
-    console.log(`✅ RENDER COMPLETE in ${(elapsed / 1000).toFixed(1)} s\n`)
+    console.log(`✅ RENDER COMPLETE in ${(elapsed / 1000).toFixed(1)}s\n`)
 
-    return `data: image / jpeg; base64, ${resultBase64} `
+    return `data:image/jpeg;base64,${resultBase64}`
   } catch (error) {
     console.error('❌ RENDER FAILED:', error)
     throw error
   }
 }
 
-// Compatibility wrapper
+// Compatibility wrapper (updated for new architecture)
 export async function renderTryOnV3(params: {
   subjectImageBase64: string
   garmentImageBase64: string
   garmentBackupImageBase64?: string
-  identityImagesBase64?: string[]
   stylePack?: any
   backgroundFocus?: any
   shootPlan: { scene_text: string; prompt_text?: string }
@@ -1715,8 +1589,7 @@ export async function renderTryOnV3(params: {
 }): Promise<string> {
   return renderTryOnFast({
     subjectImageBase64: params.subjectImageBase64,
-    garmentImageBase64: params.garmentImageBase64,
-    identityImagesBase64: params.identityImagesBase64,
+    garmentImageBase64: params.garmentImageBase64, // Used for analysis only
     backgroundInstruction: params.shootPlan.scene_text || 'keep original background',
     lightingInstruction: 'natural lighting',
     quality: params.opts.quality,

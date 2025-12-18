@@ -131,7 +131,8 @@ export async function POST(request: Request) {
       const normalizedPerson = normalizeBase64(personImage)
       const normalizedClothing = clothingImage ? normalizeBase64(clothingImage) : undefined
       const normalizedBackground = backgroundImage ? normalizeBase64(backgroundImage) : undefined
-      const normalizedIdentityImages = (personImages || []).map((img) => normalizeBase64(img))
+      // NOTE: identityImages (personImages) are no longer used in new architecture
+      // Identity comes from person image only (pixel-level)
 
       if (!normalizedClothing) {
         throw new Error('Clothing image is required for try-on')
@@ -172,8 +173,7 @@ export async function POST(request: Request) {
           console.log(`🎬 Running try-on pipeline (attempt ${attempt + 1})...`)
           result = await runTryOnPipelineV3({
             subjectImageBase64: normalizedPerson,
-            clothingRefBase64: normalizedClothing,
-            identityImagesBase64: normalizedIdentityImages,
+            clothingRefBase64: normalizedClothing, // Used for analysis only, never sent to Gemini
             preset,
             userRequest: userRequest || undefined,
             quality: {

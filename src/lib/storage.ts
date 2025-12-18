@@ -29,13 +29,23 @@ async function ensureBucketExists(supabase: ReturnType<typeof createServiceClien
       const { error: createError } = await supabase.storage.createBucket(bucket, {
         public: true, // Make it public for easy access to URLs
         fileSizeLimit: 10 * 1024 * 1024, // 10MB limit
+        allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
       })
       
       if (createError && !createError.message.includes('already exists')) {
         console.warn(`Could not create bucket ${bucket}:`, createError.message)
         // Continue anyway - might be permissions issue but bucket exists
       } else {
-        console.log(`✓ Created bucket: ${bucket}`)
+        console.log(`✓ Created bucket: ${bucket} (public: true)`)
+      }
+    } else {
+      // Bucket exists - verify it's public
+      const bucketInfo = buckets?.find(b => b.name === bucket)
+      if (bucketInfo && !bucketInfo.public) {
+        console.warn(`⚠️  Bucket "${bucket}" exists but is NOT public. Images may fail to load.`)
+        console.warn(`   Please make the bucket public in Supabase Storage settings.`)
+      } else if (bucketInfo && bucketInfo.public) {
+        console.log(`✓ Bucket "${bucket}" exists and is public`)
       }
     }
     
