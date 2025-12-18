@@ -66,12 +66,58 @@ EXPRESSION LOCK:
 export interface SimpleRenderOptions {
   subjectImageBase64: string
   garmentImageBase64: string
+  identityImagesBase64?: string[] // Additional identity reference images
   backgroundInstruction: string
   lightingInstruction: string
   quality: 'fast' | 'high'
   aspectRatio?: string
   resolution?: string
   stylePresetId?: string
+}
+
+/**
+ * MULTI-REFERENCE IDENTITY ANCHOR
+ * When multiple identity images are provided, we use them all to help the AI
+ * understand the person's face from multiple angles
+ */
+function buildMultiReferenceAnchor(identityCount: number): string {
+  if (identityCount <= 1) {
+    return IDENTITY_ANCHOR_START
+  }
+  
+  return `MULTI-ANGLE IDENTITY REFERENCE:
+You have ${identityCount + 1} reference images of the SAME PERSON from different angles.
+
+Images 1-${identityCount + 1} show the subject from various angles:
+- These images show the EXACT same person
+- Use ALL of these to understand their complete facial structure
+- Notice how their face looks from front, sides, and with different expressions
+- The last image is the CLOTHING to apply
+
+STRICT IDENTITY RULES:
+- Face shape: Match the consistent jawline, cheekbones, chin across all reference images
+- Eyes: Same eye size, shape, spacing, color visible in all angles
+- Nose: Same nose structure visible from all angles
+- Mouth/Lips: Same lip shape and thickness
+- Skin tone: Exact same complexion (note: lighting varies, but skin tone is constant)
+- Hair: Same style, color, texture across all images
+- Body: Same proportions visible in body shots
+
+The more reference images, the BETTER you understand this person.
+Use this multi-angle knowledge to create a perfect identity match.`
+}
+
+function buildMultiReferenceEnd(): string {
+  return `FINAL IDENTITY VERIFICATION:
+Cross-check the output against ALL provided reference images.
+The output face should match what you see in:
+- The front-facing images
+- The side-angle images  
+- The smiling images
+- The body proportion images
+
+If the face would look out of place in ANY of the reference angles, revise it.
+The goal is a face that is recognizably the SAME PERSON from any angle.`
 }
 
 /**
@@ -267,22 +313,38 @@ Only change clothes and background.`
 /**
  * SINGLE-STEP RENDERER - For clothing-only changes
  * Used when background stays the same
+ * Now supports multiple identity reference images
  */
 async function renderSingleStep(
   client: GoogleGenAI,
   model: string,
   subjectBase64: string,
   garmentBase64: string,
+  identityImages: string[],
   prompt: string,
   aspectRatio: string,
   temperature: number,
   resolution?: string
 ): Promise<string> {
-  const contents: ContentListUnion = [
-    { inlineData: { data: subjectBase64, mimeType: 'image/jpeg' } } as any,
-    { inlineData: { data: garmentBase64, mimeType: 'image/jpeg' } } as any,
-    prompt,
-  ]
+  // Build contents array with all identity images first, then garment
+  const contents: ContentListUnion = []
+  
+  // Primary subject image
+  contents.push({ inlineData: { data: subjectBase64, mimeType: 'image/jpeg' } } as any)
+  
+  // Additional identity reference images (if any)
+  for (const identityImg of identityImages) {
+    const clean = stripDataUrl(identityImg)
+    if (clean && clean.length > 100) {
+      contents.push({ inlineData: { data: clean, mimeType: 'image/jpeg' } } as any)
+    }
+  }
+  
+  // Garment image (always last before prompt)
+  contents.push({ inlineData: { data: garmentBase64, mimeType: 'image/jpeg' } } as any)
+  
+  // Prompt
+  contents.push(prompt)
 
   const imageConfig: ImageConfig = { aspectRatio } as any
   if (model.includes('pro') && resolution) {
@@ -294,6 +356,8 @@ async function renderSingleStep(
     imageConfig,
     temperature,
   }
+
+  console.log(`   📷 Using ${1 + identityImages.length} identity reference(s) + 1 garment`)
 
   const resp = await client.models.generateContent({ model, contents, config })
 
@@ -314,41 +378,65 @@ async function renderSingleStep(
  * LAYERED WORKFLOW - For scene changes
  * Step 1: Outfit swap with neutral background (locks identity)
  * Step 2: Change background/lighting (identity already baked in)
+ * Now supports multiple identity reference images
  */
 async function renderLayered(
   client: GoogleGenAI,
   model: string,
   subjectBase64: string,
   garmentBase64: string,
+  identityImages: string[],
   preset: any,
   aspectRatio: string,
   temperature: number,
   resolution?: string
 ): Promise<string> {
   console.log('🎯 LAYERED WORKFLOW: Step 1 - Outfit swap with neutral background')
+  console.log(`   📷 Using ${1 + identityImages.length} identity reference(s)`)
+  
+  // Build identity anchor based on number of reference images
+  const identityAnchor = buildMultiReferenceAnchor(identityImages.length)
+  const identityEnd = identityImages.length > 0 ? buildMultiReferenceEnd() : IDENTITY_ANCHOR_END
   
   // STEP 1: Generate base image with outfit + identity, neutral background
-  const step1Prompt = `${IDENTITY_ANCHOR_START}
+  const step1Prompt = `${identityAnchor}
 
 STEP 1 - OUTFIT SWAP:
-Put the clothing from Image 2 onto the person from Image 1.
+${identityImages.length > 0 
+  ? `Use the identity reference images to understand this person's face from multiple angles.
+The LAST image before this text is the CLOTHING to apply.`
+  : `Put the clothing from the last image onto the person from the first image.`}
 Use a plain, neutral grey studio background.
 Even, flat lighting.
 
 Focus on:
-1. PERFECT facial identity match (copy face exactly from Image 1)
-2. Accurate clothing fit from Image 2
-3. Natural body pose
+1. PERFECT facial identity match (use ALL reference images to understand the face)
+2. Accurate clothing fit from the garment image
+3. Natural body pose matching the main reference
 
 ${LOOKALIKE_RULES}
 
-${IDENTITY_ANCHOR_END}`
+${identityEnd}`
 
-  const step1Contents: ContentListUnion = [
-    { inlineData: { data: subjectBase64, mimeType: 'image/jpeg' } } as any,
-    { inlineData: { data: garmentBase64, mimeType: 'image/jpeg' } } as any,
-    step1Prompt,
-  ]
+  // Build contents with all identity images
+  const step1Contents: ContentListUnion = []
+  
+  // Primary subject
+  step1Contents.push({ inlineData: { data: subjectBase64, mimeType: 'image/jpeg' } } as any)
+  
+  // Additional identity references
+  for (const identityImg of identityImages) {
+    const clean = stripDataUrl(identityImg)
+    if (clean && clean.length > 100) {
+      step1Contents.push({ inlineData: { data: clean, mimeType: 'image/jpeg' } } as any)
+    }
+  }
+  
+  // Garment (last image)
+  step1Contents.push({ inlineData: { data: garmentBase64, mimeType: 'image/jpeg' } } as any)
+  
+  // Prompt
+  step1Contents.push(step1Prompt)
 
   const step1Config: GenerateContentConfig = {
     responseModalities: ['IMAGE'],
@@ -437,11 +525,13 @@ but their face must remain EXACTLY as it is in the input image.`
 
 /**
  * MAIN RENDERER - Routes to single-step or layered based on preset
+ * Now supports multiple identity reference images for better face consistency
  */
 export async function renderTryOnFast(params: SimpleRenderOptions): Promise<string> {
   const {
     subjectImageBase64,
     garmentImageBase64,
+    identityImagesBase64,
     backgroundInstruction,
     lightingInstruction,
     quality,
@@ -457,6 +547,11 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
 
   const cleanSubject = stripDataUrl(subjectImageBase64)
   const cleanGarment = stripDataUrl(garmentImageBase64)
+  
+  // Clean and filter identity images
+  const cleanIdentityImages = (identityImagesBase64 || [])
+    .map(img => stripDataUrl(img))
+    .filter(img => img && img.length > 100)
 
   if (!cleanSubject || cleanSubject.length < 100) throw new Error('Invalid subject image')
   if (!cleanGarment || cleanGarment.length < 100) throw new Error('Invalid garment image')
@@ -476,37 +571,80 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
   const temperature = isPro ? 0.02 : 0.05
 
   console.log(`🚀 Render: model=${model}, preset=${stylePresetId || 'custom'}, keepBg=${keepBg}`)
+  console.log(`👤 Identity references: ${1 + cleanIdentityImages.length} images`)
 
   const startTime = Date.now()
   let resultBase64: string
+  
+  // Build prompts with multi-reference support if we have extra identity images
+  const hasMultiRef = cleanIdentityImages.length > 0
 
   if (keepBg) {
     // SINGLE STEP - Just swap clothing, keep background
     console.log('📸 Mode: SINGLE-STEP (clothing only)')
-    const prompt = isPro 
-      ? buildProPrompt(true, preset, backgroundInstruction, lightingInstruction)
-      : buildFlashPrompt(true, preset, backgroundInstruction, lightingInstruction)
+    
+    // Build prompt with multi-reference anchor if available
+    let prompt: string
+    if (hasMultiRef) {
+      const anchor = buildMultiReferenceAnchor(cleanIdentityImages.length)
+      const end = buildMultiReferenceEnd()
+      prompt = `${anchor}
+
+TASK: Virtual clothing try-on.
+The first ${cleanIdentityImages.length + 1} images show the SAME PERSON from different angles.
+The LAST image is the clothing item to apply.
+
+Replace their current outfit with the clothing from the last image.
+Keep EVERYTHING else identical: face, body, hair, pose, background.
+
+${LOOKALIKE_RULES}
+
+${end}`
+    } else {
+      prompt = isPro 
+        ? buildProPrompt(true, preset, backgroundInstruction, lightingInstruction)
+        : buildFlashPrompt(true, preset, backgroundInstruction, lightingInstruction)
+    }
     
     console.log(`📝 Prompt: ${prompt.substring(0, 100)}...`)
     
     resultBase64 = await renderSingleStep(
-      client, model, cleanSubject, cleanGarment, prompt, aspectRatio, temperature, resolution
+      client, model, cleanSubject, cleanGarment, cleanIdentityImages, prompt, aspectRatio, temperature, resolution
     )
   } else if (preset?.scene) {
     // LAYERED WORKFLOW - Outfit first, then scene change
     console.log('🎬 Mode: LAYERED WORKFLOW (outfit → scene)')
     resultBase64 = await renderLayered(
-      client, model, cleanSubject, cleanGarment, preset, aspectRatio, temperature, resolution
+      client, model, cleanSubject, cleanGarment, cleanIdentityImages, preset, aspectRatio, temperature, resolution
     )
   } else {
     // Custom background - use single step with anchored prompt
     console.log('📸 Mode: SINGLE-STEP (custom background)')
-    const prompt = isPro 
-      ? buildProPrompt(false, preset, backgroundInstruction, lightingInstruction)
-      : buildFlashPrompt(false, preset, backgroundInstruction, lightingInstruction)
+    
+    let prompt: string
+    if (hasMultiRef) {
+      const anchor = buildMultiReferenceAnchor(cleanIdentityImages.length)
+      const end = buildMultiReferenceEnd()
+      prompt = `${anchor}
+
+TASK: Show this person wearing the outfit from the last image.
+Background: ${backgroundInstruction}
+Lighting: ${lightingInstruction}
+
+The first ${cleanIdentityImages.length + 1} images show the SAME PERSON.
+Use all angles to understand their face perfectly.
+
+${LOOKALIKE_RULES}
+
+${end}`
+    } else {
+      prompt = isPro 
+        ? buildProPrompt(false, preset, backgroundInstruction, lightingInstruction)
+        : buildFlashPrompt(false, preset, backgroundInstruction, lightingInstruction)
+    }
     
     resultBase64 = await renderSingleStep(
-      client, model, cleanSubject, cleanGarment, prompt, aspectRatio, temperature, resolution
+      client, model, cleanSubject, cleanGarment, cleanIdentityImages, prompt, aspectRatio, temperature, resolution
     )
   }
 
@@ -533,6 +671,7 @@ export async function renderTryOnV3(params: {
   return renderTryOnFast({
     subjectImageBase64: params.subjectImageBase64,
     garmentImageBase64: params.garmentImageBase64,
+    identityImagesBase64: params.identityImagesBase64, // Pass through identity images
     backgroundInstruction: params.shootPlan.scene_text || 'keep original background',
     lightingInstruction: 'natural lighting',
     quality: params.opts.quality,

@@ -69,11 +69,13 @@ model InfluencerProfile {
   preferredCategories Json?  // Array of clothing categories
   onboardingCompleted Boolean @default(false)
   engagementRate    Decimal? @db.Decimal(5, 4) // For sorting/filtering
+  identitySetupComplete Boolean @default(false) // Has uploaded all identity images
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   
   payouts           Payout[]
   affiliateEvents   AffiliateEvent[]
+  identityImages    IdentityImage[]  // Reference images for AI try-on
 
   @@index([userId])
   @@index([portfolioVisibility, onboardingCompleted])
@@ -279,4 +281,28 @@ model Feedback {
   rating    Int?     // 1-5
   comment   String?  @db.Text
   createdAt DateTime @default(now())
+}
+
+// Identity reference images for AI try-on accuracy
+// These are uploaded during onboarding and used automatically for all try-ons
+model IdentityImage {
+  id                String   @id @default(cuid())
+  influencerProfileId String
+  influencerProfile InfluencerProfile @relation(fields: [influencerProfileId], references: [id], onDelete: Cascade)
+  
+  // Image type - determines what angle/pose this image captures
+  imageType         String   // "face_front" | "face_left" | "face_right" | "face_smile" | "body_front" | "body_left" | "body_right"
+  
+  // Storage
+  imagePath         String   // Supabase Storage path
+  imageUrl          String   // Public URL for display
+  
+  // Metadata
+  isActive          Boolean  @default(true)  // Can be disabled if quality is poor
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([influencerProfileId, imageType]) // Only one image per type
+  @@index([influencerProfileId])
+  @@index([influencerProfileId, isActive])
 }

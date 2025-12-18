@@ -23,6 +23,7 @@ export interface TryOnPipelineResult {
     usedGarmentExtraction: boolean
     timeMs: number
     preset?: string
+    identityImagesUsed?: number
   }
 }
 
@@ -30,7 +31,7 @@ export interface TryOnPipelineResult {
  * FAST TRY-ON PIPELINE
  * 
  * Single API call to Gemini with Higgsfield Soul inspired prompting.
- * No preprocessing, no verification - pure speed.
+ * Now supports multiple identity reference images for better face consistency.
  */
 export async function runTryOnPipelineV3(params: {
   subjectImageBase64: string
@@ -44,7 +45,8 @@ export async function runTryOnPipelineV3(params: {
   
   const { 
     subjectImageBase64, 
-    clothingRefBase64, 
+    clothingRefBase64,
+    identityImagesBase64,
     preset, 
     userRequest,
     quality 
@@ -61,17 +63,22 @@ export async function runTryOnPipelineV3(params: {
     sceneInstruction = `${sceneInstruction}. ${userRequest}`
   }
 
+  const identityCount = (identityImagesBase64 || []).length
+
   console.log(`\n========== TRY-ON PIPELINE ==========`)
   console.log(`🎨 Preset ID: ${presetId || 'none'}`)
   console.log(`📸 Background: "${backgroundName}"`)
   console.log(`💡 Lighting: "${lightingName}"`)
   console.log(`🎯 Quality: ${quality.quality}`)
+  console.log(`👤 Identity images: ${identityCount + 1} (1 main + ${identityCount} extra)`)
   console.log(`=====================================\n`)
 
   // Single render call with preset ID for scene lookup
+  // Pass identity images for multi-reference support
   const image = await renderTryOnFast({
     subjectImageBase64,
     garmentImageBase64: clothingRefBase64,
+    identityImagesBase64,
     backgroundInstruction: sceneInstruction,
     lightingInstruction: lightingName,
     quality: quality.quality,
@@ -90,6 +97,7 @@ export async function runTryOnPipelineV3(params: {
       usedGarmentExtraction: false,
       timeMs: elapsed,
       preset: presetId,
+      identityImagesUsed: identityCount + 1,
     },
   }
 }
