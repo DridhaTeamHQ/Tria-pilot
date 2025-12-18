@@ -436,7 +436,8 @@ function buildForensicEnhancedPrompt(
   styleKey: string,
   keepBackground: boolean,
   identityCount: number,
-  photoAnalysis?: PhotoAnalysis | null
+  photoAnalysis?: PhotoAnalysis | null,
+  variant: 'flash' | 'pro' = 'pro'
 ): string {
   const style = STYLE_SETTINGS[styleKey] || STYLE_SETTINGS.iphone_candid
   const identityPrompt = buildIdentityPromptFromAnalysis(faceAnalysis)
@@ -461,6 +462,31 @@ COMPOSITING AVOIDANCE:
     : `Image 1 = PERSON reference. Image 2 = GARMENT to apply.`
 
   if (keepBackground) {
+    // Flash works best with short "edit the photo" instructions to avoid face drift.
+    if (variant === 'flash') {
+      return `EDIT THE PHOTO (CLOTHING TRY-ON)
+
+${refExplanation}
+
+TASK:
+- Edit the FIRST image (the person). Replace ONLY their clothing using the LAST image (garment).
+
+STRICT IDENTITY LOCK:
+- Keep the same person with the exact same face. Do NOT change face shape, cheeks, jaw, head size, or expression.
+- Do NOT beautify. Keep natural skin texture and pores. Keep hair identical.
+- Never blend identities. Ignore any person/face in the garment reference completely.
+
+STRICT BACKGROUND LOCK:
+- Keep the original background and lighting from the person photo exactly unchanged.
+
+REALISM:
+- Match camera characteristics of the person photo (grain/noise, compression, sharpness).
+- No cutout/halo edges. No pasted look.
+
+OUTPUT:
+- Same person, same face, same background; only the outfit changes.`
+    }
+
     return `VIRTUAL TRY-ON - FORENSIC IDENTITY MODE
 
 ${refExplanation}
@@ -1054,6 +1080,11 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
     .map(img => stripDataUrl(img))
     .filter(img => img && img.length > 100)
 
+  // Flash (2.5) is noticeably more stable with fewer reference images.
+  // Pro can handle many refs (up to 14). Flash tends to "average" faces when overloaded.
+  const maxIdentityRefsForModel = isPro ? 10 : 2
+  const cleanIdentityImagesForModel = cleanIdentityImages.slice(0, maxIdentityRefsForModel)
+
   if (!cleanSubject || cleanSubject.length < 100) throw new Error('Invalid subject image')
   if (!cleanGarment || cleanGarment.length < 100) throw new Error('Invalid garment image')
 
@@ -1077,13 +1108,14 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
   else if (stylePresetId?.includes('beach') || stylePresetId?.includes('outdoor')) styleKey = 'documentary'
 
   // Temperature settings
-  const temperature = isPro ? 0.01 : 0.03
+  // Flash tends to drift faces at higher temps; keep it ultra-low for identity stability.
+  const temperature = isPro ? 0.01 : 0.01
 
   console.log(`\n🚀 TRY-ON RENDER`)
   console.log(`   Model: ${model}`)
   console.log(`   Preset: ${stylePresetId || 'none'}`)
   console.log(`   Mode: ${keepBackground ? 'CLOTHING-ONLY' : 'SCENE-CHANGE'}`)
-  console.log(`   Identity refs: ${1 + cleanIdentityImages.length}`)
+  console.log(`   Identity refs (used): ${1 + cleanIdentityImagesForModel.length} (received: ${1 + cleanIdentityImages.length})`)
   console.log(`   Style: ${styleKey}`)
   console.log(`   Resolution: ${resolution || '1K'}`)
   console.log(`   Forensic Analysis: ${useForensicAnalysis ? 'ENABLED' : 'DISABLED'}`)
@@ -1107,7 +1139,7 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
       
       // Run analysis in parallel (and optionally capture analysis for better scene integration)
       const [faceResult, garmentResult, photoResult] = await Promise.all([
-        analyzeFaceForensic(cleanSubject, cleanIdentityImages),
+        analyzeFaceForensic(cleanSubject, cleanIdentityImagesForModel),
         analyzeGarmentForensic(cleanGarment),
         // Only needed for scene-change realism + integration (avoids Photoshop cutout look)
         !keepBackground ? analyzeSubjectPhoto(cleanSubject) : Promise.resolve(null),
@@ -1135,8 +1167,9 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
         scene,
         styleKey,
         keepBackground,
-        cleanIdentityImages.length,
-        photoAnalysis
+        cleanIdentityImagesForModel.length,
+        photoAnalysis,
+        isPro ? 'pro' : 'flash'
       )
       
       console.log(`   Prompt length: ${forensicPrompt.length} chars`)
@@ -1148,7 +1181,7 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
           model,
           cleanSubject,
           garmentForGemini,
-          cleanIdentityImages,
+          cleanIdentityImagesForModel,
           faceAnalysis,
           garmentAnalysis,
           scene,
@@ -1159,7 +1192,7 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
         )
       } else {
         resultBase64 = await renderSingleStep(
-          client, model, cleanSubject, garmentForGemini, cleanIdentityImages,
+          client, model, cleanSubject, garmentForGemini, cleanIdentityImagesForModel,
           forensicPrompt, aspectRatio, temperature, resolution
         )
       }
