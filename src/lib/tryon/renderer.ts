@@ -17,6 +17,52 @@ function normalizeAspectRatio(ratio: string | undefined): string {
   return '3:4'
 }
 
+/**
+ * IDENTITY ANCHOR - Used at START and END of prompts
+ * This "sandwiches" the identity preservation to combat compositional deficit
+ */
+const IDENTITY_ANCHOR_START = `IDENTITY ANCHOR: The person in Image 1 is the STRICT REFERENCE SUBJECT.
+Preserve these EXACT features from Image 1:
+- Face shape (jaw width, cheekbone position, chin shape)
+- Eye characteristics (eye size, spacing, iris color, eyelid shape)
+- Nose structure (bridge width, tip shape, nostril size)
+- Mouth/lips (lip thickness, width, natural expression)
+- Skin tone and texture (exact complexion, visible pores, natural marks)
+- Hair style and color
+- Body proportions (weight, build, height ratio)
+- Facial expression and gaze direction`
+
+const IDENTITY_ANCHOR_END = `CRITICAL IDENTITY CHECK:
+Before finalizing, verify the output face matches Image 1:
+✓ Same face shape and proportions
+✓ Same eye appearance (size, color, shape)
+✓ Same nose structure
+✓ Same lip shape and expression
+✓ Same skin tone (no lightening/darkening)
+✓ Same body build (no slimming/enlarging)
+If ANY facial feature differs from Image 1, the result is INVALID.`
+
+/**
+ * LOOK-ALIKE TIGHTENING - Specific measurable features
+ */
+const LOOKALIKE_RULES = `FACIAL GEOMETRY LOCK:
+- Forehead-to-chin ratio: EXACT match to Image 1
+- Eye-to-eye distance: EXACT match
+- Nose-to-mouth distance: EXACT match
+- Jaw width relative to forehead: EXACT match
+- Eyebrow shape and position: EXACT match
+
+SKIN AUTHENTICITY:
+- Copy exact skin tone (no beautification)
+- Keep natural marks, moles, freckles
+- Preserve skin texture (visible pores, not airbrushed)
+- No skin smoothing or whitening
+
+EXPRESSION LOCK:
+- Same micro-expression as Image 1
+- Same eye openness level
+- Same mouth position (open/closed amount)`
+
 export interface SimpleRenderOptions {
   subjectImageBase64: string
   garmentImageBase64: string
@@ -118,65 +164,279 @@ const SCENE_PRESETS: Record<string, {
 }
 
 /**
- * PRO & FLASH - Ultra simple prompts
- * Complex prompts were confusing the model
+ * PRO MODEL PROMPTS - With Anchor Technique
+ * Identity anchored at START and END to combat compositional deficit
  */
 function buildProPrompt(keepBg: boolean, preset: any, backgroundInstruction: string, lightingInstruction: string): string {
-  // CLOTHING ONLY / KEEP ORIGINAL - must CHANGE the clothes
+  // CLOTHING ONLY / KEEP ORIGINAL - Simple swap, strong anchoring
   if (keepBg) {
-    return `REPLACE the clothing on this person.
+    return `${IDENTITY_ANCHOR_START}
 
-Image 1: A person wearing some clothes
-Image 2: NEW clothing item (this is what they should wear)
+TASK: Virtual clothing try-on.
+- Image 1: The person (IDENTITY SOURCE)
+- Image 2: The new clothing item
 
-Task: REMOVE the clothes the person is currently wearing and DRESS them in the clothing from image 2.
+Replace their current outfit with the clothing from Image 2.
+Keep EVERYTHING else identical: face, body, hair, pose, background.
 
-The person in the output must be wearing the outfit from IMAGE 2, not their original outfit.
+${LOOKALIKE_RULES}
 
-Keep same: face, body, hair, background, pose
-CHANGE: Their clothes - they must now wear the outfit shown in image 2`
+${IDENTITY_ANCHOR_END}`
   }
   
+  // SCENE CHANGE - Needs extra anchoring since more things are changing
   if (preset?.scene) {
-    return `Show this same woman wearing the outfit from image 2 in ${preset.scene}. Her face must be identical to image 1. Realistic photo.`
+    return `${IDENTITY_ANCHOR_START}
+
+SCENE CHANGE REQUEST:
+Subject: The EXACT person from Image 1 (use their face as reference)
+Outfit: The clothing from Image 2
+Location: ${preset.scene}
+Lighting: ${preset.lighting || 'natural lighting matching the scene'}
+
+${LOOKALIKE_RULES}
+
+IMPORTANT: The new scene and lighting should NOT affect facial features.
+Apply scene lighting to the environment, but keep the face's core features intact.
+
+${IDENTITY_ANCHOR_END}`
   }
   
-  return `This woman wearing the clothes from image 2. Scene: ${backgroundInstruction}. Keep her face the same as image 1.`
+  // Custom background instruction
+  return `${IDENTITY_ANCHOR_START}
+
+TASK: Show this person wearing the outfit from Image 2.
+Background: ${backgroundInstruction}
+Lighting: ${lightingInstruction}
+
+${LOOKALIKE_RULES}
+
+${IDENTITY_ANCHOR_END}`
 }
 
 /**
- * ============================================
- * FLASH MODEL PROMPTS (gemini-2.5-flash-image)
- * - Simple, direct instructions
- * - Focus on essential rules only
- * - Higher temperature for creativity
- * ============================================
+ * FLASH MODEL PROMPTS - Simpler but still anchored
+ * Flash responds better to concise prompts, but we keep the anchor technique
  */
 function buildFlashPrompt(keepBg: boolean, preset: any, backgroundInstruction: string, lightingInstruction: string): string {
-  // Use SAME prompt style as Pro (which works)
+  // CLOTHING ONLY / KEEP ORIGINAL
   if (keepBg) {
-    return `REPLACE the clothing on this person.
+    return `IDENTITY LOCK: Person in Image 1 is the reference. Their face and body are FIXED.
 
-Image 1: A person wearing some clothes
-Image 2: NEW clothing item (this is what they should wear)
+Task: Put the clothing from Image 2 on this person.
+- Keep exact same face (shape, eyes, nose, lips, skin tone)
+- Keep exact same body proportions
+- Keep exact same background and pose
+- Only change: their outfit → use Image 2's clothing
 
-Task: REMOVE the clothes the person is currently wearing and DRESS them in the clothing from image 2.
-
-The person in the output must be wearing the outfit from IMAGE 2, not their original outfit.
-
-Keep same: face, body, hair, background, pose
-CHANGE: Their clothes - they must now wear the outfit shown in image 2`
+VERIFY: Output face must match Image 1's face exactly. Same person, just different clothes.`
   }
   
+  // SCENE CHANGE
   if (preset?.scene) {
-    return `Show this person wearing the outfit from image 2 in ${preset.scene}. Same face as image 1. Change clothes to image 2.`
+    return `IDENTITY LOCK: Copy the person from Image 1 exactly.
+
+Show them:
+- Wearing: outfit from Image 2
+- In scene: ${preset.scene}
+- Lighting: ${preset.lighting || 'natural'}
+
+CRITICAL: Face must be identical to Image 1.
+- Same face shape and proportions
+- Same eye appearance
+- Same nose and lips
+- Same skin tone (no lightening)
+- Same body build
+
+Final check: If the face looks different from Image 1, redo it.`
   }
   
-  return `Show this person wearing the clothes from image 2. Scene: ${backgroundInstruction}. Change their outfit to match image 2.`
+  // Custom
+  return `IDENTITY LOCK: The person in Image 1 is the subject.
+
+Show them wearing Image 2's outfit in: ${backgroundInstruction}
+
+Keep their face IDENTICAL to Image 1:
+- Same facial features
+- Same skin tone
+- Same body proportions
+
+Only change clothes and background.`
 }
 
 /**
- * RENDERER - Separate strategies for Flash vs Pro
+ * SINGLE-STEP RENDERER - For clothing-only changes
+ * Used when background stays the same
+ */
+async function renderSingleStep(
+  client: GoogleGenAI,
+  model: string,
+  subjectBase64: string,
+  garmentBase64: string,
+  prompt: string,
+  aspectRatio: string,
+  temperature: number,
+  resolution?: string
+): Promise<string> {
+  const contents: ContentListUnion = [
+    { inlineData: { data: subjectBase64, mimeType: 'image/jpeg' } } as any,
+    { inlineData: { data: garmentBase64, mimeType: 'image/jpeg' } } as any,
+    prompt,
+  ]
+
+  const imageConfig: ImageConfig = { aspectRatio } as any
+  if (model.includes('pro') && resolution) {
+    ;(imageConfig as any).imageSize = resolution
+  }
+
+  const config: GenerateContentConfig = {
+    responseModalities: ['IMAGE'],
+    imageConfig,
+    temperature,
+  }
+
+  const resp = await client.models.generateContent({ model, contents, config })
+
+  if (resp.candidates?.length) {
+    for (const part of resp.candidates[0]?.content?.parts || []) {
+      if (part.inlineData?.mimeType?.startsWith('image/') && part.inlineData?.data) {
+        return part.inlineData.data // Return raw base64
+      }
+    }
+  }
+
+  if ((resp as any).data) return (resp as any).data
+
+  throw new Error('No image generated in single step')
+}
+
+/**
+ * LAYERED WORKFLOW - For scene changes
+ * Step 1: Outfit swap with neutral background (locks identity)
+ * Step 2: Change background/lighting (identity already baked in)
+ */
+async function renderLayered(
+  client: GoogleGenAI,
+  model: string,
+  subjectBase64: string,
+  garmentBase64: string,
+  preset: any,
+  aspectRatio: string,
+  temperature: number,
+  resolution?: string
+): Promise<string> {
+  console.log('🎯 LAYERED WORKFLOW: Step 1 - Outfit swap with neutral background')
+  
+  // STEP 1: Generate base image with outfit + identity, neutral background
+  const step1Prompt = `${IDENTITY_ANCHOR_START}
+
+STEP 1 - OUTFIT SWAP:
+Put the clothing from Image 2 onto the person from Image 1.
+Use a plain, neutral grey studio background.
+Even, flat lighting.
+
+Focus on:
+1. PERFECT facial identity match (copy face exactly from Image 1)
+2. Accurate clothing fit from Image 2
+3. Natural body pose
+
+${LOOKALIKE_RULES}
+
+${IDENTITY_ANCHOR_END}`
+
+  const step1Contents: ContentListUnion = [
+    { inlineData: { data: subjectBase64, mimeType: 'image/jpeg' } } as any,
+    { inlineData: { data: garmentBase64, mimeType: 'image/jpeg' } } as any,
+    step1Prompt,
+  ]
+
+  const step1Config: GenerateContentConfig = {
+    responseModalities: ['IMAGE'],
+    imageConfig: { aspectRatio } as any,
+    temperature: 0.02, // Very low for identity preservation
+  }
+
+  const step1Start = Date.now()
+  const step1Resp = await client.models.generateContent({ 
+    model, 
+    contents: step1Contents, 
+    config: step1Config 
+  })
+  console.log(`   Step 1 completed in ${((Date.now() - step1Start) / 1000).toFixed(1)}s`)
+
+  let step1Image: string | null = null
+  if (step1Resp.candidates?.length) {
+    for (const part of step1Resp.candidates[0]?.content?.parts || []) {
+      if (part.inlineData?.mimeType?.startsWith('image/') && part.inlineData?.data) {
+        step1Image = part.inlineData.data
+        break
+      }
+    }
+  }
+
+  if (!step1Image) {
+    throw new Error('Step 1 failed to generate image')
+  }
+
+  console.log('🎯 LAYERED WORKFLOW: Step 2 - Apply scene and lighting')
+
+  // STEP 2: Change background/lighting using Step 1 result
+  // The face is now "baked in" to the reference image
+  const step2Prompt = `SCENE CHANGE - Keep the person EXACTLY as they appear.
+
+Take this person (face, body, clothes, pose) and place them in a new environment:
+- New background: ${preset.scene}
+- New lighting: ${preset.lighting || 'natural lighting matching the scene'}
+
+CRITICAL RULES:
+- Do NOT modify the person's face AT ALL
+- Do NOT change their body shape
+- Do NOT change their clothes
+- Do NOT change their pose
+- ONLY change the background and apply appropriate scene lighting
+
+The person should look like they were photographed in this location, 
+but their face must remain EXACTLY as it is in the input image.`
+
+  const step2Contents: ContentListUnion = [
+    { inlineData: { data: step1Image, mimeType: 'image/jpeg' } } as any,
+    step2Prompt,
+  ]
+
+  const imageConfig: ImageConfig = { aspectRatio } as any
+  if (model.includes('pro') && resolution) {
+    ;(imageConfig as any).imageSize = resolution
+  }
+
+  const step2Config: GenerateContentConfig = {
+    responseModalities: ['IMAGE'],
+    imageConfig,
+    temperature: 0.3, // Slightly higher for creative background
+  }
+
+  const step2Start = Date.now()
+  const step2Resp = await client.models.generateContent({ 
+    model, 
+    contents: step2Contents, 
+    config: step2Config 
+  })
+  console.log(`   Step 2 completed in ${((Date.now() - step2Start) / 1000).toFixed(1)}s`)
+
+  if (step2Resp.candidates?.length) {
+    for (const part of step2Resp.candidates[0]?.content?.parts || []) {
+      if (part.inlineData?.mimeType?.startsWith('image/') && part.inlineData?.data) {
+        return part.inlineData.data
+      }
+    }
+  }
+
+  // If Step 2 fails, return Step 1 result (at least we have correct outfit)
+  console.log('⚠️ Step 2 failed, returning Step 1 result')
+  return step1Image
+}
+
+/**
+ * MAIN RENDERER - Routes to single-step or layered based on preset
  */
 export async function renderTryOnFast(params: SimpleRenderOptions): Promise<string> {
   const {
@@ -203,61 +463,57 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
 
   const preset = stylePresetId ? SCENE_PRESETS[stylePresetId] : null
   
-  // Detect "keep background" modes: Clothing Only (no preset) or Keep Original preset
+  // Detect "keep background" modes
   const bgLower = backgroundInstruction.toLowerCase()
-  const keepBg = !stylePresetId ||  // No preset = Clothing Only
+  const keepBg = !stylePresetId ||
                  stylePresetId === 'keep_original' ||
                  bgLower.includes('keep') || 
                  bgLower.includes('original') ||
                  bgLower.includes('same') ||
                  bgLower.includes('unchanged')
 
-  // Build prompt based on model type
-  const prompt = isPro 
-    ? buildProPrompt(keepBg, preset, backgroundInstruction, lightingInstruction)
-    : buildFlashPrompt(keepBg, preset, backgroundInstruction, lightingInstruction)
-
-  // Very low temperature for consistency
-  // Lower = more consistent face matching
+  // Temperature for identity preservation
   const temperature = isPro ? 0.02 : 0.05
 
-  console.log(`🚀 Render: model=${model}, preset=${stylePresetId || 'custom'}, keepBg=${keepBg}, temp=${temperature}`)
-  console.log(`📝 Prompt: ${prompt.substring(0, 100)}...`)
-
-  // Build content - SAME structure for both (Pro works, so use same for Flash)
-  const contents: ContentListUnion = [
-    { inlineData: { data: cleanSubject, mimeType: 'image/jpeg' } } as any,
-    { inlineData: { data: cleanGarment, mimeType: 'image/jpeg' } } as any,
-    prompt,
-  ]
-
-  const imageConfig: ImageConfig = { aspectRatio } as any
-  if (isPro && resolution) {
-    ;(imageConfig as any).imageSize = resolution
-  }
-
-  const config: GenerateContentConfig = {
-    responseModalities: ['IMAGE'],
-    imageConfig,
-    temperature,
-  }
+  console.log(`🚀 Render: model=${model}, preset=${stylePresetId || 'custom'}, keepBg=${keepBg}`)
 
   const startTime = Date.now()
-  const resp = await client.models.generateContent({ model, contents, config })
-  const elapsed = Date.now() - startTime
-  console.log(`⏱️ Render completed in ${(elapsed / 1000).toFixed(1)}s`)
+  let resultBase64: string
 
-  if (resp.candidates?.length) {
-    for (const part of resp.candidates[0]?.content?.parts || []) {
-      if (part.inlineData?.mimeType?.startsWith('image/') && part.inlineData?.data) {
-        return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`
-      }
-    }
+  if (keepBg) {
+    // SINGLE STEP - Just swap clothing, keep background
+    console.log('📸 Mode: SINGLE-STEP (clothing only)')
+    const prompt = isPro 
+      ? buildProPrompt(true, preset, backgroundInstruction, lightingInstruction)
+      : buildFlashPrompt(true, preset, backgroundInstruction, lightingInstruction)
+    
+    console.log(`📝 Prompt: ${prompt.substring(0, 100)}...`)
+    
+    resultBase64 = await renderSingleStep(
+      client, model, cleanSubject, cleanGarment, prompt, aspectRatio, temperature, resolution
+    )
+  } else if (preset?.scene) {
+    // LAYERED WORKFLOW - Outfit first, then scene change
+    console.log('🎬 Mode: LAYERED WORKFLOW (outfit → scene)')
+    resultBase64 = await renderLayered(
+      client, model, cleanSubject, cleanGarment, preset, aspectRatio, temperature, resolution
+    )
+  } else {
+    // Custom background - use single step with anchored prompt
+    console.log('📸 Mode: SINGLE-STEP (custom background)')
+    const prompt = isPro 
+      ? buildProPrompt(false, preset, backgroundInstruction, lightingInstruction)
+      : buildFlashPrompt(false, preset, backgroundInstruction, lightingInstruction)
+    
+    resultBase64 = await renderSingleStep(
+      client, model, cleanSubject, cleanGarment, prompt, aspectRatio, temperature, resolution
+    )
   }
 
-  if ((resp as any).data) return `data:image/png;base64,${(resp as any).data}`
+  const elapsed = Date.now() - startTime
+  console.log(`⏱️ Total render time: ${(elapsed / 1000).toFixed(1)}s`)
 
-  throw new Error('No image generated')
+  return `data:image/jpeg;base64,${resultBase64}`
 }
 
 // Compatibility wrapper
