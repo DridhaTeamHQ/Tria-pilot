@@ -26,7 +26,7 @@ export interface ForensicFaceAnalysis {
   chinShape: string
   foreheadShape: string
   cheekboneProminence: string
-  
+
   // Eye region
   eyeColor: string
   eyeShape: string
@@ -38,13 +38,13 @@ export interface ForensicFaceAnalysis {
   eyebrowShape: string
   eyebrowThickness: string
   eyebrowColor: string
-  
+
   // Nose details
   noseShape: string
   noseBridgeWidth: string
   noseTipShape: string
   nostrilShape: string
-  
+
   // Mouth and lips
   lipFullnessUpper: string
   lipFullnessLower: string
@@ -52,14 +52,14 @@ export interface ForensicFaceAnalysis {
   cupidsBow: string
   lipColor: string
   teethVisibility: string
-  
+
   // Skin
   skinTone: string
   skinUndertone: string
   skinTexture: string
   poreVisibility: string
   skinImperfections: string[] // moles, freckles, scars, etc.
-  
+
   // Hair
   hairColor: string
   hairHighlights: string
@@ -68,21 +68,21 @@ export interface ForensicFaceAnalysis {
   hairLength: string
   hairStyle: string
   hairPartPosition: string
-  
+
   // Body characteristics
   bodyType: string
   shoulderWidth: string
   neckLength: string
   armProportions: string
-  
+
   // Expression and pose
   currentExpression: string
   headTilt: string
   gazeDirection: string
-  
+
   // Distinctive features (critical for identity)
   distinctiveMarks: string[]
-  
+
   // Summary for prompt use
   identitySummary: string
 }
@@ -96,7 +96,7 @@ export async function analyzeFaceForensic(
   additionalImages: string[] = []
 ): Promise<ForensicFaceAnalysis> {
   const openai = getOpenAI()
-  
+
   const systemPrompt = `You are a FORENSIC FACIAL BIOMETRICS EXPERT creating a precise identity profile for AI image generation.
 Your analysis determines whether the AI will correctly reproduce this exact person. Errors mean identity loss.
 
@@ -224,21 +224,21 @@ THIS ANALYSIS MUST BE PRECISE ENOUGH TO IDENTIFY THIS PERSON IN A LINEUP.`
   const imageInputs: any[] = [
     { type: 'image_url', image_url: { url: formatImageUrl(personImageBase64), detail: 'high' } },
   ]
-  
+
   // Add additional reference images if provided
   for (const img of additionalImages.slice(0, 5)) { // Max 5 additional
     if (img && img.length > 100) {
       imageInputs.push({ type: 'image_url', image_url: { url: formatImageUrl(img), detail: 'high' } })
     }
   }
-  
+
   const userPrompt = imageInputs.length > 1
     ? `Analyze this person's face from ${imageInputs.length} reference images. Study all angles to build a complete identity profile. Extract EVERY detail with forensic precision.`
     : `Analyze this person's face with forensic precision. Extract EVERY detail for identity preservation in virtual try-on.`
 
   try {
     console.log(`🔬 GPT-4o: Forensic face analysis (${imageInputs.length} reference(s))...`)
-    
+
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
@@ -249,25 +249,31 @@ THIS ANALYSIS MUST BE PRECISE ENOUGH TO IDENTIFY THIS PERSON IN A LINEUP.`
       max_tokens: 2500,
       temperature: 0.1, // Very low for consistency
     })
-    
+
     const content = response.choices[0]?.message?.content
     if (!content) {
       throw new Error('No response from GPT-4o face analysis')
     }
-    
+
     const analysis = JSON.parse(content) as ForensicFaceAnalysis
-    
+
+    // Ensure summary exists for logging and prompt
+    const summary = analysis.identitySummary
+    if (!summary || summary === 'undefined' || summary === 'null') {
+      analysis.identitySummary = `A person with ${analysis.skinTone || 'natural'} skin, ${analysis.eyeColor || 'dark'} eyes, and ${analysis.faceShape || 'oval'} face shape.`
+    }
+
     console.log('✅ Forensic face analysis complete')
-    console.log(`   Identity summary: ${analysis.identitySummary?.slice(0, 100)}...`)
-    
+    console.log(`   Identity summary: ${String(analysis.identitySummary).slice(0, 100)}...`)
+
     // Ensure arrays are initialized
     if (!analysis.skinImperfections) analysis.skinImperfections = []
     if (!analysis.distinctiveMarks) analysis.distinctiveMarks = []
-    
+
     return analysis
   } catch (error) {
     console.error('❌ GPT-4o face analysis failed:', error)
-    
+
     // Return a basic structure on error
     return {
       faceShape: 'oval',
@@ -328,35 +334,35 @@ THIS ANALYSIS MUST BE PRECISE ENOUGH TO IDENTIFY THIS PERSON IN A LINEUP.`
 function generateIdentityAnchor(analysis: ForensicFaceAnalysis): string {
   // Create a unique identifier from most distinctive features
   const topFeatures: string[] = []
-  
+
   // Priority 1: Distinctive marks (most unique)
   if (analysis.distinctiveMarks?.length > 0) {
     topFeatures.push(analysis.distinctiveMarks[0])
   }
-  
+
   // Priority 2: Unique eye characteristics
   if (analysis.eyeColor && analysis.eyeColor !== 'brown' && analysis.eyeColor !== 'dark brown') {
     topFeatures.push(`${analysis.eyeColor} eyes`)
   } else if (analysis.eyeShape && analysis.eyeShape !== 'almond' && analysis.eyeShape !== 'round') {
     topFeatures.push(`${analysis.eyeShape} eyes`)
   }
-  
+
   // Priority 3: Unique facial feature
   if (analysis.faceShape && analysis.faceShape !== 'oval') {
     topFeatures.push(`${analysis.faceShape} face`)
   } else if (analysis.jawlineType && analysis.jawlineType !== 'soft' && analysis.jawlineType !== 'rounded') {
     topFeatures.push(`${analysis.jawlineType} jawline`)
   }
-  
+
   // Priority 4: Skin tone if distinctive
   if (analysis.skinTone && !analysis.skinTone.includes('medium')) {
     topFeatures.push(`${analysis.skinTone} skin`)
   }
-  
+
   // Generate unique name from hash of features
   const featureHash = `${analysis.eyeColor}-${analysis.faceShape}-${analysis.skinTone}`.slice(0, 8)
   const uniqueName = `Subject-${featureHash}`
-  
+
   const anchorFeatures = topFeatures.slice(0, 3).join(', ')
   return `${uniqueName}, ${anchorFeatures}`
 }
@@ -370,7 +376,7 @@ export function buildIdentityPromptFromAnalysis(analysis: ForensicFaceAnalysis):
   const marks = analysis.distinctiveMarks?.length > 0
     ? analysis.distinctiveMarks.join('; ')
     : 'none noted'
-  
+
   const imperfections = analysis.skinImperfections?.length > 0
     ? analysis.skinImperfections.join('; ')
     : 'natural skin'
@@ -508,7 +514,7 @@ export interface GarmentAnalysis {
 
 export async function analyzeGarmentForensic(garmentImageBase64: string): Promise<GarmentAnalysis> {
   const openai = getOpenAI()
-  
+
   const prompt = `You are a FASHION TECHNICAL DESIGNER analyzing a garment for AI image generation.
 Your analysis will be used to EXACTLY replicate this garment on a different person. Every detail matters.
 
@@ -600,7 +606,7 @@ BE THOROUGH. This analysis drives how the AI generates the garment on the new pe
 
   try {
     console.log('👔 GPT-4o: Garment analysis...')
-    
+
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
@@ -616,10 +622,29 @@ BE THOROUGH. This analysis drives how the AI generates the garment on the new pe
       max_tokens: 800,
       temperature: 0.1,
     })
-    
+
     const content = response.choices[0]?.message?.content
-    if (!content) throw new Error('No response from garment analysis')
-    
+    if (!content) {
+      console.warn('⚠️ No content returned from GPT-4o garment analysis, using fallback.')
+      return {
+        containsPerson: false,
+        containsFace: false,
+        garmentType: 'top',
+        sleeveType: 'short sleeve',
+        necklineType: 'round',
+        fitType: 'regular',
+        fabricType: 'cotton',
+        fabricTexture: 'smooth',
+        primaryColor: 'neutral',
+        colorDetails: 'solid color',
+        patternType: 'solid',
+        patternDescription: 'no pattern',
+        designElements: [],
+        lengthStyle: 'hip length',
+        summary: 'Basic garment - AI response empty',
+      }
+    }
+
     const analysis = JSON.parse(content) as Partial<GarmentAnalysis>
     const normalized: GarmentAnalysis = {
       containsPerson: Boolean((analysis as any).containsPerson),
@@ -639,7 +664,7 @@ BE THOROUGH. This analysis drives how the AI generates the garment on the new pe
       summary: String((analysis as any).summary || '').trim(),
     }
     console.log(`✅ Garment: ${analysis.summary?.slice(0, 80)}...`)
-    
+
     // Ensure required string fields have reasonable fallbacks
     return {
       ...normalized,

@@ -98,62 +98,149 @@ export async function generateTryOn(options: TryOnOptions): Promise<string> {
     }
 
     // Build simple instruction with EXACT emphasis for BOTH face AND clothing
-    let simplePrompt = `Edit this photo. Keep the EXACT same person, EXACT same face.\n\n`
-    
-    if (hasClothingChange) {
-      simplePrompt += `• Replace the person's current clothing with the EXACT garment from the clothing reference image: ${garmentDesc}\n`
+    // ═══════════════════════════════════════════════════════════════════════
+    // CONSISTENT TRY-ON PIPELINE
+    // LOCKED (NEVER CHANGE): Face, Pose, Body Position, Hair
+    // EDITABLE: Clothing, Background, Lighting
+    // ═══════════════════════════════════════════════════════════════════════
+
+    // Generate unique identity anchor for this session
+    const identityAnchor = `SUBJECT-${Date.now().toString(36).toUpperCase()}`
+
+    let simplePrompt: string
+
+    if (isPro) {
+      // PRO MODEL: "Context Lock" technique
+      simplePrompt = `VIRTUAL TRY-ON PIPELINE - PRO MODE
+
+═══════════════════════════════════════════════════════════════════════════════
+🔒 LOCKED ELEMENTS (NEVER CHANGE - COPY EXACTLY FROM FIRST IMAGE):
+═══════════════════════════════════════════════════════════════════════════════
+The person in the FIRST image is "${identityAnchor}".
+
+FACE (LOCKED - MATCH EXACTLY):
+• Face shape, jawline, and bone structure - EXACT MATCH
+• Eyes: shape, color, size, spacing - EXACT MATCH
+• Nose: bridge width, tip shape - EXACT MATCH  
+• Lips: shape, thickness, color - EXACT MATCH
+• Skin tone and complexion - EXACT MATCH
+• Any moles, marks, or features - EXACT MATCH
+• Eyebrows: shape and thickness - EXACT MATCH
+• Hair: color, texture, style - EXACT MATCH
+
+POSE (LOCKED - DO NOT CHANGE):
+• Body position - EXACT SAME as original
+• Arm positions and hand placement - EXACT SAME
+• Head angle and tilt - EXACT SAME  
+• Body orientation - EXACT SAME
+• Expression - natural, similar to original
+
+═══════════════════════════════════════════════════════════════════════════════
+✏️ EDITABLE ELEMENTS (WHAT TO CHANGE):
+═══════════════════════════════════════════════════════════════════════════════
+`
+      if (hasClothingChange) {
+        simplePrompt += `CLOTHING (EDIT): Replace ${identityAnchor}'s outfit with the EXACT garment from clothing reference.
+• Match exact color, pattern, and design from reference
+• Natural fabric draping on ${identityAnchor}'s body
+• Garment: ${garmentDesc}
+
+`
+      }
+      if (hasSceneChange) {
+        simplePrompt += `BACKGROUND (EDIT): Change background to: ${sceneDescription}
+• Keep ${identityAnchor} in exact same pose
+• Blend lighting naturally with scene
+
+`
+      }
+      if (hasLightingChange) {
+        simplePrompt += `LIGHTING (EDIT): Apply ${lightingDescription}
+• Natural shadows on ${identityAnchor}
+• Consistent light direction
+
+`
+      }
+
+      simplePrompt += `
+═══════════════════════════════════════════════════════════════════════════════
+OUTPUT VERIFICATION:
+═══════════════════════════════════════════════════════════════════════════════
+Before outputting, verify:
+✓ Face matches "${identityAnchor}" exactly - their family would recognize them
+✓ Pose is unchanged from original photo
+✓ Clothing matches reference exactly (if applicable)
+✓ Image looks like real photograph, not AI-generated
+
+QUALITY: Shot on 85mm lens, visible skin pores, natural lighting, no AI smoothing.
+`
+    } else {
+      // FLASH MODEL: "The Reminders" technique - repeat face check in every section
+      simplePrompt = `VIRTUAL TRY-ON PIPELINE - FLASH MODE
+
+═══════════════════════════════════════════════════════════════════════════════
+🔒 LOCKED ELEMENTS (COPY EXACTLY FROM FIRST IMAGE):
+═══════════════════════════════════════════════════════════════════════════════
+FACE - LOCKED: EXACT same face from first image
+• Same eyes, nose, lips, jawline, skin tone
+• Same hair color and style
+POSE - LOCKED: EXACT same body position
+• Same arm positions, head angle, orientation
+
+═══════════════════════════════════════════════════════════════════════════════
+✏️ EDITABLE ELEMENTS:
+═══════════════════════════════════════════════════════════════════════════════
+`
+      if (hasClothingChange) {
+        simplePrompt += `CLOTHING (EDIT): Replace with garment from reference: ${garmentDesc}
+⚠️ REMINDER: Face LOCKED - use EXACT face from first image
+
+`
+      }
+      if (hasSceneChange) {
+        simplePrompt += `BACKGROUND (EDIT): ${sceneDescription}
+⚠️ REMINDER: Face LOCKED, Pose LOCKED - only change background
+
+`
+      }
+      if (hasLightingChange) {
+        simplePrompt += `LIGHTING (EDIT): ${lightingDescription}
+⚠️ REMINDER: Face LOCKED - same person as first image
+
+`
+      }
+
+      simplePrompt += `
+═══════════════════════════════════════════════════════════════════════════════
+FINAL CHECK:
+═══════════════════════════════════════════════════════════════════════════════
+🔒 Face = EXACT match to first image (locked)
+🔒 Pose = EXACT same position (locked)
+✏️ Clothing = from reference (edited)
+✏️ Background = as specified (edited)
+
+QUALITY: Realistic photograph, visible skin texture, natural lighting.
+`
     }
-    if (hasSceneChange) {
-      simplePrompt += `• Place this EXACT person in: ${sceneDescription}\n`
-    }
-    if (hasLightingChange) {
-      simplePrompt += `• Apply ${lightingDescription}\n`
-    }
-    if (hasClothingChange) {
-      simplePrompt += `\nIMPORTANT: Clothing replacement is REQUIRED. Do NOT keep the original clothing. Replace the visible clothing region cleanly with the reference garment.\n`
-    }
-    
+
+    // ANTI-DRIFT NEGATIVE PROMPTING (works for both models)
     simplePrompt += `
-EXACT FACE REQUIRED:
-- EXACT same eyes, EXACT same nose, EXACT same lips
-- EXACT same skin tone, EXACT same facial structure  
-- EXACT same hair color and style
-- Do NOT generate a new face - use the EXACT face from the photo above
+NEGATIVE PROMPT - FORBIDDEN:
+❌ Different face or person
+❌ Changed facial structure  
+❌ Different eye shape or color
+❌ Altered skin tone
+❌ Changed pose or body position
+❌ Smooth/plastic AI skin
+❌ HDR halos or artificial glow
+`
 
-EXACT POSE REQUIRED:
-- EXACT same body position as in the original photo
-- EXACT same arm positions and hand placement
-- EXACT same head angle and tilt
-- EXACT same body angle and orientation
-- Do NOT change the pose - keep it EXACTLY as shown
-
-EXACT CLOTHING REQUIRED:
-- EXACT same garment from the clothing reference image
-- EXACT same color - match the EXACT shade and hue
-- EXACT same pattern - every detail, motif, and design element
-- EXACT same fabric texture and material appearance
-- EXACT same neckline, sleeves, and silhouette
-- EXACT same embroidery, prints, or decorative elements
-- Do NOT modify or change the garment design in any way
-
-PHOTO-REALISTIC QUALITY (NO AI LOOK):
-- Output must look like a REAL PHOTOGRAPH, not AI generated
-- Natural, realistic lighting - no artificial glow or halos
-- Realistic shadows that match the environment
-- No HDR over-processing or unnatural contrast
-- Skin must have natural texture with pores visible - no plastic/smooth look
-- No over-saturation of colors
-- Background must look like a real photograph, not a render
-- Seamless, natural blend between person and environment
-- Match the lighting direction consistently across the whole image
-- Avoid that "AI generated" uncanny valley look`
-    
     if (hasClothingChange) {
-      simplePrompt += `\n\nEXACT Clothing reference (copy this EXACT garment - EXACT color, EXACT pattern, EXACT design):`
+      simplePrompt += `\nClothing reference (EXACT garment to apply - match color, pattern, design):`
     }
 
     contents.push(simplePrompt)
-    console.log('📝 Added EXACT face instruction')
+    console.log(`📝 Added ${isPro ? 'PRO Context Lock' : 'FLASH Reminders'} face instruction`)
 
     // STEP 3: Clothing reference image
     if (clothingImage) {
@@ -184,23 +271,28 @@ PHOTO-REALISTIC QUALITY (NO AI LOOK):
       }
     }
 
-    // STEP 5: Final reinforcement with EXACT + anti-AI-look
+    // STEP 5: Final reinforcement with verification checkpoint
     contents.push(`
-FINAL OUTPUT REQUIREMENTS:
-- EXACT same person, EXACT same face from the first image
-- EXACT same pose and body position - do not change how the person is positioned
-- EXACT same clothing as shown in the clothing reference - EXACT color, EXACT pattern, EXACT design
-- The garment must be an EXACT copy - no modifications, no color shifts, no pattern changes
-- Only the background/environment changes, the person stays in their EXACT original pose
+FINAL OUTPUT VERIFICATION CHECKLIST:
+✓ IDENTITY CHECK: Face in output matches face in FIRST image exactly
+✓ POSE CHECK: Body position unchanged from original photo
+✓ GARMENT CHECK: Clothing matches reference exactly (color, pattern, design)
+✓ REALISM CHECK: Image looks like real photograph, not AI-generated
 
-CRITICAL - AVOID AI LOOK:
-- Must look like a REAL PHOTOGRAPH taken by a camera
-- NO artificial lighting, NO glowing edges, NO halos
-- NO plastic skin, NO over-smoothing
-- NO over-saturated or unrealistic colors
-- Background must be REALISTIC - like a real location photo
-- Lighting must be NATURAL and CONSISTENT across the image
-- The final image should be indistinguishable from a real photo`)
+VERIFY BEFORE OUTPUT:
+Does the face match the person in the first image? Their family must recognize them.
+Is the skin natural (visible pores, texture) not plastic/smooth?
+Is the lighting realistic and consistent?
+
+CANDID PHOTO QUALITY:
+• Shot on 85mm lens with natural bokeh
+• Skin has visible pores and natural texture
+• Slight natural imperfections (not over-processed)
+• No HDR halos, no artificial glow
+• Shadows are soft and realistic
+• Colors are natural, not over-saturated
+
+OUTPUT: High-quality realistic photograph of the SAME PERSON from the first image.`)
 
     // STEP 5: Add accessories if any
     if (accessoryImages.length > 0) {

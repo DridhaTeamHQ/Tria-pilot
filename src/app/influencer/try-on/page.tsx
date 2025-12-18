@@ -55,7 +55,7 @@ function TryOnPageContent() {
     const [accessoryTypes, setAccessoryTypes] = useState<('purse' | 'shoes' | 'hat' | 'jewelry' | 'bag' | 'watch' | 'sunglasses' | 'scarf' | 'other')[]>([])
     const [loading, setLoading] = useState(false)
     const [uploadingImage, setUploadingImage] = useState<'person' | 'clothing' | 'background' | 'additional' | 'accessory' | null>(null)
-    const [result, setResult] = useState<{ jobId: string; imageUrl: string } | null>(null)
+    const [result, setResult] = useState<{ jobId: string; imageUrl: string; base64Image?: string } | null>(null)
     const [product, setProduct] = useState<Product | null>(null)
     const [selectedPreset, setSelectedPreset] = useState<string>('')
     const [presetCategory, setPresetCategory] = useState<string>('all')
@@ -64,7 +64,7 @@ function TryOnPageContent() {
     const [quality, setQuality] = useState<'1K' | '2K' | '4K'>('2K')
     const [dragOver, setDragOver] = useState<'person' | 'clothing' | null>(null)
     const [showCelebration, setShowCelebration] = useState(false)
-    
+
     // Presets
     const [presets, setPresets] = useState<TryOnPreset[]>([])
     const [presetsLoading, setPresetsLoading] = useState(true)
@@ -100,23 +100,23 @@ function TryOnPageContent() {
 
                 // API returns { images: [...] , requirements: [...] , ... }
                 const images = Array.isArray(data)
-                  ? data
-                  : (Array.isArray(data?.images) ? data.images : [])
+                    ? data
+                    : (Array.isArray(data?.images) ? data.images : [])
 
                 // Sort by requirements order if provided, otherwise keep stable order
                 const reqOrder = new Map<string, number>(
-                  Array.isArray(data?.requirements)
-                    ? data.requirements.map((r: any) => [String(r.type), Number(r.order ?? 999)])
-                    : []
+                    Array.isArray(data?.requirements)
+                        ? data.requirements.map((r: any) => [String(r.type), Number(r.order ?? 999)])
+                        : []
                 )
 
                 const normalized = images
-                  .map((img: any) => ({
-                    type: String(img.imageType ?? img.type ?? ''),
-                    imageUrl: String(img.imageUrl ?? ''),
-                  }))
-                  .filter((x: any) => x.type && x.imageUrl)
-                  .sort((a: any, b: any) => (reqOrder.get(a.type) ?? 999) - (reqOrder.get(b.type) ?? 999))
+                    .map((img: any) => ({
+                        type: String(img.imageType ?? img.type ?? ''),
+                        imageUrl: String(img.imageUrl ?? ''),
+                    }))
+                    .filter((x: any) => x.type && x.imageUrl)
+                    .sort((a: any, b: any) => (reqOrder.get(a.type) ?? 999) - (reqOrder.get(b.type) ?? 999))
 
                 setIdentityImages(normalized)
                 if (normalized.length > 0) {
@@ -384,15 +384,15 @@ function TryOnPageContent() {
         try {
             // Collect all additional person images including identity refs
             let allAdditionalImages = [...additionalPersonImagesBase64]
-            
+
             // Add identity images if available and enabled
             if (useIdentityImages && identityImages.length > 0) {
                 // Flash works best with a couple strong face refs; Pro can use more.
                 const isFlash = selectedModel === 'flash'
                 const faceOnlyTypes = new Set(['face_front', 'face_smile', 'face_left', 'face_right'])
                 const identityForModel = isFlash
-                  ? identityImages.filter((x) => faceOnlyTypes.has(x.type)).slice(0, 2)
-                  : identityImages
+                    ? identityImages.filter((x) => faceOnlyTypes.has(x.type)).slice(0, 2)
+                    : identityImages
 
                 console.log(`🎭 Adding ${identityForModel.length} identity references for better face consistency`)
                 for (const idImg of identityForModel) {
@@ -443,20 +443,41 @@ function TryOnPageContent() {
     }
 
     const handleDownload = async () => {
-        if (!result?.imageUrl) return
+        if (!result) return
+
         try {
-            const response = await fetch(result.imageUrl)
-            const blob = await response.blob()
-            const blobUrl = window.URL.createObjectURL(blob)
-            const link = document.createElement('a')
-            link.href = blobUrl
-            link.download = `try-on-${Date.now()}.jpg`
-            document.body.appendChild(link)
-            link.click()
-            document.body.removeChild(link)
-            window.URL.revokeObjectURL(blobUrl)
-            toast.success('Image downloaded!')
+            // Use base64 if available (much faster and avoids cross-origin fetch issues)
+            if (result.base64Image) {
+                const base64Data = result.base64Image.startsWith('data:')
+                    ? result.base64Image
+                    : `data:image/jpeg;base64,${result.base64Image}`
+
+                const link = document.createElement('a')
+                link.href = base64Data
+                link.download = `tria-tryon-${result.jobId || Date.now()}.jpg`
+                document.body.appendChild(link)
+                link.click()
+                document.body.removeChild(link)
+                toast.success('Image downloaded!')
+                return
+            }
+
+            // Fallback to fetching the imageUrl as a blob
+            if (result.imageUrl) {
+                const response = await fetch(result.imageUrl)
+                const blob = await response.blob()
+                const blobUrl = window.URL.createObjectURL(blob)
+                const link = document.createElement('a')
+                link.href = blobUrl
+                link.download = `tria-tryon-${result.jobId || Date.now()}.jpg`
+                document.body.appendChild(link)
+                link.click()
+                document.body.removeChild(link)
+                window.URL.revokeObjectURL(blobUrl)
+                toast.success('Image downloaded!')
+            }
         } catch (error) {
+            console.error('Download error:', error)
             toast.error('Failed to download image')
         }
     }
@@ -604,11 +625,10 @@ function TryOnPageContent() {
                                                 key={img.id}
                                                 type="button"
                                                 onClick={() => handleSelectSavedPersonImage(img.imageUrl)}
-                                                className={`relative rounded-xl overflow-hidden border transition-all ${
-                                                    personImage && personImage === img.imageUrl
-                                                        ? 'border-peach ring-2 ring-peach/20'
-                                                        : 'border-white/60 hover:border-peach/40'
-                                                }`}
+                                                className={`relative rounded-xl overflow-hidden border transition-all ${personImage && personImage === img.imageUrl
+                                                    ? 'border-peach ring-2 ring-peach/20'
+                                                    : 'border-white/60 hover:border-peach/40'
+                                                    }`}
                                                 title={img.label || 'saved photo'}
                                             >
                                                 <img src={img.imageUrl} alt={img.label || 'saved'} className="w-full h-14 object-cover" />
@@ -640,11 +660,10 @@ function TryOnPageContent() {
                                             key={t.id}
                                             type="button"
                                             onClick={() => setEditType(t.id as any)}
-                                            className={`py-2 px-3 rounded-xl border text-sm font-medium transition-all ${
-                                                editType === (t.id as any)
-                                                    ? 'border-charcoal bg-charcoal text-cream'
-                                                    : 'border-charcoal/10 bg-white/30 text-charcoal/60 hover:border-charcoal/25'
-                                            }`}
+                                            className={`py-2 px-3 rounded-xl border text-sm font-medium transition-all ${editType === (t.id as any)
+                                                ? 'border-charcoal bg-charcoal text-cream'
+                                                : 'border-charcoal/10 bg-white/30 text-charcoal/60 hover:border-charcoal/25'
+                                                }`}
                                         >
                                             {t.label}
                                         </button>
@@ -843,9 +862,8 @@ function TryOnPageContent() {
                                         )}
                                     </div>
                                     <div
-                                        className={`relative aspect-[16/9] rounded-2xl overflow-hidden transition-all duration-300 border-2 border-dashed ${
-                                            backgroundImage ? 'border-transparent shadow-md' : 'border-charcoal/10 hover:border-peach/50 bg-white/30'
-                                        }`}
+                                        className={`relative aspect-[16/9] rounded-2xl overflow-hidden transition-all duration-300 border-2 border-dashed ${backgroundImage ? 'border-transparent shadow-md' : 'border-charcoal/10 hover:border-peach/50 bg-white/30'
+                                            }`}
                                     >
                                         {backgroundImage ? (
                                             <img src={backgroundImage} alt="Background" className="w-full h-full object-cover" />
@@ -1108,7 +1126,7 @@ function TryOnPageContent() {
                                                                 <Check className="w-4 h-4 text-peach" />
                                                             )}
                                                         </div>
-                                                        
+
                                                         {/* Name & Description */}
                                                         <div className="text-white">
                                                             <div className="font-serif text-sm">{preset.name}</div>
@@ -1134,17 +1152,29 @@ function TryOnPageContent() {
                             {/* Result Image */}
                             {result ? (
                                 <>
-                                    <img src={result.imageUrl} alt="Generated Result" className="w-full h-full object-contain max-h-[700px] bg-charcoal/90" />
+                                    <img
+                                        src={result.base64Image ? (result.base64Image.startsWith('data:') ? result.base64Image : `data:image/jpeg;base64,${result.base64Image}`) : result.imageUrl}
+                                        alt="Generated Result"
+                                        className="w-full h-full object-contain max-h-[700px] bg-charcoal/90"
+                                        onError={(e) => {
+                                            console.error('Image failed to load:', result.imageUrl)
+                                            // If base64 failed or wasn't present, try image URL
+                                            const target = e.target as HTMLImageElement
+                                            if (target.src !== result.imageUrl) {
+                                                console.log('Falling back to storage URL')
+                                                target.src = result.imageUrl
+                                            }
+                                        }}
+                                    />
 
                                     {/* Overlay Controls */}
                                     <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4">
-                                        <a
-                                            href={result.imageUrl}
-                                            download={`tria-tryon-${result.jobId}.jpg`}
+                                        <button
+                                            onClick={handleDownload}
                                             className="px-6 py-3 bg-white text-charcoal rounded-full font-medium flex items-center gap-2 hover:bg-peach hover:text-white transition-colors"
                                         >
                                             <Download className="w-4 h-4" /> Download
-                                        </a>
+                                        </button>
                                     </div>
                                 </>
                             ) : (

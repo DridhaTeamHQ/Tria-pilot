@@ -1,9 +1,9 @@
 import { GoogleGenAI, type ContentListUnion, type GenerateContentConfig, type ImageConfig } from '@google/genai'
 import { getGeminiKey } from '@/lib/config/api-keys'
-import { 
-  analyzeFaceForensic, 
-  analyzeGarmentForensic, 
-  buildIdentityPromptFromAnalysis, 
+import {
+  analyzeFaceForensic,
+  analyzeGarmentForensic,
+  buildIdentityPromptFromAnalysis,
   buildGarmentPromptFromAnalysis,
   type ForensicFaceAnalysis,
   type GarmentAnalysis
@@ -35,29 +35,50 @@ function normalizeAspectRatio(ratio: string | undefined): string {
  * SUBJECT REFERENCE (--cref equivalent)
  * The person's identity - face, body, skin tone
  * Priority: HIGHEST - never compromise
+ * Uses Identity Anchor and Character Reference techniques
  */
-const SUBJECT_LOCK = `🔒 SUBJECT IDENTITY (LOCKED - DO NOT MODIFY):
-This person's identity must be preserved with forensic precision.
+const SUBJECT_LOCK = `═══════════════════════════════════════════════════════════════════════════════
+🔒 SUBJECT IDENTITY - LOCKED (DO NOT MODIFY UNDER ANY CIRCUMSTANCES)
+═══════════════════════════════════════════════════════════════════════════════
+Use the FIRST image as CHARACTER REFERENCE. This is the ONLY identity source.
 
-FACE GEOMETRY - Match exactly:
-• Face shape: jawline, cheekbones, chin (copy the measurements)
-• Eyes: size, color, spacing, crease depth, lash pattern
-• Nose: bridge width, tip shape, nostril size
-• Mouth: exact lip proportions, cupid's bow, natural lines
-• Brows: arch, thickness, position
+FACE - MATCH EXACTLY (pixel-perfect):
+• Face shape, jawline, chin structure - COPY EXACTLY
+• Eyes: shape, color, size, spacing, eyelid creases - COPY EXACTLY
+• Nose: bridge width, tip shape, nostril size - COPY EXACTLY
+• Mouth: lip proportions, cupid's bow, lip color - COPY EXACTLY
+• Eyebrows: arch, thickness, position - COPY EXACTLY
+• All distinctive marks: moles, freckles, scars - COPY EXACTLY
 
-SKIN - Authentic, not beautified:
-• Exact skin tone (NO lightening or darkening)
-• Visible pores on nose and cheeks
-• Keep all natural marks: moles, freckles, scars
-• Natural texture with micro-wrinkles
-• Real skin shine in T-zone if present
-• NO airbrushing, smoothing, or filtering
+SKIN - PRESERVE AUTHENTICALLY:
+• EXACT skin tone (❌ NO lightening or darkening)
+• Natural texture with visible pores
+• Keep ALL natural marks and features
+• Real skin with natural variation
+• ❌ NO airbrushing, smoothing, or filtering
 
-BODY - Same proportions:
-• Match weight and build exactly
-• Same muscle tone and body shape
-• Natural asymmetries preserved`
+BODY - SAME PROPORTIONS:
+• Same weight, build, and body shape
+• Same height and proportions
+
+POSE - DO NOT CHANGE:
+• Keep EXACT same body position
+• Keep EXACT same arm positions
+• Keep EXACT same head angle
+• Keep EXACT same expression
+
+═══════════════════════════════════════════════════════════════════════════════
+⚠️ NEGATIVE PROMPT - FORBIDDEN CHANGES:
+═══════════════════════════════════════════════════════════════════════════════
+❌ Different face or person
+❌ Changed facial structure
+❌ Different eye shape/color
+❌ Altered skin tone
+❌ Changed pose or position
+❌ Smooth/plastic AI skin
+❌ HDR halos or glow
+
+VERIFICATION: Their family must recognize them instantly.`
 
 /**
  * STYLE REFERENCE (--sref equivalent)
@@ -138,7 +159,7 @@ const SCENE_PRESETS: Record<string, ScenePreset> = {
       other: 'Keep exact original placement',
     },
   },
-  
+
   studio_white: {
     description: 'Professional photography studio with seamless white paper backdrop',
     lighting: 'Three-point studio lighting: soft key light from 45°, fill light opposite, rim light for separation',
@@ -151,7 +172,7 @@ const SCENE_PRESETS: Record<string, ScenePreset> = {
       other: 'Natural placement on studio floor with appropriate framing',
     },
   },
-  
+
   studio_grey: {
     description: 'Photography studio with grey muslin fabric backdrop',
     lighting: 'Soft box lighting from camera right creating gentle directional shadows',
@@ -164,7 +185,7 @@ const SCENE_PRESETS: Record<string, ScenePreset> = {
       other: 'Natural placement with grey backdrop visible behind',
     },
   },
-  
+
   outdoor_natural: {
     description: 'Lush Indian garden with bougainvillea, tropical plants, and stone pathways',
     lighting: 'Dappled natural sunlight filtering through leaves, organic shadow patterns',
@@ -177,7 +198,7 @@ const SCENE_PRESETS: Record<string, ScenePreset> = {
       other: 'Naturally placed in garden setting with tropical backdrop',
     },
   },
-  
+
   outdoor_golden: {
     description: 'Indian rooftop terrace at golden hour with city skyline',
     lighting: 'Warm golden sun at 15°, long shadows, orange-pink sky gradient',
@@ -190,7 +211,7 @@ const SCENE_PRESETS: Record<string, ScenePreset> = {
       other: 'Natural terrace placement with golden hour lighting',
     },
   },
-  
+
   outdoor_beach: {
     description: 'Authentic Goa beach with palm trees and fishing boats in distance',
     lighting: 'Bright coastal sun with water glare, fill from sand reflection',
@@ -203,7 +224,7 @@ const SCENE_PRESETS: Record<string, ScenePreset> = {
       other: 'Natural beach placement with coastal backdrop',
     },
   },
-  
+
   street_city: {
     description: 'Vibrant Indian city street with colorful buildings and local life',
     lighting: 'Harsh midday sun with strong shadows, slight dust haze in air',
@@ -216,7 +237,7 @@ const SCENE_PRESETS: Record<string, ScenePreset> = {
       other: 'Natural street placement with urban Indian backdrop',
     },
   },
-  
+
   street_cafe: {
     description: 'Cozy Indian café with vintage Bollywood posters and fairy lights',
     lighting: 'Warm ambient bulb light mixed with cool window daylight',
@@ -229,7 +250,7 @@ const SCENE_PRESETS: Record<string, ScenePreset> = {
       other: 'Natural café placement with cozy ambiance',
     },
   },
-  
+
   lifestyle_home: {
     description: 'Real Indian apartment with natural window light and personal touches',
     lighting: 'Natural window light with dust motes, warm afternoon glow',
@@ -242,7 +263,7 @@ const SCENE_PRESETS: Record<string, ScenePreset> = {
       other: 'Natural home placement with lived-in Indian apartment feel',
     },
   },
-  
+
   lifestyle_office: {
     description: 'Modern Indian corporate office with typical workspace setup',
     lighting: 'Overhead fluorescent mixed with window light from one side',
@@ -255,7 +276,7 @@ const SCENE_PRESETS: Record<string, ScenePreset> = {
       other: 'Natural office placement with corporate workspace backdrop',
     },
   },
-  
+
   editorial_minimal: {
     description: 'Minimal industrial space with raw concrete and architectural elements',
     lighting: 'Dramatic directional light creating deep shadows, rim light on hair',
@@ -320,9 +341,9 @@ interface PromptContext {
  */
 function buildProPrompt(ctx: PromptContext): string {
   const { identityImageCount, scene, styleKey, keepBackground } = ctx
-  
+
   const style = STYLE_SETTINGS[styleKey] || STYLE_SETTINGS.iphone_candid
-  
+
   // Reference explanation based on image count
   const refExplanation = identityImageCount > 0
     ? `I'm providing ${identityImageCount + 1} reference photos of the SAME PERSON from different angles, plus ONE clothing/garment image at the end.
@@ -419,77 +440,163 @@ Create an authentic-looking photo of this exact person in the new outfit.`
 /**
  * Build a simpler, more direct prompt for Flash model
  * Flash responds better to concise instructions
+ * Uses "The Reminders" technique - repeat face description in every section
  */
 function buildFlashPrompt(ctx: PromptContext): string {
   const { identityImageCount, scene, keepBackground } = ctx
 
   const refExplanation = identityImageCount > 0
-    ? `Images 1-${identityImageCount + 1} = SAME PERSON (different angles). Last image = NEW CLOTHING.`
-    : `Image 1 = PERSON. Image 2 = NEW CLOTHING.`
+    ? `Images 1-${identityImageCount + 1} = SAME PERSON (different angles). Last image = NEW CLOTHING (SOLE SOURCE).`
+    : `Image 1 = PERSON (CHARACTER REFERENCE). Image 2 = NEW CLOTHING (SOLE SOURCE).`
+
+  // COMPREHENSIVE FACE LOCK for Flash model
+  const FLASH_FACE_LOCK = `
+═══════════════════════════════════════════════════════════════════════════════
+🔒 FACE LOCK - COPY EXACTLY FROM FIRST IMAGE (MANDATORY)
+═══════════════════════════════════════════════════════════════════════════════
+EYES (CRITICAL - MOST RECOGNIZABLE FEATURE):
+• Eye shape - EXACT (round/almond/hooded)
+• Iris color - EXACT shade (brown/black/hazel - match precisely)
+• Eye size and spacing - EXACT
+• Eyelid crease depth - EXACT
+• Eyelashes - EXACT thickness and length
+• Under-eye area - copy any lines or shadows
+
+LIPS (SECOND MOST RECOGNIZABLE):
+• Lip shape - EXACT (full/thin/heart-shaped)
+• Upper lip thickness - EXACT
+• Lower lip thickness - EXACT
+• Lip color - EXACT natural shade
+• Cupid's bow shape - EXACT
+• Lip corners - EXACT angle
+
+TEETH (IF VISIBLE IN REFERENCE):
+• Tooth alignment - EXACT
+• Gaps between teeth - EXACT (if any)
+• Smile width - EXACT
+• Tooth color/shade - EXACT
+
+NOSE:
+• Nose bridge width - EXACT
+• Nose tip shape - EXACT (round/pointed/upturned)
+• Nostril size and shape - EXACT
+• Nose length - EXACT
+
+FACE SHAPE:
+• Jawline - EXACT (sharp/rounded/soft)
+• Cheekbone prominence - EXACT
+• Chin shape - EXACT
+• Face width - EXACT
+
+SKIN:
+• Skin tone - EXACT (NO lightening or darkening)
+• ALL moles, beauty marks - EXACT positions
+• ALL freckles - EXACT pattern
+• Skin texture - natural with pores
+• Any scars or marks - EXACT
+
+HAIR:
+• Hair color - EXACT shade
+• Hair style - EXACT
+• Hairline - EXACT
+• Hair texture - EXACT
+
+POSE & EXPRESSION:
+• Body position - EXACT same
+• Arm positions - EXACT same
+• Head angle - EXACT same
+• Expression - EXACT same (smile, neutral, etc.)
+
+═══════════════════════════════════════════════════════════════════════════════
+👁️ EYE LOCK PROTOCOL (HIGHEST PRIORITY)
+═══════════════════════════════════════════════════════════════════════════════
+Using the "Identity Anchor" technique:
+1. FOCUS on the EYES in the first image.
+2. The eyes are the PRIMARY identity verification vector.
+3. COPY PIXEL-FOR-PIXEL:
+   • Iris color and pattern
+   • Eye shape and corner angles
+   • Eyelid crease location and depth
+   • Eyebrow shape and thickness
+   • Under-eye structure
+4. REJECT any generation where the eyes look different.
+═══════════════════════════════════════════════════════════════════════════════`
 
   if (keepBackground) {
-    return `CLOTHING CHANGE ONLY
+    return `CLOTHING TRY-ON - SAME PERSON, SAME BACKGROUND
 
 ${refExplanation}
 
-TASK: Put the new outfit on this person.
+${FLASH_FACE_LOCK}
 
-IDENTITY RULES (CRITICAL):
-• Same face - every feature identical
-• Same skin tone - no lightening
-• Same body shape and weight
-• Same pose and expression
-• Same background and lighting
+⚠️ REMINDER: Use the FIRST image as CHARACTER REFERENCE. Match EVERY facial feature.
 
-CLOTHING:
-• Remove current outfit completely
-• Put on garment from last image
-• Natural fit with wrinkles
+TASK:
+1. 🧠 MENTAL STRIP: Completely IGNORE the clothing in the first image.
+2. FACE LOCK: Apply the face from Image 1 (pixel-perfect eyes/lips/skin).
+3. CLOTHING: Apply the garment from the LAST image.
+4. BACKGROUND: Keep the exact background from Image 1.
 
-QUALITY:
-• Real skin texture (visible pores)
-• Natural hair with flyaways
-• No plastic or waxy look
+⚠️ CRITICAL: 
+- The clothing in Image 1 does NOT exist. 
+- The LAST image is the ONLY source for clothing.
+- Do NOT blend the two outfits.
 
-OUTPUT: Same person wearing new clothes. Nothing else changes.`
+❌ FORBIDDEN: Different face, changed eyes, mixing old/new clothes, hallucinations/artifacts
+
+OUTPUT: SAME person (from Image 1) wearing NEW clothes (from last image).`
   }
 
   if (scene && scene.description) {
-    return `FASHION PHOTO: NEW OUTFIT + NEW SCENE
+    return `CLOTHING TRY-ON + SCENE CHANGE
 
 ${refExplanation}
 
-STEP 1 - FACE LOCK:
-Copy person's face EXACTLY. Same features, same skin tone.
-Use all reference angles to understand their appearance.
+${FLASH_FACE_LOCK}
 
-STEP 2 - OUTFIT:
-Put clothing from last image on them. Natural fit.
+⚠️ REMINDER #1: FIRST image is CHARACTER REFERENCE. Copy EVERY facial feature exactly.
 
-STEP 3 - SCENE:
-Place them in: ${scene.description}
-Lighting: ${scene.lighting}
-Add details: ${scene.details}
+TASK:
+1. 🧠 MENTAL STRIP: IGNORE original clothing.
+2. LOCK the face - EXACT match to reference (eyes, lips, nose).
+3. LOCK the pose - EXACT same body position.
+4. Apply garment from LAST image (SOLE SOURCE).
+5. Change background to: ${scene.description}
 
-QUALITY RULES:
-• Real skin texture with pores
-• Natural hair with flyaways  
-• Sharp, detailed background
-• Natural imperfections
-• No AI plastic look
+⚠️ REMINDER #2: Face MUST match reference. Clothes MUST match last image.
 
-CHECK: Face matches reference exactly. Only clothes and background are new.`
+⚠️ REMINDER #2: Face MUST match reference. Do NOT generate new person.
+
+SCENE:
+📍 ${scene.description}
+💡 ${scene.lighting}
+🔍 ${scene.details}
+
+⚠️ REMINDER #3: Check eyes, lips, nose, skin tone - EXACT match to Image 1.
+
+❌ FORBIDDEN: 
+• Different face or person
+• Changed eye shape or color
+• Lighter or darker skin
+• Changed lip shape
+• Smoothed/plastic skin
+• Changed pose
+
+OUTPUT: SAME person (face from Image 1), NEW clothes (from last image), NEW background.`
   }
 
-  return `OUTFIT CHANGE
+  // Fallback
+  return `CLOTHING TRY-ON
 
 ${refExplanation}
 
-Put the new clothing on the person.
-Keep their face and body identical.
-Add natural skin texture and fabric wrinkles.
+${FLASH_FACE_LOCK}
 
-Result: Same person, new outfit.`
+Apply the garment from the last image.
+Keep EXACT same face (match every feature from Image 1).
+Keep EXACT same pose.
+
+OUTPUT: Same person, new outfit.`
 }
 
 // ====================================================================================
@@ -534,90 +641,90 @@ function buildForensicEnhancedPrompt(
 
   // Get detected body pose for scene adaptation
   const bodyPose: BodyPose = photoAnalysis?.body_pose || 'standing'
-  
+
   // Get pose-adaptive placement if scene is available
   const poseSpecificPlacement = scene?.poseAdaptation?.[bodyPose] || ''
 
   const captureHints = photoAnalysis
-    ? `CAPTURE MATCH (from original photo):
+    ? `CAPTURE MATCH(from original photo):
 - Camera: ${photoAnalysis.camera_summary}
 - Lighting: ${photoAnalysis.lighting_summary}
 - Detected pose: ${bodyPose.toUpperCase()} - adapt scene accordingly
-- Realism: ${photoAnalysis.realism_constraints}
-- Lens hint: ${photoAnalysis.camera_manifest.focal_length_hint_mm}mm, DOF: ${photoAnalysis.camera_manifest.dof_hint}
+  - Realism: ${photoAnalysis.realism_constraints}
+- Lens hint: ${photoAnalysis.camera_manifest.focal_length_hint_mm} mm, DOF: ${photoAnalysis.camera_manifest.dof_hint}
 - WB: ${photoAnalysis.camera_manifest.wb_family}, Grain: ${photoAnalysis.camera_manifest.imperfections.grain_level}
 
 COMPOSITING AVOIDANCE:
-- Do NOT look like a cutout. No halo edges. Add subtle light wrap and ambient occlusion.
-- Add correct contact shadows on neck/under chin/under arms/where clothes touch body.
-- Match background blur, grain/noise, and compression to the subject photo.`
+- Do NOT look like a cutout.No halo edges.Add subtle light wrap and ambient occlusion.
+- Add correct contact shadows on neck / under chin / under arms / where clothes touch body.
+- Match background blur, grain / noise, and compression to the subject photo.`
     : ''
-  
+
   const refExplanation = identityCount > 0
-    ? `You have ${identityCount + 1} reference photos of the SAME PERSON. The LAST image is the GARMENT.`
-    : `Image 1 = PERSON reference. Image 2 = GARMENT to apply.`
+    ? `You have ${identityCount + 1} reference photos of the SAME PERSON.The LAST image is the GARMENT.`
+    : `Image 1 = PERSON reference.Image 2 = GARMENT to apply.`
 
   if (keepBackground) {
     // Flash works best with short "edit the photo" instructions to avoid face drift.
     if (variant === 'flash') {
-      return `🎯 CLOTHING TRY-ON: CHANGE THE OUTFIT
+      return `🎯 CLOTHING TRY - ON: CHANGE THE OUTFIT
 
 ${refExplanation}
 
-CHARACTER REFERENCE: Use Images 1-${identityCount + 1} as character reference sheets.
-These images show the EXACT person who must appear. Maintain their exact facial features.
+CHARACTER REFERENCE: Use Images 1 - ${identityCount + 1} as character reference sheets.
+These images show the EXACT person who must appear.Maintain their exact facial features.
 
-${identityPrompt}
+  ${identityPrompt}
 
 ${garmentPrompt}
 
 ═══════════════════════════════════════════════════════════════════════════════
 🚨 CRITICAL: YOU MUST CHANGE THE CLOTHING
 ═══════════════════════════════════════════════════════════════════════════════
-The person is currently wearing one outfit. You MUST replace it with a DIFFERENT outfit from the garment reference.
+The person is currently wearing one outfit.You MUST replace it with a DIFFERENT outfit from the garment reference.
 
-⚠️ ANTI-HALLUCINATION CHECK:
+⚠️ ANTI - HALLUCINATION CHECK:
 - Look at the LAST image - that is the NEW garment
-- The output person MUST be wearing THIS garment, NOT their original clothes
-- If the output looks the same as input → YOU FAILED
-- The garment color, style, and type MUST match the garment reference exactly
+  - The output person MUST be wearing THIS garment, NOT their original clothes
+    - If the output looks the same as input → YOU FAILED
+      - The garment color, style, and type MUST match the garment reference exactly
 
 ═══════════════════════════════════════════════════════════════════════════════
 TASK: SWAP CLOTHING
 ═══════════════════════════════════════════════════════════════════════════════
-1. LOOK at the garment reference (last image) - memorize its color, style, fabric
+1. LOOK at the garment reference(last image) - memorize its color, style, fabric
 2. REMOVE the person's current outfit COMPLETELY (no traces left)
 3. DRESS them in the garment from the reference - exact same color and style
 4. Keep face, body, pose, background UNCHANGED
 
-⛔ NEGATIVE PROMPT (FORBIDDEN):
+⛔ NEGATIVE PROMPT(FORBIDDEN):
 - Changing facial structure, different person, morphing features, cartoonish face
-- Widening or narrowing face, changing eye shape, altering nose or lips
-- Lightening or darkening skin tone, smoothing skin texture
-- Changing hairstyle, hair color, or hair texture
-- Beautifying, perfecting, or "improving" the person's appearance
-- Keeping the original outfit (MOST COMMON FAILURE)
+  - Widening or narrowing face, changing eye shape, altering nose or lips
+    - Lightening or darkening skin tone, smoothing skin texture
+      - Changing hairstyle, hair color, or hair texture
+        - Beautifying, perfecting, or "improving" the person's appearance
+          - Keeping the original outfit(MOST COMMON FAILURE)
 
-✅ TECHNICAL REQUIREMENTS (For Realistic Texture):
+✅ TECHNICAL REQUIREMENTS(For Realistic Texture):
 - Shot on 85mm lens, visible pore details, slight skin imperfections
-- Natural skin texture with micro-details, not plastic or waxy
-- Realistic fabric wrinkles and draping
-- Match original photo's grain, compression, and sharpness
+  - Natural skin texture with micro - details, not plastic or waxy
+    - Realistic fabric wrinkles and draping
+      - Match original photo's grain, compression, and sharpness
 
 ✅ SUCCESS CRITERIA:
 - Person wears EXACTLY the garment from reference
-- Garment color matches reference exactly
-- Face is IDENTICAL to character reference images
-- Background is identical to input (same photo quality, not AI-perfect)
+  - Garment color matches reference exactly
+    - Face is IDENTICAL to character reference images
+      - Background is identical to input(same photo quality, not AI - perfect)
 
-OUTPUT: Same person (from character reference), same background, DIFFERENT outfit (from garment reference).`
+OUTPUT: Same person(from character reference), same background, DIFFERENT outfit(from garment reference).`
     }
 
-    return `🔒 CLOTHING TRY-ON - FORENSIC IDENTITY MODE
+    return `🔒 CLOTHING TRY - ON - FORENSIC IDENTITY MODE
 
 ${refExplanation}
 
-CHARACTER REFERENCE: Images 1-${identityCount + 1} are character reference sheets.
+CHARACTER REFERENCE: Images 1 - ${identityCount + 1} are character reference sheets.
 Use these as the ground truth for the person's identity. Maintain exact facial features.
 
 ${identityPrompt}
@@ -627,63 +734,63 @@ ${garmentPrompt}
 ═══════════════════════════════════════════════════════════════════════════════
 🚨🚨🚨 CRITICAL: YOU MUST CHANGE THE CLOTHING 🚨🚨🚨
 ═══════════════════════════════════════════════════════════════════════════════
-This is a TRY-ON task. The person MUST end up wearing a DIFFERENT outfit.
+This is a TRY - ON task.The person MUST end up wearing a DIFFERENT outfit.
 
-ANTI-HALLUCINATION CHECKLIST:
+  ANTI - HALLUCINATION CHECKLIST:
 □ Look at the LAST image - that is the NEW garment to apply
 □ Memorize its exact color, fabric, neckline, sleeves, pattern
 □ The output person MUST wear THIS garment, NOT their original clothes
 □ If output looks like input → TASK FAILED
-□ If garment color/style differs from reference → TASK FAILED
+□ If garment color / style differs from reference → TASK FAILED
 
 ═══════════════════════════════════════════════════════════════════════════════
-⛔ NEGATIVE PROMPT (FORBIDDEN - PREVENTS FACE DRIFT):
+⛔ NEGATIVE PROMPT(FORBIDDEN - PREVENTS FACE DRIFT):
 ═══════════════════════════════════════════════════════════════════════════════
-Ensure consistent identity. FORBIDDEN:
+Ensure consistent identity.FORBIDDEN:
 - Changing facial structure, different person, morphing features, cartoonish face
-- Widening or narrowing face, changing eye shape/size/spacing, altering nose/lips
-- Lightening or darkening skin tone, smoothing skin texture, removing pores
-- Changing hairstyle, hair color, or hair texture
-- Beautifying, perfecting, or "improving" the person's appearance
-- Averaging faces, blending identities, creating a generic face
-- Keeping the original outfit (MOST COMMON FAILURE)
+  - Widening or narrowing face, changing eye shape / size / spacing, altering nose / lips
+    - Lightening or darkening skin tone, smoothing skin texture, removing pores
+      - Changing hairstyle, hair color, or hair texture
+        - Beautifying, perfecting, or "improving" the person's appearance
+          - Averaging faces, blending identities, creating a generic face
+            - Keeping the original outfit(MOST COMMON FAILURE)
 
 ═══════════════════════════════════════════════════════════════════════════════
-✅ TECHNICAL REQUIREMENTS (Candid Photography Technique):
+✅ TECHNICAL REQUIREMENTS(Candid Photography Technique):
 ═══════════════════════════════════════════════════════════════════════════════
 - Shot on 85mm lens, visible pore details, slight skin imperfections
-- Natural skin texture with micro-details, not plastic or waxy
-- Realistic fabric wrinkles and draping
-- Match original photo's grain, compression, and sharpness
-- Candid photography style, not studio-perfect
+  - Natural skin texture with micro - details, not plastic or waxy
+    - Realistic fabric wrinkles and draping
+      - Match original photo's grain, compression, and sharpness
+        - Candid photography style, not studio - perfect
 
 ═══════════════════════════════════════════════════════════════════════════════
 🔐 SOURCE HIERARCHY
 ═══════════════════════════════════════════════════════════════════════════════
-IDENTITY → Character reference images (Images 1-${identityCount + 1}) - use as ground truth
-CLOTHING → Garment reference (LAST image) ← THIS MUST BE APPLIED
-BACKGROUND → Keep ORIGINAL from person image (do NOT regenerate)
+IDENTITY → Character reference images(Images 1 - ${identityCount + 1}) - use as ground truth
+CLOTHING → Garment reference(LAST image) ← THIS MUST BE APPLIED
+BACKGROUND → Keep ORIGINAL from person image(do NOT regenerate)
 POSE → Keep original
 LIGHTING → Keep original
 
 ═══════════════════════════════════════════════════════════════════════════════
 📋 EXECUTION STEPS
 ═══════════════════════════════════════════════════════════════════════════════
-1. STUDY the garment reference - what color? what style? what fabric?
-2. STUDY the person references - memorize face details
+1. STUDY the garment reference - what color ? what style ? what fabric ?
+  2. STUDY the person references - memorize face details
 3. REMOVE person's current outfit COMPLETELY
 4. DRESS them in the garment from reference - EXACT color and style
-5. VERIFY: Is the new outfit DIFFERENT from original? If same → redo
-6. VERIFY: Does garment match reference exactly? If not → redo
-7. VERIFY: Is face identical? Is background unchanged?
+5. VERIFY: Is the new outfit DIFFERENT from original ? If same → redo
+6. VERIFY: Does garment match reference exactly ? If not → redo
+7. VERIFY: Is face identical ? Is background unchanged ?
 
 ═══════════════════════════════════════════════════════════════════════════════
-⛔ FAILURE MODES (MUST AVOID)
+⛔ FAILURE MODES(MUST AVOID)
 ═══════════════════════════════════════════════════════════════════════════════
-❌ Keeping the original outfit (MOST COMMON FAILURE)
+❌ Keeping the original outfit(MOST COMMON FAILURE)
 ❌ Generating a similar but not identical garment
-❌ Wrong garment color (must match reference exactly)
-❌ AI-generated/artificial looking background
+❌ Wrong garment color(must match reference exactly)
+❌ AI - generated / artificial looking background
 ❌ Face drift or beautification
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -692,18 +799,18 @@ LIGHTING → Keep original
 ✓ Person wears EXACTLY the garment from the reference image
 ✓ Garment color and style match reference precisely
 ✓ Face is biometrically identical
-✓ Background is ORIGINAL (not AI-regenerated, same quality/grain)
+✓ Background is ORIGINAL(not AI - regenerated, same quality / grain)
 ✓ Natural fabric wrinkles and draping
 
-OUTPUT: SAME person + SAME background + DIFFERENT outfit (from garment ref).`
+OUTPUT: SAME person + SAME background + DIFFERENT outfit(from garment ref).`
   }
 
   if (scene?.description) {
-    return `📸 CLOTHING TRY-ON + SCENE CHANGE
+    return `📸 CLOTHING TRY - ON + SCENE CHANGE
 
 ${refExplanation}
 
-CHARACTER REFERENCE: Images 1-${identityCount + 1} are character reference sheets.
+CHARACTER REFERENCE: Images 1 - ${identityCount + 1} are character reference sheets.
 Use these as the ground truth for the person's identity. Maintain exact facial features.
 
 ${identityPrompt}
@@ -713,84 +820,84 @@ ${garmentPrompt}
 ═══════════════════════════════════════════════════════════════════════════════
 🚨🚨🚨 CRITICAL: YOU MUST CHANGE THE CLOTHING 🚨🚨🚨
 ═══════════════════════════════════════════════════════════════════════════════
-This is a TRY-ON task. The person MUST wear a DIFFERENT outfit.
+This is a TRY - ON task.The person MUST wear a DIFFERENT outfit.
 
-ANTI-HALLUCINATION CHECKLIST:
+  ANTI - HALLUCINATION CHECKLIST:
 □ Look at the LAST image - that is the NEW garment
 □ Memorize its exact color, fabric, neckline, sleeves, pattern
 □ The output person MUST wear THIS garment, NOT their original clothes
 □ If output clothing looks like input → TASK FAILED
 
 ═══════════════════════════════════════════════════════════════════════════════
-⛔ NEGATIVE PROMPT (FORBIDDEN - PREVENTS FACE DRIFT):
+⛔ NEGATIVE PROMPT(FORBIDDEN - PREVENTS FACE DRIFT):
 ═══════════════════════════════════════════════════════════════════════════════
-Ensure consistent identity. FORBIDDEN:
+Ensure consistent identity.FORBIDDEN:
 - Changing facial structure, different person, morphing features, cartoonish face
-- Widening or narrowing face, changing eye shape/size/spacing, altering nose/lips
-- Lightening or darkening skin tone, smoothing skin texture, removing pores
-- Changing hairstyle, hair color, or hair texture
-- Beautifying, perfecting, or "improving" the person's appearance
-- Averaging faces, blending identities, creating a generic face
-- Keeping the original outfit (MOST COMMON FAILURE)
+  - Widening or narrowing face, changing eye shape / size / spacing, altering nose / lips
+    - Lightening or darkening skin tone, smoothing skin texture, removing pores
+      - Changing hairstyle, hair color, or hair texture
+        - Beautifying, perfecting, or "improving" the person's appearance
+          - Averaging faces, blending identities, creating a generic face
+            - Keeping the original outfit(MOST COMMON FAILURE)
 
 ═══════════════════════════════════════════════════════════════════════════════
-✅ TECHNICAL REQUIREMENTS (Candid Photography Technique):
+✅ TECHNICAL REQUIREMENTS(Candid Photography Technique):
 ═══════════════════════════════════════════════════════════════════════════════
 - Shot on 85mm lens, visible pore details, slight skin imperfections
-- Natural skin texture with micro-details, not plastic or waxy
-- Realistic fabric wrinkles and draping
-- Match original photo's grain, compression, and sharpness
-- Candid photography style, not studio-perfect
+  - Natural skin texture with micro - details, not plastic or waxy
+    - Realistic fabric wrinkles and draping
+      - Match original photo's grain, compression, and sharpness
+        - Candid photography style, not studio - perfect
 
 ═══════════════════════════════════════════════════════════════════════════════
 🔐 SOURCE HIERARCHY
 ═══════════════════════════════════════════════════════════════════════════════
-IDENTITY → Character reference images (Images 1-${identityCount + 1}) - use as ground truth
-CLOTHING → Garment reference (LAST image) ← MUST BE APPLIED
-POSE → Keep from person image (${bodyPose.toUpperCase()})
-BACKGROUND → NEW scene (described below)
+IDENTITY → Character reference images(Images 1 - ${identityCount + 1}) - use as ground truth
+CLOTHING → Garment reference(LAST image) ← MUST BE APPLIED
+POSE → Keep from person image(${bodyPose.toUpperCase()})
+BACKGROUND → NEW scene(described below)
 
 ${captureHints}
 
 ═══════════════════════════════════════════════════════════════════════════════
-🎬 SCENE (NEW BACKGROUND)
+🎬 SCENE(NEW BACKGROUND)
 ═══════════════════════════════════════════════════════════════════════════════
 📍 ${scene.description}
 💡 ${scene.lighting}
 🔍 ${scene.details}
 
-⚠️ ANTI-AI BACKGROUND RULES:
-- Background must look like a REAL PHOTOGRAPH, not AI-generated
-- Add natural imperfections: dust, wear, uneven lighting, real textures
-- Include mundane details: power lines, cracks, stains, everyday objects
-- Avoid: perfect symmetry, unnaturally clean surfaces, generic compositions
-- Match the photo quality to the person (same grain, compression, sharpness)
+⚠️ ANTI - AI BACKGROUND RULES:
+- Background must look like a REAL PHOTOGRAPH, not AI - generated
+  - Add natural imperfections: dust, wear, uneven lighting, real textures
+    - Include mundane details: power lines, cracks, stains, everyday objects
+      - Avoid: perfect symmetry, unnaturally clean surfaces, generic compositions
+        - Match the photo quality to the person(same grain, compression, sharpness)
 
 ═══════════════════════════════════════════════════════════════════════════════
-🧍 POSE-ADAPTIVE PLACEMENT
+🧍 POSE - ADAPTIVE PLACEMENT
 ═══════════════════════════════════════════════════════════════════════════════
 Person is ${bodyPose.toUpperCase()} → Scene adapts: ${poseSpecificPlacement}
-Do NOT change their pose. Scene wraps around them.
+Do NOT change their pose.Scene wraps around them.
 
 ═══════════════════════════════════════════════════════════════════════════════
 📋 EXECUTION STEPS
 ═══════════════════════════════════════════════════════════════════════════════
-1. STUDY garment reference - what color? style? fabric?
-2. STUDY person references - memorize face
+1. STUDY garment reference - what color ? style ? fabric ?
+  2. STUDY person references - memorize face
 3. REMOVE person's current outfit COMPLETELY
-4. DRESS them in garment from reference - EXACT color/style
-5. KEEP their pose (${bodyPose})
+4. DRESS them in garment from reference - EXACT color / style
+5. KEEP their pose(${bodyPose})
 6. CREATE realistic scene around them
-7. VERIFY: Is outfit DIFFERENT from original? If same → redo
-8. VERIFY: Does garment match reference? If not → redo
-9. VERIFY: Does background look like real photo? If AI-perfect → redo
+7. VERIFY: Is outfit DIFFERENT from original ? If same → redo
+8. VERIFY: Does garment match reference ? If not → redo
+9. VERIFY: Does background look like real photo ? If AI - perfect → redo
 
 ═══════════════════════════════════════════════════════════════════════════════
 ⛔ FAILURE MODES
 ═══════════════════════════════════════════════════════════════════════════════
-❌ Keeping original outfit (MOST COMMON FAILURE)
-❌ Wrong garment color (must match reference)
-❌ AI-looking background (too clean, too perfect)
+❌ Keeping original outfit(MOST COMMON FAILURE)
+❌ Wrong garment color(must match reference)
+❌ AI - looking background(too clean, too perfect)
 ❌ Face drift or beautification
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -798,18 +905,18 @@ Do NOT change their pose. Scene wraps around them.
 ═══════════════════════════════════════════════════════════════════════════════
 ✓ Person wears EXACTLY the garment from reference
 ✓ Face is biometrically identical to input
-✓ Pose matches input (${bodyPose})
-✓ Background looks like REAL photo (not AI-generated)
+✓ Pose matches input(${bodyPose})
+✓ Background looks like REAL photo(not AI - generated)
 ✓ Natural integration: shadows, lighting, grain
 
 OUTPUT: Same person + same pose + DIFFERENT outfit + realistic new scene.`
   }
 
-  return `🎯 CLOTHING TRY-ON - CHANGE THE OUTFIT
+  return `🎯 CLOTHING TRY - ON - CHANGE THE OUTFIT
 
 ${refExplanation}
 
-CHARACTER REFERENCE: Images 1-${identityCount + 1} are character reference sheets.
+CHARACTER REFERENCE: Images 1 - ${identityCount + 1} are character reference sheets.
 Use these as the ground truth for the person's identity. Maintain exact facial features.
 
 ${identityPrompt}
@@ -824,30 +931,30 @@ The output person MUST wear THIS garment, NOT their original clothes.
 If output looks like input → TASK FAILED.
 
 ═══════════════════════════════════════════════════════════════════════════════
-⛔ NEGATIVE PROMPT (FORBIDDEN):
+⛔ NEGATIVE PROMPT(FORBIDDEN):
 ═══════════════════════════════════════════════════════════════════════════════
 - Changing facial structure, different person, morphing features, cartoonish face
-- Widening or narrowing face, changing eye shape/size/spacing, altering nose/lips
-- Lightening or darkening skin tone, smoothing skin texture, removing pores
-- Changing hairstyle, hair color, or hair texture
-- Beautifying, perfecting, or "improving" the person's appearance
-- Keeping the original outfit (MOST COMMON FAILURE)
+  - Widening or narrowing face, changing eye shape / size / spacing, altering nose / lips
+    - Lightening or darkening skin tone, smoothing skin texture, removing pores
+      - Changing hairstyle, hair color, or hair texture
+        - Beautifying, perfecting, or "improving" the person's appearance
+          - Keeping the original outfit(MOST COMMON FAILURE)
 
 ═══════════════════════════════════════════════════════════════════════════════
 ✅ TECHNICAL REQUIREMENTS:
 ═══════════════════════════════════════════════════════════════════════════════
 - Shot on 85mm lens, visible pore details, slight skin imperfections
-- Natural skin texture with micro-details, not plastic or waxy
-- Realistic fabric wrinkles and draping
+  - Natural skin texture with micro - details, not plastic or waxy
+    - Realistic fabric wrinkles and draping
 
 ═══════════════════════════════════════════════════════════════════════════════
 🔐 RULES
 ═══════════════════════════════════════════════════════════════════════════════
-IDENTITY → From character reference images (use as ground truth)
-CLOTHING → From garment reference (LAST image) - MUST apply this
+IDENTITY → From character reference images(use as ground truth)
+CLOTHING → From garment reference(LAST image) - MUST apply this
 BACKGROUND → Keep original
 
-OUTPUT: Same person (from character reference), DIFFERENT outfit (from garment reference).`
+OUTPUT: Same person(from character reference), DIFFERENT outfit(from garment reference).`
 }
 
 // ====================================================================================
@@ -860,13 +967,13 @@ async function extractGarmentOnlyReference(
   garmentBase64: string
 ): Promise<string> {
   // Use a fast, deterministic extraction pass to produce a garment-only reference.
-  const extractionPrompt = `GARMENT EXTRACTION (CLOTHING ONLY)
+  const extractionPrompt = `GARMENT EXTRACTION(CLOTHING ONLY)
 
 You are given an image that may include a person wearing a garment.
-Your job: output an image that contains ONLY the garment. Remove the person completely.
+Your job: output an image that contains ONLY the garment.Remove the person completely.
 
-Requirements:
-- Output a clean garment-only reference image on a plain white background (flat-lay or mannequin is OK, but NO HUMAN).
+  Requirements:
+- Output a clean garment - only reference image on a plain white background(flat - lay or mannequin is OK, but NO HUMAN).
 - Preserve the garment EXACTLY: color, pattern, fabric texture, neckline, sleeves, trims, logos, embroidery.
 - Do NOT add accessories, do NOT change garment design, do NOT change colors.
 - Keep the garment centered, fully visible, sharp focus, neutral lighting.
@@ -913,7 +1020,7 @@ async function renderTwoStepForensic(
   const style = STYLE_SETTINGS[styleKey] || STYLE_SETTINGS.iphone_candid
   const identityPrompt = buildIdentityPromptFromAnalysis(faceAnalysis)
   const garmentPrompt = buildGarmentPromptFromAnalysis(garmentAnalysis)
-  
+
   // Get detected body pose for scene adaptation
   const bodyPose: BodyPose = photoAnalysis?.body_pose || 'standing'
   const poseSpecificPlacement = scene.poseAdaptation?.[bodyPose] || ''
@@ -923,34 +1030,34 @@ async function renderTwoStepForensic(
 
   const step1Prompt = `STEP 1: DRESS THIS PERSON IN THE NEW GARMENT
 
-CHARACTER REFERENCE: Images 1-${identityCount + 1} are character reference sheets.
+CHARACTER REFERENCE: Images 1 - ${identityCount + 1} are character reference sheets.
 Use these as the ground truth for the person's identity. Maintain exact facial features.
 
 The LAST image is the NEW GARMENT to apply.
 
 🚨 CRITICAL: YOU MUST CHANGE THEIR CLOTHING 🚨
 - Look at the LAST image - that is the new garment
-- Memorize its color, fabric, neckline, sleeves, pattern
-- The person MUST end up wearing THIS garment, not their original clothes
-- If output looks like input → TASK FAILED
+  - Memorize its color, fabric, neckline, sleeves, pattern
+    - The person MUST end up wearing THIS garment, not their original clothes
+      - If output looks like input → TASK FAILED
 
 ═══════════════════════════════════════════════════════════════════════════════
 ${identityPrompt}
 ═══════════════════════════════════════════════════════════════════════════════
 ${garmentPrompt}
 
-⛔ NEGATIVE PROMPT (FORBIDDEN):
+⛔ NEGATIVE PROMPT(FORBIDDEN):
 - Changing facial structure, different person, morphing features, cartoonish face
-- Widening or narrowing face, changing eye shape/size/spacing, altering nose/lips
-- Lightening or darkening skin tone, smoothing skin texture, removing pores
-- Changing hairstyle, hair color, or hair texture
-- Beautifying, perfecting, or "improving" the person's appearance
-- Keeping the original outfit (MOST COMMON FAILURE)
+  - Widening or narrowing face, changing eye shape / size / spacing, altering nose / lips
+    - Lightening or darkening skin tone, smoothing skin texture, removing pores
+      - Changing hairstyle, hair color, or hair texture
+        - Beautifying, perfecting, or "improving" the person's appearance
+          - Keeping the original outfit(MOST COMMON FAILURE)
 
 ✅ TECHNICAL REQUIREMENTS:
 - Shot on 85mm lens, visible pore details, slight skin imperfections
-- Natural skin texture with micro-details, not plastic or waxy
-- Realistic fabric wrinkles and draping
+  - Natural skin texture with micro - details, not plastic or waxy
+    - Realistic fabric wrinkles and draping
 
 RULES:
 • CLOTHING from garment reference ONLY - apply this exact garment
@@ -963,9 +1070,9 @@ TASK:
 2) REMOVE the person's current outfit
 3) DRESS them in the garment from reference
 4) Use plain grey studio background
-5) VERIFY: Are they wearing the NEW garment? If same as input → redo
+5) VERIFY: Are they wearing the NEW garment ? If same as input → redo
 
-OUTPUT: Same person (from character reference) + DIFFERENT outfit (from garment reference) + grey background.`
+OUTPUT: Same person(from character reference) + DIFFERENT outfit(from garment reference) + grey background.`
 
   const step1Contents: ContentListUnion = []
   step1Contents.push({ inlineData: { data: subjectBase64, mimeType: 'image/jpeg' } } as any)
@@ -1003,11 +1110,11 @@ OUTPUT: Same person (from character reference) + DIFFERENT outfit (from garment 
   console.log('   Step 2: Scene Application (identity locked)')
 
   const captureHints = photoAnalysis
-    ? `CAPTURE MATCH (from original photo):
+    ? `CAPTURE MATCH(from original photo):
 - Camera: ${photoAnalysis.camera_summary}
 - Lighting: ${photoAnalysis.lighting_summary}
 - Realism: ${photoAnalysis.realism_constraints}
-- Lens hint: ${photoAnalysis.camera_manifest.focal_length_hint_mm}mm, DOF: ${photoAnalysis.camera_manifest.dof_hint}
+- Lens hint: ${photoAnalysis.camera_manifest.focal_length_hint_mm} mm, DOF: ${photoAnalysis.camera_manifest.dof_hint}
 - WB: ${photoAnalysis.camera_manifest.wb_family}, Grain: ${photoAnalysis.camera_manifest.imperfections.grain_level}
 `
     : ''
@@ -1017,20 +1124,20 @@ OUTPUT: Same person (from character reference) + DIFFERENT outfit (from garment 
 Take this person EXACTLY as they appear and place them in a new environment.
 
 ═══════════════════════════════════════════════════════════════════════════════
-🔒 PERSON IS LOCKED (DO NOT CHANGE)
+🔒 PERSON IS LOCKED(DO NOT CHANGE)
 ═══════════════════════════════════════════════════════════════════════════════
 • Face: Keep EXACTLY as in input image
 • Skin tone: Keep EXACTLY as in input
-• Clothing: Keep EXACTLY as in input (from Step 1)
-• Pose: Keep EXACTLY (${bodyPose.toUpperCase()})
+• Clothing: Keep EXACTLY as in input(from Step 1)
+• Pose: Keep EXACTLY(${bodyPose.toUpperCase()})
 • Body: No changes whatsoever
 
-⛔ NEGATIVE PROMPT (FORBIDDEN):
+⛔ NEGATIVE PROMPT(FORBIDDEN):
 - Changing facial structure, different person, morphing features, cartoonish face
-- Widening or narrowing face, changing eye shape/size/spacing, altering nose/lips
-- Lightening or darkening skin tone, smoothing skin texture, removing pores
-- Changing hairstyle, hair color, or hair texture
-- Beautifying, perfecting, or "improving" the person's appearance
+  - Widening or narrowing face, changing eye shape / size / spacing, altering nose / lips
+    - Lightening or darkening skin tone, smoothing skin texture, removing pores
+      - Changing hairstyle, hair color, or hair texture
+        - Beautifying, perfecting, or "improving" the person's appearance
 
 ═══════════════════════════════════════════════════════════════════════════════
 🎬 NEW SCENE
@@ -1039,20 +1146,20 @@ Take this person EXACTLY as they appear and place them in a new environment.
 💡 ${scene.lighting}
 🔍 ${scene.details}
 
-Pose-adaptive: ${poseSpecificPlacement}
+Pose - adaptive: ${poseSpecificPlacement}
 
 ═══════════════════════════════════════════════════════════════════════════════
-⚠️ ANTI-AI BACKGROUND RULES (CRITICAL)
+⚠️ ANTI - AI BACKGROUND RULES(CRITICAL)
 ═══════════════════════════════════════════════════════════════════════════════
-The background must look like a REAL PHOTOGRAPH, not AI-generated:
+The background must look like a REAL PHOTOGRAPH, not AI - generated:
 ✓ Add natural imperfections: dust, wear, scratches, uneven paint
-✓ Add mundane real-world details: power lines, pipes, stains, cracks
+✓ Add mundane real - world details: power lines, pipes, stains, cracks
 ✓ Include asymmetry and natural randomness
 ✓ Add realistic textures: rough concrete, worn wood, dusty surfaces
-✓ Match photo grain/noise to the person
+✓ Match photo grain / noise to the person
 ✗ Avoid: perfect symmetry, impossibly clean surfaces
 ✗ Avoid: unnaturally vibrant colors
-✗ Avoid: generic/stock-photo compositions
+✗ Avoid: generic / stock - photo compositions
 ✗ Avoid: smooth, "rendered" looking surfaces
 
 ${style}
@@ -1060,16 +1167,16 @@ ${style}
 ${captureHints}
 
 ═══════════════════════════════════════════════════════════════════════════════
-🔗 INTEGRATION (Avoid Photoshop/cutout look)
+🔗 INTEGRATION(Avoid Photoshop / cutout look)
 ═══════════════════════════════════════════════════════════════════════════════
-- Same noise/grain as the person
-- Matching shadow direction
-- Contact shadows: under chin, arms, where clothes touch body
-- Natural light wrap on edges
-- Matching depth-of-field
-- Scene elements positioned for ${bodyPose} pose
+- Same noise / grain as the person
+  - Matching shadow direction
+    - Contact shadows: under chin, arms, where clothes touch body
+      - Natural light wrap on edges
+        - Matching depth - of - field
+          - Scene elements positioned for ${bodyPose} pose
 
-OUTPUT: Same person (unchanged) naturally photographed in realistic scene.`
+OUTPUT: Same person(unchanged) naturally photographed in realistic scene.`
 
   const step2Contents: ContentListUnion = [
     { inlineData: { data: step1Image, mimeType: 'image/jpeg' } } as any,
@@ -1078,7 +1185,7 @@ OUTPUT: Same person (unchanged) naturally photographed in realistic scene.`
 
   const imageConfig: ImageConfig = { aspectRatio } as any
   if (model.includes('pro') && resolution) {
-    ;(imageConfig as any).imageSize = resolution
+    ; (imageConfig as any).imageSize = resolution
   }
 
   const step2Config: GenerateContentConfig = {
@@ -1121,20 +1228,20 @@ async function renderSingleStep(
 ): Promise<string> {
   // Build contents array: Subject + Identity refs + Garment + Prompt
   const contents: ContentListUnion = []
-  
+
   // Primary subject
   contents.push({ inlineData: { data: subjectBase64, mimeType: 'image/jpeg' } } as any)
-  
+
   // Additional identity references
   for (const img of identityImages) {
     if (img && img.length > 100) {
       contents.push({ inlineData: { data: img, mimeType: 'image/jpeg' } } as any)
     }
   }
-  
+
   // Garment (always last before prompt)
   contents.push({ inlineData: { data: garmentBase64, mimeType: 'image/jpeg' } } as any)
-  
+
   // Prompt
   contents.push(prompt)
 
@@ -1184,19 +1291,20 @@ async function renderTwoStep(
 ): Promise<string> {
   const identityCount = identityImages.length
   const style = STYLE_SETTINGS[styleKey] || STYLE_SETTINGS.iphone_candid
-  
+
   console.log('🎯 TWO-STEP WORKFLOW')
   console.log('   Step 1: Identity + Outfit Lock')
-  
+
   // ========== STEP 1: Lock identity with outfit ==========
   const step1Prompt = isPro
-    ? `STEP 1: IDENTITY-LOCKED OUTFIT APPLICATION
+    ? `STEP 1: IDENTITY - LOCKED OUTFIT APPLICATION
 
-${identityCount > 0 
-  ? `You have ${identityCount + 1} photos of the SAME PERSON from different angles.
+${identityCount > 0
+      ? `You have ${identityCount + 1} photos of the SAME PERSON from different angles.
 Study their face carefully from all angles.
 The LAST image is the NEW CLOTHING.`
-  : `Image 1 = PERSON. Image 2 = NEW CLOTHING.`}
+      : `Image 1 = PERSON. Image 2 = NEW CLOTHING.`
+    }
 
 ${SUBJECT_LOCK}
 
@@ -1204,7 +1312,7 @@ TASK:
 1. Analyze the person's face from all provided angles
 2. Remove their current outfit
 3. Apply the garment from the last image
-4. Use PLAIN GREY studio background (neutral)
+4. Use PLAIN GREY studio background(neutral)
 5. Even, flat lighting
 
 FOCUS ON PERFECT IDENTITY:
@@ -1215,30 +1323,31 @@ FOCUS ON PERFECT IDENTITY:
 
 ${REALISM_REQUIREMENTS}
 
-This step locks their identity. Face must be PERFECT.`
+This step locks their identity.Face must be PERFECT.`
     : `OUTFIT + IDENTITY LOCK
 
-${identityCount > 0 
-  ? `First ${identityCount + 1} images = SAME PERSON. Last = CLOTHING.`
-  : `Image 1 = PERSON. Image 2 = CLOTHING.`}
+${identityCount > 0
+      ? `First ${identityCount + 1} images = SAME PERSON. Last = CLOTHING.`
+      : `Image 1 = PERSON. Image 2 = CLOTHING.`
+    }
 
 Put new outfit on person.
 Grey studio background.
 Flat lighting.
 
-CRITICAL: Face must match references EXACTLY.
+  CRITICAL: Face must match references EXACTLY.
 Same eyes, nose, lips, skin tone, shape.
 Real skin with visible pores.`
 
   const step1Contents: ContentListUnion = []
   step1Contents.push({ inlineData: { data: subjectBase64, mimeType: 'image/jpeg' } } as any)
-  
+
   for (const img of identityImages) {
     if (img && img.length > 100) {
       step1Contents.push({ inlineData: { data: img, mimeType: 'image/jpeg' } } as any)
     }
   }
-  
+
   step1Contents.push({ inlineData: { data: garmentBase64, mimeType: 'image/jpeg' } } as any)
   step1Contents.push(step1Prompt)
 
@@ -1249,12 +1358,12 @@ Real skin with visible pores.`
   }
 
   const step1Start = Date.now()
-  const step1Resp = await client.models.generateContent({ 
-    model, 
-    contents: step1Contents, 
-    config: step1Config 
+  const step1Resp = await client.models.generateContent({
+    model,
+    contents: step1Contents,
+    config: step1Config
   })
-  console.log(`   ✓ Step 1 done in ${((Date.now() - step1Start) / 1000).toFixed(1)}s`)
+  console.log(`   ✓ Step 1 done in ${((Date.now() - step1Start) / 1000).toFixed(1)} s`)
 
   // Extract step 1 image
   let step1Image: string | null = null
@@ -1279,7 +1388,7 @@ Real skin with visible pores.`
 
 Take this person EXACTLY as they appear and place them in a new environment.
 
-⚠️ THEIR FACE IS LOCKED. DO NOT MODIFY ANY FACIAL FEATURES.
+⚠️ THEIR FACE IS LOCKED.DO NOT MODIFY ANY FACIAL FEATURES.
 
 NEW ENVIRONMENT:
 📍 ${scene.description}
@@ -1295,13 +1404,13 @@ ${style}
 
 WHAT TO CHANGE:
 • Background → new scene
-• Lighting on skin/clothes → match new environment
+• Lighting on skin / clothes → match new environment
 • Add environmental context
 
 WHAT TO KEEP IDENTICAL:
 • Face - every feature locked
 • Body shape and proportions
-• Clothing (already correct)
+• Clothing(already correct)
 • Pose and expression
 
 ${REALISM_REQUIREMENTS}
@@ -1315,7 +1424,7 @@ Add: ${scene.details}
 Lighting: ${scene.lighting}
 
 ⚠️ DO NOT CHANGE:
-• Face (locked - same features)
+• Face(locked - same features)
 • Body shape
 • Clothing
 
@@ -1339,12 +1448,12 @@ Make it look like they were photographed there.`
   }
 
   const step2Start = Date.now()
-  const step2Resp = await client.models.generateContent({ 
-    model, 
-    contents: step2Contents, 
-    config: step2Config 
+  const step2Resp = await client.models.generateContent({
+    model,
+    contents: step2Contents,
+    config: step2Config
   })
-  console.log(`   ✓ Step 2 done in ${((Date.now() - step2Start) / 1000).toFixed(1)}s`)
+  console.log(`   ✓ Step 2 done in ${((Date.now() - step2Start) / 1000).toFixed(1)} s`)
 
   // Extract step 2 image
   if (step2Resp.candidates?.length) {
@@ -1385,7 +1494,7 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
   // Clean and validate images
   const cleanSubject = stripDataUrl(subjectImageBase64)
   const cleanGarment = stripDataUrl(garmentImageBase64)
-  
+
   const cleanIdentityImages = (identityImagesBase64 || [])
     .map(img => stripDataUrl(img))
     .filter(img => img && img.length > 100)
@@ -1400,14 +1509,14 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
 
   // Determine scene and mode
   const scene = stylePresetId && SCENE_PRESETS[stylePresetId] ? SCENE_PRESETS[stylePresetId] : null
-  
+
   const bgLower = backgroundInstruction.toLowerCase()
   const keepBackground = !stylePresetId ||
-                         stylePresetId === 'keep_original' ||
-                         bgLower.includes('keep') || 
-                         bgLower.includes('original') ||
-                         bgLower.includes('same') ||
-                         bgLower.includes('unchanged')
+    stylePresetId === 'keep_original' ||
+    bgLower.includes('keep') ||
+    bgLower.includes('original') ||
+    bgLower.includes('same') ||
+    bgLower.includes('unchanged')
 
   // Determine style
   let styleKey = 'iphone_candid'
@@ -1421,18 +1530,18 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
   // Flash tends to drift faces at higher temps; keep it ultra-low for identity stability.
   const temperature = isPro ? 0.01 : 0.01
 
-  console.log(`\n🚀 TRY-ON RENDER`)
-  console.log(`   Model: ${model}`)
-  console.log(`   Preset: ${stylePresetId || 'none'}`)
-  console.log(`   Mode: ${keepBackground ? 'CLOTHING-ONLY' : 'SCENE-CHANGE'}`)
-  console.log(`   Identity refs (used): ${1 + cleanIdentityImagesForModel.length} (received: ${1 + cleanIdentityImages.length})`)
-  console.log(`   Style: ${styleKey}`)
-  console.log(`   Resolution: ${resolution || '1K'}`)
-  console.log(`   Forensic Analysis: ${useForensicAnalysis ? 'ENABLED' : 'DISABLED'}`)
+  console.log(`\n🚀 TRY - ON RENDER`)
+  console.log(`   Model: ${model} `)
+  console.log(`   Preset: ${stylePresetId || 'none'} `)
+  console.log(`   Mode: ${keepBackground ? 'CLOTHING-ONLY' : 'SCENE-CHANGE'} `)
+  console.log(`   Identity refs(used): ${1 + cleanIdentityImagesForModel.length} (received: ${1 + cleanIdentityImages.length})`)
+  console.log(`   Style: ${styleKey} `)
+  console.log(`   Resolution: ${resolution || '1K'} `)
+  console.log(`   Forensic Analysis: ${useForensicAnalysis ? 'ENABLED' : 'DISABLED'} `)
 
   const startTime = Date.now()
   let resultBase64: string
-  
+
   // Cache for forensic analysis
   let faceAnalysis: ForensicFaceAnalysis | null = null
   let garmentAnalysis: GarmentAnalysis | null = null
@@ -1446,7 +1555,7 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
     if (useForensicAnalysis) {
       console.log('\n🔬 FORENSIC ANALYSIS MODE')
       const analysisStart = Date.now()
-      
+
       // Run analysis in parallel (and optionally capture analysis for better scene integration)
       const [faceResult, garmentResult, photoResult] = await Promise.all([
         analyzeFaceForensic(cleanSubject, cleanIdentityImagesForModel),
@@ -1454,11 +1563,11 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
         // Only needed for scene-change realism + integration (avoids Photoshop cutout look)
         !keepBackground ? analyzeSubjectPhoto(cleanSubject) : Promise.resolve(null),
       ])
-      
+
       faceAnalysis = faceResult
       garmentAnalysis = garmentResult
       photoAnalysis = photoResult
-      
+
       // If garment reference contains a person/face, extract a garment-only reference to prevent face bleed
       if (garmentAnalysis.containsPerson || garmentAnalysis.containsFace) {
         console.log('🧩 Garment ref contains a person/face — extracting garment-only reference (prevents identity mixing)...')
@@ -1468,8 +1577,8 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
         garmentAnalysis = await analyzeGarmentForensic(garmentForGemini)
       }
 
-      console.log(`   ✓ Analysis complete in ${((Date.now() - analysisStart) / 1000).toFixed(1)}s`)
-      
+      console.log(`   ✓ Analysis complete in ${((Date.now() - analysisStart) / 1000).toFixed(1)} s`)
+
       // Build forensic-enhanced prompt
       const forensicPrompt = buildForensicEnhancedPrompt(
         faceAnalysis,
@@ -1481,9 +1590,9 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
         photoAnalysis,
         isPro ? 'pro' : 'flash'
       )
-      
+
       console.log(`   Prompt length: ${forensicPrompt.length} chars`)
-      
+
       // Render with forensic prompt (use garment-only ref if needed)
       if (!keepBackground && scene) {
         resultBase64 = await renderTwoStepForensic(
@@ -1506,7 +1615,7 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
           forensicPrompt, aspectRatio, temperature, resolution
         )
       }
-    } 
+    }
     // ============================================================
     // STANDARD MODE (Gemini only)
     // ============================================================
@@ -1522,12 +1631,12 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
 
       if (keepBackground) {
         // SINGLE STEP - Just swap clothing
-        const prompt = isPro 
+        const prompt = isPro
           ? buildProPrompt(promptCtx)
           : buildFlashPrompt(promptCtx)
-        
+
         resultBase64 = await renderSingleStep(
-          client, model, cleanSubject, cleanGarment, cleanIdentityImages, 
+          client, model, cleanSubject, cleanGarment, cleanIdentityImages,
           prompt, aspectRatio, temperature, resolution
         )
       } else if (scene) {
@@ -1538,10 +1647,10 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
         )
       } else {
         // SINGLE STEP with custom background
-        const prompt = isPro 
+        const prompt = isPro
           ? buildProPrompt(promptCtx)
           : buildFlashPrompt(promptCtx)
-        
+
         resultBase64 = await renderSingleStep(
           client, model, cleanSubject, cleanGarment, cleanIdentityImages,
           prompt, aspectRatio, temperature, resolution
@@ -1550,9 +1659,9 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
     }
 
     const elapsed = Date.now() - startTime
-    console.log(`✅ RENDER COMPLETE in ${(elapsed / 1000).toFixed(1)}s\n`)
+    console.log(`✅ RENDER COMPLETE in ${(elapsed / 1000).toFixed(1)} s\n`)
 
-    return `data:image/jpeg;base64,${resultBase64}`
+    return `data: image / jpeg; base64, ${resultBase64} `
   } catch (error) {
     console.error('❌ RENDER FAILED:', error)
     throw error

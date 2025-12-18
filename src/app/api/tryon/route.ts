@@ -139,36 +139,36 @@ export async function POST(request: Request) {
 
       const preset = presetV3
         ? {
-            id: presetV3.id,  // Pass preset ID for scene lookup
-            pose_name: presetV3.pose_name,
-            lighting_name: presetV3.lighting_name,
-            background_name: presetV3.background_name,
-            style_pack: presetV3.style_pack,
-            background_focus: presetV3.background_focus,
-          }
+          id: presetV3.id,  // Pass preset ID for scene lookup
+          pose_name: presetV3.pose_name,
+          lighting_name: presetV3.lighting_name,
+          background_name: presetV3.background_name,
+          style_pack: presetV3.style_pack,
+          background_focus: presetV3.background_focus,
+        }
         : {
-            id: undefined,
-            pose_name: pose ?? 'keep the subject pose unchanged',
-            lighting_name: lighting ?? 'match the original photo lighting',
-            background_name: background ?? 'keep the original background',
-            style_pack: 'candid_iphone',
-            background_focus: 'moderate_bokeh',
-          }
+          id: undefined,
+          pose_name: pose ?? 'keep the subject pose unchanged',
+          lighting_name: lighting ?? 'match the original photo lighting',
+          background_name: background ?? 'keep the original background',
+          style_pack: 'candid_iphone',
+          background_focus: 'moderate_bokeh',
+        }
 
       // Retry logic with exponential backoff
       const MAX_RETRIES = 3
       const RETRY_DELAYS = [1000, 2000, 4000] // ms
-      
+
       let result: Awaited<ReturnType<typeof runTryOnPipelineV3>> | null = null
       let lastError: Error | null = null
-      
+
       for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
         try {
           if (attempt > 0) {
             console.log(`🔄 Retry attempt ${attempt + 1}/${MAX_RETRIES}...`)
             await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt - 1]))
           }
-          
+
           console.log(`🎬 Running try-on pipeline (attempt ${attempt + 1})...`)
           result = await runTryOnPipelineV3({
             subjectImageBase64: normalizedPerson,
@@ -182,22 +182,22 @@ export async function POST(request: Request) {
               resolution: (reqResolution || '2K') as any,
             },
           })
-          
+
           // Success - break out of retry loop
           break
         } catch (err) {
           lastError = err instanceof Error ? err : new Error(String(err))
           console.error(`❌ Attempt ${attempt + 1} failed:`, lastError.message)
-          
+
           // Don't retry on certain errors
-          if (lastError.message.includes('Invalid') || 
-              lastError.message.includes('required') ||
-              lastError.message.includes('Unauthorized')) {
+          if (lastError.message.includes('Invalid') ||
+            lastError.message.includes('required') ||
+            lastError.message.includes('Unauthorized')) {
             break
           }
         }
       }
-      
+
       if (!result) {
         throw lastError || new Error('Generation failed after multiple attempts')
       }
@@ -227,12 +227,13 @@ export async function POST(request: Request) {
         success: true,
         jobId: job.id,
         imageUrl,
+        base64Image: generatedImage,
         preset: presetV3
           ? {
-              id: presetV3.id,
-              name: presetV3.name,
-              category: presetV3.category,
-            }
+            id: presetV3.id,
+            name: presetV3.name,
+            category: presetV3.category,
+          }
           : null,
       })
     } catch (error) {

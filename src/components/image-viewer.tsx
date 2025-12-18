@@ -12,8 +12,17 @@ interface ImageViewerProps {
 
 export function ImageViewer({ src, alt, className = '' }: ImageViewerProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [hasError, setHasError] = useState(false)
 
   if (!src) return null
+
+  if (hasError) {
+    return (
+      <div className={`${className} bg-cream flex items-center justify-center`}>
+        <span className="text-charcoal/40 text-sm">Image unavailable</span>
+      </div>
+    )
+  }
 
   return (
     <>
@@ -22,6 +31,10 @@ export function ImageViewer({ src, alt, className = '' }: ImageViewerProps) {
         alt={alt}
         className={`${className} cursor-pointer hover:opacity-90 transition-opacity`}
         onClick={() => setIsOpen(true)}
+        onError={() => {
+          console.error('Image failed to load:', src)
+          setHasError(true)
+        }}
       />
       {isOpen && (
         <div
