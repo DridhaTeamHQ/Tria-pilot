@@ -560,7 +560,7 @@ COMPOSITING AVOIDANCE:
   if (keepBackground) {
     // Flash works best with short "edit the photo" instructions to avoid face drift.
     if (variant === 'flash') {
-      return `EDIT THE PHOTO (CLOTHING TRY-ON)
+      return `🎯 VIRTUAL TRY-ON: EDIT THIS PHOTO
 
 ${refExplanation}
 
@@ -568,127 +568,179 @@ ${identityPrompt}
 
 ${garmentPrompt}
 
-TASK:
-- Edit the FIRST image (the person). REMOVE their current outfit completely and REPLACE it with the LAST image (garment).
-- No layering. No blending. No partial changes.
+═══════════════════════════════════════════════════════════════════════════════
+TASK: CLOTHING SWAP ONLY
+═══════════════════════════════════════════════════════════════════════════════
+1. Keep the person EXACTLY as they appear - same face, same body, same pose
+2. REMOVE their current clothing completely
+3. PUT ON the garment from the reference image
+4. Keep the original background UNCHANGED
 
-STRICT IDENTITY LOCK:
-- Keep the same person with the exact same face. Do NOT change face shape, cheeks, jaw, head size, or expression.
-- Do NOT beautify. Keep natural skin texture and pores. Keep hair identical.
-- Never blend identities. Ignore any person/face in the garment reference completely.
-- The person reference images are ONLY for identity. IGNORE their clothing entirely.
+⛔ FORBIDDEN (will fail the task):
+- Changing face shape, width, proportions
+- Changing skin tone or texture
+- Changing hair style or color
+- Changing background or lighting
+- Blending with any face from garment reference
+- Smoothing, beautifying, or "improving"
 
-STRICT BACKGROUND LOCK:
-- Keep the original background and lighting from the person photo exactly unchanged.
+✅ REQUIRED:
+- Exact same face from the identity reference
+- Natural fabric wrinkles on the new garment
+- Real skin texture with visible pores
+- Matching lighting/shadows on clothing
 
-REALISM:
-- Match camera characteristics of the person photo (grain/noise, compression, sharpness).
-- No cutout/halo edges. No pasted look.
-
-OUTPUT:
-- Same person, same face, same background; only the outfit changes.`
+OUTPUT: Same person, same background, new outfit only.`
     }
 
-    return `VIRTUAL TRY-ON - FORENSIC IDENTITY MODE
+    return `🔒 VIRTUAL TRY-ON - FORENSIC IDENTITY MODE
 
 ${refExplanation}
 
-═══════════════════════════════════════════════════════════════════════════════
 ${identityPrompt}
-═══════════════════════════════════════════════════════════════════════════════
 
 ${garmentPrompt}
 
 ═══════════════════════════════════════════════════════════════════════════════
-FACE SHAPE INVARIANCE (Anti \"face fattening\"):
-• Do NOT widen cheeks. Do NOT change jaw width. Do NOT change face roundness.
-• Do NOT resize head, do NOT warp facial geometry, do NOT change camera focal length.
-• Preserve the exact facial proportions from the person references.
+⚠️ FACE GEOMETRY LOCK (Critical - Common AI Failure Mode)
+═══════════════════════════════════════════════════════════════════════════════
+AI models often subtly change faces. You MUST NOT:
+❌ Widen or narrow the face/jaw/cheeks
+❌ Change eye shape, size, or spacing
+❌ Alter nose bridge width or tip shape
+❌ Modify lip fullness or width
+❌ Shift cheekbone position or prominence
+❌ Resize or reposition facial features
+❌ Change the overall head size or shape
 
-STRICT RULES (NON-NEGOTIABLE):
-• The ONLY identity source is the person reference images (Images 1-${identityCount + 1}).
-• The garment reference must be used ONLY for clothing. IGNORE any person/face in garment reference.
-• If the garment reference contains a human, DO NOT borrow their face, skin, hair, body, pose, or lighting.
-• Never blend identities. Never average faces. Never change eye shape, nose, lips, jaw, skin tone.
-• If any instruction conflicts, PERSON REFERENCES OVERRIDE everything.
+The face in output must be PIXEL-ACCURATE to the reference.
 
-TASK:
-1. Study the reference photos - this is the EXACT person who must appear in output
-2. Remove their current clothing COMPLETELY
-3. Apply the garment described above with natural fit
-4. Keep EVERYTHING else identical: background, lighting, pose, expression, hair
+═══════════════════════════════════════════════════════════════════════════════
+🔐 IDENTITY SOURCE HIERARCHY
+═══════════════════════════════════════════════════════════════════════════════
+1. IDENTITY: Only from person reference images (Images 1-${identityCount + 1})
+2. CLOTHING: Only from the garment reference (last image)
+3. BACKGROUND: Keep original from person image
+4. POSE: Keep original from person image
+5. LIGHTING: Keep original from person image
 
-QUALITY REQUIREMENTS:
-• Face must match the Identity Fingerprint EXACTLY
-• Visible skin pores, natural texture (no smoothing)
-• Natural hair flyaways and imperfections
-• Fabric wrinkles and realistic draping
-• NO plastic/waxy skin, NO over-smoothing
+If garment reference contains a person → IGNORE their face, body, skin, hair entirely.
+The garment image provides FABRIC ONLY, nothing else.
 
-OUTPUT: The SAME person from the references, wearing the new outfit.
-Their mother must recognize them instantly.`
+═══════════════════════════════════════════════════════════════════════════════
+📋 EXECUTION STEPS
+═══════════════════════════════════════════════════════════════════════════════
+Step 1: ANALYZE the person references - memorize every facial detail
+Step 2: REMOVE current clothing from the person completely (no traces)
+Step 3: APPLY the garment with natural fit:
+        - Fabric should drape naturally on their body shape
+        - Add realistic wrinkles at movement points (elbows, waist, shoulders)
+        - Match garment color exactly to reference
+Step 4: VERIFY face matches reference exactly
+Step 5: VERIFY background is unchanged
+Step 6: VERIFY skin tone is unchanged (no lightening)
+
+═══════════════════════════════════════════════════════════════════════════════
+✨ QUALITY REQUIREMENTS
+═══════════════════════════════════════════════════════════════════════════════
+• Face: Biometrically identical to reference - their mother must recognize them
+• Skin: Natural texture with visible pores, no plastic/waxy appearance
+• Hair: Natural flyaways and texture, no over-smoothing
+• Garment: Realistic fabric physics, proper draping, natural wrinkles
+• Integration: No cutout edges, natural shadow under clothing
+• Camera: Match original photo's grain, sharpness, compression
+
+OUTPUT: The SAME person from references, wearing the new outfit.
+Nothing else changes. Identity is LOCKED.`
   }
 
   if (scene?.description) {
-    return `FASHION PHOTOGRAPHY - FORENSIC IDENTITY MODE
+    return `📸 FASHION PHOTOGRAPHY - FORENSIC IDENTITY + SCENE CHANGE
 
 ${refExplanation}
 
-═══════════════════════════════════════════════════════════════════════════════
 ${identityPrompt}
-═══════════════════════════════════════════════════════════════════════════════
 
 ${garmentPrompt}
 
 ═══════════════════════════════════════════════════════════════════════════════
-FACE SHAPE INVARIANCE (Anti \"face fattening\"):
-• Do NOT widen cheeks. Do NOT change jaw width. Do NOT change face roundness.
-• Do NOT resize head, do NOT warp facial geometry, do NOT change camera focal length.
-• Preserve the exact facial proportions from the person references.
+⚠️ FACE GEOMETRY LOCK (Critical - Common AI Failure Mode)
+═══════════════════════════════════════════════════════════════════════════════
+Scene changes often cause subtle face drift. You MUST NOT:
+❌ Widen or narrow the face/jaw/cheeks
+❌ Change eye shape, size, spacing, or color
+❌ Alter nose bridge width or tip shape
+❌ Modify lip fullness or width
+❌ Shift cheekbone position or prominence
+❌ Change skin tone or undertone
+❌ Smooth skin texture or remove pores/marks
 
-STRICT RULES (NON-NEGOTIABLE):
-• Identity ONLY from person references. Garment reference is clothing ONLY.
-• Ignore any face/person in garment reference completely.
-• Do NOT change facial geometry, eye shape, nose, lips, jaw, skin tone, hairline.
-• Never blend identities. Never average faces.
-• If conflict: PERSON REFERENCES OVERRIDE.
+The face in output must be BIOMETRICALLY IDENTICAL to the reference.
+
+═══════════════════════════════════════════════════════════════════════════════
+🔐 IDENTITY SOURCE HIERARCHY
+═══════════════════════════════════════════════════════════════════════════════
+1. IDENTITY: Only from person reference images (Images 1-${identityCount + 1})
+2. CLOTHING: Only from the garment reference (last image)
+3. POSE: Keep from person image - person is ${bodyPose.toUpperCase()}
+4. BACKGROUND: NEW - use scene description below
+5. LIGHTING: NEW - adapt to scene while keeping face recognizable
+
+If garment reference contains a person → IGNORE their identity completely.
 
 ${captureHints}
 
-SCENE ENVIRONMENT:
-📍 ${scene.description}
-💡 ${scene.lighting}
-🔍 ${scene.details}
+═══════════════════════════════════════════════════════════════════════════════
+🎬 SCENE SPECIFICATION
+═══════════════════════════════════════════════════════════════════════════════
+📍 Environment: ${scene.description}
+💡 Lighting: ${scene.lighting}
+🔍 Details: ${scene.details}
 
-POSE-ADAPTIVE PLACEMENT (CRITICAL):
-🧍 The person is ${bodyPose.toUpperCase()} in the original photo.
-🎯 Keep their EXACT pose unchanged. Adapt the SCENE to fit their pose naturally:
-   → ${poseSpecificPlacement}
-⚠️ Do NOT change their body pose. The scene wraps around them, not the other way around.
+═══════════════════════════════════════════════════════════════════════════════
+🧍 POSE-ADAPTIVE PLACEMENT (CRITICAL)
+═══════════════════════════════════════════════════════════════════════════════
+Detected pose: ${bodyPose.toUpperCase()}
+Scene adapts TO the pose: ${poseSpecificPlacement}
 
-STYLE:
+⚠️ Do NOT change the person's pose. The scene wraps around them:
+- If sitting → add appropriate seating/surface
+- If standing → add appropriate ground/context
+- If leaning → add appropriate support element
+
+═══════════════════════════════════════════════════════════════════════════════
+🎨 VISUAL STYLE
+═══════════════════════════════════════════════════════════════════════════════
 ${style}
 
 ═══════════════════════════════════════════════════════════════════════════════
-TASK:
-1. Lock identity from the Identity Fingerprint above - this is NON-NEGOTIABLE
-2. Keep their exact pose from the original photo (${bodyPose})
-3. Apply the garment with natural fabric behavior
-4. Place in the scene adapted to their pose: ${poseSpecificPlacement}
-5. Apply scene lighting naturally to the person
+📋 EXECUTION STEPS
+═══════════════════════════════════════════════════════════════════════════════
+1. MEMORIZE the person's face from references - every detail
+2. REMOVE their current clothing completely
+3. APPLY the garment with natural fabric physics
+4. KEEP their exact pose (${bodyPose})
+5. CREATE the scene environment around them
+6. ADAPT lighting to scene while preserving skin tone
+7. ADD contact shadows and integration details
+8. VERIFY face is IDENTICAL to references
 
-QUALITY:
-• Face geometry, skin tone, features = EXACT match to fingerprint
-• Pose = EXACT match to original (${bodyPose})
-• Visible pores, natural skin texture
-• Sharp detailed background (not blurry)
-• Natural environmental imperfections
-• Scene elements positioned naturally around the person's pose
+═══════════════════════════════════════════════════════════════════════════════
+✨ QUALITY REQUIREMENTS
+═══════════════════════════════════════════════════════════════════════════════
+• Face: Biometrically identical - same person, recognizable instantly
+• Skin: Exact same tone, natural texture with pores (no smoothing)
+• Pose: Unchanged from original (${bodyPose})
+• Garment: Natural draping, realistic wrinkles, correct color
+• Scene: Sharp, detailed background with natural imperfections
+• Integration: No cutout look, proper shadows, matching grain/noise
+• Lighting: Scene-appropriate but person remains recognizable
 
-The person's identity AND pose are LOCKED. Only outfit and background change.`
+OUTPUT: Same person + same pose + new outfit + new scene.
+Their mother must recognize them in any setting.`
   }
 
-  return `VIRTUAL TRY-ON - FORENSIC MODE
+  return `🎯 VIRTUAL TRY-ON - FORENSIC MODE
 
 ${refExplanation}
 
@@ -696,16 +748,33 @@ ${identityPrompt}
 
 ${garmentPrompt}
 
-STRICT RULES:
-• Identity ONLY from person references. Garment reference is clothing ONLY.
-• Ignore any face/person in garment reference completely.
+═══════════════════════════════════════════════════════════════════════════════
+🔐 STRICT RULES
+═══════════════════════════════════════════════════════════════════════════════
+• IDENTITY: Only from person references
+• CLOTHING: Only from garment reference
+• If garment image has a person → IGNORE their face/body completely
 • Never blend identities. Never average faces.
 
-FACE SHAPE INVARIANCE:
-• Do NOT widen cheeks or jaw. Do NOT change face roundness. Do NOT resize head.
+═══════════════════════════════════════════════════════════════════════════════
+⚠️ FACE GEOMETRY LOCK
+═══════════════════════════════════════════════════════════════════════════════
+❌ Do NOT widen/narrow face, jaw, or cheeks
+❌ Do NOT change eye shape, size, or color
+❌ Do NOT alter nose, lips, or any features
+❌ Do NOT lighten skin or remove marks
+❌ Do NOT smooth texture or beautify
 
-Apply the garment to this person. Keep their identity EXACTLY as described.
-Natural skin texture, visible pores, no beautification.`
+═══════════════════════════════════════════════════════════════════════════════
+✅ REQUIRED OUTPUT
+═══════════════════════════════════════════════════════════════════════════════
+• Exact same face from references
+• Exact same skin tone and texture
+• New garment with natural fit and wrinkles
+• Real skin with visible pores
+• No plastic/waxy/CGI appearance
+
+OUTPUT: Same person, new outfit. Identity LOCKED.`
 }
 
 // ====================================================================================

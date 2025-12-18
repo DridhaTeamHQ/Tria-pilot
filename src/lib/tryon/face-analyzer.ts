@@ -97,81 +97,129 @@ export async function analyzeFaceForensic(
 ): Promise<ForensicFaceAnalysis> {
   const openai = getOpenAI()
   
-  const systemPrompt = `You are a forensic facial analyst creating an EXACT identity profile for virtual try-on.
-Your analysis will be used to ensure the generated image has IDENTICAL features to the original.
+  const systemPrompt = `You are a FORENSIC FACIAL BIOMETRICS EXPERT creating a precise identity profile for AI image generation.
+Your analysis determines whether the AI will correctly reproduce this exact person. Errors mean identity loss.
 
-ANALYZE WITH EXTREME PRECISION. Every detail matters for identity preservation.
+CRITICAL: This is forensic-level analysis. Measure, don't guess. Be specific, not generic.
 
 Return a JSON object with these exact fields:
 
-FACIAL GEOMETRY (measure proportions precisely):
-- faceShape: (oval/round/square/heart/diamond/oblong/rectangular)
-- faceWidth: (narrow/medium/wide) relative to length
-- jawlineType: (sharp/angular/soft/rounded/square)
-- chinShape: (pointed/rounded/square/cleft/small/prominent)
-- foreheadShape: (high/medium/low) and (narrow/medium/wide)
-- cheekboneProminence: (high and prominent/subtle/flat)
+═══════════════════════════════════════════════════════════════════════════════
+FACIAL GEOMETRY (CRITICAL FOR SHAPE PRESERVATION):
+═══════════════════════════════════════════════════════════════════════════════
+- faceShape: Primary shape (oval/round/square/heart/diamond/oblong/rectangular)
+  └ Include RATIO observation: "oval, face length ~1.4x width" or "square, width nearly equals length"
+- faceWidth: (narrow/medium/wide) + comparison: "wide, notably wider than typical oval"
+- jawlineType: (sharp/angular/soft/rounded/square/V-shaped/U-shaped)
+  └ Be specific: "sharp angular jaw tapering to pointed chin" not just "angular"
+- chinShape: (pointed/rounded/square/cleft/small/prominent/receding/protruding)
+- foreheadShape: Height (high/medium/low) + width (narrow/medium/wide) + curvature
+- cheekboneProminence: (high and prominent/subtle/flat) + position on face
 
-EYE REGION (most critical for identity):
-- eyeColor: EXACT color with nuances (e.g., "dark brown with warm amber undertones near pupil")
-- eyeShape: (almond/round/hooded/monolid/upturned/downturned/deep-set/protruding)
-- eyeSize: (small/medium/large) relative to face
-- eyeSpacing: (close-set/medium/wide-set)
-- eyeDepth: (deep-set/average/protruding)
-- eyelidType: (single/double/hooded/crease position)
-- eyeLashes: (long/medium/short, thick/sparse, curved/straight)
-- eyebrowShape: (arched/straight/curved/S-shaped/angular)
-- eyebrowThickness: (thin/medium/thick/bushy)
-- eyebrowColor: (matches hair/darker/lighter)
+═══════════════════════════════════════════════════════════════════════════════
+EYE REGION (MOST CRITICAL FOR IDENTITY - 60% OF RECOGNITION):
+═══════════════════════════════════════════════════════════════════════════════
+- eyeColor: EXACT color with layers. Examples:
+  ✓ "dark brown, nearly black, with warm amber ring around pupil"
+  ✓ "medium brown with golden-honey flecks, darker outer ring"
+  ✗ "brown" (too vague)
+- eyeShape: (almond/round/hooded/monolid/upturned/downturned/deep-set/protruding/cat-eye)
+  └ Add asymmetry if present: "almond, slightly more hooded on left"
+- eyeSize: (small/medium/large) + proportion: "large relative to face, horizontally elongated"
+- eyeSpacing: (close-set/medium/wide-set) + measurement: "wide-set, ~1.5 eye-widths apart"
+- eyeDepth: (deep-set/average/protruding) + shadow pattern description
+- eyelidType: (single/double/hooded) + crease position + visibility
+- eyeLashes: Length + density + curl. "Long, dense, naturally curled upward"
+- eyebrowShape: (arched/straight/curved/S-shaped/angular/rounded arch)
+  └ Include peak position: "high arch, peak at outer 1/3"
+- eyebrowThickness: (thin/medium/thick/bushy) + grooming: "thick, natural, slightly ungroomed"
+- eyebrowColor: Compare to hair: "matches black hair" or "lighter than dark brown hair"
 
-NOSE (specific measurements):
-- noseShape: (straight/curved/concave/convex/bumpy)
-- noseBridgeWidth: (narrow/medium/wide)
-- noseTipShape: (pointed/rounded/bulbous/upturned)
-- nostrilShape: (narrow/medium/wide/flared)
+═══════════════════════════════════════════════════════════════════════════════
+NOSE (UNIQUE IDENTIFIER):
+═══════════════════════════════════════════════════════════════════════════════
+- noseShape: Profile shape (straight/curved/concave/convex/roman/button/aquiline)
+- noseBridgeWidth: (narrow/medium/wide) at different points if variable
+- noseTipShape: (pointed/rounded/bulbous/upturned/downturned/bifid)
+- nostrilShape: (narrow/medium/wide/flared) + symmetry notes
 
+═══════════════════════════════════════════════════════════════════════════════
 LIPS AND MOUTH:
-- lipFullnessUpper: (thin/medium/full)
-- lipFullnessLower: (thin/medium/full)
-- lipWidth: (narrow/medium/wide)
-- cupidsBow: (pronounced/subtle/flat)
-- lipColor: natural color (pink/rose/brown/dark)
-- teethVisibility: (showing/partially visible/not visible)
+═══════════════════════════════════════════════════════════════════════════════
+- lipFullnessUpper: (thin/medium/full/very full) + shape
+- lipFullnessLower: (thin/medium/full/very full) + ratio to upper
+- lipWidth: (narrow/medium/wide) relative to nose width
+- cupidsBow: (pronounced/subtle/flat/M-shaped/rounded)
+- lipColor: Natural undertone (pink-toned/rose/mauve/brown-pink/burgundy/dark)
+- teethVisibility: Current state + tooth characteristics if visible
 
-SKIN (critical - NO beautification):
-- skinTone: EXACT tone (fair/light/light-medium/medium/medium-tan/tan/deep tan/deep/rich)
-- skinUndertone: (warm/cool/neutral/olive)
-- skinTexture: (smooth/textured/combination) with visible pores
-- poreVisibility: (visible on nose/visible on cheeks/minimal)
-- skinImperfections: Array of ALL visible marks ["mole on left cheek", "freckles across nose", "scar on chin", etc.]
+═══════════════════════════════════════════════════════════════════════════════
+SKIN (CRITICAL - AI TENDS TO LIGHTEN/SMOOTH - MUST PRESERVE EXACTLY):
+═══════════════════════════════════════════════════════════════════════════════
+- skinTone: Use Fitzpatrick + descriptive scale:
+  Type I-II: "very fair/fair with pink undertones"
+  Type III: "light-medium, beige"  
+  Type IV: "medium, warm olive" or "medium, golden-tan"
+  Type V: "medium-deep, warm brown" or "tan, caramel"
+  Type VI: "deep, rich brown" or "very deep, ebony"
+  └ BE PRECISE. "Medium-tan with warm golden undertone" not just "tan"
+- skinUndertone: (warm/cool/neutral/olive) + evidence: "warm, yellow-gold tones in neck"
+- skinTexture: Real texture, not idealized. Include: pore size, any roughness, shine zones
+- poreVisibility: Location-specific: "visible on nose and inner cheeks, minimal on forehead"
+- skinImperfections: ARRAY of ALL visible marks with EXACT LOCATIONS:
+  ["mole on left cheek 2cm from nose", "freckles scattered across nose bridge and cheeks", "small acne marks on chin area", "dark circles under eyes"]
+  └ Include: moles, freckles, scars, birthmarks, texture variations, tan lines
 
-HAIR:
-- hairColor: EXACT color with any variations ("jet black with subtle blue sheen", "dark brown with natural red highlights")
-- hairHighlights: (natural lighter areas/dyed/none)
-- hairTexture: (straight/wavy/curly/coily) with (fine/medium/thick) strands
-- hairDensity: (thin/medium/thick/very thick)
-- hairLength: (pixie/ear-length/chin-length/shoulder/mid-back/waist)
-- hairStyle: current style (loose/ponytail/bun/braided/parted/etc.)
-- hairPartPosition: (left/center/right/none)
+═══════════════════════════════════════════════════════════════════════════════
+HAIR (FRAMING AFFECTS FACE PERCEPTION):
+═══════════════════════════════════════════════════════════════════════════════
+- hairColor: Multi-tonal description:
+  ✓ "jet black with subtle blue-sheen in light, no visible brown"
+  ✓ "dark brown base with natural copper highlights at crown, darker at roots"
+  ✗ "dark brown" (too vague)
+- hairHighlights: (natural sun-lightened/dyed/balayage/none) + placement
+- hairTexture: Curl pattern (straight/wavy/curly/coily) + strand thickness (fine/medium/coarse)
+- hairDensity: (thin/medium/thick/very thick) + volume description
+- hairLength: Precise. "Just past shoulders, longest layers reach mid-back"
+- hairStyle: CURRENT styling visible in image
+- hairPartPosition: (left/center/right/none/zigzag) + depth of part
 
-BODY:
-- bodyType: (slim/average/athletic/curvy/plus-size)
-- shoulderWidth: (narrow/medium/broad)
-- neckLength: (short/medium/long)
-- armProportions: (slender/medium/muscular)
+═══════════════════════════════════════════════════════════════════════════════
+BODY BUILD:
+═══════════════════════════════════════════════════════════════════════════════
+- bodyType: (slim/slender/average/athletic/curvy/plus-size/pear/hourglass/inverted-triangle)
+- shoulderWidth: (narrow/medium/broad) relative to hips
+- neckLength: (short/medium/long) + thickness
+- armProportions: (slender/medium/toned/muscular) + any notes
 
-EXPRESSION & POSE:
-- currentExpression: (neutral/smiling/slight smile/serious/relaxed)
-- headTilt: (straight/slight left/slight right/tilted up/tilted down)
-- gazeDirection: (direct at camera/looking left/looking right/looking up/looking down)
+═══════════════════════════════════════════════════════════════════════════════
+CURRENT STATE (EXPRESSION & POSE):
+═══════════════════════════════════════════════════════════════════════════════
+- currentExpression: Detailed description, not just label
+  ✓ "genuine wide smile, cheeks raised, eye crinkles visible"
+  ✓ "neutral with slight lip tension, relaxed brow"
+- headTilt: Axis + degree: "slight right tilt ~10 degrees, chin slightly down"
+- gazeDirection: "direct camera contact" or "looking camera-left, eyes ~15 degrees off-axis"
 
-DISTINCTIVE MARKS (CRITICAL - list ALL):
-- distinctiveMarks: Array of EVERY identifying feature ["beauty mark below right eye", "small mole on neck", "ear piercing", "nose piercing", etc.]
+═══════════════════════════════════════════════════════════════════════════════
+DISTINCTIVE MARKS (MAKE-OR-BREAK FOR RECOGNITION):
+═══════════════════════════════════════════════════════════════════════════════
+- distinctiveMarks: EXHAUSTIVE ARRAY with precise locations:
+  ["beauty mark 1cm below right eye outer corner", "gold nose stud right nostril", "small vertical scar through left eyebrow", "3 ear piercings on left ear", "single lobe piercing right ear"]
 
-IDENTITY SUMMARY:
-- identitySummary: A 2-3 sentence summary that captures the MOST DISTINCTIVE features that make this person recognizable. Focus on: exact skin tone, eye characteristics, unique facial proportions, and any distinctive marks.
+═══════════════════════════════════════════════════════════════════════════════
+IDENTITY SUMMARY (THIS IS FED DIRECTLY TO IMAGE AI):
+═══════════════════════════════════════════════════════════════════════════════
+- identitySummary: 3-4 sentences capturing the MOST DISTINCTIVE features.
+  Format: Start with most unique identifiers. Include:
+  1. Skin tone + undertone (exact)
+  2. Eye color + distinctive eye features
+  3. Face shape + key proportions
+  4. Any unique marks/features that are instantly recognizable
+  
+  Example: "Medium-tan skin with warm golden undertone (Fitzpatrick IV). Large, dark brown almond eyes with visible double eyelid and long natural lashes. Heart-shaped face with high cheekbones, small pointed chin. Distinctive beauty mark below right eye. Thick black hair with natural wave, parted center."
 
-BE HYPER-SPECIFIC. These details will be used to ensure 100% identity match in generated images.`
+THIS ANALYSIS MUST BE PRECISE ENOUGH TO IDENTIFY THIS PERSON IN A LINEUP.`
 
   const imageInputs: any[] = [
     { type: 'image_url', image_url: { url: formatImageUrl(personImageBase64), detail: 'high' } },
@@ -274,38 +322,110 @@ BE HYPER-SPECIFIC. These details will be used to ensure 100% identity match in g
 }
 
 /**
- * Convert forensic analysis to a concise identity prompt section
+ * Convert forensic analysis to a structured identity prompt section
+ * Optimized for Gemini image generation - uses clear hierarchical structure
  */
 export function buildIdentityPromptFromAnalysis(analysis: ForensicFaceAnalysis): string {
   const marks = analysis.distinctiveMarks?.length > 0
-    ? `Distinctive marks: ${analysis.distinctiveMarks.join(', ')}.`
-    : ''
+    ? analysis.distinctiveMarks.join('; ')
+    : 'none noted'
   
   const imperfections = analysis.skinImperfections?.length > 0
-    ? `Skin marks: ${analysis.skinImperfections.join(', ')}.`
-    : ''
+    ? analysis.skinImperfections.join('; ')
+    : 'natural skin'
 
-  return `IDENTITY FINGERPRINT (Must match EXACTLY):
+  return `🔒 IDENTITY FINGERPRINT (LOCKED - MUST MATCH EXACTLY)
 
-FACE: ${analysis.faceShape} face shape, ${analysis.jawlineType} jawline, ${analysis.chinShape} chin, ${analysis.cheekboneProminence} cheekbones.
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ FACE GEOMETRY (DO NOT ALTER)                                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Shape: ${analysis.faceShape}                                                
+│ Jawline: ${analysis.jawlineType}                                            
+│ Chin: ${analysis.chinShape}                                                 
+│ Cheekbones: ${analysis.cheekboneProminence}                                 
+│ Forehead: ${analysis.foreheadShape}                                         
+└─────────────────────────────────────────────────────────────────────────────┘
 
-EYES (Critical): ${analysis.eyeColor} ${analysis.eyeShape} eyes, ${analysis.eyeSize} size, ${analysis.eyeSpacing} spacing, ${analysis.eyelidType}. ${analysis.eyebrowShape} eyebrows (${analysis.eyebrowThickness}).
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ EYES (60% OF RECOGNITION - CRITICAL)                                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Color: ${analysis.eyeColor}                                                 
+│ Shape: ${analysis.eyeShape}, ${analysis.eyeSize} size, ${analysis.eyeSpacing}
+│ Eyelids: ${analysis.eyelidType}                                             
+│ Depth: ${analysis.eyeDepth}                                                 
+│ Lashes: ${analysis.eyeLashes}                                               
+│ Brows: ${analysis.eyebrowShape}, ${analysis.eyebrowThickness}, ${analysis.eyebrowColor}
+└─────────────────────────────────────────────────────────────────────────────┘
 
-NOSE: ${analysis.noseShape} nose with ${analysis.noseBridgeWidth} bridge, ${analysis.noseTipShape} tip.
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ NOSE                                                                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Profile: ${analysis.noseShape}                                              
+│ Bridge: ${analysis.noseBridgeWidth}                                         
+│ Tip: ${analysis.noseTipShape}                                               
+│ Nostrils: ${analysis.nostrilShape}                                          
+└─────────────────────────────────────────────────────────────────────────────┘
 
-LIPS: ${analysis.lipFullnessUpper} upper lip, ${analysis.lipFullnessLower} lower lip, ${analysis.cupidsBow} cupid's bow, ${analysis.lipColor} color.
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ MOUTH                                                                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Upper lip: ${analysis.lipFullnessUpper}                                     
+│ Lower lip: ${analysis.lipFullnessLower}                                     
+│ Width: ${analysis.lipWidth}                                                 
+│ Cupid's bow: ${analysis.cupidsBow}                                          
+│ Color: ${analysis.lipColor}                                                 
+└─────────────────────────────────────────────────────────────────────────────┘
 
-SKIN (No modification allowed): ${analysis.skinTone} with ${analysis.skinUndertone} undertone. ${analysis.skinTexture}, pores ${analysis.poreVisibility}. ${imperfections}
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ SKIN (PRESERVE EXACTLY - NO LIGHTENING/SMOOTHING)                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Tone: ${analysis.skinTone}                                                  
+│ Undertone: ${analysis.skinUndertone}                                        
+│ Texture: ${analysis.skinTexture}                                            
+│ Pores: ${analysis.poreVisibility}                                           
+│ Marks: ${imperfections}                                                     
+└─────────────────────────────────────────────────────────────────────────────┘
 
-HAIR: ${analysis.hairColor}, ${analysis.hairTexture}, ${analysis.hairLength}, styled ${analysis.hairStyle}, parted ${analysis.hairPartPosition}.
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ HAIR                                                                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Color: ${analysis.hairColor}                                                
+│ Texture: ${analysis.hairTexture}                                            
+│ Length: ${analysis.hairLength}                                              
+│ Style: ${analysis.hairStyle}                                                
+│ Part: ${analysis.hairPartPosition}                                          
+└─────────────────────────────────────────────────────────────────────────────┘
 
-BODY: ${analysis.bodyType} build, ${analysis.shoulderWidth} shoulders.
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ BODY                                                                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Build: ${analysis.bodyType}                                                 
+│ Shoulders: ${analysis.shoulderWidth}                                        
+│ Neck: ${analysis.neckLength}                                                
+└─────────────────────────────────────────────────────────────────────────────┘
 
-${marks}
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ DISTINCTIVE MARKS (MUST INCLUDE)                                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ ${marks}                                                                    
+└─────────────────────────────────────────────────────────────────────────────┘
 
-EXPRESSION: ${analysis.currentExpression}, head ${analysis.headTilt}, gaze ${analysis.gazeDirection}.
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ CURRENT STATE                                                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Expression: ${analysis.currentExpression}                                   
+│ Head position: ${analysis.headTilt}                                         
+│ Gaze: ${analysis.gazeDirection}                                             
+└─────────────────────────────────────────────────────────────────────────────┘
 
-⚠️ ${analysis.identitySummary}`
+⚡ IDENTITY LOCK: ${analysis.identitySummary}
+
+⛔ FORBIDDEN CHANGES:
+- Do NOT widen/narrow face, jaw, or cheeks
+- Do NOT change eye shape, size, or color
+- Do NOT lighten skin tone
+- Do NOT smooth skin texture
+- Do NOT remove distinctive marks`
 }
 
 /**
@@ -339,27 +459,94 @@ export interface GarmentAnalysis {
 export async function analyzeGarmentForensic(garmentImageBase64: string): Promise<GarmentAnalysis> {
   const openai = getOpenAI()
   
-  const prompt = `Analyze this garment image for EXACT replication in virtual try-on.
-First, detect whether the image includes a person or visible face. This is used to avoid identity mixing.
+  const prompt = `You are a FASHION TECHNICAL DESIGNER analyzing a garment for AI image generation.
+Your analysis will be used to EXACTLY replicate this garment on a different person. Every detail matters.
 
-If a person is wearing the garment, IGNORE the person completely and extract ONLY the clothing details.
+FIRST: Detect if the image contains a person wearing the garment (for identity isolation).
+THEN: Extract ONLY clothing details. Completely ignore any person/face visible.
 
 Return JSON with:
-- containsPerson: boolean (true if any person/body is visible)
+
+═══════════════════════════════════════════════════════════════════════════════
+PERSON DETECTION (for identity isolation):
+═══════════════════════════════════════════════════════════════════════════════
+- containsPerson: boolean (true if any person/body is visible in image)
 - containsFace: boolean (true if a face/head is visible)
-- garmentType: exact type (kurti, A-line dress, fitted blouse, crop top, etc.)
-- sleeveType: (sleeveless/cap sleeve/short sleeve/elbow/3-4 sleeve/full sleeve)
-- necklineType: (round/V-neck/scoop/boat/off-shoulder/collared/mandarin/square)
-- fitType: (fitted/regular/relaxed/loose/A-line/flared)
-- fabricType: (cotton/silk/linen/polyester/chiffon/georgette/rayon/denim/knit)
-- fabricTexture: (smooth/textured/ribbed/woven/matte/shiny/embroidered)
-- primaryColor: EXACT color (e.g., "deep burgundy wine", "forest green", "dusty rose pink")
-- colorDetails: any color variations, gradient, or multiple colors
-- patternType: (solid/printed/embroidered/striped/checked/floral/geometric/abstract)
-- patternDescription: detailed pattern description if any
-- designElements: Array of ALL details ["front placket", "two buttons", "gold piping", "side slits", etc.]
-- lengthStyle: (crop/waist/hip/mid-thigh/knee/midi/maxi)
-- summary: 1 sentence describing the EXACT garment for precise replication`
+
+═══════════════════════════════════════════════════════════════════════════════
+GARMENT CORE (BE PRECISE):
+═══════════════════════════════════════════════════════════════════════════════
+- garmentType: Exact category with sub-type:
+  Indian: "straight-cut kurti", "anarkali kurta", "A-line kurti", "palazzo pants", "churidar"
+  Western: "fitted blouse", "crop top", "shift dress", "A-line dress", "wrap dress", "blazer"
+  └ Be specific: "A-line kurti" not just "kurti"
+
+- sleeveType: (sleeveless/spaghetti/cap sleeve/flutter/short sleeve/elbow-length/3-4 sleeve/full sleeve/bell sleeve/bishop sleeve)
+  └ Add details: "full sleeve with button cuffs" or "flutter sleeve, slightly sheer"
+
+- necklineType: (crew/round/V-neck/deep-V/scoop/U-neck/boat/square/sweetheart/off-shoulder/one-shoulder/halter/collared/mandarin/keyhole/cowl)
+  └ Add depth: "deep V-neck reaching mid-chest" or "high round neck at collarbone"
+
+- fitType: (tight/fitted/semi-fitted/regular/relaxed/loose/oversized/A-line/flared/bodycon)
+  └ Note variations: "fitted at bust, flared from waist"
+
+═══════════════════════════════════════════════════════════════════════════════
+FABRIC DETAILS (CRITICAL FOR REALISM):
+═══════════════════════════════════════════════════════════════════════════════
+- fabricType: Material with weight hint:
+  Light: chiffon, georgette, crepe, lawn cotton, voile
+  Medium: cotton, linen, rayon, jersey, poplin, silk
+  Heavy: denim, velvet, brocade, tweed, canvas
+  
+- fabricTexture: Visual/tactile properties:
+  (smooth/matte/lustrous/shiny/satin/textured/ribbed/woven/crepe-textured/embossed/crushed/pleated)
+  └ Add detail: "smooth matte cotton with slight natural wrinkle" or "lustrous silk with soft drape"
+
+═══════════════════════════════════════════════════════════════════════════════
+COLOR (EXACT - AI MUST MATCH PRECISELY):
+═══════════════════════════════════════════════════════════════════════════════
+- primaryColor: Precise color name with descriptors:
+  ✓ "deep burgundy wine with slight purple undertone"
+  ✓ "earthy terracotta orange, muted"
+  ✓ "bright coral pink, saturated"
+  ✗ "red" or "pink" (too vague)
+
+- colorDetails: Any variations, gradients, or multiple colors:
+  "solid throughout" or "ombre from cream at shoulders to dusty pink at hem" or "navy body with white piping"
+
+═══════════════════════════════════════════════════════════════════════════════
+PATTERN (DETAILED):
+═══════════════════════════════════════════════════════════════════════════════
+- patternType: (solid/printed/block-print/screen-print/embroidered/woven-pattern/striped/pinstriped/checked/plaid/tartan/floral/botanical/geometric/abstract/paisley/ikat/batik/tie-dye/animal-print/polka-dot/chevron)
+
+- patternDescription: Detailed description if not solid:
+  ✓ "large-scale rust and cream block print, irregular hand-stamped floral motifs, 3-4 inch repeat"
+  ✓ "delicate white thread embroidery at neckline and cuffs, floral vine pattern, ~2 inch border"
+  ✓ "vertical navy and white stripes, 1cm stripe width, evenly spaced"
+  "no pattern" for solids
+
+═══════════════════════════════════════════════════════════════════════════════
+CONSTRUCTION & DETAILS:
+═══════════════════════════════════════════════════════════════════════════════
+- designElements: EXHAUSTIVE array of ALL visible details:
+  Closures: ["front button placket with 5 gold buttons", "invisible back zipper", "side zip"]
+  Trims: ["gold piping at neckline", "lace hem", "tassel ties"]
+  Features: ["side slits 8 inches", "front pocket", "pleated front", "gathered waist", "ruffled tier"]
+  Embellishments: ["mirror work at yoke", "sequin border", "beaded neckline"]
+  
+- lengthStyle: Precise description:
+  Tops: (crop above navel/crop at waist/hip-length/tunic mid-thigh/long tunic above knee)
+  Dresses: (mini above mid-thigh/short mid-thigh/knee-length/midi below knee/midi calf-length/maxi ankle/maxi floor)
+
+═══════════════════════════════════════════════════════════════════════════════
+SUMMARY (FED DIRECTLY TO IMAGE AI):
+═══════════════════════════════════════════════════════════════════════════════
+- summary: Single sentence that captures the ESSENCE for exact replication. Format:
+  "[Color] [fabric] [garment type] with [key features], [fit], [length]"
+  
+  Example: "Rust orange block-print cotton straight-cut kurti with 3/4 sleeves, mandarin collar, gold button placket, relaxed fit, knee-length with side slits"
+
+BE THOROUGH. This analysis drives how the AI generates the garment on the new person.`
 
   try {
     console.log('👔 GPT-4o: Garment analysis...')
@@ -442,30 +629,65 @@ Return JSON with:
 }
 
 /**
- * Build a garment description for the prompt
+ * Build a structured garment description for the prompt
+ * Optimized for Gemini image generation - clear specification format
  */
 export function buildGarmentPromptFromAnalysis(analysis: GarmentAnalysis): string {
   const elements = analysis.designElements?.length > 0
-    ? `Details: ${analysis.designElements.join(', ')}.`
-    : ''
+    ? analysis.designElements.join(' | ')
+    : 'no special details'
 
-  return `GARMENT TO APPLY (Exact match required):
-Type: ${analysis.garmentType}
-Color: ${analysis.primaryColor} (${analysis.colorDetails})
-Fabric: ${analysis.fabricType}, ${analysis.fabricTexture}
-Neckline: ${analysis.necklineType}
-Sleeves: ${analysis.sleeveType}
-Fit: ${analysis.fitType}
-Length: ${analysis.lengthStyle}
-Pattern: ${analysis.patternType}${analysis.patternDescription !== 'no pattern' ? ` - ${analysis.patternDescription}` : ''}
-${elements}
+  const patternInfo = analysis.patternType === 'solid' || analysis.patternDescription === 'no pattern'
+    ? 'Solid color (no pattern)'
+    : `${analysis.patternType}: ${analysis.patternDescription}`
 
-ACTION (NON-NEGOTIABLE):
-- REMOVE the person's current outfit completely. No layering, no blending.
-- The GARMENT reference is the ONLY source of clothing.
-- The PERSON reference images are ONLY for identity (face/body). IGNORE their clothing entirely.
-- Do NOT keep any original clothing. Do NOT copy clothing from identity images.
+  return `👗 GARMENT SPECIFICATION (MUST MATCH EXACTLY)
 
-${analysis.summary}`
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ GARMENT IDENTITY                                                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Type: ${analysis.garmentType}                                               
+│ Fit: ${analysis.fitType}                                                    
+│ Length: ${analysis.lengthStyle}                                             
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ COLOR (MATCH PRECISELY)                                                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Primary: ${analysis.primaryColor}                                           
+│ Details: ${analysis.colorDetails}                                           
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ FABRIC                                                                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Material: ${analysis.fabricType}                                            
+│ Texture: ${analysis.fabricTexture}                                          
+│ Behavior: Add natural wrinkles, draping, fabric weight physics              
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ CONSTRUCTION                                                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Neckline: ${analysis.necklineType}                                          
+│ Sleeves: ${analysis.sleeveType}                                             
+│ Details: ${elements}                                                        
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PATTERN/PRINT                                                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ ${patternInfo}                                                              
+└─────────────────────────────────────────────────────────────────────────────┘
+
+📋 SUMMARY: ${analysis.summary}
+
+⚠️ CRITICAL CLOTHING RULES:
+1. COMPLETELY REMOVE the person's current outfit first
+2. The GARMENT reference image is the ONLY source for clothing
+3. IGNORE any clothing visible in person/identity reference images
+4. The garment must fit the person's body naturally with realistic fabric physics
+5. Add natural wrinkles at elbows, waist, and movement points
+6. Match garment color EXACTLY - do not shift hue or saturation`
 }
 
