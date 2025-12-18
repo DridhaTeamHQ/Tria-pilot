@@ -1,5 +1,51 @@
 import { createServiceClient } from '@/lib/auth'
 
+// Cache for buckets that have been verified/created
+const verifiedBuckets = new Set<string>()
+
+/**
+ * Ensure a bucket exists, create it if it doesn't
+ */
+async function ensureBucketExists(supabase: ReturnType<typeof createServiceClient>, bucket: string): Promise<void> {
+  // Skip if already verified this session
+  if (verifiedBuckets.has(bucket)) {
+    return
+  }
+
+  try {
+    // Check if bucket exists
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets()
+    
+    if (listError) {
+      console.warn('Could not list buckets:', listError.message)
+      // Continue anyway - the bucket might exist
+      return
+    }
+
+    const bucketExists = buckets?.some(b => b.name === bucket)
+    
+    if (!bucketExists) {
+      console.log(`Creating storage bucket: ${bucket}`)
+      const { error: createError } = await supabase.storage.createBucket(bucket, {
+        public: true, // Make it public for easy access to URLs
+        fileSizeLimit: 10 * 1024 * 1024, // 10MB limit
+      })
+      
+      if (createError && !createError.message.includes('already exists')) {
+        console.warn(`Could not create bucket ${bucket}:`, createError.message)
+        // Continue anyway - might be permissions issue but bucket exists
+      } else {
+        console.log(`✓ Created bucket: ${bucket}`)
+      }
+    }
+    
+    verifiedBuckets.add(bucket)
+  } catch (error) {
+    console.warn('Bucket check failed, continuing:', error)
+    // Continue anyway - bucket operations might still work
+  }
+}
+
 export async function saveUpload(
   file: Buffer | string,
   path: string,
@@ -9,6 +55,9 @@ export async function saveUpload(
   try {
     // Use service client to bypass RLS policies for server-side uploads
     const supabase = createServiceClient()
+
+    // Ensure bucket exists
+    await ensureBucketExists(supabase, bucket)
 
     // If file is base64 string, convert to buffer
     let fileBuffer: Buffer
@@ -70,4 +119,3 @@ export async function deleteUpload(path: string, bucket: string = 'uploads'): Pr
     throw error
   }
 }
-

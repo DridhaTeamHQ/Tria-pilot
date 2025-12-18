@@ -12,6 +12,17 @@ export type InstagramStylePack =
   | 'flash_party'
   | 'travel_journal'
   | 'surveillance_doc'
+  // Extended style packs for Higgsfield-style presets
+  | 'preserve_original'
+  | 'editorial_vogue'
+  | 'editorial_professional'
+  | 'travel_golden'
+  | 'travel_vacation'
+  | 'documentary_street'
+  | 'candid_instagram'
+  | 'candid_home'
+  | 'linkedin_professional'
+  | 'vogue_editorial'
 
 export type BackgroundFocusMode = 'moderate_bokeh' | 'sharper_bg'
 
