@@ -8,6 +8,7 @@ import {
   type ForensicFaceAnalysis,
   type GarmentAnalysis
 } from './face-analyzer'
+import { analyzeSubjectPhoto, type PhotoAnalysis } from './photo-analyzer'
 
 const getClient = () => new GoogleGenAI({ apiKey: getGeminiKey() })
 
@@ -434,11 +435,26 @@ function buildForensicEnhancedPrompt(
   scene: typeof SCENE_PRESETS[string] | null,
   styleKey: string,
   keepBackground: boolean,
-  identityCount: number
+  identityCount: number,
+  photoAnalysis?: PhotoAnalysis | null
 ): string {
   const style = STYLE_SETTINGS[styleKey] || STYLE_SETTINGS.iphone_candid
   const identityPrompt = buildIdentityPromptFromAnalysis(faceAnalysis)
   const garmentPrompt = buildGarmentPromptFromAnalysis(garmentAnalysis)
+
+  const captureHints = photoAnalysis
+    ? `CAPTURE MATCH (from original photo):
+- Camera: ${photoAnalysis.camera_summary}
+- Lighting: ${photoAnalysis.lighting_summary}
+- Realism: ${photoAnalysis.realism_constraints}
+- Lens hint: ${photoAnalysis.camera_manifest.focal_length_hint_mm}mm, DOF: ${photoAnalysis.camera_manifest.dof_hint}
+- WB: ${photoAnalysis.camera_manifest.wb_family}, Grain: ${photoAnalysis.camera_manifest.imperfections.grain_level}
+
+COMPOSITING AVOIDANCE:
+- Do NOT look like a cutout. No halo edges. Add subtle light wrap and ambient occlusion.
+- Add correct contact shadows on neck/under chin/under arms/where clothes touch body.
+- Match background blur, grain/noise, and compression to the subject photo.`
+    : ''
   
   const refExplanation = identityCount > 0
     ? `You have ${identityCount + 1} reference photos of the SAME PERSON. The LAST image is the GARMENT.`
@@ -456,6 +472,11 @@ ${identityPrompt}
 ${garmentPrompt}
 
 ═══════════════════════════════════════════════════════════════════════════════
+FACE SHAPE INVARIANCE (Anti \"face fattening\"):
+• Do NOT widen cheeks. Do NOT change jaw width. Do NOT change face roundness.
+• Do NOT resize head, do NOT warp facial geometry, do NOT change camera focal length.
+• Preserve the exact facial proportions from the person references.
+
 STRICT RULES (NON-NEGOTIABLE):
 • The ONLY identity source is the person reference images (Images 1-${identityCount + 1}).
 • The garment reference must be used ONLY for clothing. IGNORE any person/face in garment reference.
@@ -492,12 +513,19 @@ ${identityPrompt}
 ${garmentPrompt}
 
 ═══════════════════════════════════════════════════════════════════════════════
+FACE SHAPE INVARIANCE (Anti \"face fattening\"):
+• Do NOT widen cheeks. Do NOT change jaw width. Do NOT change face roundness.
+• Do NOT resize head, do NOT warp facial geometry, do NOT change camera focal length.
+• Preserve the exact facial proportions from the person references.
+
 STRICT RULES (NON-NEGOTIABLE):
 • Identity ONLY from person references. Garment reference is clothing ONLY.
 • Ignore any face/person in garment reference completely.
 • Do NOT change facial geometry, eye shape, nose, lips, jaw, skin tone, hairline.
 • Never blend identities. Never average faces.
 • If conflict: PERSON REFERENCES OVERRIDE.
+
+${captureHints}
 
 SCENE:
 📍 ${scene.description}
@@ -535,6 +563,9 @@ STRICT RULES:
 • Identity ONLY from person references. Garment reference is clothing ONLY.
 • Ignore any face/person in garment reference completely.
 • Never blend identities. Never average faces.
+
+FACE SHAPE INVARIANCE:
+• Do NOT widen cheeks or jaw. Do NOT change face roundness. Do NOT resize head.
 
 Apply the garment to this person. Keep their identity EXACTLY as described.
 Natural skin texture, visible pores, no beautification.`
@@ -596,7 +627,8 @@ async function renderTwoStepForensic(
   scene: typeof SCENE_PRESETS[string],
   styleKey: string,
   aspectRatio: string,
-  resolution?: string
+  resolution?: string,
+  photoAnalysis?: PhotoAnalysis | null
 ): Promise<string> {
   const identityCount = identityImages.length
   const style = STYLE_SETTINGS[styleKey] || STYLE_SETTINGS.iphone_candid
@@ -664,6 +696,16 @@ OUTPUT: The same person, same face, wearing the garment.`
 
   console.log('   Step 2: Scene Application (identity locked)')
 
+  const captureHints = photoAnalysis
+    ? `CAPTURE MATCH (from original photo):
+- Camera: ${photoAnalysis.camera_summary}
+- Lighting: ${photoAnalysis.lighting_summary}
+- Realism: ${photoAnalysis.realism_constraints}
+- Lens hint: ${photoAnalysis.camera_manifest.focal_length_hint_mm}mm, DOF: ${photoAnalysis.camera_manifest.dof_hint}
+- WB: ${photoAnalysis.camera_manifest.wb_family}, Grain: ${photoAnalysis.camera_manifest.imperfections.grain_level}
+`
+    : ''
+
   const step2Prompt = `STEP 2: SCENE PLACEMENT (IDENTITY LOCKED)
 
 Take this person EXACTLY as they appear in the provided image and place them in a new environment.
@@ -672,6 +714,8 @@ STRICT RULES:
 • DO NOT change the face. Do NOT change skin tone. Do NOT change hairline.
 • Never blend identities. Never average faces.
 • Clothing must remain exactly as in Step 1.
+• Anti \"face fattening\": do NOT widen cheeks, do NOT widen jaw, do NOT change face roundness.
+• Anti cutout: no halo edges, add subtle light wrap + ambient occlusion + contact shadows.
 
 NEW ENVIRONMENT:
 📍 ${scene.description}
@@ -680,6 +724,14 @@ NEW ENVIRONMENT:
 
 STYLE:
 ${style}
+
+${captureHints}
+
+INTEGRATION (avoid Photoshop look):
+- Ensure the subject and background share the same noise/grain and compression characteristics.
+- Match shadow direction and intensity between subject and environment.
+- Add contact shadows: under chin, under arms, around neckline, hair-to-skin edges, where clothing touches body.
+- Match depth-of-field: if background is soft, subject edges should not be unnaturally sharp; if background is sharp, keep realistic micro-contrast.
 
 Make the person look naturally photographed in this location. Background must be sharp and realistic (no AI mush).`
 
@@ -1043,6 +1095,7 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
   let faceAnalysis: ForensicFaceAnalysis | null = null
   let garmentAnalysis: GarmentAnalysis | null = null
   let garmentForGemini = cleanGarment
+  let photoAnalysis: PhotoAnalysis | null = null
 
   try {
     // ============================================================
@@ -1052,14 +1105,17 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
       console.log('\n🔬 FORENSIC ANALYSIS MODE')
       const analysisStart = Date.now()
       
-      // Run face and garment analysis in parallel
-      const [faceResult, garmentResult] = await Promise.all([
+      // Run analysis in parallel (and optionally capture analysis for better scene integration)
+      const [faceResult, garmentResult, photoResult] = await Promise.all([
         analyzeFaceForensic(cleanSubject, cleanIdentityImages),
         analyzeGarmentForensic(cleanGarment),
+        // Only needed for scene-change realism + integration (avoids Photoshop cutout look)
+        !keepBackground ? analyzeSubjectPhoto(cleanSubject) : Promise.resolve(null),
       ])
       
       faceAnalysis = faceResult
       garmentAnalysis = garmentResult
+      photoAnalysis = photoResult
       
       // If garment reference contains a person/face, extract a garment-only reference to prevent face bleed
       if (garmentAnalysis.containsPerson || garmentAnalysis.containsFace) {
@@ -1079,7 +1135,8 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
         scene,
         styleKey,
         keepBackground,
-        cleanIdentityImages.length
+        cleanIdentityImages.length,
+        photoAnalysis
       )
       
       console.log(`   Prompt length: ${forensicPrompt.length} chars`)
@@ -1097,7 +1154,8 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
           scene,
           styleKey,
           aspectRatio,
-          resolution
+          resolution,
+          photoAnalysis
         )
       } else {
         resultBase64 = await renderSingleStep(
