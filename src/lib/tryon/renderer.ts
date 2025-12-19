@@ -5,7 +5,15 @@ import {
   type GarmentAnalysis
 } from './face-analyzer'
 import { getStylePreset, type StylePreset } from './style-presets'
-import { buildFinalTryOnPrompt } from './prompt-composer'
+import { getTryOnPresetV3 } from './presets'
+import {
+  buildDualEnginePipeline,
+  enforceModelRouting,
+  validatePipelineInputs,
+  logIdentitySafetyCheck,
+  type PipelineMode,
+  type ModelType
+} from './dual-engine'
 
 const getClient = () => new GoogleGenAI({ apiKey: getGeminiKey() })
 
@@ -1163,39 +1171,39 @@ async function renderSingleStep(
   const personImageCount = 1 // Image 1 is person
   const garmentImageCount = 1 // Image 2 is garment
   const identityImageCount = 0 // No additional identity refs in Phase 3
-  
+
   console.log(`\n   🔍 DEBUG & SAFETY ASSERTIONS (renderSingleStep):`)
   console.log(`      Final assembled prompt preview: ${prompt.slice(0, 100)}...`)
   console.log(`      Images sent to Gemini: ${imageCount} (MUST BE 2)`)
   console.log(`      Image 1 (person): ${personImageCount} (MUST BE 1)`)
   console.log(`      Image 2 (garment): ${garmentImageCount} (MUST BE 1)`)
   console.log(`      Identity refs: ${identityImageCount} (MUST BE 0)`)
-  
+
   // HARD FAILURE if contract violated
   if (imageCount !== 2) {
     const error = new Error(`ARCHITECTURE VIOLATION: Expected exactly 2 images, got ${imageCount}`)
     console.error(`   ❌ ${error.message}`)
     throw error
   }
-  
+
   if (personImageCount !== 1) {
     const error = new Error(`ARCHITECTURE VIOLATION: Expected 1 person image (Image 1), got ${personImageCount}`)
     console.error(`   ❌ ${error.message}`)
     throw error
   }
-  
+
   if (garmentImageCount !== 1) {
     const error = new Error(`ARCHITECTURE VIOLATION: Expected 1 garment image (Image 2), got ${garmentImageCount}`)
     console.error(`   ❌ ${error.message}`)
     throw error
   }
-  
+
   if (identityImageCount !== 0) {
     const error = new Error(`ARCHITECTURE VIOLATION: Expected 0 identity refs, got ${identityImageCount}`)
     console.error(`   ❌ ${error.message}`)
     throw error
   }
-  
+
   console.log(`   ✅ All architecture assertions passed`)
 
   const imageConfig: ImageConfig = { aspectRatio } as any
@@ -1488,32 +1496,64 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
 
   try {
     // ============================================================
-    // GARMENT ANALYSIS (SECONDARY - SUPPORTING TEXT ONLY)
+    // GARMENT ANALYSIS - DISABLED FOR FLASH (VISUAL ONLY)
     // ============================================================
-    console.log('\n👔 Analyzing garment for supporting text description...')
-    const analysisStart = Date.now()
+    // FLASH pipeline: garmentText MUST be empty to keep prompt LOCKED
+    // Image 2 is used VISUALLY only - no text injection
+    let garmentDescription = ''
 
-    // Analyze garment for minimal supporting text (color + type only)
-    // Garment image is PRIMARY reference (sent as Image 2)
-    const garmentAnalysis = await analyzeGarmentForensic(cleanGarment)
-    const garmentDescription = `${garmentAnalysis.primaryColor || 'colored'} ${garmentAnalysis.garmentType || 'garment'}`
-
-    console.log(`   ✓ Supporting garment text: ${garmentDescription}`)
-    console.log(`   ✓ Analysis complete in ${((Date.now() - analysisStart) / 1000).toFixed(1)}s`)
-    console.log(`   📸 Garment image will be sent as Image 2 (visual reference)`)
+    if (!isPro) {
+      // FLASH: Skip GPT analysis, use Image 2 as visual reference only
+      console.log('\n👔 FLASH Pipeline: Using Image 2 visually only (no text analysis)')
+      console.log('   📸 Garment image will be sent as Image 2 (visual reference)')
+    } else {
+      // PRO: Allow garment text analysis
+      console.log('\n👔 PRO Pipeline: Analyzing garment for supporting text...')
+      const analysisStart = Date.now()
+      const garmentAnalysis = await analyzeGarmentForensic(cleanGarment)
+      garmentDescription = `${garmentAnalysis.primaryColor || 'colored'} ${garmentAnalysis.garmentType || 'garment'}`
+      console.log(`   ✓ Supporting garment text: ${garmentDescription}`)
+      console.log(`   ✓ Analysis complete in ${((Date.now() - analysisStart) / 1000).toFixed(1)}s`)
+      console.log(`   📸 Garment image will be sent as Image 2 (visual reference)`)
+    }
 
     // ============================================================
     // STYLE PRESET LOOKUP (PHASE 2)
+    // Supports both UI presets (presets.ts) AND style presets (style-presets.ts)
     // ============================================================
     let selectedStylePreset: StylePreset | null = null
+    let uiPreset = stylePresetId ? getTryOnPresetV3(stylePresetId) : null
+
     if (stylePresetId) {
+      // First, try to find as a style preset directly
       selectedStylePreset = getStylePreset(stylePresetId)
-      if (!selectedStylePreset) {
-        console.warn(`   ⚠️  Style preset "${stylePresetId}" not found, using default`)
+
+      // If not found, try to find as a UI preset and map to style preset
+      if (!selectedStylePreset && uiPreset) {
+        // UI presets have a style_pack field that maps to style presets
+        const stylePackId = uiPreset.style_pack?.replace(/_/g, '_') || 'casual_lifestyle'
+        // Try common mappings
+        const stylePackMappings: Record<string, string> = {
+          'candid_iphone': 'casual_lifestyle',
+          'candid_home': 'casual_lifestyle',
+          'candid_instagram': 'influencer_social',
+          'documentary_street': 'editorial_street',
+          'editorial_vogue': 'high_fashion_runway',
+          'editorial_professional': 'studio_catalog',
+          'travel_golden': 'influencer_social',
+          'travel_vacation': 'casual_lifestyle',
+          'travel_journal': 'casual_lifestyle',
+          'vogue_editorial': 'high_fashion_runway',
+          'linkedin_professional': 'studio_catalog',
+          'preserve_original': 'casual_lifestyle',
+        }
+        const mappedPresetId = stylePackMappings[stylePackId] || 'casual_lifestyle'
+        selectedStylePreset = getStylePreset(mappedPresetId)
+        console.log(`   📦 UI Preset "${stylePresetId}" → Style Pack "${mappedPresetId}"`)
       }
     }
 
-    // Default to casual_lifestyle if no preset or preset not found
+    // Default to casual_lifestyle if no preset found
     if (!selectedStylePreset) {
       selectedStylePreset = getStylePreset('casual_lifestyle')
     }
@@ -1526,31 +1566,59 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
     console.log(`   🎨 Style Preset: ${selectedStylePreset.name} (${selectedStylePreset.id})`)
 
     // ============================================================
-    // GPT-4o MINI PROMPT COMPOSITION (PHASE 3)
+    // DUAL-ENGINE PIPELINE (PHASE 4) - FLASH vs PRO SEPARATION
     // ============================================================
-    console.log('\n🤖 GPT-4o mini: Composing prompt with role separation...')
-    const promptStart = Date.now()
+    // FLASH: Identity-critical, locked prompt, no beautification
+    // PRO_IDENTITY_LOCKED: High-realism identity-critical (for try-on)
+    // PRO: Aesthetic/UGC only (NOT for try-on)
 
-    const finalPrompt = await buildFinalTryOnPrompt({
-      garmentDescription,
-      stylePreset: selectedStylePreset,
-      poseHint: undefined, // Can be extended later
-      sceneHint: keepBackground ? 'keep original background' : backgroundInstruction,
+    const pipelineMode: PipelineMode = 'tryon'
+    // For try-on: use pro_identity_locked for high quality, flash for fast
+    const modelType: ModelType = isPro ? 'pro_identity_locked' : 'flash'
+
+    // Enforce routing rules
+    enforceModelRouting(pipelineMode, modelType)
+
+    // Build pipeline-specific prompt
+    const pipelineResult = buildDualEnginePipeline({
+      mode: pipelineMode,
+      model: modelType,
+      presetId: stylePresetId
     })
 
-    console.log(`   ✓ Prompt composed in ${((Date.now() - promptStart) / 1000).toFixed(1)}s`)
-    console.log(`   📝 Final prompt length: ${finalPrompt.length} chars`)
+    // Validate pipeline inputs
+    const validation = validatePipelineInputs(
+      2, // imageCount
+      true, // hasPersonImage
+      true, // hasGarmentImage
+      pipelineResult.prompt
+    )
+
+    if (!validation.valid) {
+      console.error('❌ PIPELINE VALIDATION FAILED:', validation.errors)
+      throw new Error(`Pipeline validation failed: ${validation.errors.join(', ')}`)
+    }
+
+    if (validation.warnings.length > 0) {
+      console.warn('⚠️ Pipeline warnings:', validation.warnings)
+    }
+
+    const finalPrompt = pipelineResult.prompt
+    const pipelineTemperature = pipelineResult.temperature
+
+    console.log(`\n🔧 DUAL-ENGINE PIPELINE RESULT:`)
+    console.log(`   Pipeline: ${pipelineResult.pipeline.toUpperCase()}`)
+    console.log(`   Model: ${pipelineResult.model}`)
+    console.log(`   Temperature: ${pipelineTemperature}`)
+    console.log(`   Assertions: ${pipelineResult.assertions.join(', ')}`)
+    console.log(`   Prompt length: ${finalPrompt.length} chars`)
     console.log(`\n   📝 FINAL ASSEMBLED PROMPT (full text):`)
     console.log(`   ${'─'.repeat(70)}`)
     console.log(`   ${finalPrompt.split('\n').join('\n   ')}`)
     console.log(`   ${'─'.repeat(70)}`)
-    console.log(`\n   🔍 PROMPT STRUCTURE VERIFICATION:`)
-    console.log(`      ✓ Identity lock block: Present (hard-coded)`)
-    console.log(`      ✓ Garment role block: Present (hard-coded)`)
-    console.log(`      ✓ Scene/style text: Present (from GPT-4o mini)`)
 
     // ============================================================
-    // SINGLE-STEP RENDER (TWO IMAGES) - PHASE 3 CONTRACT
+    // SINGLE-STEP RENDER (TWO IMAGES) - DUAL-ENGINE CONTRACT
     // ============================================================
     console.log('\n🎬 Rendering with Gemini (Image 1: person, Image 2: garment)...')
     resultBase64 = await renderSingleStep(
@@ -1558,9 +1626,9 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
       model,
       cleanSubject, // Image 1: Person (identity source)
       cleanGarment, // Image 2: Garment (visual reference)
-      finalPrompt, // GPT-4o mini composed prompt with role separation
+      finalPrompt, // Dual-engine composed prompt
       aspectRatio,
-      temperature,
+      pipelineTemperature, // Use pipeline-specific temperature
       resolution
     )
 

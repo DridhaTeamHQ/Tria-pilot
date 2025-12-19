@@ -21,6 +21,16 @@ import {
 import { useDeleteGeneration, useGenerations } from '@/lib/react-query/hooks'
 import { toast } from 'sonner'
 
+// Helper to use image proxy for Supabase URLs
+function getProxyUrl(imageUrl: string | null | undefined): string {
+    if (!imageUrl) return ''
+    // If it's a Supabase URL, route through our proxy for better error handling
+    if (imageUrl.includes('supabase.co')) {
+        return `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`
+    }
+    return imageUrl
+}
+
 // Animation variants
 const containerVariants = {
     hidden: { opacity: 0 },
@@ -34,13 +44,13 @@ const containerVariants = {
 }
 
 const cardVariants = {
-    hidden: { 
-        opacity: 0, 
+    hidden: {
+        opacity: 0,
         y: 30,
         scale: 0.95
     },
-    visible: { 
-        opacity: 1, 
+    visible: {
+        opacity: 1,
         y: 0,
         scale: 1,
         transition: {
@@ -53,8 +63,8 @@ const cardVariants = {
 
 const fadeInUp = {
     hidden: { opacity: 0, y: 20 },
-    visible: { 
-        opacity: 1, 
+    visible: {
+        opacity: 1,
         y: 0,
         transition: {
             type: "spring",
@@ -66,8 +76,8 @@ const fadeInUp = {
 
 const scaleIn = {
     hidden: { opacity: 0, scale: 0.8 },
-    visible: { 
-        opacity: 1, 
+    visible: {
+        opacity: 1,
         scale: 1,
         transition: {
             type: "spring",
@@ -75,8 +85,8 @@ const scaleIn = {
             damping: 25
         }
     },
-    exit: { 
-        opacity: 0, 
+    exit: {
+        opacity: 0,
         scale: 0.9,
         transition: { duration: 0.2 }
     }
@@ -116,7 +126,7 @@ export default function GenerationsPage() {
         switch (status) {
             case 'COMPLETED':
                 return (
-                    <motion.span 
+                    <motion.span
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-600 text-xs font-medium rounded-full border border-emerald-100"
@@ -127,7 +137,7 @@ export default function GenerationsPage() {
                 )
             case 'PROCESSING':
                 return (
-                    <motion.span 
+                    <motion.span
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-600 text-xs font-medium rounded-full border border-amber-100"
@@ -138,7 +148,7 @@ export default function GenerationsPage() {
                 )
             case 'FAILED':
                 return (
-                    <motion.span 
+                    <motion.span
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-50 text-red-600 text-xs font-medium rounded-full border border-red-100"
@@ -190,7 +200,7 @@ export default function GenerationsPage() {
                 >
                     <div className="w-12 h-12 rounded-full border-2 border-charcoal/10 border-t-charcoal/60" />
                 </motion.div>
-                <motion.p 
+                <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.3 }}
@@ -229,7 +239,7 @@ export default function GenerationsPage() {
         <div className="min-h-screen bg-gradient-to-b from-cream via-cream to-white pt-24 pb-16">
             <div className="container mx-auto px-4 sm:px-6">
                 {/* Header */}
-                <motion.div 
+                <motion.div
                     initial="hidden"
                     animate="visible"
                     variants={fadeInUp}
@@ -250,10 +260,10 @@ export default function GenerationsPage() {
                             <span className="absolute bottom-0 left-0 w-0 h-px bg-charcoal group-hover:w-full transition-all duration-300" />
                         </span>
                     </Link>
-                    
+
                     <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
                         <div>
-                            <motion.h1 
+                            <motion.h1
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ type: "spring", stiffness: 300, damping: 25 }}
@@ -261,7 +271,7 @@ export default function GenerationsPage() {
                             >
                                 Your <span className="italic text-charcoal/70">Generations</span>
                             </motion.h1>
-                            <motion.p 
+                            <motion.p
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 transition={{ delay: 0.2 }}
@@ -271,7 +281,7 @@ export default function GenerationsPage() {
                                 {completedGenerations.length} try-on images generated
                             </motion.p>
                         </div>
-                        
+
                         <motion.div
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
@@ -300,14 +310,14 @@ export default function GenerationsPage() {
                             <div className="absolute -top-20 -right-20 w-60 h-60 bg-peach/20 rounded-full blur-3xl" />
                             <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-charcoal/5 rounded-full blur-3xl" />
                         </div>
-                        
+
                         <motion.div
-                            animate={{ 
+                            animate={{
                                 y: [0, -8, 0],
                                 rotate: [0, 5, 0]
                             }}
-                            transition={{ 
-                                duration: 4, 
+                            transition={{
+                                duration: 4,
                                 repeat: Infinity,
                                 ease: "easeInOut"
                             }}
@@ -333,7 +343,7 @@ export default function GenerationsPage() {
                         </motion.div>
                     </motion.div>
                 ) : (
-                    <motion.div 
+                    <motion.div
                         variants={containerVariants}
                         initial="hidden"
                         animate="visible"
@@ -346,8 +356,8 @@ export default function GenerationsPage() {
                                 whileHover={{ y: -6 }}
                                 className="group bg-white rounded-2xl overflow-hidden border border-charcoal/5 shadow-sm hover:shadow-xl hover:border-charcoal/10 transition-all duration-500"
                             >
-                                {/* Image */}
-                                {job.outputImagePath ? (
+                                {/* Image - Only render when COMPLETED and outputImagePath exists */}
+                                {job.status === 'COMPLETED' && job.outputImagePath ? (
                                     <div
                                         className="aspect-[3/4] overflow-hidden relative cursor-pointer"
                                         onClick={() => openLightbox(job)}
@@ -375,14 +385,14 @@ export default function GenerationsPage() {
                                         />
                                         {/* Gradient overlay */}
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                                        
+
                                         {/* View button */}
-                                        <motion.div 
+                                        <motion.div
                                             initial={{ opacity: 0, y: 10 }}
                                             whileHover={{ opacity: 1, y: 0 }}
                                             className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300"
                                         >
-                                            <motion.span 
+                                            <motion.span
                                                 whileHover={{ scale: 1.05 }}
                                                 whileTap={{ scale: 0.95 }}
                                                 className="px-5 py-2.5 bg-white/95 backdrop-blur-sm rounded-full text-sm font-medium text-charcoal flex items-center gap-2 shadow-lg"
@@ -470,7 +480,7 @@ export default function GenerationsPage() {
                         data-lightbox="true"
                     >
                         {/* Top toolbar - properly aligned */}
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0, y: -20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -20 }}
@@ -499,7 +509,7 @@ export default function GenerationsPage() {
                                         </>
                                     )}
                                 </motion.button>
-                                
+
                                 <motion.button
                                     onClick={() => requestDelete(selectedJob)}
                                     whileHover={{ scale: 1.05 }}
@@ -535,9 +545,9 @@ export default function GenerationsPage() {
                                 initial={{ scale: 0.85, opacity: 0, y: 20 }}
                                 animate={{ scale: 1, opacity: 1, y: 0 }}
                                 exit={{ scale: 0.9, opacity: 0, y: 10 }}
-                                transition={{ 
-                                    type: "spring", 
-                                    stiffness: 300, 
+                                transition={{
+                                    type: "spring",
+                                    stiffness: 300,
                                     damping: 25,
                                     delay: 0.05
                                 }}
@@ -565,7 +575,7 @@ export default function GenerationsPage() {
                         </div>
 
                         {/* Bottom info bar */}
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}
@@ -619,7 +629,7 @@ export default function GenerationsPage() {
                                     <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent" />
                                 </div>
                             )}
-                            
+
                             <div className="p-6 -mt-8 relative">
                                 <motion.div
                                     initial={{ scale: 0 }}
@@ -629,14 +639,14 @@ export default function GenerationsPage() {
                                 >
                                     <Trash2 className="w-7 h-7 text-red-500" />
                                 </motion.div>
-                                
+
                                 <h3 className="text-xl font-serif text-charcoal text-center mb-2">
                                     Delete this image?
                                 </h3>
                                 <p className="text-sm text-charcoal/50 text-center mb-6">
                                     This action cannot be undone. The image will be permanently removed from your account.
                                 </p>
-                                
+
                                 <div className="grid grid-cols-2 gap-3">
                                     <motion.button
                                         onClick={() => setDeleteConfirm(null)}

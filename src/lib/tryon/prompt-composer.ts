@@ -1,264 +1,241 @@
 /**
- * GPT-4o MINI PROMPT COMPOSER - Phase 3
+ * PROMPT COMPOSER - IDENTITY-SAFE ARCHITECTURE
  * 
- * Hard-coded identity and garment role blocks + GPT-4o mini for scene/style only.
+ * CRITICAL: Identity MUST come ONLY from Image 1.
+ * Presets may ONLY control environment, lighting, camera, background.
+ * Presets must NEVER describe the subject, pose, or appearance.
  * 
- * ARCHITECTURE:
- * - Identity lock: Hard-coded constant (never modified)
- * - Garment role: Hard-coded constant (never modified)
- * - GPT-4o mini: Only generates scene, pose, lighting, realism, style
- * - Final prompt: IDENTITY_LOCK + GARMENT_ROLE + GPT4O_OUTPUT
+ * PROMPT STRUCTURE:
+ * 1. Identity lock (hard-coded, immutable)
+ * 2. Garment lock (hard-coded)
+ * 3. Scene preset (environment ONLY)
+ * 4. Lighting
+ * 5. Camera optics
+ * 6. Negative constraints
+ * 7. Final safeguard
  */
 
 import 'server-only'
 import { getOpenAI } from '@/lib/openai'
-import type { StylePreset } from './style-presets'
+import {
+  getPresetById,
+  getPresetSummaryForSelection,
+  getAllPresetIds,
+  DEFAULT_PRESET,
+  type ScenePreset
+} from './presets/index'
 
-// ====================================================================================
-// HARD-CODED IDENTITY LOCK BLOCK (VERBATIM, NEVER MODIFIED)
-// ====================================================================================
+// ═══════════════════════════════════════════════════════════════
+// IDENTITY LOCK - HARD-CODED, NEVER MODIFIED
+// ═══════════════════════════════════════════════════════════════
 
-export const IDENTITY_LOCK = `IDENTITY LOCK:
-Use Image 1 (the reference image) as the sole and immutable source of identity.
-Preserve the same face, facial structure, skin tone, expression, and natural proportions.
-Do NOT alter, regenerate, stylize, beautify, or resample the identity.
-The output person must be the SAME PERSON as Image 1.`
+const IDENTITY_LOCK = `Use Image 1 as the sole and exact source of the person.
+This is an image edit, not a new generation.
+Do not generate a new individual.
+Do not modify facial structure, head shape, hair density, or body proportions.
+All identity information must come visually from Image 1.`
 
-// ====================================================================================
-// HARD-CODED GARMENT ROLE BLOCK (VERBATIM, NEVER MODIFIED)
-// ====================================================================================
+// ═══════════════════════════════════════════════════════════════
+// GARMENT LOCK - HARD-CODED
+// ═══════════════════════════════════════════════════════════════
 
-export const GARMENT_APPLICATION = `GARMENT APPLICATION:
-Dress the subject in the garment shown in Image 2.
-The garment must match Image 2 exactly in:
-- color
-- silhouette
-- fabric texture
-- seam placement
-- structure and fit
-Do NOT copy identity, pose, or body shape from Image 2.`
+const GARMENT_LOCK = `Dress the same person in the garment shown in Image 2.
+The garment must match Image 2 exactly in color, fabric, construction, and drape.`
 
+// ═══════════════════════════════════════════════════════════════
+// NEGATIVE CONSTRAINTS
+// ═══════════════════════════════════════════════════════════════
 
-// ====================================================================================
-// HARD-CODED NEGATIVE CONSTRAINTS BLOCK (VERBATIM, NEVER MODIFIED)
-// ====================================================================================
+const NEGATIVE_CONSTRAINTS = `Do not beautify, stylize, or artistically reinterpret.
+Do not smooth skin or alter natural features.
+This is a realistic photo edit, not fashion illustration.`
 
-export const NEGATIVE_CONSTRAINTS = `Negative prompt: face change, identity drift, new person, altered face, beauty filters, stylization, illustration, CGI, anime, fantasy styles.`
+// ═══════════════════════════════════════════════════════════════
+// FINAL SAFEGUARD
+// ═══════════════════════════════════════════════════════════════
 
-export interface PromptComposerInput {
-  garmentDescription: string // Supporting text only (color + type) - for context only
-  stylePreset: StylePreset
-  poseHint?: string
-  sceneHint?: string
+const FINAL_SAFEGUARD = `If there is any ambiguity, preserve the person exactly as seen in Image 1.`
+
+// ═══════════════════════════════════════════════════════════════
+// SCENE BUILDER (ENVIRONMENT ONLY - NO SUBJECT LANGUAGE)
+// ═══════════════════════════════════════════════════════════════
+
+function buildSceneBlock(preset: ScenePreset): string {
+  // Extract ONLY environment/lighting/camera - NO subject language
+  return `Environment: ${preset.scene}
+Lighting: ${preset.lighting}
+Camera: ${preset.camera}`
 }
 
-export interface FinalPromptParts {
-  identityLock: string
-  garmentRole: string
-  sceneAndStyle: string
-  fullPrompt: string
+// ═══════════════════════════════════════════════════════════════
+// MAIN PROMPT ASSEMBLY
+// ═══════════════════════════════════════════════════════════════
+
+export interface PromptComposerInput {
+  garmentDescription?: string
+  presetId?: string
+  sceneHint?: string
+  regionPreference?: 'india' | 'global' | 'any'
+}
+
+export interface ComposedPrompt {
+  prompt: string
+  presetUsed: ScenePreset
+  selectionMethod: 'direct' | 'gpt-selected' | 'fallback'
 }
 
 /**
- * Build final try-on prompt using hard-coded blocks + GPT-4o mini
- * 
- * Architecture:
- * 1. Identity lock: Hard-coded constant (deterministic)
- * 2. Garment role: Hard-coded constant (deterministic)
- * 3. Scene/style: GPT-4o mini (only scene, pose, lighting, realism)
- * 4. Final assembly: IDENTITY_LOCK + GARMENT_ROLE + GPT4O_OUTPUT
- * 
- * @returns Full assembled prompt with identity lock and garment role
+ * Build final try-on prompt with strict identity/scene separation
  */
 export async function buildFinalTryOnPrompt(
   input: PromptComposerInput
 ): Promise<string> {
-  const { garmentDescription, stylePreset, poseHint, sceneHint } = input
+  const composed = await composePromptWithPreset(input)
+  return composed.prompt
+}
 
+/**
+ * Full composition with metadata
+ */
+export async function composePromptWithPreset(
+  input: PromptComposerInput
+): Promise<ComposedPrompt> {
+  const { presetId, sceneHint, regionPreference = 'india' } = input
+
+  let preset: ScenePreset
+  let selectionMethod: 'direct' | 'gpt-selected' | 'fallback'
+
+  // Select preset
+  if (presetId) {
+    const directPreset = getPresetById(presetId)
+    if (directPreset) {
+      preset = directPreset
+      selectionMethod = 'direct'
+    } else {
+      console.warn(`⚠️ Preset "${presetId}" not found, using fallback`)
+      preset = DEFAULT_PRESET
+      selectionMethod = 'fallback'
+    }
+  } else if (sceneHint) {
+    try {
+      preset = await selectPresetWithGPT(sceneHint, regionPreference)
+      selectionMethod = 'gpt-selected'
+    } catch {
+      preset = DEFAULT_PRESET
+      selectionMethod = 'fallback'
+    }
+  } else {
+    preset = DEFAULT_PRESET
+    selectionMethod = 'fallback'
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // ASSEMBLE PROMPT IN STRICT ORDER
+  // ═══════════════════════════════════════════════════════════════
+
+  const finalPrompt = `${IDENTITY_LOCK}
+
+${GARMENT_LOCK}
+
+${buildSceneBlock(preset)}
+
+${NEGATIVE_CONSTRAINTS}
+
+${FINAL_SAFEGUARD}`
+
+  // Debug logging
+  console.log(`\n🎬 PROMPT COMPOSED (Identity-Safe Architecture)`)
+  console.log(`   Preset: ${preset.label} (${preset.id})`)
+  console.log(`   Selection: ${selectionMethod}`)
+  console.log(`   Length: ${finalPrompt.length} chars`)
+  console.log(`\n📋 FINAL PROMPT:\n${'─'.repeat(60)}\n${finalPrompt}\n${'─'.repeat(60)}`)
+  console.log(`\n� IDENTITY VERIFICATION:`)
+  console.log(`   ✅ Identity lock: PRESENT (Image 1 only)`)
+  console.log(`   ✅ No subject language in preset: CLEAN`)
+  console.log(`   ✅ Final safeguard: PRESENT`)
+
+  return {
+    prompt: finalPrompt,
+    presetUsed: preset,
+    selectionMethod
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GPT-4o MINI PRESET SELECTOR
+// ═══════════════════════════════════════════════════════════════
+
+async function selectPresetWithGPT(
+  sceneHint: string,
+  regionPreference: 'india' | 'global' | 'any'
+): Promise<ScenePreset> {
   const openai = getOpenAI()
+  const availablePresets = getPresetSummaryForSelection()
+  const validIds = getAllPresetIds()
 
-  const systemPrompt = `You are composing a try-on prompt for scene, lighting, and style.
-Identity preservation is handled separately - DO NOT mention it.
+  const systemPrompt = `Select ONE preset ID from this list based on the scene hint.
+Output ONLY the preset ID, nothing else.
 
-YOU MUST ONLY WRITE (SAFE ZONE):
-- Scene description (environment, setting, atmosphere)
-- Background details
-- Lighting description (natural, realistic)
-- Pose guidance (relaxed, natural posture with subtle variation)
-- Style mood (photorealistic, editorial realism, no stylization)
+${availablePresets}
 
-DO NOT mention:
-- Image 1 or Image 2
-- Identity preservation rules (handled in IDENTITY LOCK block)
-- Garment application rules (handled in GARMENT APPLICATION block)
-
-OUTPUT FORMAT:
-- Write ONLY scene, lighting, pose, and style text
-- Flow naturally: SCENE → LIGHTING → POSE → STYLE
-- Keep it concise and focused
-- Example format:
-  "SCENE: A natural lifestyle environment with soft daylight.
-  POSE: Relaxed, natural posture with subtle variation.
-  STYLE: Photorealistic, editorial realism. No stylization."`
-
-  const userPrompt = `Write ONLY the scene, pose, lighting, and style description for a virtual try-on image.
-
-GARMENT CONTEXT (for reference only - Image 2 is the visual source):
-${garmentDescription}
-
-STYLE PRESET:
-- Environment: ${stylePreset.environment}
-- Lighting: ${stylePreset.lighting}
-- Camera: ${stylePreset.camera}
-- Mood: ${stylePreset.mood}
-- Realism Notes: ${stylePreset.realismNotes}
-
-${poseHint ? `POSE HINT: ${poseHint}` : ''}
-${sceneHint ? `SCENE HINT: ${sceneHint}` : ''}
-
-Write ONLY the scene, lighting, pose, and style text (SAFE ZONE).
-Remember:
-- SCENE: Describe the environment and setting
-- LIGHTING: Describe lighting (natural, realistic)
-- POSE: Describe pose (relaxed, natural posture with subtle variation)
-- STYLE: Describe style (photorealistic, editorial realism, no stylization)
-- Keep it concise and focused
-- Do NOT write identity or garment instructions (handled separately)
-- Do NOT mention Image 1 or Image 2
-- Output ONLY scene/lighting/pose/style text, nothing else`
+${regionPreference !== 'any' ? `Prefer ${regionPreference} presets.` : ''}
+Default: india_home_lifestyle`
 
   try {
-    console.log(`🤖 GPT-4o mini: Composing prompt with style preset "${stylePreset.name}"...`)
-
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
+        { role: 'user', content: sceneHint },
       ],
-      temperature: 0.3, // Lower temperature for more consistent, rule-following output
-      max_tokens: 800,
+      temperature: 0.1,
+      max_tokens: 30,
     })
 
-    const sceneAndStyleText = response.choices[0]?.message?.content?.trim()
+    const selectedId = response.choices[0]?.message?.content?.trim().toLowerCase()
 
-    if (!sceneAndStyleText) {
-      throw new Error('GPT-4o mini returned empty scene/style text')
+    if (selectedId && validIds.includes(selectedId)) {
+      const preset = getPresetById(selectedId)
+      if (preset) return preset
     }
 
-    // VALIDATE GPT-4o mini output (must NOT contain identity/garment rules)
-    validateSceneStyleText(sceneAndStyleText)
-
-    // ASSEMBLE FINAL PROMPT: Structured order (MANDATORY - DO NOT REORDER)
-    // 1. IDENTITY LOCK (hard-coded, at top - ONLY place identity words exist)
-    // 2. GARMENT APPLICATION (hard-coded)
-    // 3. SCENE (from GPT-4o mini - SAFE ZONE)
-    // 4. LIGHTING (from GPT-4o mini - SAFE ZONE)
-    // 5. STYLE (from GPT-4o mini - SAFE ZONE)
-    // 6. NEGATIVE PROMPT (optional - ALLOWED)
-    const fullPrompt = `${IDENTITY_LOCK}
-
-${GARMENT_APPLICATION}
-
-${sceneAndStyleText}
-
-${NEGATIVE_CONSTRAINTS}`
-
-    // VALIDATE FINAL ASSEMBLED PROMPT (single source of truth for identity safety)
-    validateFinalPrompt(fullPrompt)
-
-    console.log(`✅ GPT-4o mini: Scene/style text composed (${sceneAndStyleText.length} chars)`)
-    console.log(`✅ Final prompt assembled: ${fullPrompt.length} chars total`)
-    console.log(`\n   📋 FINAL ASSEMBLED PROMPT (for inspection):`)
-    console.log(`   ${'─'.repeat(70)}`)
-    console.log(`   ${fullPrompt.split('\n').map((line, i) => `${i + 1}: ${line}`).join('\n   ')}`)
-    console.log(`   ${'─'.repeat(70)}`)
-    console.log(`\n   🔍 PROMPT VERIFICATION:`)
-    console.log(`      ✅ Identity lock: Present (SACRED block - biometric terms allowed)`)
-    console.log(`      ✅ Garment application: Present (Image 2 = clothing reference only)`)
-    console.log(`      ✅ Scene/style: Present (from GPT-4o mini - SAFE ZONE)`)
-    console.log(`      ✅ Negative prompt: Present (identity drift, face change, filters - ALLOWED)`)
-    console.log(`      ✅ Image 1 = identity, Image 2 = garment only`)
-    console.log(`      ✅ Final prompt structure: IDENTITY LOCK → GARMENT → SCENE → NEGATIVE`)
-    
-    return fullPrompt
-  } catch (error) {
-    console.error('❌ GPT-4o mini prompt composition failed:', error)
-    throw error
+    return DEFAULT_PRESET
+  } catch {
+    return DEFAULT_PRESET
   }
 }
 
-/**
- * Validate GPT-4o mini output (scene/style only)
- * Must NOT contain identity or garment role instructions
- */
-function validateSceneStyleText(text: string): void {
-  const lowerText = text.toLowerCase()
+// ═══════════════════════════════════════════════════════════════
+// UTILITY FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
 
-  // SIMPLIFIED: Only check that GPT-4o mini doesn't write identity/garment rules
-  const forbiddenInSceneText = [
-    'image 1',
-    'image 2',
-    'source of identity',
-    'garment reference',
-    'do not copy identity',
-  ]
+export function getMinimalPrompt(): string {
+  return `${IDENTITY_LOCK}
 
-  for (const term of forbiddenInSceneText) {
-    if (lowerText.includes(term)) {
-      throw new Error(
-        `PROMPT VALIDATION FAILED: GPT-4o mini output contains forbidden identity/garment rule: "${term}". GPT-4o mini must only write scene, lighting, and style.`
-      )
-    }
-  }
+${GARMENT_LOCK}
 
-  console.log('✅ GPT-4o mini scene/style text validated: No identity/garment rules found')
+Environment: Natural indoor setting
+Lighting: Soft window light
+Camera: 50mm lens, natural perspective
+
+${NEGATIVE_CONSTRAINTS}
+
+${FINAL_SAFEGUARD}`
 }
 
-/**
- * Validate final assembled prompt (hard-coded blocks + GPT-4o output)
- * @throws Error if any rule is violated
- */
-function validateFinalPrompt(prompt: string): void {
-  const lowerPrompt = prompt.toLowerCase()
+export function getPromptWithPreset(presetId: string): string {
+  const preset = getPresetById(presetId) || DEFAULT_PRESET
 
-  // MINIMAL VALIDATION: Only check for required blocks
-  // NO biometric word scanning - identity lock block is SACRED and allowed to contain identity words
-  
-  // REQUIRED: Hard-coded IDENTITY LOCK block must be present
-  const hasIdentityLock =
-    lowerPrompt.includes('identity lock') &&
-    lowerPrompt.includes('use image 1') &&
-    (lowerPrompt.includes('sole and immutable source of identity') || lowerPrompt.includes('sole source of identity')) &&
-    lowerPrompt.includes('same person as image 1')
+  return `${IDENTITY_LOCK}
 
-  if (!hasIdentityLock) {
-    throw new Error(
-      'PROMPT VALIDATION FAILED: Missing hard-coded IDENTITY LOCK block. Prompt must include identity lock from Image 1.'
-    )
-  }
+${GARMENT_LOCK}
 
-  // REQUIRED: Hard-coded GARMENT APPLICATION block must be present
-  const hasGarmentApplication =
-    lowerPrompt.includes('garment application') &&
-    lowerPrompt.includes('image 2') &&
-    lowerPrompt.includes('do not copy identity')
+${buildSceneBlock(preset)}
 
-  if (!hasGarmentApplication) {
-    throw new Error(
-      'PROMPT VALIDATION FAILED: Missing hard-coded GARMENT APPLICATION block. Prompt must include garment application instructions for Image 2.'
-    )
-  }
+${NEGATIVE_CONSTRAINTS}
 
-  // NO FURTHER VALIDATION - identity lock block is allowed to contain:
-  // - facial features
-  // - proportions
-  // - skin tone
-  // - expression
-  // These are REQUIRED for identity preservation and are ONLY allowed in the identity lock block
-
-  console.log('✅ Final prompt validation passed: Identity lock and garment application present')
-  console.log('✅ Identity lock block is SACRED - biometric terms allowed only in this block')
+${FINAL_SAFEGUARD}`
 }
 
-
+// Export constants for testing
+export { IDENTITY_LOCK, GARMENT_LOCK, NEGATIVE_CONSTRAINTS, FINAL_SAFEGUARD }

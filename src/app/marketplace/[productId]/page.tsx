@@ -128,7 +128,7 @@ export default async function ProductDetailPage({ params }: any) {
             <div>
               <h1 className="text-3xl font-serif text-charcoal mb-4">{product.name}</h1>
               {product.price && (
-                <p className="text-2xl font-semibold text-charcoal">₹{product.price.toLocaleString()}</p>
+                <p className="text-2xl font-semibold text-charcoal">₹{Number(product.price).toLocaleString()}</p>
               )}
             </div>
 

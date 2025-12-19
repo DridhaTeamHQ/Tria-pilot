@@ -98,14 +98,16 @@ export default async function MarketplacePage({
   const categories = ['All Products', 'Clothing', 'Accessories', 'Footwear', 'Beauty', 'Lifestyle']
   const activeCategory = resolvedSearchParams.category || 'all'
 
-  // Transform products to ensure imagePath is always a string
+  // Transform products to ensure proper serialization for Client Components
+  // Prisma Decimal must be converted to number for client-side rendering
   const transformedProducts = products.map(product => ({
     ...product,
+    price: product.price ? Number(product.price) : 0, // Convert Decimal to number
     imagePath: product.imagePath || '',
   }))
 
   return (
-    <MarketplaceClient 
+    <MarketplaceClient
       products={transformedProducts}
       categories={categories}
       activeCategory={activeCategory}
