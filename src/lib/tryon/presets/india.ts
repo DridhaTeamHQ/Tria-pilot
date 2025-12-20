@@ -1,215 +1,192 @@
 /**
- * INDIAN PRESETS - Environment-Only Scene Presets
+ * INDIAN PRESETS - REALISTIC SITUATIONS
  * 
- * CRITICAL: These presets describe ONLY the environment.
- * They must NEVER describe the subject, pose, or appearance.
- * 
- * FORBIDDEN WORDS: editorial, portrait, fashion, pose, hero shot, influencer
- * ALLOWED: environment, lighting, camera, background elements
+ * CORE PHILOSOPHY:
+ * Describe the SITUATION and ENVIRONMENT only.
+ * Describe MESS, CLUTTER, and IMPERFECTION.
+ * NEVER describe the person or "vibes".
  */
+
+export const ANTI_PORTRAIT_RULE = `ANTI-PORTRAIT RULE:
+- No studio framing
+- No centered headshot
+- No shallow beauty depth
+- No spotlight lighting
+- No three-point portrait lighting
+- Ambient environmental lighting only`
 
 export interface ScenePreset {
     id: string
     label: string
-    category: 'lifestyle' | 'street' | 'home' | 'travel' | 'editorial' | 'ugc'
+    category: 'home' | 'office' | 'street' | 'outdoor' | 'travel' | 'lifestyle'
     region: 'india' | 'global'
-    scene: string      // Environment ONLY - no subject language
-    lighting: string   // Light sources and quality
-    camera: string     // Lens and optics
+    scene: string      // DETAILED ENVIRONMENT with clutter/mess
+    lighting: string   // PHYSICS-BASED lighting description
+    camera: string     // LENS behavior (iPhone/Consumer)
     motion: 'static' | 'subtle motion' | 'candid motion'
-    mood: 'calm' | 'candid' | 'confident' | 'everyday' | 'aspirational'
-    style: string      // Photo style - no subject language
+    mood: 'candid'     // Default mood
+    style: 'realism'   // Default style
     negative_bias: string
 }
 
 export const INDIAN_PRESETS: ScenePreset[] = [
     // ═══════════════════════════════════════════════════════════════
-    // HOME / INDOOR
+    // HOME / INDOOR (Lived-in, messy, real)
     // ═══════════════════════════════════════════════════════════════
     {
-        id: 'india_home_lifestyle',
-        label: 'Indian Home',
-        category: 'lifestyle',
-        region: 'india',
-        scene: 'Middle-class Indian apartment, indoor plants, framed family photos, sheer curtains, everyday furniture, lived-in warmth',
-        lighting: 'Soft daylight from window, warm bounce from painted walls, gentle natural shadows',
-        camera: '50mm lens, eye-level perspective, natural depth of field',
-        motion: 'subtle motion',
-        mood: 'everyday',
-        style: 'realistic, unfiltered',
-        negative_bias: 'No studio lighting, no perfect interiors, no minimalist decor'
-    },
-    {
-        id: 'india_home_morning',
-        label: 'Indian Home – Morning',
+        id: 'india_home_living',
+        label: 'Living Room (Real)',
         category: 'home',
         region: 'india',
-        scene: 'Indian living room or bedroom, morning sunlight through curtains, bed or sofa visible, everyday items',
-        lighting: 'Strong morning directional light with warm orange tones, deep shadows in corners',
-        camera: '35mm wide lens, environmental perspective',
+        scene: 'Middle-class Indian living room, slight clutter on center table, newspaper, remote control, mismatched cushions on sofa, curtain slightly uneven, family photos on wall, ceiling fan visible',
+        lighting: 'Natural daylight from balcony door, mixing with tube light reflection on floor, uneven shadows',
+        camera: 'iPhone 26mm lens equivalent, slight wide angle distortion at edges',
         motion: 'static',
-        mood: 'calm',
-        style: 'morning warmth, realistic',
-        negative_bias: 'No artificial glow, no staged decor'
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No studio lighting, no perfect decor, no staged furniture'
     },
     {
-        id: 'india_kitchen_candid',
-        label: 'Indian Kitchen',
-        category: 'lifestyle',
+        id: 'india_bedroom_messy',
+        label: 'Bedroom (Morning)',
+        category: 'home',
         region: 'india',
-        scene: 'Modest Indian kitchen, steel utensils, pressure cooker, gas stove, spice jars, worn countertops, natural clutter',
-        lighting: 'Mixed: daylight from window, warm tungsten bulb, realistic color cast',
-        camera: '28mm wide angle, candid handheld perspective',
-        motion: 'candid motion',
-        mood: 'everyday',
-        style: 'authentic, smartphone capture',
-        negative_bias: 'No modular kitchens, no marble counters, no studio lighting'
+        scene: 'Indian bedroom, unmade bed, clothes draped over chair, phone charger cable visible, water bottle on side table, window curtains partially open',
+        lighting: 'Morning sunlight hitting one side of room, dust particles visible in light beam, rest of room in shadow',
+        camera: 'Handheld phone camera, eye level, imperfect framing',
+        motion: 'static',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No hotel room look, no perfect bedsheets, no symmetry'
+    },
+    {
+        id: 'india_kitchen_daily',
+        label: 'Kitchen (Cooking)',
+        category: 'home',
+        region: 'india',
+        scene: 'Active Indian kitchen, pressure cooker on stove, steel utensils drying in rack, spice box open, vegetable peels on counter, granite slab texture',
+        lighting: 'Overhead tube light mixing with window light, harsh reflections on steel',
+        camera: 'Wide angle 24mm, slightly high angle looking down',
+        motion: 'subtle motion',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No modular kitchen brochure look, no clean counters'
     },
 
     // ═══════════════════════════════════════════════════════════════
-    // STREET / URBAN
+    // STREET / URBAN (Chaotic, textured)
     // ═══════════════════════════════════════════════════════════════
     {
-        id: 'india_street_urban',
-        label: 'Indian Street',
+        id: 'india_street_market',
+        label: 'Market Street',
         category: 'street',
         region: 'india',
-        scene: 'Urban Indian street, painted shop signage, textured walls, parked two-wheelers, pedestrians, electrical wires overhead',
-        lighting: 'Late afternoon sun, directional from side, soft contrast, warm shadows',
-        camera: '85mm lens, shallow depth of field',
-        motion: 'subtle motion',
-        mood: 'confident',
-        style: 'street photography',
-        negative_bias: 'No fake bokeh, no oversaturated colors, no CGI surfaces'
-    },
-    {
-        id: 'india_market_candid',
-        label: 'Indian Market',
-        category: 'street',
-        region: 'india',
-        scene: 'Busy Indian market lane, vegetable stalls, hanging fabrics, shopkeepers, natural chaos of commerce',
-        lighting: 'Harsh midday sun with patchy shade from awnings, high contrast',
-        camera: '35mm lens, handheld style, environmental framing',
+        scene: 'Crowded market lane, vegetable vendors with carts, plastic tarps overhead, tangled electrical wires, two-wheelers parked unevenly, worn asphalt',
+        lighting: 'Harsh midday sun filtered through tarps, creating patchy colored light and jagged shadows',
+        camera: 'Phone camera, snap-shot style, busy background',
         motion: 'candid motion',
         mood: 'candid',
-        style: 'documentary',
-        negative_bias: 'No clean backgrounds, no artificial staging'
+        style: 'realism',
+        negative_bias: 'No bokeh, no clean streets, no isolated subject'
     },
     {
-        id: 'india_chai_stall',
-        label: 'Chai Stall',
+        id: 'india_gully_calm',
+        label: 'Quiet Gully',
         category: 'street',
         region: 'india',
-        scene: 'Roadside chai stall, steel kettle, glass cups, wooden bench, smoke rising, morning newspaper readers nearby',
-        lighting: 'Soft morning light mixed with chai steam haze, gentle atmospheric diffusion',
-        camera: '50mm lens, intimate framing, moderate depth of field',
-        motion: 'subtle motion',
-        mood: 'calm',
-        style: 'nostalgic realism',
-        negative_bias: 'No hipster coffee shop vibes'
-    },
-
-    // ═══════════════════════════════════════════════════════════════
-    // ROOFTOP / OUTDOOR
-    // ═══════════════════════════════════════════════════════════════
-    {
-        id: 'india_rooftop_evening',
-        label: 'Indian Rooftop – Evening',
-        category: 'lifestyle',
-        region: 'india',
-        scene: 'Indian city rooftop, skyline visible, water tanks, potted tulsi plants, weathered chairs, open sky, distant buildings',
-        lighting: 'Golden hour sunlight, long soft shadows, warm orange-pink sky gradient',
-        camera: '35mm lens, environmental wide framing',
-        motion: 'subtle motion',
-        mood: 'aspirational',
-        style: 'cinematic realism',
-        negative_bias: 'No fake lens flare, no over-edited golden tones, no perfect rooftop gardens'
-    },
-    {
-        id: 'india_terrace_night',
-        label: 'Indian Terrace – Night',
-        category: 'lifestyle',
-        region: 'india',
-        scene: 'Urban terrace at night, fairy lights, plastic chairs, city lights in distance, neighbor buildings visible',
-        lighting: 'Mixed: warm fairy lights, cool city glow, subtle tungsten from stairs',
-        camera: '28mm wide angle, low-light look, visible grain',
+        scene: 'Narrow residential street, painted concrete walls with peeling paint, potted plants on ledges, parked scooter, drain cover visible',
+        lighting: 'Soft evening shadow, light bouncing from opposite wall, cool ambient tone',
+        camera: 'Eye level, neutral perspective, deep depth of field',
         motion: 'static',
-        mood: 'calm',
-        style: 'night photography',
-        negative_bias: 'No heavy flash, no artificial neon glow'
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No cinematic color grading, no dramatic sunset'
+    },
+    {
+        id: 'india_chai_shop',
+        label: 'Chai Shop',
+        category: 'street',
+        region: 'india',
+        scene: 'Roadside tea stall, glass tumblers, biscuits in jars, wooden bench, cigarette shop nearby, waste bin visible',
+        lighting: 'Tubelight from shop mixing with street light (blue hour), mixed color temperatures',
+        camera: 'Low angle or seated perspective, handheld',
+        motion: 'subtle motion',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No romanticized poverty, no travel vlog aesthetic'
     },
 
     // ═══════════════════════════════════════════════════════════════
-    // TRAVEL / OUTDOOR
+    // OFFICE / WORK (Boring, standard)
     // ═══════════════════════════════════════════════════════════════
     {
-        id: 'india_beach_goa',
-        label: 'Goa Beach',
+        id: 'india_office_cubicle',
+        label: 'Office Cubicle',
+        category: 'office',
+        region: 'india',
+        scene: 'Standard cubicle desk, notepad, water bottle, sticky notes, laptop dock, office chair background, grey carpet tiles',
+        lighting: 'Overhead 6000K fluorescent lighting, flat and even, slight screen glow',
+        camera: 'Webcam or phone selfie angle, slight distortion',
+        motion: 'static',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No stock photo smile, no perfect desk'
+    },
+    {
+        id: 'india_coworking',
+        label: 'Co-working Space',
+        category: 'office',
+        region: 'india',
+        scene: 'Casual work table, coffee mug, tangled charger wires, glass partition in background, indoor plant',
+        lighting: 'Warm hanging light, softer shadows, cozy indoors',
+        camera: 'Eye level, casual framing',
+        motion: 'static',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No startup brochure look'
+    },
+
+    // ═══════════════════════════════════════════════════════════════
+    // OUTDOOR / TRAVEL (Non-tourist)
+    // ═══════════════════════════════════════════════════════════════
+    {
+        id: 'india_park_morning',
+        label: 'Morning Walk',
+        category: 'outdoor',
+        region: 'india',
+        scene: 'Public park, uneven walking path, metal benches, dry leaves on ground, other walkers in distance',
+        lighting: 'Early morning sun, long shadows, slight mist/haze',
+        camera: 'Wide shot, deep focus, handheld',
+        motion: 'subtle motion',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No dreamy glow, no perfect landscaping'
+    },
+    {
+        id: 'india_terrace_chill',
+        label: 'Terrace Evening',
+        category: 'home',
+        region: 'india',
+        scene: 'Roof terrace, water tanks, drying clothes line in background, plastic chairs, city skyline silhouette',
+        lighting: 'Dusk/Twilight, fading heavy blue sky, yellow streetlights starting in distance',
+        camera: 'Phone camera night mode, slight grain',
+        motion: 'static',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No party vibes, no dramatic sky'
+    },
+    {
+        id: 'india_auto_rickshaw',
+        label: 'Auto Rickshaw',
         category: 'travel',
         region: 'india',
-        scene: 'Goan beach, palm trees, fishing boats in distance, beach shacks visible, local vendors, natural sand texture',
-        lighting: 'Bright coastal sun with water reflections, fill light from sand bounce',
-        camera: '35mm lens, vacation snapshot style, deep depth of field',
+        scene: 'Inside auto rickshaw, meter visible, driver back of head, passing city blur outside, vinyl seat texture',
+        lighting: 'Natural side light entering moving vehicle, dynamic shadows',
+        camera: 'Selfie perspective or POV, motion blur outside',
         motion: 'candid motion',
         mood: 'candid',
-        style: 'travel photography',
-        negative_bias: 'No Caribbean styling, no resort luxury'
-    },
-    {
-        id: 'india_hill_station',
-        label: 'Hill Station',
-        category: 'travel',
-        region: 'india',
-        scene: 'Indian hill station, colonial bungalows, pine trees, mist rolling through, winding mountain road visible',
-        lighting: 'Soft overcast light with atmospheric mist, gentle fog diffusion',
-        camera: '50mm lens, soft environmental bokeh',
-        motion: 'static',
-        mood: 'calm',
-        style: 'atmospheric landscape',
-        negative_bias: 'No Swiss Alps styling'
-    },
-    {
-        id: 'india_temple_courtyard',
-        label: 'Temple Courtyard',
-        category: 'travel',
-        region: 'india',
-        scene: 'South Indian temple courtyard, carved stone pillars, worn granite floor, oil lamps, devotees in background',
-        lighting: 'Dappled afternoon light through courtyard, warm stone reflections',
-        camera: '35mm lens, architectural context, deep focus',
-        motion: 'static',
-        mood: 'calm',
-        style: 'heritage documentary',
-        negative_bias: 'No touristy poses, no over-saturated colors'
-    },
-
-    // ═══════════════════════════════════════════════════════════════
-    // OFFICE / WORK
-    // ═══════════════════════════════════════════════════════════════
-    {
-        id: 'india_office_modern',
-        label: 'Indian Office',
-        category: 'lifestyle',
-        region: 'india',
-        scene: 'Modern Indian IT office, glass partitions, ergonomic chairs, dual monitors, water bottles, motivational posters',
-        lighting: 'Mixed fluorescent and window light, typical office color temperature',
-        camera: '50mm lens, clean background',
-        motion: 'static',
-        mood: 'confident',
-        style: 'corporate professional',
-        negative_bias: 'No Silicon Valley aesthetics'
-    },
-    {
-        id: 'india_cafe_cowork',
-        label: 'Work Café',
-        category: 'lifestyle',
-        region: 'india',
-        scene: 'Urban Indian cafe, exposed brick or painted walls, other patrons, coffee cup, laptop',
-        lighting: 'Warm cafe lighting mixed with daylight from window, cozy ambiance',
-        camera: '35mm lens, environmental perspective, shallow depth of field',
-        motion: 'subtle motion',
-        mood: 'everyday',
-        style: 'contemporary urban',
-        negative_bias: 'No Starbucks aesthetics'
+        style: 'realism',
+        negative_bias: 'No travel documentary glam'
     }
 ]
 
@@ -225,4 +202,4 @@ export function getIndianPresetsByCategory(category: ScenePreset['category']): S
     return INDIAN_PRESETS.filter(p => p.category === category)
 }
 
-export const DEFAULT_INDIAN_PRESET = INDIAN_PRESETS.find(p => p.id === 'india_home_lifestyle')!
+export const DEFAULT_INDIAN_PRESET = INDIAN_PRESETS.find(p => p.id === 'india_home_living')!

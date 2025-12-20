@@ -1,10 +1,11 @@
 export type TryOnPresetCategory =
-  | 'studio'
+  | 'home'
+  | 'office'
   | 'street'
   | 'outdoor'
+  | 'travel'
   | 'lifestyle'
-  | 'editorial'
-  | 'traditional'
+  | 'editorial' // For minimal/studio looks
 
 export type InstagramStylePack =
   | 'candid_iphone'
@@ -71,33 +72,33 @@ export interface VerifyResult {
   reasons: string[]
   has_extra_people: boolean
   appears_collage: boolean
-  
+
   // Face geometry check (new - stricter than identity_preserved)
   face_geometry_match?: 'exact' | 'close' | 'different'
-  
+
   // Pose preservation check (new)
   pose_preserved?: boolean
-  
+
   // Scene and lighting
   scene_plausible?: boolean
   lighting_realism?: 'high' | 'medium' | 'low'
   lighting_consistent?: boolean
   subject_color_preserved?: boolean
   looks_ai_generated?: boolean
-  
+
   // Background quality
   background_detail_preserved?: boolean
   background_has_grain?: boolean  // New: check for film grain
   dof_realistic?: boolean
-  
+
   // Garment application
   garment_applied: boolean
   garment_fidelity: 'high' | 'medium' | 'low'
-  
+
   // Identity preservation
   identity_preserved: boolean
   identity_fidelity: 'high' | 'medium' | 'low'
-  
+
   // Original outfit check
   original_outfit_still_present: boolean
   output_is_unedited_copy: boolean

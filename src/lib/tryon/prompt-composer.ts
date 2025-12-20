@@ -26,14 +26,28 @@ import {
 } from './presets/index'
 
 // ═══════════════════════════════════════════════════════════════
-// IDENTITY LOCK - HARD-CODED, NEVER MODIFIED
+// FACE FREEZE - LOCKED, NEVER MODIFIED
+// This is the Higgsfield-style identity lock.
+// The face is COPIED, not generated.
 // ═══════════════════════════════════════════════════════════════
 
-const IDENTITY_LOCK = `Use Image 1 as the sole and exact source of the person.
-This is an image edit, not a new generation.
-Do not generate a new individual.
-Do not modify facial structure, head shape, hair density, or body proportions.
-All identity information must come visually from Image 1.`
+/**
+ * FACE_FREEZE: The core identity protection instruction.
+ * 
+ * ⚠️ THIS BLOCK IS LOCKED. GPT CANNOT MODIFY IT.
+ * 
+ * WHY: The face region already exists in Image 1.
+ * The model must COPY these pixels, not regenerate them.
+ */
+const FACE_FREEZE = `FACE FREEZE (CRITICAL):
+- The face region already exists in Image 1.
+- DO NOT generate, redraw, reinterpret, or refine the face.
+- Copy face pixels directly from Image 1.
+- No changes to eyes, beard, jaw, mouth, or expression.
+- If face pixels are present, reuse them exactly.`
+
+// Legacy alias for backward compatibility
+const IDENTITY_LOCK = FACE_FREEZE
 
 // ═══════════════════════════════════════════════════════════════
 // GARMENT LOCK - HARD-CODED

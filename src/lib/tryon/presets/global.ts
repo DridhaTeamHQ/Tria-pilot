@@ -1,193 +1,221 @@
 /**
- * GLOBAL PRESETS - Environment-Only Scene Presets
+ * GLOBAL PRESETS - LOCATION-FIRST, PHOTO-REAL
  * 
- * CRITICAL: These presets describe ONLY the environment.
- * They must NEVER describe the subject, pose, or appearance.
+ * Philosophy:
+ * - Location descriptions, NOT "vibes"
+ * - Written like a photographer describing a real place
+ * - Clean, minimal, non-stereotypical
+ * - Compatible with identity lock + garment override
+ * 
+ * Structure per preset:
+ * - location: Physical description of the place
+ * - camera: Position, angle, device simulation
+ * - lighting: Light source, quality, direction
+ * - background: Elements visible behind subject
+ * - realism: Imperfections that make it feel real
  */
 
 import type { ScenePreset } from './india'
 
+// ═══════════════════════════════════════════════════════════════
+// ☕ CAFÉ PRESETS
+// ═══════════════════════════════════════════════════════════════
+
 export const GLOBAL_PRESETS: ScenePreset[] = [
-    // ═══════════════════════════════════════════════════════════════
-    // STUDIO
-    // ═══════════════════════════════════════════════════════════════
     {
-        id: 'studio_white',
-        label: 'Studio – White',
-        category: 'editorial',
+        id: 'cafe_modern_neighborhood',
+        label: 'Modern Neighborhood Café',
+        category: 'lifestyle',
         region: 'global',
-        scene: 'Photography studio, seamless white paper backdrop, clean minimal setup',
-        lighting: 'Three-point studio lighting: soft key from 45°, fill opposite, subtle rim light',
-        camera: '85mm lens, f/4-f/5.6, sharp focus',
-        motion: 'static',
-        mood: 'confident',
-        style: 'commercial photography',
-        negative_bias: 'No harsh shadows, no colored gels'
+        scene: 'Small modern café with concrete floor, light wood tables, matte ceramic cups',
+        lighting: 'Soft window daylight from one side, mild shadow falloff',
+        camera: 'Seated eye-level, slight diagonal angle, iPhone handheld',
+        motion: 'subtle motion',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No staged look, no perfect symmetry'
     },
     {
-        id: 'studio_grey',
-        label: 'Studio – Grey',
-        category: 'editorial',
+        id: 'cafe_quiet_morning',
+        label: 'Quiet Morning Café',
+        category: 'lifestyle',
         region: 'global',
-        scene: 'Photography studio, grey muslin backdrop, subtle texture visible',
-        lighting: 'Soft box from camera right, gentle directional shadows',
-        camera: '85mm lens, moderate depth of field',
+        scene: 'Early-morning café, minimal crowd, clean glass windows, pale walls, empty chairs, barista moving in background',
+        lighting: 'Cool daylight, no harsh highlights',
+        camera: 'Chest-height standing shot, casual framing',
         motion: 'static',
-        mood: 'confident',
-        style: 'studio photography',
-        negative_bias: 'No environmental distractions'
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No artificial warmth'
     },
-
-    // ═══════════════════════════════════════════════════════════════
-    // URBAN / STREET
-    // ═══════════════════════════════════════════════════════════════
     {
-        id: 'urban_street_day',
-        label: 'Urban Street – Day',
+        id: 'cafe_outdoor_sidewalk',
+        label: 'Outdoor Sidewalk Café',
         category: 'street',
         region: 'global',
-        scene: 'City sidewalk, urban textures, weathered walls, street elements, pedestrians in background',
-        lighting: 'Natural daylight, diffused sky, soft shadows',
-        camera: '35mm lens, handheld style, environmental framing',
+        scene: 'Street-side café with metal chairs and small round tables, parked scooters, passing pedestrians blurred, street textures visible',
+        lighting: 'Natural daylight with soft overhead shade',
+        camera: 'Slightly wide iPhone lens, seated perspective',
         motion: 'candid motion',
         mood: 'candid',
-        style: 'street photography',
-        negative_bias: 'No neon cyberpunk, no wet streets without rain'
+        style: 'realism',
+        negative_bias: 'No bokeh beauty shot'
+    },
+
+    // ═══════════════════════════════════════════════════════════════
+    // 🌿 TERRACE / BALCONY PRESETS
+    // ═══════════════════════════════════════════════════════════════
+    {
+        id: 'terrace_apartment_day',
+        label: 'Apartment Terrace – Day',
+        category: 'home',
+        region: 'global',
+        scene: 'Residential apartment terrace with railing, plants in clay pots, city buildings at distance, laundry lines, open sky',
+        lighting: 'Bright indirect daylight',
+        camera: 'Standing, waist-up framing, slight downward tilt',
+        motion: 'static',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No perfect landscaping'
     },
     {
-        id: 'urban_golden_hour',
-        label: 'Urban – Golden Hour',
+        id: 'terrace_rooftop_evening',
+        label: 'Rooftop Terrace – Evening',
+        category: 'outdoor',
+        region: 'global',
+        scene: 'Open rooftop with low wall and scattered seating, urban skyline, water tanks, muted city colors',
+        lighting: 'Golden-hour sunlight, warm but soft',
+        camera: 'Eye-level, slightly off-center framing',
+        motion: 'static',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No dramatic sunset'
+    },
+
+    // ═══════════════════════════════════════════════════════════════
+    // 🏙️ CLEAN STREET / URBAN
+    // ═══════════════════════════════════════════════════════════════
+    {
+        id: 'urban_quiet_street',
+        label: 'Quiet Urban Street',
         category: 'street',
         region: 'global',
-        scene: 'City environment, buildings catching golden glow, long shadows',
-        lighting: 'Low-angle golden sun, warm color temperature, natural rim lighting',
-        camera: '50mm lens, warm tones',
-        motion: 'subtle motion',
-        mood: 'aspirational',
-        style: 'golden hour photography',
-        negative_bias: 'No over-saturated orange, no fake HDR'
-    },
-
-    // ═══════════════════════════════════════════════════════════════
-    // CAFE / LIFESTYLE
-    // ═══════════════════════════════════════════════════════════════
-    {
-        id: 'cafe_window',
-        label: 'Cafe – Window Light',
-        category: 'lifestyle',
-        region: 'global',
-        scene: 'Cozy cafe interior, window seating, coffee/tea visible, warm ambient decor',
-        lighting: 'Soft window light from side, warm indoor ambient, gentle shadows',
-        camera: '50mm lens, intimate framing, shallow depth of field',
-        motion: 'subtle motion',
-        mood: 'calm',
-        style: 'lifestyle photography',
-        negative_bias: 'No harsh flash'
-    },
-    {
-        id: 'cafe_outdoor',
-        label: 'Cafe – Outdoor Terrace',
-        category: 'lifestyle',
-        region: 'global',
-        scene: 'Outdoor cafe terrace, tables, plants, urban street visible',
-        lighting: 'Open shade daylight, even soft lighting',
-        camera: '35mm lens, environmental perspective, background visible',
-        motion: 'candid motion',
+        scene: 'Low-traffic city street with neutral buildings and textured walls, parked vehicles, shuttered shops, overhead wires',
+        lighting: 'Flat daylight, overcast feel',
+        camera: 'Standing full-body, iPhone wide',
+        motion: 'static',
         mood: 'candid',
-        style: 'travel photography',
-        negative_bias: 'No over-styled aesthetic'
+        style: 'realism',
+        negative_bias: 'No cinematic grading'
+    },
+    {
+        id: 'urban_concrete_walkway',
+        label: 'Minimal Concrete Walkway',
+        category: 'street',
+        region: 'global',
+        scene: 'Modern office or apartment complex walkway, clean walls, subtle shadows, no clutter',
+        lighting: 'Diffuse daylight reflecting off concrete',
+        camera: 'Mid-distance, straight-on',
+        motion: 'static',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No styled architecture shot'
     },
 
     // ═══════════════════════════════════════════════════════════════
-    // HOME / INDOOR
+    // 🪟 INTERIOR (REAL, NOT STUDIO)
     // ═══════════════════════════════════════════════════════════════
     {
-        id: 'home_living_room',
-        label: 'Home – Living Room',
+        id: 'interior_living_room',
+        label: 'Window-Lit Living Room',
         category: 'home',
         region: 'global',
-        scene: 'Comfortable living room, sofa, natural decor, personal touches, lived-in feel',
-        lighting: 'Natural window light, warm afternoon ambiance, soft indoor shadows',
-        camera: '35mm lens, environmental framing',
+        scene: 'Real apartment living room with sofa, side table, curtains, books, plants, framed photos slightly misaligned',
+        lighting: 'Window daylight, uneven brightness',
+        camera: 'Seated perspective, slight crop',
         motion: 'static',
-        mood: 'everyday',
-        style: 'lifestyle photography',
-        negative_bias: 'No minimalist showroom staging'
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No interior design magazine look'
     },
     {
-        id: 'home_bedroom_morning',
-        label: 'Home – Bedroom Morning',
+        id: 'interior_work_desk',
+        label: 'Working Desk Setup',
+        category: 'office',
+        region: 'global',
+        scene: 'Home work desk near window, laptop, notebook, cables, coffee mug',
+        lighting: 'Soft side light, no rim light',
+        camera: 'Seated, waist-up, casual angle',
+        motion: 'static',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No LinkedIn professional shot'
+    },
+
+    // ═══════════════════════════════════════════════════════════════
+    // 🧼 CLEAN AESTHETIC (MINIMAL BUT REAL)
+    // ═══════════════════════════════════════════════════════════════
+    {
+        id: 'minimal_white_wall_porch',
+        label: 'White Wall Porch',
         category: 'home',
         region: 'global',
-        scene: 'Bedroom, morning light through curtains, bed visible, relaxed atmosphere',
-        lighting: 'Soft morning directional light, warm tones',
-        camera: '50mm lens, intimate framing',
+        scene: 'Plain off-white wall near building entrance, minor wall texture, small cracks, uneven paint',
+        lighting: 'Bright natural daylight',
+        camera: 'Standing portrait, centered',
         motion: 'static',
-        mood: 'calm',
-        style: 'intimate lifestyle',
-        negative_bias: 'No harsh flash'
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No studio cyclorama'
+    },
+    {
+        id: 'minimal_staircase',
+        label: 'Modern Staircase',
+        category: 'home',
+        region: 'global',
+        scene: 'Apartment staircase with metal railing and concrete steps, repeating steps, subtle depth',
+        lighting: 'Ambient daylight, neutral tone',
+        camera: 'Slight upward angle',
+        motion: 'static',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No architectural photography'
     },
 
     // ═══════════════════════════════════════════════════════════════
-    // OUTDOOR / NATURE
+    // 📸 PHOTO-SHOOT QUALITY (BUT IPHONE)
     // ═══════════════════════════════════════════════════════════════
     {
-        id: 'park_afternoon',
-        label: 'Park – Afternoon',
+        id: 'photoshoot_street_corner',
+        label: 'Editorial Street Corner',
+        category: 'street',
+        region: 'global',
+        scene: 'Street corner with clean lines and strong geometry, shadows from buildings, mild contrast',
+        lighting: 'Directional daylight',
+        camera: 'Full-body, slight diagonal',
+        motion: 'static',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No fashion editorial'
+    },
+    {
+        id: 'photoshoot_cafe_window',
+        label: 'Café Window Portrait',
         category: 'lifestyle',
         region: 'global',
-        scene: 'Urban park, trees, paths, benches, natural greenery',
-        lighting: 'Dappled afternoon light through leaves, soft green-tinted bounce',
-        camera: '50mm lens, soft background bokeh',
-        motion: 'subtle motion',
-        mood: 'calm',
-        style: 'natural portrait',
-        negative_bias: 'No fake volumetric rays'
-    },
-    {
-        id: 'beach_casual',
-        label: 'Beach – Casual',
-        category: 'travel',
-        region: 'global',
-        scene: 'Sandy beach, ocean visible, natural beach elements',
-        lighting: 'Bright coastal sun, water reflections, fill from sand',
-        camera: '35mm lens, vacation snapshot style',
-        motion: 'candid motion',
+        scene: 'Standing near café window from inside, street outside softly blurred',
+        lighting: 'Window light on one side of face',
+        camera: 'Chest-up framing',
+        motion: 'static',
         mood: 'candid',
-        style: 'travel photography',
-        negative_bias: 'No perfect tropical paradise'
-    },
-
-    // ═══════════════════════════════════════════════════════════════
-    // UGC / SOCIAL MEDIA
-    // ═══════════════════════════════════════════════════════════════
-    {
-        id: 'ugc_mirror_selfie',
-        label: 'Mirror Selfie',
-        category: 'ugc',
-        region: 'global',
-        scene: 'Bathroom or bedroom mirror, visible phone, casual home environment',
-        lighting: 'Mixed: bathroom light, window light',
-        camera: '28mm wide angle (smartphone), slight distortion',
-        motion: 'static',
-        mood: 'everyday',
-        style: 'authentic social media',
-        negative_bias: 'No professional lighting'
-    },
-    {
-        id: 'ugc_outfit_check',
-        label: 'Outfit Check',
-        category: 'ugc',
-        region: 'global',
-        scene: 'Full-length mirror or doorway, casual home background',
-        lighting: 'Natural daylight from window, smartphone-typical',
-        camera: '26mm (iPhone main), full-body framing',
-        motion: 'static',
-        mood: 'everyday',
-        style: 'OOTD aesthetic',
-        negative_bias: 'No studio quality'
+        style: 'realism',
+        negative_bias: 'No beauty lighting'
     }
 ]
+
+// ═══════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════
 
 export function getGlobalPresets(): ScenePreset[] {
     return GLOBAL_PRESETS
@@ -201,4 +229,7 @@ export function getGlobalPresetsByCategory(category: ScenePreset['category']): S
     return GLOBAL_PRESETS.filter(p => p.category === category)
 }
 
-export const DEFAULT_GLOBAL_PRESET = GLOBAL_PRESETS.find(p => p.id === 'studio_grey')!
+export const DEFAULT_GLOBAL_PRESET = GLOBAL_PRESETS.find(p => p.id === 'cafe_modern_neighborhood')!
+
+// Re-export ANTI_PORTRAIT_RULE from india.ts
+export { ANTI_PORTRAIT_RULE } from './india'

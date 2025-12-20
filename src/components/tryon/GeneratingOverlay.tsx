@@ -11,19 +11,19 @@ interface GeneratingOverlayProps {
 }
 
 const steps = [
-    { id: 0, icon: Camera, label: 'Analyzing your photo', video: '/mascot/analyzing.mp4' },
-    { id: 1, icon: Brain, label: 'Processing with AI', video: '/mascot/thinking.mp4' },
-    { id: 2, icon: Shirt, label: 'Applying clothing', video: '/mascot/loading.mp4' },
-    { id: 3, icon: Wand2, label: 'Final touches', video: '/mascot/loading.mp4' },
+    { id: 0, icon: Camera, label: 'Scanning identity anchor', video: '/mascot/analyzing.mp4' },
+    { id: 1, icon: Brain, label: 'Reconstructing environment', video: '/mascot/thinking.mp4' },
+    { id: 2, icon: Shirt, label: 'Simulating fabric physics', video: '/mascot/loading.mp4' },
+    { id: 3, icon: Wand2, label: 'Blending contact shadows', video: '/mascot/loading.mp4' },
 ]
 
 const funMessages = [
-    "Tria is analyzing your style...",
-    "Creating your perfect look...",
-    "AI magic in progress...",
-    "Almost there, looking fabulous!",
-    "Fine-tuning every detail...",
-    "Making you shine...",
+    "Locking identity coordinates...",
+    "Calculating environmental light falloff...",
+    "Warping fabric mesh to body...",
+    "Matching camera lens distortion...",
+    "Rebuilding scene depth...",
+    "Finalizing texture realism...",
 ]
 
 export function GeneratingOverlay({ isVisible, modelType, isComplete = false }: GeneratingOverlayProps) {

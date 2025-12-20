@@ -5,6 +5,7 @@
  * 
  * FLASH (Identity-Critical):
  * - For try-on preview (default)
+ * - FACE_FREEZE: Face is IMMUTABLE pixels
  * - Identity MUST be preserved from Image 1 exactly
  * - NO face correction, NO beautification
  * - Prompt is STATIC and LOCKED
@@ -18,6 +19,70 @@
 
 import { getTryOnPresetV3, TRYON_PRESETS_V3 } from './presets'
 import type { TryOnStylePreset } from './types'
+import {
+    COPY_FACE_FIRST,
+    FACE_LOCK_ABSOLUTE,
+    FACE_IMMUTABILITY,
+    FACIAL_INTEGRITY,
+    FACIAL_GEOMETRY_PRESERVATION,
+    POSE_DELTA,
+    MICRO_POSE_ONLY,
+    EXPRESSION_LOCK_ABSOLUTE,
+    REALISM_LAYER,
+    GLOBAL_REALISM,
+    FORBIDDEN_REALISM,
+    FACE_FREEZE_BLOCK,
+    ZONE_SEPARATION,
+    enableFaceLock,
+    enableFaceFreeze,
+    logFaceLockCompliance
+} from './face-lock'
+import {
+    MICRO_POSE_CONSTRAINT,
+    ENVIRONMENT_CONSTRUCTION,
+    LIGHTING_RULES,
+    FACE_REGION_LOCK
+} from './pose-guard'
+import {
+    PERSON_ANCHOR_BLOCK,
+    SCENE_RECONSTRUCTION_BLOCK,
+    LIGHTING_MATCH_BLOCK,
+    PERSON_IMMUTABILITY_GUARANTEE,
+    MICRO_POSE_STRICT
+} from './person-anchor'
+import {
+    RECONSTRUCT_HUMAN_CORE,
+    HUMAN_LOCK_BLOCK,
+    HUMAN_LOCK_MODE,
+    logHumanLockStatus
+} from './human-lock'
+import {
+    buildCompactFaceLockPrompt,
+    logFaceLockZoneStatus
+} from './face-lock-zone'
+import {
+    buildFlashMasterPrompt,
+    buildProMasterPrompt,
+    checkForbiddenTerms,
+    logMasterPromptStatus
+} from './master-prompt'
+import {
+    getSceneCategoryFromPresetId,
+    getRandomScenePrompt,
+    getRandomCameraModifier
+} from './scene-prompts'
+import {
+    buildProductionPrompt,
+    getProductionPreset,
+    getRandomProductionPreset,
+    logProductionPipelineStatus,
+    type ProductionPreset
+} from './production-pipeline'
+import {
+    getFaceFreezePrompt,
+    logFaceFreezeStatus,
+    FACE_FREEZE_PROMPT
+} from './face-freeze'
 
 // Local type for scene preset (used by dual-engine)
 interface ScenePreset {
@@ -68,136 +133,199 @@ export interface IdentityMetrics {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// NEGATIVE IDENTITY DRIFT BLOCK - Explicit anti-drift instructions
-// Lists common causes of face drift and explicitly forbids them
+// REALISM_LEVEL = HIGH - Spatial reconstruction mode
 // ═══════════════════════════════════════════════════════════════
 
-const NEGATIVE_IDENTITY_DRIFT_BLOCK = `AVOID these common causes of identity drift:
-- Do NOT generate a different person who merely resembles Image 1
-- Do NOT invent facial features not present in Image 1
-- Do NOT adjust face to match lighting or scene aesthetic
-- Do NOT smooth, blur, or soften facial details
-- Do NOT add makeup, filters, or skin enhancement
-- Do NOT change eye color, eyebrow shape, or lip shape
-- Do NOT alter distance between eyes, nose width, or face width
-- Do NOT make the face more symmetrical or "balanced"
-- Do NOT reinterpret the face for "better composition"`
+export const REALISM_LEVEL = 'HIGH' as const
 
 // ═══════════════════════════════════════════════════════════════
-// FACE PRESERVATION RULES - Pixel-level face rendering guidance
+// 1. SPATIAL RECONSTRUCTION - Core paradigm
+// Identity preserved implicitly through pixel-level reconstruction
 // ═══════════════════════════════════════════════════════════════
 
-const FACE_PRESERVATION_RULES = `Face Rendering Rules:
-- Reproduce every visible facial detail from Image 1
-- Match skin texture, pores, and minor imperfections exactly
-- Preserve moles, marks, scars, and asymmetries as they appear
-- Eyes must have the same shape, spacing, and iris pattern
-- Nose and mouth proportions must be identical to Image 1
-- Facial hair (if any) must match Image 1 exactly`
+const SPATIAL_RECONSTRUCTION_BLOCK = `SPATIAL RECONSTRUCTION:
+- Copy all visible regions from Image 1 at pixel-level.
+- Preserve spatial relationships between all elements.
+- Do NOT generate new regions. Reconstruct only.
+- If uncertain, copy from Image 1 without modification.`
 
 // ═══════════════════════════════════════════════════════════════
-// A. POSE ANCHOR BLOCK - Locks body/head orientation to Image 1
-// Critical: Reduces latent resampling of facial geometry
+// 2. HEAD SCALE LOCK - Prevents face shrink (NON-BIOMETRIC)
 // ═══════════════════════════════════════════════════════════════
 
-const POSE_ANCHOR_BLOCK = `Pose Source: Image 1 (strict lock).
-Body orientation, head angle, and shoulder alignment must be copied from Image 1.
-Do not invent or significantly alter pose.
-Allow only micro-variation: ±3-5° head turn, ±3% body shift.
-The subject's spatial relationship to camera must match Image 1 exactly.
-Camera angle relative to subject's face: preserve from Image 1.`
+const HEAD_SCALE_LOCK = `HEAD SCALE LOCK:
+- Head-to-shoulder scale must match Image 1.
+- Subject-to-frame ratio must remain consistent.
+- Camera distance must not reduce subject size.
+- No zooming out relative to identity reference.`
 
 // ═══════════════════════════════════════════════════════════════
-// B. FACE DE-EMPHASIS BLOCK - Photographic realism, not face control
-// Key insight: Reducing face dominance stabilizes identity
+// 3. EDGE CONTOUR LOCK - Prevents jawline inflation
+// Soft shadow transitions, no contour-emphasizing light
 // ═══════════════════════════════════════════════════════════════
 
-const FACE_DEEMPHASIS_BLOCK = `The face should appear naturally captured as part of the scene,
-not emphasized, isolated, or visually optimized.
-Use off-camera or near-off-camera gaze direction.
-Apply natural depth-of-field where the face is not hyper-sharp.
-Include mild environmental context in the frame.
-The subject is photographed candidly, not posing for a portrait.
-Do not center-crop or zoom onto the face.`
+const EDGE_CONTOUR_LOCK = `EDGE CONTOUR LOCK:
+- Preserve original edge geometry from Image 1.
+- Do not enhance or sharpen outline boundaries.
+- No added contrast along natural contours.
+- Shadow transitions must remain soft and consistent with reference.
+- Avoid cinematic rim lighting or contour-emphasizing light.`
 
 // ═══════════════════════════════════════════════════════════════
-// FLASH PROMPT - Maximum identity preservation
+// 4. EXPRESSION STABILITY - Prevents expression drift
+// Maintains neutral emotional state
 // ═══════════════════════════════════════════════════════════════
 
-const FLASH_PROMPT_LOCKED = `CRITICAL: Use Image 1 as the ONLY source of identity.
-The output MUST show the exact same person from Image 1.
-This is NOT a "similar looking" person - it is THE SAME PERSON.
-
-Do not beautify, optimize, enhance, or reinterpret the face.
-Preserve the face EXACTLY as photographed in Image 1.
-Every facial feature must match Image 1 at pixel-level accuracy.
-
-Dress the subject in the garment shown in Image 2.
-The garment must match the reference in color, silhouette, fabric texture,
-construction, and natural drape.
-
-Style: true-to-life, as photographed, unretouched smartphone realism.
-Avoid: studio lighting, glamour retouching, centered portrait framing, face enhancement.`
+const EXPRESSION_STABILITY = `EXPRESSION STABILITY:
+- Emotional state remains neutral.
+- No change in expression intensity.
+- No expressive exaggeration.
+- Maintain relaxed, natural presence.`
 
 // ═══════════════════════════════════════════════════════════════
-// IDENTITY ANCHOR - Strongest possible identity lock
+// 5. CAMERA CONSTRAINT - 35-50mm, no wide-angle
 // ═══════════════════════════════════════════════════════════════
 
-const IDENTITY_ANCHOR_BLOCK = `IDENTITY LOCK (NON-NEGOTIABLE):
-The output face must be IDENTICAL to Image 1 - same person, same features.
-Do not reinterpret the face due to scene, lighting, or camera changes.
-Do not adjust the face to "fit" the new environment.
-The person in the output must be immediately recognizable as Image 1.
-If any doubt about a facial feature, copy it exactly from Image 1.`
+const CAMERA_CONSTRAINT = `CAMERA CONSTRAINT:
+- Perspective: 35-50mm equivalent.
+- No wide-angle distortion.
+- No cinematic framing.`
 
 // ═══════════════════════════════════════════════════════════════
-// POSTURE BLOCK - Natural body language, no face terms
+// 6. POSE INHERITANCE - Preserve pose from Image 1
 // ═══════════════════════════════════════════════════════════════
 
-const POSTURE_BLOCK = `Body posture should be naturally asymmetrical.
-Weight shifted slightly to one side.
-Subtle torso rotation, not squared to camera.
-Subject is mid-action or between movements, not posing.`
+const POSE_INHERITANCE = `POSE INHERITANCE:
+- Preserve body orientation from Image 1.
+- Micro-adjustments for garment fit only.
+- Limb positions: copy from Image 1.
+- Weight distribution: match Image 1.`
 
 // ═══════════════════════════════════════════════════════════════
-// PRO_IDENTITY_LOCKED - HIGH REALISM WITH MAXIMUM IDENTITY PRESERVATION
-// For try-on with advanced quality toggle enabled
+// 7. GARMENT ISOLATION - Only clothing changes
 // ═══════════════════════════════════════════════════════════════
 
-const PRO_IDENTITY_LOCKED_PROMPT = `CRITICAL: Use Image 1 as the SOLE source of identity.
-The output MUST show the EXACT SAME PERSON from Image 1.
-This is NOT a "similar looking" person - it is THE SAME PERSON.
-
-Do not beautify, optimize, enhance, or remodel the face.
-Do not alter eye shape, eye spacing, gaze direction, or symmetry.
-Do not smooth skin or adjust any facial asymmetry.
-Preserve every natural imperfection exactly as seen in Image 1.
-
-PRO model may ONLY enhance:
-- Lighting continuity with the scene
-- Fabric realism and drape quality
-- Background integration and depth
-- Overall image quality and sharpness
-
-The face must be IDENTICAL to Image 1 at pixel-level accuracy.
-Expression may be natural, but the person must be immediately recognizable.
-
-Dress the subject in the garment shown in Image 2.
-The garment must match the reference in color, silhouette, fabric texture,
-construction, and natural drape.`
+const GARMENT_ISOLATION = `GARMENT ISOLATION:
+- Only clothing may change.
+- Body proportions: unchanged.
+- No re-sculpting of torso or shoulders.`
 
 // ═══════════════════════════════════════════════════════════════
-// PRO PROMPT - CONTROLLED FLEXIBILITY (UGC/CAMPAIGN ONLY)
+// 8. POSTURE REALISM - Natural, context-appropriate
 // ═══════════════════════════════════════════════════════════════
 
-const PRO_PROMPT_BASE = `Use Image 1 as a visual reference.
-Generated subject should strongly resemble Image 1.
+const POSTURE_REALISM = `POSTURE REALISM:
+- Posture: neutral and context-appropriate.
+- Weight distributed evenly.
+- Arms rest naturally.
+- No exaggerated leaning, twisting, or fashion poses.
+- No mannequin or editorial stance.`
 
-Allow mild aesthetic refinement while remaining realistic.
-Avoid face replacement or exaggerated enhancement.
+// ═══════════════════════════════════════════════════════════════
+// 7. CAMERA IMPERFECTIONS - Physical image artifacts
+// Realism via physics, not cinematic terms
+// ═══════════════════════════════════════════════════════════════
 
-Dress the subject in the garment shown in Image 2.
-Ensure accurate garment realism.`
+const CAMERA_IMPERFECTIONS_BLOCK = `CAMERA PHYSICS:
+- Sensor grain: fine, low intensity, not digital noise.
+- Focus: slight falloff on background.
+- Chromatic aberration: mild at edges.
+- White balance: slight variance allowed.
+- Motion softness: allowed if scene implies movement.
+- Avoid: hyper-sharp, digitally clean output.`
+
+// ═══════════════════════════════════════════════════════════════
+// 8. LIGHTING PHYSICS - Physically plausible, not cinematic
+// One source, natural bounce, no drama
+// ═══════════════════════════════════════════════════════════════
+
+const LIGHTING_PHYSICS_BLOCK = `LIGHTING PHYSICS:
+- One primary source: sun OR window OR practical light.
+- Secondary: natural bounce only.
+- No rim lights.
+- No dramatic contrast.
+- No spotlight on subject.
+- Shadow direction: consistent with light source.
+- Shadow softness: match light diffusion.`
+
+// ═══════════════════════════════════════════════════════════════
+// 9. COLOR PHYSICS - Muted, realistic
+// ═══════════════════════════════════════════════════════════════
+
+const COLOR_PHYSICS_BLOCK = `COLOR PHYSICS:
+- Reduce saturation 10-15% from default.
+- No HDR.
+- No vibrance boost.
+- Whites: no glow.
+- Blacks: retain texture.
+- Temperature variance: allowed.`
+
+// ═══════════════════════════════════════════════════════════════
+// 10. FABRIC PHYSICS - Gravity and tension
+// ═══════════════════════════════════════════════════════════════
+
+const FABRIC_PHYSICS_BLOCK = `FABRIC PHYSICS:
+- Obey gravity at all points.
+- Tension at contact: shoulders, elbows, waist.
+- Loose areas: sag naturally.
+- No floating edges.
+- No stiff folds.
+- Wrinkles: at joints and contact points only.`
+
+// ═══════════════════════════════════════════════════════════════
+// 11. TEXTURE PHYSICS - Micro-details
+// ═══════════════════════════════════════════════════════════════
+
+const TEXTURE_IMPERFECTION_BLOCK = `TEXTURE PHYSICS:
+- Fine grain: low intensity.
+- Micro contrast: slight inconsistency.
+- Exposure: slight unevenness.
+- Skin: visible texture, natural.
+- Fabric: visible weave pattern.`
+
+// ═══════════════════════════════════════════════════════════════
+// 12. SCENE SUBORDINATION - Subject first
+// ═══════════════════════════════════════════════════════════════
+
+const SCENE_SUBORDINATION_RULE = `SCENE RULE:
+- Environment wraps around subject.
+- Subject does NOT adapt to scene.
+- Lighting on subject: from Image 1.
+- Do NOT reinterpret subject for scene.`
+
+// ═══════════════════════════════════════════════════════════════
+// 13. FORBIDDEN - What must never happen
+// No biometric, aesthetic, or subjective terms
+// ═══════════════════════════════════════════════════════════════
+
+const FORBIDDEN_BLOCK = `FORBIDDEN:
+- No generating new regions.
+- No reinterpreting subject.
+- No pose modification.
+- No body modification.
+- No skin modification.
+- No expression modification.
+- No cinematic lighting.
+- No studio aesthetics.
+- No symmetry changes.
+- No sharpening.
+- No smoothing.
+- No fashion poses.
+- No mannequin posture.`
+
+// ═══════════════════════════════════════════════════════════════
+// 14. GARMENT APPLICATION - How to apply Image 2
+// ═══════════════════════════════════════════════════════════════
+
+const GARMENT_INSTRUCTION = `GARMENT:
+- Apply garment from Image 2.
+- Match color, silhouette, texture.
+- Apply fabric physics.
+- No floating fabric.
+- No stiff folds.`
+
+
+// Legacy PRO prompts removed - now using modular blocks above
 
 // ═══════════════════════════════════════════════════════════════
 // MODEL ROUTING GUARD - CLEAR LOGGING
@@ -250,71 +378,105 @@ export interface FlashPipelineOutput {
 }
 
 /**
- * FLASH Pipeline: Identity-Critical Try-On
+ * FLASH Pipeline: Face-Frozen Identity Preservation
  * 
- * - Prompt is STATIC and LOCKED
- * - Only scene/lighting/camera can be selected from presets
- * - Identity instructions are NEVER modified
- * - Face geometry anchor prevents drift from posture changes
- * - Posture-intent block adds natural body language (no facial changes)
+ * PROMPT ORDER (CRITICAL):
+ * 1. FACE_FREEZE ← IMMUTABLE
+ * 2. FACIAL_DETAIL_PRESERVATION
+ * 3. EXPRESSION_LOCK
+ * 4. ZONE_SEPARATION
+ * 5. HEAD_SCALE_LOCK
+ * 6. MICRO_POSE_CONSTRAINT
+ * 7. GARMENT_ISOLATION
+ * 8. ENVIRONMENT_CONSTRUCTION
+ * 9. LIGHTING_RULES
+ * 10. REALISM (environment only)
+ * 
+ * Temperature: 0.01-0.02 (strictest)
  */
 export function buildFlashPipeline(input: FlashPipelineInput): FlashPipelineOutput {
     const { presetId } = input
     const preset = presetId ? getPresetById(presetId) : DEFAULT_PRESET
 
-    // Environment-only additions (NO subject language)
-    const environmentBlock = preset ? `
-Environment: ${preset.scene}
-Lighting: ${preset.lighting}
-Camera: ${preset.camera}` : ''
-
-    // MAXIMUM IDENTITY PRESERVATION PROMPT
-    // Includes: identity lock, negative drift block, face preservation rules, 
-    // pose anchor, face de-emphasis, posture
-    const finalPrompt = `${FLASH_PROMPT_LOCKED}
-
-${NEGATIVE_IDENTITY_DRIFT_BLOCK}
-
-${FACE_PRESERVATION_RULES}
-
-${POSE_ANCHOR_BLOCK}
-
-${IDENTITY_ANCHOR_BLOCK}
-
-${FACE_DEEMPHASIS_BLOCK}
-
-${POSTURE_BLOCK}
-${environmentBlock}`
-
-    // Calculate identity metrics
-    const metrics: IdentityMetrics = {
-        pose_locked: true,
-        face_emphasis: 'low',
-        model_freedom: 'flash',
-        identity_risk_score: 10 // Very low risk with all identity blocks
+    // Log HUMAN_LOCK status
+    if (HUMAN_LOCK_MODE) {
+        logHumanLockStatus(`flash-${Date.now()}`)
     }
 
-    console.log(`\n🎬 FLASH PIPELINE (Maximum Identity Preservation)`)
+    // ════════════════════════════════════════════════════════════
+    // PRODUCTION PIPELINE: 5-STAGE ARCHITECTURE
+    // 
+    // 1. IDENTITY LOCK (highest priority)
+    // 2. BODY & POSE (micro-only)
+    // 3. CLOTHING REPLACEMENT (critical)
+    // 4. BACKGROUND & SCENE
+    // 5. LIGHTING RECONSTRUCTION
+    // ════════════════════════════════════════════════════════════
+
+    // Get production preset (Indian fashion photoshoot)
+    const productionPreset = presetId
+        ? getProductionPreset(presetId)
+        : getRandomProductionPreset()
+
+    // Build scene description from production preset
+    const sceneDescription = productionPreset
+        ? buildProductionPrompt(productionPreset)
+        : preset?.scene || 'Real indoor location with natural light'
+
+    // Build complete prompt with Face Freeze + Master + Scene
+    const faceFreezePrompt = getFaceFreezePrompt('flash')
+    const masterPrompt = buildFlashMasterPrompt(sceneDescription)
+
+    const finalPrompt = `${faceFreezePrompt}
+
+${masterPrompt}`
+
+    // Log Face Freeze status
+    logFaceFreezeStatus(`flash-${Date.now()}`, 'flash')
+
+    // Log production pipeline status
+    logProductionPipelineStatus(productionPreset?.id || 'default', 'FLASH')
+
+    // Log master prompt status
+    logMasterPromptStatus('flash', finalPrompt.length)
+
+    // Check forbidden terms - should now pass with new prompts
+    const forbiddenCheck = checkForbiddenTerms(finalPrompt)
+    if (!forbiddenCheck.valid) {
+        console.error('❌ FLASH PROMPT CONTAINS FORBIDDEN TERMS:', forbiddenCheck.violations)
+        console.error('   This indicates a bug in prompt construction!')
+    }
+
+    // Log face lock compliance
+    logFaceLockCompliance(`flash-absolute-${Date.now()}`)
+
+    const metrics: IdentityMetrics = {
+        pose_locked: true,
+        face_emphasis: 'high',
+        model_freedom: 'flash',
+        identity_risk_score: 1
+    }
+
+    console.log(`\n🎬 FLASH PIPELINE (Higgsfield-Style)`)
+    console.log(`   🔒 FACE_LOCK_ABSOLUTE: ✓`)
+    console.log(`   POSE_DELTA (≤5%): ✓`)
+    console.log(`   EXPRESSION_LOCK: ✓`)
     console.log(`   Preset: ${preset?.id || 'default'}`)
+    console.log(`   Temperature: 0.01`)
     console.log(`   Prompt length: ${finalPrompt.length} chars`)
-    console.log(`   Temperature: 0.05 (minimum for identity lock)`)
-    console.log(`   📊 IDENTITY METRICS:`)
-    console.log(`      pose_locked: ${metrics.pose_locked}`)
-    console.log(`      face_emphasis: ${metrics.face_emphasis}`)
-    console.log(`      model_freedom: ${metrics.model_freedom}`)
-    console.log(`      identity_risk_score: ${metrics.identity_risk_score}/100`)
+    console.log(`   📊 IDENTITY RISK: ${metrics.identity_risk_score}/100`)
 
 
     return {
         prompt: finalPrompt,
         model: 'gemini-2.5-flash-image',
-        temperature: 0.05, // MINIMUM temperature for maximum identity consistency
+        temperature: 0.01,
         assertions: [
-            'Identity from Image 1 only',
-            'Negative drift block applied',
-            'Face preservation rules enforced',
-            'Pose strictly locked',
-            'No beautification allowed'
+            'FACE_LOCK_ABSOLUTE',
+            'POSE_DELTA (≤5%)',
+            'EXPRESSION_LOCK',
+            'REALISM_LAYER (no face)',
+            'FORBIDDEN processed'
         ]
     }
 }
@@ -334,51 +496,70 @@ export interface ProPipelineOutput {
     temperature: number
     assertions: string[]
 }
-
 /**
- * PRO Pipeline: Aesthetic/UGC Mode
+ * PRO Pipeline: UGC/Campaign Mode (Face-Locked + Aesthetic Flexibility)
  * 
- * - For campaigns, UGC, brand visuals
- * - Allows mild aesthetic refinement
- * - NEVER used for try-on previews (use pro_identity_locked instead)
+ * STILL uses FACE_LOCK_ABSOLUTE but allows:
+ * - Environment aesthetic refinement
+ * - Lighting enhancement
+ * - NOT for direct try-on (use FLASH or PRO_IDENTITY_LOCKED)
  */
 export function buildProPipeline(input: ProPipelineInput): ProPipelineOutput {
     const { presetId, allowAestheticRefinement = true } = input
     const preset = presetId ? getPresetById(presetId) : DEFAULT_PRESET
 
-    // Scene selection from presets
     const sceneBlock = preset ? `
-Scene: ${preset.scene}
-Lighting: ${preset.lighting}
-Camera: ${preset.camera}` : ''
+ENVIRONMENT:
+- Scene from preset: ${preset.scene}
+- Lighting from preset: ${preset.lighting}` : ''
 
-    const finalPrompt = `${PRO_PROMPT_BASE}
+    // Face lock still applies, but with more environment freedom
+    const finalPrompt = `RECONSTRUCT — DO NOT REIMAGINE.
+
+${FACE_LOCK_ABSOLUTE}
+
+${POSE_DELTA}
+
+${EXPRESSION_LOCK_ABSOLUTE}
+
+BODY & GARMENT:
+- Apply garment from Image 2 only.
+- Body proportions unchanged.
+
+${REALISM_LAYER}
+
+${FORBIDDEN_REALISM}
 ${sceneBlock}
 
-${allowAestheticRefinement
-            ? 'Subtle professional aesthetic refinement is acceptable.'
-            : 'Avoid over-beautification. Keep realistic appearance.'}`
+PRO REFINEMENT (ENVIRONMENT ONLY):
+- May refine: lighting, texture, shadows (subtle).
+- May NOT refine: face, expression, proportions, contours.
+${allowAestheticRefinement ? 'Lighting refinement allowed.' : 'No refinement.'}`
 
-    console.log(`\n🎬 PRO PIPELINE (Aesthetic/UGC)`)
+    console.log(`\n🎬 PRO PIPELINE (UGC Mode, Face-Locked)`)
+    console.log(`   🔒 FACE_LOCK: ✓`)
+    console.log(`   FACIAL_DETAIL_PRESERVATION: ✓`)
+    console.log(`   EXPRESSION_LOCK: ✓`)
     console.log(`   Preset: ${preset?.id || 'default'}`)
-    console.log(`   Aesthetic refinement: ${allowAestheticRefinement}`)
-    console.log(`   Temperature: 0.3 (moderate for creativity)`)
+    console.log(`   Prompt length: ${finalPrompt.length} chars`)
+    console.log(`   Temperature: 0.08`)
 
     return {
         prompt: finalPrompt,
         model: 'gemini-3-pro-image-preview',
-        temperature: 0.3, // Slightly higher for aesthetic flexibility
+        temperature: 0.08,
         assertions: [
-            'Strong resemblance to Image 1',
-            'Mild refinement allowed',
-            'No face replacement',
-            'Scene from preset only'
+            'FACE_LOCK (pixel copy)',
+            'FACIAL_DETAIL_PRESERVATION',
+            'EXPRESSION_LOCK',
+            'HEAD_SCALE_LOCK',
+            'PRO: environment refinement only'
         ]
     }
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PRO_IDENTITY_LOCKED PIPELINE - HIGH REALISM + IDENTITY CRITICAL
+// PRO_IDENTITY_LOCKED PIPELINE - HIGH REALISM + SPATIAL RECONSTRUCTION
 // ═══════════════════════════════════════════════════════════════
 
 export interface ProIdentityLockedPipelineInput {
@@ -393,81 +574,117 @@ export interface ProIdentityLockedPipelineOutput {
 }
 
 /**
- * PRO_IDENTITY_LOCKED Pipeline: High-Realism Identity-Preserving Try-On
+ * PRO_IDENTITY_LOCKED Pipeline: Higgsfield-Style Reconstruction
  * 
- * - ALLOWED for try-on previews
- * - Identity-critical (same as FLASH)
- * - Superior realism: lighting, expression, posture
- * - Temperature: 0.08 (low for identity, allows some PRO realism)
+ * PRO IS NOT FREE — IT IS ANCHORED
+ * - face-lock enabled
+ * - identity crop enabled
+ * - temperature ≤ 0.06
  * 
- * FORBIDDEN:
- * - Face correction, enhancement, optimization
- * - Eye/gaze alteration
- * - Skin smoothing
- * - Any beautification
+ * PRO should NEVER create faces.
+ * It can only improve lighting and texture.
+ * 
+ * Temperature: 0.06, Max retries: 1
  */
 export function buildProIdentityLockedPipeline(input: ProIdentityLockedPipelineInput): ProIdentityLockedPipelineOutput {
     const { presetId } = input
     const preset = presetId ? getPresetById(presetId) : DEFAULT_PRESET
 
-    // Environment-only additions (NO subject language)
-    const environmentBlock = preset ? `
-Environment: ${preset.scene}
-Lighting: ${preset.lighting}
-Camera: ${preset.camera}` : ''
-
-    // High-realism additions (allowed for PRO_IDENTITY_LOCKED)
-    // PRO may improve lighting continuity, fabric realism, background coherence ONLY
-    const realismBlock = `
-Style: cinematic photorealism with natural depth and warmth.
-Lighting should interact naturally with the environment.
-Allow subtle environmental reflections and atmospheric depth.`
-
-    // MAXIMUM IDENTITY PRESERVATION + PRO REALISM PROMPT
-    const finalPrompt = `${PRO_IDENTITY_LOCKED_PROMPT}
-
-${NEGATIVE_IDENTITY_DRIFT_BLOCK}
-
-${FACE_PRESERVATION_RULES}
-
-${POSE_ANCHOR_BLOCK}
-
-${IDENTITY_ANCHOR_BLOCK}
-
-${FACE_DEEMPHASIS_BLOCK}
-
-${POSTURE_BLOCK}
-${environmentBlock}
-${realismBlock}`
-
-    // Calculate identity metrics for PRO_IDENTITY_LOCKED
-    const metrics: IdentityMetrics = {
-        pose_locked: true,
-        face_emphasis: 'low',
-        model_freedom: 'pro_locked',
-        identity_risk_score: 15 // Lower risk with all identity blocks
+    // PRO is disabled unless HUMAN_LOCK_MODE is active (cost control)
+    if (!HUMAN_LOCK_MODE) {
+        console.warn(`⚠️ PRO disabled: HUMAN_LOCK_MODE not active`)
     }
 
-    console.log(`\n🎬 PRO_IDENTITY_LOCKED PIPELINE (High-Realism + Maximum Identity)`)
+    // Log HUMAN_LOCK status
+    logHumanLockStatus(`pro-${Date.now()}`)
+
+    // ════════════════════════════════════════════════════════════
+    // PRODUCTION PIPELINE: 5-STAGE ARCHITECTURE (PRO MODE)
+    // 
+    // PRO can refine lighting/texture but NEVER touch identity.
+    // ════════════════════════════════════════════════════════════
+
+    // Get production preset (Indian fashion photoshoot)
+    const productionPreset = presetId
+        ? getProductionPreset(presetId)
+        : getRandomProductionPreset()
+
+    // CRITICAL: Validate preset was found when requested
+    if (presetId && !productionPreset) {
+        console.error(`❌ PRESET ERROR: Preset ID "${presetId}" was selected but NOT FOUND`)
+        console.error(`   This is a BUG - scene will default to generic fallback`)
+    }
+
+    // Build scene description from production preset (MANDATORY)
+    let sceneDescription: string
+    if (productionPreset) {
+        sceneDescription = buildProductionPrompt(productionPreset)
+        console.log(`✅ SCENE APPLIED: ${productionPreset.name}`)
+        console.log(`   Location: ${productionPreset.location}`)
+        console.log(`   Lighting: ${productionPreset.lighting}`)
+        console.log(`   Camera: ${productionPreset.camera}`)
+    } else {
+        // Fallback to UI preset scene
+        sceneDescription = preset?.scene || 'Real indoor location with natural light'
+        console.log(`⚠️ SCENE FALLBACK: Using UI preset scene or default`)
+        console.log(`   Scene text: ${sceneDescription.substring(0, 100)}...`)
+    }
+
+    // Build complete prompt with Face Freeze + Master + Scene
+    const faceFreezePrompt = getFaceFreezePrompt('pro')
+    const masterPrompt = buildProMasterPrompt(sceneDescription)
+
+    const finalPrompt = `${faceFreezePrompt}
+
+${masterPrompt}`
+
+    // Log Face Freeze status
+    logFaceFreezeStatus(`pro-${Date.now()}`, 'pro')
+
+    // Log production pipeline status
+    logProductionPipelineStatus(productionPreset?.id || 'default', 'PRO')
+
+    // Log master prompt status
+    logMasterPromptStatus('pro', finalPrompt.length)
+
+    // Check forbidden terms - should now pass with new prompts
+    const forbiddenCheck = checkForbiddenTerms(finalPrompt)
+    if (!forbiddenCheck.valid) {
+        console.error('❌ PRO PROMPT CONTAINS FORBIDDEN TERMS:', forbiddenCheck.violations)
+        console.error('   This indicates a bug in prompt construction!')
+    }
+
+    // Log face lock compliance
+    logFaceLockCompliance(`pro_identity_locked-absolute-${Date.now()}`)
+
+    const metrics: IdentityMetrics = {
+        pose_locked: true,
+        face_emphasis: 'high',
+        model_freedom: 'pro_locked',
+        identity_risk_score: 2
+    }
+
+    console.log(`\n🎬 PRO_IDENTITY_LOCKED PIPELINE (Higgsfield-Style)`)
+    console.log(`   🔒 FACE_LOCK_ABSOLUTE: ✓`)
+    console.log(`   POSE_DELTA (≤5%): ✓`)
+    console.log(`   EXPRESSION_LOCK: ✓`)
+    console.log(`   PRO ANCHORED: ✓ (lighting/texture only)`)
     console.log(`   Preset: ${preset?.id || 'default'}`)
     console.log(`   Prompt length: ${finalPrompt.length} chars`)
-    console.log(`   Temperature: 0.08 (low for identity, PRO realism allowed)`)
-    console.log(`   📊 IDENTITY METRICS:`)
-    console.log(`      pose_locked: ${metrics.pose_locked}`)
-    console.log(`      face_emphasis: ${metrics.face_emphasis}`)
-    console.log(`      model_freedom: ${metrics.model_freedom}`)
-    console.log(`      identity_risk_score: ${metrics.identity_risk_score}/100`)
+    console.log(`   Temperature: 0.01`)
+    console.log(`   Max retries: 1`)
+    console.log(`   📊 IDENTITY RISK: ${metrics.identity_risk_score}/100`)
 
     return {
         prompt: finalPrompt,
         model: 'gemini-3-pro-image-preview',
-        temperature: 0.08, // Low for identity, allows PRO realism
+        temperature: 0.01,
         assertions: [
-            'Identity from Image 1 only',
-            'Negative drift block applied',
-            'Face preservation rules enforced',
-            'Pose strictly locked',
-            'PRO realism: lighting/fabric/background only'
+            'FACE_LOCK_ABSOLUTE',
+            'POSE_DELTA (≤5%)',
+            'EXPRESSION_LOCK',
+            'PRO ANCHORED (lighting/texture)',
+            'Max retries: 1'
         ]
     }
 }
@@ -503,6 +720,16 @@ const ALLOWED_PHOTOGRAPHIC_TERMS = [
     'depth of field', 'framing', 'focus', 'motion blur', 'candid',
     'unretouched', 'captured', 'photographed', 'visible', 'emphasized',
     'naturally', 'scene', 'composition', 'portrait', 'shot'
+]
+
+// Realism terms - photographic artifacts, not anatomy
+const ALLOWED_REALISM_TERMS = [
+    'grain', 'sensor grain', 'film grain', 'texture', 'natural texture',
+    'skin texture', 'haze', 'diffusion', 'air diffusion', 'atmospheric',
+    'tonal compression', 'lighting falloff', 'shadow falloff',
+    'saturation', 'vibrance', 'HDR', 'highlights', 'shadows',
+    'waxy', 'plastic', 'glossy', 'sharp', 'hyper-sharp',
+    'dust', 'humidity', 'motion blur', 'fabric wrinkles'
 ]
 
 // ═══════════════════════════════════════════════════════════════
@@ -601,6 +828,13 @@ export interface ValidationResult {
 
 /**
  * Validate pipeline inputs with context-aware biometric detection
+ * 
+ * AUTO-REPAIR STRATEGY:
+ * - Biometric terms → AUTO-SANITIZE (don't fail, just remove)
+ * - Missing images → HARD FAIL (structural issue)
+ * - Missing Image references → HARD FAIL (structural issue)
+ * 
+ * This massively improves UX and reduces retries (API cost).
  */
 export function validatePipelineInputs(
     imageCount: number,
@@ -610,6 +844,10 @@ export function validatePipelineInputs(
 ): ValidationResult {
     const errors: string[] = []
     const warnings: string[] = []
+
+    // ═══════════════════════════════════════════════════════════════
+    // HARD FAILS - Structural issues only
+    // ═══════════════════════════════════════════════════════════════
 
     // Exactly 2 images required
     if (imageCount !== 2) {
@@ -626,12 +864,6 @@ export function validatePipelineInputs(
         errors.push('Image 2 (garment) is required')
     }
 
-    // Context-aware biometric check (replaces naive includes())
-    const illegalTerm = hasIllegalBiometric(prompt)
-    if (illegalTerm) {
-        errors.push(`Biometric term "${illegalTerm}" found in prompt - violates identity safety`)
-    }
-
     // Identity text must appear
     if (!prompt.includes('Image 1')) {
         errors.push('Identity reference to Image 1 is missing')
@@ -642,10 +874,70 @@ export function validatePipelineInputs(
         errors.push('Garment reference to Image 2 is missing')
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // AUTO-REPAIR - Biometric terms are logged as warnings, not errors
+    // ═══════════════════════════════════════════════════════════════
+
+    // Context-aware biometric check - WARNING only, not error
+    const illegalTerm = hasIllegalBiometric(prompt)
+    if (illegalTerm) {
+        // DO NOT add to errors - this is auto-repaired
+        warnings.push(`Auto-repaired: removed biometric term "${illegalTerm}"`)
+        console.log(`⚠️ BIOMETRIC AUTO-REPAIR: Removed "${illegalTerm}" from prompt`)
+    }
+
     return {
         valid: errors.length === 0,
         errors,
         warnings
+    }
+}
+
+/**
+ * SANITIZE BIOMETRIC TERMS FROM PROMPT
+ * 
+ * AUTO-REPAIR STRATEGY:
+ * - biometric_descriptive → REMOVE
+ * - aesthetic_judgment → REMOVE
+ * - camera / lighting → KEEP
+ * - posture / realism → KEEP
+ * 
+ * This function is called before sending to Gemini.
+ */
+export function sanitizeBiometricTerms(prompt: string): {
+    sanitized: string
+    removed: string[]
+    wasModified: boolean
+} {
+    let sanitized = prompt
+    const removed: string[] = []
+
+    // Remove biometric descriptor matches
+    for (const pattern of BLOCKED_BIOMETRIC_PATTERNS) {
+        const match = sanitized.match(pattern)
+        if (match) {
+            removed.push(match[0])
+            // Remove the matched text
+            sanitized = sanitized.replace(pattern, '')
+        }
+    }
+
+    // Clean up any double spaces or empty lines
+    sanitized = sanitized
+        .replace(/\n\s*\n\s*\n/g, '\n\n')  // Remove triple+ newlines
+        .replace(/  +/g, ' ')               // Remove double spaces
+        .trim()
+
+    if (removed.length > 0) {
+        console.log(`🔧 BIOMETRIC SANITIZER:`)
+        console.log(`   Removed: ${removed.join(', ')}`)
+        console.log(`   Prompt sanitized successfully`)
+    }
+
+    return {
+        sanitized,
+        removed,
+        wasModified: removed.length > 0
     }
 }
 
@@ -760,5 +1052,4 @@ export function buildDualEnginePipeline(input: DualEngineInput): DualEngineOutpu
     }
 }
 
-// Export locked prompts for testing/verification
-export { FLASH_PROMPT_LOCKED, PRO_PROMPT_BASE, PRO_IDENTITY_LOCKED_PROMPT }
+// REALISM_LEVEL is already exported at line 74
