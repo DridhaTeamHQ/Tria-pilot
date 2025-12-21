@@ -258,39 +258,62 @@ const CAMERA_IMPERFECTIONS_BLOCK = `CAMERA PHYSICS:
 
 const LIGHTING_PHYSICS_BLOCK = `LIGHTING PHYSICS (CRITICAL):
 
-⚠️ DO NOT USE FLAT STUDIO LIGHTING.
-The lighting MUST match the scene environment.
+⚠️ LIGHT MUST MATCH THE SCENE ENVIRONMENT.
+Apply physics-accurate lighting based on backdrop type.
 
-LIGHT DIRECTION MATCHING:
-- Identify light source from Image 1 (sun position, window direction)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INVERSE SQUARE LAW (Studio Physics):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Light intensity drops with distance squared.
+- Black backdrop = key light CLOSE to subject (fast fall-off)
+- Light doesn't reach background = pure black
+- Subject is lit, background stays dark
+
+BACKDROP-SPECIFIC LIGHTING:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• BLACK/DARK BACKDROP:
+  - Key light: 45° side angle, close to subject
+  - Fill light: opposite side, 1-2 stops darker
+  - No light spill on background
+  - Subject isolated by light fall-off
+  
+• WHITE/BRIGHT BACKDROP:
+  - Even background illumination
+  - Key light: frontal-side, high-key setup
+  - Shadowless background
+  
+• COLORED BACKDROP (Grey, Pastel, etc):
+  - Key light: 45° angle
+  - Background lit separately to show color
+  - Soft shadows on subject
+
+NATURAL SCENE LIGHTING:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• OUTDOOR: Sun as key, sky as fill, directional shadows
+• WINDOW: Side light from window, deep shadows opposite
+• EVENING: Low angle warm light, long shadows
+• OVERCAST: Soft diffused light, minimal shadows
+
+FACE LIGHTING RULES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 - PRESERVE face lighting direction from Image 1
-- Apply SAME light direction to garment and body
-- Shadows on body must fall in same direction as face shadows
-
-SCENE LIGHTING HARMONIZATION:
-- If scene = outdoor → use natural daylight with depth
-- If scene = window → use directional side light
-- If scene = evening → use warm, low-angle light
-- If scene = studio → use soft directional key light
-- NEVER use flat, even lighting from all directions
+- Apply SAME light direction to body and garment
+- Shadows on body MUST match face shadow direction
+- Color temperature on face = PRESERVED
 
 SHADOW REQUIREMENTS:
-- Visible shadow under chin (matches face lighting)
-- Visible shadow on garment folds (directional)
-- Contact shadows where arms meet body
-- Shadow direction: CONSISTENT with light source
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Shadow under chin (matches key light angle)
+- Shadow in garment folds (directional)
+- Contact shadows where fabric meets body
+- Shadow direction: CONSISTENT throughout
 
 FORBIDDEN LIGHTING:
-✗ Flat frontal lighting (looks AI-generated)
-✗ Even lighting from all angles (no direction)
-✗ Rim light without scene justification
-✗ Spotlight on subject in natural scene
-✗ Over-bright, shadowless face
-
-COLOR TEMPERATURE:
-- Face color temperature: PRESERVED from Image 1
-- Garment color temperature: match scene preset
-- Match warm/cool balance to environment`
+✗ Flat frontal lighting (AI giveaway)
+✗ Even lighting from all angles
+✗ Subject lit but no shadow direction
+✗ Background bright when it should be black
+✗ Mixed light directions on face vs body`
 
 // ═══════════════════════════════════════════════════════════════
 // 9. COLOR PHYSICS - Muted, realistic

@@ -97,26 +97,52 @@ If garment color differs from Image 2 → RETRY.`
 // ═══════════════════════════════════════════════════════════════
 
 export const POSE_LIMIT_BLOCK = `[POSE_LIMIT]
-Pose changes = MICRO ONLY.
+Face = FROZEN. Body = SUBTLE CHANGES ALLOWED.
 
-Hard limits:
-- Torso rotation: ≤ 15°
-- Head rotation: ≤ 8°
-- Shoulder shift: ≤ 5%
-- Hand position: slight adjustment only
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FACE (ABSOLUTELY FROZEN):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Head position: LOCKED (no rotation changes)
+- Face expression: IDENTICAL to Image 1
+- Eye direction: IDENTICAL to Image 1
+- Head tilt: PRESERVED exactly
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BODY (SUBTLE CHANGES ALLOWED):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Allowed body pose changes:
+✓ Sitting ↔ Standing (subtle transition)
+✓ Leaning slightly ↔ Upright
+✓ Arms at sides ↔ Arms relaxed
+✓ Weight shift between legs
+✓ Shoulder angle adjustments
+
+LIMITS:
+- Torso rotation: ≤ 20° from original
+- Shoulder shift: ≤ 10%
+- Arm position: natural variations
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HANDS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Allowed hand states:
-- Rest at side
-- Slight bend
-- In pocket (if visible in original)
+✓ Rest at sides
+✓ Slight bend at elbow
+✓ In pocket (if natural)
+✓ Holding nothing
 
 Forbidden:
-- Fashion poses
-- Floating hands
-- New limb positions
-- Crossed arms (unless present in original)
+✗ Floating hands
+✗ Extra fingers
+✗ Merged fingers
+✗ Fashion model poses
 
-If pose exceeds limits → clamp to original.`
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CRITICAL: Face-Body Independence
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+The body can change pose.
+The face CANNOT change at all.
+Think: "Same person, different pose, same exact face."`
 
 // ═══════════════════════════════════════════════════════════════
 // [SCENE] - Real Indian photoshoot environment
