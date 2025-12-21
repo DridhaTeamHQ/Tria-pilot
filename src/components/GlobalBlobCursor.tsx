@@ -13,20 +13,23 @@ import { useEffect, useState, useCallback, useRef } from 'react'
  */
 export default function GlobalBlobCursor() {
     const [isVisible, setIsVisible] = useState(false)
-    const [isMobile, setIsMobile] = useState(true)
+    const [isMobile, setIsMobile] = useState(false) // Default to false - will check on mount
     const [isHovering, setIsHovering] = useState(false)
     const [isPressed, setIsPressed] = useState(false)
     const [isModalOpen, setIsModalOpen] = useState(false)
+    const [isInitialized, setIsInitialized] = useState(false)
 
     const rafRef = useRef<number | null>(null)
-    const targetRef = useRef({ x: -100, y: -100 })
-    const currentRef = useRef({ x: -100, y: -100 })
+    const targetRef = useRef({ x: 0, y: 0 })
+    const currentRef = useRef({ x: 0, y: 0 })
     const cursorRef = useRef<HTMLDivElement>(null)
     const lastMoveRef = useRef(0)
     const isAnimatingRef = useRef(false)
 
-    // Use CSS transforms directly instead of React state
-    const updateCursorPosition = useCallback(() => {
+    // Animation loop using RAF - use ref to avoid stale closure
+    const animateRef = useRef<() => void>()
+
+    animateRef.current = () => {
         if (cursorRef.current) {
             const dx = targetRef.current.x - currentRef.current.x
             const dy = targetRef.current.y - currentRef.current.y
@@ -47,32 +50,38 @@ export default function GlobalBlobCursor() {
             // Direct DOM manipulation for performance (no React re-render)
             cursorRef.current.style.transform = `translate3d(${currentRef.current.x}px, ${currentRef.current.y}px, 0)`
 
-            rafRef.current = requestAnimationFrame(updateCursorPosition)
+            rafRef.current = requestAnimationFrame(() => animateRef.current?.())
         }
-    }, [])
+    }
 
     const startAnimating = useCallback(() => {
         if (!isAnimatingRef.current) {
             isAnimatingRef.current = true
-            rafRef.current = requestAnimationFrame(updateCursorPosition)
+            rafRef.current = requestAnimationFrame(() => animateRef.current?.())
         }
-    }, [updateCursorPosition])
+    }, [])
 
     useEffect(() => {
+        // Check mobile on mount
         const checkMobile = () => {
             const mobile = window.innerWidth < 768 || 'ontouchstart' in window
-            setIsMobile(mobile)
             return mobile
         }
 
         // Check for reduced motion preference
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-        if (prefersReducedMotion) {
-            setIsMobile(true) // Disable cursor for accessibility
+
+        const mobile = checkMobile()
+
+        if (prefersReducedMotion || mobile) {
+            setIsMobile(true) // Disable cursor
+            setIsInitialized(true)
             return
         }
 
-        if (checkMobile()) return
+        // Desktop - enable cursor
+        setIsMobile(false)
+        setIsInitialized(true)
 
         const style = document.createElement('style')
         style.id = 'blob-cursor-style'
