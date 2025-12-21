@@ -561,14 +561,152 @@ const OUTDOOR_PRESETS: ScenePreset[] = [
 ]
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// EXPORT ALL PHOTOSHOOT PRESETS
+// URBAN CINEMATIC (10 presets)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const URBAN_CINEMATIC_PRESETS: ScenePreset[] = [
+    {
+        id: 'urban_quiet_dusk',
+        label: 'Quiet Street Dusk',
+        category: 'street',
+        region: 'global',
+        scene: 'Quiet city street at dusk, warm street lights starting, blue hour sky',
+        lighting: 'Blue hour ambient with warm street lights, mixed color temperature',
+        camera: '35mm lens, full body, street perspective',
+        motion: 'static',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No busy traffic, no harsh lighting'
+    },
+    {
+        id: 'urban_concrete_brutalist',
+        label: 'Concrete Brutalist',
+        category: 'outdoor',
+        region: 'global',
+        scene: 'Brutalist architecture, raw concrete walls, geometric shapes',
+        lighting: 'Dramatic side light, architectural shadows, overcast sky',
+        camera: '35mm lens, architectural framing, subject against concrete',
+        motion: 'static',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No graffiti, no construction debris'
+    },
+    {
+        id: 'urban_staircase_geometry',
+        label: 'Staircase Geometry',
+        category: 'lifestyle',
+        region: 'global',
+        scene: 'Modern staircase, clean lines, geometric railings, well-lit',
+        lighting: 'Ambient building light, soft shadows on steps',
+        camera: '28mm wide lens, emphasize geometry, subject on stairs',
+        motion: 'static',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No institutional fluorescent, no clutter'
+    },
+    {
+        id: 'urban_parking_shadow',
+        label: 'Parking Structure Soft Shadow',
+        category: 'outdoor',
+        region: 'global',
+        scene: 'Modern parking structure, clean concrete, repeating columns',
+        lighting: 'Soft ambient light, open shade from structure, even shadows',
+        camera: '50mm lens, portrait with structural background',
+        motion: 'static',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No cars, no harsh direct sun'
+    },
+    {
+        id: 'urban_metro_platform',
+        label: 'Metro Platform Clean',
+        category: 'street',
+        region: 'global',
+        scene: 'Clean metro station platform, modern design, minimal people',
+        lighting: 'Even overhead lighting, no harsh spots',
+        camera: '35mm lens, waiting pose, platform depth visible',
+        motion: 'static',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No crowded platform, no dirty floors'
+    },
+    {
+        id: 'urban_bridge_evening',
+        label: 'Bridge Evening Light',
+        category: 'outdoor',
+        region: 'global',
+        scene: 'Pedestrian bridge, city lights in distance, evening sky',
+        lighting: 'Blue hour with city lights reflected, warm streetlamps',
+        camera: '50mm lens, standing on bridge, city bokeh behind',
+        motion: 'static',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No busy traffic, no harsh lights'
+    },
+    {
+        id: 'urban_museum_exterior',
+        label: 'Museum Exterior',
+        category: 'outdoor',
+        region: 'global',
+        scene: 'Modern museum exterior, clean architectural lines, plaza',
+        lighting: 'Bright daylight, architectural shadows, blue sky',
+        camera: '35mm lens, architectural context, subject in plaza',
+        motion: 'static',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No tourist crowds, no signs'
+    },
+    {
+        id: 'urban_alley_sunlight',
+        label: 'Alley Sunlight Shaft',
+        category: 'street',
+        region: 'global',
+        scene: 'Narrow clean alley, shaft of sunlight between buildings',
+        lighting: 'Dramatic shaft of direct sunlight, deep shadows',
+        camera: '50mm lens, subject in light shaft, contrast visible',
+        motion: 'static',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No trash, no dumpsters, no graffiti'
+    },
+    {
+        id: 'urban_glass_reflection',
+        label: 'Glass Building Reflection',
+        category: 'outdoor',
+        region: 'global',
+        scene: 'Modern glass-facade building, reflective surface, city reflected',
+        lighting: 'Overcast sky, soft reflections in glass',
+        camera: '35mm lens, subject with glass building behind',
+        motion: 'static',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No direct sun glare, no busy reflections'
+    },
+    {
+        id: 'urban_underpass_tunnel',
+        label: 'Underpass Tunnel',
+        category: 'street',
+        region: 'global',
+        scene: 'Clean urban underpass or tunnel, even lighting, concrete walls',
+        lighting: 'Even artificial tunnel lighting, no harsh shadows',
+        camera: '35mm lens, subject walking through, tunnel depth',
+        motion: 'subtle motion',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No graffiti, no homeless camps, no debris'
+    }
+]
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EXPORT ALL PHOTOSHOOT PRESETS (50 TOTAL)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const PHOTOSHOOT_PRESETS: ScenePreset[] = [
     ...STUDIO_PRESETS,
     ...LIFESTYLE_PRESETS,
     ...CELEBRATION_PRESETS,
-    ...OUTDOOR_PRESETS
+    ...OUTDOOR_PRESETS,
+    ...URBAN_CINEMATIC_PRESETS
 ]
 
 export function getPhotoshootPreset(id: string): ScenePreset | undefined {
