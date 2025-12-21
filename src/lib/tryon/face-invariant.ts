@@ -225,3 +225,156 @@ export function logFaceInvariantStatus(pipeline: 'flash' | 'pro-scene' | 'pro-re
         console.log(`   - Face Mask: OPAQUE BLACK BOX`)
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// REALISM ENFORCEMENT BLOCK (PHYSICS + ANATOMY)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export const REALISM_ENFORCEMENT_BLOCK = `
+═══════════════════════════════════════════════════════════════════════════════
+REALISM ENFORCEMENT (PHYSICS + ANATOMY)
+═══════════════════════════════════════════════════════════════════════════════
+
+CLOTHING PHYSICS:
+• Clothing must wrap naturally around body contours
+• Fabric follows gravity and body tension points
+• No floating edges or stiff unnatural folds
+• Wrinkles at joints (elbows, waist, armpits)
+• Collar sits correctly on neck/shoulders
+
+HAND ANATOMY (CRITICAL):
+• Hands must have exactly 5 fingers
+• Fingers must connect anatomically to palm
+• No floating or disconnected digits
+• No merged fingers
+• Wrist connects naturally to arm
+• If hands not visible → keep not visible (do not add)
+
+BODY INTEGRATION:
+• No floating limbs
+• Arms connect at shoulders
+• Neck connects to torso
+• Proportions match Image 1 exactly
+
+SHADOWS & LIGHTING:
+• Shadow direction must match light source
+• Contact shadows where body meets surfaces
+• No floating shadows
+• No contradictory light directions
+
+TEXTURE REALISM:
+• Add subtle sensor grain (not digital noise)
+• Avoid oversaturation
+• Avoid hyper-sharpening
+• No portrait-mode blur unless specified
+• Skin texture visible (pores, natural)
+• Fabric weave/texture visible
+
+FORBIDDEN:
+✗ Plastic skin
+✗ AI-smooth faces
+✗ Mannequin poses
+✗ Unnatural limb angles
+✗ Floating clothing edges
+═══════════════════════════════════════════════════════════════════════════════`
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FLASH RECONSTRUCTION BLOCK (DO NOT RE-IMAGINE)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export const FLASH_RECONSTRUCTION_BLOCK = `
+═══════════════════════════════════════════════════════════════════════════════
+FLASH MODE: RECONSTRUCTION (NOT GENERATION)
+═══════════════════════════════════════════════════════════════════════════════
+
+CORE INSTRUCTION:
+Reconstruct body and clothing AROUND Image 1.
+Do NOT re-imagine the person.
+Do NOT generate a new person wearing similar clothes.
+Do NOT adjust facial proportions for "better" framing.
+
+THIS IS RECONSTRUCTION:
+• Start with Image 1 as the ANCHOR
+• Change ONLY the garment (from Image 2)
+• Keep EVERYTHING else from Image 1
+
+FLASH IGNORES:
+• Creative scene suggestions
+• Artistic lighting requests
+• Pose adjustments beyond micro (≤5°)
+• Background changes (keep original unless specified)
+
+FLASH APPLIES:
+• Lighting direction (match original)
+• Color temperature (match scene)
+• Background brightness (match scene)
+
+RESULT VALIDATION:
+The output should look like "same photo, different clothes"
+NOT "new photo of similar person"
+═══════════════════════════════════════════════════════════════════════════════`
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GARMENT CHANGE VALIDATION BLOCK
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export const GARMENT_CHANGE_VALIDATION_BLOCK = `
+═══════════════════════════════════════════════════════════════════════════════
+GARMENT CHANGE VALIDATION (MUST PASS)
+═══════════════════════════════════════════════════════════════════════════════
+
+The garment from Image 2 MUST be visible in output:
+
+REQUIRED VISIBLE CHANGES:
+• Garment color matches Image 2
+• Garment pattern/texture matches Image 2
+• Garment style (neckline, sleeves, length) matches Image 2
+• Overall silhouette reflects the new garment
+
+IF GARMENT NOT CHANGED:
+The generation has FAILED.
+This is not acceptable output.
+
+GARMENT REALISM:
+• Fabric drapes according to body pose
+• Seams and construction details visible
+• Wrinkles at movement points
+• Fit correlates with body proportions from Image 1
+═══════════════════════════════════════════════════════════════════════════════`
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// UPDATED COMBINED LAYERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Full FaceInvariantLayer for Flash pipeline WITH realism and reconstruction.
+ */
+export const FACE_INVARIANT_LAYER_FLASH_FULL = `
+${FACE_INVARIANT_BLOCK}
+
+${DEMOGRAPHIC_SAFETY_BLOCK}
+
+${EXPRESSION_PRESERVATION_BLOCK}
+
+${FLASH_RECONSTRUCTION_BLOCK}
+
+${REALISM_ENFORCEMENT_BLOCK}
+
+${GARMENT_CHANGE_VALIDATION_BLOCK}
+`
+
+/**
+ * Full FaceInvariantLayer for Pro Refinement Pass WITH realism.
+ */
+export const FACE_INVARIANT_LAYER_PRO_REFINE_FULL = `
+${FACE_INVARIANT_BLOCK}
+
+${DEMOGRAPHIC_SAFETY_BLOCK}
+
+${EXPRESSION_PRESERVATION_BLOCK}
+
+${REALISM_ENFORCEMENT_BLOCK}
+
+${GARMENT_CHANGE_VALIDATION_BLOCK}
+`
+

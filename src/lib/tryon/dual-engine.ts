@@ -91,8 +91,12 @@ import {
     FACE_INVARIANT_LAYER_FLASH,
     FACE_INVARIANT_LAYER_PRO_SCENE,
     FACE_INVARIANT_LAYER_PRO_REFINE,
+    FACE_INVARIANT_LAYER_FLASH_FULL,
+    FACE_INVARIANT_LAYER_PRO_REFINE_FULL,
     DEMOGRAPHIC_SAFETY_BLOCK,
     OPAQUE_FACE_MASK_BLOCK,
+    REALISM_ENFORCEMENT_BLOCK,
+    GARMENT_CHANGE_VALIDATION_BLOCK,
     MAX_SCENE_RETRIES,
     logFaceInvariantStatus
 } from './face-invariant'
@@ -436,12 +440,12 @@ export function buildFlashPipeline(input: FlashPipelineInput): FlashPipelineOutp
         ? buildProductionPrompt(productionPreset)
         : preset?.scene || 'Real indoor location with natural light'
 
-    // Build complete prompt with Face Invariant Layer + Master + Scene
+    // Build complete prompt with Face Invariant Layer (FULL) + Master + Scene
     const faceFreezePrompt = getFaceFreezePrompt('flash')
     const masterPrompt = buildFlashMasterPrompt(sceneDescription)
 
-    // IDENTITY-FIRST: Prepend FaceInvariantLayer with demographic safety
-    const finalPrompt = `${FACE_INVARIANT_LAYER_FLASH}
+    // IDENTITY-FIRST: Prepend FULL FaceInvariantLayer with realism + reconstruction
+    const finalPrompt = `${FACE_INVARIANT_LAYER_FLASH_FULL}
 
 ${faceFreezePrompt}
 

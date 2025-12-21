@@ -7,6 +7,7 @@
 
 import { INDIAN_PRESETS, getIndianPreset, getIndianPresets, DEFAULT_INDIAN_PRESET, type ScenePreset } from './india'
 import { GLOBAL_PRESETS, getGlobalPreset, getGlobalPresets, DEFAULT_GLOBAL_PRESET } from './global'
+import { PHOTOSHOOT_PRESETS, getPhotoshootPreset, getPhotoshootPresetsByCategory } from './photoshoot'
 
 // Re-export types
 export type { ScenePreset }
@@ -16,9 +17,10 @@ export type { ScenePreset }
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * All available scene presets
+ * All available scene presets (Indian + Global + Photoshoot)
+ * Photoshoot presets are prioritized for cleaner, more professional outputs
  */
-export const ALL_PRESETS: ScenePreset[] = [...INDIAN_PRESETS, ...GLOBAL_PRESETS]
+export const ALL_PRESETS: ScenePreset[] = [...PHOTOSHOOT_PRESETS, ...INDIAN_PRESETS, ...GLOBAL_PRESETS]
 
 /**
  * Get any preset by ID (searches all regions)
@@ -113,10 +115,13 @@ export function getDefaultPreset(region: 'india' | 'global' = 'india'): ScenePre
 export {
     INDIAN_PRESETS,
     GLOBAL_PRESETS,
+    PHOTOSHOOT_PRESETS,
     getIndianPreset,
     getIndianPresets,
     getGlobalPreset,
     getGlobalPresets,
+    getPhotoshootPreset,
+    getPhotoshootPresetsByCategory,
     DEFAULT_INDIAN_PRESET,
     DEFAULT_GLOBAL_PRESET
 }
