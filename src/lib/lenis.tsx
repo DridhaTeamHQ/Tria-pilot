@@ -13,8 +13,8 @@ import { useEffect, useState } from "react";
  * - Disabled when prefers-reduced-motion is set
  */
 export function ReactLenis({ children }: { children: React.ReactNode }) {
-    // Default to FALSE (native scroll) to fix production smoothness issues
-    const [shouldSmooth, setShouldSmooth] = useState(false);
+    // Enable smooth scroll for premium feel
+    const [shouldSmooth, setShouldSmooth] = useState(true);
 
     useEffect(() => {
         // Respect reduced motion preference
@@ -36,10 +36,10 @@ export function ReactLenis({ children }: { children: React.ReactNode }) {
 
     return (
         <Lenis root options={{
-            lerp: 0.12,           // Higher = faster response (was 0.1)
-            duration: 1.0,        // Shorter = snappier (was 1.5)
+            lerp: 0.1,            // Balanced smooth feel (standard)
+            duration: 1.2,        // Slightly longer for elegance but not floaty
             smoothWheel: true,
-            touchMultiplier: 0,   // Disable on touch - use native
+            touchMultiplier: 0,   // Native touch scroll for best mobile experience
         }}>
             {children}
         </Lenis>

@@ -42,23 +42,13 @@ export default function GlobalBlobCursor() {
 
         // Animation loop
         const animate = () => {
-            // Main cursor: INSTANT follow (no delay)
-            const dotX = mouse.current.x
-            const dotY = mouse.current.y
-
-            // Ring: Fast interpolation (0.4) for slight smoothness but snappy feel
-            pos.current.x += (mouse.current.x - pos.current.x) * 0.45
-            pos.current.y += (mouse.current.y - pos.current.y) * 0.45
+            // Smooth interpolation for "Blob" feel
+            // 0.25 = Sweet spot between snappy key and smooth trail
+            pos.current.x += (mouse.current.x - pos.current.x) * 0.25
+            pos.current.y += (mouse.current.y - pos.current.y) * 0.25
 
             if (cursorRef.current) {
-                // Move the whole container instantly to mouse position
-                // This eliminates the "floating delay" feeling
-                cursorRef.current.style.transform = `translate(${dotX}px, ${dotY}px)`
-
-                // We could animate the ring separately if we split them, but for now, 
-                // making the main tracking instant is the key fix for "lag".
-                // If we want the ring to trail, we'd need separate refs.
-                // Let's stick to instant tracking for the container to fix the user's "lag" complaint.
+                cursorRef.current.style.transform = `translate(${pos.current.x}px, ${pos.current.y}px)`
             }
 
             rafId.current = requestAnimationFrame(animate)
