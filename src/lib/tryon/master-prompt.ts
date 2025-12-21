@@ -151,22 +151,29 @@ If background unchanged from Image 1 → GENERATION FAILED.`
 // ═══════════════════════════════════════════════════════════════
 
 export const LIGHTING_BLOCK = `[LIGHTING]
-Split lighting into layers:
-1. Face lighting = PRESERVED from Image 1
-2. Garment lighting = adjusted to match scene
-3. Background lighting = scene driven
+⚠️ LIGHTING MUST MATCH THE SCENE - NO FLAT STUDIO LIGHTING.
 
-Rules:
-- Never relight the face independently
-- Light direction must match original
-- Soft natural falloff
-- No rim light or beauty lighting
-- Shadows match light source
+LAYER-BASED LIGHTING:
+1. Face lighting = PRESERVED from Image 1 (direction + temperature)
+2. Garment lighting = adjusted to match scene preset
+3. Background lighting = scene-driven
 
-Add to garment:
-- Contact shadows where fabric meets body
-- Ambient occlusion in folds
-- Subtle environment reflections`
+LIGHT DIRECTION:
+- Identify light source direction from Image 1
+- Shadow direction on body MUST match face shadows
+- Shadow under chin, on garment folds, at arm creases
+
+SCENE MATCHING:
+- Outdoor scene → natural daylight with depth and direction
+- Indoor scene → window or practical light direction
+- Evening scene → warm, low-angle lighting
+- NEVER flat, even lighting from all angles
+
+FORBIDDEN:
+- Flat frontal lighting (AI look)
+- Shadowless face + body
+- Rim light in natural scenes
+- Over-bright commercial look`
 
 // ═══════════════════════════════════════════════════════════════
 // [NEGATIVE] - Hard ban list

@@ -256,14 +256,41 @@ const CAMERA_IMPERFECTIONS_BLOCK = `CAMERA PHYSICS:
 // One source, natural bounce, no drama
 // ═══════════════════════════════════════════════════════════════
 
-const LIGHTING_PHYSICS_BLOCK = `LIGHTING PHYSICS:
-- One primary source: sun OR window OR practical light.
-- Secondary: natural bounce only.
-- No rim lights.
-- No dramatic contrast.
-- No spotlight on subject.
-- Shadow direction: consistent with light source.
-- Shadow softness: match light diffusion.`
+const LIGHTING_PHYSICS_BLOCK = `LIGHTING PHYSICS (CRITICAL):
+
+⚠️ DO NOT USE FLAT STUDIO LIGHTING.
+The lighting MUST match the scene environment.
+
+LIGHT DIRECTION MATCHING:
+- Identify light source from Image 1 (sun position, window direction)
+- PRESERVE face lighting direction from Image 1
+- Apply SAME light direction to garment and body
+- Shadows on body must fall in same direction as face shadows
+
+SCENE LIGHTING HARMONIZATION:
+- If scene = outdoor → use natural daylight with depth
+- If scene = window → use directional side light
+- If scene = evening → use warm, low-angle light
+- If scene = studio → use soft directional key light
+- NEVER use flat, even lighting from all directions
+
+SHADOW REQUIREMENTS:
+- Visible shadow under chin (matches face lighting)
+- Visible shadow on garment folds (directional)
+- Contact shadows where arms meet body
+- Shadow direction: CONSISTENT with light source
+
+FORBIDDEN LIGHTING:
+✗ Flat frontal lighting (looks AI-generated)
+✗ Even lighting from all angles (no direction)
+✗ Rim light without scene justification
+✗ Spotlight on subject in natural scene
+✗ Over-bright, shadowless face
+
+COLOR TEMPERATURE:
+- Face color temperature: PRESERVED from Image 1
+- Garment color temperature: match scene preset
+- Match warm/cool balance to environment`
 
 // ═══════════════════════════════════════════════════════════════
 // 9. COLOR PHYSICS - Muted, realistic
