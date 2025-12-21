@@ -106,60 +106,60 @@ export default async function InfluencerDashboard() {
   ]
 
   return (
-    <div className="min-h-screen bg-cream pt-24">
-      <div className="container mx-auto px-6 py-8">
+    <div className="min-h-screen bg-cream pt-20 sm:pt-24">
+      <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Welcome Section */}
-        <div className="mb-12">
-          <h1 className="text-4xl font-serif text-charcoal mb-2">
+        <div className="mb-8 sm:mb-12">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-serif text-charcoal mb-2">
             Welcome back, <span className="italic">{user.name || 'Creator'}</span>
           </h1>
-          <p className="text-charcoal/60">
+          <p className="text-sm sm:text-base text-charcoal/60">
             Here&apos;s what&apos;s happening with your account today.
           </p>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8 sm:mb-12">
           {stats.map((stat) => {
             const Icon = stat.icon
             return (
               <div
                 key={stat.label}
-                className="bg-white rounded-2xl p-6 border border-subtle"
+                className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-subtle touch-target"
               >
-                <div className={`w-12 h-12 rounded-xl ${stat.color} flex items-center justify-center mb-4`}>
-                  <Icon className="w-6 h-6" />
+                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl ${stat.color} flex items-center justify-center mb-3 sm:mb-4`}>
+                  <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <p className="text-3xl font-serif font-bold text-charcoal mb-1">{stat.value}</p>
-                <p className="text-sm text-charcoal/60">{stat.label}</p>
+                <p className="text-2xl sm:text-3xl font-serif font-bold text-charcoal mb-1">{stat.value}</p>
+                <p className="text-xs sm:text-sm text-charcoal/60">{stat.label}</p>
               </div>
             )
           })}
         </div>
 
         {/* Quick Actions */}
-        <div className="mb-12">
-          <h2 className="text-2xl font-serif text-charcoal mb-6">Quick Actions</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="mb-8 sm:mb-12">
+          <h2 className="text-xl sm:text-2xl font-serif text-charcoal mb-4 sm:mb-6">Quick Actions</h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {quickActions.map((action) => {
               const Icon = action.icon
               return (
                 <Link
                   key={action.href}
                   href={action.href}
-                  className={`group relative overflow-hidden rounded-2xl p-6 transition-all hover:scale-[1.02] ${action.primary
+                  className={`group relative overflow-hidden rounded-xl sm:rounded-2xl p-4 sm:p-6 transition-all active:scale-[0.98] sm:hover:scale-[1.02] touch-target ${action.primary
                     ? 'bg-gradient-to-br ' + action.color + ' text-charcoal'
                     : 'bg-white border border-subtle text-charcoal hover:border-charcoal/20'
                     }`}
                 >
-                  <div className={`w-12 h-12 rounded-xl ${action.primary ? 'bg-white/30' : 'bg-cream'} flex items-center justify-center mb-4`}>
-                    <Icon className="w-6 h-6" />
+                  <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl ${action.primary ? 'bg-white/30' : 'bg-cream'} flex items-center justify-center mb-3 sm:mb-4`}>
+                    <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
-                  <h3 className="font-semibold mb-1">{action.title}</h3>
-                  <p className={`text-sm ${action.primary ? 'text-charcoal/80' : 'text-charcoal/60'}`}>
+                  <h3 className="font-semibold text-sm sm:text-base mb-1">{action.title}</h3>
+                  <p className={`text-xs sm:text-sm line-clamp-2 ${action.primary ? 'text-charcoal/80' : 'text-charcoal/60'}`}>
                     {action.description}
                   </p>
-                  <ArrowRight className="absolute bottom-6 right-6 w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ArrowRight className="absolute bottom-4 sm:bottom-6 right-4 sm:right-6 w-4 h-4 sm:w-5 sm:h-5 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block" />
                 </Link>
               )
             })}
