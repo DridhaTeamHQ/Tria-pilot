@@ -129,9 +129,9 @@ export interface IdentityCheck {
 }
 
 export const IDENTITY_THRESHOLDS = {
-    STRICT: 0.92,      // For FLASH (highest identity fidelity)
-    NORMAL: 0.85,      // For PRO (allows slight refinement)
-    MINIMUM: 0.75,     // Below this = complete failure
+    STRICT: 0.92,      // For FLASH and PRO (identical face freeze)
+    NORMAL: 0.92,      // PRO now uses STRICT (same as FLASH) - NO DIFFERENCE
+    MINIMUM: 0.75,     // Below this = ABORT generation (no retry)
 }
 
 /**
@@ -290,35 +290,40 @@ export function checkForRejection(
     garmentApplied: boolean,
     faceModified: boolean
 ): RejectionResult {
-    // Critical: Face was modified
+    // ═══════════════════════════════════════════════════════════════
+    // CRITICAL: Face was modified → ABORT (NO CREATIVE RETRY)
+    // Per user spec: "If face similarity drops → abort generation, do not retry creatively"
+    // ═══════════════════════════════════════════════════════════════
     if (faceModified) {
+        console.error('❌ FACE FREEZE VIOLATION: Face was modified - ABORTING')
         return {
             accepted: false,
-            rejection_reason: 'Face was modified - CRITICAL VIOLATION',
+            rejection_reason: 'FATAL: Face was modified - generation aborted',
             violation_severity: 'critical',
-            should_retry: true,
-            stricter_constraints: FLASH_FACE_FREEZE + '\n\nRETRY: Face was modified in previous attempt. Apply ABSOLUTE face freeze.'
+            should_retry: false, // NO RETRY - abort completely
         }
     }
 
-    // Critical: Identity similarity too low
+    // ═══════════════════════════════════════════════════════════════
+    // CRITICAL: Identity similarity below threshold → ABORT
+    // ═══════════════════════════════════════════════════════════════
     if (!identityCheck.passed || identityCheck.similarity_score < IDENTITY_THRESHOLDS.MINIMUM) {
+        console.error(`❌ IDENTITY DRIFT: Similarity ${identityCheck.similarity_score} < ${IDENTITY_THRESHOLDS.MINIMUM} - ABORTING`)
         return {
             accepted: false,
-            rejection_reason: `Identity drift detected (${identityCheck.similarity_score} < ${IDENTITY_THRESHOLDS.MINIMUM})`,
+            rejection_reason: `FATAL: Identity drift detected (${identityCheck.similarity_score.toFixed(2)} < ${IDENTITY_THRESHOLDS.MINIMUM}) - generation aborted`,
             violation_severity: 'critical',
-            should_retry: true,
-            stricter_constraints: FLASH_FACE_FREEZE + '\n\nRETRY: Identity drifted in previous attempt. Copy face pixels directly.'
+            should_retry: false, // NO RETRY - abort completely
         }
     }
 
-    // Major: Garment not applied
+    // Major: Garment not applied (can retry once)
     if (!garmentApplied) {
         return {
             accepted: false,
             rejection_reason: 'Garment was not applied from Image 2',
             violation_severity: 'major',
-            should_retry: true,
+            should_retry: true, // Garment retry is allowed (not face-related)
             stricter_constraints: GARMENT_ONLY_GENERATION + '\n\nRETRY: Garment was not applied. MANDATORY garment replacement.'
         }
     }
@@ -352,13 +357,71 @@ ${FACE_FREEZE_NEGATIVES}`
  * Log Face Freeze status for debugging.
  */
 export function logFaceFreezeStatus(sessionId: string, pipeline: 'flash' | 'pro'): void {
-    console.log(`\n🧊 FACE FREEZE [${pipeline.toUpperCase()}]`)
+    console.log(`\n🧊 FACE FREEZE LAYER 0 [${pipeline.toUpperCase()}]`)
     console.log(`   Session: ${sessionId}`)
-    console.log(`   Face Region: LOCKED`)
-    console.log(`   Skin Region: PROTECTED`)
-    console.log(`   Garment Region: GENERATE`)
-    console.log(`   Identity Threshold: ${pipeline === 'flash' ? IDENTITY_THRESHOLDS.STRICT : IDENTITY_THRESHOLDS.NORMAL}`)
+    console.log(`   ═══════════════════════════════════════`)
+    console.log(`   📌 Face Region: IMMUTABLE (pixel copy)`)
+    console.log(`   📌 Skin Region: PROTECTED (no smoothing)`)
+    console.log(`   📌 Expression: LOCKED (no change)`)
+    console.log(`   ═══════════════════════════════════════`)
+    console.log(`   ✏️ Garment Region: GENERATE`)
+    console.log(`   ✏️ Background: GENERATE (PRO) / COPY (FLASH)`)
+    console.log(`   ═══════════════════════════════════════`)
+    console.log(`   🔒 Identity Threshold: ${IDENTITY_THRESHOLDS.STRICT} (SAME for FLASH & PRO)`)
+    console.log(`   🚫 Face Creativity: ZERO (both modes)`)
+    console.log(`   ⚠️ On Drift: ABORT (no creative retry)`)
 }
+
+// ═══════════════════════════════════════════════════════════════
+// UNIFIED FACE FREEZE LAYER 0 (USED BY BOTH FLASH AND PRO)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * FACE_FREEZE_LAYER_0 - The single source of truth for face preservation.
+ * 
+ * CRITICAL: Both FLASH and PRO must use this EXACT layer.
+ * PRO does NOT have a separate face freeze - it REUSES this layer.
+ * 
+ * This is a PIXEL COPY operation, not prompt-based generation.
+ */
+export const FACE_FREEZE_LAYER_0 = `
+═══════════════════════════════════════════════════════════════════════════════
+LAYER 0: FACE FREEZE (IMMUTABLE - PIXEL COPY)
+═══════════════════════════════════════════════════════════════════════════════
+
+The face in Image 1 is a READ-ONLY PIXEL REGION.
+This is NOT a generation task. It is a COPY task.
+
+EXECUTE AS PIXEL COPY:
+1. Read face bounding box from Image 1 (forehead to chin, ear to ear + 10% margin)
+2. Copy every pixel within this region EXACTLY
+3. Do NOT interpolate, smooth, or anti-alias
+4. Do NOT apply any filter, enhancement, or correction
+5. Do NOT generate any face pixels - COPY only
+
+PIXEL-LEVEL REQUIREMENTS:
+• RGB values: Copy exactly from Image 1
+• Skin pores: Copy exactly (size, density, distribution)
+• Skin texture: Copy exactly (no smoothing, no noise reduction)
+• Facial hair: Copy exactly (stubble, beard, eyebrows)
+• Wrinkles/lines: Copy exactly (depth, position, length)
+• Imperfections: Copy exactly (moles, freckles, scars, blemishes)
+
+FORBIDDEN OPERATIONS (HARD BLOCK):
+❌ Face regeneration or reimagining
+❌ Skin smoothing or noise reduction
+❌ Any beautification or enhancement
+❌ Eye color/size/shape change
+❌ Nose/lips/jawline modification
+❌ Expression change
+❌ Lighting change on face specifically
+❌ Any GAN/diffusion-based face generation
+
+IF UNCERTAIN → COPY PIXEL DIRECTLY FROM IMAGE 1
+
+Temperature for face: 0.0 (absolute zero creativity)
+On face drift detection: ABORT (no retry)
+═══════════════════════════════════════════════════════════════════════════════`
 
 // ═══════════════════════════════════════════════════════════════
 // EXPORTS FOR DUAL-ENGINE
@@ -367,3 +430,4 @@ export function logFaceFreezeStatus(sessionId: string, pipeline: 'flash' | 'pro'
 export {
     FACE_FREEZE_SYSTEM as FACE_FREEZE_PROMPT,
 }
+

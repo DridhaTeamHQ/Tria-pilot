@@ -24,6 +24,37 @@ export interface ProductionPreset {
     foreground: string
     midground: string
     background: string
+    // NEW: Validation elements for preset enforcement
+    required_elements?: string[]
+    forbidden_elements?: string[]
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SCENE SPECIFICATION - STRUCTURAL DEFINITION
+// This is NOT a text prompt - it is a STRUCTURAL CONSTRAINT.
+// ═══════════════════════════════════════════════════════════════
+
+export interface SceneSpecification {
+    location: string
+    depth: {
+        foreground: string
+        midground: string
+        background: string
+    }
+    camera: {
+        lens: string
+        angle: string
+        distance: string
+    }
+    lighting: {
+        type: string
+        direction: string
+        quality: string
+    }
+    validation: {
+        required_elements: string[]
+        forbidden_elements: string[]
+    }
 }
 
 export const PRODUCTION_PRESETS: ProductionPreset[] = [
@@ -249,9 +280,106 @@ export function getProductionPresetsByType(type: 'cafe' | 'heritage' | 'minimal'
     )
 }
 
-// ═══════════════════════════════════════════════════════════════
-// SCENE DESCRIPTION BUILDER
-// ═══════════════════════════════════════════════════════════════
+/**
+ * Parse ProductionPreset into SceneSpecification.
+ * This enables structural (not textual) scene enforcement.
+ */
+export function parseToSceneSpec(preset: ProductionPreset): SceneSpecification {
+    // Parse camera string into components
+    const cameraMatch = preset.camera.match(/(\d+mm|Eye level|Waist level|Standing|Seated)/i)
+    const lensMatch = preset.camera.match(/(\d+mm)/i)
+
+    return {
+        location: preset.location,
+        depth: {
+            foreground: preset.foreground,
+            midground: preset.midground,
+            background: preset.background,
+        },
+        camera: {
+            lens: lensMatch ? lensMatch[1] : '35mm',
+            angle: cameraMatch ? cameraMatch[1] : 'Eye level',
+            distance: preset.camera.includes('close') ? 'close' : 'medium',
+        },
+        lighting: {
+            type: preset.lighting.includes('window') ? 'window' :
+                preset.lighting.includes('golden') ? 'golden_hour' :
+                    preset.lighting.includes('ambient') ? 'ambient' : 'daylight',
+            direction: preset.lighting.includes('side') ? 'side' :
+                preset.lighting.includes('above') ? 'above' : 'natural',
+            quality: preset.lighting.includes('soft') ? 'soft' :
+                preset.lighting.includes('harsh') ? 'harsh' : 'diffuse',
+        },
+        validation: {
+            required_elements: preset.required_elements || extractRequiredElements(preset),
+            forbidden_elements: preset.forbidden_elements || [
+                'studio lighting',
+                'seamless backdrop',
+                'fashion pose',
+                'mannequin stance',
+                'editorial lighting',
+            ],
+        },
+    }
+}
+
+/**
+ * Extract required elements from preset description.
+ */
+function extractRequiredElements(preset: ProductionPreset): string[] {
+    // Auto-detect key elements from location/foreground/midground/background
+    const elements: string[] = []
+    const text = `${preset.location} ${preset.foreground} ${preset.midground} ${preset.background}`.toLowerCase()
+
+    // Detect common Indian scene elements
+    if (text.includes('café') || text.includes('coffee')) elements.push('café environment')
+    if (text.includes('terrace') || text.includes('balcony')) elements.push('outdoor terrace')
+    if (text.includes('heritage') || text.includes('stone')) elements.push('heritage architecture')
+    if (text.includes('plant') || text.includes('pot')) elements.push('potted plants')
+    if (text.includes('window')) elements.push('window lighting')
+    if (text.includes('street') || text.includes('urban')) elements.push('urban street')
+    if (text.includes('scooter') || text.includes('vehicle')) elements.push('parked vehicles')
+
+    return elements.length > 0 ? elements : ['real environment visible']
+}
+
+/**
+ * Build STRUCTURAL scene block for prompts.
+ * 
+ * This is NOT a description - it is an INSTRUCTION SPECIFICATION.
+ * The model MUST apply these constraints structurally.
+ */
+export function buildStructuralSceneBlock(spec: SceneSpecification): string {
+    return `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SCENE SPECIFICATION (STRUCTURAL - MUST BE VISUALLY APPLIED)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+LOCATION: ${spec.location}
+
+DEPTH LAYERS (construct in this order):
+• FOREGROUND: ${spec.depth.foreground}
+• MIDGROUND: ${spec.depth.midground}
+• BACKGROUND: ${spec.depth.background}
+
+CAMERA:
+• Lens: ${spec.camera.lens}
+• Angle: ${spec.camera.angle}
+• Distance: ${spec.camera.distance}
+
+LIGHTING:
+• Type: ${spec.lighting.type}
+• Direction: ${spec.lighting.direction}
+• Quality: ${spec.lighting.quality}
+
+REQUIRED ELEMENTS (at least one must appear):
+${spec.validation.required_elements.map(e => `✓ ${e}`).join('\n')}
+
+FORBIDDEN ELEMENTS (must NOT appear):
+${spec.validation.forbidden_elements.map(e => `✗ ${e}`).join('\n')}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+}
 
 export function buildSceneDescription(preset: ProductionPreset): string {
     return `Location: ${preset.location}
@@ -264,9 +392,11 @@ Background elements: ${preset.background}`
 
 /**
  * Build complete production prompt from preset.
+ * NOW uses structural scene block instead of plain text.
  */
 export function buildProductionPrompt(preset: ProductionPreset): string {
-    return buildSceneDescription(preset)
+    const sceneSpec = parseToSceneSpec(preset)
+    return buildStructuralSceneBlock(sceneSpec)
 }
 
 /**

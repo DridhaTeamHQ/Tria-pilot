@@ -49,6 +49,23 @@ export interface TryOnStylePreset {
    * - subtle: allow small adjustments (head tilt, shoulder angle, arm placement). Recommend extra identity refs.
    */
   pose_mode?: 'locked' | 'subtle'
+
+  // ═══════════════════════════════════════════════════════════════
+  // STRUCTURAL PRESET FIELDS (Nano-Banana Pro Architecture)
+  // These fields preserve the full ScenePreset structure for enforcement
+  // ═══════════════════════════════════════════════════════════════
+
+  /** Camera specification (lens, angle, distance) */
+  camera_spec?: string
+
+  /** Motion type (static, subtle motion, candid motion) */
+  motion_spec?: 'static' | 'subtle motion' | 'candid motion'
+
+  /** Negative bias - what to explicitly avoid in scene */
+  negative_bias?: string
+
+  /** Region for localization (india, global) */
+  region?: 'india' | 'global'
 }
 
 export interface ShootPlanV3 {

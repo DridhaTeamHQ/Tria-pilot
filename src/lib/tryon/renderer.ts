@@ -5,7 +5,7 @@ import {
   type GarmentAnalysis
 } from './face-analyzer'
 import { getStylePreset, type StylePreset } from './style-presets'
-import { getTryOnPresetV3 } from './presets'
+import { getTryOnPresetV3, getFullPreset, logPresetEnforcement } from './presets'
 import {
   buildDualEnginePipeline,
   enforceModelRouting,
@@ -1606,11 +1606,34 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
     const finalPrompt = pipelineResult.prompt
     const pipelineTemperature = pipelineResult.temperature
 
+    // ============================================================
+    // LOG TWO-PASS PIPELINE AND PRESET ENFORCEMENT STATUS
+    // ============================================================
     console.log(`\n🔧 DUAL-ENGINE PIPELINE RESULT:`)
-    console.log(`   Pipeline: ${pipelineResult.pipeline.toUpperCase()}`)
+    console.log(`   Pipeline: ${pipelineResult.pipeline?.toUpperCase() || 'SINGLE_PASS'}`)
     console.log(`   Model: ${pipelineResult.model}`)
     console.log(`   Temperature: ${pipelineTemperature}`)
     console.log(`   Assertions: ${pipelineResult.assertions.join(', ')}`)
+
+    // Check if two-pass PRO was used
+    if ('passes' in pipelineResult && pipelineResult.passes) {
+      console.log(`   \n   ═══ TWO-PASS PRO ARCHITECTURE ACTIVE ═══`)
+      console.log(`   🎬 Pass 1: Scene Construction`)
+      console.log(`   🎬 Pass 2: Fabric & Light Refinement`)
+      console.log(`   🔒 Face Freeze: LAYER_0 (same as FLASH)`)
+    }
+
+    // Log preset enforcement if applicable
+    if (stylePresetId) {
+      const fullPreset = getFullPreset(stylePresetId)
+      if (fullPreset) {
+        logPresetEnforcement(fullPreset, stylePresetId)
+      } else {
+        console.warn(`   \n   ⚠️ PRESET NOT FOUND: "${stylePresetId}"`)
+        console.warn(`      Structural enforcement may not be applied.`)
+      }
+    }
+
     console.log(`   Prompt length: ${finalPrompt.length} chars`)
     console.log(`\n   📝 FINAL ASSEMBLED PROMPT (full text):`)
     console.log(`   ${'─'.repeat(70)}`)

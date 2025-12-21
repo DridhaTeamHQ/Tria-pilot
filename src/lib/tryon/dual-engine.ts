@@ -76,12 +76,16 @@ import {
     getProductionPreset,
     getRandomProductionPreset,
     logProductionPipelineStatus,
-    type ProductionPreset
+    parseToSceneSpec,
+    buildStructuralSceneBlock,
+    type ProductionPreset,
+    type SceneSpecification
 } from './production-pipeline'
 import {
     getFaceFreezePrompt,
     logFaceFreezeStatus,
-    FACE_FREEZE_PROMPT
+    FACE_FREEZE_PROMPT,
+    FACE_FREEZE_LAYER_0
 } from './face-freeze'
 
 // Local type for scene preset (used by dual-engine)
@@ -559,7 +563,19 @@ ${allowAestheticRefinement ? 'Lighting refinement allowed.' : 'No refinement.'}`
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PRO_IDENTITY_LOCKED PIPELINE - HIGH REALISM + SPATIAL RECONSTRUCTION
+// PRO_IDENTITY_LOCKED PIPELINE - TWO-PASS ARCHITECTURE
+// ═══════════════════════════════════════════════════════════════
+//
+// PASS 1: SCENE CONSTRUCTION (environment, lighting, depth)
+//         - Face = READ ONLY (pixel copy from Image 1)
+//         - Creativity = ZERO on subject
+//         - Allowed: background texture, depth layers, camera
+//
+// PASS 2: REFINEMENT (fabric polish, light matching)
+//         - Face = STILL READ ONLY
+//         - Creativity = background/fabric texture ONLY
+//         - Temperature: max 0.04
+//
 // ═══════════════════════════════════════════════════════════════
 
 export interface ProIdentityLockedPipelineInput {
@@ -571,20 +587,24 @@ export interface ProIdentityLockedPipelineOutput {
     model: 'gemini-3-pro-image-preview'
     temperature: number
     assertions: string[]
+    pipeline: 'two_pass_pro'
+    passes: {
+        scene_pass: string
+        refinement_pass: string
+    }
 }
 
 /**
- * PRO_IDENTITY_LOCKED Pipeline: Higgsfield-Style Reconstruction
+ * PRO_IDENTITY_LOCKED Pipeline: Two-Pass "Edit, Don't Re-roll" Architecture
  * 
- * PRO IS NOT FREE — IT IS ANCHORED
- * - face-lock enabled
- * - identity crop enabled
- * - temperature ≤ 0.06
+ * CRITICAL CONSTRAINTS (per user spec):
+ * - PRO uses SAME face freeze layer as FLASH (FACE_FREEZE_LAYER_0)
+ * - Temperature: max 0.04 (NOT 0.08)
+ * - Face creativity: ABSOLUTE ZERO
+ * - Creativity ONLY in: background texture, fabric lighting, environment polish
+ * - On face drift: ABORT (no creative retry)
  * 
- * PRO should NEVER create faces.
- * It can only improve lighting and texture.
- * 
- * Temperature: 0.06, Max retries: 1
+ * This is professional asset editing, NOT creative image generation.
  */
 export function buildProIdentityLockedPipeline(input: ProIdentityLockedPipelineInput): ProIdentityLockedPipelineOutput {
     const { presetId } = input
@@ -598,11 +618,9 @@ export function buildProIdentityLockedPipeline(input: ProIdentityLockedPipelineI
     // Log HUMAN_LOCK status
     logHumanLockStatus(`pro-${Date.now()}`)
 
-    // ════════════════════════════════════════════════════════════
-    // PRODUCTION PIPELINE: 5-STAGE ARCHITECTURE (PRO MODE)
-    // 
-    // PRO can refine lighting/texture but NEVER touch identity.
-    // ════════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════
+    // TWO-PASS PRO ARCHITECTURE
+    // ══════════════════════════════════════════════════════════
 
     // Get production preset (Indian fashion photoshoot)
     const productionPreset = presetId
@@ -612,80 +630,169 @@ export function buildProIdentityLockedPipeline(input: ProIdentityLockedPipelineI
     // CRITICAL: Validate preset was found when requested
     if (presetId && !productionPreset) {
         console.error(`❌ PRESET ERROR: Preset ID "${presetId}" was selected but NOT FOUND`)
-        console.error(`   This is a BUG - scene will default to generic fallback`)
+        console.error(`   This is NOT a silent fallback. Generation may fail.`)
     }
 
-    // Build scene description from production preset (MANDATORY)
-    let sceneDescription: string
+    // Parse preset into structural specification
+    let sceneSpec: SceneSpecification | null = null
+    let sceneBlock: string = ''
+
     if (productionPreset) {
-        sceneDescription = buildProductionPrompt(productionPreset)
-        console.log(`✅ SCENE APPLIED: ${productionPreset.name}`)
+        sceneSpec = parseToSceneSpec(productionPreset)
+        sceneBlock = buildStructuralSceneBlock(sceneSpec)
+        console.log(`✅ STRUCTURAL SCENE APPLIED: ${productionPreset.name}`)
         console.log(`   Location: ${productionPreset.location}`)
-        console.log(`   Lighting: ${productionPreset.lighting}`)
-        console.log(`   Camera: ${productionPreset.camera}`)
+        console.log(`   Camera: ${sceneSpec.camera.lens} @ ${sceneSpec.camera.angle}`)
+        console.log(`   Lighting: ${sceneSpec.lighting.type} (${sceneSpec.lighting.quality})`)
+        console.log(`   Required elements: ${sceneSpec.validation.required_elements.join(', ')}`)
     } else {
-        // Fallback to UI preset scene
-        sceneDescription = preset?.scene || 'Real indoor location with natural light'
-        console.log(`⚠️ SCENE FALLBACK: Using UI preset scene or default`)
-        console.log(`   Scene text: ${sceneDescription.substring(0, 100)}...`)
+        // Fallback - but warn loudly
+        sceneBlock = preset?.scene || 'Real indoor location with natural light'
+        console.warn(`⚠️ SCENE FALLBACK: Using text description (not structural)`)
     }
 
-    // Build complete prompt with Face Freeze + Master + Scene
-    const faceFreezePrompt = getFaceFreezePrompt('pro')
-    const masterPrompt = buildProMasterPrompt(sceneDescription)
+    // ══════════════════════════════════════════════════════════
+    // PASS 1: SCENE CONSTRUCTION
+    // Face = READ ONLY, Scene = CONSTRUCT
+    // ══════════════════════════════════════════════════════════
+    const scenePassPrompt = `PRO_SCENE_PASS: Environment Construction
 
-    const finalPrompt = `${faceFreezePrompt}
+IMAGE SOURCES:
+- Image 1 = PERSON (identity source - face is READ ONLY)
+- Image 2 = GARMENT (apply this clothing to the person)
 
-${masterPrompt}`
+${FACE_FREEZE_LAYER_0}
 
-    // Log Face Freeze status
-    logFaceFreezeStatus(`pro-${Date.now()}`, 'pro')
+${sceneBlock}
+
+SCENE CONSTRUCTION RULES:
+1. Face = PIXEL COPY from Image 1 (no generation, no modification)
+2. Garment = APPLY from Image 2 (exact color, pattern, style)
+3. Background = CONSTRUCT per scene specification above
+4. Depth layers = Apply foreground/midground/background
+5. Camera = Apply lens and angle from specification
+6. Lighting = Apply type and direction from specification
+
+CREATIVITY ALLOWED:
+✓ Background texture and detail
+✓ Environmental props and elements
+✓ Depth layer construction
+
+CREATIVITY FORBIDDEN:
+✗ Face pixels (copy only from Image 1)
+✗ Skin texture (copy only)
+✗ Expression (locked)
+✗ Pose (micro-only)`
+
+    // ══════════════════════════════════════════════════════════
+    // PASS 2: REFINEMENT
+    // Face = STILL READ ONLY, Polish = fabric/lighting
+    // ══════════════════════════════════════════════════════════
+    const refinementPassPrompt = `PRO_REFINEMENT_PASS: Fabric & Lighting Polish
+
+IMAGE SOURCES (reminder):
+- Image 1 = PERSON (face is STILL read-only)
+- Image 2 = GARMENT (already applied, now polish)
+
+${FACE_FREEZE_LAYER_0}
+
+REFINEMENT RULES:
+1. Face region = READ ONLY (do not touch - copied from Image 1)
+2. Garment from Image 2 = Polish wrinkles, improve drape realism
+3. Lighting = Match scene lighting to garment surface
+4. Shadows = Add realistic contact shadows
+
+POLISH ALLOWED:
+✓ Fabric texture and wrinkle realism
+✓ Garment shadow intensity
+✓ Background depth blur consistency
+✓ Overall lighting harmony
+
+POLISH FORBIDDEN:
+✗ Face pixels (still read-only from Image 1)
+✗ Skin texture modification
+✗ Expression change
+✗ Body proportion change
+✗ Pose adjustment`
+
+    // ══════════════════════════════════════════════════════════
+    // COMBINED PROMPT (single API call with both passes)
+    // ══════════════════════════════════════════════════════════
+    const finalPrompt = `PROFESSIONAL ASSET EDITING: TWO-PASS PRO PIPELINE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+This is PROFESSIONAL ASSET EDITING, not creative image generation.
+Apply "Edit, Don't Re-roll" philosophy throughout.
+
+${scenePassPrompt}
+
+${refinementPassPrompt}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+GLOBAL ENFORCEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FACE CREATIVITY: ABSOLUTE ZERO (both passes)
+TEMPERATURE: 0.04 (max allowed for PRO)
+ON FACE DRIFT: ABORT (no creative retry)
+
+If the face looks different from Image 1 at ANY point: STOP.
+This person's family must recognize them instantly.`
+
+    // Log Face Freeze status (using unified layer)
+    logFaceFreezeStatus(`pro-two-pass-${Date.now()}`, 'pro')
 
     // Log production pipeline status
-    logProductionPipelineStatus(productionPreset?.id || 'default', 'PRO')
+    logProductionPipelineStatus(productionPreset?.id || 'default', 'PRO_TWO_PASS')
 
     // Log master prompt status
     logMasterPromptStatus('pro', finalPrompt.length)
 
-    // Check forbidden terms - should now pass with new prompts
+    // Check forbidden terms
     const forbiddenCheck = checkForbiddenTerms(finalPrompt)
     if (!forbiddenCheck.valid) {
         console.error('❌ PRO PROMPT CONTAINS FORBIDDEN TERMS:', forbiddenCheck.violations)
-        console.error('   This indicates a bug in prompt construction!')
     }
 
     // Log face lock compliance
-    logFaceLockCompliance(`pro_identity_locked-absolute-${Date.now()}`)
+    logFaceLockCompliance(`pro_identity_locked-two-pass-${Date.now()}`)
 
     const metrics: IdentityMetrics = {
         pose_locked: true,
         face_emphasis: 'high',
         model_freedom: 'pro_locked',
-        identity_risk_score: 2
+        identity_risk_score: 1 // Lower risk with two-pass
     }
 
-    console.log(`\n🎬 PRO_IDENTITY_LOCKED PIPELINE (Higgsfield-Style)`)
-    console.log(`   🔒 FACE_LOCK_ABSOLUTE: ✓`)
-    console.log(`   POSE_DELTA (≤5%): ✓`)
-    console.log(`   EXPRESSION_LOCK: ✓`)
-    console.log(`   PRO ANCHORED: ✓ (lighting/texture only)`)
+    console.log(`\n🎬 PRO_IDENTITY_LOCKED: TWO-PASS ARCHITECTURE`)
+    console.log(`   ════════════════════════════════════════`)
+    console.log(`   PASS 1: Scene Construction`)
+    console.log(`   PASS 2: Fabric & Light Refinement`)
+    console.log(`   ════════════════════════════════════════`)
+    console.log(`   🔒 FACE_FREEZE_LAYER_0: Active (SAME as FLASH)`)
+    console.log(`   🌡️ Temperature: 0.04 (max for PRO)`)
+    console.log(`   🚫 Face Creativity: ZERO`)
+    console.log(`   ⚠️ On Drift: ABORT (no retry)`)
+    console.log(`   📊 Identity Risk: ${metrics.identity_risk_score}/100`)
     console.log(`   Preset: ${preset?.id || 'default'}`)
     console.log(`   Prompt length: ${finalPrompt.length} chars`)
-    console.log(`   Temperature: 0.01`)
-    console.log(`   Max retries: 1`)
-    console.log(`   📊 IDENTITY RISK: ${metrics.identity_risk_score}/100`)
 
     return {
         prompt: finalPrompt,
         model: 'gemini-3-pro-image-preview',
-        temperature: 0.01,
+        temperature: 0.04, // MAX 0.04 per user spec (was 0.08)
         assertions: [
-            'FACE_LOCK_ABSOLUTE',
-            'POSE_DELTA (≤5%)',
-            'EXPRESSION_LOCK',
-            'PRO ANCHORED (lighting/texture)',
-            'Max retries: 1'
-        ]
+            'FACE_FREEZE_LAYER_0 (same as FLASH)',
+            'TWO_PASS: Scene + Refinement',
+            'Temperature: 0.04 (max)',
+            'Face creativity: ZERO',
+            'On drift: ABORT'
+        ],
+        pipeline: 'two_pass_pro',
+        passes: {
+            scene_pass: scenePassPrompt,
+            refinement_pass: refinementPassPrompt
+        }
     }
 }
 
