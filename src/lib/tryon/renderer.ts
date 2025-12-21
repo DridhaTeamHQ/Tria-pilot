@@ -14,6 +14,13 @@ import {
   type PipelineMode,
   type ModelType
 } from './dual-engine'
+import {
+  extractFaceCropForImage3,
+  HYPER_REALISM_FACE_BLOCK,
+  HYPER_REALISM_PHYSICS_BLOCK,
+  logHyperRealismStatus
+} from './hyper-realism'
+import { generateIdentityHash } from './identity-cropper'
 
 const getClient = () => new GoogleGenAI({ apiKey: getGeminiKey() })
 
@@ -1140,19 +1147,25 @@ OUTPUT: Same person(unchanged) naturally photographed in realistic scene.`
 }
 
 /**
- * Single-step render - PHASE 3: Person image + Garment image (2 images total)
+ * Single-step render - PHASE 3: Person + Garment (+ optional Face Crop for hyper-realism)
+ * 
+ * HYPER-REALISM MODE (3 images):
+ * - Image 1 = Person (full body context)
+ * - Image 2 = Garment (clothing reference)
+ * - Image 3 = Face crop (IMMUTABLE face pixels)
  */
 async function renderSingleStep(
   client: GoogleGenAI,
   model: string,
   subjectBase64: string,
-  garmentImageBase64: string, // Garment image (visual reference)
+  garmentImageBase64: string,
   prompt: string,
   aspectRatio: string,
   temperature: number,
-  resolution?: string
+  resolution?: string,
+  faceCropBase64?: string // NEW: Optional face crop for hyper-realism
 ): Promise<string> {
-  // Build contents array: Image 1 (person) + Image 2 (garment) + Prompt text
+  // Build contents array
   const contents: ContentListUnion = []
 
   // IMAGE 1: Person (identity source)
@@ -1161,6 +1174,12 @@ async function renderSingleStep(
   // IMAGE 2: Garment (visual reference only, no identity)
   contents.push({ inlineData: { data: garmentImageBase64, mimeType: 'image/jpeg' } } as any)
 
+  // IMAGE 3: Face crop (optional - for hyper-realism face matching)
+  const hyperRealismEnabled = !!faceCropBase64
+  if (faceCropBase64) {
+    contents.push({ inlineData: { data: faceCropBase64, mimeType: 'image/jpeg' } } as any)
+  }
+
   // Prompt (includes role separation and garment application rules)
   contents.push(prompt)
 
@@ -1168,38 +1187,18 @@ async function renderSingleStep(
   // PHASE 3: DEBUG & SAFETY ASSERTIONS (MANDATORY)
   // ============================================================
   const imageCount = contents.filter((item: any) => item.inlineData?.mimeType?.startsWith('image/')).length
-  const personImageCount = 1 // Image 1 is person
-  const garmentImageCount = 1 // Image 2 is garment
-  const identityImageCount = 0 // No additional identity refs in Phase 3
+  const expectedImageCount = hyperRealismEnabled ? 3 : 2
 
   console.log(`\n   🔍 DEBUG & SAFETY ASSERTIONS (renderSingleStep):`)
   console.log(`      Final assembled prompt preview: ${prompt.slice(0, 100)}...`)
-  console.log(`      Images sent to Gemini: ${imageCount} (MUST BE 2)`)
-  console.log(`      Image 1 (person): ${personImageCount} (MUST BE 1)`)
-  console.log(`      Image 2 (garment): ${garmentImageCount} (MUST BE 1)`)
-  console.log(`      Identity refs: ${identityImageCount} (MUST BE 0)`)
+  console.log(`      Images sent to Gemini: ${imageCount} (expected: ${expectedImageCount})`)
+  console.log(`      Image 1 (person): ✓`)
+  console.log(`      Image 2 (garment): ✓`)
+  console.log(`      Image 3 (face crop): ${hyperRealismEnabled ? '✓ HYPER-REALISM ACTIVE' : '- not used'}`)
 
   // HARD FAILURE if contract violated
-  if (imageCount !== 2) {
-    const error = new Error(`ARCHITECTURE VIOLATION: Expected exactly 2 images, got ${imageCount}`)
-    console.error(`   ❌ ${error.message}`)
-    throw error
-  }
-
-  if (personImageCount !== 1) {
-    const error = new Error(`ARCHITECTURE VIOLATION: Expected 1 person image (Image 1), got ${personImageCount}`)
-    console.error(`   ❌ ${error.message}`)
-    throw error
-  }
-
-  if (garmentImageCount !== 1) {
-    const error = new Error(`ARCHITECTURE VIOLATION: Expected 1 garment image (Image 2), got ${garmentImageCount}`)
-    console.error(`   ❌ ${error.message}`)
-    throw error
-  }
-
-  if (identityImageCount !== 0) {
-    const error = new Error(`ARCHITECTURE VIOLATION: Expected 0 identity refs, got ${identityImageCount}`)
+  if (imageCount !== expectedImageCount) {
+    const error = new Error(`ARCHITECTURE VIOLATION: Expected ${expectedImageCount} images, got ${imageCount}`)
     console.error(`   ❌ ${error.message}`)
     throw error
   }
@@ -1217,7 +1216,7 @@ async function renderSingleStep(
     temperature,
   }
 
-  console.log(`   📸 Generating with Image 1 (identity) + Image 2 (garment)`)
+  console.log(`   📸 Generating with Image 1 (identity) + Image 2 (garment)${hyperRealismEnabled ? ' + Image 3 (face crop)' : ''}`)
 
   const resp = await client.models.generateContent({ model, contents, config })
 
@@ -1232,6 +1231,7 @@ async function renderSingleStep(
 
   throw new Error('No image generated')
 }
+
 
 /**
  * @deprecated Not used in new architecture - single-step only
@@ -1641,18 +1641,43 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
     console.log(`   ${'─'.repeat(70)}`)
 
     // ============================================================
-    // SINGLE-STEP RENDER (TWO IMAGES) - DUAL-ENGINE CONTRACT
+    // HYPER-REALISM: Extract face crop for Image 3 (PRO only)
     // ============================================================
-    console.log('\n🎬 Rendering with Gemini (Image 1: person, Image 2: garment)...')
+    let faceCropBase64: string | undefined = undefined
+
+    if (isPro) {
+      try {
+        const imageHash = generateIdentityHash(cleanSubject)
+        const faceCropResult = await extractFaceCropForImage3(cleanSubject, imageHash)
+        faceCropBase64 = faceCropResult.faceCropBase64
+        logHyperRealismStatus(true)
+      } catch (error) {
+        console.warn('⚠️ HYPER-REALISM: Face crop extraction failed, proceeding with 2-image mode')
+        console.warn('   Error:', error)
+        logHyperRealismStatus(false)
+      }
+    }
+
+    // Add hyper-realism blocks to prompt for PRO mode with face crop
+    let hyperRealismPrompt = finalPrompt
+    if (faceCropBase64) {
+      hyperRealismPrompt = `${finalPrompt}\n\n${HYPER_REALISM_FACE_BLOCK}\n\n${HYPER_REALISM_PHYSICS_BLOCK}`
+    }
+
+    // ============================================================
+    // SINGLE-STEP RENDER - DUAL-ENGINE CONTRACT
+    // ============================================================
+    console.log(`\n🎬 Rendering with Gemini (Image 1: person, Image 2: garment${faceCropBase64 ? ', Image 3: face crop' : ''})...`)
     resultBase64 = await renderSingleStep(
       client,
       model,
       cleanSubject, // Image 1: Person (identity source)
       cleanGarment, // Image 2: Garment (visual reference)
-      finalPrompt, // Dual-engine composed prompt
+      hyperRealismPrompt, // Dual-engine composed prompt + hyper-realism blocks
       aspectRatio,
       pipelineTemperature, // Use pipeline-specific temperature
-      resolution
+      resolution,
+      faceCropBase64 // Image 3: Face crop (optional, for hyper-realism)
     )
 
     const elapsed = Date.now() - startTime
