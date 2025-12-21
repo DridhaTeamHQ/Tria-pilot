@@ -60,24 +60,64 @@ PRESERVE:
 • Add "definition" to undefined areas
 
 ═══════════════════════════════════════════════════════════════════════════════
-NOSE (WOMEN-SPECIFIC PROTECTION):
+🔴🔴🔴 NOSE GEOMETRY LOCK (CRITICAL - #1 ISSUE) 🔴🔴🔴
 ═══════════════════════════════════════════════════════════════════════════════
-Women typically have smaller noses with curved bridges.
-AI models often "normalize" these toward larger or straighter noses.
+THE NOSE IS THE MOST COMMONLY ALTERED FEATURE BY AI.
+THIS SECTION HAS ABSOLUTE PRIORITY.
 
-PRESERVE EXACTLY:
-• Nose width → EXACT WIDTH (do not widen)
-• Bridge curve → EXACT CURVE (do not straighten)
-• Nostril shape → EXACT SHAPE (do not reshape)
-• Nose tip → EXACT TIP (do not refine)
-• Nasal angle → EXACT ANGLE (do not adjust)
+⚠️⚠️⚠️ THE NOSE IN IMAGE 1 IS THE ONLY VALID NOSE ⚠️⚠️⚠️
 
-❌ DO NOT:
-• Straighten a curved bridge
-• Slim a wide nose
-• Widen a slim nose
-• "Refine" the tip
-• Make the nose more "balanced"
+NOSE WIDTH (ZERO TOLERANCE):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• If the nose is WIDE → output nose MUST BE WIDE
+• If the nose is NARROW → output nose MUST BE NARROW
+• The nose width relative to face width = LOCKED
+• NO SLIMMING. NO NARROWING. NO "REFINING".
+
+NOSE BRIDGE (ZERO TOLERANCE):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• If bridge is CURVED → output bridge MUST BE CURVED
+• If bridge has BUMP → output bridge MUST HAVE BUMP
+• If bridge is FLAT → output bridge MUST BE FLAT
+• If bridge is STRAIGHT → output bridge MUST BE STRAIGHT
+• DO NOT straighten a curved bridge
+• DO NOT smooth out a bumpy bridge
+
+NOSTRILS (ZERO TOLERANCE):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Nostril shape → EXACT SHAPE (flared, narrow, round, etc.)
+• Nostril size → EXACT SIZE
+• Nostril asymmetry → PRESERVE ASYMMETRY
+• DO NOT make nostrils more "refined" or "delicate"
+
+NOSE TIP (ZERO TOLERANCE):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• If tip is ROUND → output tip MUST BE ROUND
+• If tip is BULBOUS → output tip MUST BE BULBOUS
+• If tip is POINTED → output tip MUST BE POINTED
+• DO NOT "refine" the tip
+• DO NOT make the tip more "delicate"
+• DO NOT make the tip smaller
+
+NOSE SIZE (ZERO TOLERANCE):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• If nose is LARGE → output nose MUST BE LARGE
+• If nose is SMALL → output nose MUST BE SMALL
+• Nose-to-face proportion = LOCKED (cannot change)
+
+❌ ABSOLUTELY FORBIDDEN NOSE MODIFICATIONS:
+• Slimming the nose width
+• Straightening a curved bridge
+• Refining the tip
+• Making nostrils smaller
+• Reducing overall nose size
+• "Balancing" the nose
+• Making the nose more "proportional"
+• ANY change that makes the nose look "better"
+
+THE NOSE IS NOT BROKEN. DO NOT FIX IT.
+IF THE NOSE LOOKS DIFFERENT → GENERATION FAILED.
+🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴
 
 ═══════════════════════════════════════════════════════════════════════════════
 LIPS (WOMEN-SPECIFIC PROTECTION):
