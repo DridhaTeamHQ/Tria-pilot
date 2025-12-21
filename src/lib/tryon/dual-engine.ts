@@ -87,6 +87,15 @@ import {
     FACE_FREEZE_PROMPT,
     FACE_FREEZE_LAYER_0
 } from './face-freeze'
+import {
+    FACE_INVARIANT_LAYER_FLASH,
+    FACE_INVARIANT_LAYER_PRO_SCENE,
+    FACE_INVARIANT_LAYER_PRO_REFINE,
+    DEMOGRAPHIC_SAFETY_BLOCK,
+    OPAQUE_FACE_MASK_BLOCK,
+    MAX_SCENE_RETRIES,
+    logFaceInvariantStatus
+} from './face-invariant'
 
 // Local type for scene preset (used by dual-engine)
 interface ScenePreset {
@@ -427,16 +436,19 @@ export function buildFlashPipeline(input: FlashPipelineInput): FlashPipelineOutp
         ? buildProductionPrompt(productionPreset)
         : preset?.scene || 'Real indoor location with natural light'
 
-    // Build complete prompt with Face Freeze + Master + Scene
+    // Build complete prompt with Face Invariant Layer + Master + Scene
     const faceFreezePrompt = getFaceFreezePrompt('flash')
     const masterPrompt = buildFlashMasterPrompt(sceneDescription)
 
-    const finalPrompt = `${faceFreezePrompt}
+    // IDENTITY-FIRST: Prepend FaceInvariantLayer with demographic safety
+    const finalPrompt = `${FACE_INVARIANT_LAYER_FLASH}
+
+${faceFreezePrompt}
 
 ${masterPrompt}`
 
-    // Log Face Freeze status
-    logFaceFreezeStatus(`flash-${Date.now()}`, 'flash')
+    // Log Face Invariant status
+    logFaceInvariantStatus('flash')
 
     // Log production pipeline status
     logProductionPipelineStatus(productionPreset?.id || 'default', 'FLASH')
@@ -661,17 +673,21 @@ IMAGE SOURCES:
 - Image 1 = PERSON (identity source - face is READ ONLY)
 - Image 2 = GARMENT (apply this clothing to the person)
 
+${FACE_INVARIANT_LAYER_PRO_SCENE}
+
 ${FACE_FREEZE_LAYER_0}
 
 ${sceneBlock}
 
 SCENE CONSTRUCTION RULES:
-1. Face = PIXEL COPY from Image 1 (no generation, no modification)
-2. Garment = APPLY from Image 2 (exact color, pattern, style)
-3. Background = CONSTRUCT per scene specification above
-4. Depth layers = Apply foreground/midground/background
-5. Camera = Apply lens and angle from specification
-6. Lighting = Apply type and direction from specification
+1. Face region = OPAQUE BLACK BOX (unavailable for reasoning)
+2. Face region = NOT blurred, NOT silhouette, NOT low-detail proxy
+3. Face region = COMPLETELY OPAQUE, zero facial signal
+4. Garment = APPLY from Image 2 (exact color, pattern, style)
+5. Background = CONSTRUCT per scene specification above
+6. Depth layers = Apply foreground/midground/background
+7. Camera = Apply lens and angle from specification
+8. Lighting = Apply type and direction from specification
 
 CREATIVITY ALLOWED:
 ✓ Background texture and detail
@@ -679,10 +695,12 @@ CREATIVITY ALLOWED:
 ✓ Depth layer construction
 
 CREATIVITY FORBIDDEN:
-✗ Face pixels (copy only from Image 1)
-✗ Skin texture (copy only)
-✗ Expression (locked)
-✗ Pose (micro-only)`
+✗ Face pixels (region unavailable)
+✗ Face geometry (not visible)
+✗ Expression inference (no data)
+✗ Pose major change (micro only)
+
+RETRY LIMIT: ${MAX_SCENE_RETRIES} attempts if preset elements missing`
 
     // ══════════════════════════════════════════════════════════
     // PASS 2: REFINEMENT
@@ -694,10 +712,12 @@ IMAGE SOURCES (reminder):
 - Image 1 = PERSON (face is STILL read-only)
 - Image 2 = GARMENT (already applied, now polish)
 
+${FACE_INVARIANT_LAYER_PRO_REFINE}
+
 ${FACE_FREEZE_LAYER_0}
 
 REFINEMENT RULES:
-1. Face region = READ ONLY (do not touch - copied from Image 1)
+1. Face region = PIXEL COPY from Image 1 (no modification allowed)
 2. Garment from Image 2 = Polish wrinkles, improve drape realism
 3. Lighting = Match scene lighting to garment surface
 4. Shadows = Add realistic contact shadows
@@ -713,7 +733,9 @@ POLISH FORBIDDEN:
 ✗ Skin texture modification
 ✗ Expression change
 ✗ Body proportion change
-✗ Pose adjustment`
+✗ Pose adjustment
+
+${DEMOGRAPHIC_SAFETY_BLOCK}`
 
     // ══════════════════════════════════════════════════════════
     // COMBINED PROMPT (single API call with both passes)
@@ -739,8 +761,9 @@ ON FACE DRIFT: ABORT (no creative retry)
 If the face looks different from Image 1 at ANY point: STOP.
 This person's family must recognize them instantly.`
 
-    // Log Face Freeze status (using unified layer)
-    logFaceFreezeStatus(`pro-two-pass-${Date.now()}`, 'pro')
+    // Log Face Invariant status (using unified layer)
+    logFaceInvariantStatus('pro-scene')
+    logFaceInvariantStatus('pro-refine')
 
     // Log production pipeline status
     logProductionPipelineStatus(productionPreset?.id || 'default', 'PRO_TWO_PASS')
