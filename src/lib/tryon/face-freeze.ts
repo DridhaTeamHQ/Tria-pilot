@@ -405,9 +405,22 @@ FACE MATCHING REQUIREMENTS (STRICT):
 • Skin tone: EXACT same undertone (warm/cool) and shade
 • Skin texture: SAME pores, marks, moles, blemishes
 
-DO NOT change facial features to match your "ideal" face.
-DO NOT beautify, smooth, enhance, or idealize.
-DO NOT apply any face enhancement or correction.
+⚠️ EXPRESSION PRESERVATION (CRITICAL):
+═════════════════════════════════════
+The expression in Image 1 MUST be preserved EXACTLY:
+
+• If mouth is OPEN → output mouth MUST be OPEN
+• If teeth are VISIBLE → output teeth MUST be VISIBLE
+• If person is SMILING → output MUST show SAME smile
+• If person has CLOSED mouth → output MUST have CLOSED mouth
+• Eye squint level MUST match exactly
+• Cheek position (raised/neutral) MUST match exactly
+
+EXAMPLE: If Image 1 shows a big smile with teeth visible,
+the output MUST show a big smile with teeth visible.
+DO NOT change a smile to a neutral expression.
+DO NOT close an open mouth.
+DO NOT open a closed mouth.
 
 Image 3 (if present) shows the exact face crop you MUST match.
 Compare your output face directly to Image 3 - they must look like twins.
@@ -420,7 +433,7 @@ Before finalizing, verify EACH:
 3. Lip shape matches? ✓
 4. Jawline matches? ✓
 5. Skin tone matches? ✓
-6. Expression matches? ✓
+6. Expression matches? ✓ (SMILE, TEETH, MOUTH POSITION)
 
 If ANY feature differs from Image 1 → OUTPUT FAILS
 
@@ -434,8 +447,9 @@ FORBIDDEN (WILL CAUSE REJECTION):
 ❌ Smoother or idealized skin
 ❌ Different facial proportions
 ❌ Any beautification or enhancement
+❌ CHANGING THE EXPRESSION (smile to neutral, open to closed, etc.)
 
-THE FACE MUST BE RECOGNIZABLE AS THE SAME PERSON.
+THE FACE MUST BE RECOGNIZABLE AS THE SAME PERSON WITH THE SAME EXPRESSION.
 If in doubt, make output face MORE like Image 1, not less.
 ═══════════════════════════════════════════════════════════════════════════════`
 
