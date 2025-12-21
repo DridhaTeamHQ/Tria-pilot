@@ -42,9 +42,9 @@ export default function GlobalBlobCursor() {
 
         // Animation loop
         const animate = () => {
-            // Smooth interpolation
-            pos.current.x += (mouse.current.x - pos.current.x) * 0.15
-            pos.current.y += (mouse.current.y - pos.current.y) * 0.15
+            // Fast interpolation for snappy cursor (0.35 = fast, 0.15 = slow)
+            pos.current.x += (mouse.current.x - pos.current.x) * 0.35
+            pos.current.y += (mouse.current.y - pos.current.y) * 0.35
 
             if (cursorRef.current) {
                 cursorRef.current.style.transform = `translate(${pos.current.x}px, ${pos.current.y}px)`

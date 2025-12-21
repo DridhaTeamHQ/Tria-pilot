@@ -386,41 +386,57 @@ export function logFaceFreezeStatus(sessionId: string, pipeline: 'flash' | 'pro'
  */
 export const FACE_FREEZE_LAYER_0 = `
 ═══════════════════════════════════════════════════════════════════════════════
-LAYER 0: FACE FREEZE (IMMUTABLE - PIXEL COPY)
+LAYER 0: FACE FREEZE (HIGHEST PRIORITY - IMMUTABLE)
 ═══════════════════════════════════════════════════════════════════════════════
 
-The face in Image 1 is a READ-ONLY PIXEL REGION.
-This is NOT a generation task. It is a COPY task.
+⚠️ CRITICAL: The face in the output MUST be IDENTICAL to Image 1.
 
-EXECUTE AS PIXEL COPY:
-1. Read face bounding box from Image 1 (forehead to chin, ear to ear + 10% margin)
-2. Copy every pixel within this region EXACTLY
-3. Do NOT interpolate, smooth, or anti-alias
-4. Do NOT apply any filter, enhancement, or correction
-5. Do NOT generate any face pixels - COPY only
+This is NOT a generation task. This is a MATCHING task.
+The face in your output must pass a face recognition test against Image 1.
 
-PIXEL-LEVEL REQUIREMENTS:
-• RGB values: Copy exactly from Image 1
-• Skin pores: Copy exactly (size, density, distribution)
-• Skin texture: Copy exactly (no smoothing, no noise reduction)
-• Facial hair: Copy exactly (stubble, beard, eyebrows)
-• Wrinkles/lines: Copy exactly (depth, position, length)
-• Imperfections: Copy exactly (moles, freckles, scars, blemishes)
+FACE MATCHING REQUIREMENTS (STRICT):
+════════════════════════════════════
+• Eyes: EXACT same shape, size, color, spacing, and bags/shadows
+• Nose: EXACT same width, length, bridge shape, nostril size
+• Lips: EXACT same thickness, shape, color, and width
+• Jawline: EXACT same contour from ear to chin
+• Cheekbones: EXACT same prominence and shape
+• Forehead: EXACT same shape and proportions
+• Skin tone: EXACT same undertone (warm/cool) and shade
+• Skin texture: SAME pores, marks, moles, blemishes
 
-FORBIDDEN OPERATIONS (HARD BLOCK):
-❌ Face regeneration or reimagining
-❌ Skin smoothing or noise reduction
+DO NOT change facial features to match your "ideal" face.
+DO NOT beautify, smooth, enhance, or idealize.
+DO NOT apply any face enhancement or correction.
+
+Image 3 (if present) shows the exact face crop you MUST match.
+Compare your output face directly to Image 3 - they must look like twins.
+
+FEATURE-BY-FEATURE VERIFICATION:
+═══════════════════════════════
+Before finalizing, verify EACH:
+1. Eye shape matches? ✓
+2. Nose shape matches? ✓
+3. Lip shape matches? ✓
+4. Jawline matches? ✓
+5. Skin tone matches? ✓
+6. Expression matches? ✓
+
+If ANY feature differs from Image 1 → OUTPUT FAILS
+
+FORBIDDEN (WILL CAUSE REJECTION):
+═════════════════════════════════
+❌ Different eye shape or size
+❌ Different nose width or length
+❌ Different lip shape or thickness
+❌ Different jawline contour
+❌ Different skin tone or color
+❌ Smoother or idealized skin
+❌ Different facial proportions
 ❌ Any beautification or enhancement
-❌ Eye color/size/shape change
-❌ Nose/lips/jawline modification
-❌ Expression change
-❌ Lighting change on face specifically
-❌ Any GAN/diffusion-based face generation
 
-IF UNCERTAIN → COPY PIXEL DIRECTLY FROM IMAGE 1
-
-Temperature for face: 0.0 (absolute zero creativity)
-On face drift detection: ABORT (no retry)
+THE FACE MUST BE RECOGNIZABLE AS THE SAME PERSON.
+If in doubt, make output face MORE like Image 1, not less.
 ═══════════════════════════════════════════════════════════════════════════════`
 
 // ═══════════════════════════════════════════════════════════════
