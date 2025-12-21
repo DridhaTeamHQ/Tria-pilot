@@ -378,3 +378,129 @@ ${REALISM_ENFORCEMENT_BLOCK}
 ${GARMENT_CHANGE_VALIDATION_BLOCK}
 `
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// HIGGSFIELD-STYLE FLASH PROMPT (IDENTITY-CRITICAL)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Flash prompt: locked identity, for try-on preview only.
+ * Temperature: 0.01
+ */
+export const FLASH_PROMPT_LOCKED = `
+FACE INVARIANT (READ-ONLY):
+- Face pixels from Image 1 are READ-ONLY
+- Do NOT generate, alter, smooth, sharpen, reshape, or relight the face
+- Beard, skin texture, asymmetry, expression preserved exactly
+
+RECONSTRUCTION MODE:
+- Copy visible pixels from Image 1
+- No re-interpretation
+- No beauty processing
+
+HEAD SCALE LOCK:
+- Head-to-shoulder scale must match Image 1
+- Camera distance must not reduce subject size
+
+POSE:
+- Preserve original pose
+- Allow micro adjustments only for garment fit
+
+GARMENT:
+- Replace clothing using Image 2 only
+- Match color, texture, construction
+
+SCENE:
+- Apply preset environment ONLY to background
+- Lighting must not affect face independently
+
+REALISM:
+- Subtle sensor grain
+- Natural shadow falloff
+- Neutral color grading
+
+FORBIDDEN:
+- Face generation
+- Portrait lighting
+- Editorial poses
+`
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// HIGGSFIELD-STYLE PRO PROMPT (TWO-PASS)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Pro Pass 1: Scene construction (face masked)
+ */
+export const PRO_PASS_1_SCENE_CONSTRUCTION = `
+SCENE CONSTRUCTION PASS:
+- Build environment strictly from preset specification
+- Construct foreground, midground, background
+- Do NOT access or modify face region
+- Face region = OPAQUE BLACK BOX during this pass
+- Camera, lighting, depth must match preset
+- If required elements missing, retry once
+
+REQUIRED EXECUTION:
+1. Parse preset depth layers
+2. Build background first
+3. Add midground elements
+4. Position foreground
+5. Validate against required_elements[]
+6. Check forbidden_elements[] are absent
+
+LOGGING:
+- Log preset ID used
+- Log validation result (PASS/FAIL)
+- Log any missing elements
+`
+
+/**
+ * Pro Pass 2: Refinement (face still frozen)
+ * Temperature: 0.04
+ */
+export const PRO_PASS_2_REFINEMENT = `
+FACE INVARIANT (READ-ONLY):
+- Face pixels from Image 1 are immutable
+- Copy pixels exactly
+- Lighting may match color temperature only
+
+REFINEMENT:
+- Improve fabric realism
+- Harmonize garment lighting with environment
+- Add subtle grain and texture
+- Preserve natural imperfections
+
+POSE:
+- Allow ≤15° torso movement
+- No fashion or mannequin poses
+
+FORBIDDEN:
+- Face enhancement
+- Jawline sharpening
+- Skin smoothing
+- Expression normalization
+`
+
+/**
+ * Combined PRO prompt for both passes
+ */
+export const PRO_PROMPT_TWO_PASS = `
+═══════════════════════════════════════════════════════════════════════════════
+PRO PIPELINE: TWO-PASS SYSTEM (EDIT, DON'T RE-ROLL)
+═══════════════════════════════════════════════════════════════════════════════
+
+${PRO_PASS_1_SCENE_CONSTRUCTION}
+
+---
+
+${PRO_PASS_2_REFINEMENT}
+
+${DEMOGRAPHIC_SAFETY_BLOCK}
+`
+
+/**
+ * Get the appropriate Higgsfield-style prompt for the mode.
+ */
+export function getHiggsfieldPrompt(mode: 'flash' | 'pro'): string {
+    return mode === 'flash' ? FLASH_PROMPT_LOCKED : PRO_PROMPT_TWO_PASS
+}
