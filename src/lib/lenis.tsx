@@ -13,7 +13,8 @@ import { useEffect, useState } from "react";
  * - Disabled when prefers-reduced-motion is set
  */
 export function ReactLenis({ children }: { children: React.ReactNode }) {
-    const [shouldSmooth, setShouldSmooth] = useState(true);
+    // Default to FALSE (native scroll) to fix production smoothness issues
+    const [shouldSmooth, setShouldSmooth] = useState(false);
 
     useEffect(() => {
         // Respect reduced motion preference
