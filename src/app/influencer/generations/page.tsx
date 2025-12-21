@@ -363,7 +363,7 @@ export default function GenerationsPage() {
                                         onClick={() => openLightbox(job)}
                                     >
                                         <motion.img
-                                            src={job.outputImagePath}
+                                            src={getProxyUrl(job.outputImagePath)}
                                             alt={`Generation ${job.id.slice(0, 8)}`}
                                             className="w-full h-full object-cover"
                                             whileHover={{ scale: 1.08 }}
@@ -551,7 +551,7 @@ export default function GenerationsPage() {
                                     damping: 25,
                                     delay: 0.05
                                 }}
-                                src={selectedImage}
+                                src={getProxyUrl(selectedImage)}
                                 alt="Full size generation"
                                 className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
                                 onClick={(e) => e.stopPropagation()}
@@ -618,7 +618,7 @@ export default function GenerationsPage() {
                             {deleteConfirm.imageUrl && (
                                 <div className="relative h-48 overflow-hidden bg-cream">
                                     <img
-                                        src={deleteConfirm.imageUrl}
+                                        src={getProxyUrl(deleteConfirm.imageUrl)}
                                         alt="To delete"
                                         className="w-full h-full object-cover"
                                         onError={(e) => {
