@@ -352,32 +352,38 @@ function extractRequiredElements(preset: ProductionPreset): string[] {
 export function buildStructuralSceneBlock(spec: SceneSpecification): string {
     return `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SCENE SPECIFICATION (STRUCTURAL - MUST BE VISUALLY APPLIED)
+⚠️ SCENE SPECIFICATION (MANDATORY - MUST CHANGE THE BACKGROUND)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-LOCATION: ${spec.location}
+🔴 CRITICAL: CHANGE THE BACKGROUND TO THIS LOCATION:
+${spec.location}
+
+DO NOT keep the original background from Image 1.
+You MUST generate a new background matching this scene.
 
 DEPTH LAYERS (construct in this order):
 • FOREGROUND: ${spec.depth.foreground}
-• MIDGROUND: ${spec.depth.midground}
+• MIDGROUND: ${spec.depth.midground}  
 • BACKGROUND: ${spec.depth.background}
 
-CAMERA:
+CAMERA (match these specs):
 • Lens: ${spec.camera.lens}
 • Angle: ${spec.camera.angle}
 • Distance: ${spec.camera.distance}
 
-LIGHTING:
+LIGHTING (apply this lighting style):
 • Type: ${spec.lighting.type}
 • Direction: ${spec.lighting.direction}
 • Quality: ${spec.lighting.quality}
 
-REQUIRED ELEMENTS (at least one must appear):
-${spec.validation.required_elements.map(e => `✓ ${e}`).join('\n')}
+✅ REQUIRED ELEMENTS (must appear in the scene):
+${spec.validation.required_elements.map(e => `   → ${e}`).join('\n')}
 
-FORBIDDEN ELEMENTS (must NOT appear):
-${spec.validation.forbidden_elements.map(e => `✗ ${e}`).join('\n')}
+❌ FORBIDDEN ELEMENTS (must NOT appear):
+${spec.validation.forbidden_elements.map(e => `   ✗ ${e}`).join('\n')}
 
+IF BACKGROUND IS NOT CHANGED → GENERATION FAILED
+IF SCENE ELEMENTS NOT VISIBLE → GENERATION FAILED
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 }
 

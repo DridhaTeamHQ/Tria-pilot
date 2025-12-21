@@ -123,23 +123,28 @@ If pose exceeds limits → clamp to original.`
 // ═══════════════════════════════════════════════════════════════
 
 export const SCENE_BLOCK = `[SCENE]
-Background = real photoshoot location.
-Not AI art. Not composited.
+Background = MUST CHANGE from original.
+Scene from preset = MANDATORY.
 
-Requirements:
+The output MUST visibly show the preset environment:
+- Background MUST match preset description
+- Lighting MUST match preset lighting type
+- Camera angle MUST match preset camera specs
+- Depth layers MUST be visible (foreground, midground, background)
+
+DO NOT keep the original background.
+DO NOT generate neutral/blank backgrounds.
+
+Scene requirements:
 - Match camera height of Image 1
 - Match focal length (estimate from face size)
 - Include foreground + midground + background depth
 - Add contact shadows under arms, neck, waist
 - Add color bleed from environment onto clothing
 
-Mandatory imperfections:
-- Uneven surfaces
-- Visible clutter
-- Asymmetric framing
-- Natural textures
-
-No: fantasy depth, surreal colors, infinite backgrounds.`
+VALIDATION:
+If scene does not match preset → GENERATION FAILED.
+If background unchanged from Image 1 → GENERATION FAILED.`
 
 // ═══════════════════════════════════════════════════════════════
 // [LIGHTING] - Layer-based lighting
@@ -197,7 +202,16 @@ ${CLOTHING_REPLACE_BLOCK}
 ${POSE_LIMIT_BLOCK}
 
 ${SCENE_BLOCK}
-Location: ${sceneDescription}
+
+═══════════════════════════════════════════════════════════════
+MANDATORY SCENE SPECIFICATION (MUST BE VISIBLE IN OUTPUT):
+═══════════════════════════════════════════════════════════════
+${sceneDescription}
+
+The above scene description is NOT optional.
+The output MUST show this environment.
+If the scene is not visible → retry generation.
+═══════════════════════════════════════════════════════════════
 
 ${LIGHTING_BLOCK}
 
