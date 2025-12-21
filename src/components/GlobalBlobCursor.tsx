@@ -1,197 +1,139 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 /**
- * PERFORMANCE-OPTIMIZED BLOB CURSOR
+ * GLOBAL BLOB CURSOR - Clean Rewrite
  * 
- * Optimizations:
- * - Idle detection: stops RAF loop after 100ms of no movement
- * - CSS transforms: uses translateX/Y instead of left/top (GPU accelerated)
- * - Reduced state updates: only updates state when values change significantly
- * - Low-power detection: disabled on battery saver mode
+ * Simple, reliable custom cursor that:
+ * - Works on desktop only (disabled on mobile/touch)
+ * - Follows mouse with smooth interpolation
+ * - Changes size on hover over interactive elements
+ * - Respects reduced motion preference
  */
 export default function GlobalBlobCursor() {
-    const [isVisible, setIsVisible] = useState(false)
-    const [isMobile, setIsMobile] = useState(false) // Default to false - will check on mount
+    const cursorRef = useRef<HTMLDivElement>(null)
+    const [enabled, setEnabled] = useState(false)
     const [isHovering, setIsHovering] = useState(false)
     const [isPressed, setIsPressed] = useState(false)
-    const [isModalOpen, setIsModalOpen] = useState(false)
-    const [isInitialized, setIsInitialized] = useState(false)
 
-    const rafRef = useRef<number | null>(null)
-    const targetRef = useRef({ x: 0, y: 0 })
-    const currentRef = useRef({ x: 0, y: 0 })
-    const cursorRef = useRef<HTMLDivElement>(null)
-    const lastMoveRef = useRef(0)
-    const isAnimatingRef = useRef(false)
-
-    // Animation loop using RAF - use ref to avoid stale closure
-    const animateRef = useRef<() => void>()
-
-    animateRef.current = () => {
-        if (cursorRef.current) {
-            const dx = targetRef.current.x - currentRef.current.x
-            const dy = targetRef.current.y - currentRef.current.y
-
-            // Stop animating if movement is negligible
-            if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) {
-                const timeSinceMove = Date.now() - lastMoveRef.current
-                if (timeSinceMove > 100) {
-                    // Idle - stop the animation loop to save CPU
-                    isAnimatingRef.current = false
-                    return
-                }
-            }
-
-            currentRef.current.x += dx * 0.15
-            currentRef.current.y += dy * 0.15
-
-            // Direct DOM manipulation for performance (no React re-render)
-            cursorRef.current.style.transform = `translate3d(${currentRef.current.x}px, ${currentRef.current.y}px, 0)`
-
-            rafRef.current = requestAnimationFrame(() => animateRef.current?.())
-        }
-    }
-
-    const startAnimating = useCallback(() => {
-        if (!isAnimatingRef.current) {
-            isAnimatingRef.current = true
-            rafRef.current = requestAnimationFrame(() => animateRef.current?.())
-        }
-    }, [])
+    // Track mouse position with refs to avoid re-renders
+    const mouse = useRef({ x: 0, y: 0 })
+    const pos = useRef({ x: 0, y: 0 })
+    const rafId = useRef<number | null>(null)
 
     useEffect(() => {
-        // Check mobile on mount
-        const checkMobile = () => {
-            const mobile = window.innerWidth < 768 || 'ontouchstart' in window
-            return mobile
-        }
-
-        // Check for reduced motion preference
+        // Check if we should enable the custom cursor
+        const isMobile = window.innerWidth < 768 || 'ontouchstart' in window
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-        const mobile = checkMobile()
-
-        if (prefersReducedMotion || mobile) {
-            setIsMobile(true) // Disable cursor
-            setIsInitialized(true)
+        if (isMobile || prefersReducedMotion) {
+            setEnabled(false)
             return
         }
 
-        // Desktop - enable cursor
-        setIsMobile(false)
-        setIsInitialized(true)
+        setEnabled(true)
 
+        // Add global cursor:none style
         const style = document.createElement('style')
-        style.id = 'blob-cursor-style'
-        style.textContent = `* { cursor: none !important; }`
+        style.id = 'custom-cursor-style'
+        style.textContent = '* { cursor: none !important; }'
         document.head.appendChild(style)
 
-        const handleMouseMove = (e: MouseEvent) => {
-            targetRef.current = { x: e.clientX, y: e.clientY }
-            lastMoveRef.current = Date.now()
-            if (!isVisible) setIsVisible(true)
-            startAnimating()
+        // Animation loop
+        const animate = () => {
+            // Smooth interpolation
+            pos.current.x += (mouse.current.x - pos.current.x) * 0.15
+            pos.current.y += (mouse.current.y - pos.current.y) * 0.15
 
-            // Check if mouse is over a modal/lightbox
-            const target = e.target as HTMLElement
-            const inModal = target.closest('[data-lightbox="true"]') ||
-                target.closest('[role="dialog"]') ||
-                target.closest('.fixed.z-\\[100\\]') ||
-                target.closest('.fixed.z-\\[110\\]')
-            setIsModalOpen(!!inModal)
+            if (cursorRef.current) {
+                cursorRef.current.style.transform = `translate(${pos.current.x}px, ${pos.current.y}px)`
+            }
+
+            rafId.current = requestAnimationFrame(animate)
         }
 
-        const handleMouseDown = () => setIsPressed(true)
-        const handleMouseUp = () => setIsPressed(false)
+        // Start animation
+        rafId.current = requestAnimationFrame(animate)
 
-        const handleMouseOver = (e: MouseEvent) => {
-            const target = e.target as HTMLElement
-            const interactive = target.closest('a, button, [role="button"], input, textarea, select, [data-cursor]')
-            if (interactive) setIsHovering(true)
+        // Event handlers
+        const onMouseMove = (e: MouseEvent) => {
+            mouse.current.x = e.clientX
+            mouse.current.y = e.clientY
         }
 
-        const handleMouseOut = (e: MouseEvent) => {
+        const onMouseDown = () => setIsPressed(true)
+        const onMouseUp = () => setIsPressed(false)
+
+        const onMouseOver = (e: MouseEvent) => {
             const target = e.target as HTMLElement
-            const interactive = target.closest('a, button, [role="button"], input, textarea, select, [data-cursor]')
-            if (interactive) setIsHovering(false)
+            if (target.closest('a, button, [role="button"], input, textarea, select, label')) {
+                setIsHovering(true)
+            }
         }
 
-        const handleMouseLeave = () => setIsVisible(false)
-        const handleMouseEnter = () => setIsVisible(true)
+        const onMouseOut = (e: MouseEvent) => {
+            const target = e.target as HTMLElement
+            if (target.closest('a, button, [role="button"], input, textarea, select, label')) {
+                setIsHovering(false)
+            }
+        }
 
-        window.addEventListener('mousemove', handleMouseMove, { passive: true })
-        window.addEventListener('mousedown', handleMouseDown, { passive: true })
-        window.addEventListener('mouseup', handleMouseUp, { passive: true })
-        document.addEventListener('mouseover', handleMouseOver, { passive: true })
-        document.addEventListener('mouseout', handleMouseOut, { passive: true })
-        document.addEventListener('mouseleave', handleMouseLeave)
-        document.addEventListener('mouseenter', handleMouseEnter)
+        // Add listeners
+        window.addEventListener('mousemove', onMouseMove, { passive: true })
+        window.addEventListener('mousedown', onMouseDown, { passive: true })
+        window.addEventListener('mouseup', onMouseUp, { passive: true })
+        document.addEventListener('mouseover', onMouseOver, { passive: true })
+        document.addEventListener('mouseout', onMouseOut, { passive: true })
 
+        // Cleanup
         return () => {
-            const styleEl = document.getElementById('blob-cursor-style')
+            if (rafId.current) cancelAnimationFrame(rafId.current)
+            const styleEl = document.getElementById('custom-cursor-style')
             if (styleEl) styleEl.remove()
-            if (rafRef.current) cancelAnimationFrame(rafRef.current)
-            window.removeEventListener('mousemove', handleMouseMove)
-            window.removeEventListener('mousedown', handleMouseDown)
-            window.removeEventListener('mouseup', handleMouseUp)
-            document.removeEventListener('mouseover', handleMouseOver)
-            document.removeEventListener('mouseout', handleMouseOut)
-            document.removeEventListener('mouseleave', handleMouseLeave)
-            document.removeEventListener('mouseenter', handleMouseEnter)
+            window.removeEventListener('mousemove', onMouseMove)
+            window.removeEventListener('mousedown', onMouseDown)
+            window.removeEventListener('mouseup', onMouseUp)
+            document.removeEventListener('mouseover', onMouseOver)
+            document.removeEventListener('mouseout', onMouseOut)
         }
-    }, [isVisible, startAnimating])
+    }, [])
 
-    if (isMobile) return null
+    // Don't render on mobile
+    if (!enabled) return null
 
-    const size = isPressed ? 12 : isHovering ? 48 : 16
-
-    // Use white color when in modal/dark background
-    const dotColor = isModalOpen ? '#FFFFFF' : '#1C1C1C'
-    const ringColor = isModalOpen ? 'rgba(255, 255, 255, 0.3)' : 'rgba(28, 28, 28, 0.2)'
+    // Cursor sizes
+    const size = isPressed ? 10 : isHovering ? 40 : 14
 
     return (
         <div
             ref={cursorRef}
-            className="fixed pointer-events-none z-[9999] will-change-transform"
-            style={{
-                left: 0,
-                top: 0,
-                opacity: isVisible ? 1 : 0,
-                transition: 'opacity 0.2s ease',
-            }}
+            className="fixed top-0 left-0 pointer-events-none z-[9999]"
+            style={{ willChange: 'transform' }}
         >
-            {/* Outer ring - only on hover */}
+            {/* Outer ring (visible on hover) */}
             <div
+                className="absolute rounded-full border border-charcoal/30 transition-all duration-300"
                 style={{
-                    position: 'absolute',
-                    width: 48,
-                    height: 48,
-                    left: -24,
-                    top: -24,
-                    borderRadius: '50%',
-                    border: `1.5px solid ${ringColor}`,
+                    width: 40,
+                    height: 40,
+                    left: -20,
+                    top: -20,
                     transform: `scale(${isHovering && !isPressed ? 1 : 0})`,
                     opacity: isHovering && !isPressed ? 1 : 0,
-                    transition: 'transform 0.3s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.3s ease, border-color 0.3s ease',
                 }}
             />
 
             {/* Main dot */}
             <div
+                className="absolute bg-charcoal rounded-full transition-all duration-200"
                 style={{
-                    position: 'absolute',
                     width: size,
                     height: size,
                     left: -size / 2,
                     top: -size / 2,
-                    borderRadius: '50%',
-                    backgroundColor: dotColor,
-                    transition: 'width 0.25s cubic-bezier(0.23, 1, 0.32, 1), height 0.25s cubic-bezier(0.23, 1, 0.32, 1), left 0.25s cubic-bezier(0.23, 1, 0.32, 1), top 0.25s cubic-bezier(0.23, 1, 0.32, 1), background-color 0.3s ease',
                 }}
             />
         </div>
     )
 }
-
