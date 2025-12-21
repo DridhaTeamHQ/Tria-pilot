@@ -153,6 +153,53 @@ After scene construction, face pixels will be COPIED from Image 1.
 ═══════════════════════════════════════════════════════════════════════════════`
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// PRO ULTRA-STRICT FACE FREEZE (Maximum Enforcement)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export const PRO_ULTRA_STRICT_FACE_FREEZE = `
+🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑
+ULTRA-STRICT FACE FREEZE (PRO PIPELINE — MAXIMUM ENFORCEMENT)
+🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑
+
+⚠️⚠️⚠️ CRITICAL: THE FACE MUST BE PIXEL-PERFECT IDENTICAL TO IMAGE 1 ⚠️⚠️⚠️
+
+THIS IS NOT A SUGGESTION. THIS IS AN ABSOLUTE REQUIREMENT.
+
+WHAT MUST BE IDENTICAL (ZERO TOLERANCE):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Face shape = PIXEL COPY (no reconstruction, no reinterpretation)
+• Jawline = EXACT SAME SHAPE (no slimming, no sharpening)
+• Forehead = EXACT SAME (no reshaping)
+• Cheeks = EXACT SAME (no slimming, no filling)
+• Nose = EXACT SAME (no reshaping)
+• Eye shape = EXACT SAME (no enlarging, no reshaping)
+• Eye direction = EXACT SAME ANGLE (if looking left, output looks left)
+• Mouth = EXACT SAME (if open, stays open; if smiling, stays smiling)
+• Skin texture = EXACT SAME (no smoothing)
+• Beard/stubble = EXACT SAME DENSITY AND SHAPE
+• Hair at face boundary = EXACT SAME
+• Glasses/sunglasses = EXACT SAME POSITION AND REFLECTION
+
+HEAD ANGLE (ZERO TOLERANCE):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• If head is tilted 10° left → output head tilted 10° left
+• If head is turned 15° right → output head turned 15° right
+• If face is 3/4 view → output is 3/4 view at SAME angle
+• NO ANGLE CORRECTION. NO STRAIGHTENING. NO "IMPROVEMENT".
+
+WHAT HAPPENS IF FACE CHANGES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+❌ GENERATION FAILED
+❌ OUTPUT REJECTED
+❌ DO NOT PROCEED
+
+The person's family must recognize them INSTANTLY.
+If there is ANY doubt whether it's the same person → FAILED.
+
+YOU ARE EDITING A PHOTO, NOT GENERATING A NEW PERSON.
+🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑`
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // COMBINED BLOCKS
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -170,7 +217,7 @@ ${EXPRESSION_PRESERVATION_BLOCK}
 
 /**
  * Full FaceInvariantLayer for Pro Scene Pass.
- * Includes: Invariant + Demographic Safety + Opaque Mask
+ * Includes: Invariant + Demographic Safety + Opaque Mask + Ultra-Strict
  */
 export const FACE_INVARIANT_LAYER_PRO_SCENE = `
 ${FACE_INVARIANT_BLOCK}
@@ -178,12 +225,14 @@ ${FACE_INVARIANT_BLOCK}
 ${DEMOGRAPHIC_SAFETY_BLOCK}
 
 ${OPAQUE_FACE_MASK_BLOCK}
+
+${PRO_ULTRA_STRICT_FACE_FREEZE}
 `
 
 /**
  * Full FaceInvariantLayer for Pro Refinement Pass.
- * Includes: Invariant + Demographic Safety + Expression Preservation
- * (No mask - face is pixel copied)
+ * Includes: Invariant + Demographic Safety + Expression Preservation + Ultra-Strict
+ * (No mask - face is pixel copied but still ultra-strictly enforced)
  */
 export const FACE_INVARIANT_LAYER_PRO_REFINE = `
 ${FACE_INVARIANT_BLOCK}
@@ -191,6 +240,8 @@ ${FACE_INVARIANT_BLOCK}
 ${DEMOGRAPHIC_SAFETY_BLOCK}
 
 ${EXPRESSION_PRESERVATION_BLOCK}
+
+${PRO_ULTRA_STRICT_FACE_FREEZE}
 `
 
 // ═══════════════════════════════════════════════════════════════════════════════
