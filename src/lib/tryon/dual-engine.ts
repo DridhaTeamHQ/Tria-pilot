@@ -97,6 +97,10 @@ import {
     OPAQUE_FACE_MASK_BLOCK,
     REALISM_ENFORCEMENT_BLOCK,
     GARMENT_CHANGE_VALIDATION_BLOCK,
+    FACE_GEOMETRY_ANCHOR,
+    BODY_SHAPE_LOCK,
+    PRO_FACE_SAFE_TEMP,
+    FACE_DRIFT_THRESHOLD,
     MAX_SCENE_RETRIES,
     logFaceInvariantStatus
 } from './face-invariant'
@@ -841,15 +845,19 @@ This person's family must recognize them instantly.`
         identity_risk_score: 1 // Lower risk with two-pass
     }
 
-    console.log(`\n🎬 PRO_IDENTITY_LOCKED: TWO-PASS ARCHITECTURE`)
-    console.log(`   ════════════════════════════════════════`)
-    console.log(`   PASS 1: Scene Construction`)
-    console.log(`   PASS 2: Fabric & Light Refinement`)
-    console.log(`   ════════════════════════════════════════`)
+    console.log(`\n🎬 PRO_IDENTITY_LOCKED: TWO-PASS ARCHITECTURE (HARDENED)`)
+    console.log(`   ════════════════════════════════════════════════════════`)
+    console.log(`   🔐 FACE_GEOMETRY_ANCHOR: Active (Layer -0.5)`)
+    console.log(`   🔐 BODY_SHAPE_LOCK: Active`)
+    console.log(`   ════════════════════════════════════════════════════════`)
+    console.log(`   PASS 1: Scene Construction (face = opaque black box)`)
+    console.log(`   PASS 2: Fabric & Light Refinement (face = pixel copy)`)
+    console.log(`   ════════════════════════════════════════════════════════`)
     console.log(`   🔒 FACE_FREEZE_LAYER_0: Active (SAME as FLASH)`)
-    console.log(`   🌡️ Temperature: 0.04 (max for PRO)`)
+    console.log(`   🌡️ Temperature: ${PRO_FACE_SAFE_TEMP} (face-safe)`)
     console.log(`   🚫 Face Creativity: ZERO`)
-    console.log(`   ⚠️ On Drift: ABORT (no retry)`)
+    console.log(`   🚫 Face Reconstruction: DISABLED`)
+    console.log(`   ⚠️ On Drift > ${FACE_DRIFT_THRESHOLD * 100}%: FALLBACK_TO_FLASH`)
     console.log(`   📊 Identity Risk: ${metrics.identity_risk_score}/100`)
     console.log(`   Preset: ${preset?.id || 'default'}`)
     console.log(`   Prompt length: ${finalPrompt.length} chars`)
@@ -857,13 +865,16 @@ This person's family must recognize them instantly.`
     return {
         prompt: finalPrompt,
         model: 'gemini-3-pro-image-preview',
-        temperature: 0.04, // MAX 0.04 per user spec (was 0.08)
+        temperature: PRO_FACE_SAFE_TEMP, // 0.03 - face-safe (creativity only below neck)
         assertions: [
+            'FACE_GEOMETRY_ANCHOR (Layer -0.5)',
+            'BODY_SHAPE_LOCK',
             'FACE_FREEZE_LAYER_0 (same as FLASH)',
             'TWO_PASS: Scene + Refinement',
-            'Temperature: 0.04 (max)',
+            `Temperature: ${PRO_FACE_SAFE_TEMP} (face-safe)`,
             'Face creativity: ZERO',
-            'On drift: ABORT'
+            'Face reconstruction: DISABLED',
+            'On drift: FALLBACK_TO_FLASH'
         ],
         pipeline: 'two_pass_pro',
         passes: {

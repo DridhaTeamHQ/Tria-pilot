@@ -20,9 +20,94 @@ import 'server-only'
 
 /**
  * Maximum retries for scene pass if preset elements are missing.
- * Prevents infinite loops while allowing reasonable retry attempts.
  */
 export const MAX_SCENE_RETRIES = 2
+
+/**
+ * PRO face-safe temperature. Creativity only below the neck.
+ */
+export const PRO_FACE_SAFE_TEMP = 0.03
+
+/**
+ * Face drift detection threshold (5% = fail)
+ */
+export const FACE_DRIFT_THRESHOLD = 0.05
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LAYER -0.5: FACE GEOMETRY ANCHOR (HIGHEST PRIORITY - CANONICAL)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export const FACE_GEOMETRY_ANCHOR = `
+═══════════════════════════════════════════════════════════════════════════════
+LAYER -0.5: FACE GEOMETRY ANCHOR (CANONICAL — NON-NEGOTIABLE)
+═══════════════════════════════════════════════════════════════════════════════
+
+⚠️ THE FACIAL GEOMETRY FROM IMAGE 1 IS CANONICAL. IT CANNOT BE CHANGED.
+
+LOCK ALL:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Nose width, bridge shape, nostril shape → LOCKED
+• Jaw width and chin shape → LOCKED
+• Cheek volume and fat distribution → LOCKED
+• Eye spacing and orbital depth → LOCKED
+• Lip thickness and curvature → LOCKED
+• Forehead shape and hairline → LOCKED
+• Ear position and shape → LOCKED
+
+DO NOT (UNDER ANY CIRCUMSTANCES):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+❌ Reconstruct face in 3D
+❌ Normalize proportions
+❌ Improve facial symmetry
+❌ Adjust features for lighting
+❌ Adjust features for angle
+❌ "Fix" any perceived imperfections
+❌ Apply any latent space reasoning to face
+
+ALLOWED (ONLY THESE):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✓ Global color temperature match (affects whole image equally)
+✓ Shadow intensity match (no shadow direction change on face)
+
+THIS IS A GEOMETRY LOCK, NOT A STYLE HINT.
+THE GEOMETRY IS MATHEMATICAL FACT, NOT CREATIVE INPUT.
+═══════════════════════════════════════════════════════════════════════════════`
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// BODY SHAPE LOCK (MANDATORY)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export const BODY_SHAPE_LOCK = `
+═══════════════════════════════════════════════════════════════════════════════
+BODY SHAPE LOCK (MANDATORY — NO RESHAPING)
+═══════════════════════════════════════════════════════════════════════════════
+
+⚠️ BODY SHAPE FROM IMAGE 1 IS PRESERVED EXACTLY.
+
+DO NOT RESHAPE BODY:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+❌ Do NOT slim waist
+❌ Do NOT flatten stomach
+❌ Do NOT reduce hip width
+❌ Do NOT slim arms
+❌ Do NOT add muscle definition
+❌ Do NOT lengthen legs
+❌ Do NOT adjust shoulder width
+❌ Do NOT reduce double chin
+❌ Do NOT "improve" posture
+
+PRESERVE EXACTLY:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✓ Fat bodies stay fat
+✓ Slim bodies stay slim
+✓ Wide hips stay wide
+✓ Narrow shoulders stay narrow
+✓ Belly shape preserved
+✓ Arm thickness preserved
+✓ All body proportions from Image 1
+
+CLOTHING MUST FIT THE BODY, NOT THE OTHER WAY AROUND.
+═══════════════════════════════════════════════════════════════════════════════`
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // FACE INVARIANT BLOCK (HIGHEST PRIORITY)
@@ -200,14 +285,19 @@ YOU ARE EDITING A PHOTO, NOT GENERATING A NEW PERSON.
 🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑`
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// COMBINED BLOCKS
+// COMBINED BLOCKS (WITH LAYER ORDER ENFORCEMENT)
+// Order: Geometry Anchor → Face Freeze → Scene → Clothing → Lighting
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
  * Full FaceInvariantLayer for Flash pipeline.
- * Includes: Invariant + Demographic Safety + Expression Preservation
+ * Includes: Geometry Anchor + Body Lock + Invariant + Demographic Safety + Expression
  */
 export const FACE_INVARIANT_LAYER_FLASH = `
+${FACE_GEOMETRY_ANCHOR}
+
+${BODY_SHAPE_LOCK}
+
 ${FACE_INVARIANT_BLOCK}
 
 ${DEMOGRAPHIC_SAFETY_BLOCK}
@@ -217,9 +307,13 @@ ${EXPRESSION_PRESERVATION_BLOCK}
 
 /**
  * Full FaceInvariantLayer for Pro Scene Pass.
- * Includes: Invariant + Demographic Safety + Opaque Mask + Ultra-Strict
+ * Includes: Geometry Anchor + Body Lock + Invariant + Demographic Safety + Opaque Mask + Ultra-Strict
  */
 export const FACE_INVARIANT_LAYER_PRO_SCENE = `
+${FACE_GEOMETRY_ANCHOR}
+
+${BODY_SHAPE_LOCK}
+
 ${FACE_INVARIANT_BLOCK}
 
 ${DEMOGRAPHIC_SAFETY_BLOCK}
@@ -231,10 +325,13 @@ ${PRO_ULTRA_STRICT_FACE_FREEZE}
 
 /**
  * Full FaceInvariantLayer for Pro Refinement Pass.
- * Includes: Invariant + Demographic Safety + Expression Preservation + Ultra-Strict
- * (No mask - face is pixel copied but still ultra-strictly enforced)
+ * Includes: Geometry Anchor + Body Lock + Invariant + Demographic Safety + Expression + Ultra-Strict
  */
 export const FACE_INVARIANT_LAYER_PRO_REFINE = `
+${FACE_GEOMETRY_ANCHOR}
+
+${BODY_SHAPE_LOCK}
+
 ${FACE_INVARIANT_BLOCK}
 
 ${DEMOGRAPHIC_SAFETY_BLOCK}
