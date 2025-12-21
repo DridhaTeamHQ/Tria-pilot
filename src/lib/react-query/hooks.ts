@@ -1,6 +1,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { safeParseResponse } from '@/lib/api-utils'
 
 // User data hook - optimized for auth-aware navigation
 export function useUser() {
@@ -18,7 +19,7 @@ export function useUser() {
         }
         throw new Error('Failed to fetch user')
       }
-      const data = await res.json()
+      const data = await safeParseResponse(res, 'auth')
       return data.user || null
     },
     staleTime: 30 * 1000, // Consider data fresh for 30 seconds (for navigation)
@@ -41,7 +42,7 @@ export function useNotifications() {
         next: { revalidate: 10 }, // Revalidate every 10 seconds
       })
       if (!res.ok) throw new Error('Failed to fetch notifications')
-      return res.json()
+      return safeParseResponse(res, 'notifications')
     },
     staleTime: 10 * 1000, // 10 seconds - notifications update frequently
     gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
@@ -57,7 +58,7 @@ export function useMarkNotificationRead() {
     mutationFn: async (id: string) => {
       const res = await fetch(`/api/notifications/${id}/read`, { method: 'POST' })
       if (!res.ok) throw new Error('Failed to mark as read')
-      return res.json()
+      return safeParseResponse(res, 'notifications')
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
@@ -72,7 +73,7 @@ export function useMarkAllNotificationsRead() {
     mutationFn: async () => {
       const res = await fetch('/api/notifications/read-all', { method: 'POST' })
       if (!res.ok) throw new Error('Failed to mark all as read')
-      return res.json()
+      return safeParseResponse(res, 'notifications')
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
@@ -92,7 +93,7 @@ export function useProducts(filters?: { brandId?: string; category?: string; sea
     queryFn: async () => {
       const res = await fetch(`/api/products?${params.toString()}`)
       if (!res.ok) throw new Error('Failed to fetch products')
-      const data = await res.json()
+      const data = await safeParseResponse(res, 'products')
       return data.data || data
     },
     staleTime: 60 * 1000, // 1 minute
@@ -107,7 +108,7 @@ export function useProduct(productId: string | null) {
       if (!productId) return null
       const res = await fetch(`/api/products?id=${productId}`)
       if (!res.ok) throw new Error('Failed to fetch product')
-      return res.json()
+      return safeParseResponse(res, 'product')
     },
     enabled: !!productId,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -122,7 +123,7 @@ export function useProductRecommendations(productId: string | null) {
       if (!productId) return []
       const res = await fetch(`/api/products/recommend?productId=${productId}`)
       if (!res.ok) return []
-      return res.json()
+      return safeParseResponse(res, 'recommendations')
     },
     enabled: !!productId,
     staleTime: 10 * 60 * 1000, // 10 minutes - recommendations don't change often
@@ -136,7 +137,7 @@ export function useProfileStats() {
     queryFn: async () => {
       const res = await fetch('/api/profile/stats')
       if (!res.ok) throw new Error('Failed to fetch stats')
-      return res.json()
+      return safeParseResponse(res, 'profile-stats')
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
   })
@@ -149,7 +150,7 @@ export function useFavorites() {
     queryFn: async () => {
       const res = await fetch('/api/favorites')
       if (!res.ok) throw new Error('Failed to fetch favorites')
-      return res.json()
+      return safeParseResponse(res, 'favorites')
     },
     staleTime: 30 * 1000, // 30 seconds
   })
@@ -166,7 +167,7 @@ export function useToggleFavorite() {
           method: 'DELETE',
         })
         if (!res.ok) throw new Error('Failed to remove favorite')
-        return res.json()
+        return safeParseResponse(res, 'favorites')
       } else {
         const res = await fetch('/api/favorites', {
           method: 'POST',
@@ -174,7 +175,7 @@ export function useToggleFavorite() {
           body: JSON.stringify({ productId }),
         })
         if (!res.ok) throw new Error('Failed to add favorite')
-        return res.json()
+        return safeParseResponse(res, 'favorites')
       }
     },
     onMutate: async ({ productId, isFavorited }) => {
@@ -224,7 +225,7 @@ export function useGenerations() {
         if (res.status === 401) return []
         throw new Error('Failed to fetch generations')
       }
-      const data = await res.json()
+      const data = await safeParseResponse(res, 'generations')
       return data.generations || []
     },
     staleTime: 60 * 1000, // 1 minute

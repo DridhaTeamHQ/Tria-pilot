@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { toast } from 'sonner'
 import { ShoppingBag, Upload, Sparkles, Palette, Download, RefreshCw, ArrowRight, X, Check, PartyPopper, AlertTriangle, Loader2 } from 'lucide-react'
 import { useProduct } from '@/lib/react-query/hooks'
+import { safeParseResponse } from '@/lib/api-utils'
 
 // Try-on preset type (v3)
 interface TryOnPreset {
@@ -75,7 +76,7 @@ function TryOnPageContent() {
         async function fetchPresets() {
             try {
                 const res = await fetch('/api/presets')
-                const data = await res.json()
+                const data = await safeParseResponse(res, 'presets')
                 if (res.ok && data.presets) {
                     setPresets(data.presets)
                     setPresetCategories(data.categories || [])
@@ -95,7 +96,7 @@ function TryOnPageContent() {
             setIdentityImagesLoading(true)
             try {
                 const res = await fetch('/api/identity-images', { cache: 'no-store' })
-                const data = await res.json()
+                const data = await safeParseResponse(res, 'identity-images')
                 if (!res.ok) return
 
                 // API returns { images: [...] , requirements: [...] , ... }
@@ -137,7 +138,7 @@ function TryOnPageContent() {
         setSavedProfileImagesLoading(true)
         try {
             const res = await fetch('/api/profile-images', { cache: 'no-store' })
-            const data = await res.json()
+            const data = await safeParseResponse(res, 'profile-images')
             if (!res.ok) throw new Error(data.error || 'Failed to fetch profile images')
             setSavedProfileImages((data.images || []) as any[])
         } catch (e) {
@@ -422,12 +423,9 @@ function TryOnPageContent() {
                 }),
             })
 
-            const data = await response.json()
+            // Safe parse handles non-JSON and error responses gracefully
+            const data = await safeParseResponse(response, 'try-on generation')
             console.log('API Response:', data) // Debug: see what we got back
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Generation failed')
-            }
 
             console.log('Setting result with imageUrl:', data.imageUrl) // Debug
             setResult(data)
