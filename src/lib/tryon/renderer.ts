@@ -301,6 +301,13 @@ interface PromptContext {
 /**
  * Build prompt for NEW ARCHITECTURE: Identity from image only, garment from text
  * No forensic analysis, no multi-image references, no garment images
+ * 
+ * PRO IDENTITY PRESERVATION ARCHITECTURE:
+ * - Face is IMMUTABLE read-only pixel region
+ * - PRO must NOT generate or modify the face
+ * - Temperature hard limit: 0.04
+ * - Face creativity: ZERO
+ * - Beauty correction: DISABLED
  */
 function buildProPrompt(ctx: PromptContext): string {
   const { scene, styleKey, keepBackground, garmentDescription, lightingInstruction } = ctx
@@ -308,20 +315,147 @@ function buildProPrompt(ctx: PromptContext): string {
   const style = STYLE_SETTINGS[styleKey] || STYLE_SETTINGS.iphone_candid
   const lighting = lightingInstruction || 'natural lighting'
 
-  // Identity lock - from image only, no text descriptions
-  const identityLock = `═══════════════════════════════════════════════════════════════════════════════
-🔒 IDENTITY PRESERVATION (FROM IMAGE ONLY)
-═══════════════════════════════════════════════════════════════════════════════
-The person in the image is your identity reference. Do NOT generate a new person.
-Preserve the same face, same features, same skin tone, same hair.
-The image is the ONLY source of identity - do not describe or modify facial features.
-═══════════════════════════════════════════════════════════════════════════════`
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PRO IDENTITY PRESERVATION ARCHITECTURE - MANDATORY
+  // ═══════════════════════════════════════════════════════════════════════════
+  const proIdentityArchitecture = `
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║              PRO MODEL — IDENTITY PRESERVATION ARCHITECTURE                   ║
+║                         MANDATORY CONSTRAINTS                                 ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+★★★ PRO MUST NOT GENERATE OR MODIFY THE FACE ★★★
+
+════════════════════════════════════════════════════════════════════════════════
+FACE HANDLING (IMMUTABLE):
+════════════════════════════════════════════════════════════════════════════════
+• The face from Image 1 is IMMUTABLE
+• Treat the face as a READ-ONLY PIXEL REGION
+• Do NOT redraw facial features
+• Do NOT enhance facial features
+• Do NOT beautify facial features
+• Do NOT symmetrize facial features
+• Do NOT correct facial features
+
+ABSOLUTELY FORBIDDEN - FACE:
+✗ Changes to eye size
+✗ Changes to eye shape
+✗ Changes to nose width
+✗ Changes to nose shape
+✗ Changes to jaw shape
+✗ Changes to jaw mass
+✗ Changes to cheek volume
+✗ Changes to lip shape
+✗ Changes to beard
+✗ Changes to hairline
+✗ Skin smoothing
+✗ Wrinkle removal
+✗ Any beautification
+✗ Any "improvement"
+
+════════════════════════════════════════════════════════════════════════════════
+BODY HANDLING (LOCKED — ANALYZE FACE FIRST):
+════════════════════════════════════════════════════════════════════════════════
+
+★★★ BEFORE GENERATING BODY, ANALYZE THE FACE ★★★
+
+Look at the face in Image 1 and determine body mass:
+
+| IF FACE SHOWS...        | THEN BODY MUST BE...                |
+|-------------------------|-------------------------------------|
+| Full/round cheeks       | Plus-size, full torso               |
+| Wide jaw                | Broad shoulders                     |
+| Double chin             | Heavy build, visible belly          |
+| Thick neck              | Thick arms, full torso              |
+| Soft jawline            | Soft body contours                  |
+| Round face shape        | Fuller body overall                 |
+
+• The body from Image 1 defines the ONLY valid body
+• Preserve body mass EXACTLY as shown
+• Preserve shoulder width EXACTLY
+• Preserve arm thickness EXACTLY  
+• Preserve torso volume EXACTLY
+• Maintain original head-to-shoulder ratio
+• Maintain original head-to-torso ratio
+
+ABSOLUTELY FORBIDDEN - BODY:
+✗ Slimming the body
+✗ Stretching the body
+✗ Elongating the body
+✗ Reshaping the body
+✗ "Flattering" adjustments
+✗ Model-like proportions
+✗ Athletic body from round face
+✗ Slim waist from full cheeks
+
+★★★ FULL FACE = FULL BODY — NO EXCEPTIONS ★★★
+
+════════════════════════════════════════════════════════════════════════════════
+CLOTHING REFERENCE RULE (CBN-ST):
+════════════════════════════════════════════════════════════════════════════════
+• The clothing reference image contains NO VALID BODY
+• Ignore ALL human proportions in clothing reference
+• The model wearing the clothes is IRRELEVANT
+• Treat clothing reference as FABRIC-ONLY:
+  ✓ Texture
+  ✓ Color
+  ✓ Seams
+  ✓ Drape
+• The garment must STRETCH to fit the person's body
+• The body must NEVER shrink to fit the clothing
+• If the user is plus-size → cloth wrinkles and stretches around their body
+
+════════════════════════════════════════════════════════════════════════════════
+PRO MODEL PARAMETERS:
+════════════════════════════════════════════════════════════════════════════════
+• Temperature hard limit: 0.04
+• Face creativity: ZERO
+• Beauty correction: DISABLED
+• Identity editing: DISABLED
+• Body slimming: DISABLED
+
+════════════════════════════════════════════════════════════════════════════════
+FACE-BODY COHERENCE (FINAL CHECK):
+════════════════════════════════════════════════════════════════════════════════
+
+Before finalizing, verify these coherence rules:
+
+CHECK 1: FACE-BODY WEIGHT MATCH
+• Full face → Full body (NOT slim body)
+• Round cheeks → Thick arms (NOT thin arms)
+• Wide jaw → Broad shoulders (NOT narrow)
+• Double chin → Body shows weight (NOT flat stomach)
+
+CHECK 2: NECK-SHOULDER MATCH
+• Thick neck → Broad shoulders
+• The neck must connect face to body smoothly
+
+CHECK 3: PROPORTION MATCH
+• Head-to-body ratio from Image 1 = PRESERVED
+• If head seems "big" relative to body → FAILED (body was slimmed)
+
+⛔ MISMATCH = GENERATION FAILED:
+• Round face + slim body = FAILED
+• Full cheeks + thin arms = FAILED
+• Wide neck + narrow shoulders = FAILED
+
+════════════════════════════════════════════════════════════════════════════════
+FAIL CONDITIONS (GENERATION FAILED IF):
+════════════════════════════════════════════════════════════════════════════════
+★ If facial structure changes → FAIL
+★ If eyes, nose, or jaw drift → FAIL
+★ If body mass changes → FAIL
+★ If body is slimmer than face suggests → FAIL
+★ If head size changes → FAIL
+★ If face looks beautified → FAIL
+★ If full face appears on slim body → FAIL
+`
 
   // Keep background mode
   if (keepBackground) {
     return `VIRTUAL CLOTHING TRY-ON
 
-${identityLock}
+${proIdentityArchitecture}
 
 YOUR TASK:
 Create a new photo of this EXACT same person wearing a new outfit.
@@ -330,19 +464,18 @@ GARMENT TO APPLY:
 ${garmentDescription}
 
 WHAT TO DO:
-1. Remove their current outfit completely
-2. Dress them in the garment described above
-3. Keep EVERYTHING else identical: background, lighting, pose, expression, hair
-4. The clothing should fit naturally on their body shape
+1. COPY face pixels exactly from Image 1 (do NOT regenerate)
+2. PRESERVE body proportions exactly from Image 1
+3. Remove current outfit completely
+4. Apply garment described above - adapted to their body
+5. Keep EVERYTHING else identical: background, lighting, pose, expression, hair
 
-CLOTHING APPLICATION:
-• Match the garment description exactly (color, pattern, design)
-• Natural wrinkles and draping based on their current pose
-• Appropriate fit for their body type
+LIGHTING RULE:
+• Lighting adjustments must be global
+• Do NOT relight face independently
 
 ${REALISM_REQUIREMENTS}
 
-QUALITY CHECK:
 The result should look like the next frame of a video - same person, same setting, just changed clothes.
 Their family should recognize them instantly.`
   }
@@ -351,7 +484,7 @@ Their family should recognize them instantly.`
   if (scene && scene.description) {
     return `FASHION PHOTOGRAPHY: VIRTUAL TRY-ON WITH NEW SCENE
 
-${identityLock}
+${proIdentityArchitecture}
 
 YOUR TASK:
 Create a professional fashion photo of this person wearing a new outfit in a new setting.
@@ -359,29 +492,27 @@ Create a professional fashion photo of this person wearing a new outfit in a new
 GARMENT TO APPLY:
 ${garmentDescription}
 
-STEP 1 - IDENTITY:
-The person in the image is your identity reference. Preserve their face exactly.
-Do not generate a new person. Do not change facial features.
+EXECUTION ORDER:
+1. FREEZE face and body from Image 1 (read-only)
+2. Build scene WITHOUT face access
+3. Apply garment to LOCKED body
+4. Composite original face pixels back
 
-STEP 2 - OUTFIT:
-Remove current clothing. Apply the garment described above.
-Natural fit with realistic fabric behavior.
-
-STEP 3 - SCENE:
+SCENE:
 📍 LOCATION: ${scene.description}
 💡 LIGHTING: ${scene.lighting}
 🔍 DETAILS: ${scene.details}
 
-STEP 4 - STYLE:
+STYLE:
 ${style}
 
 ${REALISM_REQUIREMENTS}
 
 CRITICAL RULES:
-• Face CANNOT change - preserve from the input image
-• New lighting affects skin and clothes naturally, but features stay identical
+• Face CANNOT change - direct pixel copy from input image
+• Body proportions CANNOT change - exact from input image
+• Scene lighting affects skin COLOR only, not face STRUCTURE
 • Background should be sharp and detailed, not blurry AI mush
-• Include realistic environmental imperfections (dust, wear, texture)
 
 The person should look naturally photographed in this location.`
   }
@@ -389,81 +520,192 @@ The person should look naturally photographed in this location.`
   // Custom background (fallback)
   return `VIRTUAL TRY-ON
 
-${identityLock}
+${proIdentityArchitecture}
 
 GARMENT TO APPLY:
 ${garmentDescription}
 
-OUTFIT: Apply the garment described above with natural fit.
+OUTFIT: Apply the garment described above with natural fit on LOCKED body.
 
 ${style}
 
 ${REALISM_REQUIREMENTS}
 
-Create an authentic-looking photo of this exact person in the new outfit.`
+Create an authentic-looking photo of this exact person in the new outfit.
+Face and body are IMMUTABLE from Image 1.`
 }
 
 /**
  * Build prompt for Flash model - NEW ARCHITECTURE: Image-only identity, text-only garment
+ * 
+ * FLASH MODEL CONSTRAINTS - MANDATORY:
+ * - Identity and body preservation over creativity
+ * - Temperature: 0.01 (deterministic)
+ * - No beautification, no fashion poses
  */
 function buildFlashPrompt(ctx: PromptContext): string {
   const { scene, keepBackground, garmentDescription, lightingInstruction } = ctx
 
   const lighting = lightingInstruction || 'natural lighting'
 
-  // Identity lock - from image only, no text descriptions
-  const identityLock = `═══════════════════════════════════════════════════════════════════════════════
-🔒 IDENTITY PRESERVATION (FROM IMAGE ONLY)
-═══════════════════════════════════════════════════════════════════════════════
-The person in the image is your identity reference. Do NOT generate a new person.
-Preserve the same face, same features, same skin tone, same hair.
-The image is the ONLY source of identity - do not describe or modify facial features.
-═══════════════════════════════════════════════════════════════════════════════`
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FLASH IDENTITY & BODY LOCK - MANDATORY
+  // ═══════════════════════════════════════════════════════════════════════════
+  const flashIdentityLock = `
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║              FLASH MODEL — IDENTITY & BODY LOCK                               ║
+║                     MANDATORY CONSTRAINTS                                     ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+This generation must prioritize IDENTITY and BODY preservation over creativity.
+
+════════════════════════════════════════════════════════════════════════════════
+IDENTITY & BODY LOCK (ANALYZE FACE TO DETERMINE BODY):
+════════════════════════════════════════════════════════════════════════════════
+
+★★★ BEFORE GENERATING BODY, ANALYZE THE FACE ★★★
+
+Look at the face in Image 1 and determine body mass:
+
+| IF FACE SHOWS...        | THEN BODY MUST BE...                |
+|-------------------------|-------------------------------------|
+| Full/round cheeks       | Plus-size, full torso               |
+| Wide jaw                | Broad shoulders                     |
+| Double chin             | Heavy build, visible belly          |
+| Thick neck              | Thick arms, full torso              |
+| Soft jawline            | Soft body contours                  |
+| Round face shape        | Fuller body overall                 |
+
+• The person in Image 1 defines the ONLY valid human
+• Preserve face geometry EXACTLY
+• Preserve eye size EXACTLY
+• Preserve nose width EXACTLY
+• Preserve jaw mass EXACTLY
+• Preserve cheek volume EXACTLY
+• Preserve body mass EXACTLY
+• Preserve shoulder width EXACTLY
+• Preserve arm thickness EXACTLY
+• Preserve torso volume EXACTLY
+• Maintain original head-to-shoulder ratio from Image 1
+• Maintain original head-to-torso ratio from Image 1
+
+ABSOLUTELY FORBIDDEN:
+✗ Do NOT slim the body
+✗ Do NOT stretch the body
+✗ Do NOT elongate the body
+✗ Do NOT reshape the body
+✗ Do NOT change face structure
+✗ Do NOT resize eyes
+✗ Do NOT reshape nose
+✗ Do NOT modify jaw
+✗ Do NOT create slim body from round face
+✗ Do NOT create athletic body from full cheeks
+
+★★★ FULL FACE = FULL BODY — NO EXCEPTIONS ★★★
+
+════════════════════════════════════════════════════════════════════════════════
+CLOTHING REFERENCE RULE (CBN-ST):
+════════════════════════════════════════════════════════════════════════════════
+• The clothing reference image contains NO VALID BODY
+• The model wearing the clothes is IRRELEVANT
+• Ignore ALL human proportions in the clothing reference
+• Treat clothing reference as FABRIC-ONLY:
+  ✓ Texture
+  ✓ Color
+  ✓ Seams
+  ✓ Drape
+• The garment must STRETCH to fit the person's body
+• The body must NEVER shrink to fit the clothing
+• If the user is plus-size → cloth wrinkles and stretches around their body
+
+════════════════════════════════════════════════════════════════════════════════
+POSE & PHYSICS:
+════════════════════════════════════════════════════════════════════════════════
+• Use natural posture appropriate to the person's body mass
+• No fashion poses
+• No model stances
+• Natural clothing drape based on body shape
+
+════════════════════════════════════════════════════════════════════════════════
+SCENE LIMITATION:
+════════════════════════════════════════════════════════════════════════════════
+• Apply only mild background variation
+• Do NOT change camera angle dramatically
+• Lighting variations only (neutral / warm / cool)
+
+════════════════════════════════════════════════════════════════════════════════
+VARIANTS RULE:
+════════════════════════════════════════════════════════════════════════════════
+Generate with:
+• Same face (exact pixels)
+• Same body (exact proportions)
+• Same garment fit
+• Different lighting moods ONLY
+
+════════════════════════════════════════════════════════════════════════════════
+FAIL CONDITIONS:
+════════════════════════════════════════════════════════════════════════════════
+★ If body mass changes → FAIL
+★ If head size changes → FAIL
+★ If face looks beautified → FAIL
+★ If face structure changes → FAIL
+★ If eyes, nose, or jaw drift → FAIL
+`
 
   if (keepBackground) {
     return `CLOTHING TRY-ON - SAME PERSON, SAME BACKGROUND
 
-${identityLock}
+${flashIdentityLock}
 
 GARMENT TO APPLY:
 ${garmentDescription}
 
 TASK:
-1. Remove their current outfit completely
-2. Apply the garment described above
-3. Keep the exact background from the input image
-4. Keep the same pose and expression
+1. COPY face pixels exactly from Image 1 (do NOT regenerate)
+2. PRESERVE body proportions exactly from Image 1
+3. Remove their current outfit completely
+4. Apply the garment described above (ADAPTED to their body)
+5. Keep the exact background from the input image
+6. Keep the same pose and expression
 
-⚠️ CRITICAL: 
-- Do NOT generate a new person - preserve the face from the image
-- The garment description above is the ONLY source for clothing
-- Do NOT blend old and new outfits
+BODY CONSISTENCY:
+• Preserve original body proportions from Image 1
+• No slimming, stretching, or posture correction
 
-❌ FORBIDDEN: Different face, changed eyes, mixing old/new clothes, hallucinations/artifacts
+LIGHTING RULE:
+• Lighting adjustments must be global
+• Do NOT relight face independently
 
-OUTPUT: SAME person (from image) wearing NEW clothes (from description).`
+❌ FORBIDDEN: 
+Different face, changed eyes, changed body shape, thinning, mixing old/new clothes
+
+OUTPUT: SAME person (exact face and body from image) wearing NEW clothes (from description).`
   }
 
   if (scene && scene.description) {
     return `CLOTHING TRY-ON + SCENE CHANGE
 
-${identityLock}
+${flashIdentityLock}
 
 GARMENT TO APPLY:
 ${garmentDescription}
 
 TASK:
-1. Remove their current outfit completely
-2. Apply the garment described above
-3. Change background to: ${scene.description}
-4. Pose can vary naturally (not locked)
+1. COPY face pixels exactly from Image 1
+2. PRESERVE body proportions exactly from Image 1
+3. Remove their current outfit completely
+4. Apply the garment (ADAPTED to their actual body)
+5. Change background to: ${scene.description}
+6. Natural pose appropriate to body mass (no fashion poses)
 
 SCENE:
 📍 ${scene.description}
 💡 ${scene.lighting}
 🔍 ${scene.details}
 
-⚠️ REMINDER: Face MUST match the input image. Do NOT generate new person.
+BODY CONSISTENCY:
+• Preserve original body proportions from Image 1
+• No slimming, stretching, or posture correction
 
 ❌ FORBIDDEN: 
 • Different face or person
@@ -471,23 +713,26 @@ SCENE:
 • Lighter or darker skin
 • Changed lip shape
 • Smoothed/plastic skin
+• Thinner body
+• Changed body proportions
 
-OUTPUT: SAME person (face from image), NEW clothes (from description), NEW background.`
+OUTPUT: SAME person (exact face and body), NEW clothes (adapted to their body), NEW background.`
   }
 
   // Fallback
   return `CLOTHING TRY-ON
 
-${identityLock}
+${flashIdentityLock}
 
 GARMENT TO APPLY:
 ${garmentDescription}
 
 Apply the garment described above.
-Keep EXACT same face (from image).
-Pose can vary naturally.
+KEEP EXACT same face (pixel copy from Image 1).
+KEEP EXACT same body proportions.
+Garment ADAPTS to body, body does NOT change.
 
-OUTPUT: Same person, new outfit.`
+OUTPUT: Same person (exact face and body), new outfit.`
 }
 
 // ====================================================================================

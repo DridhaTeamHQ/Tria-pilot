@@ -109,6 +109,122 @@ ALLOWED GARMENT OPERATIONS
 - Button/zipper alignment`
 
 // ═══════════════════════════════════════════════════════════════
+// BODY WEIGHT ENFORCEMENT (CRITICAL FOR PLUS-SIZE PRESERVATION)
+// ═══════════════════════════════════════════════════════════════
+
+export const BODY_WEIGHT_ENFORCEMENT = `[BODY WEIGHT ENFORCEMENT — MANDATORY]
+
+★★★ THIS IS THE MOST CRITICAL BODY RULE ★★★
+
+Before generating the body, ANALYZE THE FACE in Image 1:
+
+═══════════════════════════════════════════════════════════
+FACE-TO-BODY WEIGHT CORRELATION (BINDING)
+═══════════════════════════════════════════════════════════
+
+| FACE INDICATOR          | BODY REQUIREMENT                    |
+|-------------------------|-------------------------------------|
+| Full/round cheeks       | → Body MUST be plus-size            |
+| Wide jaw                | → Shoulders MUST be broad           |
+| Double chin             | → Body MUST be heavy/full           |
+| Thick neck              | → Torso MUST be thick               |
+| Soft facial contours    | → Body MUST have soft contours      |
+| Visible jowls           | → Body MUST show weight             |
+| Round face shape        | → Body MUST be fuller               |
+
+═══════════════════════════════════════════════════════════
+ANTI-SLIMMING ENFORCEMENT (READ CAREFULLY)
+═══════════════════════════════════════════════════════════
+
+If Image 1 shows a person with:
+• Full/round face → OUTPUT body MUST be full/round
+• Visible body fat in face → OUTPUT body MUST show same fat
+• Wide face structure → OUTPUT body MUST be proportionally wide
+
+⛔ GENERATION FAILED CONDITIONS:
+• Full face + Slim body = FAILED (MISMATCH)
+• Round face + Athletic body = FAILED (MISMATCH)
+• Double chin + No belly = FAILED (MISMATCH)
+• Wide jaw + Narrow shoulders = FAILED (MISMATCH)
+
+═══════════════════════════════════════════════════════════
+THE CLOTHING REFERENCE IMAGE IS IRRELEVANT FOR BODY
+═══════════════════════════════════════════════════════════
+
+The model wearing the clothing in Image 2 may be:
+• Thin
+• Tall
+• Athletic
+• Different body type
+
+🚫 COMPLETELY IGNORE THE BODY IN IMAGE 2.
+🚫 ONLY the body from IMAGE 1 is valid.
+🚫 The clothing must STRETCH to fit the ACTUAL body.
+
+═══════════════════════════════════════════════════════════
+PLUS-SIZE BODY RULES (IF DETECTED)
+═══════════════════════════════════════════════════════════
+
+If the face analysis shows plus-size traits:
+
+MANDATORY:
+✓ Full face → KEEP
+✓ Wide neck → KEEP
+✓ Broad shoulders → KEEP
+✓ Thick upper arms → KEEP
+✓ Full torso → KEEP
+✓ Natural belly → KEEP
+✓ Full waist → KEEP
+✓ Natural hip width → KEEP
+
+ABSOLUTELY FORBIDDEN:
+✗ Flat stomach
+✗ Thin waist
+✗ Slim arms
+✗ Narrow shoulders
+✗ Model-like proportions
+✗ Any slimming whatsoever
+
+The garment ADAPTS to the plus-size body.
+The body NEVER adapts to the garment.`
+
+// ═══════════════════════════════════════════════════════════════
+// FACE-BODY COHERENCE ENFORCEMENT
+// ═══════════════════════════════════════════════════════════════
+
+export const FACE_BODY_COHERENCE_ENFORCEMENT = `[FACE-BODY COHERENCE — FINAL CHECK]
+
+Before finalizing the image, perform this coherence check:
+
+COHERENCE RULE #1: NECK MATCH
+• The neck thickness in the output MUST match Image 1
+• Wide face → Wide neck → Broad body
+
+COHERENCE RULE #2: JAW-SHOULDER MATCH
+• Jaw width in face MUST correlate with shoulder width
+• Wide jaw → Broad shoulders
+
+COHERENCE RULE #3: CHEEK-TORSO MATCH
+• Full cheeks → Full torso
+• Hollow cheeks → Lean torso
+
+COHERENCE RULE #4: CHIN-BELLY MATCH
+• Double chin or rounded chin → Body has weight
+• Sharp chin → Leaner body
+
+═══════════════════════════════════════════════════════════
+INCOHERENCE = GENERATION FAILED
+═══════════════════════════════════════════════════════════
+
+If any of these are true, REGENERATE:
+□ Full face + slim body
+□ Wide neck + narrow shoulders
+□ Round cheeks + flat stomach
+□ Double chin + athletic torso
+
+The face and body MUST belong to the SAME person.`
+
+// ═══════════════════════════════════════════════════════════════
 // EYE PRESERVATION CONSTRAINTS
 // ═══════════════════════════════════════════════════════════════
 

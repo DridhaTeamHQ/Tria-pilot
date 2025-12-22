@@ -9,6 +9,17 @@ import { runTryOnPipelineV3 } from '@/lib/tryon/pipeline'
 import { saveUpload } from '@/lib/storage'
 import prisma from '@/lib/prisma'
 import { getVariantSpec, buildVariantPromptModifier, VARIANT_IDENTITY_LOCK, logVariantGeneration } from '@/lib/tryon/variant-specs'
+// IPCR-X Architecture imports
+import { buildPipelineV4, enforceTemperature, IDENTITY_VERIFICATION_SUFFIX, type Variant } from '@/lib/tryon/pipeline-v4'
+import { getIdentityLayersPrompt } from '@/lib/tryon/identity-layers'
+// CBN-ST™ Clothing Body Neutralization
+import { getCBNSTPrompt, logCBNSTStatus } from '@/lib/tryon/cbn-safetensor'
+// Intelligent Body Scan System
+import { getBodyScanPrompt, logBodyScanStatus } from '@/lib/tryon/body-scan'
+// Intelligent Garment Extraction System
+import { getGarmentScanPrompt, logGarmentScanStatus } from '@/lib/tryon/garment-scan'
+// Fabric Physics & Realism System
+import { getFabricPhysicsPrompt, logFabricPhysicsStatus } from '@/lib/tryon/fabric-physics'
 
 export async function POST(request: Request) {
   try {
@@ -180,10 +191,44 @@ export async function POST(request: Request) {
               const variantSpec = getVariantSpec(variantIndex)
               logVariantGeneration(job.id, variantSpec)
 
-              // Build variant-specific prompt additions
-              const variantPromptAddition = `${VARIANT_IDENTITY_LOCK}\n\n${buildVariantPromptModifier(variantSpec)}`
+              // IPCR-X: Get variant letter for pipeline-v4
+              const variantLetter = (['A', 'B', 'C'] as Variant[])[variantIndex]
+
+              // Build pipeline-v4 prompt with identity layers
+              const pipelineOutput = buildPipelineV4({
+                sessionId: `${job.id}_v${variantLetter}`,
+                modelMode: model === 'pro' ? 'pro' : 'flash',
+                presetId: stylePreset || 'keep_original',
+                userRequest: userRequest,
+                variant: variantLetter
+              })
+              // IPCR-X: Full prompt chain
+              // ORDER: Body Scan → Garment Scan → Physics → CBN-ST → Identity Layers → Variant → Verification
+              // Body Scan + Garment Scan + Physics ensure correct understanding before processing
+              const isPro = model === 'pro'
+              const bodyScanPrompt = getBodyScanPrompt()
+              const garmentScanPrompt = getGarmentScanPrompt()
+              const fabricPhysicsPrompt = getFabricPhysicsPrompt()
+              const cbnstPrompt = getCBNSTPrompt(isPro)
+              const identityLayers = getIdentityLayersPrompt()
+
+              // Log system activation
+              logBodyScanStatus(`${job.id}_v${variantLetter}`)
+              logGarmentScanStatus(`${job.id}_v${variantLetter}`)
+              logFabricPhysicsStatus(`${job.id}_v${variantLetter}`)
+              logCBNSTStatus(`${job.id}_v${variantLetter}`, isPro)
+
+              // Build complete prompt: Body Scan → Garment Scan → Physics → CBN-ST → Identity Layers → Variant → Verification
+              const variantPromptAddition = `${bodyScanPrompt}\n\n${garmentScanPrompt}\n\n${fabricPhysicsPrompt}\n\n${cbnstPrompt}\n\n${identityLayers}\n\n${VARIANT_IDENTITY_LOCK}\n\n${buildVariantPromptModifier(variantSpec)}\n\n${IDENTITY_VERIFICATION_SUFFIX}`
 
               console.log(`🎬 Running variant ${variantSpec.id} - ${variantSpec.name} (attempt ${attempt + 1})...`)
+              console.log(`   🌡️ Temperature: ${pipelineOutput.temperature}`)
+              console.log(`   🔬 Body Scan: ACTIVE (Face-to-Body Correlation)`)
+              console.log(`   👔 Garment Scan: ACTIVE (Clothing Extraction)`)
+              console.log(`   🧵 Fabric Physics: ACTIVE (Gravity, Wrinkles, Fit)`)
+              console.log(`   🛡️ CBN-ST™: ACTIVE (Clothing Body Neutralization)`)
+              console.log(`   🔒 Identity Layers: ACTIVE`)
+
               result = await runTryOnPipelineV3({
                 subjectImageBase64: normalizedPerson,
                 clothingRefBase64: normalizedClothing,

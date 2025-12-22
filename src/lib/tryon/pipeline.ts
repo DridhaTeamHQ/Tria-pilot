@@ -7,6 +7,11 @@ import {
   getOrCacheIdentity,
   getCacheStats
 } from './identity-cache'
+import {
+  preprocessGarmentImage,
+  logPreprocessStatus,
+  type PreprocessResult
+} from './garment-preprocessor'
 
 export interface TryOnQualityOptions {
   quality: 'fast' | 'high'
@@ -59,6 +64,8 @@ export async function runTryOnPipelineV3(params: {
   useIdentityCropping?: boolean
   /** User ID for session cache (enables character memory) */
   userId?: string
+  /** Skip garment preprocessing (escape hatch, not recommended) */
+  skipGarmentPreprocessing?: boolean
 }): Promise<TryOnPipelineResult> {
   const startTime = Date.now()
 
@@ -69,8 +76,30 @@ export async function runTryOnPipelineV3(params: {
     userRequest,
     quality,
     useIdentityCropping = true,  // Default ON for identity preservation
-    userId = 'anonymous'
+    userId = 'anonymous',
+    skipGarmentPreprocessing = false  // Default: preprocessing enabled
   } = params
+
+  // ═══════════════════════════════════════════════════════════════
+  // GARMENT PREPROCESSING LAYER (NEW)
+  // ═══════════════════════════════════════════════════════════════
+
+  let processedClothingImage = clothingRefBase64
+  let garmentPreprocessResult: PreprocessResult | null = null
+
+  if (!skipGarmentPreprocessing) {
+    console.log(`\n👔 GARMENT PREPROCESSING: Starting...`)
+
+    garmentPreprocessResult = await preprocessGarmentImage(clothingRefBase64, {
+      sessionId: `pipeline-${startTime}`,
+      model: quality.quality === 'high' ? 'pro' : 'flash'
+    })
+
+    processedClothingImage = garmentPreprocessResult.processedImage
+    logPreprocessStatus(`pipeline-${startTime}`, garmentPreprocessResult)
+  } else {
+    console.log(`\n⏭️ GARMENT PREPROCESSING: Skipped (flag set)`)
+  }
 
   // ═══════════════════════════════════════════════════════════════
   // IDENTITY CROPPING & CACHING
@@ -117,7 +146,7 @@ export async function runTryOnPipelineV3(params: {
     sceneInstruction = `${sceneInstruction}. ${userRequest}`
   }
 
-  console.log(`\n========== TRY-ON PIPELINE (PHASE 4 - IDENTITY PRESERVATION) ==========`)
+  console.log(`\n========== TRY-ON PIPELINE (PHASE 5 - GARMENT EXTRACTION) ==========`)
   console.log(`🎨 Preset ID: ${presetId || 'none'}`)
   console.log(`📸 Background: "${backgroundName}"`)
   console.log(`💡 Lighting: "${lightingName}"`)
@@ -125,14 +154,14 @@ export async function runTryOnPipelineV3(params: {
   console.log(`🔒 HEAD_SCALE_LOCK: ✓`)
   console.log(`📷 CAMERA_CONSTRAINT: ✓`)
   console.log(`🧍 POSE_INHERITANCE: ✓`)
-  console.log(`👔 GARMENT_ISOLATION: ✓`)
+  console.log(`👔 GARMENT_EXTRACTION: ${garmentPreprocessResult?.wasExtracted ? '✓ (extracted)' : '✗ (passthrough)'}`)
   console.log(`📊 Cache stats: ${JSON.stringify(getCacheStats())}`)
   console.log(`=====================================\n`)
 
-  // Single render call - PHASE 4: Cropped identity + Garment
+  // Single render call - PHASE 5: Cropped identity + Preprocessed Garment
   const image = await renderTryOnFast({
     subjectImageBase64: processedIdentityImage, // Image 1: Cropped identity
-    garmentImageBase64: clothingRefBase64, // Image 2: Garment (visual reference)
+    garmentImageBase64: processedClothingImage, // Image 2: Garment (preprocessed, body-free)
     backgroundInstruction: sceneInstruction,
     lightingInstruction: lightingName,
     quality: quality.quality,
@@ -148,7 +177,7 @@ export async function runTryOnPipelineV3(params: {
     image,
     debug: {
       shootPlanText: sceneInstruction,
-      usedGarmentExtraction: false,
+      usedGarmentExtraction: garmentPreprocessResult?.wasExtracted || false,
       timeMs: elapsed,
       preset: presetId,
       identityImagesUsed: 1,
@@ -157,3 +186,4 @@ export async function runTryOnPipelineV3(params: {
     },
   }
 }
+

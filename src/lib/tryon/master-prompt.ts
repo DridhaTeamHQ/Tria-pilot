@@ -15,7 +15,7 @@
  */
 
 import 'server-only'
-import { BODY_LOCK_PROMPT, EYE_PRESERVATION_PROMPT } from './body-lock'
+import { BODY_LOCK_PROMPT, BODY_WEIGHT_ENFORCEMENT, FACE_BODY_COHERENCE_ENFORCEMENT, EYE_PRESERVATION_PROMPT } from './body-lock'
 import { getProSemanticPrompt } from './pro-semantic'
 
 // ═══════════════════════════════════════════════════════════════
@@ -93,6 +93,75 @@ GARMENT COLOR RULE:
 
 If original garment visible after generation → RETRY.
 If garment color differs from Image 2 → RETRY.`
+
+// ═══════════════════════════════════════════════════════════════
+// [ANTI_HALLUCINATION] - Prevent adding elements not in reference
+// ═══════════════════════════════════════════════════════════════
+
+export const ANTI_HALLUCINATION_BLOCK = `[ANTI-HALLUCINATION — CRITICAL]
+
+★★★ DO NOT INVENT ELEMENTS NOT IN THE INPUT IMAGES ★★★
+
+═══════════════════════════════════════════════════════════
+GARMENT SCOPE RULE (DO NOT ADD EXTRA CLOTHING)
+═══════════════════════════════════════════════════════════
+
+ONLY change what is shown in Image 2 (clothing reference):
+• If reference shows ONLY a top → Change ONLY the top
+• If reference shows ONLY a dress → Change ONLY the dress
+• If reference shows ONLY pants → Change ONLY the pants
+
+⛔ DO NOT ADD CLOTHING ELEMENTS NOT IN REFERENCE:
+• Reference shows kurta top → DO NOT add pants/salwar
+• Reference shows shirt → DO NOT add jacket
+• Reference shows top → DO NOT add bottom wear
+• Reference shows dress → DO NOT add accessories
+
+KEEP FROM IMAGE 1 (USER PHOTO):
+✓ Their original pants/bottom wear (if reference is top-only)
+✓ Their original shoes
+✓ Their original accessories
+✓ Their original jewelry
+
+The clothing reference defines ONLY what gets replaced.
+Everything else stays from the user's original photo.
+
+═══════════════════════════════════════════════════════════
+BACKGROUND HALLUCINATION BAN
+═══════════════════════════════════════════════════════════
+
+IF "keep original background" or similar is specified:
+• Background = EXACT copy from Image 1
+• NO scene changes
+• NO new environments
+• NO street scenes added
+• NO café scenes added
+• NO studio backdrops
+
+The background pixels should be IDENTICAL to Image 1.
+Only the clothing region changes.
+
+═══════════════════════════════════════════════════════════
+ANATOMY HALLUCINATION BAN
+═══════════════════════════════════════════════════════════
+
+DO NOT hallucinate body parts:
+• If Image 1 shows person from waist up → Do NOT generate legs
+• If arms are partly visible → Do NOT extend them
+• If hands are cropped → Do NOT complete them
+
+Respect the original image boundaries.
+
+═══════════════════════════════════════════════════════════
+FAILURE CONDITIONS
+═══════════════════════════════════════════════════════════
+
+Generation FAILED if:
+□ Added pants when reference only showed top
+□ Added salwar/dupatta when reference only showed kurta
+□ Changed background when "keep background" was specified
+□ Added accessories not in either input image
+□ Extended body parts beyond original image boundaries`
 
 // ═══════════════════════════════════════════════════════════════
 // [POSE_LIMIT] - Micro only
@@ -236,7 +305,13 @@ ${IDENTITY_LOCK_BLOCK}
 
 ${BODY_LOCK_PROMPT}
 
+${BODY_WEIGHT_ENFORCEMENT}
+
+${FACE_BODY_COHERENCE_ENFORCEMENT}
+
 ${CLOTHING_REPLACE_BLOCK}
+
+${ANTI_HALLUCINATION_BLOCK}
 
 ${POSE_LIMIT_BLOCK}
 
@@ -305,6 +380,8 @@ If specified elements are missing → scene is INCORRECT.
 ═══════════════════════════════════════════════════════════════
 
 ${CLOTHING_REPLACE_BLOCK}
+
+${ANTI_HALLUCINATION_BLOCK}
 
 ${POSE_LIMIT_BLOCK}
 

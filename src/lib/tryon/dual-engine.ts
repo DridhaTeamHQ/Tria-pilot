@@ -106,6 +106,8 @@ import {
 } from './face-invariant'
 import {
     BODY_LOCK_PROMPT,
+    BODY_WEIGHT_ENFORCEMENT,
+    FACE_BODY_COHERENCE_ENFORCEMENT,
     EYE_PRESERVATION_PROMPT,
     SCENE_BUILD_ORDER,
     logBodyLockStatus,
