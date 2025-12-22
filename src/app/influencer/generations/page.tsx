@@ -16,18 +16,17 @@ import {
     XCircle,
     Trash2,
     ZoomIn,
-    ImageIcon
+    ImageIcon,
+    Share2
 } from 'lucide-react'
 import { useDeleteGeneration, useGenerations } from '@/lib/react-query/hooks'
 import { toast } from 'sonner'
+import { ShareModal } from '@/components/tryon/ShareModal'
 
-// Helper to use image proxy for Supabase URLs
-function getProxyUrl(imageUrl: string | null | undefined): string {
+// Helper to get image URL - use direct Supabase URLs (they're public)
+function getImageUrl(imageUrl: string | null | undefined): string {
     if (!imageUrl) return ''
-    // If it's a Supabase URL, route through our proxy for better error handling
-    if (imageUrl.includes('supabase.co')) {
-        return `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`
-    }
+    // Use direct Supabase URL - they're public and don't need proxy
     return imageUrl
 }
 
@@ -99,6 +98,9 @@ export default function GenerationsPage() {
     const [selectedJob, setSelectedJob] = useState<any>(null)
     const [downloading, setDownloading] = useState<string | null>(null)
     const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; imageUrl?: string | null } | null>(null)
+    const [shareModalOpen, setShareModalOpen] = useState(false)
+    const [shareImageUrl, setShareImageUrl] = useState<string | null>(null)
+    const [shareImageBase64, setShareImageBase64] = useState<string | undefined>(undefined)
 
     const handleDownload = async (imageUrl: string, jobId: string) => {
         try {
@@ -122,9 +124,31 @@ export default function GenerationsPage() {
         }
     }
 
+    const handleShare = async (imageUrl: string) => {
+        try {
+            // Fetch image and convert to base64 for sharing
+            const response = await fetch(imageUrl)
+            const blob = await response.blob()
+            const reader = new FileReader()
+            reader.onloadend = () => {
+                const base64 = reader.result as string
+                setShareImageBase64(base64)
+                setShareImageUrl(imageUrl)
+                setShareModalOpen(true)
+            }
+            reader.readAsDataURL(blob)
+        } catch (error) {
+            console.error('Failed to prepare image for sharing:', error)
+            toast.error('Failed to prepare image for sharing')
+        }
+    }
+
     const getStatusBadge = (status: string) => {
-        switch (status) {
+        // Handle both uppercase and lowercase status values
+        const normalizedStatus = status.toUpperCase()
+        switch (normalizedStatus) {
             case 'COMPLETED':
+            case 'COMPLETE':
                 return (
                     <motion.span
                         initial={{ scale: 0.8, opacity: 0 }}
@@ -136,6 +160,7 @@ export default function GenerationsPage() {
                     </motion.span>
                 )
             case 'PROCESSING':
+            case 'PENDING':
                 return (
                     <motion.span
                         initial={{ scale: 0.8, opacity: 0 }}
@@ -147,6 +172,7 @@ export default function GenerationsPage() {
                     </motion.span>
                 )
             case 'FAILED':
+            case 'ERROR':
                 return (
                     <motion.span
                         initial={{ scale: 0.8, opacity: 0 }}
@@ -356,14 +382,14 @@ export default function GenerationsPage() {
                                 whileHover={{ y: -6 }}
                                 className="group bg-white rounded-2xl overflow-hidden border border-charcoal/5 shadow-sm hover:shadow-xl hover:border-charcoal/10 transition-all duration-500"
                             >
-                                {/* Image - Only render when COMPLETED and outputImagePath exists */}
-                                {job.status === 'COMPLETED' && job.outputImagePath ? (
+                                {/* Image - Only render when completed and outputImagePath exists */}
+                                {(job.status?.toLowerCase() === 'completed' || job.status?.toLowerCase() === 'complete') && job.outputImagePath ? (
                                     <div
                                         className="aspect-[3/4] overflow-hidden relative cursor-pointer"
                                         onClick={() => openLightbox(job)}
                                     >
                                         <motion.img
-                                            src={getProxyUrl(job.outputImagePath)}
+                                            src={getImageUrl(job.outputImagePath)}
                                             alt={`Generation ${job.id.slice(0, 8)}`}
                                             className="w-full h-full object-cover"
                                             whileHover={{ scale: 1.08 }}
@@ -386,20 +412,36 @@ export default function GenerationsPage() {
                                         {/* Gradient overlay */}
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-                                        {/* View button */}
+                                        {/* Action buttons overlay */}
                                         <motion.div
                                             initial={{ opacity: 0, y: 10 }}
                                             whileHover={{ opacity: 1, y: 0 }}
-                                            className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300"
+                                            className="absolute inset-0 flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300"
                                         >
-                                            <motion.span
+                                            <motion.button
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    handleShare(job.outputImagePath)
+                                                }}
                                                 whileHover={{ scale: 1.05 }}
                                                 whileTap={{ scale: 0.95 }}
-                                                className="px-5 py-2.5 bg-white/95 backdrop-blur-sm rounded-full text-sm font-medium text-charcoal flex items-center gap-2 shadow-lg"
+                                                className="px-4 py-2 bg-white/95 backdrop-blur-sm rounded-full text-sm font-medium text-charcoal flex items-center gap-2 shadow-lg hover:bg-peach hover:text-white transition-colors"
+                                            >
+                                                <Share2 className="w-4 h-4" />
+                                                Share
+                                            </motion.button>
+                                            <motion.button
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    openLightbox(job)
+                                                }}
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                className="px-4 py-2 bg-white/95 backdrop-blur-sm rounded-full text-sm font-medium text-charcoal flex items-center gap-2 shadow-lg hover:bg-charcoal hover:text-cream transition-colors"
                                             >
                                                 <ZoomIn className="w-4 h-4" />
-                                                View Full Size
-                                            </motion.span>
+                                                View
+                                            </motion.button>
                                         </motion.div>
                                     </div>
                                 ) : (
@@ -442,6 +484,15 @@ export default function GenerationsPage() {
                                                         <span className="hidden sm:inline">Download</span>
                                                     </>
                                                 )}
+                                            </motion.button>
+                                            <motion.button
+                                                onClick={() => handleShare(job.outputImagePath)}
+                                                whileHover={{ scale: 1.02 }}
+                                                whileTap={{ scale: 0.98 }}
+                                                className="flex-1 py-2.5 bg-peach/10 hover:bg-peach hover:text-white text-peach text-sm font-medium rounded-xl flex items-center justify-center gap-2 transition-all duration-300"
+                                            >
+                                                <Share2 className="w-4 h-4" />
+                                                <span className="hidden sm:inline">Share</span>
                                             </motion.button>
                                             <motion.button
                                                 onClick={() => requestDelete(job)}
@@ -511,6 +562,16 @@ export default function GenerationsPage() {
                                 </motion.button>
 
                                 <motion.button
+                                    onClick={() => handleShare(selectedImage)}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-peach text-white rounded-full text-sm font-medium shadow-lg hover:bg-peach/90 hover:shadow-xl transition-all duration-300"
+                                >
+                                    <Share2 className="w-4 h-4" />
+                                    Share
+                                </motion.button>
+
+                                <motion.button
                                     onClick={() => requestDelete(selectedJob)}
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
@@ -551,7 +612,7 @@ export default function GenerationsPage() {
                                     damping: 25,
                                     delay: 0.05
                                 }}
-                                src={getProxyUrl(selectedImage)}
+                                src={getImageUrl(selectedImage)}
                                 alt="Full size generation"
                                 className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
                                 onClick={(e) => e.stopPropagation()}
@@ -618,7 +679,7 @@ export default function GenerationsPage() {
                             {deleteConfirm.imageUrl && (
                                 <div className="relative h-48 overflow-hidden bg-cream">
                                     <img
-                                        src={getProxyUrl(deleteConfirm.imageUrl)}
+                                        src={getImageUrl(deleteConfirm.imageUrl)}
                                         alt="To delete"
                                         className="w-full h-full object-cover"
                                         onError={(e) => {
@@ -679,6 +740,18 @@ export default function GenerationsPage() {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* Share Modal */}
+            <ShareModal
+                isOpen={shareModalOpen}
+                onClose={() => {
+                    setShareModalOpen(false)
+                    setShareImageUrl(null)
+                    setShareImageBase64(undefined)
+                }}
+                imageUrl={shareImageUrl || ''}
+                imageBase64={shareImageBase64}
+            />
         </div>
     )
 }
