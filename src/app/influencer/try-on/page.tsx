@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { ShoppingBag, Upload, Sparkles, Palette, Download, RefreshCw, ArrowRight, X, Check, PartyPopper, AlertTriangle, Loader2 } from 'lucide-react'
+import { ShoppingBag, Upload, Sparkles, Palette, Download, RefreshCw, ArrowRight, X, Check, PartyPopper, AlertTriangle, Loader2, Share2 } from 'lucide-react'
 import { useProduct } from '@/lib/react-query/hooks'
 import { safeParseResponse } from '@/lib/api-utils'
 
@@ -17,6 +17,7 @@ interface TryOnPreset {
     category: 'studio' | 'street' | 'outdoor' | 'lifestyle' | 'editorial' | 'traditional'
 }
 import { GeneratingOverlay } from '@/components/tryon/GeneratingOverlay'
+import { ShareModal } from '@/components/tryon/ShareModal'
 import { bounceInVariants } from '@/lib/animations'
 
 interface Product {
@@ -65,6 +66,7 @@ function TryOnPageContent() {
     const [quality, setQuality] = useState<'1K' | '2K' | '4K'>('2K')
     const [dragOver, setDragOver] = useState<'person' | 'clothing' | null>(null)
     const [showCelebration, setShowCelebration] = useState(false)
+    const [showShareModal, setShowShareModal] = useState(false)
 
     // Presets
     const [presets, setPresets] = useState<TryOnPreset[]>([])
@@ -1165,13 +1167,19 @@ function TryOnPageContent() {
                                         }}
                                     />
 
-                                    {/* Overlay Controls */}
+                                    {/* Overlay Controls (on hover) */}
                                     <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4">
                                         <button
                                             onClick={handleDownload}
                                             className="px-6 py-3 bg-white text-charcoal rounded-full font-medium flex items-center gap-2 hover:bg-peach hover:text-white transition-colors"
                                         >
                                             <Download className="w-4 h-4" /> Download
+                                        </button>
+                                        <button
+                                            onClick={() => setShowShareModal(true)}
+                                            className="px-6 py-3 bg-white text-charcoal rounded-full font-medium flex items-center gap-2 hover:bg-peach hover:text-white transition-colors"
+                                        >
+                                            <Share2 className="w-4 h-4" /> Share
                                         </button>
                                     </div>
                                 </>
@@ -1187,6 +1195,30 @@ function TryOnPageContent() {
                                 </div>
                             )}
                         </motion.div>
+
+                        {/* Action Buttons - Always Visible when result exists */}
+                        {result && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex gap-4"
+                            >
+                                <button
+                                    onClick={handleDownload}
+                                    className="flex-1 px-6 py-4 bg-white border-2 border-charcoal/10 text-charcoal rounded-full font-medium flex items-center justify-center gap-2 hover:bg-charcoal hover:text-cream transition-colors"
+                                >
+                                    <Download className="w-5 h-5" />
+                                    Download
+                                </button>
+                                <button
+                                    onClick={() => setShowShareModal(true)}
+                                    className="flex-1 px-6 py-4 bg-charcoal text-cream rounded-full font-medium flex items-center justify-center gap-2 hover:bg-peach transition-colors"
+                                >
+                                    <Share2 className="w-5 h-5" />
+                                    Share to Social
+                                </button>
+                            </motion.div>
+                        )}
 
                         {/* Generate Button */}
                         <div className="pt-4 pb-12">
@@ -1213,6 +1245,16 @@ function TryOnPageContent() {
                     </div>
                 </div>
             </div>
+
+            {/* Share Modal */}
+            {result && (
+                <ShareModal
+                    isOpen={showShareModal}
+                    onClose={() => setShowShareModal(false)}
+                    imageUrl={result.imageUrl}
+                    imageBase64={result.base64Image}
+                />
+            )}
         </div>
     )
 }

@@ -207,18 +207,32 @@ export async function POST(request: Request) {
       console.log('Saving generated image...')
 
       const imagePath = `tryon/${dbUser.id}/${job.id}.png`
-      const imageUrl = await saveUpload(generatedImage, imagePath, 'try-ons')
+      let imageUrl: string | null = null
+      let storageError: Error | null = null
+      
+      // Try to upload to storage, but don't fail if it doesn't work
+      try {
+        imageUrl = await saveUpload(generatedImage, imagePath, 'try-ons')
+        console.log('✓ Image saved to storage:', imageUrl)
+      } catch (err) {
+        storageError = err instanceof Error ? err : new Error(String(err))
+        console.error('⚠️  Storage upload failed, but generation succeeded:', storageError)
+        console.warn('Returning base64 image instead. Storage issue:', storageError.message)
+        // Continue without storage URL - we'll return base64 instead
+        // This allows the user to still see their generated image
+      }
 
       await prisma.generationJob.update({
         where: { id: job.id },
         data: {
           status: 'completed',
-          outputImagePath: imageUrl,
+          outputImagePath: imageUrl || 'base64://' + generatedImage.substring(0, 50) + '...', // Store a marker if storage failed
           suggestionsJSON: {
             presetId: stylePreset || null,
             presetName: presetV3?.name || null,
             prompt_text: result.debug.shootPlanText,
             timeMs: result.debug.timeMs,
+            storageError: imageUrl ? null : (storageError?.message || 'Storage upload failed'),
           },
         },
       })
@@ -226,8 +240,8 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: true,
         jobId: job.id,
-        imageUrl,
-        base64Image: generatedImage,
+        imageUrl: imageUrl || undefined, // Only include if storage succeeded
+        base64Image: generatedImage, // Always include base64 as fallback
         preset: presetV3
           ? {
             id: presetV3.id,
@@ -235,6 +249,7 @@ export async function POST(request: Request) {
             category: presetV3.category,
           }
           : null,
+        warning: imageUrl ? undefined : 'Image generated successfully but could not be saved to storage. Using base64 format.',
       })
     } catch (error) {
       console.error('❌ Try-on generation failed for job:', job.id)

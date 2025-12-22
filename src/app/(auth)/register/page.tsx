@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { Sparkles, ArrowRight, ArrowLeft, User, Building2, Camera, TrendingUp } from 'lucide-react'
+import { Sparkles, ArrowRight, ArrowLeft, User, Building2, Camera, TrendingUp, Instagram, Youtube, Twitter, ChevronDown, ChevronUp } from 'lucide-react'
 import { createClient } from '@supabase/supabase-js'
 
 type Role = 'INFLUENCER' | 'BRAND'
@@ -18,6 +18,13 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showSocials, setShowSocials] = useState(false)
+  const [socials, setSocials] = useState({
+    instagram: '',
+    tiktok: '',
+    youtube: '',
+    twitter: '',
+  })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -298,6 +305,86 @@ export default function RegisterPage() {
                     />
                     <p className="text-xs text-charcoal/50">Minimum 8 characters</p>
                   </div>
+
+                  {/* Optional Social Media - Only for Influencers */}
+                  {role === 'INFLUENCER' && (
+                    <div className="space-y-3">
+                      <button
+                        type="button"
+                        onClick={() => setShowSocials(!showSocials)}
+                        className="w-full flex items-center justify-between text-sm text-charcoal/60 hover:text-charcoal transition-colors"
+                      >
+                        <span>Add Social Media (Optional)</span>
+                        {showSocials ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </button>
+                      {showSocials && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="space-y-3 p-4 bg-cream/50 rounded-xl border border-subtle"
+                        >
+                          <p className="text-xs text-charcoal/50">
+                            You can add or update these later in your profile
+                          </p>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <label className="text-xs text-charcoal/60 flex items-center gap-1">
+                                <Instagram className="w-3 h-3" />
+                                Instagram
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="@username"
+                                value={socials.instagram}
+                                onChange={(e) => setSocials({ ...socials, instagram: e.target.value })}
+                                className="w-full px-3 py-2 rounded-lg border border-subtle bg-white/50 text-charcoal placeholder:text-charcoal/40 focus:outline-none focus:ring-2 focus:ring-peach/50 text-sm"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-xs text-charcoal/60 flex items-center gap-1">
+                                <span className="w-3 h-3 bg-black rounded text-white text-[8px] flex items-center justify-center font-bold">TT</span>
+                                TikTok
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="@username"
+                                value={socials.tiktok}
+                                onChange={(e) => setSocials({ ...socials, tiktok: e.target.value })}
+                                className="w-full px-3 py-2 rounded-lg border border-subtle bg-white/50 text-charcoal placeholder:text-charcoal/40 focus:outline-none focus:ring-2 focus:ring-peach/50 text-sm"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-xs text-charcoal/60 flex items-center gap-1">
+                                <Youtube className="w-3 h-3 text-red-600" />
+                                YouTube
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="Channel name"
+                                value={socials.youtube}
+                                onChange={(e) => setSocials({ ...socials, youtube: e.target.value })}
+                                className="w-full px-3 py-2 rounded-lg border border-subtle bg-white/50 text-charcoal placeholder:text-charcoal/40 focus:outline-none focus:ring-2 focus:ring-peach/50 text-sm"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-xs text-charcoal/60 flex items-center gap-1">
+                                <Twitter className="w-3 h-3" />
+                                Twitter/X
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="@username"
+                                value={socials.twitter}
+                                onChange={(e) => setSocials({ ...socials, twitter: e.target.value })}
+                                className="w-full px-3 py-2 rounded-lg border border-subtle bg-white/50 text-charcoal placeholder:text-charcoal/40 focus:outline-none focus:ring-2 focus:ring-peach/50 text-sm"
+                              />
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </div>
+                  )}
 
                   <motion.button
                     type="submit"

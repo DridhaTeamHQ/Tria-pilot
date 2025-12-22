@@ -22,6 +22,11 @@ import {
   Settings,
   Trash2,
   Crown,
+  Instagram,
+  Youtube,
+  Twitter,
+  Search,
+  ExternalLink,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useUser, useProfileStats } from '@/lib/react-query/hooks'
@@ -46,6 +51,10 @@ export default function ProfilePage() {
   const [profileImages, setProfileImages] = useState<ProfileImage[]>([])
   const [profileImagesLoading, setProfileImagesLoading] = useState(false)
   const [profileImagesUploading, setProfileImagesUploading] = useState(false)
+  const [editingSocials, setEditingSocials] = useState(false)
+  const [socials, setSocials] = useState<Record<string, string>>({})
+  const [socialsLoading, setSocialsLoading] = useState(false)
+  const [socialsSaving, setSocialsSaving] = useState(false)
 
   useEffect(() => {
     if (userData?.name) {
@@ -71,9 +80,49 @@ export default function ProfilePage() {
   useEffect(() => {
     if (userData?.id) {
       fetchProfileImages()
+      if (userData?.role === 'INFLUENCER') {
+        fetchSocials()
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userData?.id])
+  }, [userData?.id, userData?.role])
+
+  const fetchSocials = async () => {
+    setSocialsLoading(true)
+    try {
+      const res = await fetch('/api/profile/socials')
+      const data = await res.json()
+      if (res.ok) {
+        setSocials((data.socials || {}) as Record<string, string>)
+      }
+    } catch (e) {
+      console.warn('Failed to fetch socials:', e)
+    } finally {
+      setSocialsLoading(false)
+    }
+  }
+
+  const handleSaveSocials = async () => {
+    setSocialsSaving(true)
+    try {
+      const response = await fetch('/api/profile/socials', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(socials),
+      })
+      if (response.ok) {
+        setEditingSocials(false)
+        toast.success('Social media links updated successfully')
+      } else {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to update social media')
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update social media')
+    } finally {
+      setSocialsSaving(false)
+    }
+  }
 
   const loading = userLoading || statsLoading
   const profile = userData
@@ -374,6 +423,289 @@ export default function ProfilePage() {
                 </div>
               </div>
             </div>
+
+            {/* Social Media - Only for Influencers */}
+            {profile?.role === 'INFLUENCER' && (
+              <div className="bg-white rounded-3xl border border-subtle p-8">
+                <div className="flex items-start justify-between gap-4 mb-6">
+                  <div>
+                    <h3 className="text-lg font-semibold text-charcoal">Social Media</h3>
+                    <p className="text-sm text-charcoal/60 mt-1">
+                      Connect your social media accounts to showcase your presence
+                    </p>
+                  </div>
+                  {!editingSocials && (
+                    <button
+                      onClick={() => setEditingSocials(true)}
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-charcoal/70 bg-white border border-charcoal/10 rounded-xl hover:bg-charcoal hover:text-cream transition-all"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                      Edit
+                    </button>
+                  )}
+                </div>
+
+                {socialsLoading ? (
+                  <div className="flex items-center justify-center py-10">
+                    <Loader2 className="w-6 h-6 animate-spin text-charcoal/40" />
+                  </div>
+                ) : editingSocials ? (
+                  <div className="space-y-4">
+                    <div className="grid gap-4">
+                      {/* Instagram */}
+                      <div className="flex items-center gap-4 p-4 bg-cream/50 rounded-2xl">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 flex items-center justify-center flex-shrink-0">
+                          <Instagram className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <label className="block text-sm font-medium text-charcoal/60 mb-1">
+                            Instagram
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <span className="text-charcoal/40">@</span>
+                            <input
+                              type="text"
+                              placeholder="username"
+                              value={socials.instagram || ''}
+                              onChange={(e) =>
+                                setSocials({ ...socials, instagram: e.target.value })
+                              }
+                              className="flex-1 px-3 py-2 rounded-lg border border-subtle bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-peach/50 transition-all"
+                            />
+                            {socials.instagram && (
+                              <a
+                                href={`https://instagram.com/${socials.instagram.replace('@', '')}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-2 text-charcoal/60 hover:text-charcoal transition-colors"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* TikTok */}
+                      <div className="flex items-center gap-4 p-4 bg-cream/50 rounded-2xl">
+                        <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center flex-shrink-0">
+                          <span className="text-white font-bold text-xs">TT</span>
+                        </div>
+                        <div className="flex-1">
+                          <label className="block text-sm font-medium text-charcoal/60 mb-1">
+                            TikTok
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <span className="text-charcoal/40">@</span>
+                            <input
+                              type="text"
+                              placeholder="username"
+                              value={socials.tiktok || ''}
+                              onChange={(e) =>
+                                setSocials({ ...socials, tiktok: e.target.value })
+                              }
+                              className="flex-1 px-3 py-2 rounded-lg border border-subtle bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-peach/50 transition-all"
+                            />
+                            {socials.tiktok && (
+                              <a
+                                href={`https://tiktok.com/@${socials.tiktok.replace('@', '')}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-2 text-charcoal/60 hover:text-charcoal transition-colors"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* YouTube */}
+                      <div className="flex items-center gap-4 p-4 bg-cream/50 rounded-2xl">
+                        <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center flex-shrink-0">
+                          <Youtube className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <label className="block text-sm font-medium text-charcoal/60 mb-1">
+                            YouTube
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              placeholder="Channel name or @username"
+                              value={socials.youtube || ''}
+                              onChange={(e) =>
+                                setSocials({ ...socials, youtube: e.target.value })
+                              }
+                              className="flex-1 px-3 py-2 rounded-lg border border-subtle bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-peach/50 transition-all"
+                            />
+                            {socials.youtube && (
+                              <a
+                                href={`https://youtube.com/${socials.youtube.startsWith('@') ? socials.youtube.replace('@', '') : `c/${socials.youtube}`}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-2 text-charcoal/60 hover:text-charcoal transition-colors"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Twitter/X */}
+                      <div className="flex items-center gap-4 p-4 bg-cream/50 rounded-2xl">
+                        <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center flex-shrink-0">
+                          <Twitter className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <label className="block text-sm font-medium text-charcoal/60 mb-1">
+                            Twitter/X
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <span className="text-charcoal/40">@</span>
+                            <input
+                              type="text"
+                              placeholder="username"
+                              value={socials.twitter || ''}
+                              onChange={(e) =>
+                                setSocials({ ...socials, twitter: e.target.value })
+                              }
+                              className="flex-1 px-3 py-2 rounded-lg border border-subtle bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-peach/50 transition-all"
+                            />
+                            {socials.twitter && (
+                              <a
+                                href={`https://twitter.com/${socials.twitter.replace('@', '')}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-2 text-charcoal/60 hover:text-charcoal transition-colors"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-4">
+                      <button
+                        onClick={() => {
+                          setEditingSocials(false)
+                          fetchSocials() // Reset to original values
+                        }}
+                        className="px-4 py-2 text-sm font-medium text-charcoal/70 bg-white border border-charcoal/10 rounded-xl hover:bg-charcoal/5 transition-all"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleSaveSocials}
+                        disabled={socialsSaving}
+                        className="px-4 py-2 text-sm font-medium text-white bg-charcoal rounded-xl hover:bg-charcoal/90 transition-all disabled:opacity-50 flex items-center gap-2"
+                      >
+                        {socialsSaving ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-4 h-4" />
+                            Save
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {Object.keys(socials).length === 0 ? (
+                      <div className="text-center py-8 text-charcoal/60">
+                        <p className="text-sm">No social media accounts added yet.</p>
+                        <p className="text-xs mt-1">Click Edit to add your accounts</p>
+                      </div>
+                    ) : (
+                      <>
+                        {socials.instagram && (
+                          <a
+                            href={`https://instagram.com/${socials.instagram.replace('@', '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-3 p-4 bg-cream/50 rounded-2xl hover:bg-cream transition-colors group"
+                          >
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 flex items-center justify-center flex-shrink-0">
+                              <Instagram className="w-5 h-5 text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-charcoal">Instagram</p>
+                              <p className="text-xs text-charcoal/60 truncate">
+                                @{socials.instagram.replace('@', '')}
+                              </p>
+                            </div>
+                            <ExternalLink className="w-4 h-4 text-charcoal/40 group-hover:text-charcoal transition-colors" />
+                          </a>
+                        )}
+                        {socials.tiktok && (
+                          <a
+                            href={`https://tiktok.com/@${socials.tiktok.replace('@', '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-3 p-4 bg-cream/50 rounded-2xl hover:bg-cream transition-colors group"
+                          >
+                            <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center flex-shrink-0">
+                              <span className="text-white font-bold text-xs">TT</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-charcoal">TikTok</p>
+                              <p className="text-xs text-charcoal/60 truncate">
+                                @{socials.tiktok.replace('@', '')}
+                              </p>
+                            </div>
+                            <ExternalLink className="w-4 h-4 text-charcoal/40 group-hover:text-charcoal transition-colors" />
+                          </a>
+                        )}
+                        {socials.youtube && (
+                          <a
+                            href={`https://youtube.com/${socials.youtube.startsWith('@') ? socials.youtube.replace('@', '') : `c/${socials.youtube}`}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-3 p-4 bg-cream/50 rounded-2xl hover:bg-cream transition-colors group"
+                          >
+                            <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center flex-shrink-0">
+                              <Youtube className="w-5 h-5 text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-charcoal">YouTube</p>
+                              <p className="text-xs text-charcoal/60 truncate">{socials.youtube}</p>
+                            </div>
+                            <ExternalLink className="w-4 h-4 text-charcoal/40 group-hover:text-charcoal transition-colors" />
+                          </a>
+                        )}
+                        {socials.twitter && (
+                          <a
+                            href={`https://twitter.com/${socials.twitter.replace('@', '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-3 p-4 bg-cream/50 rounded-2xl hover:bg-cream transition-colors group"
+                          >
+                            <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center flex-shrink-0">
+                              <Twitter className="w-5 h-5 text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-charcoal">Twitter/X</p>
+                              <p className="text-xs text-charcoal/60 truncate">
+                                @{socials.twitter.replace('@', '')}
+                              </p>
+                            </div>
+                            <ExternalLink className="w-4 h-4 text-charcoal/40 group-hover:text-charcoal transition-colors" />
+                          </a>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Profile Images */}
             <div className="bg-white rounded-3xl border border-subtle p-8">

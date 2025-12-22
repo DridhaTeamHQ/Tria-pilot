@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
+import { Search } from 'lucide-react'
 import { 
   IDENTITY_IMAGE_REQUIREMENTS, 
   type IdentityImageType,
@@ -330,65 +331,187 @@ export default function InfluencerOnboardingPage() {
 
       case 5:
         return (
-          <div className="space-y-4">
-            <Label>Social Media Profiles</Label>
-            <div className="space-y-3">
-              <div>
-                <Label htmlFor="instagram">Instagram</Label>
-                <Input
-                  id="instagram"
-                  placeholder="@username"
-                  value={formData.socials.instagram}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      socials: { ...formData.socials, instagram: e.target.value },
-                    })
-                  }
-                />
+          <div className="space-y-6">
+            <div>
+              <Label className="text-lg font-semibold">Social Media Profiles</Label>
+              <p className="text-sm text-muted-foreground mt-1">
+                Add your social media accounts to help brands discover you. You can verify and update these later in your profile.
+              </p>
+            </div>
+            <div className="space-y-4">
+              {/* Instagram */}
+              <div className="p-4 border rounded-lg space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 flex items-center justify-center flex-shrink-0">
+                    <span className="text-white font-bold text-sm">IG</span>
+                  </div>
+                  <div className="flex-1">
+                    <Label htmlFor="instagram" className="text-sm font-medium">Instagram</Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-muted-foreground">@</span>
+                      <Input
+                        id="instagram"
+                        placeholder="username"
+                        value={formData.socials.instagram}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            socials: { ...formData.socials, instagram: e.target.value },
+                          })
+                        }
+                        className="flex-1"
+                      />
+                      {formData.socials.instagram && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const username = formData.socials.instagram.replace('@', '')
+                            window.open(`https://instagram.com/${username}`, '_blank')
+                          }}
+                        >
+                          <Search className="w-4 h-4 mr-1" />
+                          Verify
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="tiktok">TikTok</Label>
-                <Input
-                  id="tiktok"
-                  placeholder="@username"
-                  value={formData.socials.tiktok}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      socials: { ...formData.socials, tiktok: e.target.value },
-                    })
-                  }
-                />
+
+              {/* TikTok */}
+              <div className="p-4 border rounded-lg space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-black flex items-center justify-center flex-shrink-0">
+                    <span className="text-white font-bold text-xs">TT</span>
+                  </div>
+                  <div className="flex-1">
+                    <Label htmlFor="tiktok" className="text-sm font-medium">TikTok</Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-muted-foreground">@</span>
+                      <Input
+                        id="tiktok"
+                        placeholder="username"
+                        value={formData.socials.tiktok}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            socials: { ...formData.socials, tiktok: e.target.value },
+                          })
+                        }
+                        className="flex-1"
+                      />
+                      {formData.socials.tiktok && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const username = formData.socials.tiktok.replace('@', '')
+                            window.open(`https://tiktok.com/@${username}`, '_blank')
+                          }}
+                        >
+                          <Search className="w-4 h-4 mr-1" />
+                          Verify
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="youtube">YouTube</Label>
-                <Input
-                  id="youtube"
-                  placeholder="Channel name or URL"
-                  value={formData.socials.youtube}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      socials: { ...formData.socials, youtube: e.target.value },
-                    })
-                  }
-                />
+
+              {/* YouTube */}
+              <div className="p-4 border rounded-lg space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-red-600 flex items-center justify-center flex-shrink-0">
+                    <span className="text-white font-bold text-xs">YT</span>
+                  </div>
+                  <div className="flex-1">
+                    <Label htmlFor="youtube" className="text-sm font-medium">YouTube</Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Input
+                        id="youtube"
+                        placeholder="Channel name or @username"
+                        value={formData.socials.youtube}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            socials: { ...formData.socials, youtube: e.target.value },
+                          })
+                        }
+                        className="flex-1"
+                      />
+                      {formData.socials.youtube && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const channel = formData.socials.youtube.replace('@', '')
+                            window.open(
+                              channel.startsWith('@')
+                                ? `https://youtube.com/${channel.replace('@', '')}`
+                                : `https://youtube.com/c/${channel}`,
+                              '_blank'
+                            )
+                          }}
+                        >
+                          <Search className="w-4 h-4 mr-1" />
+                          Verify
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="twitter">Twitter/X</Label>
-                <Input
-                  id="twitter"
-                  placeholder="@username"
-                  value={formData.socials.twitter}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      socials: { ...formData.socials, twitter: e.target.value },
-                    })
-                  }
-                />
+
+              {/* Twitter/X */}
+              <div className="p-4 border rounded-lg space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-black flex items-center justify-center flex-shrink-0">
+                    <span className="text-white font-bold text-xs">X</span>
+                  </div>
+                  <div className="flex-1">
+                    <Label htmlFor="twitter" className="text-sm font-medium">Twitter/X</Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-muted-foreground">@</span>
+                      <Input
+                        id="twitter"
+                        placeholder="username"
+                        value={formData.socials.twitter}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            socials: { ...formData.socials, twitter: e.target.value },
+                          })
+                        }
+                        className="flex-1"
+                      />
+                      {formData.socials.twitter && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const username = formData.socials.twitter.replace('@', '')
+                            window.open(`https://twitter.com/${username}`, '_blank')
+                          }}
+                        >
+                          <Search className="w-4 h-4 mr-1" />
+                          Verify
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
+            </div>
+            <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                <strong>💡 Tip:</strong> Click "Verify" to open your profile in a new tab and confirm it's correct. 
+                You can add or update these accounts anytime in your Profile settings.
+              </p>
             </div>
           </div>
         )
