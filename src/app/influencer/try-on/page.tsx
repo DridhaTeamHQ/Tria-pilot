@@ -57,7 +57,10 @@ function TryOnPageContent() {
     const [accessoryTypes, setAccessoryTypes] = useState<('purse' | 'shoes' | 'hat' | 'jewelry' | 'bag' | 'watch' | 'sunglasses' | 'scarf' | 'other')[]>([])
     const [loading, setLoading] = useState(false)
     const [uploadingImage, setUploadingImage] = useState<'person' | 'clothing' | 'background' | 'additional' | 'accessory' | null>(null)
+    // Multi-variant support: PRO generates 3 variants, user selects one
     const [result, setResult] = useState<{ jobId: string; imageUrl: string; base64Image?: string } | null>(null)
+    const [variants, setVariants] = useState<Array<{ imageUrl: string; base64Image?: string; variantId: number; label?: string }>>([])
+    const [selectedVariant, setSelectedVariant] = useState<number>(0)
     const [product, setProduct] = useState<Product | null>(null)
     const [selectedPreset, setSelectedPreset] = useState<string>('')
     const [presetCategory, setPresetCategory] = useState<string>('all')
@@ -430,9 +433,30 @@ function TryOnPageContent() {
             console.log('API Response:', data) // Debug: see what we got back
 
             console.log('Setting result with imageUrl:', data.imageUrl) // Debug
-            setResult(data)
+
+            // Handle multi-variant response (PRO) or single image (FLASH)
+            if (data.variants && Array.isArray(data.variants) && data.variants.length > 0) {
+                // PRO multi-variant response
+                setVariants(data.variants.map((v: any, idx: number) => ({
+                    imageUrl: v.imageUrl || data.imageUrl,
+                    base64Image: v.base64Image || data.base64Image,
+                    variantId: idx
+                })))
+                setSelectedVariant(0)
+                setResult({
+                    jobId: data.jobId,
+                    imageUrl: data.variants[0].imageUrl || data.imageUrl,
+                    base64Image: data.variants[0].base64Image || data.base64Image
+                })
+                toast.success(`Generated ${data.variants.length} variants! Select your favorite.`)
+            } else {
+                // Single image response (FLASH or fallback)
+                setVariants([])
+                setResult(data)
+                toast.success('Try-on generated successfully!')
+            }
+
             setShowCelebration(true)
-            toast.success('Try-on generated successfully!')
             // Show celebration for 5 seconds to let success video play fully
             setTimeout(() => setShowCelebration(false), 5000)
         } catch (error) {
@@ -1147,51 +1171,105 @@ function TryOnPageContent() {
                             initial={{ opacity: 0, scale: 0.98 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: 0.5 }}
-                            className="relative rounded-[2rem] overflow-hidden bg-charcoal/5 border border-white/20 shadow-2xl min-h-[500px] flex items-center justify-center group"
+                            className="relative rounded-[2rem] overflow-hidden bg-charcoal/5 border border-white/20 shadow-2xl min-h-[500px] flex flex-col"
                         >
-                            {/* Result Image */}
+                            {/* Main Result Image */}
                             {result ? (
                                 <>
-                                    <img
-                                        src={result.base64Image ? (result.base64Image.startsWith('data:') ? result.base64Image : `data:image/jpeg;base64,${result.base64Image}`) : result.imageUrl}
-                                        alt="Generated Result"
-                                        className="w-full h-full object-contain max-h-[700px] bg-charcoal/90"
-                                        onError={(e) => {
-                                            console.error('Image failed to load:', result.imageUrl)
-                                            // If base64 failed or wasn't present, try image URL
-                                            const target = e.target as HTMLImageElement
-                                            if (target.src !== result.imageUrl) {
-                                                console.log('Falling back to storage URL')
-                                                target.src = result.imageUrl
-                                            }
-                                        }}
-                                    />
+                                    <div className="flex-1 flex items-center justify-center group relative">
+                                        <img
+                                            src={result.base64Image ? (result.base64Image.startsWith('data:') ? result.base64Image : `data:image/jpeg;base64,${result.base64Image}`) : result.imageUrl}
+                                            alt="Generated Result"
+                                            className="w-full h-full object-contain max-h-[600px] bg-charcoal/90"
+                                            onError={(e) => {
+                                                console.error('Image failed to load:', result.imageUrl)
+                                                const target = e.target as HTMLImageElement
+                                                if (target.src !== result.imageUrl) {
+                                                    console.log('Falling back to storage URL')
+                                                    target.src = result.imageUrl
+                                                }
+                                            }}
+                                        />
 
-                                    {/* Overlay Controls (on hover) */}
-                                    <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4">
-                                        <button
-                                            onClick={handleDownload}
-                                            className="px-6 py-3 bg-white text-charcoal rounded-full font-medium flex items-center gap-2 hover:bg-peach hover:text-white transition-colors"
-                                        >
-                                            <Download className="w-4 h-4" /> Download
-                                        </button>
-                                        <button
-                                            onClick={() => setShowShareModal(true)}
-                                            className="px-6 py-3 bg-white text-charcoal rounded-full font-medium flex items-center gap-2 hover:bg-peach hover:text-white transition-colors"
-                                        >
-                                            <Share2 className="w-4 h-4" /> Share
-                                        </button>
+                                        {/* Overlay Controls (on hover) */}
+                                        <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4">
+                                            <button
+                                                onClick={handleDownload}
+                                                className="px-6 py-3 bg-white text-charcoal rounded-full font-medium flex items-center gap-2 hover:bg-peach hover:text-white transition-colors"
+                                            >
+                                                <Download className="w-4 h-4" /> Download
+                                            </button>
+                                            <button
+                                                onClick={() => setShowShareModal(true)}
+                                                className="px-6 py-3 bg-white text-charcoal rounded-full font-medium flex items-center gap-2 hover:bg-peach hover:text-white transition-colors"
+                                            >
+                                                <Share2 className="w-4 h-4" /> Share
+                                            </button>
+                                        </div>
                                     </div>
+
+                                    {/* Variant Selector - Shows when multiple variants exist */}
+                                    {variants.length > 1 && (
+                                        <div className="p-4 bg-white/80 backdrop-blur-md border-t border-white/30">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <span className="text-sm font-medium text-charcoal/70">
+                                                    Choose your favorite variant
+                                                </span>
+                                                <span className="text-xs text-charcoal/50">
+                                                    {selectedVariant + 1} of {variants.length}
+                                                </span>
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-3">
+                                                {variants.map((variant, idx) => (
+                                                    <button
+                                                        key={idx}
+                                                        onClick={() => {
+                                                            setSelectedVariant(idx)
+                                                            setResult({
+                                                                jobId: result?.jobId || '',
+                                                                imageUrl: variant.imageUrl,
+                                                                base64Image: variant.base64Image
+                                                            })
+                                                        }}
+                                                        className={`relative aspect-[3/4] rounded-xl overflow-hidden border-2 transition-all ${selectedVariant === idx
+                                                            ? 'border-peach ring-2 ring-peach/30 scale-105'
+                                                            : 'border-white/50 hover:border-peach/50'
+                                                            }`}
+                                                    >
+                                                        <img
+                                                            src={variant.base64Image ? (variant.base64Image.startsWith('data:') ? variant.base64Image : `data:image/jpeg;base64,${variant.base64Image}`) : variant.imageUrl}
+                                                            alt={`Variant ${idx + 1}`}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                        {/* Variant label */}
+                                                        <div className={`absolute bottom-0 left-0 right-0 py-2 text-center text-xs font-medium ${selectedVariant === idx
+                                                            ? 'bg-peach text-white'
+                                                            : 'bg-black/60 text-white/90'
+                                                            }`}>
+                                                            {variant.label || `Option ${idx + 1}`}
+                                                        </div>
+                                                        {selectedVariant === idx && (
+                                                            <div className="absolute top-2 right-2 w-6 h-6 bg-peach rounded-full flex items-center justify-center">
+                                                                <Check className="w-4 h-4 text-white" />
+                                                            </div>
+                                                        )}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </>
                             ) : (
-                                <div className="text-center p-10">
-                                    <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
-                                        <Sparkles className="w-10 h-10 text-peach/50" />
+                                <div className="flex-1 flex items-center justify-center">
+                                    <div className="text-center p-10">
+                                        <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
+                                            <Sparkles className="w-10 h-10 text-peach/50" />
+                                        </div>
+                                        <h3 className="text-2xl font-serif text-charcoal/40 mb-2">Ready to Create</h3>
+                                        <p className="text-charcoal/30 max-w-xs mx-auto">
+                                            Upload your photo and clothing to start the magic.
+                                        </p>
                                     </div>
-                                    <h3 className="text-2xl font-serif text-charcoal/40 mb-2">Ready to Create</h3>
-                                    <p className="text-charcoal/30 max-w-xs mx-auto">
-                                        Upload your photo and clothing to start the magic.
-                                    </p>
                                 </div>
                             )}
                         </motion.div>
@@ -1253,6 +1331,7 @@ function TryOnPageContent() {
                     onClose={() => setShowShareModal(false)}
                     imageUrl={result.imageUrl}
                     imageBase64={result.base64Image}
+                    productId={productId || undefined}
                 />
             )}
         </div>

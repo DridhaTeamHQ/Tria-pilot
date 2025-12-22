@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Instagram, Youtube, Twitter, MessageCircle, Image as ImageIcon, FileText, Send } from 'lucide-react'
+import { X, Instagram, Youtube, Twitter, MessageCircle, Image as ImageIcon, FileText, Send, Copy, Check, Link as LinkIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface ShareModalProps {
@@ -10,6 +10,7 @@ interface ShareModalProps {
   onClose: () => void
   imageUrl: string
   imageBase64?: string
+  productId?: string // Optional product ID for link tracking
 }
 
 type Platform = 'instagram' | 'tiktok' | 'youtube' | 'twitter'
@@ -28,10 +29,53 @@ const SHARE_TYPES: Array<{ id: ShareType; name: string; icon: any; description: 
   { id: 'chat', name: 'Chat/DM', icon: MessageCircle, description: 'Send via Direct Message' },
 ]
 
-export function ShareModal({ isOpen, onClose, imageUrl, imageBase64 }: ShareModalProps) {
+export function ShareModal({ isOpen, onClose, imageUrl, imageBase64, productId }: ShareModalProps) {
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null)
   const [selectedShareType, setSelectedShareType] = useState<ShareType | null>(null)
   const [sharing, setSharing] = useState(false)
+  const [maskedLink, setMaskedLink] = useState<string | null>(null)
+  const [linkLoading, setLinkLoading] = useState(false)
+  const [linkCopied, setLinkCopied] = useState(false)
+
+  // Fetch or create masked link when productId is provided
+  useEffect(() => {
+    if (isOpen && productId && !maskedLink) {
+      setLinkLoading(true)
+      fetch(`/api/links/product/${productId}`, {
+        credentials: 'include',
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.maskedUrl) {
+            setMaskedLink(data.maskedUrl)
+            // Auto-copy link to clipboard
+            navigator.clipboard.writeText(data.maskedUrl).then(() => {
+              setLinkCopied(true)
+              toast.success('Product link copied! Share it with your image')
+              setTimeout(() => setLinkCopied(false), 3000)
+            })
+          }
+        })
+        .catch((error) => {
+          console.error('Failed to fetch masked link:', error)
+        })
+        .finally(() => {
+          setLinkLoading(false)
+        })
+    }
+  }, [isOpen, productId, maskedLink])
+
+  const handleCopyLink = async () => {
+    if (!maskedLink) return
+    try {
+      await navigator.clipboard.writeText(maskedLink)
+      setLinkCopied(true)
+      toast.success('Link copied to clipboard!')
+      setTimeout(() => setLinkCopied(false), 2000)
+    } catch (error) {
+      toast.error('Failed to copy link')
+    }
+  }
 
   const handleShare = async () => {
     if (!selectedPlatform || !selectedShareType) {
@@ -304,6 +348,8 @@ export function ShareModal({ isOpen, onClose, imageUrl, imageBase64 }: ShareModa
   const handleClose = () => {
     setSelectedPlatform(null)
     setSelectedShareType(null)
+    setMaskedLink(null)
+    setLinkCopied(false)
     onClose()
   }
 
@@ -347,6 +393,44 @@ export function ShareModal({ isOpen, onClose, imageUrl, imageBase64 }: ShareModa
 
               {/* Content */}
               <div className="p-6 space-y-6">
+                {/* Product Link Section - Show if productId is provided */}
+                {productId && (
+                  <div className="bg-cream/50 rounded-xl p-4 border border-charcoal/10">
+                    <div className="flex items-center gap-2 mb-2">
+                      <LinkIcon className="w-4 h-4 text-charcoal/60" />
+                      <span className="text-sm font-medium text-charcoal">Product Link</span>
+                    </div>
+                    {linkLoading ? (
+                      <div className="flex items-center gap-2 text-sm text-charcoal/50">
+                        <div className="w-4 h-4 border-2 border-charcoal/20 border-t-charcoal/60 rounded-full animate-spin" />
+                        Generating link...
+                      </div>
+                    ) : maskedLink ? (
+                      <div className="flex items-center gap-2">
+                        <code className="flex-1 text-xs bg-white px-2 py-1.5 rounded border border-charcoal/10 text-charcoal/70 font-mono truncate">
+                          {maskedLink}
+                        </code>
+                        <button
+                          onClick={handleCopyLink}
+                          className="p-1.5 hover:bg-charcoal/5 rounded transition-colors"
+                          title="Copy link"
+                        >
+                          {linkCopied ? (
+                            <Check className="w-4 h-4 text-emerald-600" />
+                          ) : (
+                            <Copy className="w-4 h-4 text-charcoal/50" />
+                          )}
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-charcoal/50">Failed to generate link</p>
+                    )}
+                    <p className="text-xs text-charcoal/40 mt-2">
+                      This link is automatically copied. Share it with your image!
+                    </p>
+                  </div>
+                )}
+
                 {/* Platform Selection */}
                 {!selectedPlatform ? (
                   <>

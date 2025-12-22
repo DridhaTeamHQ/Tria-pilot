@@ -121,6 +121,33 @@ import {
     type ProSceneConstraints,
     buildProScenePrompt
 } from './pro-semantic'
+// Production system modules
+import { getHairFreezePrompt, logHairFreezeStatus, HAIR_FREEZE_CONFIG } from './hair-freeze'
+import { buildLightingPrompt, logLightingMode, getLightingModeForPreset } from './lighting-modes'
+import {
+    PRO_VARIANT_CONFIG,
+    getVariantPrompt,
+    logMultiVariantStatus,
+    logVariantConsistency,
+    validateVariantConsistency
+} from './multi-variant'
+import {
+    checkOverCorrection,
+    decideFallback,
+    calculateReducedTemperature,
+    logOverCorrectionCheck,
+    logFallbackDecision,
+    STRICT_THRESHOLDS,
+    PRO_TEMPERATURE_CONFIG,
+    OVER_CORRECTION_GUARD_LAYER
+} from './over-correction-guard'
+import {
+    runValidation,
+    logValidationStatus,
+    logQuickValidation,
+    enforceValidation,
+    IdentityLockViolationError
+} from './validation-system'
 
 // Local type for scene preset (used by dual-engine)
 interface ScenePreset {

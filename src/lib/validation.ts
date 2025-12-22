@@ -82,3 +82,13 @@ export const productSchema = z.object({
     .optional(),
 })
 
+export const createLinkSchema = z.object({
+  productId: z.string().min(1),
+})
+
+export const linkAnalyticsQuerySchema = z.object({
+  productId: z.string().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+})
+

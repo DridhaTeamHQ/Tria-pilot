@@ -8,6 +8,7 @@ import { normalizeBase64 } from '@/lib/image-processing'
 import { runTryOnPipelineV3 } from '@/lib/tryon/pipeline'
 import { saveUpload } from '@/lib/storage'
 import prisma from '@/lib/prisma'
+import { getVariantSpec, buildVariantPromptModifier, VARIANT_IDENTITY_LOCK, logVariantGeneration } from '@/lib/tryon/variant-specs'
 
 export async function POST(request: Request) {
   try {
@@ -156,83 +157,112 @@ export async function POST(request: Request) {
           background_focus: 'moderate_bokeh',
         }
 
-      // Retry logic with exponential backoff
-      const MAX_RETRIES = 3
-      const RETRY_DELAYS = [1000, 2000, 4000] // ms
+      // Generate 3 variants in parallel for user selection
+      const VARIANT_COUNT = 3
+      console.log(`🎬 Generating ${VARIANT_COUNT} variants in parallel...`)
 
-      let result: Awaited<ReturnType<typeof runTryOnPipelineV3>> | null = null
-      let lastError: Error | null = null
+      const variantPromises = Array.from({ length: VARIANT_COUNT }, (_, variantIndex) =>
+        (async () => {
+          const MAX_RETRIES = 2
+          const RETRY_DELAYS = [1000, 2000]
 
-      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+          let result: Awaited<ReturnType<typeof runTryOnPipelineV3>> | null = null
+          let lastError: Error | null = null
+
+          for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+            try {
+              if (attempt > 0) {
+                console.log(`🔄 Variant ${variantIndex + 1}: Retry attempt ${attempt + 1}/${MAX_RETRIES}...`)
+                await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt - 1]))
+              }
+
+              // Get variant-specific settings
+              const variantSpec = getVariantSpec(variantIndex)
+              logVariantGeneration(job.id, variantSpec)
+
+              // Build variant-specific prompt additions
+              const variantPromptAddition = `${VARIANT_IDENTITY_LOCK}\n\n${buildVariantPromptModifier(variantSpec)}`
+
+              console.log(`🎬 Running variant ${variantSpec.id} - ${variantSpec.name} (attempt ${attempt + 1})...`)
+              result = await runTryOnPipelineV3({
+                subjectImageBase64: normalizedPerson,
+                clothingRefBase64: normalizedClothing,
+                preset,
+                userRequest: userRequest ? `${userRequest}\n\n${variantPromptAddition}` : variantPromptAddition,
+                quality: {
+                  quality: model === 'pro' ? 'high' : 'fast',
+                  aspectRatio: (reqAspectRatio || '4:5') as any,
+                  resolution: (reqResolution || '2K') as any,
+                },
+              })
+              break
+            } catch (err) {
+              lastError = err instanceof Error ? err : new Error(String(err))
+              console.error(`❌ Variant ${variantIndex + 1} attempt ${attempt + 1} failed:`, lastError.message)
+              if (lastError.message.includes('Invalid') ||
+                lastError.message.includes('required') ||
+                lastError.message.includes('Unauthorized')) {
+                break
+              }
+            }
+          }
+
+          if (!result) {
+            console.error(`❌ Variant ${variantIndex + 1} failed completely`)
+            return null
+          }
+
+          return { variantIndex, result }
+        })()
+      )
+
+      const variantResults = await Promise.all(variantPromises)
+      const successfulVariants = variantResults.filter(v => v !== null) as Array<{ variantIndex: number, result: Awaited<ReturnType<typeof runTryOnPipelineV3>> }>
+
+      if (successfulVariants.length === 0) {
+        throw new Error('All variant generations failed. Please try again.')
+      }
+
+      console.log(`✅ Generated ${successfulVariants.length}/${VARIANT_COUNT} variants successfully`)
+
+      // Save all variants and build response
+      const variants: Array<{ imageUrl?: string; base64Image: string; variantId: number; label: string }> = []
+
+      for (const { variantIndex, result } of successfulVariants) {
+        const generatedImage = result.image
+        const variantSpec = getVariantSpec(variantIndex)
+        const imagePath = `tryon/${dbUser.id}/${job.id}_v${variantSpec.id}.png`
+        let imageUrl: string | null = null
+
         try {
-          if (attempt > 0) {
-            console.log(`🔄 Retry attempt ${attempt + 1}/${MAX_RETRIES}...`)
-            await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt - 1]))
-          }
-
-          console.log(`🎬 Running try-on pipeline (attempt ${attempt + 1})...`)
-          result = await runTryOnPipelineV3({
-            subjectImageBase64: normalizedPerson,
-            clothingRefBase64: normalizedClothing, // Used for analysis only, never sent to Gemini
-            preset,
-            userRequest: userRequest || undefined,
-            quality: {
-              quality: model === 'pro' ? 'high' : 'fast',
-              aspectRatio: (reqAspectRatio || '4:5') as any,
-              resolution: (reqResolution || '2K') as any,
-            },
-          })
-
-          // Success - break out of retry loop
-          break
+          imageUrl = await saveUpload(generatedImage, imagePath, 'try-ons')
+          console.log(`✓ Variant ${variantSpec.id} saved to storage`)
         } catch (err) {
-          lastError = err instanceof Error ? err : new Error(String(err))
-          console.error(`❌ Attempt ${attempt + 1} failed:`, lastError.message)
-
-          // Don't retry on certain errors
-          if (lastError.message.includes('Invalid') ||
-            lastError.message.includes('required') ||
-            lastError.message.includes('Unauthorized')) {
-            break
-          }
+          console.warn(`⚠️ Variant ${variantSpec.id} storage failed, using base64`)
         }
+
+        variants.push({
+          imageUrl: imageUrl || undefined,
+          base64Image: generatedImage,
+          variantId: variantIndex,
+          label: variantSpec.label, // e.g. "Warm • Medium"
+        })
       }
 
-      if (!result) {
-        throw lastError || new Error('Generation failed after multiple attempts')
-      }
-
-      const generatedImage = result.image
-
-      console.log('Saving generated image...')
-
-      const imagePath = `tryon/${dbUser.id}/${job.id}.png`
-      let imageUrl: string | null = null
-      let storageError: Error | null = null
-      
-      // Try to upload to storage, but don't fail if it doesn't work
-      try {
-        imageUrl = await saveUpload(generatedImage, imagePath, 'try-ons')
-        console.log('✓ Image saved to storage:', imageUrl)
-      } catch (err) {
-        storageError = err instanceof Error ? err : new Error(String(err))
-        console.error('⚠️  Storage upload failed, but generation succeeded:', storageError)
-        console.warn('Returning base64 image instead. Storage issue:', storageError.message)
-        // Continue without storage URL - we'll return base64 instead
-        // This allows the user to still see their generated image
-      }
+      // Use first variant as primary
+      const primaryVariant = variants[0]
 
       await prisma.generationJob.update({
         where: { id: job.id },
         data: {
           status: 'completed',
-          outputImagePath: imageUrl || 'base64://' + generatedImage.substring(0, 50) + '...', // Store a marker if storage failed
+          outputImagePath: primaryVariant.imageUrl || 'base64://' + primaryVariant.base64Image.substring(0, 50) + '...',
           suggestionsJSON: {
             presetId: stylePreset || null,
             presetName: presetV3?.name || null,
-            prompt_text: result.debug.shootPlanText,
-            timeMs: result.debug.timeMs,
-            storageError: imageUrl ? null : (storageError?.message || 'Storage upload failed'),
+            prompt_text: successfulVariants[0].result.debug.shootPlanText,
+            timeMs: successfulVariants[0].result.debug.timeMs,
+            variantCount: variants.length,
           },
         },
       })
@@ -240,8 +270,9 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: true,
         jobId: job.id,
-        imageUrl: imageUrl || undefined, // Only include if storage succeeded
-        base64Image: generatedImage, // Always include base64 as fallback
+        imageUrl: primaryVariant.imageUrl || undefined,
+        base64Image: primaryVariant.base64Image,
+        variants: variants, // All 3 variants for UI selection
         preset: presetV3
           ? {
             id: presetV3.id,
@@ -249,7 +280,6 @@ export async function POST(request: Request) {
             category: presetV3.category,
           }
           : null,
-        warning: imageUrl ? undefined : 'Image generated successfully but could not be saved to storage. Using base64 format.',
       })
     } catch (error) {
       console.error('❌ Try-on generation failed for job:', job.id)

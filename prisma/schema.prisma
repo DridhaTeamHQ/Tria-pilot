@@ -76,6 +76,7 @@ model InfluencerProfile {
   payouts           Payout[]
   affiliateEvents   AffiliateEvent[]
   identityImages    IdentityImage[]  // Reference images for AI try-on
+  trackedLinks      TrackedLink[]   // Masked links for product tracking
 
   @@index([userId])
   @@index([portfolioVisibility, onboardingCompleted])
@@ -123,6 +124,7 @@ model Product {
   images      ProductImage[]
   affiliateEvents AffiliateEvent[]
   favorites   Favorite[]
+  trackedLinks TrackedLink[]  // Masked links for this product
 
   @@index([brandId])
   @@index([category])
@@ -305,4 +307,43 @@ model IdentityImage {
   @@unique([influencerProfileId, imageType]) // Only one image per type
   @@index([influencerProfileId])
   @@index([influencerProfileId, isActive])
+}
+
+// Masked links for influencer-product tracking
+model TrackedLink {
+  id          String   @id @default(cuid())
+  influencerId String
+  influencer  InfluencerProfile @relation(fields: [influencerId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  originalUrl String   // The product's original link
+  maskedUrl   String   @unique // Full masked URL like tria.app/l/abc123
+  linkCode    String   @unique // Short code (e.g., "abc123")
+  clickCount  Int      @default(0) // Total clicks
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  clicks      LinkClick[] // Individual click records
+
+  @@unique([influencerId, productId]) // One link per influencer-product pair
+  @@index([linkCode])
+  @@index([influencerId])
+  @@index([productId])
+}
+
+// Individual click tracking records
+model LinkClick {
+  id          String   @id @default(cuid())
+  trackedLinkId String
+  trackedLink TrackedLink @relation(fields: [trackedLinkId], references: [id], onDelete: Cascade)
+  ipAddress   String?  // Hashed for privacy
+  userAgent   String?
+  referrer    String?  // Where the click came from
+  deviceType  String?  // "mobile" | "desktop" | "tablet"
+  country     String?
+  clickedAt   DateTime @default(now())
+
+  @@index([trackedLinkId])
+  @@index([clickedAt])
 }
