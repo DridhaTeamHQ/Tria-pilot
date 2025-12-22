@@ -193,6 +193,108 @@ NEVER APPLY TO FACE:
 - Any machine learning filter`
 
 // ═══════════════════════════════════════════════════════════════
+// UNIVERSAL IDENTITY PRESERVATION (ALL HUMANS)
+// ═══════════════════════════════════════════════════════════════
+
+export const UNIVERSAL_IDENTITY_PRESERVATION = `[UNIVERSAL IDENTITY PRESERVATION]
+
+THE PERSON IN IMAGE 1 IS A FIXED PHYSICAL REALITY.
+DO NOT GENERATE A PERSON. PRESERVE THE PERSON.
+
+This system works for ALL humans:
+- Fat bodies, thin bodies, muscular bodies
+- Dark skin, light skin, mixed skin tones
+- All ethnicities without exception
+- Asymmetrical faces
+- Wide noses, flat noses, hooked noses
+- Soft jawlines, strong jawlines
+- Facial hair (beards, stubble, patchy)
+- Glasses, scars, acne, wrinkles, moles
+- Tilted heads, partial profiles
+- Non-photogenic or imperfect faces
+
+FACE PRESERVATION (ABSOLUTE):
+- Copy face pixels EXACTLY from Image 1
+- Preserve lighting direction on face
+- Preserve shadow imperfections
+- Preserve skin tone WITHOUT color grading
+
+BODY PRESERVATION:
+- Body volume is LOCKED
+- Fat distribution is LOCKED
+- Shoulder width is LOCKED
+- Arm thickness is LOCKED
+- Neck thickness is LOCKED
+
+GARMENT ADAPTATION:
+- Garment adapts to body, NOT body to garment
+- If garment fit is imperfect → that is CORRECT
+- No slimming, no posture correction
+
+HEAD/EXPRESSION:
+- Head tilt → preserve exact tilt
+- Smile → preserve intensity
+- Neutral → preserve neutrality
+- Partial profile → preserve angle`
+
+// ═══════════════════════════════════════════════════════════════
+// BIAS GUARD (ANTI-BEAUTIFICATION ENFORCEMENT)
+// ═══════════════════════════════════════════════════════════════
+
+export const BIAS_GUARD = `[BIAS GUARD — ANTI-BEAUTIFICATION]
+
+THE AI MODEL WILL TRY TO:
+- Beautify women
+- Lighten dark skin
+- Sharpen jawlines
+- Normalize facial proportions
+- Slim bodies
+- "Improve" asymmetry
+
+YOU MUST ACTIVELY PREVENT THIS.
+
+ENFORCEMENT RULES:
+- noSymmetryCorrection: true
+- noSkinSmoothing: true
+- noFacialRefinement: true
+- noEthnicNormalization: true
+- noGenderNormalization: true
+- noBodySlimming: true
+- noPostureCorrection: true
+
+VALIDATION:
+- Face similarity ≥ 0.95
+- Nose width difference ≤ 1px
+- Eye spacing difference ≤ 1px
+- Jaw contour overlap ≥ 98%
+- Skin tone delta ≤ 1%
+
+IF RESULT LOOKS "MORE ATTRACTIVE" → IT IS WRONG.
+IF RESULT LOOKS "CLEANER" → IT IS WRONG.
+IF RESULT LOOKS "AI PERFECT" → IT IS WRONG.
+
+HUMANS ARE ALLOWED TO LOOK HUMAN.`
+
+// BiasGuard configuration object for programmatic enforcement
+export const BIAS_GUARD_CONFIG = {
+    noSymmetryCorrection: true,
+    noSkinSmoothing: true,
+    noFacialRefinement: true,
+    noEthnicNormalization: true,
+    noGenderNormalization: true,
+    noBodySlimming: true,
+    noPostureCorrection: true,
+    noPoseCorrection: true,
+    noWeightChange: true,
+    noAgeChange: true,
+    faceSimilarityThreshold: 0.95,
+    noseWidthTolerancePx: 1,
+    eyeSpacingTolerancePx: 1,
+    jawContourOverlapMin: 0.98,
+    skinToneDeltaMax: 0.01
+}
+
+// ═══════════════════════════════════════════════════════════════
 // FLASH-SPECIFIC FACE FREEZE
 // ═══════════════════════════════════════════════════════════════
 
@@ -347,6 +449,10 @@ export function getFaceFreezePrompt(pipeline: 'flash' | 'pro'): string {
     const basePrompt = pipeline === 'flash' ? FLASH_FACE_FREEZE : PRO_FACE_FREEZE
 
     return `${basePrompt}
+
+${UNIVERSAL_IDENTITY_PRESERVATION}
+
+${BIAS_GUARD}
 
 ${GARMENT_ONLY_GENERATION}
 

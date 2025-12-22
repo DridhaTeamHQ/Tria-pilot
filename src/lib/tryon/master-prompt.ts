@@ -15,6 +15,8 @@
  */
 
 import 'server-only'
+import { BODY_LOCK_PROMPT, EYE_PRESERVATION_PROMPT } from './body-lock'
+import { getProSemanticPrompt } from './pro-semantic'
 
 // ═══════════════════════════════════════════════════════════════
 // FORBIDDEN TERMS (AUTO-FAIL IF PRESENT)
@@ -228,7 +230,11 @@ NEVER generate:
 export function buildMasterPrompt(sceneDescription: string): string {
     return `${FACE_FREEZE_BLOCK}
 
+${EYE_PRESERVATION_PROMPT}
+
 ${IDENTITY_LOCK_BLOCK}
+
+${BODY_LOCK_PROMPT}
 
 ${CLOTHING_REPLACE_BLOCK}
 
@@ -264,18 +270,45 @@ ${buildMasterPrompt(sceneDescription)}`
 }
 
 /**
- * Build PRO prompt (face frozen, environment flexible)
+ * Build PRO prompt (SEMANTIC INVARIANTS, NOT PIXEL LOCKS)
+ * 
+ * PRO is a "thinking" model that responds to semantic guidance.
+ * Pixel-lock language causes PRO to hallucinate and compensate.
+ * 
+ * PRO = 3-Layer Editor:
+ * - Layer 1: Identity Anchor (semantic invariants)
+ * - Layer 2: Scene Construction (structural)
+ * - Layer 3: Editorial Refinement (local-only)
  */
 export function buildProMasterPrompt(sceneDescription: string): string {
-    return `[PRO MODE]
-Face: FROZEN (no modification)
-Garment: flexible (can add shadows and folds)
-Background: flexible (can add depth)
-Pose: clamped (micro only)
+    // PRO uses SEMANTIC controls, not pixel locks
+    const proSemanticControls = getProSemanticPrompt()
 
-If PRO modifies face → auto-fallback to FLASH.
+    return `[PRO MODE — SEMANTIC EDITOR PIPELINE]
 
-${buildMasterPrompt(sceneDescription)}`
+This is NOT a fashion editorial shoot.
+This is a REALISTIC TRY-ON.
+
+The person is NOT being improved.
+The person is being shown in new clothing.
+That is the ONLY change allowed.
+
+${proSemanticControls}
+
+═══════════════════════════════════════════════════════════════
+SCENE SPECIFICATION:
+═══════════════════════════════════════════════════════════════
+${sceneDescription}
+
+Build this scene ARCHITECTURALLY, not aesthetically.
+If specified elements are missing → scene is INCORRECT.
+═══════════════════════════════════════════════════════════════
+
+${CLOTHING_REPLACE_BLOCK}
+
+${POSE_LIMIT_BLOCK}
+
+${NEGATIVE_BLOCK}`
 }
 
 // ═══════════════════════════════════════════════════════════════

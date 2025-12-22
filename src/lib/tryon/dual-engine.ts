@@ -104,6 +104,23 @@ import {
     MAX_SCENE_RETRIES,
     logFaceInvariantStatus
 } from './face-invariant'
+import {
+    BODY_LOCK_PROMPT,
+    EYE_PRESERVATION_PROMPT,
+    SCENE_BUILD_ORDER,
+    logBodyLockStatus,
+    logEyePreservationStatus,
+    logSceneBuildOrder,
+    validatePresetElements,
+    PRESET_ENFORCEMENT_CONFIG
+} from './body-lock'
+import {
+    getProSemanticPrompt,
+    PRO_SCENE_CONSTRUCTION,
+    logProSemanticStatus,
+    type ProSceneConstraints,
+    buildProScenePrompt
+} from './pro-semantic'
 
 // Local type for scene preset (used by dual-engine)
 interface ScenePreset {
