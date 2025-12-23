@@ -16,6 +16,7 @@ import {
     User,
     Box,
     Megaphone,
+    BarChart3,
 } from 'lucide-react'
 import { useUser } from '@/lib/react-query/hooks'
 import { useQueryClient } from '@tanstack/react-query'
@@ -74,6 +75,7 @@ export default function Header() {
         { href: '/marketplace', label: 'Marketplace', icon: ShoppingBag },
         { href: '/influencer/try-on', label: 'Try-On Studio', icon: Camera },
         { href: '/influencer/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { href: '/influencer/analytics', label: 'Analytics', icon: BarChart3 },
     ]
 
     const brandLinks = [

@@ -1,7 +1,7 @@
 import { getOpenAI } from '@/lib/openai'
 
 export interface GarmentAnalysis {
-  garment_type: 'dress' | 'top' | 'shirt' | 'blouse' | 'jacket' | 'sweater' | 'coat' | 'other'
+  garment_type: 'dress' | 'top' | 'shirt' | 'blouse' | 'jacket' | 'sweater' | 'coat' | 'kurta' | 'kurti' | 'polo' | 't-shirt' | 'saree-blouse' | 'other'
   sleeve_type: 'sleeveless' | 'spaghetti_strap' | 'cap_sleeve' | 'short_sleeve' | 'three_quarter' | 'long_sleeve' | 'other'
   neckline: 'round' | 'v_neck' | 'square' | 'boat' | 'halter' | 'off_shoulder' | 'high_neck' | 'collared' | 'other'
   length: 'crop' | 'regular' | 'midi' | 'maxi' | 'other'
@@ -20,10 +20,10 @@ export interface GarmentAnalysis {
  */
 export async function analyzeGarment(garmentImageBase64: string): Promise<GarmentAnalysis> {
   const openai = getOpenAI()
-  
+
   // Strip data URL if present
   const cleanBase64 = garmentImageBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '')
-  
+
   const response = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
     messages: [
@@ -33,10 +33,10 @@ export async function analyzeGarment(garmentImageBase64: string): Promise<Garmen
 Analyze the garment and return ONLY valid JSON with these exact fields:
 
 {
-  "garment_type": "dress" | "top" | "shirt" | "blouse" | "jacket" | "sweater" | "coat" | "other",
+  "garment_type": "dress" | "top" | "shirt" | "blouse" | "jacket" | "sweater" | "coat" | "kurta" | "kurti" | "polo" | "t-shirt" | "saree-blouse" | "other",
   "sleeve_type": "sleeveless" | "spaghetti_strap" | "cap_sleeve" | "short_sleeve" | "three_quarter" | "long_sleeve" | "other",
-  "neckline": "round" | "v_neck" | "square" | "boat" | "halter" | "off_shoulder" | "high_neck" | "collared" | "other",
-  "length": "crop" | "regular" | "midi" | "maxi" | "other",
+  "neckline": "round" | "v_neck" | "square" | "boat" | "halter" | "off_shoulder" | "high_neck" | "collared" | "mandarin" | "other",
+  "length": "crop" | "regular" | "midi" | "maxi" | "floor" | "other",
   "fit": "fitted" | "regular" | "loose" | "oversized",
   "has_pattern": true/false,
   "pattern_description": "optional: describe the pattern if present",
@@ -45,6 +45,24 @@ Analyze the garment and return ONLY valid JSON with these exact fields:
   "notable_details": ["buttons", "embroidery", "lace", etc.],
   "skin_exposure": "minimal" | "moderate" | "high"
 }
+
+CRITICAL GARMENT TYPE IDENTIFICATION:
+- SHIRT: Button-up, ends at WAIST or slightly below, has collar, short/long sleeves
+- T-SHIRT: Casual, NO buttons, round neck, short sleeves
+- POLO: Collar with 2-3 buttons, short sleeves, ends at waist
+- KURTA: Traditional Indian, LONG garment going past hips to KNEE or below, may have mandarin collar
+- KURTI: Shorter version of kurta, goes to thigh/mid-thigh
+- BLOUSE: Fitted top for women, ends at waist
+- TOP: General category for non-specific tops
+
+LENGTH IDENTIFICATION:
+- "regular" = ends at waist/hips (shirts, t-shirts, blouses)
+- "midi" = ends at thigh level
+- "maxi" = ends at or below knee
+- "floor" = ankle/floor length
+
+IF THE GARMENT IS SHORT (ends at waist/hips) → It's a SHIRT/T-SHIRT/POLO/BLOUSE
+IF THE GARMENT IS LONG (goes past hips) → It's a KURTA/KURTI/DRESS
 
 IMPORTANT for skin_exposure:
 - sleeveless/spaghetti_strap = "high" (arms/shoulders visible)
@@ -73,14 +91,14 @@ Return ONLY the JSON, no explanation.`,
   })
 
   const content = response.choices[0]?.message?.content || '{}'
-  
+
   // Extract JSON from response
   let jsonText = content.trim()
   const jsonMatch = jsonText.match(/\{[\s\S]*\}/)
   if (jsonMatch) {
     jsonText = jsonMatch[0]
   }
-  
+
   try {
     const parsed = JSON.parse(jsonText) as GarmentAnalysis
     return {
@@ -116,7 +134,7 @@ Return ONLY the JSON, no explanation.`,
  */
 export function getGarmentInstructions(analysis: GarmentAnalysis): string {
   const instructions: string[] = []
-  
+
   // Sleeve handling is CRITICAL
   if (analysis.sleeve_type === 'sleeveless' || analysis.sleeve_type === 'spaghetti_strap') {
     instructions.push(`SLEEVELESS GARMENT: Show the subject's bare arms and shoulders. Remove ALL traces of original sleeves.`)
@@ -127,7 +145,7 @@ export function getGarmentInstructions(analysis: GarmentAnalysis): string {
   } else if (analysis.sleeve_type === 'long_sleeve') {
     instructions.push(`LONG SLEEVE: Show full sleeves to the wrists.`)
   }
-  
+
   // Neckline
   if (analysis.neckline === 'v_neck') {
     instructions.push(`V-NECKLINE: Show V-shaped neckline with appropriate chest area visible.`)
@@ -138,18 +156,18 @@ export function getGarmentInstructions(analysis: GarmentAnalysis): string {
   } else if (analysis.neckline === 'boat' || analysis.neckline === 'square') {
     instructions.push(`${analysis.neckline.toUpperCase()} NECKLINE: Show wide neckline with exposed collarbone.`)
   }
-  
+
   // Color and pattern
   instructions.push(`PRIMARY COLOR: ${analysis.primary_color}`)
   if (analysis.has_pattern && analysis.pattern_description) {
     instructions.push(`PATTERN: ${analysis.pattern_description} - must be accurately reproduced`)
   }
-  
+
   // Notable details
   if (analysis.notable_details && analysis.notable_details.length > 0) {
     instructions.push(`DETAILS to preserve: ${analysis.notable_details.join(', ')}`)
   }
-  
+
   return instructions.join('\n')
 }
 

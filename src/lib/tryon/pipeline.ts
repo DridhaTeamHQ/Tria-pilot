@@ -12,6 +12,58 @@ import {
   logPreprocessStatus,
   type PreprocessResult
 } from './garment-preprocessor'
+// Intelligent Scene Analyzer - Prevents Hallucination
+import {
+  analyzeScene,
+  logSceneAnalysis,
+  type SceneAnalysisResult
+} from './intelligent-scene-analyzer'
+// Body-Aware Face Analyzer
+import {
+  analyzeUserFace,
+  logFaceAnalysis,
+  type FaceAnalysisResult
+} from './gpt-face-analyzer'
+// Ultra Fidelity Constraints
+import {
+  getUltraFidelityPrompt,
+  logUltraFidelityStatus
+} from './ultra-fidelity'
+// Advanced AI Prompting (Research-Based)
+import {
+  ANTI_AI_TELL_TRIGGERS,
+  IDENTITY_MARKERS,
+  getPhotographicStyle,
+  logAdvancedPrompting
+} from './advanced-prompting'
+// Image Complexity Analyzer
+import {
+  analyzeImageComplexity,
+  generateComplexityPromptModifier,
+  createComplexityAlertResponse,
+  logComplexityAnalysis,
+  type ComplexityAnalysisResult
+} from './complexity-analyzer'
+// Hyper-Realistic Generation Constraints
+import {
+  getHyperRealisticPrompt,
+  logHyperRealisticStatus
+} from './hyper-realistic'
+// Face & Clothing Consistency Lock
+import {
+  getConsistencyLockPrompt,
+  logConsistencyStatus
+} from './consistency-lock'
+// Background Preservation & Physics Realism
+import {
+  getBackgroundPhysicsPrompt,
+  logBackgroundPhysicsStatus
+} from './background-physics'
+// Anti-AI Look Controls
+import {
+  getAntiAILookPrompt,
+  logAntiAIStatus
+} from './anti-ai-look'
 
 export interface TryOnQualityOptions {
   quality: 'fast' | 'high'
@@ -135,15 +187,123 @@ export async function runTryOnPipelineV3(params: {
     }
   }
 
+  // ═══════════════════════════════════════════════════════════════
+  // INTELLIGENT SCENE ANALYSIS (PREVENTS HALLUCINATION)
+  // ═══════════════════════════════════════════════════════════════
+
+  let sceneAnalysis: SceneAnalysisResult | null = null
+  let faceAnalysis: FaceAnalysisResult | null = null
+  let complexityAnalysis: ComplexityAnalysisResult | null = null
+
+  try {
+    console.log(`\n🎬 INTELLIGENT SCENE ANALYSIS: Starting...`)
+
+    // Analyze the ENTIRE input image to understand context
+    sceneAnalysis = await analyzeScene(
+      subjectImageBase64,
+      `pipeline-${startTime}`
+    )
+    logSceneAnalysis(sceneAnalysis, `pipeline-${startTime}`)
+
+    // Also do body-aware face analysis
+    faceAnalysis = await analyzeUserFace(
+      subjectImageBase64,
+      `pipeline-${startTime}`
+    )
+    logFaceAnalysis(faceAnalysis, `pipeline-${startTime}`)
+
+    // Analyze image complexity for alerts
+    complexityAnalysis = await analyzeImageComplexity(
+      subjectImageBase64,
+      `pipeline-${startTime}`
+    )
+    logComplexityAnalysis(complexityAnalysis, `pipeline-${startTime}`)
+
+    console.log(`   ✅ Scene + Face + Complexity analysis complete`)
+  } catch (analysisError) {
+    console.warn(`   ⚠️ Analysis failed, using fallback:`, analysisError)
+  }
+
   // Extract preset values - ID is critical for scene lookup in renderer
   const presetId = preset?.id
   const backgroundName = preset?.background_name || 'keep the original background'
   const lightingName = preset?.lighting_name || 'natural lighting'
 
-  // Build scene instruction
+  // Build scene instruction - NOW INCLUDES CONTEXT-SPECIFIC PROMPT
   let sceneInstruction = backgroundName
-  if (userRequest && userRequest.trim()) {
-    sceneInstruction = `${sceneInstruction}. ${userRequest}`
+
+  // Always add ultra-fidelity constraints
+  const ultraFidelity = getUltraFidelityPrompt()
+  logUltraFidelityStatus(`pipeline-${startTime}`)
+
+  // Get photographic style for anti-AI-look
+  const photoStyle = getPhotographicStyle('iphone_candid')
+  logAdvancedPrompting(`pipeline-${startTime}`, photoStyle)
+
+  // Get hyper-realistic constraints for face/lighting/quality
+  const hyperRealistic = getHyperRealisticPrompt()
+  logHyperRealisticStatus(`pipeline-${startTime}`)
+
+  // Get consistency lock for face & clothing
+  const consistencyLock = getConsistencyLockPrompt()
+  logConsistencyStatus(`pipeline-${startTime}`)
+
+  // Get background preservation & physics realism
+  const backgroundPhysics = getBackgroundPhysicsPrompt()
+  logBackgroundPhysicsStatus(`pipeline-${startTime}`)
+
+  // Get anti-AI look controls
+  const antiAILook = getAntiAILookPrompt()
+  logAntiAIStatus(`pipeline-${startTime}`)
+
+  // If we have scene analysis, use the intelligent context prompt
+  if (sceneAnalysis?.contextPrompt) {
+    console.log(`\n🧠 USING INTELLIGENT CONTEXT PROMPT (anti-hallucination)`)
+    sceneInstruction = `
+${IDENTITY_MARKERS}
+
+${ultraFidelity}
+
+${ANTI_AI_TELL_TRIGGERS}
+
+${hyperRealistic}
+
+${consistencyLock}
+
+${backgroundPhysics}
+
+${antiAILook}
+
+════════════════════════════════════════════════════════════════════════════════
+SCENE ANALYSIS CONTEXT (GPT-4o ANALYZED THIS IMAGE)
+════════════════════════════════════════════════════════════════════════════════
+
+${sceneAnalysis.contextPrompt}
+
+CRITICAL SCENE PRESERVATION:
+- Original environment: ${sceneAnalysis.environment?.description}
+- Original pose: ${sceneAnalysis.pose?.description}
+- Original lighting: ${sceneAnalysis.lighting?.source}, ${sceneAnalysis.lighting?.direction}
+- Jawline to protect: ${sceneAnalysis.face?.jawline_description}
+
+BODY PROPORTIONS (from analysis):
+- Body build: ${faceAnalysis?.expectedBodyBuild || 'as observed in image'}
+- Shoulder width: ${faceAnalysis?.expectedShoulderWidth || 'as observed'}
+- Arm thickness: ${faceAnalysis?.expectedArmThickness || 'as observed'}
+
+PHOTOGRAPHIC STYLE:
+- Camera: ${photoStyle.cameraTriggers}
+- Texture: ${photoStyle.textureTriggers}
+- AVOID: ${photoStyle.avoidTriggers.join(', ')}
+
+OUTPUT: Generate a CANDID PHOTOGRAPH (NOT CGI, NOT digital art, NOT illustration).
+The result must look like a real photo, NOT AI-generated.
+${userRequest ? `\nUser request: ${userRequest}` : ''}
+`
+  } else if (userRequest && userRequest.trim()) {
+    sceneInstruction = `${IDENTITY_MARKERS}\n\n${ultraFidelity}\n\n${ANTI_AI_TELL_TRIGGERS}\n\n${sceneInstruction}. ${userRequest}`
+  } else {
+    sceneInstruction = `${IDENTITY_MARKERS}\n\n${ultraFidelity}\n\n${ANTI_AI_TELL_TRIGGERS}\n\n${sceneInstruction}`
   }
 
   console.log(`\n========== TRY-ON PIPELINE (PHASE 5 - GARMENT EXTRACTION) ==========`)

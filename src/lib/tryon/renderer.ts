@@ -21,6 +21,40 @@ import {
   logHyperRealismStatus
 } from './hyper-realism'
 import { generateIdentityHash } from './identity-cropper'
+import {
+  IML_COHERENCE_PROMPT,
+  BODY_SOURCE_ENFORCEMENT,
+  getIMLPrompt,
+  logIMLStatus
+} from './identity-morphology-lock'
+import {
+  MULTI_VARIANT_DIVERSITY_PROMPT,
+  generateDiverseStyles,
+  buildStylePrompt,
+  logStyleDiversity,
+  type StyleCombination
+} from './style-diversity-engine'
+import {
+  FACE_PIXEL_FREEZE_PROMPT,
+  FLASH_FACE_FREEZE,
+  PRO_FACE_FREEZE,
+  getFacePixelFreezePrompt,
+  logFacePixelFreezeStatus
+} from './face-pixel-freeze'
+import {
+  BODY_AUTHORITY_TABLE,
+  CLOTHING_REFERENCE_BLOCK,
+  BODY_PHYSICS_ALIGNMENT,
+  FACE_BODY_COHERENCE_CHECK,
+  getBodyAuthorityPrompt,
+  logBodyAuthorityStatus
+} from './body-authority'
+import {
+  SCENE_SCHEMAS,
+  buildSceneConstructionPrompt,
+  ANTI_PASTEL_DIVERSITY,
+  logSceneConstruction
+} from './scene-construction'
 
 const getClient = () => new GoogleGenAI({ apiKey: getGeminiKey() })
 
@@ -453,31 +487,55 @@ FAIL CONDITIONS (GENERATION FAILED IF):
 
   // Keep background mode
   if (keepBackground) {
-    return `VIRTUAL CLOTHING TRY-ON
+    return `VIRTUAL CLOTHING TRY-ON — IDENTITY PRESERVATION ENGINE
 
 ${proIdentityArchitecture}
+
+${FACE_PIXEL_FREEZE_PROMPT}
+
+${PRO_FACE_FREEZE}
+
+${BODY_AUTHORITY_TABLE}
+
+${CLOTHING_REFERENCE_BLOCK}
+
+${BODY_PHYSICS_ALIGNMENT}
+
+${FACE_BODY_COHERENCE_CHECK}
+
+${ANTI_PASTEL_DIVERSITY}
 
 YOUR TASK:
 Create a new photo of this EXACT same person wearing a new outfit.
 
 GARMENT TO APPLY:
-${garmentDescription}
+Look at Image 2 - that is the garment. Analyze it visually and copy:
+• The exact garment type (shirt/kurta/dress) as shown
+• The exact length as shown (where it ends on the body)
+• The exact pattern and color as shown
+• DO NOT use any text description - look at the image itself
 
-WHAT TO DO:
-1. COPY face pixels exactly from Image 1 (do NOT regenerate)
-2. PRESERVE body proportions exactly from Image 1
-3. Remove current outfit completely
-4. Apply garment described above - adapted to their body
-5. Keep EVERYTHING else identical: background, lighting, pose, expression, hair
+EXECUTION ORDER (MANDATORY):
+1. ANALYZE Image 1 face → derive body proportions
+2. COPY face pixels (not generate new ones)
+3. APPLY body proportions from face analysis
+4. BLOCK all body data from clothing reference
+5. EXTRACT garment fabric/color/pattern ONLY from clothing ref
+6. ADAPT garment to user's body (not vice versa)
+7. VERIFY face-body coherence before output
 
 LIGHTING RULE:
-• Lighting adjustments must be global
+• Lighting adjustments = global color temperature ONLY
 • Do NOT relight face independently
+• Do NOT add new shadows on face
 
 ${REALISM_REQUIREMENTS}
 
-The result should look like the next frame of a video - same person, same setting, just changed clothes.
-Their family should recognize them instantly.`
+SUCCESS CRITERIA:
+✓ Mother recognizes daughter
+✓ Face fat = Body fat (no mismatch)
+✓ No pasted-head feeling
+✓ Family would recognize them instantly`
   }
 
   // Scene change mode
@@ -486,11 +544,15 @@ Their family should recognize them instantly.`
 
 ${proIdentityArchitecture}
 
+${IML_COHERENCE_PROMPT}
+
+${BODY_SOURCE_ENFORCEMENT}
+
 YOUR TASK:
 Create a professional fashion photo of this person wearing a new outfit in a new setting.
 
 GARMENT TO APPLY:
-${garmentDescription}
+Look at Image 2 - that is the garment. Copy exactly what you see visually.
 
 EXECUTION ORDER:
 1. FREEZE face and body from Image 1 (read-only)
@@ -523,7 +585,7 @@ The person should look naturally photographed in this location.`
 ${proIdentityArchitecture}
 
 GARMENT TO APPLY:
-${garmentDescription}
+Look at Image 2 - copy the garment exactly as shown visually.
 
 OUTFIT: Apply the garment described above with natural fit on LOCKED body.
 
@@ -653,33 +715,50 @@ FAIL CONDITIONS:
 `
 
   if (keepBackground) {
-    return `CLOTHING TRY-ON - SAME PERSON, SAME BACKGROUND
+    return `CLOTHING TRY-ON — FLASH IDENTITY PRESERVATION ENGINE
 
 ${flashIdentityLock}
 
+${FACE_PIXEL_FREEZE_PROMPT}
+
+${FLASH_FACE_FREEZE}
+
+${BODY_AUTHORITY_TABLE}
+
+${CLOTHING_REFERENCE_BLOCK}
+
+${BODY_PHYSICS_ALIGNMENT}
+
+${FACE_BODY_COHERENCE_CHECK}
+
 GARMENT TO APPLY:
-${garmentDescription}
+Look at Image 2 - copy the garment exactly as shown visually.
 
-TASK:
-1. COPY face pixels exactly from Image 1 (do NOT regenerate)
-2. PRESERVE body proportions exactly from Image 1
-3. Remove their current outfit completely
-4. Apply the garment described above (ADAPTED to their body)
-5. Keep the exact background from the input image
-6. Keep the same pose and expression
+FLASH EXECUTION ORDER (DETERMINISTIC):
+1. ANALYZE face in Image 1 → derive body proportions
+2. PIXEL COPY face (temperature 0.01, NO generation)
+3. BODY from face analysis ONLY
+4. BLOCK clothing reference body (it is NULL)
+5. EXTRACT garment fabric/color ONLY
+6. ADAPT garment to user body
+7. VERIFY face-body coherence
 
-BODY CONSISTENCY:
-• Preserve original body proportions from Image 1
-• No slimming, stretching, or posture correction
+FLASH PRIORITY (IDENTITY > ALL):
+1. Identity preservation (HIGHEST)
+2. Body preservation
+3. Garment accuracy
+4. Scene quality (LOWEST)
 
-LIGHTING RULE:
-• Lighting adjustments must be global
-• Do NOT relight face independently
+FORBIDDEN:
+✗ Face regeneration
+✗ Face beautification
+✗ Body slimming
+✗ Body from clothing reference
 
-❌ FORBIDDEN: 
-Different face, changed eyes, changed body shape, thinning, mixing old/new clothes
-
-OUTPUT: SAME person (exact face and body from image) wearing NEW clothes (from description).`
+SUCCESS:
+✓ Mother recognizes daughter
+✓ Face fat = Body fat
+✓ No pasted-head effect`
   }
 
   if (scene && scene.description) {
@@ -688,7 +767,7 @@ OUTPUT: SAME person (exact face and body from image) wearing NEW clothes (from d
 ${flashIdentityLock}
 
 GARMENT TO APPLY:
-${garmentDescription}
+Look at Image 2 - copy the garment exactly as shown visually.
 
 TASK:
 1. COPY face pixels exactly from Image 1
@@ -725,7 +804,7 @@ OUTPUT: SAME person (exact face and body), NEW clothes (adapted to their body), 
 ${flashIdentityLock}
 
 GARMENT TO APPLY:
-${garmentDescription}
+Look at Image 2 - copy the garment exactly as shown visually.
 
 Apply the garment described above.
 KEEP EXACT same face (pixel copy from Image 1).
@@ -1158,7 +1237,7 @@ Return ONLY the extracted garment image.`
   const config: GenerateContentConfig = {
     responseModalities: ['IMAGE'],
     imageConfig: { aspectRatio: '1:1' } as any,
-    temperature: 0.05,
+    temperature: 0,
   }
 
   const resp = await client.models.generateContent({ model, contents, config })
@@ -1370,7 +1449,7 @@ OUTPUT: Same person(unchanged) naturally photographed in realistic scene.`
   const step2Config: GenerateContentConfig = {
     responseModalities: ['IMAGE'],
     imageConfig,
-    temperature: 0.2,
+    temperature: 0,
   }
 
   const step2Resp = await client.models.generateContent({
@@ -1651,7 +1730,7 @@ Make it look like they were photographed there.`
   const step2Config: GenerateContentConfig = {
     responseModalities: ['IMAGE'],
     imageConfig,
-    temperature: 0.2, // Slightly higher for creative scene generation
+    temperature: 0, // Maximum determinism for face preservation
   }
 
   const step2Start = Date.now()
@@ -1724,7 +1803,7 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
   else if (stylePresetId?.includes('beach') || stylePresetId?.includes('outdoor')) styleKey = 'documentary'
 
   // Temperature settings
-  const temperature = 0.01
+  const temperature = 0
 
   console.log(`\n🚀 TRY-ON RENDER (PHASE 3 ARCHITECTURE)`)
   console.log(`   Model: ${model}`)
@@ -1752,14 +1831,16 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
       console.log('\n👔 FLASH Pipeline: Using Image 2 visually only (no text analysis)')
       console.log('   📸 Garment image will be sent as Image 2 (visual reference)')
     } else {
-      // PRO: Allow garment text analysis
-      console.log('\n👔 PRO Pipeline: Analyzing garment for supporting text...')
-      const analysisStart = Date.now()
-      const garmentAnalysis = await analyzeGarmentForensic(cleanGarment)
-      garmentDescription = `${garmentAnalysis.primaryColor || 'colored'} ${garmentAnalysis.garmentType || 'garment'}`
-      console.log(`   ✓ Supporting garment text: ${garmentDescription}`)
-      console.log(`   ✓ Analysis complete in ${((Date.now() - analysisStart) / 1000).toFixed(1)}s`)
-      console.log(`   📸 Garment image will be sent as Image 2 (visual reference)`)
+      // PRO: ALSO use Image 2 visually - NO text description
+      // Let Gemini analyze the garment image directly for better accuracy
+      console.log('\n👔 PRO Pipeline: Using Image 2 visually (Gemini will analyze directly)')
+      console.log('   📸 Garment image will be sent as Image 2 (visual reference)')
+      console.log('   ℹ️ No text description injected - Gemini analyzes the image itself')
+      // garmentDescription stays empty - Gemini sees Image 2 and determines:
+      // - garment type (shirt/kurta/dress)
+      // - length (short/long)
+      // - pattern and color
+      // This avoids text description errors
     }
 
     // ============================================================
@@ -1848,8 +1929,117 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
       console.warn('⚠️ Pipeline warnings:', validation.warnings)
     }
 
-    const finalPrompt = pipelineResult.prompt
+    // ============================================================
+    // CRITICAL: Include backgroundInstruction (contains ultra-fidelity prompts)
+    // The backgroundInstruction comes from pipeline.ts with scene analysis
+    // and ultra-fidelity constraints. It MUST be included in final prompt.
+    // ============================================================
+    const pipelinePrompt = pipelineResult.prompt
     const pipelineTemperature = pipelineResult.temperature
+
+    // FACE PIXEL FREEZE MUST BE FIRST — Models prioritize early tokens
+    // This is the most critical constraint and must appear before anything else
+    const finalPrompt = `
+★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+★★★ ABSOLUTE PRIORITY — READ THIS FIRST ★★★
+★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+
+RULE 1: FACE
+- COPY the EXACT face from Image 1
+- Same person, same features, same expression
+- DO NOT generate a different face
+
+RULE 2: BACKGROUND
+- KEEP the SAME location type from Image 1
+- Street stays street, beach stays beach, park stays park
+- DO NOT change to a different location
+
+RULE 3: POSE
+- COPY the EXACT pose from Image 1
+- Same arm positions, same hand positions
+- If holding phone → keep holding phone
+- If hand on face → keep hand on face
+
+RULE 4: ACCESSORIES
+- KEEP all accessories from Image 1
+- Bags, jewelry, glasses, phone → keep them all
+- DO NOT remove any accessory
+
+RULE 5: GARMENT — EXACT TYPE AND PATTERN
+- Use the garment from Image 2 ONLY
+- Ignore the model/body in Image 2
+
+GARMENT TYPE (CRITICAL — DO NOT CHANGE TYPE):
+- If Image 2 shows a SHIRT → Output must be a SHIRT (not kurta, not dress)
+- If Image 2 shows a T-SHIRT → Output must be a T-SHIRT
+- If Image 2 shows a KURTA → Output must be a KURTA
+- If Image 2 shows a DRESS → Output must be a DRESS
+- If Image 2 shows a BLOUSE → Output must be a BLOUSE
+- GARMENT LENGTH: Match exactly (short = short, long = long)
+- DO NOT convert short garments to long garments
+- A shirt that ends at waist MUST end at waist in output
+- A crop top MUST remain a crop top
+- A kurta that goes to knees MUST go to knees
+
+PATTERN MATCHING (CRITICAL):
+- If polka dots → EXACT same dot size, spacing, color
+- If stripes → EXACT same stripe width, direction, color
+- If floral → EXACT same flower pattern, size, colors
+- If embroidery → EXACT same embroidery design
+- If solid color → EXACT same color (match HUE precisely)
+- If print/graphic → EXACT same print design
+- Pattern scale must match (don't make dots bigger/smaller)
+- Pattern spacing must match
+- Pattern orientation must match (horizontal/vertical/diagonal)
+
+CONSTRUCTION DETAILS (DO NOT MODIFY):
+- Stitch pattern → KEEP EXACTLY as shown in Image 2
+- Seam lines → KEEP EXACTLY where they are
+- Button placement → KEEP EXACTLY the same
+- Button style → KEEP the same button type/color
+- Collar shape → KEEP EXACTLY the same shape
+- Sleeve style → KEEP EXACTLY the same
+- Hemline → KEEP EXACTLY the same length/style
+- Fabric texture → KEEP the same weave/texture visible
+- DO NOT "fix" or "improve" the garment design
+- DO NOT add or remove any construction elements
+
+RULE 6: BODY ← CRITICAL
+- Use the BODY from Image 1, NOT from Image 2
+- Same body shape, same proportions, same size
+- The person in Image 2 is just showing the garment
+- DO NOT use the model's body from Image 2
+- DO NOT make the body slimmer/taller/different
+
+RULE 7: ANATOMY — HEAD-NECK-BODY CONNECTION
+- The neck MUST be visible between head and shoulders
+- Neck length must match Image 1 (not too short, not too long)
+- Head sits naturally on neck, not directly on shoulders
+- Shoulders are at correct height below jaw
+- Proper anatomical proportions:
+  • Neck exists and is visible
+  • Neck connects chin to collarbone naturally
+  • Shoulders slope naturally from neck
+- DO NOT make the head appear to sit directly on body
+- DO NOT remove or shorten the neck
+
+IMAGE 1 = FACE + BODY + POSE + BACKGROUND + ACCESSORIES
+IMAGE 2 = GARMENT ONLY (ignore everything else)
+
+THIS IS NOT A SUGGESTION. THESE ARE HARD REQUIREMENTS.
+★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+
+${FACE_PIXEL_FREEZE_PROMPT}
+
+${backgroundInstruction}
+
+════════════════════════════════════════════════════════════════════════════════
+PIPELINE INSTRUCTIONS
+════════════════════════════════════════════════════════════════════════════════
+
+${pipelinePrompt}
+`.trim()
+
 
     // ============================================================
     // LOG TWO-PASS PIPELINE AND PRESET ENFORCEMENT STATUS
@@ -1859,6 +2049,7 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
     console.log(`   Model: ${pipelineResult.model}`)
     console.log(`   Temperature: ${pipelineTemperature}`)
     console.log(`   Assertions: ${pipelineResult.assertions.join(', ')}`)
+    console.log(`   backgroundInstruction included: YES (${backgroundInstruction.length} chars)`)
 
     // Check if two-pass PRO was used
     if ('passes' in pipelineResult && pipelineResult.passes) {

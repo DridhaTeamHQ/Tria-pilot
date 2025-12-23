@@ -454,19 +454,7 @@ const OUTDOOR_PRESETS: ScenePreset[] = [
         style: 'realism',
         negative_bias: 'No overgrown plants, no dirt, no clutter'
     },
-    {
-        id: 'outdoor_urban_quiet',
-        label: 'Quiet Urban Street',
-        category: 'street',
-        region: 'global',
-        scene: 'Clean urban sidewalk, well-maintained buildings, minimal pedestrians',
-        lighting: 'Overcast soft daylight, even illumination, no harsh shadows',
-        camera: '35mm lens, full body walking, urban context',
-        motion: 'subtle motion',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No trash, no construction, no chaos'
-    },
+    // REMOVED: outdoor_urban_quiet - complex scene
     {
         id: 'outdoor_park_morning',
         label: 'Morning Park',
@@ -656,19 +644,7 @@ const URBAN_CINEMATIC_PRESETS: ScenePreset[] = [
         style: 'realism',
         negative_bias: 'No tourist crowds, no signs'
     },
-    {
-        id: 'urban_alley_sunlight',
-        label: 'Alley Sunlight Shaft',
-        category: 'street',
-        region: 'global',
-        scene: 'Narrow clean alley, shaft of sunlight between buildings',
-        lighting: 'Dramatic shaft of direct sunlight, deep shadows',
-        camera: '50mm lens, subject in light shaft, contrast visible',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No trash, no dumpsters, no graffiti'
-    },
+    // REMOVED: urban_alley_sunlight - complex scene
     {
         id: 'urban_glass_reflection',
         label: 'Glass Building Reflection',

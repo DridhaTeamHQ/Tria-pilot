@@ -25,12 +25,27 @@ interface AnalyticsData {
     productName: string
     productImage?: string
     maskedUrl: string
+    originalUrl: string
     linkCode: string
     clickCount: number
     uniqueClicks: number
     lastClickedAt: string | null
     createdAt: string
   }>
+}
+
+// Helper function to shorten URL for display
+const shortenUrl = (url: string): string => {
+  try {
+    const urlObj = new URL(url)
+    const domain = urlObj.hostname.replace('www.', '')
+    const path = urlObj.pathname
+    const full = `${domain}${path}`
+    if (full.length <= 40) return full
+    return `${full.substring(0, 37)}...`
+  } catch {
+    return url.length > 40 ? `${url.substring(0, 37)}...` : url
+  }
 }
 
 export default function InfluencerAnalyticsPage() {
@@ -245,12 +260,12 @@ export default function InfluencerAnalyticsPage() {
                       </div>
                       <div className="flex items-center gap-2 mt-2">
                         <code className="text-xs bg-cream px-2 py-1 rounded text-charcoal/70 font-mono">
-                          {product.maskedUrl}
+                          {product.originalUrl ? shortenUrl(product.originalUrl) : product.maskedUrl}
                         </code>
                         <button
                           onClick={() => handleCopyLink(product.maskedUrl)}
                           className="p-1.5 hover:bg-charcoal/5 rounded transition-colors"
-                          title="Copy link"
+                          title="Copy tracked link"
                         >
                           {copiedLink === product.maskedUrl ? (
                             <Check className="w-4 h-4 text-emerald-600" />

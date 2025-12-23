@@ -150,6 +150,20 @@ import {
     enforceValidation,
     IdentityLockViolationError
 } from './validation-system'
+import {
+    IML_COHERENCE_PROMPT,
+    BODY_SOURCE_ENFORCEMENT,
+    getIMLPrompt,
+    logIMLStatus
+} from './identity-morphology-lock'
+import {
+    MULTI_VARIANT_DIVERSITY_PROMPT,
+    generateDiverseStyles,
+    buildStylePrompt,
+    validateStyleDiversity,
+    logStyleDiversity,
+    type StyleCombination
+} from './style-diversity-engine'
 
 // Local type for scene preset (used by dual-engine)
 interface ScenePreset {

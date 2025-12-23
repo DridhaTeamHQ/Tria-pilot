@@ -78,6 +78,7 @@ export async function POST(request: Request) {
       return NextResponse.json({
         maskedUrl: existingLink.maskedUrl,
         linkCode: existingLink.linkCode,
+        originalUrl: existingLink.originalUrl,
         productId: product.id,
         productName: product.name,
       })
@@ -85,7 +86,12 @@ export async function POST(request: Request) {
 
     // Generate unique link code
     const linkCode = await generateLinkCode()
-    const maskedUrl = getMaskedUrl(linkCode)
+    // Get origin from request headers for proper URL generation
+    const origin = request.headers.get('origin') || request.headers.get('host')
+    const requestOrigin = origin 
+      ? (origin.startsWith('http') ? origin : `https://${origin}`)
+      : undefined
+    const maskedUrl = getMaskedUrl(linkCode, requestOrigin)
 
     // Create new tracked link
     const trackedLink = await prisma.trackedLink.create({
@@ -101,6 +107,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       maskedUrl: trackedLink.maskedUrl,
       linkCode: trackedLink.linkCode,
+      originalUrl: trackedLink.originalUrl,
       productId: product.id,
       productName: product.name,
     })

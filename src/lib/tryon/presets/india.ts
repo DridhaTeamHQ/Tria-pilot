@@ -76,19 +76,7 @@ export const INDIAN_PRESETS: ScenePreset[] = [
     // ═══════════════════════════════════════════════════════════════
     // STREET / URBAN (Chaotic, textured)
     // ═══════════════════════════════════════════════════════════════
-    {
-        id: 'india_street_market',
-        label: 'Market Street',
-        category: 'street',
-        region: 'india',
-        scene: 'Crowded market lane, vegetable vendors with carts, plastic tarps overhead, tangled electrical wires, two-wheelers parked unevenly, worn asphalt',
-        lighting: 'Harsh midday sun filtered through tarps, creating patchy colored light and jagged shadows',
-        camera: 'Phone camera, snap-shot style, busy background',
-        motion: 'candid motion',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No bokeh, no clean streets, no isolated subject'
-    },
+    // REMOVED: india_street_market - complex scene
     {
         id: 'india_gully_calm',
         label: 'Quiet Gully',
@@ -102,36 +90,12 @@ export const INDIAN_PRESETS: ScenePreset[] = [
         style: 'realism',
         negative_bias: 'No cinematic color grading, no dramatic sunset'
     },
-    {
-        id: 'india_chai_shop',
-        label: 'Chai Shop',
-        category: 'street',
-        region: 'india',
-        scene: 'Roadside tea stall, glass tumblers, biscuits in jars, wooden bench, cigarette shop nearby, waste bin visible',
-        lighting: 'Tubelight from shop mixing with street light (blue hour), mixed color temperatures',
-        camera: 'Low angle or seated perspective, handheld',
-        motion: 'subtle motion',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No romanticized poverty, no travel vlog aesthetic'
-    },
+    // REMOVED: india_chai_shop - complex scene
 
     // ═══════════════════════════════════════════════════════════════
     // OFFICE / WORK (Boring, standard)
     // ═══════════════════════════════════════════════════════════════
-    {
-        id: 'india_office_cubicle',
-        label: 'Office Cubicle',
-        category: 'office',
-        region: 'india',
-        scene: 'Standard cubicle desk, notepad, water bottle, sticky notes, laptop dock, office chair background, grey carpet tiles',
-        lighting: 'Overhead 6000K fluorescent lighting, flat and even, slight screen glow',
-        camera: 'Webcam or phone selfie angle, slight distortion',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No stock photo smile, no perfect desk'
-    },
+    // REMOVED: india_office_cubicle - complex scene
     {
         id: 'india_coworking',
         label: 'Co-working Space',
@@ -174,20 +138,8 @@ export const INDIAN_PRESETS: ScenePreset[] = [
         mood: 'candid',
         style: 'realism',
         negative_bias: 'No party vibes, no dramatic sky'
-    },
-    {
-        id: 'india_auto_rickshaw',
-        label: 'Auto Rickshaw',
-        category: 'travel',
-        region: 'india',
-        scene: 'Inside auto rickshaw, meter visible, driver back of head, passing city blur outside, vinyl seat texture',
-        lighting: 'Natural side light entering moving vehicle, dynamic shadows',
-        camera: 'Selfie perspective or POV, motion blur outside',
-        motion: 'candid motion',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No travel documentary glam'
     }
+    // REMOVED: india_auto_rickshaw - complex scene
 ]
 
 export function getIndianPresets(): ScenePreset[] {

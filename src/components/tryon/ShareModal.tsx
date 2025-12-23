@@ -34,8 +34,24 @@ export function ShareModal({ isOpen, onClose, imageUrl, imageBase64, productId }
   const [selectedShareType, setSelectedShareType] = useState<ShareType | null>(null)
   const [sharing, setSharing] = useState(false)
   const [maskedLink, setMaskedLink] = useState<string | null>(null)
+  const [originalUrl, setOriginalUrl] = useState<string | null>(null)
   const [linkLoading, setLinkLoading] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
+
+  // Helper function to shorten URL for display
+  const shortenUrl = (url: string | null): string => {
+    if (!url) return ''
+    try {
+      const urlObj = new URL(url)
+      const domain = urlObj.hostname.replace('www.', '')
+      const path = urlObj.pathname
+      const full = `${domain}${path}`
+      if (full.length <= 35) return full
+      return `${full.substring(0, 32)}...`
+    } catch {
+      return url.length > 35 ? `${url.substring(0, 32)}...` : url
+    }
+  }
 
   // Fetch or create masked link when productId is provided
   useEffect(() => {
@@ -48,7 +64,8 @@ export function ShareModal({ isOpen, onClose, imageUrl, imageBase64, productId }
         .then((data) => {
           if (data.maskedUrl) {
             setMaskedLink(data.maskedUrl)
-            // Auto-copy link to clipboard
+            setOriginalUrl(data.originalUrl || null)
+            // Auto-copy masked link to clipboard
             navigator.clipboard.writeText(data.maskedUrl).then(() => {
               setLinkCopied(true)
               toast.success('Product link copied! Share it with your image')
@@ -408,12 +425,12 @@ export function ShareModal({ isOpen, onClose, imageUrl, imageBase64, productId }
                     ) : maskedLink ? (
                       <div className="flex items-center gap-2">
                         <code className="flex-1 text-xs bg-white px-2 py-1.5 rounded border border-charcoal/10 text-charcoal/70 font-mono truncate">
-                          {maskedLink}
+                          {originalUrl ? shortenUrl(originalUrl) : maskedLink}
                         </code>
                         <button
                           onClick={handleCopyLink}
                           className="p-1.5 hover:bg-charcoal/5 rounded transition-colors"
-                          title="Copy link"
+                          title="Copy tracked link"
                         >
                           {linkCopied ? (
                             <Check className="w-4 h-4 text-emerald-600" />

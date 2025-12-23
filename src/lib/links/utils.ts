@@ -1,15 +1,23 @@
 /**
  * Generate full masked URL from link code
+ * Fully automatic - uses environment variables or request origin
  */
-export function getMaskedUrl(linkCode: string): string {
+export function getMaskedUrl(linkCode: string, requestOrigin?: string): string {
   let baseUrl = process.env.NEXT_PUBLIC_APP_URL
   
   if (!baseUrl) {
-    // Fallback to Vercel URL or localhost
-    if (process.env.NEXT_PUBLIC_VERCEL_URL) {
+    // Try to use request origin if available (for server-side)
+    if (requestOrigin) {
+      baseUrl = requestOrigin.startsWith('http') ? requestOrigin : `https://${requestOrigin}`
+    } else if (process.env.NEXT_PUBLIC_VERCEL_URL) {
       baseUrl = `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-    } else {
+    } else if (process.env.NODE_ENV === 'development') {
+      // Only allow localhost in development
       baseUrl = 'http://localhost:3000'
+    } else {
+      // Fully automatic: throw error if no URL can be determined
+      // This ensures it always uses the actual domain without hardcoding
+      throw new Error('Unable to determine base URL. Set NEXT_PUBLIC_APP_URL or ensure request origin is available.')
     }
   }
   

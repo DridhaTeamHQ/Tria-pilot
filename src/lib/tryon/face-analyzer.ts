@@ -530,12 +530,29 @@ PERSON DETECTION (for identity isolation):
 - containsFace: boolean (true if a face/head is visible)
 
 ═══════════════════════════════════════════════════════════════════════════════
-GARMENT CORE (BE PRECISE):
+GARMENT CORE (BE PRECISE — CRITICAL FOR LENGTH):
 ═══════════════════════════════════════════════════════════════════════════════
-- garmentType: Exact category with sub-type:
-  Indian: "straight-cut kurti", "anarkali kurta", "A-line kurti", "palazzo pants", "churidar"
-  Western: "fitted blouse", "crop top", "shift dress", "A-line dress", "wrap dress", "blazer"
-  └ Be specific: "A-line kurti" not just "kurti"
+- garmentType: Exact category with sub-type. LOOK AT WHERE THE GARMENT ENDS:
+
+  SHIRTS (SHORT - ends at waist/hips):
+    "formal shirt", "casual shirt", "polo shirt", "t-shirt", "fitted blouse"
+    
+  SHORT KURTA/KURTI (ends at mid-thigh/upper thigh):
+    "short kurta", "short kurti", "hip-length kurti"
+    
+  LONG KURTA/KURTI (ends at knee or below):
+    "long kurta", "long kurti", "knee-length kurta", "straight-cut kurta"
+    "anarkali kurta", "A-line kurti"
+    
+  DRESSES:
+    "mini dress", "midi dress", "maxi dress", "shift dress", "A-line dress"
+    
+  OTHER:
+    "crop top", "blouse", "jacket", "blazer", "sweater", "coat"
+  
+  ★ CRITICAL: If the garment ends at WAIST/HIPS → it's a SHIRT or SHORT KURTA
+  ★ CRITICAL: If the garment ends at KNEE or BELOW → it's a LONG KURTA or DRESS
+  ★ Look carefully at the image to determine where the hemline is!
 
 - sleeveType: (sleeveless/spaghetti/cap sleeve/flutter/short sleeve/elbow-length/3-4 sleeve/full sleeve/bell sleeve/bishop sleeve)
   └ Add details: "full sleeve with button cuffs" or "flutter sleeve, slightly sheer"

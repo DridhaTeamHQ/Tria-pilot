@@ -104,6 +104,7 @@ export async function GET(request: Request) {
           productImage:
             link.product.images[0]?.imagePath || link.product.imagePath,
           maskedUrl: link.maskedUrl,
+          originalUrl: link.originalUrl,
           linkCode: link.linkCode,
           clickCount: link.clickCount,
           uniqueClicks: uniqueClicks.length,

@@ -5,9 +5,10 @@ import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { ShoppingBag, Upload, Sparkles, Palette, Download, RefreshCw, ArrowRight, X, Check, PartyPopper, AlertTriangle, Loader2, Share2 } from 'lucide-react'
+import { ShoppingBag, Upload, Sparkles, Palette, Download, RefreshCw, ArrowRight, X, Check, PartyPopper, AlertTriangle, Loader2, Share2, Copy, Link as LinkIcon } from 'lucide-react'
 import { useProduct } from '@/lib/react-query/hooks'
 import { safeParseResponse } from '@/lib/api-utils'
+import { useProductLink } from '@/lib/hooks/useProductLink'
 
 // Try-on preset type (v3)
 interface TryOnPreset {
@@ -138,6 +139,7 @@ function TryOnPageContent() {
     }, [])
 
     const { data: productData, isLoading: productLoading } = useProduct(productId)
+    const { maskedLink, originalUrl, displayUrl, loading: linkLoading, copyLink, copied: linkCopied } = useProductLink(productId)
 
     const fetchSavedProfileImages = useCallback(async () => {
         setSavedProfileImagesLoading(true)
@@ -586,20 +588,56 @@ function TryOnPageContent() {
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="mb-8 p-4 rounded-2xl bg-white/40 backdrop-blur-md border border-white/40 flex items-center justify-between shadow-sm"
+                        className="mb-8 p-4 rounded-2xl bg-white/40 backdrop-blur-md border border-white/40 shadow-sm"
                     >
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-peach/20 flex items-center justify-center">
-                                <ShoppingBag className="w-6 h-6 text-peach" />
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-xl bg-peach/20 flex items-center justify-center">
+                                    <ShoppingBag className="w-6 h-6 text-peach" />
+                                </div>
+                                <div>
+                                    <div className="text-xs text-charcoal/50 font-medium tracking-wider uppercase">Product Selected</div>
+                                    <div className="font-serif text-charcoal text-lg">{product.name}</div>
+                                </div>
                             </div>
-                            <div>
-                                <div className="text-xs text-charcoal/50 font-medium tracking-wider uppercase">Product Selected</div>
-                                <div className="font-serif text-charcoal text-lg">{product.name}</div>
-                            </div>
+                            <Link href="/marketplace" className="p-2 hover:bg-charcoal/5 rounded-full transition-colors">
+                                <X className="w-5 h-5 text-charcoal/40 scale-90 hover:scale-100 transition-transform" />
+                            </Link>
                         </div>
-                        <Link href="/marketplace" className="p-2 hover:bg-charcoal/5 rounded-full transition-colors">
-                            <X className="w-5 h-5 text-charcoal/40 scale-90 hover:scale-100 transition-transform" />
-                        </Link>
+                        {/* Product Link Display */}
+                        {productId && (
+                            <div className="mt-4 pt-4 border-t border-white/30">
+                                <div className="flex items-center gap-2">
+                                    <LinkIcon className="w-4 h-4 text-charcoal/50" />
+                                    <span className="text-xs font-medium text-charcoal/60">Product Link</span>
+                                </div>
+                                {linkLoading ? (
+                                    <div className="flex items-center gap-2 mt-2 text-sm text-charcoal/50">
+                                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                        <span>Generating link...</span>
+                                    </div>
+                                ) : maskedLink && displayUrl ? (
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <code className="flex-1 text-xs bg-white/60 px-3 py-2 rounded-lg border border-charcoal/10 text-charcoal/70 font-mono truncate">
+                                            {displayUrl}
+                                        </code>
+                                        <button
+                                            onClick={copyLink}
+                                            className="p-2 hover:bg-charcoal/5 rounded-lg transition-colors"
+                                            title="Copy tracked link"
+                                        >
+                                            {linkCopied ? (
+                                                <Check className="w-4 h-4 text-emerald-600" />
+                                            ) : (
+                                                <Copy className="w-4 h-4 text-charcoal/50" />
+                                            )}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <p className="text-xs text-charcoal/40 mt-2">Link unavailable</p>
+                                )}
+                            </div>
+                        )}
                     </motion.div>
                 )}
 
@@ -1256,6 +1294,41 @@ function TryOnPageContent() {
                                                     </button>
                                                 ))}
                                             </div>
+                                        </div>
+                                    )}
+
+                                    {/* Product Link Display in Result Area */}
+                                    {productId && result && (
+                                        <div className="p-4 bg-white/80 backdrop-blur-md border-t border-white/30">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <LinkIcon className="w-4 h-4 text-charcoal/50" />
+                                                <span className="text-sm font-medium text-charcoal/70">Share Product Link</span>
+                                            </div>
+                                            {linkLoading ? (
+                                                <div className="flex items-center gap-2 text-sm text-charcoal/50">
+                                                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                                    <span>Generating link...</span>
+                                                </div>
+                                            ) : maskedLink && displayUrl ? (
+                                                <div className="flex items-center gap-2">
+                                                    <code className="flex-1 text-xs bg-white/60 px-3 py-2 rounded-lg border border-charcoal/10 text-charcoal/70 font-mono truncate">
+                                                        {displayUrl}
+                                                    </code>
+                                                    <button
+                                                        onClick={copyLink}
+                                                        className="p-2 hover:bg-charcoal/5 rounded-lg transition-colors"
+                                                        title="Copy tracked link"
+                                                    >
+                                                        {linkCopied ? (
+                                                            <Check className="w-4 h-4 text-emerald-600" />
+                                                        ) : (
+                                                            <Copy className="w-4 h-4 text-charcoal/50" />
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <p className="text-xs text-charcoal/40">Link unavailable</p>
+                                            )}
                                         </div>
                                     )}
                                 </>
