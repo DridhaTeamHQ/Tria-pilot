@@ -75,8 +75,23 @@ export async function POST(request: Request) {
     })
 
     if (existingLink) {
+      // Regenerate masked URL dynamically based on current request origin
+      const origin = request.headers.get('origin') || request.headers.get('host')
+      const requestOrigin = origin 
+        ? (origin.startsWith('http') ? origin : `https://${origin}`)
+        : undefined
+      const currentMaskedUrl = getMaskedUrl(existingLink.linkCode, requestOrigin)
+      
+      // Update stored URL if it's different (fixes old localhost links)
+      if (existingLink.maskedUrl !== currentMaskedUrl) {
+        await prisma.trackedLink.update({
+          where: { id: existingLink.id },
+          data: { maskedUrl: currentMaskedUrl },
+        })
+      }
+      
       return NextResponse.json({
-        maskedUrl: existingLink.maskedUrl,
+        maskedUrl: currentMaskedUrl,
         linkCode: existingLink.linkCode,
         originalUrl: existingLink.originalUrl,
         productId: product.id,

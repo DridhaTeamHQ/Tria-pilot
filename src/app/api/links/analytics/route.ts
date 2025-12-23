@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { linkAnalyticsQuerySchema } from '@/lib/validation'
 import prisma from '@/lib/prisma'
+import { getMaskedUrl } from '@/lib/links/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -84,6 +85,12 @@ export async function GET(request: Request) {
       },
     })
 
+    // Regenerate masked URLs dynamically based on current request origin
+    const origin = request.headers.get('origin') || request.headers.get('host')
+    const requestOrigin = origin 
+      ? (origin.startsWith('http') ? origin : `https://${origin}`)
+      : undefined
+
     // Calculate unique clicks (by hashed IP)
     const productsWithStats = await Promise.all(
       trackedLinks.map(async (link) => {
@@ -98,12 +105,26 @@ export async function GET(request: Request) {
           },
         })
 
+        // Regenerate masked URL dynamically
+        const currentMaskedUrl = getMaskedUrl(link.linkCode, requestOrigin)
+        
+        // Update stored URL if it's different (fixes old localhost links)
+        if (link.maskedUrl !== currentMaskedUrl) {
+          await prisma.trackedLink.update({
+            where: { id: link.id },
+            data: { maskedUrl: currentMaskedUrl },
+          }).catch((err) => {
+            console.error('Failed to update masked URL:', err)
+            // Don't throw - continue with current URL
+          })
+        }
+
         return {
           productId: link.productId,
           productName: link.product.name,
           productImage:
             link.product.images[0]?.imagePath || link.product.imagePath,
-          maskedUrl: link.maskedUrl,
+          maskedUrl: currentMaskedUrl,
           originalUrl: link.originalUrl,
           linkCode: link.linkCode,
           clickCount: link.clickCount,
