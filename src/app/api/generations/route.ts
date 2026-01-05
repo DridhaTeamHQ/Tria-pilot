@@ -32,6 +32,8 @@ export async function GET() {
                 id: true,
                 status: true,
                 outputImagePath: true,
+                settings: true,  // Contains variant data
+                inputs: true,    // Contains input images
                 createdAt: true,
                 updatedAt: true,
             },

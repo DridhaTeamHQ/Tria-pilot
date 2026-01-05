@@ -705,206 +705,146 @@ function TryOnPageContent() {
                                 )}
                             </div>
 
-                            {/* Edit Type */}
-                            <div className="space-y-2">
-                                <label className="text-xs font-semibold text-charcoal/50 uppercase tracking-widest block">
-                                    Edit Type
-                                </label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {[
-                                        { id: 'clothing_change', label: 'Clothing' },
-                                        { id: 'background_change', label: 'Background' },
-                                        { id: 'lighting_change', label: 'Lighting' },
-                                        { id: 'pose_change', label: 'Pose' },
-                                        { id: 'camera_change', label: 'Camera' },
-                                    ].map((t) => (
-                                        <button
-                                            key={t.id}
-                                            type="button"
-                                            onClick={() => setEditType(t.id as any)}
-                                            className={`py-2 px-3 rounded-xl border text-sm font-medium transition-all ${editType === (t.id as any)
-                                                ? 'border-charcoal bg-charcoal text-cream'
-                                                : 'border-charcoal/10 bg-white/30 text-charcoal/60 hover:border-charcoal/25'
-                                                }`}
-                                        >
-                                            {t.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
 
-                            {/* Optional User Instruction */}
-                            <div className="space-y-2">
-                                <label className="text-xs font-semibold text-charcoal/50 uppercase tracking-widest block">
-                                    Optional Instruction
-                                </label>
-                                <textarea
-                                    value={userRequest}
-                                    onChange={(e) => setUserRequest(e.target.value)}
-                                    className="w-full min-h-[72px] rounded-2xl border border-charcoal/10 bg-white/30 px-4 py-3 text-sm text-charcoal placeholder:text-charcoal/40 focus:outline-none focus:ring-2 focus:ring-peach/30"
-                                    placeholder="e.g., keep it realistic, slight turn to the left, soft daylight"
-                                />
-                            </div>
 
-                            {/* Person Upload */}
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-sm">
-                                    <span className="font-medium text-charcoal/80">Your Photo <span className="text-rose-400">*</span></span>
-                                    {personImage && (
-                                        <button
-                                            onClick={() => { setPersonImage(''); setPersonImageBase64(''); }}
-                                            className="text-xs text-charcoal/40 hover:text-rose-500 transition-colors"
-                                        >
-                                            Remove
-                                        </button>
-                                    )}
-                                </div>
 
-                                <div
-                                    onDragOver={(e) => { e.preventDefault(); setDragOver('person'); }}
-                                    onDragLeave={() => setDragOver(null)}
-                                    onDrop={(e) => handleDrop(e, 'person')}
-                                    className={`
-                    relative aspect-[4/5] rounded-2xl overflow-hidden transition-all duration-300 border-2 border-dashed
-                    ${personImage ? 'border-transparent shadow-lg' : dragOver === 'person' ? 'border-peach bg-peach/10' : 'border-charcoal/10 hover:border-peach/50 bg-white/30'}
-                  `}
-                                >
-                                    {personImage ? (
-                                        <img src={personImage} alt="Person" className="w-full h-full object-cover" />
-                                    ) : (
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
-                                            <div className="w-16 h-16 mb-4 rounded-full bg-white/50 flex items-center justify-center shadow-sm">
-                                                {uploadingImage === 'person' ? (
-                                                    <RefreshCw className="w-6 h-6 text-peach animate-spin" />
-                                                ) : (
-                                                    <Upload className="w-6 h-6 text-charcoal/40" />
-                                                )}
-                                            </div>
-                                            <p className="text-sm font-medium text-charcoal/70">Click or Drag Photo</p>
-                                            <p className="text-xs text-charcoal/40 mt-1">Best results: Good lighting, facing camera</p>
-                                        </div>
-                                    )}
-                                    <input
-                                        type="file"
-                                        onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'person')}
-                                        accept="image/*"
-                                        className="absolute inset-0 opacity-0 cursor-pointer"
-                                    />
 
-                                    {/* Validation Badge */}
-                                    {personImage && (
-                                        <div className="absolute bottom-3 left-3 px-3 py-1 bg-emerald-500/90 backdrop-blur-sm text-white text-xs font-medium rounded-full flex items-center gap-1 shadow-sm">
-                                            <Check className="w-3 h-3" /> Uploaded
-                                        </div>
-                                    )}
-                                </div>
-
-                                <label className="flex items-center gap-2 text-xs text-charcoal/60">
-                                    <input
-                                        type="checkbox"
-                                        checked={saveUploadedPersonToProfile}
-                                        onChange={(e) => setSaveUploadedPersonToProfile(e.target.checked)}
-                                    />
-                                    Save uploaded photo to Profile
-                                </label>
-                            </div>
-
-                            {/* Additional Person Images (Pro Only) */}
-                            {selectedModel === 'pro' && personImage && (
-                                <motion.div
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: 'auto' }}
-                                    className="pt-4 border-t border-charcoal/5"
-                                >
-                                    <div className="flex justify-between items-center mb-2">
-                                        <label className="text-xs font-semibold text-charcoal/70 uppercase tracking-wide flex items-center gap-1">
-                                            <Sparkles className="w-3 h-3 text-peach" /> Enhance Face Consistency
-                                        </label>
-                                        <span className="text-xs text-charcoal/40">{additionalPersonImages.length}/4 added</span>
+                            {/* Side-by-Side Upload Grid - Stacks on mobile */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {/* Person Upload */}
+                                <div className="space-y-2">
+                                    <div className="flex justify-between text-sm">
+                                        <span className="font-medium text-charcoal/80">Your Photo <span className="text-rose-400">*</span></span>
+                                        {personImage && (
+                                            <button
+                                                onClick={() => { setPersonImage(''); setPersonImageBase64(''); }}
+                                                className="text-xs text-charcoal/40 hover:text-rose-500 transition-colors"
+                                            >
+                                                Remove
+                                            </button>
+                                        )}
                                     </div>
 
-                                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
-                                        {additionalPersonImages.map((img: string, idx: number) => (
-                                            <div key={idx} className="relative w-16 h-16 flex-shrink-0 rounded-xl overflow-hidden border border-white/50 shadow-sm group">
-                                                <img src={img} alt="" className="w-full h-full object-cover" />
-                                                <button
-                                                    onClick={() => handleRemoveAdditionalImage(idx)}
-                                                    className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity"
-                                                >
-                                                    <X className="w-4 h-4" />
-                                                </button>
+                                    <div
+                                        onDragOver={(e) => { e.preventDefault(); setDragOver('person'); }}
+                                        onDragLeave={() => setDragOver(null)}
+                                        onDrop={(e) => handleDrop(e, 'person')}
+                                        className={`
+                                            group relative aspect-[3/4] rounded-2xl overflow-hidden transition-all duration-300 border-2 
+                                            ${personImage
+                                                ? 'border-transparent shadow-lg shadow-peach/20'
+                                                : dragOver === 'person'
+                                                    ? 'border-peach bg-peach/10 scale-[1.02]'
+                                                    : 'border-dashed border-charcoal/10 hover:border-peach/50 bg-white/40 hover:bg-white/60'}
+                                        `}
+                                    >
+                                        {personImage ? (
+                                            <>
+                                                <img src={personImage} alt="Person" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            </>
+                                        ) : (
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+                                                <div className="w-14 h-14 mb-3 rounded-full bg-gradient-to-br from-white/80 to-white/40 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300 border border-white/50">
+                                                    {uploadingImage === 'person' ? (
+                                                        <RefreshCw className="w-6 h-6 text-peach animate-spin" />
+                                                    ) : (
+                                                        <Upload className="w-6 h-6 text-charcoal/40 group-hover:text-peach transition-colors" />
+                                                    )}
+                                                </div>
+                                                <p className="text-sm font-medium text-charcoal/70 group-hover:text-charcoal transition-colors">Upload Photo</p>
+                                                <p className="text-[10px] text-charcoal/40 mt-1">Best results: Good lighting</p>
                                             </div>
-                                        ))}
+                                        )}
+                                        <input
+                                            type="file"
+                                            onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'person')}
+                                            accept="image/*"
+                                            className="absolute inset-0 opacity-0 cursor-pointer"
+                                        />
 
-                                        {additionalPersonImages.length < 4 && (
-                                            <div className="relative w-16 h-16 flex-shrink-0 rounded-xl border-2 border-dashed border-peach/30 bg-peach/5 flex items-center justify-center hover:bg-peach/10 transition-colors cursor-pointer text-peach">
-                                                {uploadingImage === 'additional' ? (
-                                                    <RefreshCw className="w-4 h-4 animate-spin" />
-                                                ) : (
-                                                    <span className="text-2xl font-light">+</span>
-                                                )}
-                                                <input type="file" accept="image/*" onChange={(e) => e.target.files && handleAdditionalImageUpload(e.target.files[0])} className="absolute inset-0 opacity-0 cursor-pointer" />
+                                        {/* Validation Badge */}
+                                        {personImage && (
+                                            <div className="absolute bottom-3 left-3 px-2 py-1 bg-white/90 backdrop-blur-md text-emerald-600 text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-sm border border-emerald-100">
+                                                <Check className="w-3 h-3" /> Ready
                                             </div>
                                         )}
                                     </div>
-                                </motion.div>
-                            )}
 
-                            {/* Clothing Upload */}
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-sm">
-                                    <span className="font-medium text-charcoal/80">Clothing Reference</span>
-                                    {clothingImage && !product && (
-                                        <button
-                                            onClick={() => { setClothingImage(''); setClothingImageBase64(''); }}
-                                            className="text-xs text-charcoal/40 hover:text-rose-500 transition-colors"
-                                        >
-                                            Remove
-                                        </button>
-                                    )}
+                                    {/* Save to Profile Checkbox */}
+                                    <label className="flex items-center gap-2 text-[10px] text-charcoal/50 hover:text-charcoal/80 transition-colors cursor-pointer ml-1">
+                                        <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${saveUploadedPersonToProfile ? 'bg-peach border-peach' : 'border-charcoal/20 bg-white'}`}>
+                                            {saveUploadedPersonToProfile && <Check className="w-2.5 h-2.5 text-white" />}
+                                        </div>
+                                        <input
+                                            type="checkbox"
+                                            className="hidden"
+                                            checked={saveUploadedPersonToProfile}
+                                            onChange={(e) => setSaveUploadedPersonToProfile(e.target.checked)}
+                                        />
+                                        Save to Profile
+                                    </label>
                                 </div>
 
-                                <div
-                                    onDragOver={(e) => { e.preventDefault(); setDragOver('clothing'); }}
-                                    onDragLeave={() => setDragOver(null)}
-                                    onDrop={(e) => handleDrop(e, 'clothing')}
-                                    className={`
-                    relative aspect-[16/9] rounded-2xl overflow-hidden transition-all duration-300 border-2 border-dashed
-                    ${clothingImage ? 'border-transparent shadow-md' : dragOver === 'clothing' ? 'border-peach bg-peach/10' : 'border-charcoal/10 hover:border-peach/50 bg-white/30'}
-                  `}
-                                >
-                                    {clothingImage ? (
-                                        <img src={clothingImage} alt="Clothing" className="w-full h-full object-cover" />
-                                    ) : (
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-white/50 flex items-center justify-center shadow-sm">
+                                {/* Clothing Upload */}
+                                <div className="space-y-2">
+                                    <div className="flex justify-between text-sm">
+                                        <span className="font-medium text-charcoal/80">Clothing <span className="text-rose-400">*</span></span>
+                                        {clothingImage && !product && (
+                                            <button
+                                                onClick={() => { setClothingImage(''); setClothingImageBase64(''); }}
+                                                className="text-xs text-charcoal/40 hover:text-rose-500 transition-colors"
+                                            >
+                                                Remove
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    <div
+                                        onDragOver={(e) => { e.preventDefault(); setDragOver('clothing'); }}
+                                        onDragLeave={() => setDragOver(null)}
+                                        onDrop={(e) => handleDrop(e, 'clothing')}
+                                        className={`
+                                            group relative aspect-[3/4] rounded-2xl overflow-hidden transition-all duration-300 border-2 
+                                            ${clothingImage
+                                                ? 'border-transparent shadow-lg shadow-purple-500/10'
+                                                : dragOver === 'clothing'
+                                                    ? 'border-purple-400 bg-purple-50 scale-[1.02]'
+                                                    : 'border-dashed border-charcoal/10 hover:border-purple-300 bg-white/40 hover:bg-purple-50/30'}
+                                        `}
+                                    >
+                                        {clothingImage ? (
+                                            <>
+                                                <img src={clothingImage} alt="Clothing" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            </>
+                                        ) : (
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+                                                <div className="w-14 h-14 mb-3 rounded-full bg-gradient-to-br from-white/80 to-white/40 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300 border border-white/50">
                                                     {uploadingImage === 'clothing' ? (
-                                                        <RefreshCw className="w-5 h-5 text-peach animate-spin" />
+                                                        <RefreshCw className="w-6 h-6 text-purple-500 animate-spin" />
                                                     ) : (
-                                                        <ShoppingBag className="w-5 h-5 text-charcoal/40" />
+                                                        <ShoppingBag className="w-6 h-6 text-charcoal/40 group-hover:text-purple-500 transition-colors" />
                                                     )}
                                                 </div>
-                                                <div className="text-left">
-                                                    <p className="text-sm font-medium text-charcoal/70">Upload Garment</p>
-                                                    <p className="text-xs text-charcoal/40">Or select from Marketplace</p>
-                                                </div>
+                                                <p className="text-sm font-medium text-charcoal/70 group-hover:text-charcoal transition-colors">Upload Garment</p>
+                                                <p className="text-[10px] text-charcoal/40 mt-1">Or select from Hub</p>
                                             </div>
-                                        </div>
-                                    )}
-                                    <input
-                                        type="file"
-                                        onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'clothing')}
-                                        accept="image/*"
-                                        className="absolute inset-0 opacity-0 cursor-pointer"
-                                        disabled={!!product}
-                                    />
+                                        )}
+                                        <input
+                                            type="file"
+                                            onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'clothing')}
+                                            accept="image/*"
+                                            className="absolute inset-0 opacity-0 cursor-pointer"
+                                            disabled={!!product}
+                                        />
 
-                                    {product && clothingImage && (
-                                        <div className="absolute top-2 right-2 px-2 py-1 bg-charcoal/80 backdrop-blur-sm text-cream text-[10px] font-medium rounded-full">
-                                            Auto-Loaded
-                                        </div>
-                                    )}
+                                        {product && clothingImage && (
+                                            <div className="absolute top-2 right-2 px-2 py-1 bg-black/70 backdrop-blur-md text-white text-[10px] font-medium rounded-full flex items-center gap-1">
+                                                <Sparkles className="w-2.5 h-2.5 text-purple-400" /> Auto-Selected
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
@@ -1005,70 +945,29 @@ function TryOnPageContent() {
 
                         </motion.div>
 
-                        {/* Model & Settings Card */}
-                        <motion.div
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.3 }}
-                            className="p-6 rounded-3xl bg-white/40 backdrop-blur-md border border-white/50 shadow-xl shadow-peach/5 space-y-6"
-                        >
-                            <h3 className="font-serif text-xl text-charcoal flex items-center gap-2">
-                                <Sparkles className="w-5 h-5 text-peach" />
-                                AI Model & Settings
-                            </h3>
 
-                            {/* Model Selector */}
-                            <div className="grid grid-cols-2 gap-3 p-1 bg-charcoal/5 rounded-2xl">
-                                <button
-                                    onClick={() => setSelectedModel('flash')}
-                                    className={`
-                     relative py-3 px-4 rounded-xl text-sm font-medium transition-all duration-300
-                     ${selectedModel === 'flash' ? 'bg-charcoal text-cream shadow-lg' : 'text-charcoal/60 hover:text-charcoal'}
-                   `}
-                                >
-                                    <span className="relative z-10 flex flex-col items-start gap-1">
-                                        <span className="text-xs opacity-70 uppercase tracking-widest font-bold">Fast</span>
-                                        <span className="font-serif text-lg">Flash</span>
-                                    </span>
-                                </button>
-                                <button
-                                    onClick={() => setSelectedModel('pro')}
-                                    className={`
-                     relative py-3 px-4 rounded-xl text-sm font-medium transition-all duration-300
-                     ${selectedModel === 'pro' ? 'bg-white text-charcoal shadow-lg ring-1 ring-charcoal/5' : 'text-charcoal/60 hover:text-charcoal'}
-                   `}
-                                >
-                                    <span className="relative z-10 flex flex-col items-start gap-1">
-                                        <span className="text-xs opacity-70 uppercase tracking-widest font-bold">Quality</span>
-                                        {selectedModel === 'pro' && (
-                                            <span className="absolute top-3 right-3 w-2 h-2 bg-peach rounded-full animate-pulse" />
-                                        )}
-                                        <span className="font-serif text-lg">Pro</span>
-                                    </span>
-                                </button>
-                            </div>
-
-                            {/* Aspect Ratio */}
-                            <div>
-                                <label className="text-xs font-semibold text-charcoal/40 uppercase tracking-widest mb-3 block">Aspect Ratio</label>
-                                <div className="flex gap-2">
-                                    {['1:1', '4:5', '9:16'].map((ratio) => (
-                                        <button
-                                            key={ratio}
-                                            onClick={() => setAspectRatio(ratio as any)}
-                                            className={`
-                              flex-1 py-2 rounded-lg border text-sm font-medium transition-all
-                              ${aspectRatio === ratio
-                                                    ? 'border-charcoal bg-charcoal text-cream'
-                                                    : 'border-charcoal/10 bg-white/20 text-charcoal/60 hover:border-charcoal/30'}
-                           `}
-                                        >
-                                            {ratio}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </motion.div>
+                        {/* Generate Button (Moved to Left Panel) */}
+                        <div className="pt-2">
+                            <button
+                                onClick={handleGenerate}
+                                disabled={loading || !personImageBase64 || !clothingImageBase64}
+                                className={`
+                    w-full py-4 rounded-full font-serif text-xl flex items-center justify-center gap-3 transition-all duration-300 shadow-xl
+                    ${loading || !personImageBase64 || !clothingImageBase64
+                                        ? 'bg-charcoal/10 text-charcoal/30 cursor-not-allowed'
+                                        : 'bg-charcoal text-cream hover:bg-peach hover:scale-[1.02] hover:shadow-peach/30'}
+                  `}
+                            >
+                                {loading ? (
+                                    'Creating Magic...'
+                                ) : (
+                                    <>
+                                        <Sparkles className="w-5 h-5" />
+                                        Generate Try-On
+                                    </>
+                                )}
+                            </button>
+                        </div>
                     </div>
 
                     {/* RIGHT PANEL: Output & Presets */}
@@ -1126,81 +1025,145 @@ function TryOnPageContent() {
                                     <span className="ml-2 text-sm text-charcoal/60">Loading presets...</span>
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                    {/* No Preset Option */}
+                                <div className="relative group/presets">
+                                    {/* Left Arrow */}
                                     <button
-                                        onClick={() => setSelectedPreset('')}
-                                        className={`
-                                            group relative p-3 rounded-2xl border text-left transition-all duration-300 overflow-hidden h-28
-                                            ${selectedPreset === ''
-                                                ? 'bg-charcoal text-cream border-charcoal ring-2 ring-charcoal/20 ring-offset-2'
-                                                : 'bg-white/40 border-white/50 hover:border-peach/50 hover:bg-white/60'}
-                                        `}
+                                        onClick={() => {
+                                            const container = document.getElementById('preset-scroll-container')
+                                            if (container) container.scrollBy({ left: -300, behavior: 'smooth' })
+                                        }}
+                                        className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/90 backdrop-blur-md rounded-full shadow-lg border border-charcoal/10 flex items-center justify-center opacity-0 group-hover/presets:opacity-100 transition-opacity hover:bg-charcoal hover:text-white -ml-5"
                                     >
-                                        <div className="relative z-10 flex flex-col h-full justify-between">
-                                            <div className={`w-8 h-8 rounded-full mb-2 flex items-center justify-center ${selectedPreset === '' ? 'bg-white/10' : 'bg-charcoal/5'}`}>
-                                                <X className="w-4 h-4" />
-                                            </div>
-                                            <div>
-                                                <div className="font-serif text-sm">Clothing Only</div>
-                                                <div className="text-[10px] opacity-60">No scene change</div>
-                                            </div>
-                                        </div>
+                                        <ArrowRight className="w-5 h-5 rotate-180" />
                                     </button>
 
-                                    {/* Preset Cards */}
-                                    {presets
-                                        .filter(p => presetCategory === 'all' || p.category === presetCategory)
-                                        .map(preset => {
-                                            const categoryColors: Record<string, string> = {
-                                                studio: 'from-gray-400/40 to-slate-500/40',
-                                                street: 'from-slate-500/40 to-zinc-600/40',
-                                                outdoor: 'from-green-500/40 to-emerald-600/40',
-                                                lifestyle: 'from-pink-400/40 to-rose-500/40',
-                                                editorial: 'from-purple-500/40 to-violet-600/40',
-                                                traditional: 'from-orange-500/40 to-amber-600/40',
-                                            }
-                                            const bgGradient = categoryColors[preset.category] || 'from-gray-400/40 to-gray-500/40'
+                                    {/* Right Arrow */}
+                                    <button
+                                        onClick={() => {
+                                            const container = document.getElementById('preset-scroll-container')
+                                            if (container) container.scrollBy({ left: 300, behavior: 'smooth' })
+                                        }}
+                                        className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/90 backdrop-blur-md rounded-full shadow-lg border border-charcoal/10 flex items-center justify-center opacity-0 group-hover/presets:opacity-100 transition-opacity hover:bg-charcoal hover:text-white -mr-5"
+                                    >
+                                        <ArrowRight className="w-5 h-5" />
+                                    </button>
 
-                                            return (
-                                                <button
-                                                    key={preset.id}
-                                                    onClick={() => setSelectedPreset(preset.id)}
-                                                    className={`
-                                                        group relative p-3 rounded-2xl border text-left transition-all duration-300 overflow-hidden h-28
-                                                        ${selectedPreset === preset.id
-                                                            ? 'border-peach ring-2 ring-peach/20 ring-offset-2'
-                                                            : 'border-white/50 hover:border-peach/50'}
-                                                    `}
-                                                >
-                                                    {/* Background Gradient */}
-                                                    <div className={`absolute inset-0 z-0 bg-gradient-to-br ${bgGradient}`} />
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent z-0" />
+                                    {/* Scrollable Container */}
+                                    <div
+                                        id="preset-scroll-container"
+                                        className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide scroll-smooth"
+                                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                                    >
+                                        {/* No Preset Option */}
+                                        <button
+                                            onClick={() => setSelectedPreset('')}
+                                            className={`
+                                                flex-shrink-0 group relative p-3 rounded-2xl border text-left transition-all duration-300 overflow-hidden h-28 w-36
+                                                ${selectedPreset === ''
+                                                    ? 'bg-charcoal text-cream border-charcoal ring-2 ring-charcoal/20 ring-offset-2'
+                                                    : 'bg-white/40 border-white/50 hover:border-peach/50 hover:bg-white/60'}
+                                            `}
+                                        >
+                                            <div className="relative z-10 flex flex-col h-full justify-between">
+                                                <div className={`w-8 h-8 rounded-full mb-2 flex items-center justify-center ${selectedPreset === '' ? 'bg-white/10' : 'bg-charcoal/5'}`}>
+                                                    <X className="w-4 h-4" />
+                                                </div>
+                                                <div>
+                                                    <div className="font-serif text-sm">Clothing Only</div>
+                                                    <div className="text-[10px] opacity-60">No scene change</div>
+                                                </div>
+                                            </div>
+                                        </button>
 
-                                                    <div className="relative z-10 h-full flex flex-col justify-between">
-                                                        {/* Category Badge */}
-                                                        <div className="flex justify-between items-start">
-                                                            <span className="text-[9px] uppercase tracking-wider text-white/70 bg-black/20 px-1.5 py-0.5 rounded">
-                                                                {preset.category}
-                                                            </span>
-                                                            {selectedPreset === preset.id && (
-                                                                <Check className="w-4 h-4 text-peach" />
-                                                            )}
-                                                        </div>
+                                        {/* Preset Cards */}
+                                        {presets
+                                            .filter(p => presetCategory === 'all' || p.category === presetCategory)
+                                            .map(preset => {
+                                                const categoryColors: Record<string, string> = {
+                                                    studio: 'from-gray-400/40 to-slate-500/40',
+                                                    street: 'from-slate-500/40 to-zinc-600/40',
+                                                    outdoor: 'from-green-500/40 to-emerald-600/40',
+                                                    lifestyle: 'from-pink-400/40 to-rose-500/40',
+                                                    editorial: 'from-purple-500/40 to-violet-600/40',
+                                                    traditional: 'from-orange-500/40 to-amber-600/40',
+                                                }
+                                                const bgGradient = categoryColors[preset.category] || 'from-gray-400/40 to-gray-500/40'
 
-                                                        {/* Name & Description */}
-                                                        <div className="text-white">
-                                                            <div className="font-serif text-sm">{preset.name}</div>
-                                                            <div className="text-[9px] opacity-70 line-clamp-2">
-                                                                {preset.description}
+                                                return (
+                                                    <button
+                                                        key={preset.id}
+                                                        onClick={() => setSelectedPreset(preset.id)}
+                                                        className={`
+                                                            flex-shrink-0 group relative p-3 rounded-2xl border text-left transition-all duration-300 overflow-hidden h-28 w-36
+                                                            ${selectedPreset === preset.id
+                                                                ? 'border-peach ring-2 ring-peach/20 ring-offset-2'
+                                                                : 'border-white/50 hover:border-peach/50'}
+                                                        `}
+                                                    >
+                                                        {/* Background Gradient */}
+                                                        <div className={`absolute inset-0 z-0 bg-gradient-to-br ${bgGradient}`} />
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent z-0" />
+
+                                                        <div className="relative z-10 h-full flex flex-col justify-between">
+                                                            {/* Category Badge */}
+                                                            <div className="flex justify-between items-start">
+                                                                <span className="text-[9px] uppercase tracking-wider text-white/70 bg-black/20 px-1.5 py-0.5 rounded">
+                                                                    {preset.category}
+                                                                </span>
+                                                                {selectedPreset === preset.id && (
+                                                                    <Check className="w-4 h-4 text-peach" />
+                                                                )}
+                                                            </div>
+
+                                                            {/* Name & Description */}
+                                                            <div className="text-white">
+                                                                <div className="font-serif text-sm">{preset.name}</div>
+                                                                <div className="text-[9px] opacity-70 line-clamp-2">
+                                                                    {preset.description}
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                </button>
-                                            )
-                                        })}
+                                                    </button>
+                                                )
+                                            })}
+                                    </div>
                                 </div>
                             )}
+                        </motion.div>
+
+                        {/* Aspect Ratio Selection (Moved to Right Panel) */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.45 }}
+                            className="mb-6"
+                        >
+                            <h3 className="font-serif text-2xl text-charcoal mb-4">
+                                Choose Your Aspect Ratio
+                            </h3>
+                            <div className="flex gap-4">
+                                {['1:1', '4:5', '9:16'].map((ratio) => (
+                                    <button
+                                        key={ratio}
+                                        onClick={() => setAspectRatio(ratio as any)}
+                                        className={`
+                                            flex-1 py-3 rounded-lg border text-sm font-medium transition-all
+                                            ${aspectRatio === ratio
+                                                ? 'bg-charcoal text-white border-charcoal shadow-lg'
+                                                : 'bg-white border-charcoal/20 text-charcoal/60 hover:border-charcoal/40'}
+                                        `}
+                                    >
+                                        {ratio}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Hidden Model Selector Toggles (kept for functionality but made subtle) */}
+                            <div className="flex gap-4 mt-4 opacity-50 hover:opacity-100 transition-opacity">
+                                <button onClick={() => setSelectedModel(selectedModel === 'flash' ? 'pro' : 'flash')} className="text-xs text-charcoal/40 font-medium uppercase tracking-widest hover:text-peach">
+                                    Current Model: {selectedModel}
+                                </button>
+                            </div>
                         </motion.div>
 
                         {/* RESULT DISPLAY */}
@@ -1370,28 +1333,7 @@ function TryOnPageContent() {
                             </motion.div>
                         )}
 
-                        {/* Generate Button */}
-                        <div className="pt-4 pb-12">
-                            <button
-                                onClick={handleGenerate}
-                                disabled={loading || !personImageBase64 || !clothingImageBase64}
-                                className={`
-                    w-full py-4 rounded-full font-serif text-xl flex items-center justify-center gap-3 transition-all duration-300 shadow-xl
-                    ${loading || !personImageBase64 || !clothingImageBase64
-                                        ? 'bg-charcoal/10 text-charcoal/30 cursor-not-allowed'
-                                        : 'bg-charcoal text-cream hover:bg-peach hover:scale-[1.02] hover:shadow-peach/30'}
-                  `}
-                            >
-                                {loading ? (
-                                    'Creating Magic...'
-                                ) : (
-                                    <>
-                                        <Sparkles className="w-5 h-5" />
-                                        Generate Try-On
-                                    </>
-                                )}
-                            </button>
-                        </div>
+
                     </div>
                 </div>
             </div>
