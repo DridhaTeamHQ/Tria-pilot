@@ -116,7 +116,7 @@ export async function validateLightingDirectionality(
 
     try {
         const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
+            model: 'gpt-4o-mini',
             messages: [{
                 role: 'system',
                 content: `Analyze lighting in this image.

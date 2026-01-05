@@ -108,7 +108,7 @@ export async function classifyGarment(garmentImageBase64: string): Promise<Garme
 
     try {
         const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
+            model: 'gpt-4o-mini',
             messages: [
                 {
                     role: 'system',

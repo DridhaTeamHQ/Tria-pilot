@@ -110,7 +110,7 @@ export async function validateVariantDifference(
 
     try {
         const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
+            model: 'gpt-4o-mini',
             messages: [{
                 role: 'system',
                 content: `Compare these two images of the same person.

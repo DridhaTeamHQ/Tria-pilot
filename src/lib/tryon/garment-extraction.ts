@@ -27,7 +27,7 @@ async function detectPerson(imageBase64: string): Promise<boolean> {
 
     try {
         const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
+            model: 'gpt-4o-mini',
             messages: [{
                 role: 'system',
                 content: 'Analyze if this image contains a person (full body, torso, or any human body part). Return JSON: { contains_person: boolean, confidence: 0-100 }'
@@ -99,7 +99,7 @@ async function validateExtractionQuality(extractedBase64: string): Promise<{ sco
 
     try {
         const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
+            model: 'gpt-4o-mini',
             messages: [{
                 role: 'system',
                 content: `Analyze this extracted garment image quality. Check:

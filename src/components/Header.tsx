@@ -46,17 +46,17 @@ export default function Header() {
             queryClient.invalidateQueries({ queryKey: ['user'] })
             queryClient.removeQueries({ queryKey: ['user'] })
             queryClient.clear()
-            
-            await fetch('/api/auth/logout', { 
+
+            await fetch('/api/auth/logout', {
                 method: 'POST',
                 credentials: 'include'
             })
-            
+
             if (typeof window !== 'undefined') {
                 localStorage.clear()
                 sessionStorage.clear()
             }
-            
+
             window.location.href = '/login'
         } catch (error) {
             console.error('Logout error:', error)
@@ -64,6 +64,30 @@ export default function Header() {
         }
     }, [queryClient])
 
+    const isHomePage = pathname === '/'
+
+    // Header style logic
+    // Using simple derived state instead of useCallback for rendering logic to simplify deps
+    const headerStyle = (() => {
+        if (isHomePage) {
+            return scrolled
+                ? 'bg-cream/95 backdrop-blur-md border-b border-charcoal/5 shadow-sm text-charcoal'
+                : 'bg-transparent text-white border-b border-white/10'
+        }
+        return 'bg-cream/95 backdrop-blur-md border-b border-charcoal/5 shadow-sm text-charcoal'
+    })()
+
+    // Derived styles
+    const logoColor = (isHomePage && !scrolled) ? 'text-white' : 'text-charcoal'
+    const linkColor = (isHomePage && !scrolled) ? 'text-white/80 hover:text-white' : 'text-charcoal/70 hover:text-charcoal'
+    const buttonVariant = (isHomePage && !scrolled)
+        ? 'bg-white text-charcoal hover:bg-white/90'
+        : 'bg-charcoal text-white hover:bg-charcoal/90'
+
+    const isActive = (path: string) => pathname === path || pathname?.startsWith(path + '/')
+    const isLoggedIn = !isLoading && user !== null && user !== undefined
+
+    // Auth page check - return early if true
     if (isAuthPage) {
         return null
     }
@@ -88,16 +112,12 @@ export default function Header() {
     ]
 
     const publicLinks = [
-        { href: '#features', label: 'Features' },
-        { href: '#try-on', label: 'Virtual Try-On' },
-        { href: '#brands', label: 'For Brands' },
-        { href: '#influencers', label: 'For Influencers' },
+        { href: '/#features', label: 'Features' },
+        { href: '/influencer/try-on', label: 'Virtual Try-On' },
+        { href: '/register?role=brand', label: 'For Brands' },
+        { href: '/register?role=influencer', label: 'For Influencers' },
     ]
 
-    const isActive = (path: string) => pathname === path || pathname?.startsWith(path + '/')
-    
-    const isLoggedIn = !isLoading && user !== null && user !== undefined
-    
     let links: typeof influencerLinks | typeof brandLinks = []
     if (isLoggedIn && user) {
         if (user.role === 'BRAND') {
@@ -106,26 +126,22 @@ export default function Header() {
             links = influencerLinks
         }
     }
-    
+
     const userInitial = isLoggedIn && user
         ? (user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U')
         : 'U'
 
     return (
         <header
-            className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${
-                scrolled
-                    ? 'bg-cream/90 backdrop-blur-md border-b border-subtle/50 shadow-sm'
-                    : 'bg-transparent'
-            }`}
+            className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${headerStyle}`}
         >
             <div className="container mx-auto px-6">
                 <div className="flex items-center justify-between h-20">
                     {/* Logo */}
-                    <Link 
-                        href="/" 
+                    <Link
+                        href="/"
                         prefetch={true}
-                        className="text-2xl font-serif font-bold text-charcoal hover:opacity-80 transition-opacity"
+                        className={`text-2xl font-serif font-bold transition-colors ${logoColor}`}
                         data-cursor="Home"
                     >
                         TRIA
@@ -143,11 +159,10 @@ export default function Header() {
                                         href={link.href}
                                         prefetch={true}
                                         data-cursor={active ? '' : link.label}
-                                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
-                                            active
-                                                ? 'bg-charcoal text-cream shadow-md'
-                                                : 'text-charcoal/70 hover:text-charcoal hover:bg-charcoal/5'
-                                        }`}
+                                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center gap-2 ${active
+                                            ? 'bg-peach text-charcoal shadow-sm'
+                                            : `${linkColor} hover:bg-white/10`
+                                            }`}
                                     >
                                         <Icon className="w-4 h-4" />
                                         {link.label}
@@ -156,12 +171,12 @@ export default function Header() {
                             })}
                         </nav>
                     ) : (
-                        <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-charcoal/70">
+                        <nav className={`hidden md:flex items-center gap-8 text-sm font-medium ${isHomePage && !scrolled ? 'text-white/90' : 'text-charcoal/70'}`}>
                             {publicLinks.map((link) => (
                                 <Link
                                     key={link.href}
                                     href={link.href}
-                                    className="hover:text-charcoal transition-colors duration-200"
+                                    className={`transition-colors duration-200 ${linkColor}`}
                                 >
                                     {link.label}
                                 </Link>
@@ -173,7 +188,7 @@ export default function Header() {
                     <div className="flex items-center gap-4">
                         {isLoggedIn ? (
                             <div className="hidden md:flex items-center gap-3">
-                                <div 
+                                <div
                                     className="w-10 h-10 rounded-full bg-gradient-to-br from-peach to-orange-300 flex items-center justify-center text-charcoal font-semibold"
                                     data-cursor={user?.name || 'Profile'}
                                 >
@@ -182,7 +197,7 @@ export default function Header() {
                                 <button
                                     onClick={handleLogout}
                                     data-cursor="Logout"
-                                    className="flex items-center gap-2 text-sm text-charcoal/70 hover:text-charcoal transition-colors duration-200"
+                                    className={`flex items-center gap-2 text-sm transition-colors duration-200 ${linkColor}`}
                                 >
                                     <LogOut className="w-4 h-4" />
                                     Logout
@@ -194,7 +209,7 @@ export default function Header() {
                                     href="/login"
                                     prefetch={true}
                                     data-cursor="Login"
-                                    className="text-sm font-medium text-charcoal/80 hover:text-charcoal transition-colors duration-200"
+                                    className={`text-sm font-medium transition-colors duration-200 ${linkColor}`}
                                 >
                                     Log In
                                 </Link>
@@ -202,7 +217,7 @@ export default function Header() {
                                     href="/register"
                                     prefetch={true}
                                     data-cursor="Start"
-                                    className="px-5 py-2 bg-charcoal text-cream text-sm font-medium rounded-full hover:bg-charcoal/90 transition-colors duration-200"
+                                    className={`px-6 py-2.5 text-sm font-medium rounded-full transition-all duration-200 shadow-sm ${buttonVariant}`}
                                 >
                                     Get Started
                                 </Link>
@@ -211,13 +226,13 @@ export default function Header() {
 
                         {/* Mobile Menu Toggle */}
                         <button
-                            className="md:hidden p-2 hover:bg-charcoal/5 rounded-lg transition-colors"
+                            className={`md:hidden p-2 rounded-lg transition-colors ${isHomePage && !scrolled ? 'hover:bg-white/10 text-white' : 'hover:bg-charcoal/5 text-charcoal'}`}
                             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                         >
                             {mobileMenuOpen ? (
-                                <X className="w-6 h-6 text-charcoal" />
+                                <X className="w-6 h-6" />
                             ) : (
-                                <Menu className="w-6 h-6 text-charcoal" />
+                                <Menu className="w-6 h-6" />
                             )}
                         </button>
                     </div>
@@ -257,11 +272,10 @@ export default function Header() {
                                                 href={link.href}
                                                 prefetch={true}
                                                 onClick={() => setMobileMenuOpen(false)}
-                                                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
-                                                    isActive(link.href)
-                                                        ? 'bg-charcoal text-cream'
-                                                        : 'text-charcoal/70 hover:bg-charcoal/5'
-                                                }`}
+                                                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isActive(link.href)
+                                                    ? 'bg-charcoal text-cream'
+                                                    : 'text-charcoal/70 hover:bg-charcoal/5'
+                                                    }`}
                                             >
                                                 <Icon className="w-5 h-5" />
                                                 {link.label}

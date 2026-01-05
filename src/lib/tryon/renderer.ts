@@ -55,6 +55,10 @@ import {
   ANTI_PASTEL_DIVERSITY,
   logSceneConstruction
 } from './scene-construction'
+// FACE-FIRST IDENTITY - Forensic photo compositor constraints
+import { FACE_FIRST, buildFaceFirstPrompt } from './face-first-identity'
+import { getFaceFreezeEmergency } from './face-freeze-emergency'
+import { getFaceGarmentUltraLock, getFaceUltraLock, getGarmentUltraLock } from './face-garment-ultra-lock'
 
 const getClient = () => new GoogleGenAI({ apiKey: getGeminiKey() })
 
@@ -827,6 +831,7 @@ export interface SimpleRenderOptions {
   aspectRatio?: string
   resolution?: string
   stylePresetId?: string
+  userRequest?: string  // Contains all constraint prompts and preset scene descriptions
 }
 
 // ====================================================================================
@@ -1769,6 +1774,7 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
     aspectRatio: userAspect,
     resolution,
     stylePresetId,
+    userRequest,
   } = params
 
   const client = getClient()
@@ -1937,108 +1943,88 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
     const pipelinePrompt = pipelineResult.prompt
     const pipelineTemperature = pipelineResult.temperature
 
-    // FACE PIXEL FREEZE MUST BE FIRST — Models prioritize early tokens
-    // This is the most critical constraint and must appear before anything else
-    const finalPrompt = `
-★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-★★★ ABSOLUTE PRIORITY — READ THIS FIRST ★★★
-★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+    // Build comprehensive prompt that includes preset and all constraints
+    // Start with ULTRA LOCK (maximum strength for both face and garment)
+    const faceUltraLock = getFaceUltraLock()
+    const garmentUltraLock = getGarmentUltraLock()
+    const emergencyFaceFreeze = getFaceFreezeEmergency()
+    
+    let comprehensivePrompt = `${faceUltraLock}\n\n${garmentUltraLock}\n\n${emergencyFaceFreeze}
 
-RULE 1: FACE
-- COPY the EXACT face from Image 1
-- Same person, same features, same expression
-- DO NOT generate a different face
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TASK OVERVIEW:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-RULE 2: BACKGROUND
-- KEEP the SAME location type from Image 1
-- Street stays street, beach stays beach, park stays park
-- DO NOT change to a different location
+Image 1 = Person (face, body, pose) → COPY FACE AND BODY EXACTLY
+Image 2 = Garment only (ignore body in Image 2) → EXTRACT AND APPLY GARMENT
 
-RULE 3: POSE
-- COPY the EXACT pose from Image 1
-- Same arm positions, same hand positions
-- If holding phone → keep holding phone
-- If hand on face → keep hand on face
+BODY RULES:
+• Use body proportions from Image 1 only
+• Copy body shape from Image 1 exactly
+• Do NOT slim or modify body
 
-RULE 4: ACCESSORIES
-- KEEP all accessories from Image 1
-- Bags, jewelry, glasses, phone → keep them all
-- DO NOT remove any accessory
+GARMENT RULES:
+• Extract garment from Image 2
+• Apply garment to body from Image 1
+• Copy exact type, length, color, pattern
 
-RULE 5: GARMENT — EXACT TYPE AND PATTERN
-- Use the garment from Image 2 ONLY
-- Ignore the model/body in Image 2
-
-GARMENT TYPE (CRITICAL — DO NOT CHANGE TYPE):
-- If Image 2 shows a SHIRT → Output must be a SHIRT (not kurta, not dress)
-- If Image 2 shows a T-SHIRT → Output must be a T-SHIRT
-- If Image 2 shows a KURTA → Output must be a KURTA
-- If Image 2 shows a DRESS → Output must be a DRESS
-- If Image 2 shows a BLOUSE → Output must be a BLOUSE
-- GARMENT LENGTH: Match exactly (short = short, long = long)
-- DO NOT convert short garments to long garments
-- A shirt that ends at waist MUST end at waist in output
-- A crop top MUST remain a crop top
-- A kurta that goes to knees MUST go to knees
-
-PATTERN MATCHING (CRITICAL):
-- If polka dots → EXACT same dot size, spacing, color
-- If stripes → EXACT same stripe width, direction, color
-- If floral → EXACT same flower pattern, size, colors
-- If embroidery → EXACT same embroidery design
-- If solid color → EXACT same color (match HUE precisely)
-- If print/graphic → EXACT same print design
-- Pattern scale must match (don't make dots bigger/smaller)
-- Pattern spacing must match
-- Pattern orientation must match (horizontal/vertical/diagonal)
-
-CONSTRUCTION DETAILS (DO NOT MODIFY):
-- Stitch pattern → KEEP EXACTLY as shown in Image 2
-- Seam lines → KEEP EXACTLY where they are
-- Button placement → KEEP EXACTLY the same
-- Button style → KEEP the same button type/color
-- Collar shape → KEEP EXACTLY the same shape
-- Sleeve style → KEEP EXACTLY the same
-- Hemline → KEEP EXACTLY the same length/style
-- Fabric texture → KEEP the same weave/texture visible
-- DO NOT "fix" or "improve" the garment design
-- DO NOT add or remove any construction elements
-
-RULE 6: BODY ← CRITICAL
-- Use the BODY from Image 1, NOT from Image 2
-- Same body shape, same proportions, same size
-- The person in Image 2 is just showing the garment
-- DO NOT use the model's body from Image 2
-- DO NOT make the body slimmer/taller/different
-
-RULE 7: ANATOMY — HEAD-NECK-BODY CONNECTION
-- The neck MUST be visible between head and shoulders
-- Neck length must match Image 1 (not too short, not too long)
-- Head sits naturally on neck, not directly on shoulders
-- Shoulders are at correct height below jaw
-- Proper anatomical proportions:
-  • Neck exists and is visible
-  • Neck connects chin to collarbone naturally
-  • Shoulders slope naturally from neck
-- DO NOT make the head appear to sit directly on body
-- DO NOT remove or shorten the neck
-
-IMAGE 1 = FACE + BODY + POSE + BACKGROUND + ACCESSORIES
-IMAGE 2 = GARMENT ONLY (ignore everything else)
-
-THIS IS NOT A SUGGESTION. THESE ARE HARD REQUIREMENTS.
-★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-
-${FACE_PIXEL_FREEZE_PROMPT}
-
-${backgroundInstruction}
-
-════════════════════════════════════════════════════════════════════════════════
-PIPELINE INSTRUCTIONS
-════════════════════════════════════════════════════════════════════════════════
-
-${pipelinePrompt}
+OUTPUT: Same person (Image 1 face + Image 1 body) wearing the garment (Image 2).
 `.trim()
+
+    // Add preset scene description if available (CRITICAL for preset application)
+    if (backgroundInstruction && !backgroundInstruction.toLowerCase().includes('keep') && !backgroundInstruction.toLowerCase().includes('original')) {
+      comprehensivePrompt += `\n\n════════════════════════════════════════════════════════════════════════════════\nSCENE & BACKGROUND (PRESET):\n════════════════════════════════════════════════════════════════════════════════\n${backgroundInstruction}\n`
+      console.log(`   ✅ Preset background included: "${backgroundInstruction.slice(0, 80)}..."`)
+    }
+
+    // Add lighting instruction if available (CRITICAL for preset application)
+    if (lightingInstruction && lightingInstruction !== 'natural lighting') {
+      comprehensivePrompt += `\n\nLIGHTING (PRESET):\n${lightingInstruction}\n`
+      console.log(`   ✅ Preset lighting included: "${lightingInstruction}"`)
+    }
+
+    // Add userRequest (contains all constraint prompts, preset scene descriptions, etc.)
+    // This is CRITICAL - it contains all the comprehensive constraints we built
+    // BUT: Truncate if too long to prevent token overflow (32K limit)
+    if (userRequest) {
+      // Estimate tokens: ~4 chars per token, so 32K tokens ≈ 128K chars
+      // Reserve space for base prompt, images, and other content (~50K chars)
+      // So we can use ~78K chars for userRequest, but be conservative: 50K chars max
+      const maxUserRequestLength = 50000
+      const truncatedUserRequest = userRequest.length > maxUserRequestLength 
+        ? userRequest.substring(0, maxUserRequestLength) + '\n\n[TRUNCATED - Token limit protection]'
+        : userRequest
+      
+      comprehensivePrompt += `\n\n${truncatedUserRequest}\n`
+      console.log(`   ✅ User request/constraints included: ${truncatedUserRequest.length} chars${userRequest.length > maxUserRequestLength ? ' (truncated)' : ''}`)
+    }
+
+    // REPEAT ULTRA LOCKS AT THE END (reinforcement - zero tolerance for drift)
+    comprehensivePrompt += `\n\n${faceUltraLock}\n\n${garmentUltraLock}\n\n${emergencyFaceFreeze}\n`
+    console.log(`   🔒🔒🔒 Face & Garment Ultra Lock: INJECTED AT START AND END (zero tolerance for drift)`)
+    
+    // Remove forbidden terms that could cause beautification or face drift
+    // These terms can trigger AI to beautify or modify the face/body
+    const forbiddenTerms = [
+      'editorial', 'fashion pose', 'portrait', 'studio', 
+      'perfect', 'enhance', 'improve', 'beautify', 
+      'sharp', 'clean', 'elegant', 'artistic', 'creative', 'aesthetic', 
+      'model', 'mannequin', 'fashion model', 
+      'perfect symmetry', 'facial symmetry',
+      'polished', 'refined', 'stylized', 'glamorous'
+    ]
+    let cleanedPrompt = comprehensivePrompt
+    for (const term of forbiddenTerms) {
+      // Use word boundaries to avoid removing parts of words
+      const regex = new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi')
+      cleanedPrompt = cleanedPrompt.replace(regex, '')
+    }
+    // Clean up multiple spaces/newlines created by removals
+    cleanedPrompt = cleanedPrompt.replace(/\n{3,}/g, '\n\n').replace(/ {2,}/g, ' ')
+    comprehensivePrompt = cleanedPrompt
+    console.log(`   🧹 Cleaned forbidden terms from prompt (prevent beautification/face drift)`)
+
+    const finalPrompt = comprehensivePrompt
 
 
     // ============================================================
@@ -2070,10 +2056,14 @@ ${pipelinePrompt}
       }
     }
 
-    console.log(`   Prompt length: ${finalPrompt.length} chars`)
-    console.log(`\n   📝 FINAL ASSEMBLED PROMPT (full text):`)
+    const estimatedTokens = finalPrompt.length / 4 // Rough estimate: 4 chars per token
+    console.log(`   Prompt length: ${finalPrompt.length} chars (estimated ${Math.round(estimatedTokens)} tokens)`)
+    if (estimatedTokens > 30000) {
+      console.warn(`   ⚠️ WARNING: Estimated tokens (${Math.round(estimatedTokens)}) approaching 32K limit!`)
+    }
+    console.log(`\n   📝 FINAL ASSEMBLED PROMPT (preview - first 500 chars):`)
     console.log(`   ${'─'.repeat(70)}`)
-    console.log(`   ${finalPrompt.split('\n').join('\n   ')}`)
+    console.log(`   ${finalPrompt.substring(0, 500)}...`)
     console.log(`   ${'─'.repeat(70)}`)
 
     // ============================================================
@@ -2116,8 +2106,14 @@ ${pipelinePrompt}
       faceCropBase64 // Image 3: Face crop (optional, for hyper-realism)
     )
 
+    // NOTE: Face identity preservation is done through prompt constraints
+    // (forensic compositor mode) rather than post-processing reintegration
+    console.log('\n🔒 IDENTITY PRESERVATION: Via forensic compositor prompt constraints')
+
     const elapsed = Date.now() - startTime
-    console.log(`✅ RENDER COMPLETE in ${(elapsed / 1000).toFixed(1)}s\n`)
+    console.log(`\n✅ RENDER COMPLETE in ${(elapsed / 1000).toFixed(1)}s`)
+    console.log('   🔒 FACE IDENTITY: Forensic compositor mode active')
+    console.log('')
 
     return `data:image/jpeg;base64,${resultBase64}`
   } catch (error) {

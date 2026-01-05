@@ -674,7 +674,92 @@ const URBAN_CINEMATIC_PRESETS: ScenePreset[] = [
 ]
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// EXPORT ALL PHOTOSHOOT PRESETS (50 TOTAL)
+// REAL-WORLD CASUAL (6 presets) - PHOTOGRAPHIC BELIEVABILITY
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const REAL_WORLD_CASUAL: ScenePreset[] = [
+    {
+        id: 'mirror_casual_selfie',
+        label: '📱 Mirror Selfie',
+        category: 'lifestyle',
+        region: 'global',
+        scene: 'Wardrobe mirror corner with hanging clothes visible, phone partially in frame, natural home setting with soft wall in background',
+        lighting: 'Soft indoor side light from nearby window, warm color temperature (3200K), subtle shadows, diffused quality',
+        camera: '26mm phone camera (wide angle), arm-length distance, slightly tilted angle for candid feel, f/1.8 aperture',
+        motion: 'static',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No studio perfection, no perfect posture, embrace natural imperfections, casual phone photo aesthetic'
+    },
+    {
+        id: 'bathroom_mirror_selfie',
+        label: '🪞 Bathroom Mirror',
+        category: 'lifestyle',
+        region: 'global',
+        scene: 'Full-length bathroom mirror with tiles and soft lighting visible in reflection, mirror edge in frame, authentic home bathroom environment',
+        lighting: 'Diffused indoor front light from bathroom fixtures, neutral color temperature (4500K), even illumination, minimal shadows',
+        camera: '26mm phone camera, 1.2 meter distance, straight-on angle, f/2.0 aperture, full body reflection visible',
+        motion: 'static',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No professional lighting, no polished look, authentic selfie aesthetic with natural imperfections'
+    },
+    {
+        id: 'street_relaxed_standing',
+        label: '🏙️ Street Standing',
+        category: 'lifestyle',
+        region: 'global',
+        scene: 'Sidewalk against textured building wall, soft city blur in background, empty pavement in foreground, urban environment',
+        lighting: 'Natural diffused side light from overcast sky or building shade, neutral color temperature (5500K), soft shadows',
+        camera: '35mm mirrorless camera, 2.5 meters distance, eye-level angle, f/2.8 aperture showing slight background blur',
+        motion: 'subtle motion',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No fashion model posing, no perfect symmetry, embrace natural off-guard candid moment'
+    },
+    {
+        id: 'casual_walk_moment',
+        label: '🚶 Walking Candid',
+        category: 'lifestyle',
+        region: 'global',
+        scene: 'Park pathway with trees and natural greenery, path texture visible in foreground, natural bokeh blur of foliage in background',
+        lighting: 'Soft natural side light filtering through trees, warm color temperature (4800K), gentle shadows, organic quality',
+        camera: '50mm mirrorless camera, 3 meters distance, slightly below eye level, f/2.0 aperture with shallow depth',
+        motion: 'candid motion',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No staged walking pose, no model strut, capture genuine natural movement and momentum'
+    },
+    {
+        id: 'cafe_window_lifestyle',
+        label: '☕ Cafe Window Seat',
+        category: 'lifestyle',
+        region: 'global',
+        scene: 'Cafe window seating with wooden table edge in foreground, coffee cup visible on table, soft people blur and cafe interior in background, window light streaming in',
+        lighting: 'Mixed window side light (natural) with indoor warm lighting, creating soft contrast, warm color temperature (4200K)',
+        camera: '50mm DSLR, 1.8 meters distance, slightly below eye level, f/2.0 aperture for natural background blur',
+        motion: 'subtle motion',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No posed sitting, no direct eye contact, capture off-guard everyday cafe moment'
+    },
+    {
+        id: 'balcony_reading_moment',
+        label: '📖 Balcony Reading',
+        category: 'lifestyle',
+        region: 'global',
+        scene: 'Home balcony with railing and potted plants visible, balcony floor in foreground, city or nature view softly blurred in background',
+        lighting: 'Soft natural front light from open sky, neutral color temperature (5200K), even illumination, minimal harsh shadows',
+        camera: '35mm mirrorless camera, 2 meters distance, eye level angle, f/2.8 aperture for depth separation',
+        motion: 'static',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No staged reading pose, no looking at camera, capture genuine absorbed moment in personal space'
+    }
+]
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EXPORT ALL PHOTOSHOOT PRESETS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const PHOTOSHOOT_PRESETS: ScenePreset[] = [
@@ -682,7 +767,8 @@ export const PHOTOSHOOT_PRESETS: ScenePreset[] = [
     ...LIFESTYLE_PRESETS,
     ...CELEBRATION_PRESETS,
     ...OUTDOOR_PRESETS,
-    ...URBAN_CINEMATIC_PRESETS
+    ...URBAN_CINEMATIC_PRESETS,
+    ...REAL_WORLD_CASUAL  // NEW: 6 casual believable presets
 ]
 
 export function getPhotoshootPreset(id: string): ScenePreset | undefined {
@@ -701,4 +787,4 @@ export function getPhotoshootPresetIds(): string[] {
 }
 
 // Log count for verification
-console.log(`📸 Loaded ${PHOTOSHOOT_PRESETS.length} photoshoot-grade presets`)
+console.log(`📸 Loaded ${PHOTOSHOOT_PRESETS.length} photoshoot-grade presets (including ${REAL_WORLD_CASUAL.length} real-world casual)`)

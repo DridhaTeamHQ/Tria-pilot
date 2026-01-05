@@ -46,15 +46,17 @@ export interface PixelCopyResult {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Expansion factor for face region (1.2 = 20% larger than detected)
- * Captures forehead, ears, and some neck/hair for blending
+ * Expansion factor for face region (1.4 = 40% larger than detected)
+ * Captures forehead, ears, jawline, and some neck/hair for complete face coverage
+ * INCREASED: Previous 1.25 was not capturing enough face area
  */
-export const FACE_BOX_EXPANSION = 1.25
+export const FACE_BOX_EXPANSION = 1.4
 
 /**
  * Feather radius for smooth edge blending (pixels)
+ * INCREASED: Larger feather for more natural blending into body
  */
-export const BLEND_FEATHER_RADIUS = 20
+export const BLEND_FEATHER_RADIUS = 25
 
 /**
  * Default face estimation when no detection available
@@ -196,24 +198,59 @@ async function createFeatheredMask(
  * 
  * This is the CRITICAL step that ensures face identity.
  * The original face pixels are placed directly onto the generated image.
+ * 
+ * KEY FIX: Uses the feathered mask for natural blending
  */
 export async function compositeFacePixels(
     generatedImageBuffer: Buffer,
     faceData: FacePixelData
 ): Promise<PixelCopyResult> {
     try {
+        const generatedMeta = await sharp(generatedImageBuffer).metadata()
+
+        if (!generatedMeta.width || !generatedMeta.height) {
+            throw new Error('Cannot get generated image dimensions')
+        }
+
+        // Calculate face position in generated image
+        // For now, assume same relative position (can be improved with face detection)
+        let targetX = faceData.box.x
+        let targetY = faceData.box.y
+
+        // Clamp to image bounds
+        targetX = Math.max(0, Math.min(targetX, generatedMeta.width - faceData.box.width))
+        targetY = Math.max(0, Math.min(targetY, generatedMeta.height - faceData.box.height))
+
+        // If we have a mask, apply it to the face for feathered edges
+        let faceWithMask = faceData.buffer
+
+        if (faceData.maskBuffer) {
+            // Create face with alpha channel from mask
+            faceWithMask = await sharp(faceData.buffer)
+                .ensureAlpha()
+                .composite([{
+                    input: faceData.maskBuffer,
+                    blend: 'dest-in'  // Use mask as alpha
+                }])
+                .png()
+                .toBuffer()
+
+            console.log('   🎭 Applied feathered mask to face')
+        }
+
         // Composite original face onto generated image
         const result = await sharp(generatedImageBuffer)
             .composite([{
-                input: faceData.buffer,
-                left: faceData.box.x,
-                top: faceData.box.y,
+                input: faceWithMask,
+                left: targetX,
+                top: targetY,
                 blend: 'over'
             }])
             .png()
             .toBuffer()
 
-        console.log(`✅ Face pixels composited at (${faceData.box.x}, ${faceData.box.y})`)
+        console.log(`✅ Face pixels composited at (${targetX}, ${targetY}) with feathered edges`)
+        console.log(`   📐 Face size: ${faceData.box.width}x${faceData.box.height}`)
 
         return {
             success: true,

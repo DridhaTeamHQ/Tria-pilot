@@ -126,7 +126,7 @@ export async function analyzeUserImage(userImageBase64: string): Promise<UserAna
 
     try {
         const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
+            model: 'gpt-4o-mini',
             messages: [
                 {
                     role: 'system',

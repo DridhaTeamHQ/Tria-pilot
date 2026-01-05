@@ -137,7 +137,7 @@ export async function detectHumanInClothingImage(
         console.log('🔍 BODY DETECTION: Analyzing clothing image...')
 
         const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
+            model: 'gpt-4o-mini',
             messages: [
                 {
                     role: 'user',

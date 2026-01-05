@@ -70,11 +70,13 @@ JAW WIDTH: □ Narrow □ Average □ Wide □ Very Wide
 CHIN SHAPE: □ Pointed □ Average □ Round □ Double Chin
 NECK THICKNESS: □ Thin □ Average □ Thick □ Very Thick
 
-★★★ CRITICAL CORRELATION ★★★
-• Full cheeks + Wide jaw + Round chin = Plus-size body
-• Round face + Thick neck = Higher body weight
-• Double chin = Significantly higher body weight
-• Full face + Thick neck = Body mass is SUBSTANTIAL
+★★★ CRITICAL: DO NOT INFER BODY FROM FACE - USE ACTUAL BODY FROM IMAGE 1 ★★★
+• DO NOT assume body size from face features
+• DO NOT guess body weight from face shape
+• LOOK AT THE ACTUAL BODY IN IMAGE 1
+• COPY THE ACTUAL BODY PROPORTIONS YOU SEE
+• If body is visible in Image 1 → use that exact body
+• If body is not fully visible → use what you can see, do not infer
 
 ════════════════════════════════════════════════════════════════════════════════
 PHASE 2: VISIBLE BODY ANALYSIS
@@ -89,13 +91,20 @@ VISIBLE CLOTHING FIT: □ Loose □ Fitted □ Tight □ Very Tight
 
 ★★★ BODY BUILD DETERMINATION ★★★
 
-Based on face + visible body, classify overall build:
+⚠️ CRITICAL: USE ACTUAL BODY FROM IMAGE 1, NOT FACE INFERENCE ⚠️
+
+Based on VISIBLE BODY ONLY (not face), classify overall build:
 □ Very Slim (BMI < 18.5 appearance)
 □ Slim (BMI 18.5-22)
 □ Average (BMI 22-25)
 □ Athletic (muscular build)
 □ Plus Size (BMI 25-30 appearance)
 □ Very Plus Size (BMI 30+ appearance)
+
+IMPORTANT: If body is visible in Image 1 → use that exact body.
+DO NOT infer body size from face features.
+DO NOT guess body weight from face shape.
+COPY THE ACTUAL BODY YOU SEE IN IMAGE 1.
 
 ════════════════════════════════════════════════════════════════════════════════
 PHASE 3: PROPORTION LOCK
@@ -136,34 +145,42 @@ The body profile from Image 1 is ABSOLUTE.
 
 export const FACE_BODY_CORRELATION_RULES = `
 ════════════════════════════════════════════════════════════════════════════════
-FACE-TO-BODY CORRELATION RULES (BINDING)
+BODY COPY RULES (NO INFERENCE - DIRECT COPY ONLY)
 ════════════════════════════════════════════════════════════════════════════════
 
-The face contains PREDICTIVE information about the body.
-Use these correlations:
+⚠️ CRITICAL: DO NOT INFER BODY FROM FACE - COPY ACTUAL BODY FROM IMAGE 1 ⚠️
 
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ FACE INDICATOR              │ BODY PREDICTION                              │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ Full round face + Wide jaw  │ → Plus-size body, full torso                 │
-│ Full cheeks                 │ → Higher body fat percentage                 │
-│ Double chin                 │ → Substantial body mass                      │
-│ Thick neck                  │ → Broad shoulders, thick arms                │
-│ Round face shape            │ → Fuller body overall                        │
-│ Soft jawline                │ → Softer body contours                       │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ Angular face + Sharp jaw    │ → Leaner body type                           │
-│ Hollow cheeks               │ → Lower body fat percentage                  │
-│ Visible cheekbones          │ → Slimmer build                              │
-│ Thin neck                   │ → Narrower shoulders                         │
-│ Defined jawline             │ → More defined body contours                 │
-└─────────────────────────────────────────────────────────────────────────────┘
+DO NOT use face features to predict body size.
+DO NOT assume body weight from face shape.
+DO NOT guess body proportions from facial features.
 
-★★★ THE FACE AND BODY MUST MATCH ★★★
+YOU MUST COPY THE ACTUAL BODY THAT IS VISIBLE IN IMAGE 1.
 
-• If face is FULL → Body MUST be FULL
-• If face is SLIM → Body MUST be SLIM
-• MISMATCH = GENERATION FAILED
+BODY COPY PROCESS:
+1. Look at Image 1
+2. Find the actual body (shoulders, torso, waist, hips, arms)
+3. Copy those exact proportions
+4. Use them in the output
+5. DO NOT CHANGE ANYTHING
+
+IF BODY IS VISIBLE IN IMAGE 1:
+• Copy the exact body size you see
+• Copy the exact body proportions you see
+• Copy the exact body weight you see
+
+IF BODY IS NOT FULLY VISIBLE:
+• Use what you can see
+• Do not infer what you cannot see
+• Do not guess based on face features
+
+★★★ THE BODY IN OUTPUT MUST MATCH THE ACTUAL BODY IN IMAGE 1 ★★★
+
+• If body in Image 1 is SLIM → Output SLIM body (even if face is round)
+• If body in Image 1 is PLUS-SIZE → Output PLUS-SIZE body (even if face is thin)
+• If body in Image 1 is AVERAGE → Output AVERAGE body
+
+DO NOT CHANGE BODY BASED ON FACE FEATURES.
+COPY THE ACTUAL BODY FROM IMAGE 1.
 
 ════════════════════════════════════════════════════════════════════════════════
 COHERENCE CHECK:

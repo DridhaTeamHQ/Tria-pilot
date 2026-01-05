@@ -1,18 +1,18 @@
-import Hero from "@/components/Hero";
-import NewsGrid from "@/components/NewsGrid";
-import ProductSwitcher from "@/components/ProductSwitcher";
-import ValuesScroll from "@/components/ValuesScroll";
-import Locations from "@/components/Locations";
+import Hero from "@/components/home/Hero";
+import FeaturesGrid from "@/components/home/FeaturesGrid";
+import PlatformSection from "@/components/home/PlatformSection";
+import ValuesSection from "@/components/home/ValuesSection";
+import CTASection from "@/components/home/CTASection";
 import Footer from "@/components/Footer";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-cream selection:bg-peach/30">
+    <main className="min-h-screen bg-white">
       <Hero />
-      <NewsGrid />
-      <ProductSwitcher />
-      <ValuesScroll />
-      <Locations />
+      <FeaturesGrid />
+      <PlatformSection />
+      <ValuesSection />
+      <CTASection />
       <Footer />
     </main>
   );

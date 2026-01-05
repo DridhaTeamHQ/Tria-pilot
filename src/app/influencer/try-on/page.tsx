@@ -1151,7 +1151,6 @@ function TryOnPageContent() {
                                     {/* Preset Cards */}
                                     {presets
                                         .filter(p => presetCategory === 'all' || p.category === presetCategory)
-                                        .slice(0, 11) // Show 11 + None = 12 items (3 rows)
                                         .map(preset => {
                                             const categoryColors: Record<string, string> = {
                                                 studio: 'from-gray-400/40 to-slate-500/40',

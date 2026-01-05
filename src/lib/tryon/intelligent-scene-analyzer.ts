@@ -221,7 +221,7 @@ export async function analyzeScene(
 
         // Step 1: Analyze the scene
         const analysisResponse = await client.chat.completions.create({
-            model: 'gpt-4o',
+            model: 'gpt-4o-mini',
             messages: [
                 {
                     role: 'system',
@@ -315,7 +315,7 @@ Keep it under 800 words but be extremely specific.`
 
     try {
         const response = await client.chat.completions.create({
-            model: 'gpt-4o',
+            model: 'gpt-4o-mini',
             messages: [
                 {
                     role: 'system',

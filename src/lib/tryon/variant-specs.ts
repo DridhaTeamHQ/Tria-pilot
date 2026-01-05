@@ -138,18 +138,39 @@ export const VARIANT_IDENTITY_LOCK = `
 ╔═══════════════════════════════════════════════════════════════════════════════╗
 ║                    CROSS-VARIANT IDENTITY LOCK                                ║
 ║                    SAME ACROSS ALL 3 VARIANTS                                 ║
+║              🚨 CRITICAL: FACE MUST BE IDENTICAL IN ALL VARIANTS 🚨           ║
 ╚═══════════════════════════════════════════════════════════════════════════════╝
 
-These elements MUST be IDENTICAL across Variant A, B, and C:
+🚨 YOU ARE GENERATING ONE OF THREE VARIANTS 🚨
 
-FACE (IMMUTABLE):
+THE FACE IN THIS VARIANT MUST BE IDENTICAL TO:
+• Image 1 (source face)
+• Variant A (if this is B or C)
+• Variant B (if this is A or C)
+• Variant C (if this is A or B)
+
+FACE (IMMUTABLE - PIXEL-PERFECT COPY):
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-• Face pixels → COPY from Image 1 (all variants)
-• Eye size → IDENTICAL
-• Eye shape → IDENTICAL
-• Nose shape → IDENTICAL
-• Jawline → IDENTICAL
-• Expression → IDENTICAL
+• Face pixels → COPY from Image 1 (all variants) - PIXEL-BY-PIXEL
+• Eye size → IDENTICAL (measure: must be same pixels)
+• Eye shape → IDENTICAL (exact same shape)
+• Eye spacing → IDENTICAL (measure: must be same distance)
+• Nose width → IDENTICAL (measure: must be same pixels)
+• Nose shape → IDENTICAL (exact same shape)
+• Lip width → IDENTICAL (measure: must be same pixels)
+• Lip shape → IDENTICAL (exact same shape)
+• Jawline → IDENTICAL (exact same contour)
+• Expression → IDENTICAL (same smile, same eye squint)
+• Skin tone → IDENTICAL (same RGB values)
+• Skin texture → IDENTICAL (same pores, same imperfections)
+
+FACE CONSISTENCY CHECK (BEFORE OUTPUT):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+□ Is face IDENTICAL to Image 1? (YES/NO)
+□ Would this face match other variants? (YES/NO)
+□ Are measurements IDENTICAL? (YES/NO)
+
+IF ANY ANSWER IS "NO" → DO NOT OUTPUT → REGENERATE.
 
 HAIR (IMMUTABLE):
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -177,6 +198,12 @@ WHAT CAN CHANGE BETWEEN VARIANTS:
 ✓ Camera distance/framing
 ✓ Background atmosphere/mood
 ✓ Background composition details
+
+FACE DRIFT BETWEEN VARIANTS = CRITICAL FAILURE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+If Variant A has face X and Variant B has face Y → CRITICAL FAILURE
+All variants must have IDENTICAL face.
+NO EXCEPTIONS.
 `
 
 // ═══════════════════════════════════════════════════════════════

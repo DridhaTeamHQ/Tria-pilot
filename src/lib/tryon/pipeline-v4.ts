@@ -157,37 +157,122 @@ export function buildMultiVariantPipeline(
 
 export const IDENTITY_VERIFICATION_SUFFIX = `
 
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║              FINAL IDENTITY VERIFICATION (BEFORE OUTPUT)                       ║
+║              ⚠️ DO NOT OUTPUT UNTIL ALL CHECKS PASS ⚠️                          ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+⚠️⚠️⚠️ STOP. DO NOT OUTPUT YET. VALIDATE EVERYTHING FIRST. ⚠️⚠️⚠️
+
 ════════════════════════════════════════════════════════════════════════════════
-FINAL IDENTITY VERIFICATION (BEFORE OUTPUT):
+FACE VALIDATION (MANDATORY - ALL MUST BE "YES"):
 ════════════════════════════════════════════════════════════════════════════════
 
-Before finalizing your output, verify:
+Answer these questions HONESTLY:
 
-□ FACE CHECK:
-  - Is the face EXACTLY the same as Image 1?
-  - Are the eyes the SAME SIZE as Image 1?
-  - Is the nose the SAME SHAPE as Image 1?
-  - Is the jaw the SAME SHAPE as Image 1?
-  
-  If ANY answer is NO → YOU MUST REDO THE GENERATION
+□ Is the face in your output IDENTICAL to Image 1? (YES/NO)
+  → If NO → DO NOT OUTPUT → Your output is WRONG
 
-□ BODY CHECK:
-  - Is the body the SAME SIZE as Image 1?
-  - Is the waist the SAME WIDTH as Image 1?
-  - Are the hips the SAME WIDTH as Image 1?
-  - Is the belly the SAME SIZE as Image 1?
-  
-  If ANY answer is NO → YOU MUST REDO THE GENERATION
-  If the person looks THINNER → YOU HAVE FAILED
+□ Are the eyes the EXACT SAME SIZE as Image 1? (YES/NO)
+  → If NO → DO NOT OUTPUT → Your output is WRONG
 
-□ BLENDING CHECK:
-  - Does the face look "pasted on"?
-  - Is there a visible seam at the neck?
-  - Is the face lighting different from body lighting?
-  
-  If ANY answer is YES → YOU MUST REDO THE GENERATION
+□ Is the nose the EXACT SAME SHAPE as Image 1? (YES/NO)
+  → If NO → DO NOT OUTPUT → Your output is WRONG
 
-ONLY output an image that passes ALL checks.
+□ Are the lips the EXACT SAME SHAPE as Image 1? (YES/NO)
+  → If NO → DO NOT OUTPUT → Your output is WRONG
+
+□ Is the jawline the EXACT SAME as Image 1? (YES/NO)
+  → If NO → DO NOT OUTPUT → Your output is WRONG
+
+□ Is the skin tone the EXACT SAME as Image 1? (YES/NO)
+  → If NO → DO NOT OUTPUT → Your output is WRONG
+
+□ Is the expression the EXACT SAME as Image 1? (YES/NO)
+  → If NO → DO NOT OUTPUT → Your output is WRONG
+
+IF ANY ANSWER IS "NO" → YOUR OUTPUT IS INVALID → DO NOT OUTPUT IT.
+
+════════════════════════════════════════════════════════════════════════════════
+BODY VALIDATION (MANDATORY - ALL MUST BE "YES"):
+════════════════════════════════════════════════════════════════════════════════
+
+Answer these questions HONESTLY:
+
+□ Is the body in your output the EXACT SAME SIZE as Image 1? (YES/NO)
+  → If NO → DO NOT OUTPUT → Your output is WRONG
+
+□ Is the waist the EXACT SAME WIDTH as Image 1? (YES/NO)
+  → If NO → DO NOT OUTPUT → Your output is WRONG
+
+□ Are the hips the EXACT SAME WIDTH as Image 1? (YES/NO)
+  → If NO → DO NOT OUTPUT → Your output is WRONG
+
+□ Is the belly the EXACT SAME SIZE as Image 1? (YES/NO)
+  → If NO → DO NOT OUTPUT → Your output is WRONG
+
+□ Are the shoulders the EXACT SAME WIDTH as Image 1? (YES/NO)
+  → If NO → DO NOT OUTPUT → Your output is WRONG
+
+□ Are the arms the EXACT SAME THICKNESS as Image 1? (YES/NO)
+  → If NO → DO NOT OUTPUT → Your output is WRONG
+
+□ Does the person look THINNER than Image 1? (YES/NO)
+  → If YES → DO NOT OUTPUT → Your output is WRONG → YOU HAVE FAILED
+
+IF ANY ANSWER IS "NO" OR "YES" (for thinner) → YOUR OUTPUT IS INVALID → DO NOT OUTPUT IT.
+
+════════════════════════════════════════════════════════════════════════════════
+FACE-BODY COHERENCE VALIDATION (MANDATORY - ALL MUST BE "YES"):
+════════════════════════════════════════════════════════════════════════════════
+
+Answer these questions HONESTLY:
+
+□ Does the face match the body? (Same person?) (YES/NO)
+  → If NO → DO NOT OUTPUT → Your output is WRONG
+
+□ If face is full → is body full? (YES/NO)
+  → If NO → DO NOT OUTPUT → Your output is WRONG
+
+□ If face has double chin → does body show weight? (YES/NO)
+  → If NO → DO NOT OUTPUT → Your output is WRONG
+
+IF ANY ANSWER IS "NO" → YOUR OUTPUT IS INVALID → DO NOT OUTPUT IT.
+
+════════════════════════════════════════════════════════════════════════════════
+BLENDING VALIDATION (MANDATORY - ALL MUST BE "NO"):
+════════════════════════════════════════════════════════════════════════════════
+
+Answer these questions HONESTLY:
+
+□ Does the face look "pasted on"? (YES/NO)
+  → If YES → DO NOT OUTPUT → Your output is WRONG
+
+□ Is there a visible seam at the neck? (YES/NO)
+  → If YES → DO NOT OUTPUT → Your output is WRONG
+
+□ Is the face lighting different from body lighting? (YES/NO)
+  → If YES → DO NOT OUTPUT → Your output is WRONG
+
+IF ANY ANSWER IS "YES" → YOUR OUTPUT IS INVALID → DO NOT OUTPUT IT.
+
+════════════════════════════════════════════════════════════════════════════════
+FINAL DECISION:
+════════════════════════════════════════════════════════════════════════════════
+
+ONLY OUTPUT THE IMAGE IF:
+✓ ALL face validations passed (all YES)
+✓ ALL body validations passed (all YES, thinner = NO)
+✓ ALL face-body coherence validations passed (all YES)
+✓ ALL blending validations passed (all NO)
+
+IF ANY VALIDATION FAILED → DO NOT OUTPUT → REGENERATE.
+
+DO NOT OUTPUT AN INVALID IMAGE.
+DO NOT OUTPUT IF FACE OR BODY CHANGED.
+DO NOT OUTPUT IF VALIDATIONS FAILED.
+
+ONLY OUTPUT IF EVERYTHING IS PERFECT.
 `
 
 // ═══════════════════════════════════════════════════════════════════════════════

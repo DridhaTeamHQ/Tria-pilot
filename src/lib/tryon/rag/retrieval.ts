@@ -71,7 +71,13 @@ export async function retrieveSimilarScenarios(
             })
 
         if (goodError) {
-            console.error('Failed to retrieve good examples:', goodError)
+            // Only log if it's not a missing function error (expected in development)
+            if (!goodError.message?.includes('Could not find the function')) {
+                console.error('Failed to retrieve good examples:', goodError)
+            } else {
+                // Expected: Database functions not set up yet - using real-world data only
+                console.log('   ⚠️ Database RAG functions not available (using real-world data only)')
+            }
         }
 
         // Search for BAD examples
@@ -83,7 +89,11 @@ export async function retrieveSimilarScenarios(
             })
 
         if (badError) {
-            console.error('Failed to retrieve bad examples:', badError)
+            // Only log if it's not a missing function error (expected in development)
+            if (!badError.message?.includes('Could not find the function')) {
+                console.error('Failed to retrieve bad examples:', badError)
+            }
+            // Don't log again if we already logged the warning above
         }
 
         const goodExamples: RetrievedExample[] = (goodData || []).map((row: any) => ({
@@ -148,7 +158,11 @@ export async function getRelevantFailurePatterns(
             .limit(10)
 
         if (error) {
-            console.error('Failed to get failure patterns:', error)
+            // Only log if it's not a missing table error (expected in development)
+            if (!error.message?.includes("Could not find the table")) {
+                console.error('Failed to get failure patterns:', error)
+            }
+            // Expected: Table not set up yet - return empty array
             return []
         }
 

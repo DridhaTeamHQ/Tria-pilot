@@ -2,6 +2,15 @@
  * INTELLIGENT TRY-ON RENDERER
  * 
  * Integrates all intelligence layers with photography knowledge
+ * 
+ * EXECUTION ORDER:
+ * 1. Master Constraints (Face Freeze → Body Lock → Garment Extraction)
+ * 2. Hardened Rules
+ * 3. Safety Constraints
+ * 4. Scene Preset (if selected)
+ * 5. Photography Knowledge
+ * 6. Variant Specifications
+ * 7. Final Validation
  */
 
 import 'server-only'
@@ -22,6 +31,14 @@ import { formatPhotographyRAGKnowledge } from './rag/photography-seed-data'
 import { FACE_IDENTITY_LOCK, VARIANT_CONSISTENCY } from './anti-hallucination'
 import { QUALITY_BASELINE, VARIANT_DIFFERENTIATION } from './variant-quality-baseline'
 import { SAFETY_CONSTRAINTS, GARMENT_SCOPE_DETECTION } from './safety-constraints'
+import { HARDENED_IDENTITY_LOCK, HARDENED_GARMENT_RULES, HARDENED_BODY_RULES, HARDENED_TEXTURE_REALISM, HARDENED_FAIL_CONDITIONS } from './hardened-constraints'
+import { ABSOLUTE_CONSTRAINTS, BACKGROUND_BELIEVABILITY, POSE_NATURALISM, getRealWorldPreset, buildPresetPrompt, type RealWorldPreset } from './real-world-presets'
+// NEW: Master constraints for face freeze, body lock, garment extraction
+import { CONSTRAINTS, buildMasterConstraintPrompt } from './master-constraints'
+// NEW: JSON scene preset loader
+import { getScenePreset, buildScenePresetPrompt } from './presets/preset-loader'
+// NEW: Enhanced face consistency and naturalism
+import { buildEnhancedFaceConsistencyPrompt } from './enhanced-face-naturalism'
 import { GoogleGenAI } from '@google/genai'
 import { getGeminiKey } from '@/lib/config/api-keys'
 
@@ -33,6 +50,8 @@ export interface IntelligentTryOnOptions {
     quality: 'fast' | 'high'
     variantName?: VariantName
     aspectRatio?: string
+    realWorldPresetId?: string  // Optional: Use real-world preset for photographic believability
+    scenePresetId?: string      // NEW: JSON scene preset for camera/lighting/background control
 }
 
 /**
@@ -81,26 +100,90 @@ export async function renderTryOnIntelligentSimple(
     // RAG SEED DATA
     const ragGarmentKnowledge = formatGarmentDifferentiationRAG()
 
+    // REAL-WORLD PRESET (PHOTOGRAPHIC BELIEVABILITY)
+    const realWorldPreset: RealWorldPreset | null = options.realWorldPresetId
+        ? getRealWorldPreset(options.realWorldPresetId)
+        : null
+
+    // JSON SCENE PRESET (CAMERA/LIGHTING/BACKGROUND)
+    const scenePresetPrompt = options.scenePresetId
+        ? buildScenePresetPrompt(options.scenePresetId)
+        : ''
+
+    // BUILD MASTER CONSTRAINT PROMPT (HIGHEST PRIORITY)
+    const masterConstraints = buildMasterConstraintPrompt()
+
+    // BUILD ENHANCED FACE CONSISTENCY PROMPT (NATURALISM)
+    const enhancedFacePrompt = buildEnhancedFaceConsistencyPrompt()
 
     const prompt = `
 ═══════════════════════════════════════════════════════════════
-🚨 SAFETY & APPROPRIATENESS (HIGHEST PRIORITY - READ FIRST)
+🚨 MASTER CONSTRAINTS (HIGHEST PRIORITY - READ FIRST)
+═══════════════════════════════════════════════════════════════
+
+${masterConstraints}
+
+═══════════════════════════════════════════════════════════════
+🧊 ENHANCED FACE CONSISTENCY & NATURALISM
+═══════════════════════════════════════════════════════════════
+
+${enhancedFacePrompt}
+
+═══════════════════════════════════════════════════════════════
+⚠️  REAL-WORLD TRY-ON SYSTEM (PHOTOGRAPHIC BELIEVABILITY)
+═══════════════════════════════════════════════════════════════
+
+${ABSOLUTE_CONSTRAINTS}
+
+═══════════════════════════════════════════════════════════════
+🔐 HARDENED MODE (ULTRA-STRICT - REINFORCEMENT)
+═══════════════════════════════════════════════════════════════
+
+⚠️  THIS IS MAXIMUM ENFORCEMENT MODE
+
+You are generating a photorealistic fashion try-on.
+These constraints are NON-NEGOTIABLE.
+
+${HARDENED_IDENTITY_LOCK}
+
+${HARDENED_GARMENT_RULES}
+
+${HARDENED_BODY_RULES}
+
+${HARDENED_TEXTURE_REALISM}
+
+═══════════════════════════════════════════════════════════════
+🚨 SAFETY & APPROPRIATENESS (CRITICAL)
 ═══════════════════════════════════════════════════════════════
 
 ${SAFETY_CONSTRAINTS}
 
 ${GARMENT_SCOPE_DETECTION}
 
+${realWorldPreset ? buildPresetPrompt(realWorldPreset) : ''}
+
+${scenePresetPrompt ? `
 ═══════════════════════════════════════════════════════════════
-🎯 MISSION: PHOTOGRAPHIC-GRADE GENERATION (ALL VARIANTS)
+🎬 SCENE PRESET (CAMERA/LIGHTING/BACKGROUND CONTROL)
 ═══════════════════════════════════════════════════════════════
 
-You are a PROFESSIONAL PHOTOGRAPHER taking photos of ONE PERSON.
+${scenePresetPrompt}
+` : ''}
+
+${BACKGROUND_BELIEVABILITY}
+
+${POSE_NATURALISM}
+
+═══════════════════════════════════════════════════════════════
+🎯 MISSION: PHOTOGRAPHIC-GRADE GENERATION
+═══════════════════════════════════════════════════════════════
+
+You are generating a CASUAL, BELIEVABLE PHOTO.
 
 Image 1 = IDENTITY REFERENCE (face geometry, body proportions, EXISTING CLOTHING)
 Image 2 = GARMENT REFERENCE (clothing to REPLACE, not add to)
 
-Generate SAME PERSON with NEW GARMENT while PRESERVING SAFETY & APPROPRIATENESS.
+Generate SAME PERSON with NEW GARMENT while PRESERVING SAFETY & BELIEVABILITY.
 
 ${QUALITY_BASELINE}
 
@@ -174,6 +257,8 @@ DESCRIPTION: ${garmentClass.hemline_description}
 
 Garment must adapt to body (NOT body to garment).
 
+${HARDENED_FAIL_CONDITIONS}
+
 ═══════════════════════════════════════════════════════════════
 FINAL CHECKLIST (BEFORE OUTPUT)
 ═══════════════════════════════════════════════════════════════
@@ -185,6 +270,9 @@ FINAL CHECKLIST (BEFORE OUTPUT)
 ✓ Garment type: ${garmentClass.category}
 ✓ Hemline position: ${garmentClass.hemline_position}
 ✓ Variant mood: ${variantSpec.moodDescription}
+✓ Texture: Skin pores visible, fabric weave visible, film grain present
+✓ NO plastic/painted look
+✓ NO face drift from Image 1
 
 IF ANY CHECK FAILS → OUTPUT IS INVALID
 `.trim()

@@ -56,7 +56,7 @@ export async function inferBodyFromFace(
 
     try {
         const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
+            model: 'gpt-4o-mini',
             messages: [{
                 role: 'system',
                 content: `You are a body proportion expert. Infer body characteristics from this person's FACE ONLY.
@@ -187,7 +187,7 @@ export async function validateBodyMatch(
 
     try {
         const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
+            model: 'gpt-4o-mini',
             messages: [{
                 role: 'system',
                 content: `Compare the body in this image to expected specifications.

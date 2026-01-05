@@ -96,7 +96,7 @@ export async function validatePoseAsymmetry(
 
     try {
         const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
+            model: 'gpt-4o-mini',
             messages: [{
                 role: 'system',
                 content: `Analyze if this person's pose is natural (asymmetrical) or mannequin-like (symmetrical).

@@ -229,82 +229,14 @@ export async function runTryOnPipelineV3(params: {
   const backgroundName = preset?.background_name || 'keep the original background'
   const lightingName = preset?.lighting_name || 'natural lighting'
 
-  // Build scene instruction - NOW INCLUDES CONTEXT-SPECIFIC PROMPT
+  // Build scene instruction - SIMPLIFIED to reduce token count
+  // Previous version was causing 32K token overflow
   let sceneInstruction = backgroundName
 
-  // Always add ultra-fidelity constraints
-  const ultraFidelity = getUltraFidelityPrompt()
-  logUltraFidelityStatus(`pipeline-${startTime}`)
+  // NOTE: Removed all the verbose prompts (ultraFidelity, hyperRealistic, etc.)
+  // that were causing token limit exceeded. Less is more for model focus.
 
-  // Get photographic style for anti-AI-look
-  const photoStyle = getPhotographicStyle('iphone_candid')
-  logAdvancedPrompting(`pipeline-${startTime}`, photoStyle)
-
-  // Get hyper-realistic constraints for face/lighting/quality
-  const hyperRealistic = getHyperRealisticPrompt()
-  logHyperRealisticStatus(`pipeline-${startTime}`)
-
-  // Get consistency lock for face & clothing
-  const consistencyLock = getConsistencyLockPrompt()
-  logConsistencyStatus(`pipeline-${startTime}`)
-
-  // Get background preservation & physics realism
-  const backgroundPhysics = getBackgroundPhysicsPrompt()
-  logBackgroundPhysicsStatus(`pipeline-${startTime}`)
-
-  // Get anti-AI look controls
-  const antiAILook = getAntiAILookPrompt()
-  logAntiAIStatus(`pipeline-${startTime}`)
-
-  // If we have scene analysis, use the intelligent context prompt
-  if (sceneAnalysis?.contextPrompt) {
-    console.log(`\n🧠 USING INTELLIGENT CONTEXT PROMPT (anti-hallucination)`)
-    sceneInstruction = `
-${IDENTITY_MARKERS}
-
-${ultraFidelity}
-
-${ANTI_AI_TELL_TRIGGERS}
-
-${hyperRealistic}
-
-${consistencyLock}
-
-${backgroundPhysics}
-
-${antiAILook}
-
-════════════════════════════════════════════════════════════════════════════════
-SCENE ANALYSIS CONTEXT (GPT-4o ANALYZED THIS IMAGE)
-════════════════════════════════════════════════════════════════════════════════
-
-${sceneAnalysis.contextPrompt}
-
-CRITICAL SCENE PRESERVATION:
-- Original environment: ${sceneAnalysis.environment?.description}
-- Original pose: ${sceneAnalysis.pose?.description}
-- Original lighting: ${sceneAnalysis.lighting?.source}, ${sceneAnalysis.lighting?.direction}
-- Jawline to protect: ${sceneAnalysis.face?.jawline_description}
-
-BODY PROPORTIONS (from analysis):
-- Body build: ${faceAnalysis?.expectedBodyBuild || 'as observed in image'}
-- Shoulder width: ${faceAnalysis?.expectedShoulderWidth || 'as observed'}
-- Arm thickness: ${faceAnalysis?.expectedArmThickness || 'as observed'}
-
-PHOTOGRAPHIC STYLE:
-- Camera: ${photoStyle.cameraTriggers}
-- Texture: ${photoStyle.textureTriggers}
-- AVOID: ${photoStyle.avoidTriggers.join(', ')}
-
-OUTPUT: Generate a CANDID PHOTOGRAPH (NOT CGI, NOT digital art, NOT illustration).
-The result must look like a real photo, NOT AI-generated.
-${userRequest ? `\nUser request: ${userRequest}` : ''}
-`
-  } else if (userRequest && userRequest.trim()) {
-    sceneInstruction = `${IDENTITY_MARKERS}\n\n${ultraFidelity}\n\n${ANTI_AI_TELL_TRIGGERS}\n\n${sceneInstruction}. ${userRequest}`
-  } else {
-    sceneInstruction = `${IDENTITY_MARKERS}\n\n${ultraFidelity}\n\n${ANTI_AI_TELL_TRIGGERS}\n\n${sceneInstruction}`
-  }
+  console.log(`\n🎯 SIMPLIFIED SCENE INSTRUCTION: ${sceneInstruction.slice(0, 100)}...`)
 
   console.log(`\n========== TRY-ON PIPELINE (PHASE 5 - GARMENT EXTRACTION) ==========`)
   console.log(`🎨 Preset ID: ${presetId || 'none'}`)
@@ -328,6 +260,7 @@ ${userRequest ? `\nUser request: ${userRequest}` : ''}
     aspectRatio: quality.aspectRatio,
     resolution: quality.resolution,
     stylePresetId: presetId,
+    userRequest: userRequest, // Pass userRequest containing all constraint prompts and preset info
   })
 
   const elapsed = Date.now() - startTime

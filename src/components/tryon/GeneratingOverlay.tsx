@@ -2,11 +2,11 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useEffect, useRef } from 'react'
-import { Camera, Brain, Shirt, Wand2, Check, Sparkles } from 'lucide-react'
+import { Camera, Brain, Shirt, Wand2, Check, Sparkles, Shield, ScanFace, Layers, Sun } from 'lucide-react'
 
 interface GeneratingOverlayProps {
     isVisible: boolean
-    modelType: 'flash' | 'pro'
+    modelType: 'flash' | 'pro' | 'production'
     isComplete?: boolean
 }
 
@@ -15,6 +15,17 @@ const steps = [
     { id: 1, icon: Brain, label: 'Reconstructing environment', video: '/mascot/thinking.mp4' },
     { id: 2, icon: Shirt, label: 'Simulating fabric physics', video: '/mascot/loading.mp4' },
     { id: 3, icon: Wand2, label: 'Blending contact shadows', video: '/mascot/loading.mp4' },
+]
+
+// Production pipeline has 7 stages (Stage 7 is optional refinement)
+const productionSteps = [
+    { id: 0, icon: Camera, label: 'Input quality gate', video: '/mascot/analyzing.mp4' },
+    { id: 1, icon: ScanFace, label: 'Face freeze (pixel extraction)', video: '/mascot/analyzing.mp4' },
+    { id: 2, icon: Brain, label: 'Prompt assembly', video: '/mascot/thinking.mp4' },
+    { id: 3, icon: Layers, label: 'Nano Banana generation', video: '/mascot/loading.mp4' },
+    { id: 4, icon: Shield, label: 'Face reintegration', video: '/mascot/loading.mp4' },
+    { id: 5, icon: Wand2, label: 'Body proportion validation', video: '/mascot/loading.mp4' },
+    { id: 6, icon: Sun, label: 'Environment refinement', video: '/mascot/loading.mp4' },
 ]
 
 const funMessages = [
@@ -26,18 +37,32 @@ const funMessages = [
     "Finalizing texture realism...",
 ]
 
+const productionMessages = [
+    "Freezing original face pixels...",
+    "Validating input quality...",
+    "Stripping forbidden prompt terms...",
+    "Generating with Nano Banana Pro...",
+    "Reintegrating original face...",
+    "Validating body proportions...",
+    "Refining lighting and environment...",
+    "Ensuring zero identity drift...",
+]
+
 export function GeneratingOverlay({ isVisible, modelType, isComplete = false }: GeneratingOverlayProps) {
     const [currentStep, setCurrentStep] = useState(0)
     const [currentMessage, setCurrentMessage] = useState(0)
     const [progress, setProgress] = useState(0)
     const videoRef = useRef<HTMLVideoElement>(null)
 
-    const estimatedTime = modelType === 'pro' ? 60 : 15
+    // Use production steps for production model
+    const activeSteps = modelType === 'production' ? productionSteps : steps
+    const activeMessages = modelType === 'production' ? productionMessages : funMessages
+    const estimatedTime = modelType === 'production' ? 45 : modelType === 'pro' ? 60 : 15
 
     // Get current video based on step or completion
     const currentVideo = isComplete
         ? '/mascot/success.mp4'
-        : (steps[currentStep]?.video || '/mascot/loading.mp4')
+        : (activeSteps[currentStep]?.video || '/mascot/loading.mp4')
 
     useEffect(() => {
         if (!isVisible) {
@@ -58,12 +83,12 @@ export function GeneratingOverlay({ isVisible, modelType, isComplete = false }: 
 
         // Step progression
         const stepInterval = setInterval(() => {
-            setCurrentStep((prev) => (prev < steps.length - 1 ? prev + 1 : prev))
+            setCurrentStep((prev) => (prev < activeSteps.length - 1 ? prev + 1 : prev))
         }, estimatedTime * 250)
 
         // Fun message rotation
         const messageInterval = setInterval(() => {
-            setCurrentMessage((prev) => (prev + 1) % funMessages.length)
+            setCurrentMessage((prev) => (prev + 1) % activeMessages.length)
         }, 3500)
 
         return () => {
@@ -193,10 +218,10 @@ export function GeneratingOverlay({ isVisible, modelType, isComplete = false }: 
                                         ) : (
                                             <>
                                                 {(() => {
-                                                    const StepIcon = steps[currentStep].icon
+                                                    const StepIcon = activeSteps[currentStep].icon
                                                     return <StepIcon className="w-5 h-5 text-peach" />
                                                 })()}
-                                                {steps[currentStep].label}
+                                                {activeSteps[currentStep].label}
                                             </>
                                         )}
                                     </span>
@@ -207,26 +232,28 @@ export function GeneratingOverlay({ isVisible, modelType, isComplete = false }: 
                             <div className="px-10 py-8">
                                 {/* Step indicators - LARGER */}
                                 <div className="flex justify-between mb-8">
-                                    {steps.map((step, index) => {
+                                    {activeSteps.map((step, index) => {
                                         const isActive = index === currentStep && !isComplete
                                         const isCompleted = index < currentStep || isComplete
 
                                         return (
                                             <div key={step.id} className="flex flex-col items-center">
                                                 <motion.div
-                                                    className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 ${isCompleted
+                                                    className={`${modelType === 'production' ? 'w-10 h-10' : 'w-12 h-12'} rounded-full flex items-center justify-center transition-all duration-500 ${isCompleted
                                                         ? 'bg-green-500 text-white shadow-lg shadow-green-500/30'
                                                         : isActive
-                                                            ? 'bg-gradient-to-br from-peach to-rose text-white shadow-lg shadow-peach/40'
+                                                            ? modelType === 'production'
+                                                                ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/40'
+                                                                : 'bg-gradient-to-br from-peach to-rose text-white shadow-lg shadow-peach/40'
                                                             : 'bg-gray-100 text-gray-400'
                                                         }`}
                                                     animate={isActive ? { scale: [1, 1.1, 1] } : {}}
                                                     transition={{ duration: 1.5, repeat: Infinity }}
                                                 >
                                                     {isCompleted ? (
-                                                        <Check className="w-6 h-6" />
+                                                        <Check className={`${modelType === 'production' ? 'w-5 h-5' : 'w-6 h-6'}`} />
                                                     ) : (
-                                                        <step.icon className="w-6 h-6" />
+                                                        <step.icon className={`${modelType === 'production' ? 'w-5 h-5' : 'w-6 h-6'}`} />
                                                     )}
                                                 </motion.div>
                                             </div>
@@ -260,17 +287,23 @@ export function GeneratingOverlay({ isVisible, modelType, isComplete = false }: 
                                         transition={{ duration: 0.3 }}
                                         className="text-center text-charcoal/70 text-base font-medium"
                                     >
-                                        {isComplete ? "🎉 Your try-on is ready!" : funMessages[currentMessage]}
+                                        {isComplete ? "🎉 Your try-on is ready!" : activeMessages[currentMessage]}
                                     </motion.p>
                                 </AnimatePresence>
 
                                 {/* Model badge - LARGER */}
                                 <div className="mt-5 flex justify-center">
-                                    <div className={`px-5 py-2 rounded-full text-sm font-bold tracking-wide ${modelType === 'pro'
-                                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/30'
-                                        : 'bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-lg shadow-orange-500/30'
+                                    <div className={`px-5 py-2 rounded-full text-sm font-bold tracking-wide ${modelType === 'production'
+                                        ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/30'
+                                        : modelType === 'pro'
+                                            ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/30'
+                                            : 'bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-lg shadow-orange-500/30'
                                         }`}>
-                                        {modelType === 'pro' ? '⚡ PRO MODEL' : '🚀 FLASH MODEL'}
+                                        {modelType === 'production'
+                                            ? '🔒 PRODUCTION PIPELINE'
+                                            : modelType === 'pro'
+                                                ? '⚡ PRO MODEL'
+                                                : '🚀 FLASH MODEL'}
                                     </div>
                                 </div>
                             </div>

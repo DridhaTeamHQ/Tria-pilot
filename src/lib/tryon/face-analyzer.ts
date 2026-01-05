@@ -240,7 +240,7 @@ THIS ANALYSIS MUST BE PRECISE ENOUGH TO IDENTIFY THIS PERSON IN A LINEUP.`
     console.log(`🔬 GPT-4o: Forensic face analysis (${imageInputs.length} reference(s))...`)
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: [{ type: 'text', text: userPrompt }, ...imageInputs] },
@@ -625,7 +625,7 @@ BE THOROUGH. This analysis drives how the AI generates the garment on the new pe
     console.log('👔 GPT-4o: Garment analysis...')
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-4o-mini',
       messages: [
         {
           role: 'user',

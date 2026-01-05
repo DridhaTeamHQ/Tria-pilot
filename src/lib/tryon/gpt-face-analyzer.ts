@@ -158,7 +158,7 @@ export async function analyzeUserFace(
         const cleanBase64 = userImageBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '')
 
         const response = await client.chat.completions.create({
-            model: 'gpt-4o',
+            model: 'gpt-4o-mini',
             messages: [
                 {
                     role: 'system',
@@ -275,7 +275,7 @@ Keep it under 500 words but be specific.`
 
     try {
         const response = await client.chat.completions.create({
-            model: 'gpt-4o',
+            model: 'gpt-4o-mini',
             messages: [
                 {
                     role: 'system',
