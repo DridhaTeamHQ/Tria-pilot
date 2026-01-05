@@ -1,6 +1,16 @@
-export function normalizeBase64(imageBase64: string, targetSize: number = 1024): string {
+export function normalizeBase64(imageBase64: string | undefined | null, targetSize: number = 1024): string {
+  // Handle null/undefined/empty strings
+  if (!imageBase64 || typeof imageBase64 !== 'string' || imageBase64.trim().length === 0) {
+    throw new Error('Invalid image data: imageBase64 is required and must be a non-empty string')
+  }
+  
   // Remove data URL prefix if present
   const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '')
+  
+  // Validate that we have actual base64 data
+  if (!base64Data || base64Data.length < 100) {
+    throw new Error('Invalid image data: base64 string is too short or invalid')
+  }
   
   // For now, return as-is. In production, you'd want to:
   // 1. Decode base64 to image

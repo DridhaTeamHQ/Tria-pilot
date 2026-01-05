@@ -186,10 +186,31 @@ export async function POST(request: Request) {
     try {
       console.log('🚀 Starting try-on generation for job:', job.id)
 
-      // Normalize images
-      const normalizedPerson = normalizeBase64(personImage)
-      const normalizedClothing = clothingImage ? normalizeBase64(clothingImage) : undefined
-      const normalizedBackground = backgroundImage ? normalizeBase64(backgroundImage) : undefined
+      // Normalize images with error handling
+      let normalizedPerson: string
+      let normalizedClothing: string | undefined
+      let normalizedBackground: string | undefined
+
+      try {
+        normalizedPerson = normalizeBase64(personImage)
+      } catch (error) {
+        throw new Error(`Invalid person image: ${error instanceof Error ? error.message : 'Invalid image data'}`)
+      }
+
+      try {
+        normalizedClothing = clothingImage ? normalizeBase64(clothingImage) : undefined
+      } catch (error) {
+        throw new Error(`Invalid clothing image: ${error instanceof Error ? error.message : 'Invalid image data'}`)
+      }
+
+      try {
+        normalizedBackground = backgroundImage ? normalizeBase64(backgroundImage) : undefined
+      } catch (error) {
+        // Background is optional, so log warning but don't fail
+        console.warn(`⚠️ Invalid background image, continuing without background: ${error instanceof Error ? error.message : 'Invalid image data'}`)
+        normalizedBackground = undefined
+      }
+
       // NOTE: identityImages (personImages) are no longer used in new architecture
       // Identity comes from person image only (pixel-level)
 
@@ -533,7 +554,7 @@ REQUIREMENTS:
       )
 
       const variantResults = await Promise.all(variantPromises)
-      const successfulVariants = variantResults.filter(v => v !== null) as Array<{ variantIndex: number, result: Awaited<ReturnType<typeof runTryOnPipelineV3>> }>
+      const successfulVariants = variantResults.filter(v => v !== null && v.result !== null) as Array<{ variantIndex: number, result: Awaited<ReturnType<typeof runTryOnPipelineV3>> }>
 
       if (successfulVariants.length === 0) {
         throw new Error('All variant generations failed. Please try again.')
