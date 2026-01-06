@@ -582,16 +582,51 @@ img {
    SCROLL PERFORMANCE OPTIMIZATION
    ============================================ */
 
+/* Smooth scrolling with performance optimization */
+html {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* GPU layer promotion for sections during scroll */
 section {
   transform: translateZ(0);
   backface-visibility: hidden;
+  will-change: scroll-position;
+}
+
+/* Optimize sticky/fixed elements for scroll */
+[class*="sticky"],
+[class*="fixed"] {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 /* Reduce repaint on large blurred backgrounds */
 [class*="blur-"] {
   backface-visibility: hidden;
   transform: translateZ(0);
+  will-change: filter;
+}
+
+/* Optimize scroll containers */
+.overflow-y-auto,
+.overflow-x-auto,
+[class*="overflow"] {
+  -webkit-overflow-scrolling: touch;
+  transform: translateZ(0);
+}
+
+/* Reduce layout thrashing during scroll */
+body {
+  contain: layout style;
+}
+
+/* Optimize images during scroll */
+img {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 300px;
 }
 
 /* ============================================

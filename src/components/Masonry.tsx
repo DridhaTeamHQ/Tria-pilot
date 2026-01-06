@@ -64,9 +64,11 @@ const useMeasure = (): [React.RefObject<HTMLDivElement>, { width: number; height
     return [ref, size];
 };
 
-const preloadImages = async (urls: string[]) => {
+// Optimized: Only preload first 6 images (above fold)
+const preloadImages = async (urls: string[], limit: number = 6) => {
+    const urlsToPreload = urls.slice(0, limit);
     await Promise.all(
-        urls.map(
+        urlsToPreload.map(
             src =>
                 new Promise<void>(resolve => {
                     const img = new Image();
@@ -128,8 +130,19 @@ const Masonry = ({
         }
     };
 
+    // Optimized: Only preload first 6 images (above fold), rest lazy load
     useEffect(() => {
-        preloadImages(items.map(i => i.img)).then(() => setImagesReady(true));
+        const imageUrls = items.map(i => i.img);
+        const firstBatch = imageUrls.slice(0, 6);
+        preloadImages(firstBatch).then(() => {
+            setImagesReady(true);
+            // Lazy load remaining images in background
+            if (imageUrls.length > 6) {
+                setTimeout(() => {
+                    preloadImages(imageUrls.slice(6));
+                }, 500);
+            }
+        });
     }, [items]);
 
     const grid = useMemo(() => {
@@ -155,45 +168,54 @@ const Masonry = ({
     useLayoutEffect(() => {
         if (!imagesReady) return;
 
-        grid.forEach((item, index) => {
-            const selector = `[data-key="${item.id}"]`;
-            const animationProps = {
-                x: item.x,
-                y: item.y,
-                width: item.w,
-                height: item.h
-            };
-
-            if (!hasMounted.current) {
-                const initialPos = getInitialPosition(item);
-                const initialState = {
-                    opacity: 0,
-                    x: initialPos.x,
-                    y: initialPos.y,
+        // Batch animations with requestAnimationFrame for better scroll performance
+        const rafId = requestAnimationFrame(() => {
+            grid.forEach((item, index) => {
+                const selector = `[data-key="${item.id}"]`;
+                const animationProps = {
+                    x: item.x,
+                    y: item.y,
                     width: item.w,
-                    height: item.h,
-                    ...(blurToFocus && { filter: 'blur(10px)' })
+                    height: item.h
                 };
 
-                gsap.fromTo(selector, initialState, {
-                    opacity: 1,
-                    ...animationProps,
-                    ...(blurToFocus && { filter: 'blur(0px)' }),
-                    duration: 0.8,
-                    ease: 'power3.out',
-                    delay: index * stagger
-                });
-            } else {
-                gsap.to(selector, {
-                    ...animationProps,
-                    duration: duration,
-                    ease: ease,
-                    overwrite: 'auto'
-                });
-            }
+                if (!hasMounted.current) {
+                    const initialPos = getInitialPosition(item);
+                    const initialState = {
+                        opacity: 0,
+                        x: initialPos.x,
+                        y: initialPos.y,
+                        width: item.w,
+                        height: item.h,
+                        ...(blurToFocus && { filter: 'blur(10px)' })
+                    };
+
+                    gsap.fromTo(selector, initialState, {
+                        opacity: 1,
+                        ...animationProps,
+                        ...(blurToFocus && { filter: 'blur(0px)' }),
+                        duration: 0.8,
+                        ease: 'power3.out',
+                        delay: index * stagger,
+                        force3D: true // GPU acceleration
+                    });
+                } else {
+                    gsap.to(selector, {
+                        ...animationProps,
+                        duration: duration,
+                        ease: ease,
+                        overwrite: 'auto',
+                        force3D: true // GPU acceleration
+                    });
+                }
+            });
+
+            hasMounted.current = true;
         });
 
-        hasMounted.current = true;
+        return () => {
+            if (rafId) cancelAnimationFrame(rafId);
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [grid, imagesReady, stagger, animateFrom, blurToFocus, duration, ease]);
 

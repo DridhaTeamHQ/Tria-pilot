@@ -46,15 +46,30 @@ export default function ValuesScroll() {
     useSpring(scrollYProgress, { damping: 20, stiffness: 100 });
 
     useEffect(() => {
+        let rafId: number | null = null
+        let lastIndex = activeValue
+        
         const unsubscribe = scrollYProgress.on("change", (latest) => {
-            const index = Math.min(
-                Math.floor(latest * values.length),
-                values.length - 1
-            );
-            setActiveValue(index);
+            if (rafId !== null) return // Throttle with RAF
+            
+            rafId = requestAnimationFrame(() => {
+                const index = Math.min(
+                    Math.floor(latest * values.length),
+                    values.length - 1
+                );
+                // Only update if index actually changed
+                if (index !== lastIndex) {
+                    setActiveValue(index);
+                    lastIndex = index
+                }
+                rafId = null
+            });
         });
-        return () => unsubscribe();
-    }, [scrollYProgress]);
+        return () => {
+            unsubscribe();
+            if (rafId !== null) cancelAnimationFrame(rafId);
+        };
+    }, [scrollYProgress, activeValue]);
 
     return (
         <section ref={containerRef} className="relative h-[300vh] bg-cream">
