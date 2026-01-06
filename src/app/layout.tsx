@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { Toaster } from '@/components/ui/sonner'
 import Header from '@/components/Header'
-import GlobalBlobCursor from '@/components/GlobalBlobCursor'
 import { ReactQueryProvider } from '@/lib/react-query/provider'
 import './globals.css'
 import { Playfair_Display, Inter } from 'next/font/google'
@@ -34,7 +33,6 @@ export default function RootLayout({
       <body className={`${playfair.variable} ${inter.variable} antialiased bg-cream text-charcoal`}>
         <ReactQueryProvider>
           <ReactLenis>
-            <GlobalBlobCursor />
             <Header />
             <main className="animate-fade-in">
               {children}
