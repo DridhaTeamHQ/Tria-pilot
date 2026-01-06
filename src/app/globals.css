@@ -582,9 +582,9 @@ img {
    SCROLL PERFORMANCE OPTIMIZATION
    ============================================ */
 
-/* Smooth scrolling with performance optimization */
+/* Instant scrolling - no smooth behavior delay */
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: auto; /* Changed from 'smooth' to 'auto' for instant scroll */
   -webkit-overflow-scrolling: touch;
 }
 

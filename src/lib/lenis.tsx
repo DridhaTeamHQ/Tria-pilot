@@ -4,42 +4,40 @@ import { ReactLenis as Lenis } from "@studio-freight/react-lenis";
 import { useEffect, useState } from "react";
 
 /**
- * PERFORMANCE-OPTIMIZED SMOOTH SCROLL
+ * DISABLED SMOOTH SCROLL FOR INSTANT SCROLLING
  * 
- * Optimizations:
- * - Higher lerp (0.12) for faster response, less lag
- * - Shorter duration (1.0) for snappier feel
- * - Only smoothWheel (not touch) - touch devices use native scroll
- * - Disabled when prefers-reduced-motion is set
+ * Lenis smooth scroll causes noticeable delay on scroll.
+ * Disabled by default for instant, native scroll performance.
+ * Can be re-enabled per user preference if needed.
  */
 export function ReactLenis({ children }: { children: React.ReactNode }) {
-    // Enable smooth scroll for premium feel
-    const [shouldSmooth, setShouldSmooth] = useState(true);
+    // Disable smooth scroll by default for instant scrolling
+    const [shouldSmooth, setShouldSmooth] = useState(false);
 
     useEffect(() => {
-        // Respect reduced motion preference
-        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        if (prefersReducedMotion) {
-            setShouldSmooth(false);
-        }
-
-        // Disable on low-end devices (less than 4GB RAM)
-        if ('deviceMemory' in navigator && (navigator as any).deviceMemory < 4) {
-            setShouldSmooth(false);
+        // Only enable if user explicitly prefers smooth scroll
+        // Check for a query param or localStorage preference
+        const urlParams = new URLSearchParams(window.location.search);
+        const prefersSmooth = urlParams.get('smooth') === 'true' || 
+                              localStorage.getItem('prefers-smooth-scroll') === 'true';
+        
+        if (prefersSmooth) {
+            setShouldSmooth(true);
         }
     }, []);
 
-    // Skip Lenis entirely if smooth scrolling is disabled
+    // Skip Lenis entirely - use native scroll for instant response
     if (!shouldSmooth) {
         return <>{children}</>;
     }
 
+    // Only enable if user explicitly wants it (very fast settings)
     return (
         <Lenis root options={{
-            lerp: 0.1,            // Balanced smooth feel (standard)
-            duration: 1.2,        // Slightly longer for elegance but not floaty
+            lerp: 0.8,            // Very fast, almost instant
+            duration: 0.1,        // Minimal delay
             smoothWheel: true,
-            touchMultiplier: 0,   // Native touch scroll for best mobile experience
+            touchMultiplier: 0,   // Native touch scroll
         }}>
             {children}
         </Lenis>
