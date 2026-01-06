@@ -1,8 +1,8 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { useState, useEffect, useRef } from 'react'
-import { Camera, Brain, Shirt, Wand2, Check, Sparkles, Shield, ScanFace, Layers, Sun } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Camera, Brain, Shirt, Wand2, Check, Sparkles, ScanFace, Layers, Sun, AlertCircle } from 'lucide-react'
 
 interface GeneratingOverlayProps {
     isVisible: boolean
@@ -11,92 +11,77 @@ interface GeneratingOverlayProps {
 }
 
 const steps = [
-    { id: 0, icon: Camera, label: 'Scanning identity anchor', video: '/mascot/analyzing.mp4' },
-    { id: 1, icon: Brain, label: 'Reconstructing environment', video: '/mascot/thinking.mp4' },
-    { id: 2, icon: Shirt, label: 'Simulating fabric physics', video: '/mascot/loading.mp4' },
-    { id: 3, icon: Wand2, label: 'Blending contact shadows', video: '/mascot/loading.mp4' },
+    { id: 0, icon: Camera, label: 'Analyzing input' },
+    { id: 1, icon: Brain, label: 'Processing' },
+    { id: 2, icon: Shirt, label: 'Generating try-on' },
+    { id: 3, icon: Wand2, label: 'Finalizing' },
 ]
 
-// Production pipeline has 7 stages (Stage 7 is optional refinement)
 const productionSteps = [
-    { id: 0, icon: Camera, label: 'Input quality gate', video: '/mascot/analyzing.mp4' },
-    { id: 1, icon: ScanFace, label: 'Face freeze (pixel extraction)', video: '/mascot/analyzing.mp4' },
-    { id: 2, icon: Brain, label: 'Prompt assembly', video: '/mascot/thinking.mp4' },
-    { id: 3, icon: Layers, label: 'Nano Banana generation', video: '/mascot/loading.mp4' },
-    { id: 4, icon: Shield, label: 'Face reintegration', video: '/mascot/loading.mp4' },
-    { id: 5, icon: Wand2, label: 'Body proportion validation', video: '/mascot/loading.mp4' },
-    { id: 6, icon: Sun, label: 'Environment refinement', video: '/mascot/loading.mp4' },
+    { id: 0, icon: Camera, label: 'Quality check' },
+    { id: 1, icon: ScanFace, label: 'Face lock' },
+    { id: 2, icon: Brain, label: 'Prompt build' },
+    { id: 3, icon: Layers, label: 'Generation' },
+    { id: 4, icon: Wand2, label: 'Integration' },
+    { id: 5, icon: Sun, label: 'Refinement' },
 ]
 
-const funMessages = [
-    "Locking identity coordinates...",
-    "Calculating environmental light falloff...",
-    "Warping fabric mesh to body...",
-    "Matching camera lens distortion...",
-    "Rebuilding scene depth...",
-    "Finalizing texture realism...",
-]
-
-const productionMessages = [
-    "Freezing original face pixels...",
-    "Validating input quality...",
-    "Stripping forbidden prompt terms...",
-    "Generating with Nano Banana Pro...",
-    "Reintegrating original face...",
-    "Validating body proportions...",
-    "Refining lighting and environment...",
-    "Ensuring zero identity drift...",
-]
+// Accurate timing based on actual render performance
+const RENDER_TIMES = {
+    flash: { min: 12, max: 18, display: '~15 seconds' },
+    pro: { min: 65, max: 80, display: '~70 seconds' },
+    production: { min: 40, max: 55, display: '~45 seconds' },
+}
 
 export function GeneratingOverlay({ isVisible, modelType, isComplete = false }: GeneratingOverlayProps) {
     const [currentStep, setCurrentStep] = useState(0)
-    const [currentMessage, setCurrentMessage] = useState(0)
+    const [elapsedTime, setElapsedTime] = useState(0)
     const [progress, setProgress] = useState(0)
-    const videoRef = useRef<HTMLVideoElement>(null)
 
-    // Use production steps for production model
     const activeSteps = modelType === 'production' ? productionSteps : steps
-    const activeMessages = modelType === 'production' ? productionMessages : funMessages
-    const estimatedTime = modelType === 'production' ? 45 : modelType === 'pro' ? 60 : 15
-
-    // Get current video based on step or completion
-    const currentVideo = isComplete
-        ? '/mascot/success.mp4'
-        : (activeSteps[currentStep]?.video || '/mascot/loading.mp4')
+    const timing = RENDER_TIMES[modelType]
 
     useEffect(() => {
         if (!isVisible) {
             setCurrentStep(0)
             setProgress(0)
-            setCurrentMessage(0)
+            setElapsedTime(0)
             return
         }
 
-        // Progress animation
+        // Timer for elapsed time
+        const timerInterval = setInterval(() => {
+            setElapsedTime(prev => prev + 1)
+        }, 1000)
+
+        // Progress - based on estimated time
+        const avgTime = (timing.min + timing.max) / 2
         const progressInterval = setInterval(() => {
-            setProgress((prev) => {
+            setProgress(prev => {
                 if (prev >= 95) return prev
-                const increment = modelType === 'pro' ? 0.25 : 1
+                const increment = 95 / (avgTime * 5) // Complete 95% in avg time
                 return Math.min(prev + increment, 95)
             })
         }, 200)
 
         // Step progression
+        const stepDuration = (avgTime * 1000) / activeSteps.length
         const stepInterval = setInterval(() => {
-            setCurrentStep((prev) => (prev < activeSteps.length - 1 ? prev + 1 : prev))
-        }, estimatedTime * 250)
-
-        // Fun message rotation
-        const messageInterval = setInterval(() => {
-            setCurrentMessage((prev) => (prev + 1) % activeMessages.length)
-        }, 3500)
+            setCurrentStep(prev => (prev < activeSteps.length - 1 ? prev + 1 : prev))
+        }, stepDuration)
 
         return () => {
+            clearInterval(timerInterval)
             clearInterval(progressInterval)
             clearInterval(stepInterval)
-            clearInterval(messageInterval)
         }
-    }, [isVisible, estimatedTime, modelType])
+    }, [isVisible, modelType, timing, activeSteps.length])
+
+    const formatTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60)
+        const secs = seconds % 60
+        return mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`
+    }
 
     return (
         <AnimatePresence>
@@ -106,208 +91,138 @@ export function GeneratingOverlay({ isVisible, modelType, isComplete = false }: 
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.3 }}
-                    className="fixed inset-0 z-50 flex items-center justify-center"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal/80 backdrop-blur-sm"
                 >
-                    {/* Beautiful gradient backdrop */}
+                    {/* Main content card */}
                     <motion.div
-                        className="absolute inset-0"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        style={{
-                            background: 'linear-gradient(135deg, rgba(232,121,109,0.95) 0%, rgba(180,90,130,0.95) 50%, rgba(100,80,160,0.95) 100%)',
-                        }}
-                    />
-
-                    {/* Animated background shapes */}
-                    <div className="absolute inset-0 overflow-hidden">
-                        {[...Array(6)].map((_, i) => (
-                            <motion.div
-                                key={i}
-                                className="absolute rounded-full bg-white/10"
-                                style={{
-                                    width: 80 + i * 40,
-                                    height: 80 + i * 40,
-                                    left: `${10 + i * 15}%`,
-                                    top: `${5 + i * 18}%`,
-                                }}
-                                animate={{
-                                    y: [0, -20, 0],
-                                    scale: [1, 1.05, 1],
-                                    opacity: [0.08, 0.15, 0.08],
-                                }}
-                                transition={{
-                                    duration: 4 + i,
-                                    repeat: Infinity,
-                                    ease: 'easeInOut',
-                                    delay: i * 0.3,
-                                }}
-                            />
-                        ))}
-                    </div>
-
-                    {/* Main content card - LARGER */}
-                    <motion.div
-                        initial={{ scale: 0.8, opacity: 0, y: 30 }}
+                        initial={{ scale: 0.9, opacity: 0, y: 20 }}
                         animate={{ scale: 1, opacity: 1, y: 0 }}
-                        exit={{ scale: 0.8, opacity: 0, y: 30 }}
-                        transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-                        className="relative z-10 w-full max-w-xl mx-4"
+                        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                        className="relative w-full max-w-md mx-4 bg-cream rounded-3xl shadow-2xl overflow-hidden"
                     >
-                        <div className="bg-white backdrop-blur-xl rounded-[2.5rem] shadow-2xl overflow-hidden">
-                            {/* Mascot Video Section - BIGGER */}
-                            <div className="relative bg-gradient-to-br from-peach/10 via-rose/5 to-purple-100/20 pt-10 pb-6">
-                                {/* Decorative sparkles */}
-                                <motion.div
-                                    className="absolute top-6 right-10 text-2xl"
-                                    animate={{ rotate: [0, 15, 0], scale: [1, 1.2, 1] }}
-                                    transition={{ duration: 2, repeat: Infinity }}
-                                >
-                                    ✨
-                                </motion.div>
-                                <motion.div
-                                    className="absolute top-12 left-10 text-xl"
-                                    animate={{ rotate: [0, -15, 0], scale: [1, 1.1, 1] }}
-                                    transition={{ duration: 2.5, repeat: Infinity, delay: 0.5 }}
-                                >
-                                    💫
-                                </motion.div>
-
-                                {/* Video container - MUCH BIGGER with smooth transitions */}
-                                <div className="flex justify-center px-6">
-                                    <motion.div
-                                        className="relative"
-                                        animate={{ y: [0, -6, 0] }}
-                                        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-                                    >
-                                        {/* Glow effect */}
-                                        <div className="absolute inset-0 bg-gradient-to-br from-peach/40 to-rose/40 rounded-3xl blur-2xl scale-110" />
-
-                                        {/* Video player - with background to prevent white flash */}
-                                        <div className="relative w-48 h-48 sm:w-56 sm:h-56 md:w-72 md:h-72 rounded-3xl overflow-hidden border-4 border-white shadow-2xl bg-gradient-to-br from-peach/30 to-rose/30">
-                                            <video
-                                                key={currentVideo}
-                                                ref={videoRef}
-                                                autoPlay
-                                                loop
-                                                muted
-                                                playsInline
-                                                preload="auto"
-                                                className="w-full h-full object-cover"
-                                                style={{ objectPosition: 'center 20%' }}
-                                            >
-                                                <source src={currentVideo} type="video/mp4" />
-                                            </video>
-                                        </div>
-                                    </motion.div>
-                                </div>
-
-                                {/* Current step label */}
-                                <motion.div
-                                    className="mt-5 text-center"
-                                    key={isComplete ? 'complete' : currentStep}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ duration: 0.3 }}
-                                >
-                                    <span className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/90 backdrop-blur-sm rounded-full text-charcoal font-semibold shadow-lg">
-                                        {isComplete ? (
-                                            <>
-                                                <Sparkles className="w-5 h-5 text-green-500" />
-                                                <span className="text-green-600">Generation Complete!</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                {(() => {
-                                                    const StepIcon = activeSteps[currentStep].icon
-                                                    return <StepIcon className="w-5 h-5 text-peach" />
-                                                })()}
-                                                {activeSteps[currentStep].label}
-                                            </>
-                                        )}
-                                    </span>
-                                </motion.div>
-                            </div>
-
-                            {/* Progress section */}
-                            <div className="px-10 py-8">
-                                {/* Step indicators - LARGER */}
-                                <div className="flex justify-between mb-8">
-                                    {activeSteps.map((step, index) => {
-                                        const isActive = index === currentStep && !isComplete
-                                        const isCompleted = index < currentStep || isComplete
-
-                                        return (
-                                            <div key={step.id} className="flex flex-col items-center">
-                                                <motion.div
-                                                    className={`${modelType === 'production' ? 'w-10 h-10' : 'w-12 h-12'} rounded-full flex items-center justify-center transition-all duration-500 ${isCompleted
-                                                        ? 'bg-green-500 text-white shadow-lg shadow-green-500/30'
-                                                        : isActive
-                                                            ? modelType === 'production'
-                                                                ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/40'
-                                                                : 'bg-gradient-to-br from-peach to-rose text-white shadow-lg shadow-peach/40'
-                                                            : 'bg-gray-100 text-gray-400'
-                                                        }`}
-                                                    animate={isActive ? { scale: [1, 1.1, 1] } : {}}
-                                                    transition={{ duration: 1.5, repeat: Infinity }}
-                                                >
-                                                    {isCompleted ? (
-                                                        <Check className={`${modelType === 'production' ? 'w-5 h-5' : 'w-6 h-6'}`} />
-                                                    ) : (
-                                                        <step.icon className={`${modelType === 'production' ? 'w-5 h-5' : 'w-6 h-6'}`} />
-                                                    )}
-                                                </motion.div>
-                                            </div>
-                                        )
-                                    })}
-                                </div>
-
-                                {/* Progress bar - THICKER */}
-                                <div className="mb-5">
-                                    <div className="flex justify-between text-sm mb-2">
-                                        <span className="text-charcoal/60 font-medium">Progress</span>
-                                        <span className="text-charcoal font-bold text-lg">{isComplete ? 100 : Math.round(progress)}%</span>
-                                    </div>
-                                    <div className="h-4 bg-gray-100 rounded-full overflow-hidden shadow-inner">
+                        {/* Header */}
+                        <div className="px-6 pt-6 pb-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    {/* Animated spinner */}
+                                    <div className="relative w-12 h-12">
                                         <motion.div
-                                            className="h-full bg-gradient-to-r from-peach via-rose to-purple-500 rounded-full"
-                                            initial={{ width: 0 }}
-                                            animate={{ width: isComplete ? '100%' : `${progress}%` }}
-                                            transition={{ duration: 0.4 }}
+                                            className="absolute inset-0 rounded-full border-4 border-charcoal/10"
                                         />
+                                        <motion.div
+                                            className="absolute inset-0 rounded-full border-4 border-transparent border-t-peach"
+                                            animate={{ rotate: 360 }}
+                                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                                        />
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <Sparkles className="w-5 h-5 text-peach" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-serif font-semibold text-charcoal">
+                                            {isComplete ? 'Complete!' : 'Generating...'}
+                                        </h3>
+                                        <p className="text-sm text-charcoal/60">
+                                            {isComplete ? 'Your try-on is ready' : activeSteps[currentStep]?.label}
+                                        </p>
                                     </div>
                                 </div>
 
-                                {/* Fun message */}
-                                <AnimatePresence mode="wait">
-                                    <motion.p
-                                        key={isComplete ? 'done' : currentMessage}
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -10 }}
-                                        transition={{ duration: 0.3 }}
-                                        className="text-center text-charcoal/70 text-base font-medium"
-                                    >
-                                        {isComplete ? "🎉 Your try-on is ready!" : activeMessages[currentMessage]}
-                                    </motion.p>
-                                </AnimatePresence>
-
-                                {/* Model badge - LARGER */}
-                                <div className="mt-5 flex justify-center">
-                                    <div className={`px-5 py-2 rounded-full text-sm font-bold tracking-wide ${modelType === 'production'
-                                        ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/30'
-                                        : modelType === 'pro'
-                                            ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/30'
-                                            : 'bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-lg shadow-orange-500/30'
-                                        }`}>
-                                        {modelType === 'production'
-                                            ? '🔒 PRODUCTION PIPELINE'
-                                            : modelType === 'pro'
-                                                ? '⚡ PRO MODEL'
-                                                : '🚀 FLASH MODEL'}
+                                {/* Timer */}
+                                <div className="text-right">
+                                    <div className="text-2xl font-mono font-bold text-charcoal">
+                                        {formatTime(elapsedTime)}
                                     </div>
+                                    <p className="text-xs text-charcoal/50">
+                                        Est: {timing.display}
+                                    </p>
                                 </div>
                             </div>
                         </div>
+
+                        {/* Progress bar */}
+                        <div className="px-6 pb-4">
+                            <div className="h-2 bg-charcoal/10 rounded-full overflow-hidden">
+                                <motion.div
+                                    className="h-full bg-gradient-to-r from-peach to-rose rounded-full"
+                                    initial={{ width: 0 }}
+                                    animate={{ width: isComplete ? '100%' : `${progress}%` }}
+                                    transition={{ duration: 0.3 }}
+                                />
+                            </div>
+                            <div className="flex justify-between mt-2">
+                                <span className="text-xs text-charcoal/50">
+                                    {isComplete ? '100%' : `${Math.round(progress)}%`}
+                                </span>
+                                <span className="text-xs text-charcoal/50">
+                                    Step {currentStep + 1} of {activeSteps.length}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Step indicators */}
+                        <div className="px-6 pb-6">
+                            <div className="flex items-center justify-between">
+                                {activeSteps.map((step, index) => {
+                                    const isActive = index === currentStep && !isComplete
+                                    const isCompleted = index < currentStep || isComplete
+                                    const StepIcon = step.icon
+
+                                    return (
+                                        <div key={step.id} className="flex flex-col items-center gap-1">
+                                            <motion.div
+                                                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${isCompleted
+                                                        ? 'bg-green-500 text-white'
+                                                        : isActive
+                                                            ? 'bg-peach text-white'
+                                                            : 'bg-charcoal/5 text-charcoal/30'
+                                                    }`}
+                                                animate={isActive ? { scale: [1, 1.1, 1] } : {}}
+                                                transition={{ duration: 1, repeat: Infinity }}
+                                            >
+                                                {isCompleted ? (
+                                                    <Check className="w-5 h-5" />
+                                                ) : (
+                                                    <StepIcon className="w-5 h-5" />
+                                                )}
+                                            </motion.div>
+                                            {index < activeSteps.length - 1 && (
+                                                <div className="absolute" />
+                                            )}
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Model badge */}
+                        <div className="px-6 pb-6">
+                            <div className={`w-full py-3 rounded-xl text-center text-sm font-semibold ${modelType === 'production'
+                                    ? 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20'
+                                    : modelType === 'pro'
+                                        ? 'bg-purple-500/10 text-purple-700 border border-purple-500/20'
+                                        : 'bg-amber-500/10 text-amber-700 border border-amber-500/20'
+                                }`}>
+                                {modelType === 'production' && '🔒 Production Mode'}
+                                {modelType === 'pro' && '⚡ Pro Mode (3 Variants)'}
+                                {modelType === 'flash' && '🚀 Flash Mode'}
+                            </div>
+                        </div>
+
+                        {/* Warning for long renders */}
+                        {elapsedTime > timing.max && !isComplete && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                className="px-6 pb-6"
+                            >
+                                <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-sm">
+                                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                                    <span>Taking longer than expected. Please wait...</span>
+                                </div>
+                            </motion.div>
+                        )}
                     </motion.div>
                 </motion.div>
             )}

@@ -126,6 +126,8 @@ export default function PlatformSection() {
                                     }
                                     alt="Platform Preview"
                                     className="w-full h-full object-cover opacity-80"
+                                    loading="lazy"
+                                    decoding="async"
                                 />
 
                                 {/* Overlay UI Mockups (Decorative) */}

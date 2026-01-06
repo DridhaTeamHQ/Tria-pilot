@@ -11,6 +11,8 @@
     cursor: pointer;
     top: 0;
     left: 0;
+    contain: layout style paint;
+    backface-visibility: hidden;
 }
 
 .item-wrapper>.item-img {
@@ -24,4 +26,6 @@
     line-height: 10px;
     border-radius: 10px;
     box-shadow: 0px 10px 50px -10px rgba(0, 0, 0, 0.2);
+    contain: strict;
+    backface-visibility: hidden;
 }

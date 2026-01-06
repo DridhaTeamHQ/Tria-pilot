@@ -95,6 +95,8 @@ function FlipCard({ feature, index }: { feature: typeof features[0]; index: numb
                         src={feature.image}
                         alt={feature.title}
                         className="w-full h-full object-cover"
+                        loading="lazy"
+                        decoding="async"
                     />
                     {/* Front Content */}
                     <div className="absolute bottom-0 left-0 p-8 z-30 w-full">

@@ -136,29 +136,26 @@
   0% {
     background-position: -200% 0;
   }
+
   100% {
     background-position: 200% 0;
   }
 }
 
 .skeleton-shimmer {
-  background: linear-gradient(
-    90deg,
-    rgba(0, 0, 0, 0.06) 25%,
-    rgba(0, 0, 0, 0.12) 50%,
-    rgba(0, 0, 0, 0.06) 75%
-  );
+  background: linear-gradient(90deg,
+      rgba(0, 0, 0, 0.06) 25%,
+      rgba(0, 0, 0, 0.12) 50%,
+      rgba(0, 0, 0, 0.06) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite ease-in-out;
 }
 
 .dark .skeleton-shimmer {
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.06) 25%,
-    rgba(255, 255, 255, 0.12) 50%,
-    rgba(255, 255, 255, 0.06) 75%
-  );
+  background: linear-gradient(90deg,
+      rgba(255, 255, 255, 0.06) 25%,
+      rgba(255, 255, 255, 0.12) 50%,
+      rgba(255, 255, 255, 0.06) 75%);
   background-size: 200% 100%;
 }
 
@@ -167,6 +164,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -182,6 +180,7 @@
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -198,6 +197,7 @@
     opacity: 0;
     transform: scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -213,6 +213,7 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -224,9 +225,12 @@
 
 /* Bounce Animation */
 @keyframes bounce {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-10px);
   }
@@ -277,7 +281,8 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-a, button {
+a,
+button {
   touch-action: manipulation;
 }
 
@@ -291,6 +296,7 @@ main {
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -304,9 +310,11 @@ main {
   0% {
     width: 0%;
   }
+
   50% {
     width: 70%;
   }
+
   100% {
     width: 100%;
   }
@@ -352,7 +360,8 @@ html {
 /* Prevent horizontal scrolling on mobile */
 body {
   overflow-x: hidden;
-  min-height: 100dvh; /* Dynamic viewport height for mobile browsers */
+  min-height: 100dvh;
+  /* Dynamic viewport height for mobile browsers */
 }
 
 /* ============================================
@@ -360,6 +369,7 @@ body {
    ============================================ */
 
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -368,7 +378,7 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  
+
   .animate-fade-in,
   .animate-slide-up,
   .animate-scale-fade,
@@ -386,25 +396,26 @@ body {
 
 /* Detect low-end devices and simplify animations */
 @media (max-width: 640px) {
+
   /* Shorter animations on mobile for snappier feel */
   .animate-fade-in {
     animation-duration: 0.2s;
   }
-  
+
   .animate-slide-up {
     animation-duration: 0.25s;
   }
-  
+
   .animate-scale-fade {
     animation-duration: 0.2s;
   }
-  
+
   /* Smaller transforms on mobile */
   .hover-lift:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 16px -6px rgba(0, 0, 0, 0.12);
   }
-  
+
   /* Reduce complex shadows on mobile */
   .shadow-lg {
     box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.1);
@@ -423,6 +434,7 @@ body {
 
 /* Better tap feedback */
 @media (hover: none) and (pointer: coarse) {
+
   /* Touch devices only */
   button,
   a,
@@ -432,7 +444,7 @@ body {
     cursor: pointer;
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
   }
-  
+
   /* Faster touch feedback */
   button:active,
   a:active,
@@ -507,12 +519,12 @@ img {
   .grid {
     gap: 0.75rem;
   }
-  
+
   /* Smaller rounded corners on mobile for more content space */
   .rounded-2xl {
     border-radius: 1rem;
   }
-  
+
   /* Tighter padding on mobile cards */
   .p-6 {
     padding: 1rem;
@@ -564,4 +576,61 @@ img {
 /* Full containment for heavy components */
 .contain-strict {
   contain: strict;
+}
+
+/* ============================================
+   SCROLL PERFORMANCE OPTIMIZATION
+   ============================================ */
+
+/* GPU layer promotion for sections during scroll */
+section {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Reduce repaint on large blurred backgrounds */
+[class*="blur-"] {
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+/* ============================================
+   SVG DRAWING LOADER ANIMATION
+   ============================================ */
+
+.svg-drawing-loader {
+  width: 16em;
+  height: 16em;
+}
+
+.svg-drawing-loader path {
+  stroke: #1C1C1C;
+  stroke-width: 0.6px;
+  fill: none;
+  animation: dashArray 4s ease-in-out infinite,
+    dashOffset 4s linear infinite;
+}
+
+@keyframes dashArray {
+  0% {
+    stroke-dasharray: 0 1 359 0;
+  }
+
+  50% {
+    stroke-dasharray: 0 359 1 0;
+  }
+
+  100% {
+    stroke-dasharray: 359 1 0 0;
+  }
+}
+
+@keyframes dashOffset {
+  0% {
+    stroke-dashoffset: 365;
+  }
+
+  100% {
+    stroke-dashoffset: 5;
+  }
 }

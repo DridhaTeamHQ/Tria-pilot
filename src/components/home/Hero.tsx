@@ -20,7 +20,7 @@ export default function Hero() {
         >
             {/* Background Video with Parallax */}
             <motion.div
-                style={{ y, opacity }}
+                style={{ y, opacity, translateZ: 0 }}
                 className="absolute inset-0 w-full h-full"
             >
                 <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-black/80 z-10" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import './Masonry.css';
 
@@ -197,7 +197,7 @@ const Masonry = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [grid, imagesReady, stagger, animateFrom, blurToFocus, duration, ease]);
 
-    const handleMouseEnter = (e: React.MouseEvent, item: any) => {
+    const handleMouseEnter = useCallback((e: React.MouseEvent, item: any) => {
         const element = e.currentTarget;
         const selector = `[data-key="${item.id}"]`;
 
@@ -218,9 +218,9 @@ const Masonry = ({
                 });
             }
         }
-    };
+    }, [scaleOnHover, hoverScale, colorShiftOnHover]);
 
-    const handleMouseLeave = (e: React.MouseEvent, item: any) => {
+    const handleMouseLeave = useCallback((e: React.MouseEvent, item: any) => {
         const element = e.currentTarget;
         const selector = `[data-key="${item.id}"]`;
 
@@ -241,7 +241,7 @@ const Masonry = ({
                 });
             }
         }
-    };
+    }, [scaleOnHover, colorShiftOnHover]);
 
     return (
         <div ref={containerRef} className="list" style={{ minHeight: '600px' }}>

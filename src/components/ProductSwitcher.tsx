@@ -108,6 +108,8 @@ export default function ProductSwitcher() {
                                 alt={activeFeature.label}
                                 fill
                                 className="object-cover"
+                                loading="lazy"
+                                sizes="(max-width: 768px) 100vw, 80vw"
                             />
                             {/* Gradient overlay */}
                             <div className="absolute inset-0 bg-gradient-to-t from-charcoal/80 via-charcoal/30 to-transparent" />
