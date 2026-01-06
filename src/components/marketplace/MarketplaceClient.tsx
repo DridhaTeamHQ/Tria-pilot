@@ -130,7 +130,7 @@ export default function MarketplaceClient({ products, categories, activeCategory
                                         data-cursor={isActive ? '' : 'Select'}
                                     >
                                         <span
-                                            className={`inline-block px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200 cursor-none ${
+                                            className={`inline-block px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer ${
                                                 isActive
                                                     ? 'bg-charcoal text-cream shadow-lg shadow-charcoal/20'
                                                     : 'bg-white border border-charcoal/10 text-charcoal/60 hover:border-charcoal/30 hover:text-charcoal'

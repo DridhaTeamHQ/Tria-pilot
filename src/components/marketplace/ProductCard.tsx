@@ -121,7 +121,7 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
             <Link href={`/marketplace/${product.id}`} prefetch={index < 8}>
                 <div
                     data-cursor="View"
-                    className={`group relative bg-cream/50 rounded-3xl overflow-hidden cursor-none transform-gpu transition-all duration-300 p-4 ${isHovered ? 'shadow-xl shadow-charcoal/10 -translate-y-1' : 'shadow-sm hover:shadow-md'
+                    className={`group relative bg-cream/50 rounded-3xl overflow-hidden cursor-pointer transform-gpu transition-all duration-300 p-4 ${isHovered ? 'shadow-xl shadow-charcoal/10 -translate-y-1' : 'shadow-sm hover:shadow-md'
                         }`}
                     onMouseEnter={handleMouseEnter}
                     onMouseLeave={handleMouseLeave}
