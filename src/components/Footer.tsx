@@ -43,7 +43,7 @@ export default function Footer() {
                 </div>
 
                 <div className="mt-20 pt-8 border-t border-subtle/50 flex flex-col md:flex-row justify-between items-center text-xs text-charcoal/50">
-                    <p>&copy; 2025 Kiwikoo. All rights reserved.</p>
+                    <p>&copy; 2026 Kiwikoo. All rights reserved.</p>
                     <div className="flex gap-4 mt-4 md:mt-0">
                         <span>English (US)</span>
                     </div>

@@ -46,7 +46,7 @@ export default function Hero() {
                     className="mb-10 inline-flex items-center gap-3 px-6 py-2 rounded-full border border-white/30 bg-white/10 backdrop-blur-lg"
                 >
                     <span className="w-2.5 h-2.5 rounded-full bg-peach animate-pulse" />
-                    <span className="text-sm font-medium tracking-widest uppercase">Project Fashion v2.0</span>
+                    <span className="text-sm font-medium tracking-widest uppercase">Kiwikoo • Production</span>
                 </motion.div>
 
                 {/* Main Heading - LARGER */}
