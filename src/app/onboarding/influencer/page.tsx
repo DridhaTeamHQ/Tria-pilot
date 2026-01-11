@@ -509,8 +509,8 @@ export default function InfluencerOnboardingPage() {
             </div>
             <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
               <p className="text-sm text-blue-800 dark:text-blue-200">
-                <strong>💡 Tip:</strong> Click "Verify" to open your profile in a new tab and confirm it's correct. 
-                You can add or update these accounts anytime in your Profile settings.
+                <strong>💡 Tip:</strong> Click &quot;Verify&quot; to open your profile in a new tab and confirm it&apos;s
+                correct. You can add or update these accounts anytime in your Profile settings.
               </p>
             </div>
           </div>

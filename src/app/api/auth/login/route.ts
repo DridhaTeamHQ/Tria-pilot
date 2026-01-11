@@ -7,6 +7,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const { email: rawEmail, password } = loginSchema.parse(body)
+    const rememberMe = typeof body?.rememberMe === 'boolean' ? body.rememberMe : true
 
     // Normalize email: trim whitespace and convert to lowercase
     const email = rawEmail.trim().toLowerCase()
@@ -31,6 +32,11 @@ export async function POST(request: Request) {
       email,
       password,
     })
+
+    // Optional: extend session duration when "Remember me" is enabled
+    // Note: actual session TTL is controlled by Supabase project settings.
+    // We keep this flag for future use and UI behavior consistency.
+    void rememberMe
 
     if (error) {
       console.error('Supabase auth error:', {

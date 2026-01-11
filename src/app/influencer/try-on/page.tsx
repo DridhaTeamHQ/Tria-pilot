@@ -1,14 +1,15 @@
 'use client'
 
 import { useState, useEffect, Suspense, useCallback } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { ShoppingBag, Upload, Sparkles, Palette, Download, RefreshCw, ArrowRight, X, Check, PartyPopper, AlertTriangle, Loader2, Share2, Copy, Link as LinkIcon } from 'lucide-react'
-import { useProduct } from '@/lib/react-query/hooks'
+import { useProduct, useUser } from '@/lib/react-query/hooks'
 import { safeParseResponse } from '@/lib/api-utils'
 import { useProductLink } from '@/lib/hooks/useProductLink'
+import { createClient } from '@supabase/supabase-js'
 
 // Try-on preset type (v3)
 interface TryOnPreset {
@@ -32,8 +33,45 @@ interface Product {
 }
 
 function TryOnPageContent() {
+    const router = useRouter()
+    const { data: user } = useUser()
     const searchParams = useSearchParams()
     const productId = searchParams.get('productId')
+    const [approvalChecked, setApprovalChecked] = useState(false)
+
+    // Check influencer approval status
+    useEffect(() => {
+        async function checkApproval() {
+            if (!user?.id || user?.role !== 'INFLUENCER') return
+
+            try {
+                const supabase = createClient(
+                    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+                )
+
+                const { data: application } = await supabase
+                    .from('influencer_applications')
+                    .select('status')
+                    .eq('user_id', user.id)
+                    .single()
+
+                if (application?.status !== 'approved') {
+                    router.push('/onboarding/influencer')
+                    return
+                }
+
+                setApprovalChecked(true)
+            } catch (error) {
+                console.error('Error checking approval:', error)
+                setApprovalChecked(true) // Fail open
+            }
+        }
+
+        if (user?.id) {
+            checkApproval()
+        }
+    }, [user?.id, user?.role, router])
 
     const [personImage, setPersonImage] = useState<string>('')
     const [personImageBase64, setPersonImageBase64] = useState<string>('')
@@ -492,7 +530,7 @@ function TryOnPageContent() {
 
                 const link = document.createElement('a')
                 link.href = base64Data
-                link.download = `tria-tryon-${result.jobId || Date.now()}.jpg`
+                link.download = `kiwikoo-tryon-${result.jobId || Date.now()}.jpg`
                 document.body.appendChild(link)
                 link.click()
                 document.body.removeChild(link)
@@ -507,7 +545,7 @@ function TryOnPageContent() {
                 const blobUrl = window.URL.createObjectURL(blob)
                 const link = document.createElement('a')
                 link.href = blobUrl
-                link.download = `tria-tryon-${result.jobId || Date.now()}.jpg`
+                link.download = `kiwikoo-tryon-${result.jobId || Date.now()}.jpg`
                 document.body.appendChild(link)
                 link.click()
                 document.body.removeChild(link)
@@ -518,6 +556,18 @@ function TryOnPageContent() {
             console.error('Download error:', error)
             toast.error('Failed to download image')
         }
+    }
+
+    // Show loading while checking approval (must be after all hooks are declared)
+    if (!approvalChecked && user?.role === 'INFLUENCER') {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-cream">
+                <div className="text-center">
+                    <div className="w-12 h-12 border-4 border-peach border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-charcoal/60">Checking approval status...</p>
+                </div>
+            </div>
+        )
     }
 
     return (

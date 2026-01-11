@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   Camera,
   ShoppingBag,
@@ -21,6 +22,7 @@ import {
 import { useUser, useGenerations } from '@/lib/react-query/hooks'
 import { ShareModal } from '@/components/tryon/ShareModal'
 import { toast } from 'sonner'
+import { createClient } from '@supabase/supabase-js'
 
 // Animation variants
 const containerVariants = {
@@ -49,14 +51,65 @@ const cardVariants = {
 }
 
 export default function InfluencerDashboard() {
+  const router = useRouter()
   const { data: user } = useUser()
   const { data: generations, isLoading: generationsLoading } = useGenerations()
+  const [approvalChecked, setApprovalChecked] = useState(false)
 
+  // NOTE: hooks must be declared unconditionally (before any early returns)
   const [selectedGeneration, setSelectedGeneration] = useState<any>(null)
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(0)
   const [shareModalOpen, setShareModalOpen] = useState(false)
   const [shareImageUrl, setShareImageUrl] = useState<string | null>(null)
   const [shareImageBase64, setShareImageBase64] = useState<string | undefined>(undefined)
+
+  // Check influencer approval status
+  useEffect(() => {
+    async function checkApproval() {
+      if (!user?.id) return
+
+      try {
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        )
+
+        const { data: application } = await supabase
+          .from('influencer_applications')
+          .select('status')
+          .eq('user_id', user.id)
+          .single()
+
+        if (application?.status !== 'approved') {
+          // Redirect to onboarding if not approved
+          router.push('/onboarding/influencer')
+          return
+        }
+
+        setApprovalChecked(true)
+      } catch (error) {
+        console.error('Error checking approval:', error)
+        // On error, allow access (fail open) - server-side checks are primary
+        setApprovalChecked(true)
+      }
+    }
+
+    if (user?.id && user?.role === 'INFLUENCER') {
+      checkApproval()
+    }
+  }, [user?.id, user?.role, router])
+
+  // Show loading while checking approval
+  if (!approvalChecked && user?.role === 'INFLUENCER') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-cream">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-peach border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-charcoal/60">Checking approval status...</p>
+        </div>
+      </div>
+    )
+  }
 
   const completedGenerations = generations?.filter((g: any) => g.outputImagePath) || []
   const generationsCount = generationsLoading ? '...' : completedGenerations.length

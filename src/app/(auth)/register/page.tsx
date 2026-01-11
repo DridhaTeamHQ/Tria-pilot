@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { toast } from 'sonner'
 import { Sparkles, ArrowRight, ArrowLeft, User, Building2, Camera, TrendingUp, Instagram, Youtube, Twitter, ChevronDown, ChevronUp } from 'lucide-react'
 import { createClient } from '@supabase/supabase-js'
+import { getPublicSiteUrlClient, joinPublicUrl } from '@/lib/site-url'
 
 type Role = 'INFLUENCER' | 'BRAND'
 
@@ -32,6 +33,22 @@ export default function RegisterPage() {
       toast.error('Please select a role')
       return
     }
+    if (!email.trim()) {
+      toast.error('Please enter your email')
+      return
+    }
+    if (!password || password.length < 8) {
+      toast.error('Password must be at least 8 characters')
+      return
+    }
+    if (role === 'INFLUENCER' && !name.trim()) {
+      toast.error('Please enter your full name')
+      return
+    }
+    if (role === 'BRAND' && !name.trim()) {
+      toast.error('Please enter your company name')
+      return
+    }
     setLoading(true)
 
     try {
@@ -41,8 +58,16 @@ export default function RegisterPage() {
       )
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
+        email: email.trim().toLowerCase(),
         password,
+        options: {
+          // After the user clicks the email confirmation link, Supabase will redirect here.
+          // Ensure this URL is allowed in Supabase Auth Redirect URLs.
+          emailRedirectTo: joinPublicUrl(
+            getPublicSiteUrlClient(),
+            '/auth/confirm?next=/login?confirmed=true'
+          ),
+        },
       })
 
       if (authError) {
@@ -60,6 +85,7 @@ export default function RegisterPage() {
           id: authData.user.id,
           email,
           role,
+          name: name || null,
         }),
       })
 
@@ -73,7 +99,7 @@ export default function RegisterPage() {
         }
       }
 
-      toast.success('Account created! Please sign in.')
+      toast.success('Account created! Please check your email to confirm your account.')
       router.push('/login')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Registration failed')
@@ -117,7 +143,7 @@ export default function RegisterPage() {
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-center px-16">
           <Link href="/" className="text-4xl font-serif font-bold text-charcoal mb-8">
-            TRIA
+            Kiwikoo
           </Link>
           <h1 className="text-5xl font-serif text-charcoal leading-tight mb-6">
             Start your <br />
@@ -160,7 +186,7 @@ export default function RegisterPage() {
         <div className="w-full max-w-lg">
           {/* Mobile Logo */}
           <Link href="/" className="lg:hidden text-3xl font-serif font-bold text-charcoal mb-8 block">
-            TRIA
+            Kiwikoo
           </Link>
 
           <AnimatePresence mode="wait">
@@ -172,8 +198,8 @@ export default function RegisterPage() {
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3 }}
               >
-                <h2 className="text-3xl font-serif text-charcoal mb-2">Join TRIA</h2>
-                <p className="text-charcoal/60 mb-8">Choose how you want to use TRIA</p>
+                <h2 className="text-3xl font-serif text-charcoal mb-2">Join Kiwikoo</h2>
+                <p className="text-charcoal/60 mb-8">Choose how you want to use Kiwikoo</p>
 
                 <div className="space-y-4">
                   {roleCards.map((card) => {

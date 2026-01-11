@@ -131,14 +131,14 @@ export function ShareModal({ isOpen, onClose, imageUrl, imageBase64, productId }
           
           // Method 1: Web Share API (works best - opens native share sheet)
           if (navigator.share && navigator.canShare) {
-            const file = new File([imageBlob], 'tria-tryon.jpg', { type: 'image/jpeg' })
+            const file = new File([imageBlob], 'kiwikoo-tryon.jpg', { type: 'image/jpeg' })
             
             if (navigator.canShare({ files: [file] })) {
               try {
                 await navigator.share({
                   files: [file],
                   title: 'Check out my virtual try-on!',
-                  text: 'Created with TRIA Virtual Try-On Studio',
+                  text: 'Created with Kiwikoo Virtual Try-On Studio',
                 })
                 toast.success('Share menu opened!')
                 toast.info('Select Instagram Stories from the options')
@@ -164,7 +164,7 @@ export function ShareModal({ isOpen, onClose, imageUrl, imageBase64, productId }
           const downloadLink = document.createElement('a')
           const blobUrl = URL.createObjectURL(imageBlob)
           downloadLink.href = blobUrl
-          downloadLink.download = `tria-tryon-${Date.now()}.jpg`
+          downloadLink.download = `kiwikoo-tryon-${Date.now()}.jpg`
           document.body.appendChild(downloadLink)
           downloadLink.click()
           document.body.removeChild(downloadLink)
@@ -226,7 +226,7 @@ export function ShareModal({ isOpen, onClose, imageUrl, imageBase64, productId }
             try {
               // Android Intent for sharing to Instagram Stories
               // This should open Instagram with the share intent
-              const intentUrl = `intent://share#Intent;action=android.intent.action.SEND;type=image/jpeg;package=com.instagram.android;component=com.instagram.android/.activity.ShareActivity;S.android.intent.extra.TEXT=Created with TRIA Virtual Try-On Studio;end`
+              const intentUrl = `intent://share#Intent;action=android.intent.action.SEND;type=image/jpeg;package=com.instagram.android;component=com.instagram.android/.activity.ShareActivity;S.android.intent.extra.TEXT=Created with Kiwikoo Virtual Try-On Studio;end`
               
               // Try intent first
               window.location.href = intentUrl
@@ -267,7 +267,7 @@ export function ShareModal({ isOpen, onClose, imageUrl, imageBase64, productId }
           const downloadLink = document.createElement('a')
           const blobUrl = URL.createObjectURL(imageBlob)
           downloadLink.href = blobUrl
-          downloadLink.download = `tria-tryon-${Date.now()}.jpg`
+          downloadLink.download = `kiwikoo-tryon-${Date.now()}.jpg`
           document.body.appendChild(downloadLink)
           downloadLink.click()
           document.body.removeChild(downloadLink)
@@ -288,14 +288,14 @@ export function ShareModal({ isOpen, onClose, imageUrl, imageBase64, productId }
       
       // Use Web Share API for other platforms (mobile)
       if (isMobile && navigator.share && navigator.canShare) {
-        const file = new File([imageBlob], 'tria-tryon.jpg', { type: 'image/jpeg' })
+        const file = new File([imageBlob], 'kiwikoo-tryon.jpg', { type: 'image/jpeg' })
         
         if (navigator.canShare({ files: [file] })) {
           try {
             await navigator.share({
               files: [file],
               title: 'Check out my virtual try-on!',
-              text: 'Created with TRIA Virtual Try-On Studio',
+              text: 'Created with Kiwikoo Virtual Try-On Studio',
             })
             toast.success('Opening share options...')
             onClose()
@@ -318,7 +318,7 @@ export function ShareModal({ isOpen, onClose, imageUrl, imageBase64, productId }
       const downloadLink = document.createElement('a')
       const blobUrl = URL.createObjectURL(imageBlob)
       downloadLink.href = blobUrl
-      downloadLink.download = `tria-tryon-${Date.now()}.jpg`
+      downloadLink.download = `kiwikoo-tryon-${Date.now()}.jpg`
       document.body.appendChild(downloadLink)
       downloadLink.click()
       document.body.removeChild(downloadLink)

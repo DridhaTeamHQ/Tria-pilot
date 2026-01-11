@@ -151,7 +151,7 @@ export default function Header() {
                         className={`text-2xl font-serif font-bold transition-colors ${logoColor}`}
                         data-cursor="Home"
                     >
-                        TRIA
+                        Kiwikoo
                     </Link>
 
                     {/* Desktop Navigation */}

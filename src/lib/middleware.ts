@@ -48,6 +48,9 @@ export async function updateSession(request: NextRequest) {
                 // Invalid/expired refresh token - clear cookies and continue as unauthenticated
                 console.log('⚠️  Invalid refresh token, clearing session')
                 // Don't throw - just continue as unauthenticated user
+            } else if (error.message?.includes('Auth session missing')) {
+                // This is normal for unauthenticated visitors (no session cookies yet).
+                // Avoid noisy logs in dev/prod.
             } else {
                 console.warn('⚠️  Auth error:', error.message)
             }

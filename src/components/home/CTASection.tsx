@@ -24,8 +24,8 @@ export default function CTASection() {
                     </h2>
 
                     <p className="text-xl text-white/60 mb-12 max-w-2xl mx-auto font-light">
-                        Join the future of fashion marketing. Whether you're a creator or a brand,
-                        Gen-Z fashion is your gateway to success.
+                        Join the future of fashion marketing. Whether you&apos;re a creator or a brand, Gen-Z fashion is
+                        your gateway to success.
                     </p>
 
                     <div className="flex flex-col sm:flex-row gap-6 justify-center">

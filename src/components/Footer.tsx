@@ -6,7 +6,7 @@ export default function Footer() {
             <div className="container mx-auto px-6">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
                     <div className="space-y-4">
-                        <h3 className="text-xl font-serif font-bold text-charcoal">TRIA</h3>
+                        <h3 className="text-xl font-serif font-bold text-charcoal">Kiwikoo</h3>
                         <p className="text-sm text-charcoal/60">
                             AI-powered fashion try-on marketplace connecting influencers and brands.
                         </p>
@@ -43,7 +43,7 @@ export default function Footer() {
                 </div>
 
                 <div className="mt-20 pt-8 border-t border-subtle/50 flex flex-col md:flex-row justify-between items-center text-xs text-charcoal/50">
-                    <p>&copy; 2025 TRIA. All rights reserved.</p>
+                    <p>&copy; 2025 Kiwikoo. All rights reserved.</p>
                     <div className="flex gap-4 mt-4 md:mt-0">
                         <span>English (US)</span>
                     </div>

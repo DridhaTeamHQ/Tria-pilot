@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     })
 
     // Build system prompt
-    const systemPrompt = `You are an intelligent campaign assistant for brands on TRIA, an AI fashion try-on marketplace. Your role is to help brands create effective marketing campaigns, suggest influencers, plan budgets, and provide strategic advice.
+    const systemPrompt = `You are an intelligent campaign assistant for brands on Kiwikoo, an AI fashion try-on marketplace. Your role is to help brands create effective marketing campaigns, suggest influencers, plan budgets, and provide strategic advice.
 
 Brand Context:
 - Company: ${brandContext.companyName}

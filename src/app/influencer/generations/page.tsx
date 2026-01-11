@@ -110,7 +110,7 @@ export default function GenerationsPage() {
             const url = window.URL.createObjectURL(blob)
             const link = document.createElement('a')
             link.href = url
-            link.download = `tria-tryon-${jobId.slice(0, 8)}.png`
+            link.download = `kiwikoo-tryon-${jobId.slice(0, 8)}.png`
             document.body.appendChild(link)
             link.click()
             document.body.removeChild(link)

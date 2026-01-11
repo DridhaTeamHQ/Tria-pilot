@@ -19,7 +19,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'TRIA - AI Fashion Try-On Marketplace',
+  title: 'Kiwikoo - AI Fashion Try-On Marketplace',
   description: 'AI-powered platform connecting influencers and brands with virtual try-on capabilities.',
 }
 

@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { createClient } from '@/lib/auth'
 import { z } from 'zod'
 
 const registerSchema = z.object({
     id: z.string(),
     email: z.string().email(),
     role: z.enum(['INFLUENCER', 'BRAND']),
+    name: z.string().optional(),
 })
 
 export async function POST(request: Request) {
@@ -19,7 +21,7 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json()
-        const { id, email, role } = registerSchema.parse(body)
+        const { id, email, role, name } = registerSchema.parse(body)
 
         // Check if user already exists
         const existingUser = await prisma.user.findUnique({
@@ -44,6 +46,7 @@ export async function POST(request: Request) {
                 email,
                 role,
                 slug: uniqueSlug,
+                name: name || null,
                 ...(role === 'INFLUENCER'
                     ? {
                         influencerProfile: {
@@ -56,7 +59,7 @@ export async function POST(request: Request) {
                     : {
                         brandProfile: {
                             create: {
-                                companyName: 'New Brand',
+                                companyName: name || 'New Brand',
                             },
                         },
                     }),
@@ -66,6 +69,30 @@ export async function POST(request: Request) {
                 brandProfile: role === 'BRAND',
             },
         })
+
+        // If influencer, create pending application in Supabase
+        if (role === 'INFLUENCER') {
+            try {
+                const supabase = await createClient()
+                const { error: appError } = await supabase
+                    .from('influencer_applications')
+                    .insert({
+                        user_id: id,
+                        email: email,
+                        full_name: name || null,
+                        status: 'pending',
+                    })
+
+                if (appError) {
+                    console.error('Failed to create influencer application:', appError)
+                    // Don't fail registration if application creation fails
+                    // Admin can manually create it if needed
+                }
+            } catch (appErr) {
+                console.error('Error creating influencer application:', appErr)
+                // Continue - registration succeeded even if application creation failed
+            }
+        }
 
         return NextResponse.json({ user }, { status: 201 })
     } catch (error) {

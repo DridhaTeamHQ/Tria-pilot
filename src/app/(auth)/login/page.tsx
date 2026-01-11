@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { toast } from 'sonner'
@@ -9,14 +9,56 @@ import { Sparkles, ArrowRight } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 
 export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-cream">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-peach border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-charcoal/60">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
+  )
+}
+
+function LoginContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const queryClient = useQueryClient()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [rememberMe, setRememberMe] = useState(true)
+
+  useEffect(() => {
+    const confirmed = searchParams.get('confirmed')
+    const error = searchParams.get('error')
+
+    if (confirmed === 'true') {
+      toast.success('Email confirmed! You can now sign in.')
+      return
+    }
+    if (error === 'confirmation_failed') {
+      toast.error('Confirmation link is invalid or expired. Please try signing up again.')
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!email.trim()) {
+      toast.error('Please enter your email')
+      return
+    }
+    if (!password) {
+      toast.error('Please enter your password')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -26,7 +68,7 @@ export default function LoginPage() {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: normalizedEmail, password }),
+        body: JSON.stringify({ email: normalizedEmail, password, rememberMe }),
       })
 
       const data = await response.json()
@@ -71,7 +113,7 @@ export default function LoginPage() {
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-center px-16">
           <Link href="/" className="text-4xl font-serif font-bold text-charcoal mb-8">
-            TRIA
+            Kiwikoo
           </Link>
           <h1 className="text-5xl font-serif text-charcoal leading-tight mb-6">
             Welcome back to <br />
@@ -113,7 +155,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <Link href="/" className="lg:hidden text-3xl font-serif font-bold text-charcoal mb-8 block">
-            TRIA
+            Kiwikoo
           </Link>
 
           <motion.div
@@ -162,6 +204,22 @@ export default function LoginPage() {
                 required
                 className="w-full px-4 py-3 rounded-xl border border-subtle bg-white/50 text-charcoal placeholder:text-charcoal/40 focus:outline-none focus:ring-2 focus:ring-peach/50 focus:border-peach transition-all"
               />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 text-sm text-charcoal/70 select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 rounded border-subtle accent-charcoal"
+                />
+                Remember me
+              </label>
+
+              <Link href="/forgot-password" className="text-sm text-charcoal hover:underline">
+                Forgot password?
+              </Link>
             </div>
 
             <motion.button
