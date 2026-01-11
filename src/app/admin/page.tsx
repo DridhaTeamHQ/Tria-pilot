@@ -1,10 +1,10 @@
-import { createClient } from '@/lib/auth'
+import { createServiceClient } from '@/lib/auth'
 import AdminDashboardClient from './AdminDashboardClient'
 
 export default async function AdminPage() {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   
-  // Fetch influencer applications (RLS will enforce admin-only access)
+  // Fetch influencer applications (AdminLayout enforces access; service role avoids RLS misconfig issues)
   const { data: applications, error } = await supabase
     .from('influencer_applications')
     .select('*')

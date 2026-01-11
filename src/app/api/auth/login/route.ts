@@ -12,19 +12,6 @@ export async function POST(request: Request) {
     // Normalize email: trim whitespace and convert to lowercase
     const email = rawEmail.trim().toLowerCase()
 
-    // Check if user exists in database first
-    const dbUser = await prisma.user.findUnique({
-      where: { email },
-    })
-
-    if (!dbUser) {
-      console.error('Login attempt: User not found in database', { email })
-      return NextResponse.json(
-        { error: 'Invalid email or password. Please check your credentials.' },
-        { status: 401 }
-      )
-    }
-
     const supabase = await createClient()
 
     // Sign in with Supabase Auth
@@ -43,7 +30,6 @@ export async function POST(request: Request) {
         message: error.message,
         status: error.status,
         email: email, // Log normalized email (not password)
-        userId: dbUser.id,
       })
       
       // Provide more helpful error messages
@@ -62,7 +48,7 @@ export async function POST(request: Request) {
     }
 
     if (!data.user) {
-      console.error('Login error: No user returned from Supabase', { email, userId: dbUser.id })
+      console.error('Login error: No user returned from Supabase', { email })
       return NextResponse.json({ error: 'Authentication failed' }, { status: 401 })
     }
 
@@ -76,10 +62,16 @@ export async function POST(request: Request) {
     })
 
     if (!user) {
-      console.error('Login error: User not found in database after auth success', { email, authUserId: data.user.id })
-      return NextResponse.json({ 
-        error: 'User account not found. Please contact support.' 
-      }, { status: 404 })
+      // Backward-compat: user exists in Supabase Auth but not in app DB.
+      // Keep the Supabase session (already set via cookies) and send them to complete profile.
+      return NextResponse.json(
+        {
+          error: 'Please complete your profile to continue.',
+          requiresProfile: true,
+          next: '/complete-profile',
+        },
+        { status: 409 }
+      )
     }
 
     return NextResponse.json({ user, session: data.session }, { status: 200 })

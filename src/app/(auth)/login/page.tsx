@@ -73,6 +73,12 @@ function LoginContent() {
 
       const data = await response.json()
 
+      if (response.status === 409 && data?.requiresProfile && data?.next) {
+        toast.info('One-time setup required. Please complete your profile.')
+        router.push(data.next)
+        return
+      }
+
       if (!response.ok) {
         throw new Error(data.error || 'Login failed')
       }

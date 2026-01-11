@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { createClient } from '@/lib/auth'
+import { createServiceClient } from '@/lib/auth'
 import { z } from 'zod'
 
 const registerSchema = z.object({
@@ -73,15 +73,15 @@ export async function POST(request: Request) {
         // If influencer, create pending application in Supabase
         if (role === 'INFLUENCER') {
             try {
-                const supabase = await createClient()
-                const { error: appError } = await supabase
-                    .from('influencer_applications')
-                    .insert({
-                        user_id: id,
-                        email: email,
-                        full_name: name || null,
-                        status: 'pending',
-                    })
+                // Registration happens before the user has a session cookie,
+                // so use the service role client to reliably create the application.
+                const service = createServiceClient()
+                const { error: appError } = await service.from('influencer_applications').upsert({
+                    user_id: id,
+                    email: email,
+                    full_name: name || null,
+                    status: 'pending',
+                })
 
                 if (appError) {
                     console.error('Failed to create influencer application:', appError)

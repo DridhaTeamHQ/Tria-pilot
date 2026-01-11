@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/auth'
+import { createClient, createServiceClient } from '@/lib/auth'
 import { z } from 'zod'
 
 const updateSchema = z.object({
@@ -19,6 +19,10 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const bootstrapEmail = (process.env.ADMIN_BOOTSTRAP_EMAIL || 'team@dridhatechnologies.com')
+      .toLowerCase()
+      .trim()
+
     // Check if user is admin using RLS-protected query
     const { data: adminCheck } = await supabase
       .from('admin_users')
@@ -27,14 +31,28 @@ export async function PATCH(request: Request) {
       .single()
 
     if (!adminCheck) {
-      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
+      // Bootstrap: allow configured admin email to self-provision
+      if (authUser.email?.toLowerCase().trim() === bootstrapEmail) {
+        try {
+          const service = createServiceClient()
+          await service.from('admin_users').upsert({ user_id: authUser.id })
+        } catch (e) {
+          return NextResponse.json(
+            { error: 'Admin bootstrap not configured (missing SUPABASE_SERVICE_ROLE_KEY)' },
+            { status: 500 }
+          )
+        }
+      } else {
+        return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
+      }
     }
 
     const body = await request.json()
     const { user_id, status, review_note } = updateSchema.parse(body)
 
-    // Update application (RLS will enforce admin-only access)
-    const { data: updated, error } = await supabase
+    // Update application. Use service role to avoid RLS misconfig blocking admin actions.
+    const service = createServiceClient()
+    const { data: updated, error } = await service
       .from('influencer_applications')
       .update({
         status,
