@@ -26,7 +26,16 @@ export async function GET(request: Request) {
     })
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      // Backward-compat: Auth session exists but user hasn't completed app profile yet.
+      // Return 200 (so client hooks don't throw) and let the UI redirect to /complete-profile.
+      return NextResponse.json(
+        { user: null, requiresProfile: true, next: '/complete-profile' },
+        {
+          headers: {
+            'Cache-Control': 'no-store',
+          },
+        }
+      )
     }
 
     // Add caching headers - user data is relatively stable

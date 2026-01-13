@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Toaster } from '@/components/ui/sonner'
 import Header from '@/components/Header'
+import ProfileCompletionGate from '@/components/ProfileCompletionGate'
 import { ReactQueryProvider } from '@/lib/react-query/provider'
 import './globals.css'
 import { Playfair_Display, Inter } from 'next/font/google'
@@ -34,6 +35,7 @@ export default function RootLayout({
         <ReactQueryProvider>
           <ReactLenis>
             <Header />
+            <ProfileCompletionGate />
             <main className="animate-fade-in">
               {children}
             </main>

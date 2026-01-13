@@ -19,6 +19,7 @@ export default function Footer() {
                             <li><Link href="/register" className="hover:text-charcoal">Join Us</Link></li>
                             <li><Link href="/marketplace" className="hover:text-charcoal">Marketplace</Link></li>
                             <li><Link href="/login" className="hover:text-charcoal">Sign In</Link></li>
+                            <li><Link href="/help" className="hover:text-charcoal">Help & Support</Link></li>
                         </ul>
                     </div>
 
