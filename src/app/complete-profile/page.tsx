@@ -6,7 +6,7 @@ import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import { createClient } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
-import { Building2, Camera, Sparkles } from 'lucide-react'
+import { Building2, Camera, Sparkles, ArrowLeft } from 'lucide-react'
 
 type Role = 'INFLUENCER' | 'BRAND'
 
@@ -94,6 +94,16 @@ export default function CompleteProfilePage() {
           <Link href="/" className="lg:hidden text-3xl font-serif font-bold text-charcoal mb-8 block">
             Kiwikoo
           </Link>
+
+          <div className="mb-4">
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 text-sm text-charcoal/70 hover:text-charcoal"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to sign in
+            </Link>
+          </div>
 
           <h2 className="text-3xl font-serif text-charcoal mb-2">Complete your profile</h2>
           <p className="text-charcoal/60 mb-8">Choose a role and we’ll finish setting up your account.</p>

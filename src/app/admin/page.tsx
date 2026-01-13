@@ -17,13 +17,23 @@ export default async function AdminPage() {
   return (
     <div className="min-h-screen bg-cream">
       <div className="container mx-auto px-6 py-12">
-        <div className="mb-8">
-          <h1 className="text-4xl font-serif font-bold text-charcoal mb-2">
-            Admin Dashboard
-          </h1>
-          <p className="text-charcoal/60">
-            Manage influencer applications and approvals
-          </p>
+        <div className="mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+          <div>
+            <h1 className="text-4xl md:text-5xl font-serif font-bold text-charcoal mb-2">
+              Admin Dashboard
+            </h1>
+            <p className="text-charcoal/60">
+              Review influencer applications and control access to influencer features.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <a
+              href="/"
+              className="px-5 py-2.5 rounded-full border border-charcoal/15 text-charcoal text-sm font-medium hover:bg-charcoal/5 transition-colors"
+            >
+              Back to site
+            </a>
+          </div>
         </div>
 
         <AdminDashboardClient initialApplications={applications || []} />

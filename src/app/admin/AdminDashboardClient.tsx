@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Check, X, Clock, User, Mail, Calendar } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Check, X, Clock, User, Mail, Calendar, RefreshCw, Search } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface InfluencerApplication {
@@ -22,6 +22,31 @@ interface AdminDashboardClientProps {
 export default function AdminDashboardClient({ initialApplications }: AdminDashboardClientProps) {
   const [applications, setApplications] = useState<InfluencerApplication[]>(initialApplications)
   const [loading, setLoading] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
+  const [activeFilter, setActiveFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending')
+
+  const visibleApplications = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return applications.filter((app) => {
+      const matchesFilter = activeFilter === 'all' ? true : app.status === activeFilter
+      if (!matchesFilter) return false
+      if (!q) return true
+      const hay = `${app.email} ${app.full_name || ''}`.toLowerCase()
+      return hay.includes(q)
+    })
+  }, [applications, activeFilter, query])
+
+  const refresh = async () => {
+    try {
+      const res = await fetch('/api/admin/influencers', { method: 'GET' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data?.error || 'Failed to refresh')
+      setApplications(Array.isArray(data) ? data : data?.applications || [])
+      toast.success('Refreshed')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to refresh')
+    }
+  }
 
   const handleStatusUpdate = async (userId: string, newStatus: 'approved' | 'rejected', reviewNote?: string) => {
     setLoading(userId)
@@ -130,16 +155,62 @@ export default function AdminDashboardClient({ initialApplications }: AdminDashb
 
       {/* Applications List */}
       <div className="bg-white rounded-xl border border-charcoal/10 overflow-hidden">
-        <div className="p-6 border-b border-charcoal/10">
-          <h2 className="text-2xl font-semibold text-charcoal">Influencer Applications</h2>
+        <div className="p-6 border-b border-charcoal/10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-semibold text-charcoal">Influencer Applications</h2>
+            <p className="text-sm text-charcoal/50 mt-1">Approve or reject new influencers.</p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+            <div className="relative">
+              <Search className="w-4 h-4 text-charcoal/40 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search by name or email…"
+                className="pl-9 pr-3 py-2 rounded-full border border-charcoal/10 bg-cream/40 text-sm text-charcoal placeholder:text-charcoal/40 focus:outline-none focus:ring-2 focus:ring-peach/40 focus:border-peach transition-all w-full sm:w-72"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={refresh}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full border border-charcoal/10 text-sm font-medium text-charcoal hover:bg-charcoal/5 transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Refresh
+            </button>
+          </div>
+        </div>
+        <div className="px-6 py-4 border-b border-charcoal/10 flex flex-wrap gap-2">
+          {[
+            { key: 'pending', label: 'Pending' },
+            { key: 'approved', label: 'Approved' },
+            { key: 'rejected', label: 'Rejected' },
+            { key: 'all', label: 'All' },
+          ].map((f) => (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => setActiveFilter(f.key as any)}
+              className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+                activeFilter === f.key
+                  ? 'bg-charcoal text-cream border-charcoal'
+                  : 'bg-white text-charcoal border-charcoal/10 hover:bg-charcoal/5'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
         </div>
         <div className="divide-y divide-charcoal/10">
-          {applications.length === 0 ? (
+          {visibleApplications.length === 0 ? (
             <div className="p-12 text-center text-charcoal/60">
-              <p>No applications found</p>
+              <p className="font-medium text-charcoal">No applications found</p>
+              <p className="text-sm text-charcoal/50 mt-2">
+                Try changing the filter or search query.
+              </p>
             </div>
           ) : (
-            applications.map((app) => (
+            visibleApplications.map((app) => (
               <div key={app.user_id} className="p-6 hover:bg-cream/50 transition-colors">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">

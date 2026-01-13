@@ -1,157 +1,113 @@
 'use client'
 
 import { Suspense, useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import Link from 'next/link'
 import { toast } from 'sonner'
-import { Sparkles, ArrowRight } from 'lucide-react'
+import { ArrowRight, Shield, Sparkles } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 
-export default function LoginPage() {
+export default function AdminLoginPage() {
   return (
     <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center bg-cream">
           <div className="text-center">
             <div className="w-12 h-12 border-4 border-peach border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-charcoal/60">Loading...</p>
+            <p className="text-charcoal/60">Loading…</p>
           </div>
         </div>
       }
     >
-      <LoginContent />
+      <AdminLoginContent />
     </Suspense>
   )
 }
 
-function LoginContent() {
+function AdminLoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const queryClient = useQueryClient()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [rememberMe, setRememberMe] = useState(true)
 
   useEffect(() => {
-    const confirmed = searchParams.get('confirmed')
     const error = searchParams.get('error')
-
-    if (confirmed === 'true') {
-      toast.success('Email confirmed! You can now sign in.')
-      return
-    }
-    if (error === 'confirmation_failed') {
-      toast.error('Confirmation link is invalid or expired. Please try signing up again.')
+    if (error === 'not_admin') {
+      toast.error('This account is not an admin.')
     }
   }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    if (!email.trim()) {
-      toast.error('Please enter your email')
-      return
-    }
-    if (!password) {
-      toast.error('Please enter your password')
+    if (!email.trim() || !password) {
+      toast.error('Please enter email and password')
       return
     }
 
     setLoading(true)
-
     try {
-      // Normalize email on client side too
       const normalizedEmail = email.trim().toLowerCase()
-
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: normalizedEmail, password, rememberMe }),
+        body: JSON.stringify({ email: normalizedEmail, password, rememberMe: true }),
       })
 
-      const data = await response.json()
-
+      const data = await response.json().catch(() => ({}))
       if (response.status === 409 && data?.requiresProfile && data?.next) {
         toast.info('One-time setup required. Please complete your profile.')
         router.push(data.next)
         return
       }
+      if (!response.ok) throw new Error(data?.error || 'Login failed')
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Login failed')
-      }
-
-      // Invalidate and refetch user data immediately
       await queryClient.invalidateQueries({ queryKey: ['user'] })
 
-      toast.success('Welcome back! 🎉')
-      router.push('/dashboard')
+      // Let /admin layout perform the final RBAC check + bootstrap (team@dridhatechnologies.com)
+      router.push('/admin')
       router.refresh()
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Login failed'
-      toast.error(errorMessage, {
-        duration: 4000,
-        position: 'top-center',
-      })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Login failed')
     } finally {
       setLoading(false)
     }
   }
 
-
   return (
     <div className="min-h-screen flex bg-cream">
-      {/* Left Side - Branding */}
+      {/* Left Side */}
       <motion.div
         initial={{ opacity: 0, x: -50 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
         className="hidden lg:flex lg:w-1/2 relative overflow-hidden"
       >
-        {/* Gradient Background */}
         <div className="absolute inset-0">
           <div className="absolute top-[-20%] left-[-10%] w-[80%] h-[80%] bg-peach/40 rounded-full blur-[100px]" />
           <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[70%] bg-orange-200/40 rounded-full blur-[100px]" />
         </div>
-
-        {/* Content */}
         <div className="relative z-10 flex flex-col justify-center px-16">
           <Link href="/" className="text-4xl font-serif font-bold text-charcoal mb-8">
             Kiwikoo
           </Link>
-          <h1 className="text-5xl font-serif text-charcoal leading-tight mb-6">
-            Welcome back to <br />
-            <span className="italic">your fashion studio</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 border border-charcoal/10 w-fit">
+            <Shield className="w-4 h-4 text-charcoal" />
+            <span className="text-xs font-semibold tracking-wider uppercase text-charcoal">Admin access</span>
+          </div>
+          <h1 className="text-5xl font-serif text-charcoal leading-tight mt-6 mb-6">
+            Sign in to <br />
+            <span className="italic">Admin</span>
           </h1>
           <p className="text-lg text-charcoal/70 max-w-md">
-            Continue creating stunning virtual try-ons and connecting with brands that match your style.
+            Manage influencer approvals and platform operations.
           </p>
-
-          {/* Feature List */}
-          <div className="mt-12 space-y-4">
-            {[
-              'AI-powered virtual try-on',
-              'Connect with top brands',
-              'Grow your influence',
-            ].map((feature, index) => (
-              <motion.div
-                key={feature}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 + index * 0.1 }}
-                className="flex items-center gap-3 text-charcoal/80"
-              >
-                <Sparkles className="w-5 h-5 text-peach" />
-                <span>{feature}</span>
-              </motion.div>
-            ))}
-          </div>
         </div>
       </motion.div>
 
-      {/* Right Side - Form */}
+      {/* Right Side */}
       <motion.div
         initial={{ opacity: 0, x: 50 }}
         animate={{ opacity: 1, x: 0 }}
@@ -159,29 +115,14 @@ function LoginContent() {
         className="w-full lg:w-1/2 flex items-center justify-center px-8 py-12"
       >
         <div className="w-full max-w-md">
-          {/* Mobile Logo */}
           <Link href="/" className="lg:hidden text-3xl font-serif font-bold text-charcoal mb-8 block">
             Kiwikoo
           </Link>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <h2 className="text-3xl font-serif text-charcoal mb-2">Sign in</h2>
-            <p className="text-charcoal/60 mb-8">
-              Enter your credentials to access your account
-            </p>
-          </motion.div>
+          <h2 className="text-3xl font-serif text-charcoal mb-2">Admin sign in</h2>
+          <p className="text-charcoal/60 mb-8">Use your admin credentials to continue.</p>
 
-          <motion.form
-            onSubmit={handleSubmit}
-            className="space-y-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-          >
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <label htmlFor="email" className="block text-sm font-medium text-charcoal">
                 Email
@@ -189,7 +130,7 @@ function LoginContent() {
               <input
                 id="email"
                 type="email"
-                placeholder="you@example.com"
+                placeholder="admin@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -212,22 +153,6 @@ function LoginContent() {
               />
             </div>
 
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 text-sm text-charcoal/70 select-none">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 rounded border-subtle accent-charcoal"
-                />
-                Remember me
-              </label>
-
-              <Link href="/forgot-password" className="text-sm text-charcoal hover:underline">
-                Forgot password?
-              </Link>
-            </div>
-
             <motion.button
               type="submit"
               disabled={loading}
@@ -237,39 +162,24 @@ function LoginContent() {
             >
               {loading ? (
                 <span className="flex items-center gap-2">
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                  >
+                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
                     <Sparkles className="w-5 h-5" />
                   </motion.div>
-                  Signing in...
+                  Signing in…
                 </span>
               ) : (
                 <>
-                  Sign in
+                  Continue
                   <ArrowRight className="w-5 h-5" />
                 </>
               )}
             </motion.button>
-          </motion.form>
+          </form>
 
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            className="mt-8 text-center text-charcoal/60"
-          >
-            Don&apos;t have an account?{' '}
-            <Link href="/register" className="text-charcoal font-medium hover:underline">
-              Create one
-            </Link>
-          </motion.p>
-
-          <p className="mt-4 text-center text-xs text-charcoal/40">
-            Admin?{' '}
-            <Link href="/admin/login" className="text-charcoal/70 hover:underline">
-              Sign in here
+          <p className="mt-8 text-center text-charcoal/60">
+            Not an admin?{' '}
+            <Link href="/login" className="text-charcoal font-medium hover:underline">
+              Go to user login
             </Link>
           </p>
         </div>
@@ -277,3 +187,4 @@ function LoginContent() {
     </div>
   )
 }
+

@@ -8,6 +8,64 @@ const updateSchema = z.object({
   review_note: z.string().nullable().optional(),
 })
 
+export async function GET() {
+  try {
+    const supabase = await createClient()
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const bootstrapEmail = (process.env.ADMIN_BOOTSTRAP_EMAIL || 'team@dridhatechnologies.com')
+      .toLowerCase()
+      .trim()
+
+    // If not admin, try bootstrap (team email) then re-check by writing admin_users
+    const { data: adminCheck } = await supabase
+      .from('admin_users')
+      .select('user_id')
+      .eq('user_id', authUser.id)
+      .single()
+
+    if (!adminCheck) {
+      if (authUser.email?.toLowerCase().trim() === bootstrapEmail) {
+        try {
+          const service = createServiceClient()
+          await service.from('admin_users').upsert({ user_id: authUser.id })
+        } catch {
+          return NextResponse.json(
+            { error: 'Admin bootstrap not configured (missing SUPABASE_SERVICE_ROLE_KEY)' },
+            { status: 500 }
+          )
+        }
+      } else {
+        return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
+      }
+    }
+
+    const service = createServiceClient()
+    const { data, error } = await service
+      .from('influencer_applications')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      return NextResponse.json({ error: 'Failed to fetch applications' }, { status: 500 })
+    }
+
+    return NextResponse.json(data || [])
+  } catch (error) {
+    console.error('Admin list error:', error)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function PATCH(request: Request) {
   try {
     const supabase = await createClient()
