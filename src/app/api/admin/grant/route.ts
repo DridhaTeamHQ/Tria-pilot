@@ -35,9 +35,22 @@ export async function POST(request: Request) {
     }
 
     const service = createServiceClient()
-    const { error } = await service.from('admin_users').upsert({ user_id })
+    const { error } = await service
+      .from('admin_users')
+      .upsert({ user_id }, { onConflict: 'user_id' })
+
     if (error) {
-      return NextResponse.json({ error: 'Failed to grant admin access' }, { status: 500 })
+      // Common causes:
+      // - SUPABASE_SERVICE_ROLE_KEY not set or incorrect (will show auth error)
+      // - Table/RLS misconfiguration (will show RLS violation)
+      console.error('Admin grant error:', error)
+      return NextResponse.json(
+        {
+          error: error.message || 'Failed to grant admin access',
+          hint: (error as any).hint || (error as any).details || null,
+        },
+        { status: 500 }
+      )
     }
 
     return NextResponse.json({ success: true })
