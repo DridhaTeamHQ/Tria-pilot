@@ -29,8 +29,15 @@ export default function Header() {
     const [scrolled, setScrolled] = useState(false)
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-    // Hide on auth pages
-    const isAuthPage = pathname?.startsWith('/login') || pathname?.startsWith('/register')
+    // Hide on auth/utility pages and admin routes (admin uses its own UI)
+    const isAuthPage =
+        pathname?.startsWith('/login') ||
+        pathname?.startsWith('/register') ||
+        pathname?.startsWith('/forgot-password') ||
+        pathname?.startsWith('/reset-password') ||
+        pathname?.startsWith('/auth/confirm') ||
+        pathname?.startsWith('/complete-profile') ||
+        pathname?.startsWith('/admin')
 
     useEffect(() => {
         let ticking = false

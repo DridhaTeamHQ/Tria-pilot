@@ -3,9 +3,11 @@ import { createClient } from '@/lib/auth'
 import { analyzeOutfitAndProvideAdvice } from '@/lib/openai'
 import { z } from 'zod'
 
-const analyzeSchema = z.object({
-  image: z.string(),
-})
+const analyzeSchema = z
+  .object({
+    image: z.string().min(1).max(15_000_000),
+  })
+  .strict()
 
 export async function POST(request: Request) {
   try {
@@ -18,7 +20,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await request.json()
+    const body = await request.json().catch(() => null)
     const { image } = analyzeSchema.parse(body)
 
     const advice = await analyzeOutfitAndProvideAdvice(image)

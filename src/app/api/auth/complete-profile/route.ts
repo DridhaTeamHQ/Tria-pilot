@@ -3,10 +3,12 @@ import { z } from 'zod'
 import prisma from '@/lib/prisma'
 import { createClient, createServiceClient } from '@/lib/auth'
 
-const schema = z.object({
-  role: z.enum(['INFLUENCER', 'BRAND']),
-  name: z.string().min(1),
-})
+const schema = z
+  .object({
+    role: z.enum(['INFLUENCER', 'BRAND']),
+    name: z.string().trim().min(1).max(120),
+  })
+  .strict()
 
 function makeSlug(email: string) {
   const baseSlug = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '-')
@@ -24,7 +26,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await request.json()
+    const body = await request.json().catch(() => null)
     const { role, name } = schema.parse(body)
     const email = authUser.email.toLowerCase().trim()
 

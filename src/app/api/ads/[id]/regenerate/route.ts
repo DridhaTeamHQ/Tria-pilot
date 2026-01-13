@@ -6,6 +6,7 @@ import { rateAdCreative, generateAdCopy } from '@/lib/openai'
 import { generateIntelligentAdComposition } from '@/lib/gemini'
 import { saveUpload } from '@/lib/storage'
 import prisma from '@/lib/prisma'
+import { z } from 'zod'
 
 export async function POST(
     request: Request,
@@ -82,8 +83,14 @@ export async function POST(
         }
 
         // Get optional prompt modifier from request body
-        const body = await request.json().catch(() => ({}))
-        const promptModifier = body.promptModifier || ''
+        const body = await request.json().catch(() => null)
+        const promptModifier = z
+          .object({
+            promptModifier: z.string().trim().max(500).optional(),
+          })
+          .strict()
+          .parse(body || {})
+          .promptModifier || ''
 
         // Reconstruct generation input from metadata
         const originalInput: AdGenerationInput = {

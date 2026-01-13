@@ -3,16 +3,18 @@ import { createClient } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { z } from 'zod'
 
-const socialsSchema = z.object({
-  instagram: z.string().optional(),
-  tiktok: z.string().optional(),
-  youtube: z.string().optional(),
-  twitter: z.string().optional(),
-  facebook: z.string().optional(),
-  linkedin: z.string().optional(),
-  pinterest: z.string().optional(),
-  snapchat: z.string().optional(),
-})
+const socialsSchema = z
+  .object({
+    instagram: z.string().trim().max(80).optional(),
+    tiktok: z.string().trim().max(80).optional(),
+    youtube: z.string().trim().max(80).optional(),
+    twitter: z.string().trim().max(80).optional(),
+    facebook: z.string().trim().max(80).optional(),
+    linkedin: z.string().trim().max(80).optional(),
+    pinterest: z.string().trim().max(80).optional(),
+    snapchat: z.string().trim().max(80).optional(),
+  })
+  .strict()
 
 export async function GET(request: Request) {
   try {
@@ -66,7 +68,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Influencer profile not found' }, { status: 404 })
     }
 
-    const body = await request.json()
+    const body = await request.json().catch(() => null)
     const socials = socialsSchema.parse(body)
 
     // Clean up social media handles (remove @, trim whitespace)

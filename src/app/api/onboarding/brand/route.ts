@@ -3,15 +3,17 @@ import { createClient } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { z } from 'zod'
 
-const onboardingSchema = z.object({
-  companyName: z.string().optional(),
-  brandType: z.string().optional(),
-  targetAudience: z.array(z.string()).optional(),
-  productTypes: z.array(z.string()).optional(),
-  website: z.string().url().optional().or(z.literal('')),
-  vertical: z.string().optional(),
-  budgetRange: z.string().optional(),
-})
+const onboardingSchema = z
+  .object({
+    companyName: z.string().trim().max(120).optional(),
+    brandType: z.string().trim().max(80).optional(),
+    targetAudience: z.array(z.string().trim().max(80)).max(20).optional(),
+    productTypes: z.array(z.string().trim().max(80)).max(50).optional(),
+    website: z.string().trim().url().max(2048).optional().or(z.literal('')),
+    vertical: z.string().trim().max(120).optional(),
+    budgetRange: z.string().trim().max(80).optional(),
+  })
+  .strict()
 
 export async function POST(request: Request) {
   try {
@@ -33,7 +35,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Brand profile not found' }, { status: 404 })
     }
 
-    const body = await request.json()
+    const body = await request.json().catch(() => null)
     const data = onboardingSchema.parse(body)
 
     // Update brand profile

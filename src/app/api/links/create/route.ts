@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const body = await request.json()
+    const body = await request.json().catch(() => null)
     const { productId } = createLinkSchema.parse(body)
 
     // Get product to validate it exists and get original URL

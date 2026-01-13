@@ -3,10 +3,12 @@ import { z } from 'zod'
 import { createClient } from '@/lib/auth'
 import { getPublicSiteUrlFromRequest, joinPublicUrl } from '@/lib/site-url'
 
-const schema = z.object({
-  newEmail: z.string().email(),
-  password: z.string().min(1),
-})
+const schema = z
+  .object({
+    newEmail: z.string().trim().toLowerCase().email().max(320),
+    password: z.string().min(1).max(128),
+  })
+  .strict()
 
 export async function POST(request: Request) {
   try {
@@ -20,7 +22,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await request.json()
+    const body = await request.json().catch(() => null)
     const { newEmail, password } = schema.parse(body)
 
     // Re-authenticate by password to confirm identity (security)

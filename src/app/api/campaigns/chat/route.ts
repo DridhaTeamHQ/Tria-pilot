@@ -2,8 +2,26 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { getOpenAI } from '@/lib/openai'
+import { z } from 'zod'
 
 const openai = getOpenAI()
+
+const chatSchema = z
+  .object({
+    message: z.string().trim().min(1).max(4000),
+    conversationHistory: z
+      .array(
+        z
+          .object({
+            role: z.enum(['system', 'user', 'assistant']),
+            content: z.string().max(8000),
+          })
+          .strict()
+      )
+      .max(50)
+      .optional(),
+  })
+  .strict()
 
 export async function POST(request: Request) {
   try {
@@ -31,12 +49,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized - Brand access required' }, { status: 403 })
     }
 
-    const body = await request.json()
-    const { message, conversationHistory = [] } = body
-
-    if (!message) {
-      return NextResponse.json({ error: 'Message is required' }, { status: 400 })
-    }
+    const body = await request.json().catch(() => null)
+    const parsed = chatSchema.parse(body)
+    const message = parsed.message
+    const conversationHistory = parsed.conversationHistory ?? []
 
     // Get brand context
     const brandContext = {

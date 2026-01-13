@@ -3,12 +3,14 @@ import prisma from '@/lib/prisma'
 import { createServiceClient } from '@/lib/auth'
 import { z } from 'zod'
 
-const registerSchema = z.object({
-    id: z.string(),
-    email: z.string().email(),
-    role: z.enum(['INFLUENCER', 'BRAND']),
-    name: z.string().optional(),
-})
+const registerSchema = z
+    .object({
+        id: z.string().uuid(),
+        email: z.string().trim().toLowerCase().email().max(320),
+        role: z.enum(['INFLUENCER', 'BRAND']),
+        name: z.string().trim().max(120).optional(),
+    })
+    .strict()
 
 export async function POST(request: Request) {
     try {
@@ -20,7 +22,7 @@ export async function POST(request: Request) {
             )
         }
 
-        const body = await request.json()
+        const body = await request.json().catch(() => null)
         const { id, email, role, name } = registerSchema.parse(body)
 
         // Check if user already exists

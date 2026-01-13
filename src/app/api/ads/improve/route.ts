@@ -3,12 +3,14 @@ import { createClient } from '@/lib/auth'
 import { z } from 'zod'
 import { getOpenAI } from '@/lib/openai'
 
-const improveSchema = z.object({
-  adImage: z.string(),
-  productType: z.string().optional(),
-  niche: z.string().optional(),
-  audience: z.string().optional(),
-})
+const improveSchema = z
+  .object({
+    adImage: z.string().min(1).max(15_000_000),
+    productType: z.string().trim().max(80).optional(),
+    niche: z.string().trim().max(80).optional(),
+    audience: z.string().trim().max(80).optional(),
+  })
+  .strict()
 
 interface ImproveSuggestion {
   category: 'lighting' | 'composition' | 'product_clarity' | 'background'
@@ -28,7 +30,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await request.json()
+    const body = await request.json().catch(() => null)
     const { adImage, productType, niche, audience } = improveSchema.parse(body)
 
     // Generate structured improvement suggestions using GPT-4 Vision

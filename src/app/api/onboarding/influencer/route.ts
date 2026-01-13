@@ -3,14 +3,16 @@ import { createClient } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { z } from 'zod'
 
-const onboardingSchema = z.object({
-  gender: z.enum(['Male', 'Female', 'Other']).optional(),
-  niches: z.array(z.string()).optional(),
-  audienceType: z.array(z.string()).optional(),
-  preferredCategories: z.array(z.string()).optional(),
-  socials: z.record(z.string()).optional(),
-  bio: z.string().optional(),
-})
+const onboardingSchema = z
+  .object({
+    gender: z.enum(['Male', 'Female', 'Other']).optional(),
+    niches: z.array(z.string().trim().max(80)).max(30).optional(),
+    audienceType: z.array(z.string().trim().max(80)).max(20).optional(),
+    preferredCategories: z.array(z.string().trim().max(80)).max(50).optional(),
+    socials: z.record(z.string().trim().max(80)).optional(),
+    bio: z.string().trim().max(4000).optional(),
+  })
+  .strict()
 
 export async function POST(request: Request) {
   try {
@@ -32,7 +34,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Influencer profile not found' }, { status: 404 })
     }
 
-    const body = await request.json()
+    const body = await request.json().catch(() => null)
     const data = onboardingSchema.parse(body)
 
     // Update influencer profile

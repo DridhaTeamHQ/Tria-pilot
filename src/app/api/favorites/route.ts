@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { createLinkSchema } from '@/lib/validation'
 
 export async function GET(request: Request) {
   try {
@@ -108,12 +109,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    const body = await request.json()
-    const { productId } = body
-
-    if (!productId) {
-      return NextResponse.json({ error: 'Product ID required' }, { status: 400 })
-    }
+    const body = await request.json().catch(() => null)
+    const { productId } = createLinkSchema.parse(body)
 
     // Check if already favorited
     const existing = await prisma.favorite.findUnique({

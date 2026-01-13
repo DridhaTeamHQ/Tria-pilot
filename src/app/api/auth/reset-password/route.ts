@@ -3,17 +3,19 @@ import { z } from 'zod'
 import { createClient } from '@/lib/auth'
 import { type EmailOtpType } from '@supabase/supabase-js'
 
-const schema = z.object({
-  password: z.string().min(8),
-  token_hash: z.string().optional().nullable(),
-  type: z.string().optional().nullable(),
-})
+const schema = z
+  .object({
+    password: z.string().min(8).max(128),
+    token_hash: z.string().max(2048).optional().nullable(),
+    type: z.string().max(50).optional().nullable(),
+  })
+  .strict()
 
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
 
-    const body = await request.json()
+    const body = await request.json().catch(() => null)
     const { password, token_hash, type } = schema.parse(body)
 
     // If token is provided, verify it (supports direct /reset-password?token_hash=... links).

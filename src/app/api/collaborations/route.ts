@@ -5,6 +5,15 @@ import { generateCollaborationProposal } from '@/lib/openai'
 import prisma from '@/lib/prisma'
 import { z } from 'zod'
 
+const requestSchema = collaborationSchema
+  .extend({
+    // IDs are provided by the caller; keep optional to avoid breaking existing clients.
+    influencerId: z.string().min(1).max(100).optional(),
+    brandId: z.string().min(1).max(100).optional(),
+    productId: z.string().min(1).max(100).optional(),
+  })
+  .strict()
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
@@ -28,8 +37,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    const body = await request.json()
-    const { influencerId, brandId, productId, budget, timeline, goals, notes } = body
+    const body = await request.json().catch(() => null)
+    const parsed = requestSchema.parse(body)
+    const { influencerId, brandId, productId, budget, timeline, goals, notes } = parsed
 
     let targetBrandId: string
     let targetInfluencerId: string
@@ -307,12 +317,13 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    const body = await request.json()
+    const body = await request.json().catch(() => null)
     const { id, status } = z
       .object({
-        id: z.string(),
+        id: z.string().min(1).max(100),
         status: z.enum(['accepted', 'declined']),
       })
+      .strict()
       .parse(body)
 
     // Get collaboration request

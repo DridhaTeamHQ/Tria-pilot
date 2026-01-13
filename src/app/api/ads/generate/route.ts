@@ -17,23 +17,25 @@ import {
 import { z } from 'zod'
 
 // Schema for the new preset-based generation
-const adGenerationSchema = z.object({
+const adGenerationSchema = z
+  .object({
   preset: z.enum(['UGC_CANDID', 'PRODUCT_LIFESTYLE', 'STUDIO_POSTER', 'PREMIUM_EDITORIAL']),
-  campaignId: z.string().optional(),
-  productImage: z.string().optional(),
-  influencerImage: z.string().optional(),
+  campaignId: z.string().max(100).optional(),
+  productImage: z.string().min(1).max(15_000_000).optional(),
+  influencerImage: z.string().min(1).max(15_000_000).optional(),
   lockFaceIdentity: z.boolean().optional().default(false),
-  headline: z.string().optional(),
+  headline: z.string().trim().max(60).optional(),
   ctaType: z.enum(['shop_now', 'learn_more', 'explore', 'buy_now']).default('shop_now'),
   captionTone: z.enum(['casual', 'premium', 'confident']).optional(),
   platforms: z.array(z.enum(['instagram', 'facebook', 'google', 'influencer'])).min(1),
   subject: z.object({
     gender: z.enum(['male', 'female', 'unisex']).optional(),
-    ageRange: z.string().optional(),
-    pose: z.string().optional(),
-    expression: z.string().optional(),
-  }).optional(),
+    ageRange: z.string().trim().max(40).optional(),
+    pose: z.string().trim().max(120).optional(),
+    expression: z.string().trim().max(120).optional(),
+  }).strict().optional(),
 })
+  .strict()
 
 export async function POST(request: Request) {
   try {
@@ -66,7 +68,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const body = await request.json()
+    const body = await request.json().catch(() => null)
     const input = adGenerationSchema.parse(body)
 
     // Validate campaign if provided

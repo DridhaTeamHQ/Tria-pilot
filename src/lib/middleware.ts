@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { applyApiRateLimit } from '@/lib/security/rate-limit-middleware'
 
 export async function updateSession(request: NextRequest) {
     let supabaseResponse = NextResponse.next({
@@ -61,6 +62,13 @@ export async function updateSession(request: NextRequest) {
         // Catch any unexpected errors
         console.warn('⚠️  Auth check failed:', error instanceof Error ? error.message : String(error))
         // Continue as unauthenticated user
+    }
+
+    // Global API rate limiting (best-effort, IP + user-based)
+    // Runs after session check so we can rate-limit by user id if authenticated.
+    const rateLimited = applyApiRateLimit(request, user?.id ?? null)
+    if (rateLimited) {
+        return rateLimited
     }
 
     // Authenticated users should not see public cover pages

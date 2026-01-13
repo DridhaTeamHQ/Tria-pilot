@@ -124,7 +124,7 @@ export async function POST(request: Request) {
     // Store requestId for completion tracking
     const generationRequestId = gateResult.requestId
 
-    const body = await request.json()
+    const body = await request.json().catch(() => null)
     const {
       personImage,
       personImages,

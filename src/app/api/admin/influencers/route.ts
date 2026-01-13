@@ -2,11 +2,13 @@ import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
 import { z } from 'zod'
 
-const updateSchema = z.object({
-  user_id: z.string().uuid(),
-  status: z.enum(['approved', 'rejected']),
-  review_note: z.string().nullable().optional(),
-})
+const updateSchema = z
+  .object({
+    user_id: z.string().uuid(),
+    status: z.enum(['approved', 'rejected']),
+    review_note: z.string().trim().max(2000).nullable().optional(),
+  })
+  .strict()
 
 export async function GET() {
   try {
@@ -105,7 +107,7 @@ export async function PATCH(request: Request) {
       }
     }
 
-    const body = await request.json()
+    const body = await request.json().catch(() => null)
     const { user_id, status, review_note } = updateSchema.parse(body)
 
     // Update application. Use service role to avoid RLS misconfig blocking admin actions.

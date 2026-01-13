@@ -3,11 +3,13 @@ import { createClient } from '@/lib/auth'
 import { rateAdCreative } from '@/lib/openai'
 import { z } from 'zod'
 
-const rateSchema = z.object({
-  adImage: z.string(),
-  productImage: z.string().optional(),
-  influencerImage: z.string().optional(),
-})
+const rateSchema = z
+  .object({
+    adImage: z.string().min(1).max(15_000_000),
+    productImage: z.string().min(1).max(15_000_000).optional(),
+    influencerImage: z.string().min(1).max(15_000_000).optional(),
+  })
+  .strict()
 
 export async function POST(request: Request) {
   try {
@@ -20,7 +22,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await request.json()
+    const body = await request.json().catch(() => null)
     const { adImage, productImage, influencerImage } = rateSchema.parse(body)
 
     const rating = await rateAdCreative(adImage, productImage, influencerImage)

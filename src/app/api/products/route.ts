@@ -4,6 +4,15 @@ import { productSchema } from '@/lib/validation'
 import prisma from '@/lib/prisma'
 import { z } from 'zod'
 
+const createProductSchema = productSchema
+  .extend({
+    category: z.string().trim().min(1).max(80),
+    audience: z.string().trim().min(1).max(40),
+    // Keep backward compatibility: allow price as string or number
+    price: z.union([z.number(), z.string().trim()]).optional(),
+  })
+  .strict()
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
@@ -26,12 +35,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized - Brand access required' }, { status: 403 })
     }
 
-    const body = await request.json()
-    const { name, description, category, price, link, tags, audience, images } = body
+    const body = await request.json().catch(() => null)
+    const parsed = createProductSchema.parse(body)
+    const { name, description, category, link, tags, audience, images } = parsed
+    const priceValue =
+      typeof parsed.price === 'string'
+        ? parsed.price.trim() === ''
+          ? undefined
+          : Number(parsed.price)
+        : parsed.price
 
-    // Validate required fields
-    if (!name || !category || !audience) {
-      return NextResponse.json({ error: 'Name, category, and audience are required' }, { status: 400 })
+    if (typeof priceValue === 'number' && Number.isNaN(priceValue)) {
+      return NextResponse.json({ error: 'Invalid price' }, { status: 400 })
     }
 
     // Validate images if provided
@@ -61,7 +76,7 @@ export async function POST(request: Request) {
         name,
         description,
         category,
-        price: price ? parseFloat(price.toString()) : undefined,
+        price: priceValue,
         link,
         tags,
         audience,
@@ -287,18 +302,28 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Unauthorized - Brand access required' }, { status: 403 })
     }
 
-    const body = await request.json()
+    const body = await request.json().catch(() => null)
     const { id, ...updateData } = z
       .object({
-        id: z.string(),
-        name: z.string().optional(),
-        description: z.string().optional(),
-        category: z.string().optional(),
-        price: z.number().optional(),
-        link: z.string().url().optional(),
-        imagePath: z.string().optional(),
+        id: z.string().min(1).max(100),
+        name: z.string().trim().min(1).max(120).optional(),
+        description: z.string().trim().max(5000).optional(),
+        category: z.string().trim().max(80).optional(),
+        price: z.union([z.number(), z.string().trim()]).optional(),
+        link: z.string().trim().url().max(2048).optional(),
+        imagePath: z.string().trim().max(1024).optional(),
       })
+      .strict()
       .parse(body)
+
+    // Normalize price for prisma update (accept string or number without breaking clients)
+    if (typeof (updateData as any).price === 'string') {
+      const n = Number((updateData as any).price)
+      if (Number.isNaN(n)) {
+        return NextResponse.json({ error: 'Invalid price' }, { status: 400 })
+      }
+      ;(updateData as any).price = n
+    }
 
     const product = await prisma.product.findUnique({
       where: { id },

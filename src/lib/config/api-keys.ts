@@ -22,10 +22,12 @@ export function getOpenAIKey(): string {
   if (!cleanedKey || cleanedKey.length < 10) {
     throw new Error('OPENAI_API_KEY appears to be invalid or incomplete')
   }
-  
-  // Log key prefix for debugging (without exposing full key)
-  const keyPrefix = cleanedKey.substring(0, Math.min(10, cleanedKey.length))
-  console.log(`Using OpenAI API key with prefix: ${keyPrefix}...`)
+  /**
+   * SECURITY NOTE (OWASP):
+   * Never log secrets (even partial prefixes) in production logs.
+   * Cloud log aggregation + screenshots can leak key material and enable targeted attacks.
+   * If debugging is required, validate presence/length only and rotate keys after any exposure.
+   */
   
   return cleanedKey
 }
