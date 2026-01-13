@@ -1,10 +1,9 @@
 import { createServiceClient } from '@/lib/auth'
-import AdminDashboardClient from './AdminDashboardClient'
+import AdminDashboardClient from '../AdminDashboardClient'
 
 export default async function AdminPage() {
   const supabase = createServiceClient()
-  
-  // Fetch influencer applications (AdminLayout enforces access; service role avoids RLS misconfig issues)
+
   const { data: applications, error } = await supabase
     .from('influencer_applications')
     .select('*')
@@ -19,9 +18,7 @@ export default async function AdminPage() {
       <div className="container mx-auto px-6 py-12">
         <div className="mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
           <div>
-            <h1 className="text-4xl md:text-5xl font-serif font-bold text-charcoal mb-2">
-              Admin Dashboard
-            </h1>
+            <h1 className="text-4xl md:text-5xl font-serif font-bold text-charcoal mb-2">Admin Dashboard</h1>
             <p className="text-charcoal/60">
               Review influencer applications and control access to influencer features.
             </p>
@@ -41,3 +38,4 @@ export default async function AdminPage() {
     </div>
   )
 }
+

@@ -61,16 +61,9 @@ function AdminLoginContent() {
       })
 
       const data = await response.json().catch(() => ({}))
-      if (response.status === 409 && data?.requiresProfile && data?.next) {
-        toast.info('One-time setup required. Please complete your profile.')
-        router.push(data.next)
-        return
-      }
       if (!response.ok) throw new Error(data?.error || 'Login failed')
 
       await queryClient.invalidateQueries({ queryKey: ['user'] })
-
-      // Let /admin layout perform the final RBAC check + bootstrap (team@dridhatechnologies.com)
       router.push('/admin')
       router.refresh()
     } catch (err) {
@@ -82,7 +75,6 @@ function AdminLoginContent() {
 
   return (
     <div className="min-h-screen flex bg-cream">
-      {/* Left Side */}
       <motion.div
         initial={{ opacity: 0, x: -50 }}
         animate={{ opacity: 1, x: 0 }}
@@ -105,13 +97,10 @@ function AdminLoginContent() {
             Sign in to <br />
             <span className="italic">Admin</span>
           </h1>
-          <p className="text-lg text-charcoal/70 max-w-md">
-            Manage influencer approvals and platform operations.
-          </p>
+          <p className="text-lg text-charcoal/70 max-w-md">Manage influencer approvals and platform operations.</p>
         </div>
       </motion.div>
 
-      {/* Right Side */}
       <motion.div
         initial={{ opacity: 0, x: 50 }}
         animate={{ opacity: 1, x: 0 }}

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/auth'
 
-export default async function AdminLayout({
+export default async function AdminProtectedLayout({
   children,
 }: {
   children: React.ReactNode
@@ -15,7 +15,6 @@ export default async function AdminLayout({
     redirect('/admin/login')
   }
 
-  // Check if user is admin using RLS-protected query
   const { data: adminCheck } = await supabase
     .from('admin_users')
     .select('user_id')
@@ -28,3 +27,4 @@ export default async function AdminLayout({
 
   return <>{children}</>
 }
+

@@ -55,7 +55,6 @@ export default function AdminRegisterPage() {
       if (error) throw new Error(error.message)
       if (!data.user?.id) throw new Error('Failed to create admin user')
 
-      // Grant admin role (server verifies ADMIN_SIGNUP_CODE)
       const res = await fetch('/api/admin/grant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -97,9 +96,7 @@ export default function AdminRegisterPage() {
             Create <br />
             <span className="italic">Admin</span>
           </h1>
-          <p className="text-lg text-charcoal/70 max-w-md">
-            Use the admin signup code to create an admin account.
-          </p>
+          <p className="text-lg text-charcoal/70 max-w-md">Use the admin signup code to create an admin account.</p>
         </div>
       </motion.div>
 
@@ -162,9 +159,7 @@ export default function AdminRegisterPage() {
                   placeholder="Enter admin code"
                 />
               </div>
-              <p className="text-xs text-charcoal/50">
-                This prevents random users from creating admin accounts.
-              </p>
+              <p className="text-xs text-charcoal/50">This prevents random users from creating admin accounts.</p>
             </div>
 
             <motion.button
