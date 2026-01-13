@@ -71,10 +71,13 @@ export async function updateSession(request: NextRequest) {
         return rateLimited
     }
 
-    // Authenticated users should not see public cover pages
+    // Authenticated users should not see the marketing homepage.
+    // NOTE: We intentionally do NOT redirect /login or /register here because
+    // users may be missing an app profile (Prisma) or be admins without a Prisma profile,
+    // and forcing /dashboard can cause redirect loops.
     if (user) {
         const pathname = request.nextUrl.pathname
-        if (pathname === '/' || pathname === '/login' || pathname === '/register') {
+        if (pathname === '/') {
             const url = request.nextUrl.clone()
             url.pathname = '/dashboard'
             return NextResponse.redirect(url)

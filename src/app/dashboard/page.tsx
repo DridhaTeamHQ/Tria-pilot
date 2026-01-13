@@ -12,6 +12,18 @@ export default async function Dashboard() {
     redirect('/login')
   }
 
+  // Admin users may not have an app profile in Prisma.
+  // If they are in admin_users, send them to the admin dashboard.
+  const { data: adminRow } = await supabase
+    .from('admin_users')
+    .select('user_id')
+    .eq('user_id', authUser.id)
+    .maybeSingle()
+
+  if (adminRow) {
+    redirect('/admin')
+  }
+
   // Optimized query - only select needed fields for redirect logic
   const user = await prisma.user.findUnique({
     where: { email: authUser.email!.toLowerCase().trim() },
@@ -33,11 +45,8 @@ export default async function Dashboard() {
   })
 
   if (!user) {
-    redirect('/login')
+    redirect('/complete-profile')
   }
-
-  // Debug: Log user role for troubleshooting
-  console.log('Dashboard redirect - User role:', user.role, 'Email:', user.email)
 
   // Check onboarding completion
   if (user.role === 'INFLUENCER') {

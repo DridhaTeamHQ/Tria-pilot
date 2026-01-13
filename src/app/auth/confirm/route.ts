@@ -36,6 +36,12 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.verifyOtp({ token_hash, type })
 
     if (!error) {
+      // For signup confirmations, Supabase establishes a session automatically.
+      // We intentionally sign out here so we can safely redirect to login pages
+      // without triggering middleware redirects or profile checks (prevents loops).
+      if (type === 'signup') {
+        await supabase.auth.signOut()
+      }
       const redirectTo = new URL(next, requestUrl.origin)
       return NextResponse.redirect(redirectTo)
     }

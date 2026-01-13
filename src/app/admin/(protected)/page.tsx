@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/auth'
 import AdminDashboardClient from '../AdminDashboardClient'
+import Link from 'next/link'
 
 export default async function AdminPage() {
   const supabase = createServiceClient()
@@ -24,12 +25,12 @@ export default async function AdminPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <a
+            <Link
               href="/"
               className="px-5 py-2.5 rounded-full border border-charcoal/15 text-charcoal text-sm font-medium hover:bg-charcoal/5 transition-colors"
             >
               Back to site
-            </a>
+            </Link>
           </div>
         </div>
 
