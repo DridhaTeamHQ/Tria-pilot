@@ -17,12 +17,36 @@ function safeEqual(a: string, b: string) {
   return crypto.timingSafeEqual(aBuf, bBuf)
 }
 
+async function sleep(ms: number) {
+  await new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function getProjectRefFromUrl(url: string | undefined): string | null {
+  if (!url) return null
+  try {
+    const u = new URL(url)
+    const host = u.hostname // e.g. abcdefg.supabase.co
+    const ref = host.split('.')[0]
+    return ref || null
+  } catch {
+    return null
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const signupCode = process.env.ADMIN_SIGNUP_CODE
     if (!signupCode) {
       return NextResponse.json(
         { error: 'ADMIN_SIGNUP_CODE is not configured' },
+        { status: 500 }
+      )
+    }
+
+    // These must all point to the SAME Supabase project for admin provisioning to work.
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      return NextResponse.json(
+        { error: 'Supabase public env vars are not configured (NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY)' },
         { status: 500 }
       )
     }
@@ -35,6 +59,36 @@ export async function POST(request: Request) {
     }
 
     const service = createServiceClient()
+
+    // Ensure the auth user exists before inserting FK row into public.admin_users.
+    // This also catches common misconfiguration where frontend signs up against a different project
+    // than the server (service role) is connected to.
+    let authUserExists = false
+    let lastAuthError: string | null = null
+    for (let i = 0; i < 5; i++) {
+      const { data, error } = await service.auth.admin.getUserById(user_id)
+      if (data?.user) {
+        authUserExists = true
+        break
+      }
+      lastAuthError = error?.message || null
+      await sleep(250)
+    }
+
+    if (!authUserExists) {
+      const ref = getProjectRefFromUrl(process.env.NEXT_PUBLIC_SUPABASE_URL)
+      return NextResponse.json(
+        {
+          error: 'Auth user not found in this Supabase project.',
+          hint:
+            'This usually means your Vercel env vars are mismatched. Make sure NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY are from the SAME Supabase project.',
+          projectRef: ref,
+          details: lastAuthError,
+        },
+        { status: 500 }
+      )
+    }
+
     const { error } = await service
       .from('admin_users')
       .upsert({ user_id }, { onConflict: 'user_id' })
