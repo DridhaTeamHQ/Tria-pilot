@@ -35,8 +35,12 @@ function AdminLoginContent() {
 
   useEffect(() => {
     const error = searchParams.get('error')
+    const confirmed = searchParams.get('confirmed')
     if (error === 'not_admin') {
       toast.error('This account is not an admin.')
+    }
+    if (confirmed === 'true') {
+      toast.success('Email confirmed! You can now sign in as admin.')
     }
   }, [searchParams])
 
@@ -175,6 +179,13 @@ function AdminLoginContent() {
               )}
             </motion.button>
           </form>
+
+          <p className="mt-6 text-center text-sm text-charcoal/60">
+            Need an admin account?{' '}
+            <Link href="/admin/register" className="text-charcoal font-medium hover:underline">
+              Create one
+            </Link>
+          </p>
 
           <p className="mt-8 text-center text-charcoal/60">
             Not an admin?{' '}

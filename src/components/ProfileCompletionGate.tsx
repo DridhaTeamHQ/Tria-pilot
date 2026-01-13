@@ -11,6 +11,7 @@ const SKIP_PREFIXES = [
   '/auth/confirm',
   '/complete-profile',
   '/admin/login',
+  '/admin/register',
 ]
 
 export default function ProfileCompletionGate() {

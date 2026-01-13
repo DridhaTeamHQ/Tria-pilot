@@ -13,6 +13,33 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Admin users may not have an app profile in Prisma.
+    // If they are in admin_users, treat them as authenticated without requiring /complete-profile.
+    const { data: adminRow } = await supabase
+      .from('admin_users')
+      .select('user_id')
+      .eq('user_id', authUser.id)
+      .single()
+
+    if (adminRow) {
+      return NextResponse.json(
+        {
+          user: {
+            id: authUser.id,
+            email: authUser.email?.toLowerCase().trim() || '',
+            name: null,
+            role: 'ADMIN',
+            slug: 'admin',
+          },
+        },
+        {
+          headers: {
+            'Cache-Control': 'private, max-age=60, stale-while-revalidate=120',
+          },
+        }
+      )
+    }
+
     // Optimized query - use indexed email field, minimal select
     const dbUser = await prisma.user.findUnique({
       where: { email: authUser.email!.toLowerCase().trim() }, // Normalize email

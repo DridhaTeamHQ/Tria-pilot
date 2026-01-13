@@ -21,11 +21,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const bootstrapEmail = (process.env.ADMIN_BOOTSTRAP_EMAIL || 'team@dridhatechnologies.com')
-      .toLowerCase()
-      .trim()
-
-    // If not admin, try bootstrap (team email) then re-check by writing admin_users
+    // Enforce admin access via admin_users
     const { data: adminCheck } = await supabase
       .from('admin_users')
       .select('user_id')
@@ -33,19 +29,7 @@ export async function GET() {
       .single()
 
     if (!adminCheck) {
-      if (authUser.email?.toLowerCase().trim() === bootstrapEmail) {
-        try {
-          const service = createServiceClient()
-          await service.from('admin_users').upsert({ user_id: authUser.id })
-        } catch {
-          return NextResponse.json(
-            { error: 'Admin bootstrap not configured (missing SUPABASE_SERVICE_ROLE_KEY)' },
-            { status: 500 }
-          )
-        }
-      } else {
-        return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
-      }
+      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
     }
 
     const service = createServiceClient()
@@ -79,10 +63,6 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const bootstrapEmail = (process.env.ADMIN_BOOTSTRAP_EMAIL || 'team@dridhatechnologies.com')
-      .toLowerCase()
-      .trim()
-
     // Check if user is admin using RLS-protected query
     const { data: adminCheck } = await supabase
       .from('admin_users')
@@ -91,20 +71,7 @@ export async function PATCH(request: Request) {
       .single()
 
     if (!adminCheck) {
-      // Bootstrap: allow configured admin email to self-provision
-      if (authUser.email?.toLowerCase().trim() === bootstrapEmail) {
-        try {
-          const service = createServiceClient()
-          await service.from('admin_users').upsert({ user_id: authUser.id })
-        } catch (e) {
-          return NextResponse.json(
-            { error: 'Admin bootstrap not configured (missing SUPABASE_SERVICE_ROLE_KEY)' },
-            { status: 500 }
-          )
-        }
-      } else {
-        return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
-      }
+      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
     }
 
     const body = await request.json().catch(() => null)

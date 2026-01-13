@@ -52,6 +52,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Authentication failed' }, { status: 401 })
     }
 
+    // Admin users may not have an app profile in Prisma. If they are in admin_users, allow login.
+    const { data: adminRow } = await supabase
+      .from('admin_users')
+      .select('user_id')
+      .eq('user_id', data.user.id)
+      .single()
+
+    if (adminRow) {
+      return NextResponse.json(
+        {
+          user: {
+            id: data.user.id,
+            email,
+            name: null,
+            role: 'ADMIN',
+            slug: 'admin',
+          },
+          session: data.session,
+        },
+        { status: 200 }
+      )
+    }
+
     // Get full user data from database using normalized email
     const user = await prisma.user.findUnique({
       where: { email },
