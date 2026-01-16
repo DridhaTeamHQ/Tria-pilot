@@ -51,3 +51,9 @@ export function joinPublicUrl(base: string, path: string) {
   return `${cleanBase}${cleanPath}`
 }
 
+export function buildAuthConfirmUrl(base: string, nextPath: string) {
+  const cleanNext = nextPath.startsWith('/') ? nextPath : `/${nextPath}`
+  const encodedNext = encodeURIComponent(cleanNext)
+  return joinPublicUrl(base, `/auth/confirm?next=${encodedNext}`)
+}
+

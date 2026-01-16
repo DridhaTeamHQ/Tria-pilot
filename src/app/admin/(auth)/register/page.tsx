@@ -6,7 +6,7 @@ import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import { ArrowRight, Shield, Sparkles, KeyRound } from 'lucide-react'
 import { createClient } from '@supabase/supabase-js'
-import { getPublicSiteUrlClient, joinPublicUrl } from '@/lib/site-url'
+import { getPublicSiteUrlClient, buildAuthConfirmUrl } from '@/lib/site-url'
 
 export default function AdminRegisterPage() {
   const [email, setEmail] = useState('')
@@ -41,9 +41,9 @@ export default function AdminRegisterPage() {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       )
 
-      const emailRedirectTo = joinPublicUrl(
+      const emailRedirectTo = buildAuthConfirmUrl(
         getPublicSiteUrlClient(),
-        '/auth/confirm?next=/admin/login?confirmed=true'
+        '/admin/login?confirmed=true'
       )
 
       const { data, error } = await supabase.auth.signUp({

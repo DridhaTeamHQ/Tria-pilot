@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { toast } from 'sonner'
 import { Sparkles, ArrowRight, ArrowLeft, User, Building2, Camera, TrendingUp, Instagram, Youtube, Twitter, ChevronDown, ChevronUp } from 'lucide-react'
 import { createClient } from '@supabase/supabase-js'
-import { getPublicSiteUrlClient, joinPublicUrl } from '@/lib/site-url'
+import { getPublicSiteUrlClient, buildAuthConfirmUrl } from '@/lib/site-url'
 
 type Role = 'INFLUENCER' | 'BRAND'
 
@@ -63,9 +63,9 @@ export default function RegisterPage() {
         options: {
           // After the user clicks the email confirmation link, Supabase will redirect here.
           // Ensure this URL is allowed in Supabase Auth Redirect URLs.
-          emailRedirectTo: joinPublicUrl(
+          emailRedirectTo: buildAuthConfirmUrl(
             getPublicSiteUrlClient(),
-            '/auth/confirm?next=/login?confirmed=true'
+            '/login?confirmed=true'
           ),
         },
       })

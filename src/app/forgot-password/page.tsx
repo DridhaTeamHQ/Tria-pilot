@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import { ArrowRight, Mail, Sparkles } from 'lucide-react'
 import { createClient } from '@supabase/supabase-js'
-import { getPublicSiteUrlClient, joinPublicUrl } from '@/lib/site-url'
+import { getPublicSiteUrlClient, buildAuthConfirmUrl } from '@/lib/site-url'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -21,7 +21,7 @@ export default function ForgotPasswordPage() {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       )
 
-      const redirectTo = joinPublicUrl(getPublicSiteUrlClient(), '/auth/confirm?next=/reset-password')
+      const redirectTo = buildAuthConfirmUrl(getPublicSiteUrlClient(), '/reset-password')
 
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
         redirectTo,

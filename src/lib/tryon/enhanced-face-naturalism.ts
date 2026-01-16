@@ -283,7 +283,7 @@ export function buildEnhancedFaceConsistencyPrompt(): string {
     ].join('\n')
 }
 
-export default {
+const faceNaturalism = {
     faceAnchors: FACE_ANCHOR_SYSTEM,
     skinRendering: NATURAL_SKIN_RENDERING,
     lifelike: LIFELIKE_BEHAVIOR,
@@ -291,3 +291,5 @@ export default {
     enhanced: ENHANCED_FACE_CONSISTENCY,
     full: buildEnhancedFaceConsistencyPrompt()
 }
+
+export default faceNaturalism

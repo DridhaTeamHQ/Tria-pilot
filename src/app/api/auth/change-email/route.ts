@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/auth'
-import { getPublicSiteUrlFromRequest, joinPublicUrl } from '@/lib/site-url'
+import { getPublicSiteUrlFromRequest, buildAuthConfirmUrl } from '@/lib/site-url'
 
 const schema = z
   .object({
@@ -35,9 +35,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Incorrect password' }, { status: 400 })
     }
 
-    const emailRedirectTo = joinPublicUrl(
+    const emailRedirectTo = buildAuthConfirmUrl(
       getPublicSiteUrlFromRequest(request),
-      '/auth/confirm?next=/settings/profile?email_changed=true'
+      '/settings/profile?email_changed=true'
     )
 
     const { error: updateError } = await supabase.auth.updateUser(
