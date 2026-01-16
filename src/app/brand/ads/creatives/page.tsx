@@ -302,13 +302,7 @@ function ImproveModal({
     const [loading, setLoading] = useState(false)
     const [applying, setApplying] = useState<string | null>(null)
 
-    useEffect(() => {
-        if (open && creative) {
-            fetchSuggestions()
-        }
-    }, [open, creative])
-
-    const fetchSuggestions = async () => {
+    const fetchSuggestions = useCallback(async () => {
         if (!creative) return
 
         setLoading(true)
@@ -328,7 +322,13 @@ function ImproveModal({
         } finally {
             setLoading(false)
         }
-    }
+    }, [creative])
+
+    useEffect(() => {
+        if (open && creative) {
+            fetchSuggestions()
+        }
+    }, [open, creative, fetchSuggestions])
 
     const handleApply = async (suggestion: ImproveSuggestion) => {
         setApplying(suggestion.suggestion)

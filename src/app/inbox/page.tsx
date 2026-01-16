@@ -31,8 +31,8 @@ export default function InboxPage() {
   const markAsReadMutation = useMarkNotificationRead()
   const markAllAsReadMutation = useMarkAllNotificationsRead()
 
-  const notifications = data?.notifications || []
-  const unreadCount = data?.unreadCount || 0
+  const notifications = useMemo(() => data?.notifications || [], [data?.notifications])
+  const unreadCount = useMemo(() => data?.unreadCount || 0, [data?.unreadCount])
 
   const handleNotificationClick = async (notification: any) => {
     // Mark as read if unread
