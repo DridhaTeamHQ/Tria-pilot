@@ -19,7 +19,7 @@ const NICHE_OPTIONS = ['Fashion', 'Lifestyle', 'Tech', 'Beauty', 'Fitness', 'Tra
 const AUDIENCE_OPTIONS = ['Men', 'Women', 'Unisex', 'Kids']
 const CATEGORY_OPTIONS = ['Casual', 'Formal', 'Streetwear', 'Vintage', 'Sustainable', 'Luxury', 'Athleisure']
 
-const TOTAL_STEPS = 8 // Added identity images step
+const TOTAL_STEPS = 9 // Added metrics + identity images steps
 
 export default function InfluencerOnboardingPage() {
   const router = useRouter()
@@ -52,6 +52,8 @@ export default function InfluencerOnboardingPage() {
       twitter: '',
     },
     bio: '',
+    audienceRate: '',
+    retentionRate: '',
   })
 
   // Calculate identity upload progress
@@ -88,6 +90,14 @@ export default function InfluencerOnboardingPage() {
               twitter: existingSocials.twitter || '',
             },
             bio: data.profile.bio || '',
+            audienceRate:
+              data.profile.audienceRate !== null && data.profile.audienceRate !== undefined
+                ? String(data.profile.audienceRate)
+                : '',
+            retentionRate:
+              data.profile.retentionRate !== null && data.profile.retentionRate !== undefined
+                ? String(data.profile.retentionRate)
+                : '',
           })
         }
       })
@@ -149,6 +159,12 @@ export default function InfluencerOnboardingPage() {
   }
 
   const handleNext = async () => {
+    if (step === 6) {
+      if (formData.audienceRate === '' || formData.retentionRate === '') {
+        toast.error('Please enter both audience growth and retention rates.')
+        return
+      }
+    }
     if (step < TOTAL_STEPS) {
       // Save progress
       await saveProgress()
@@ -167,10 +183,15 @@ export default function InfluencerOnboardingPage() {
 
   const saveProgress = async () => {
     try {
+      const payload = {
+        ...formData,
+        audienceRate: formData.audienceRate === '' ? undefined : Number(formData.audienceRate),
+        retentionRate: formData.retentionRate === '' ? undefined : Number(formData.retentionRate),
+      }
       await fetch('/api/onboarding/influencer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       })
     } catch (error) {
       console.error('Failed to save progress:', error)
@@ -180,10 +201,15 @@ export default function InfluencerOnboardingPage() {
   const handleSubmit = async () => {
     setLoading(true)
     try {
+      const payload = {
+        ...formData,
+        audienceRate: formData.audienceRate === '' ? undefined : Number(formData.audienceRate),
+        retentionRate: formData.retentionRate === '' ? undefined : Number(formData.retentionRate),
+      }
       const response = await fetch('/api/onboarding/influencer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       })
 
       const data = await response.json()
@@ -518,6 +544,48 @@ export default function InfluencerOnboardingPage() {
 
       case 6:
         return (
+          <div className="space-y-6">
+            <div>
+              <Label className="text-lg font-semibold">Audience Metrics</Label>
+              <p className="text-sm text-muted-foreground mt-1">
+                Share your latest monthly audience growth and content retention rates. These help brands rank and compare influencers.
+              </p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="audienceRate">Audience Growth Rate (%)</Label>
+                <Input
+                  id="audienceRate"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  placeholder="e.g. 12.5"
+                  value={formData.audienceRate}
+                  onChange={(e) => setFormData({ ...formData, audienceRate: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground">Monthly follower growth percentage.</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="retentionRate">Content Retention Rate (%)</Label>
+                <Input
+                  id="retentionRate"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  placeholder="e.g. 45"
+                  value={formData.retentionRate}
+                  onChange={(e) => setFormData({ ...formData, retentionRate: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground">Percentage of viewers who return or stay engaged.</p>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 7:
+        return (
           <div className="space-y-4">
             <Label htmlFor="bio">Bio/Description</Label>
             <textarea
@@ -530,8 +598,8 @@ export default function InfluencerOnboardingPage() {
           </div>
         )
 
-      // NEW STEP 7: Identity Images for AI Try-On
-      case 7:
+      // NEW STEP 8: Identity Images for AI Try-On
+      case 8:
         return (
           <div className="space-y-6">
             <div>
@@ -611,7 +679,7 @@ export default function InfluencerOnboardingPage() {
           </div>
         )
 
-      case 8:
+      case 9:
         return (
           <div className="space-y-4">
             <div>
@@ -650,9 +718,10 @@ export default function InfluencerOnboardingPage() {
       case 3: return 'Target Audience'
       case 4: return 'Clothing Categories'
       case 5: return 'Social Media'
-      case 6: return 'Bio'
-      case 7: return 'AI Try-On Setup'
-      case 8: return 'Profile Photos'
+      case 6: return 'Audience Metrics'
+      case 7: return 'Bio'
+      case 8: return 'AI Try-On Setup'
+      case 9: return 'Profile Photos'
       default: return 'Profile Setup'
     }
   }

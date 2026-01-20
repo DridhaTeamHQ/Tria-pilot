@@ -28,6 +28,7 @@ export async function GET(request: Request) {
     const audience = searchParams.get('audience')
     const gender = searchParams.get('gender')
     const category = searchParams.get('category')
+    const badge = searchParams.get('badge')
     const sortBy = searchParams.get('sortBy') || 'followers'
     const order = (searchParams.get('order') || 'desc') as 'asc' | 'desc'
     const page = parseInt(searchParams.get('page') || '1')
@@ -50,6 +51,8 @@ export async function GET(request: Request) {
       orderBy.pricePerPost = order
     } else if (sortBy === 'engagement') {
       orderBy.engagementRate = order
+    } else if (sortBy === 'badge') {
+      orderBy.badgeScore = order
     } else {
       orderBy.createdAt = 'desc'
     }
@@ -92,6 +95,10 @@ export async function GET(request: Request) {
         const categories = inf.preferredCategories as string[]
         return Array.isArray(categories) && categories.includes(category)
       })
+    }
+
+    if (badge) {
+      influencers = influencers.filter((inf: any) => inf.badgeTier === badge)
     }
 
     // Get all user IDs for batch queries

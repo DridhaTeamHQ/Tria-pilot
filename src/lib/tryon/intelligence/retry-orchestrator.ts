@@ -54,6 +54,9 @@ export type FailureType =
     | 'GARMENT_TOPOLOGY_VIOLATION'
     | 'TOP_CONVERTED_TO_DRESS'
     | 'MISSING_PANTS'
+    // Input coverage failures (selfie-safe)
+    | 'INVALID_INPUT_COVERAGE'
+    | 'COVERAGE_GARMENT_MISMATCH'
 
 export interface OrchestratorResult {
     success: boolean

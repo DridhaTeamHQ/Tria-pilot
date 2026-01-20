@@ -75,8 +75,6 @@ function TryOnPageContent() {
 
     const [personImage, setPersonImage] = useState<string>('')
     const [personImageBase64, setPersonImageBase64] = useState<string>('')
-    const [additionalPersonImages, setAdditionalPersonImages] = useState<string[]>([]) // For Pro model
-    const [additionalPersonImagesBase64, setAdditionalPersonImagesBase64] = useState<string[]>([]) // For Pro model
     const [clothingImage, setClothingImage] = useState<string>('')
     const [clothingImageBase64, setClothingImageBase64] = useState<string>('')
     const [backgroundImage, setBackgroundImage] = useState<string>('')
@@ -95,17 +93,16 @@ function TryOnPageContent() {
     const [accessoryImages, setAccessoryImages] = useState<string[]>([])
     const [accessoryTypes, setAccessoryTypes] = useState<('purse' | 'shoes' | 'hat' | 'jewelry' | 'bag' | 'watch' | 'sunglasses' | 'scarf' | 'other')[]>([])
     const [loading, setLoading] = useState(false)
-    const [uploadingImage, setUploadingImage] = useState<'person' | 'clothing' | 'background' | 'additional' | 'accessory' | null>(null)
-    // Multi-variant support: PRO generates 3 variants, user selects one
+    const [uploadingImage, setUploadingImage] = useState<'person' | 'clothing' | 'background' | 'accessory' | null>(null)
+    // Multi-variant support: generate 3 variants, user selects one
     const [result, setResult] = useState<{ jobId: string; imageUrl: string; base64Image?: string } | null>(null)
     const [variants, setVariants] = useState<Array<{ imageUrl: string; base64Image?: string; variantId: number; label?: string }>>([])
     const [selectedVariant, setSelectedVariant] = useState<number>(0)
     const [product, setProduct] = useState<Product | null>(null)
     const [selectedPreset, setSelectedPreset] = useState<string>('')
     const [presetCategory, setPresetCategory] = useState<string>('all')
-    const [selectedModel, setSelectedModel] = useState<'flash' | 'pro'>('flash')
     const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '3:4' | '9:16'>('4:5')
-    const [quality, setQuality] = useState<'1K' | '2K' | '4K'>('2K')
+    const [quality, setQuality] = useState<'1K' | '2K'>('2K')
     const [dragOver, setDragOver] = useState<'person' | 'clothing' | null>(null)
     const [showCelebration, setShowCelebration] = useState(false)
     const [showShareModal, setShowShareModal] = useState(false)
@@ -326,41 +323,6 @@ function TryOnPageContent() {
         }
     }
 
-    // Handler for additional person images (Pro model)
-    const handleAdditionalImageUpload = useCallback((file: File) => {
-        if (additionalPersonImages.length >= 4) {
-            toast.error('Maximum 4 additional images allowed (5 total)')
-            return
-        }
-
-        if (!file.type.startsWith('image/')) {
-            toast.error('Please select an image file')
-            return
-        }
-
-        setUploadingImage('additional')
-        const reader = new FileReader()
-        reader.onload = (event) => {
-            const base64 = event.target?.result as string
-            if (base64 && base64.length >= 100) {
-                setAdditionalPersonImages(prev => [...prev, base64])
-                setAdditionalPersonImagesBase64(prev => [...prev, base64])
-                toast.success(`Additional photo ${additionalPersonImages.length + 1} added`)
-            }
-            setUploadingImage(null)
-        }
-        reader.onerror = () => {
-            toast.error('Failed to read image file')
-            setUploadingImage(null)
-        }
-        reader.readAsDataURL(file)
-    }, [additionalPersonImages.length])
-
-    const handleRemoveAdditionalImage = (index: number) => {
-        setAdditionalPersonImages(prev => prev.filter((_, i) => i !== index))
-        setAdditionalPersonImagesBase64(prev => prev.filter((_, i) => i !== index))
-    }
-
     // NEW: Accessory upload handlers for Edit Mode
     const handleAccessoryUpload = useCallback((file: File, type: 'purse' | 'shoes' | 'hat' | 'jewelry' | 'bag' | 'watch' | 'sunglasses' | 'scarf' | 'other') => {
         if (accessoryImages.length >= 5) {
@@ -440,17 +402,13 @@ function TryOnPageContent() {
 
         setLoading(true)
         try {
-            // Collect all additional person images including identity refs
-            let allAdditionalImages = [...additionalPersonImagesBase64]
+            // Collect identity references (Flash: 1-2 strong face refs)
+            const allAdditionalImages: string[] = []
 
             // Add identity images if available and enabled
             if (useIdentityImages && identityImages.length > 0) {
-                // Flash works best with a couple strong face refs; Pro can use more.
-                const isFlash = selectedModel === 'flash'
                 const faceOnlyTypes = new Set(['face_front', 'face_smile', 'face_left', 'face_right'])
-                const identityForModel = isFlash
-                    ? identityImages.filter((x) => faceOnlyTypes.has(x.type)).slice(0, 2)
-                    : identityImages
+                const identityForModel = identityImages.filter((x) => faceOnlyTypes.has(x.type)).slice(0, 2)
 
                 console.log(`🎭 Adding ${identityForModel.length} identity references for better face consistency`)
                 for (const idImg of identityForModel) {
@@ -472,7 +430,7 @@ function TryOnPageContent() {
                     backgroundImage: backgroundImageBase64 || backgroundImage || undefined,
                     accessoryImages: accessoryImages.length > 0 ? accessoryImages : undefined,
                     accessoryTypes: accessoryTypes.length > 0 ? accessoryTypes : undefined,
-                    model: selectedModel,
+                    model: 'flash',
                     stylePreset: selectedPreset || undefined,
                     userRequest: userRequest || undefined,
                     aspectRatio,
@@ -1049,7 +1007,7 @@ function TryOnPageContent() {
                                     <span className="text-xs font-normal text-charcoal/40">(auto scene + lighting)</span>
                                 </h3>
                                 <div className="text-[11px] text-charcoal/50 mt-1">
-                                    Tip: for “Subtle Pose” presets, use <span className="font-medium">Pro</span> and upload 1–2 extra identity photos for best face consistency.
+                                    Tip: for “Subtle Pose” presets, add 1–2 clear face photos to your profile for best face consistency.
                                 </div>
                                 <div className="flex gap-2 flex-wrap">
                                     <button
@@ -1219,12 +1177,6 @@ function TryOnPageContent() {
                                 ))}
                             </div>
 
-                            {/* Hidden Model Selector Toggles (kept for functionality but made subtle) */}
-                            <div className="flex gap-4 mt-4 opacity-50 hover:opacity-100 transition-opacity">
-                                <button onClick={() => setSelectedModel(selectedModel === 'flash' ? 'pro' : 'flash')} className="text-xs text-charcoal/40 font-medium uppercase tracking-widest hover:text-peach">
-                                    Current Model: {selectedModel}
-                                </button>
-                            </div>
                         </motion.div>
 
                         {/* RESULT DISPLAY */}
@@ -1263,8 +1215,8 @@ function TryOnPageContent() {
 
                                         {/* Real-time countdown */}
                                         {(() => {
-                                            // Realistic times for 3-variant generation
-                                            const estimatedTotal = selectedModel === 'flash' ? 70 : 120
+                                            // Realistic times for 3-variant generation (Flash only)
+                                            const estimatedTotal = 70
                                             const remaining = Math.max(0, estimatedTotal - elapsedSeconds)
                                             const isAlmostDone = remaining <= 10 && remaining > 0
                                             const isOverEstimate = remaining === 0
@@ -1284,18 +1236,15 @@ function TryOnPageContent() {
                                                                 : `${elapsedSeconds}s elapsed`}
                                                     </p>
                                                     <p className="text-charcoal/40 text-xs mb-4">
-                                                        Generating 3 unique variants for you
+                                                        Generating your variants
                                                     </p>
                                                 </>
                                             )
                                         })()}
 
                                         {/* Model badge */}
-                                        <div className={`inline-block px-4 py-2 rounded-full text-sm font-medium ${selectedModel === 'flash'
-                                            ? 'bg-charcoal/10 text-charcoal'
-                                            : 'bg-purple-500/20 text-purple-700'
-                                            }`}>
-                                            {selectedModel === 'flash' ? '🚀 Flash Mode' : '⚡ Pro Mode'}
+                                        <div className="inline-block px-4 py-2 rounded-full text-sm font-medium bg-charcoal/10 text-charcoal">
+                                            🚀 Flash Mode
                                         </div>
                                     </div>
                                 </div>

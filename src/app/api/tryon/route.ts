@@ -146,9 +146,10 @@ export async function POST(request: Request) {
       resolution: reqResolution
     } = tryOnSchema.parse(body)
 
-    // Map user-friendly model names to Gemini model IDs
-    const geminiModel = model === 'pro' ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image'
-    console.log(`📊 Selected model: ${model} (${geminiModel})`)
+    // Flash-only image generation (Pro option removed)
+    const geminiModel = 'gemini-2.5-flash-image'
+    const effectiveModel = model === 'production' ? 'production' : 'flash'
+    console.log(`📊 Selected model: ${effectiveModel} (${geminiModel})`)
 
     const presetV3 = stylePreset ? getTryOnPresetV3(stylePreset) : undefined
     if (stylePreset) {
@@ -355,8 +356,11 @@ export async function POST(request: Request) {
       // ═══════════════════════════════════════════════════════════════
       // STANDARD GEMINI PIPELINE (Fallback / Default)
       // ═══════════════════════════════════════════════════════════════
-      // Generate 3 variants in parallel for user selection
-      const VARIANT_COUNT = 3
+      // Generate variants in parallel for user selection
+      const variantEnv = Number.parseInt(process.env.TRYON_VARIANT_COUNT || '3', 10)
+      const VARIANT_COUNT = Number.isFinite(variantEnv) && variantEnv > 0
+        ? Math.min(3, variantEnv)
+        : 3
       console.log(`🎬 Generating ${VARIANT_COUNT} variants in parallel (Gemini pipeline)...`)
 
       const variantPromises = Array.from({ length: VARIANT_COUNT }, (_, variantIndex) =>
@@ -384,7 +388,7 @@ export async function POST(request: Request) {
               // Build pipeline-v4 prompt with identity layers
               const pipelineOutput = buildPipelineV4({
                 sessionId: `${job.id}_v${variantLetter}`,
-                modelMode: model === 'pro' ? 'pro' : 'flash',
+                modelMode: 'flash',
                 presetId: stylePreset || 'keep_original',
                 userRequest: userRequest,
                 variant: variantLetter
@@ -418,7 +422,7 @@ export async function POST(request: Request) {
               // IPCR-X: Full prompt chain
               // ORDER: Strict Enforcement (Highest Priority) → Absolute Face Freeze → Naturalism Enforcement → Unified Identity System → Face-Realism-Garment Master → Cross-Variant Face Consistency → Intelligent RAG → Identity-Garment-Realism → Photographic Compositor → Body Scan → Garment Scan → Physics → CBN-ST → Identity Layers → Variant → Verification
               // Strict Enforcement is the absolute highest priority - it cannot be overridden
-              const isPro = model === 'pro'
+              const isPro = false
               const strictEnforcement = getStrictIdentityEnforcement() // HIGHEST PRIORITY - FIRST
               const faceUltraLock = getFaceUltraLock() // FACE ULTRA LOCK (ABSOLUTE ZERO DRIFT)
               const garmentUltraLock = getGarmentUltraLock() // GARMENT ULTRA LOCK (ABSOLUTE EXACT MATCH)
@@ -527,7 +531,7 @@ REQUIREMENTS:
                 preset,
                 userRequest: userRequest ? `${userRequest}\n\n${variantPromptAddition}` : variantPromptAddition,
                 quality: {
-                  quality: model === 'pro' ? 'high' : 'fast',
+                  quality: 'fast',
                   aspectRatio: (reqAspectRatio || '4:5') as any,
                   resolution: (reqResolution || '2K') as any,
                 },
@@ -589,10 +593,10 @@ REQUIREMENTS:
       // Use first variant as primary
       const primaryVariant = variants[0]
 
-      await prisma.generationJob.update({
-        where: { id: job.id },
-        data: {
-          status: 'completed',
+        await prisma.generationJob.update({
+          where: { id: job.id },
+          data: {
+            status: 'completed',
           outputImagePath: primaryVariant.imageUrl || 'base64://' + primaryVariant.base64Image.substring(0, 50) + '...',
           suggestionsJSON: {
             presetId: stylePreset || null,
@@ -600,9 +604,19 @@ REQUIREMENTS:
             prompt_text: successfulVariants[0].result.debug.shootPlanText,
             timeMs: successfulVariants[0].result.debug.timeMs,
             variantCount: variants.length,
+            },
           },
-        },
-      })
+        })
+
+      // ═══════════════════════════════════════════════════════════════
+      // PHASE 2: Complete generation tracking (success)
+      // ═══════════════════════════════════════════════════════════════
+      completeGeneration(
+        dbUser.id,
+        generationRequestId,
+        'success',
+        successfulVariants.length
+      )
 
       return NextResponse.json({
         success: true,
@@ -621,6 +635,11 @@ REQUIREMENTS:
     } catch (error) {
       console.error('❌ Try-on generation failed for job:', job.id)
       console.error('Error:', error)
+
+      // ═══════════════════════════════════════════════════════════════
+      // PHASE 2: Complete generation tracking (failure)
+      // ═══════════════════════════════════════════════════════════════
+      completeGeneration(dbUser.id, generationRequestId, 'failed', 0)
 
       // Update job with error
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'

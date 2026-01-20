@@ -83,14 +83,14 @@ export default function InfluencerPendingPage() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="max-w-2xl mx-auto"
+          className="max-w-3xl mx-auto"
         >
-          <div className="mb-8">
+          <div className="text-center mb-10">
             <Link href="/" className="text-3xl font-serif font-bold text-charcoal">
               Kiwikoo
             </Link>
             <h1 className="text-4xl md:text-5xl font-serif font-bold text-charcoal mt-4">
-              {isRejected ? 'Application rejected' : 'Application under review'}
+              {isRejected ? 'Application rejected' : 'Approval in progress'}
             </h1>
             <p className="text-charcoal/60 mt-3">
               {isRejected
@@ -101,7 +101,11 @@ export default function InfluencerPendingPage() {
 
           <div className="bg-white rounded-3xl border border-charcoal/10 p-8">
             <div className="flex items-start gap-4">
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isRejected ? 'bg-red-500/10' : 'bg-peach/20'}`}>
+              <div
+                className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
+                  isRejected ? 'bg-red-500/10' : 'bg-peach/20'
+                }`}
+              >
                 {isRejected ? (
                   <ShieldAlert className="w-6 h-6 text-red-600" />
                 ) : (
@@ -118,9 +122,22 @@ export default function InfluencerPendingPage() {
                 <p className="text-charcoal/60 mt-1">
                   {isRejected
                     ? 'If you believe this is a mistake, reach out and we’ll review it.'
-                    : 'This usually takes a short time. You’ll receive an email once approved.'}
+                    : 'You’ll receive an email once approved. Reviews typically complete within 24–48 hours.'}
                 </p>
               </div>
+            </div>
+
+            <div className="mt-8 grid gap-4 md:grid-cols-3">
+              {[
+                { title: 'Submit profile', detail: 'Complete onboarding and identity photos.' },
+                { title: 'Admin review', detail: 'We check for authenticity and quality.' },
+                { title: 'Get approved', detail: 'Unlock collaborations and try-on tools.' },
+              ].map((stepItem) => (
+                <div key={stepItem.title} className="rounded-2xl border border-charcoal/10 p-4 bg-cream/40">
+                  <div className="font-semibold text-charcoal">{stepItem.title}</div>
+                  <p className="text-sm text-charcoal/60 mt-1">{stepItem.detail}</p>
+                </div>
+              ))}
             </div>
 
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
@@ -134,6 +151,13 @@ export default function InfluencerPendingPage() {
               </button>
 
               <Link
+                href="/marketplace"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-charcoal/15 text-charcoal font-medium hover:bg-charcoal/5"
+              >
+                Browse marketplace
+              </Link>
+
+              <Link
                 href="/contact"
                 className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-charcoal/15 text-charcoal font-medium hover:bg-charcoal/5"
               >
@@ -144,12 +168,12 @@ export default function InfluencerPendingPage() {
             <div className="mt-8 p-5 rounded-2xl bg-cream/60 border border-charcoal/5">
               <div className="flex items-center gap-2 text-charcoal font-medium">
                 <CheckCircle2 className="w-5 h-5 text-green-600" />
-                What happens next?
+                What you can do now
               </div>
               <ul className="mt-3 text-sm text-charcoal/70 space-y-2">
-                <li>- Admin reviews your influencer application</li>
-                <li>- Once approved, you’ll unlock the dashboard + try-on studio</li>
-                <li>- You can keep checking this page anytime</li>
+                <li>- Browse the marketplace and explore products</li>
+                <li>- Keep your profile details updated</li>
+                <li>- Check this page for approval status</li>
               </ul>
             </div>
           </div>

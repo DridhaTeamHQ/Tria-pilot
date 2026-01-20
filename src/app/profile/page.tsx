@@ -32,6 +32,7 @@ import { toast } from 'sonner'
 import { useUser, useProfileStats } from '@/lib/react-query/hooks'
 import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
+import BadgeDisplay, { type BadgeTier } from '@/components/influencer/BadgeDisplay'
 
 type ProfileImage = {
   id: string
@@ -55,6 +56,11 @@ export default function ProfilePage() {
   const [socials, setSocials] = useState<Record<string, string>>({})
   const [socialsLoading, setSocialsLoading] = useState(false)
   const [socialsSaving, setSocialsSaving] = useState(false)
+  const [metrics, setMetrics] = useState({ audienceRate: '', retentionRate: '' })
+  const [badgeTier, setBadgeTier] = useState<BadgeTier>(null)
+  const [badgeScore, setBadgeScore] = useState<number | null>(null)
+  const [metricsLoading, setMetricsLoading] = useState(false)
+  const [metricsSaving, setMetricsSaving] = useState(false)
 
   useEffect(() => {
     if (userData?.name) {
@@ -82,6 +88,7 @@ export default function ProfilePage() {
       fetchProfileImages()
       if (userData?.role === 'INFLUENCER') {
         fetchSocials()
+        fetchMetrics()
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -99,6 +106,36 @@ export default function ProfilePage() {
       console.warn('Failed to fetch socials:', e)
     } finally {
       setSocialsLoading(false)
+    }
+  }
+
+  const fetchMetrics = async () => {
+    setMetricsLoading(true)
+    try {
+      const res = await fetch('/api/profile/metrics')
+      const data = await res.json()
+      if (res.ok && data?.profile) {
+        setMetrics({
+          audienceRate:
+            data.profile.audienceRate !== null && data.profile.audienceRate !== undefined
+              ? String(data.profile.audienceRate)
+              : '',
+          retentionRate:
+            data.profile.retentionRate !== null && data.profile.retentionRate !== undefined
+              ? String(data.profile.retentionRate)
+              : '',
+        })
+        setBadgeTier(data.profile.badgeTier ?? null)
+        setBadgeScore(
+          data.profile.badgeScore !== null && data.profile.badgeScore !== undefined
+            ? Number(data.profile.badgeScore)
+            : null
+        )
+      }
+    } catch (e) {
+      console.warn('Failed to fetch metrics:', e)
+    } finally {
+      setMetricsLoading(false)
     }
   }
 
@@ -121,6 +158,36 @@ export default function ProfilePage() {
       toast.error(error instanceof Error ? error.message : 'Failed to update social media')
     } finally {
       setSocialsSaving(false)
+    }
+  }
+
+  const handleSaveMetrics = async () => {
+    setMetricsSaving(true)
+    try {
+      const response = await fetch('/api/profile/metrics', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          audienceRate: metrics.audienceRate === '' ? 0 : Number(metrics.audienceRate),
+          retentionRate: metrics.retentionRate === '' ? 0 : Number(metrics.retentionRate),
+        }),
+      })
+      const data = await response.json()
+      if (response.ok) {
+        toast.success('Audience metrics updated')
+        setBadgeTier(data?.profile?.badgeTier ?? badgeTier)
+        setBadgeScore(
+          data?.profile?.badgeScore !== null && data?.profile?.badgeScore !== undefined
+            ? Number(data.profile.badgeScore)
+            : badgeScore
+        )
+      } else {
+        throw new Error(data.error || 'Failed to update metrics')
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update metrics')
+    } finally {
+      setMetricsSaving(false)
     }
   }
 
@@ -702,6 +769,90 @@ export default function ProfilePage() {
                         )}
                       </>
                     )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Audience Metrics - Only for Influencers */}
+            {profile?.role === 'INFLUENCER' && (
+              <div className="bg-white rounded-3xl border border-subtle p-8">
+                <div className="flex items-start justify-between gap-4 mb-6">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg font-semibold text-charcoal">Audience Metrics</h3>
+                      <BadgeDisplay tier={badgeTier} />
+                    </div>
+                    <p className="text-sm text-charcoal/60 mt-1">
+                      Help brands evaluate your growth and retention. Update these monthly.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleSaveMetrics}
+                    disabled={metricsSaving}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-charcoal rounded-xl hover:bg-charcoal/90 transition-all disabled:opacity-50"
+                  >
+                    {metricsSaving ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4" />
+                        Save
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {metricsLoading ? (
+                  <div className="flex items-center justify-center py-10">
+                    <Loader2 className="w-6 h-6 animate-spin text-charcoal/40" />
+                  </div>
+                ) : (
+                  <div className="grid gap-5 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-charcoal/60">
+                        Audience Growth Rate (%)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        value={metrics.audienceRate}
+                        onChange={(e) => setMetrics({ ...metrics, audienceRate: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border border-subtle bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-peach/50 transition-all"
+                      />
+                      <p className="text-xs text-charcoal/50">Monthly follower growth percentage.</p>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-charcoal/60">
+                        Content Retention Rate (%)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        value={metrics.retentionRate}
+                        onChange={(e) => setMetrics({ ...metrics, retentionRate: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border border-subtle bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-peach/50 transition-all"
+                      />
+                      <p className="text-xs text-charcoal/50">Percent of viewers who return or stay engaged.</p>
+                    </div>
+                    <div className="md:col-span-2">
+                      <div className="flex items-center justify-between rounded-2xl bg-cream/60 border border-charcoal/5 p-4">
+                        <div>
+                          <p className="text-sm text-charcoal/60">Badge Score</p>
+                          <p className="text-xl font-semibold text-charcoal">
+                            {badgeScore !== null ? badgeScore.toFixed(2) : '—'}
+                          </p>
+                        </div>
+                        <BadgeDisplay tier={badgeTier} />
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

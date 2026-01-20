@@ -118,6 +118,9 @@ This will install all packages listed in `package.json`. It may take a few minut
    
    # Gemini
    GEMINI_API_KEY="[YOUR_GEMINI_API_KEY]"
+   
+   # Admin (Required for admin registration)
+   ADMIN_SIGNUP_CODE="your-secure-admin-code-here"
    ```
 
    **⚠️ Important:** Never commit `.env.local` to Git! It's already in `.gitignore`.

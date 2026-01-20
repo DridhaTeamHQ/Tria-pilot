@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import BadgeDisplay, { type BadgeTier } from '@/components/influencer/BadgeDisplay'
 
 interface Influencer {
   id: string
@@ -15,6 +16,8 @@ interface Influencer {
   followers?: number
   pricePerPost?: number
   engagementRate?: number
+  badgeTier?: BadgeTier
+  badgeScore?: number
   portfolioPreview?: string[]
   collaborationCount?: number
   user?: {
@@ -68,7 +71,10 @@ export default function InfluencerMarketplaceClient({
                       {influencer.user?.name?.charAt(0).toUpperCase() || 'I'}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <CardTitle className="text-lg mb-1 break-words">{influencer.user?.name || 'Influencer'}</CardTitle>
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <CardTitle className="text-lg break-words">{influencer.user?.name || 'Influencer'}</CardTitle>
+                        <BadgeDisplay tier={influencer.badgeTier ?? null} />
+                      </div>
                       <CardDescription className="line-clamp-2 text-xs">
                         {influencer.bio || 'No bio available'}
                       </CardDescription>

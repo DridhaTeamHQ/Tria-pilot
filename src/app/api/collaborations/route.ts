@@ -2,6 +2,13 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { collaborationSchema } from '@/lib/validation'
 import { generateCollaborationProposal } from '@/lib/openai'
+import { sendEmail } from '@/lib/email/supabase-email'
+import { 
+  buildCollaborationRequestEmail,
+  buildCollaborationAcceptedEmail,
+  buildCollaborationDeclinedEmail,
+} from '@/lib/email/templates'
+import { getPublicSiteUrlFromRequest } from '@/lib/site-url'
 import prisma from '@/lib/prisma'
 import { z } from 'zod'
 
@@ -101,19 +108,42 @@ export async function POST(request: Request) {
         },
       })
 
-    // Create notification for influencer
-    if (dbUser.brandProfile) {
-      await prisma.notification.create({
-        data: {
-          userId: targetInfluencerId,
-          type: 'collab_request',
-          content: `New collaboration request from ${dbUser.brandProfile.companyName || dbUser.name || 'a brand'}`,
-          metadata: {
-            requestId: collaboration.id,
+      // Create notification for influencer
+      if (dbUser.brandProfile) {
+        await prisma.notification.create({
+          data: {
+            userId: targetInfluencerId,
+            type: 'collab_request',
+            content: `New collaboration request from ${dbUser.brandProfile.companyName || dbUser.name || 'a brand'}`,
+            metadata: {
+              requestId: collaboration.id,
+            },
           },
-        },
-      })
-    }
+        })
+      }
+
+      // Send email to influencer (best-effort)
+      try {
+        if (influencer.email) {
+          const baseUrl = getPublicSiteUrlFromRequest(request)
+          const template = buildCollaborationRequestEmail({
+            baseUrl,
+            recipientName: influencer.name,
+            senderName: dbUser.brandProfile?.companyName || dbUser.name,
+            senderRole: 'brand',
+            messagePreview: message,
+          })
+
+          await sendEmail({
+            to: influencer.email,
+            subject: template.subject,
+            html: template.html,
+            text: template.text,
+          })
+        }
+      } catch (mailError) {
+        console.warn('Failed to send collaboration email (brand -> influencer):', mailError)
+      }
 
       return NextResponse.json(collaboration, { status: 201 })
     } else if (dbUser.role === 'INFLUENCER') {
@@ -190,6 +220,29 @@ export async function POST(request: Request) {
           },
         },
       })
+
+      // Send email to brand (best-effort)
+      try {
+        if (brand.email) {
+          const baseUrl = getPublicSiteUrlFromRequest(request)
+          const template = buildCollaborationRequestEmail({
+            baseUrl,
+            recipientName: brand.name,
+            senderName: dbUser.name,
+            senderRole: 'influencer',
+            messagePreview: message,
+          })
+
+          await sendEmail({
+            to: brand.email,
+            subject: template.subject,
+            html: template.html,
+            text: template.text,
+          })
+        }
+      } catch (mailError) {
+        console.warn('Failed to send collaboration email (influencer -> brand):', mailError)
+      }
 
       return NextResponse.json(collaboration, { status: 201 })
     } else {
@@ -357,6 +410,44 @@ export async function PATCH(request: Request) {
         },
       },
     })
+
+    // Send email notification to brand (best-effort)
+    try {
+      const [brand, influencer] = await Promise.all([
+        prisma.user.findUnique({
+          where: { id: collaboration.brandId },
+          select: { email: true, name: true },
+        }),
+        prisma.user.findUnique({
+          where: { id: dbUser.id },
+          select: { name: true },
+        }),
+      ])
+
+      if (brand?.email) {
+        const baseUrl = getPublicSiteUrlFromRequest(request)
+        const template = status === 'accepted'
+          ? buildCollaborationAcceptedEmail({
+              baseUrl,
+              recipientName: brand.name,
+              influencerName: influencer?.name,
+            })
+          : buildCollaborationDeclinedEmail({
+              baseUrl,
+              recipientName: brand.name,
+              influencerName: influencer?.name,
+            })
+
+        await sendEmail({
+          to: brand.email,
+          subject: template.subject,
+          html: template.html,
+          text: template.text,
+        })
+      }
+    } catch (mailError) {
+      console.warn(`Failed to send collaboration ${status} email:`, mailError)
+    }
 
     return NextResponse.json(updated)
   } catch (error) {

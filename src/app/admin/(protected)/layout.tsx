@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/auth'
+import { createClient, createServiceClient } from '@/lib/auth'
 
 export default async function AdminProtectedLayout({
   children,
@@ -15,7 +15,8 @@ export default async function AdminProtectedLayout({
     redirect('/admin/login')
   }
 
-  const { data: adminCheck } = await supabase
+  const service = createServiceClient()
+  const { data: adminCheck } = await service
     .from('admin_users')
     .select('user_id')
     .eq('user_id', authUser.id)

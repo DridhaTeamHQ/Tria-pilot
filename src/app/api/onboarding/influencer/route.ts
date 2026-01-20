@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { calculateBadge } from '@/lib/influencer/badge-calculator'
 import { z } from 'zod'
 
 const onboardingSchema = z
@@ -11,6 +12,8 @@ const onboardingSchema = z
     preferredCategories: z.array(z.string().trim().max(80)).max(50).optional(),
     socials: z.record(z.string().trim().max(80)).optional(),
     bio: z.string().trim().max(4000).optional(),
+    audienceRate: z.number().min(0).max(100).optional(),
+    retentionRate: z.number().min(0).max(100).optional(),
   })
   .strict()
 
@@ -37,6 +40,13 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => null)
     const data = onboardingSchema.parse(body)
 
+    const badge = calculateBadge({
+      followers: dbUser.influencerProfile.followers ?? 0,
+      engagementRate: Number(dbUser.influencerProfile.engagementRate ?? 0),
+      audienceRate: data.audienceRate ?? dbUser.influencerProfile.audienceRate?.toNumber?.() ?? 0,
+      retentionRate: data.retentionRate ?? dbUser.influencerProfile.retentionRate?.toNumber?.() ?? 0,
+    })
+
     // Update influencer profile
     const updated = await prisma.influencerProfile.update({
       where: { id: dbUser.influencerProfile.id },
@@ -47,6 +57,10 @@ export async function POST(request: Request) {
         ...(data.preferredCategories && { preferredCategories: data.preferredCategories }),
         ...(data.socials && { socials: data.socials }),
         ...(data.bio && { bio: data.bio }),
+        ...(data.audienceRate !== undefined && { audienceRate: data.audienceRate }),
+        ...(data.retentionRate !== undefined && { retentionRate: data.retentionRate }),
+        badgeScore: badge.score,
+        badgeTier: badge.tier,
         // Mark as completed if all required fields are present
         onboardingCompleted: Boolean(
           data.gender &&
@@ -58,7 +72,9 @@ export async function POST(request: Request) {
           data.preferredCategories.length > 0 &&
           data.socials &&
           Object.keys(data.socials).length > 0 &&
-          data.bio
+          data.bio &&
+          data.audienceRate !== undefined &&
+          data.retentionRate !== undefined
         ),
       },
     })

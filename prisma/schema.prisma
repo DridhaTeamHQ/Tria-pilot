@@ -64,6 +64,10 @@ model InfluencerProfile {
   affiliateCode     String?  @unique
   portfolioVisibility Boolean @default(true)
   followers         Int?     @default(0)
+  audienceRate      Decimal? @db.Decimal(5, 2) // Monthly follower growth %
+  retentionRate     Decimal? @db.Decimal(5, 2) // Content retention %
+  badgeTier         String?  // "platinum" | "gold" | "silver"
+  badgeScore        Decimal? @db.Decimal(5, 2) // 0-100 ranking score
   gender            String?  // "Male" | "Female" | "Other"
   audienceType      Json?    // Array of audience types (Men, Women, Unisex, Kids)
   preferredCategories Json?  // Array of clothing categories
@@ -83,6 +87,8 @@ model InfluencerProfile {
   @@index([gender])
   @@index([followers])
   @@index([engagementRate])
+  @@index([badgeTier])
+  @@index([badgeScore])
 }
 
 model BrandProfile {

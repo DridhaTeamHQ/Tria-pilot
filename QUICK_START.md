@@ -48,6 +48,9 @@ You need to set these in `.env.local`:
 - `OPENAI_API_KEY` - OpenAI API key
 - `GEMINI_API_KEY` - Google Gemini API key
 
+### Admin (Required for admin registration)
+- `ADMIN_SIGNUP_CODE` - Secret code for creating admin accounts (minimum 6 characters)
+
 ### Optional
 - `GEMINI_MODEL_VERSION` - Default: `gemini-2.5-flash`
 - `GEMINI_IMAGE_MODEL` - Default: `gemini-3-pro-image-preview`

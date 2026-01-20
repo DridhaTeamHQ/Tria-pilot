@@ -136,6 +136,7 @@ Required environment variables (add to `.env.local`):
 - `NEXT_PUBLIC_SUPABASE_URL`: Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase anonymous key
 - `SUPABASE_SERVICE_ROLE_KEY`: Supabase service role key (for server-side operations)
+- `ADMIN_SIGNUP_CODE`: Secret code for creating admin accounts (minimum 6 characters, required for admin registration)
 
 ### AI Services
 - `OPENAI_API_KEY`: OpenAI API key (for GPT-4o mini prompt generation and GPT-4o image analysis)

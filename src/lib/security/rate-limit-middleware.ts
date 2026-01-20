@@ -12,10 +12,10 @@ function getClientIp(request: NextRequest): string {
   return request.headers.get('x-real-ip') || 'unknown'
 }
 
-function pickBucket(pathname: string): 'auth' | 'ai' | 'write' | 'read' {
+function pickBucket(pathname: string): 'auth' | 'tryon' | 'ai' | 'write' | 'read' {
   if (pathname.startsWith('/api/auth/')) return 'auth'
+  if (pathname.startsWith('/api/tryon')) return 'tryon'
   if (
-    pathname.startsWith('/api/tryon') ||
     pathname.startsWith('/api/ads/') ||
     pathname.startsWith('/api/campaigns/chat') ||
     pathname.startsWith('/api/fashion-buddy/')
@@ -36,6 +36,10 @@ function getLimits(
   if (bucket === 'auth') {
     // Throttle credential stuffing / enumeration
     return { windowMs, maxIp: 10, maxUser: 20 }
+  }
+  if (bucket === 'tryon') {
+    const maxPerMinute = parseInt(process.env.MAX_TRYON_PER_MINUTE || '2')
+    return { windowMs, maxIp: maxPerMinute, maxUser: maxPerMinute }
   }
   if (bucket === 'ai') {
     // Expensive endpoints (plus they may have additional internal gating)
@@ -97,6 +101,37 @@ export function applyApiRateLimit(
   const userResult = userKey ? consume(userKey, maxUser, windowMs) : null
 
   const allowed = ipResult.allowed && (userResult?.allowed ?? true)
+
+  // Extra hourly limits for try-on (protects against steady abuse)
+  if (allowed && bucket === 'tryon') {
+    const hourWindowMs = 60 * 60 * 1000
+    const maxPerHourUser = parseInt(process.env.MAX_TRYON_PER_HOUR || '10')
+    const maxPerHourIp = parseInt(process.env.MAX_TRYON_PER_HOUR_PER_IP || '15')
+
+    const ipHourKey = `ip:${ip}:${bucket}:hour`
+    const ipHourResult = consume(ipHourKey, maxPerHourIp, hourWindowMs)
+    const userHourKey = userId ? `uid:${userId}:${bucket}:hour` : null
+    const userHourResult = userHourKey ? consume(userHourKey, maxPerHourUser, hourWindowMs) : null
+
+    if (!ipHourResult.allowed || !(userHourResult?.allowed ?? true)) {
+      const resetAt = Math.max(ipHourResult.resetAt, userHourResult?.resetAt ?? 0)
+      const retryAfterSeconds = Math.max(1, Math.ceil((resetAt - Date.now()) / 1000))
+      const res = NextResponse.json(
+        {
+          error: 'Rate limit exceeded. Please slow down and try again.',
+          retryAfterSeconds,
+        },
+        { status: 429 }
+      )
+
+      res.headers.set('Retry-After', String(retryAfterSeconds))
+      res.headers.set('X-RateLimit-Bucket', `${bucket}-hour`)
+      res.headers.set('X-RateLimit-Reset', String(resetAt))
+      res.headers.set('Cache-Control', 'no-store')
+      return res
+    }
+  }
+
   if (allowed) return null
 
   const resetAt = Math.max(ipResult.resetAt, userResult?.resetAt ?? 0)

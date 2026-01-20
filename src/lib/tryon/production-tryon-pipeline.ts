@@ -96,6 +96,37 @@ import {
 } from './scene-authority-resolver'
 import type { SceneAuthority } from './scene-authority.schema'
 
+// Phase-6: Input Coverage Detection (Selfie-Safe)
+import {
+    detectInputCoverage,
+    logCoverageDetection,
+    type InputCoverageResult,
+    type InputCoverage,
+    type GenerationMode
+} from './input-coverage-detector'
+import {
+    buildCoveragePromptInjection,
+    validateCoverageCompatibility,
+    getDowngradedMode,
+    GenerationConstraintError
+} from './input-coverage-prompt'
+
+// Phase-7: Garment Topology Classification (Prevent top→dress)
+import {
+    classifyGarmentTopology,
+    logTopologyClassification,
+    type GarmentTopologyResult,
+    type GarmentTopology
+} from './garment-topology-classifier'
+import {
+    buildTopologyPromptInjection,
+    getTopologyReminder,
+    getPantsInstruction,
+    logTopologyInjection
+} from './garment-topology-prompt'
+import { buildFinalPromptInjection as buildNanoBananaInjection, logNanoBananaInjection } from './nano-banana-injection'
+import { getFaceStabilityGuidance, logFaceStabilityInjection } from './face-stability-guidance'
+
 // Types
 export interface ProductionPipelineInput {
     personImageBase64: string
@@ -327,6 +358,107 @@ export async function runProductionTryOnPipeline(
         }
 
         // ═══════════════════════════════════════════════════════════════
+        // STAGE 1.6: INPUT COVERAGE DETECTION (Selfie-Safe)
+        // ═══════════════════════════════════════════════════════════════
+        const stage16Start = Date.now()
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+        console.log('  STAGE 1.6: INPUT COVERAGE DETECTION')
+        console.log('  📷 Detecting body coverage to prevent hallucination')
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+
+        let coverageResult: InputCoverageResult
+        try {
+            coverageResult = await detectInputCoverage(originalImageBuffer)
+            logCoverageDetection(coverageResult)
+
+            stages.push({
+                stage: 1.6,
+                name: 'Input Coverage Detection',
+                status: 'PASS',
+                timeMs: Date.now() - stage16Start,
+                data: {
+                    coverage: coverageResult.coverage,
+                    allowedMode: coverageResult.allowedMode,
+                    allowsDress: coverageResult.allowsDress
+                }
+            })
+        } catch (coverageError) {
+            console.warn('⚠️ Coverage detection failed, assuming UPPER_BODY')
+            coverageResult = {
+                coverage: 'UPPER_BODY',
+                allowedMode: 'UPPER_BODY_WITH_FADE',
+                visibleRatio: 0.5,
+                detectedLandmarks: ['face', 'shoulders'],
+                confidence: 0.5,
+                allowsFullGarment: false,
+                allowsDress: false
+            }
+            stages.push({
+                stage: 1.6,
+                name: 'Input Coverage Detection',
+                status: 'SKIP',
+                timeMs: Date.now() - stage16Start,
+                data: { error: 'Using UPPER_BODY default' }
+            })
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // STAGE 1.7: GARMENT TOPOLOGY CLASSIFICATION (Prevent top→dress)
+        // ═══════════════════════════════════════════════════════════════
+        const stage17Start = Date.now()
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+        console.log('  STAGE 1.7: GARMENT TOPOLOGY CLASSIFICATION')
+        console.log('  👗 Detecting garment type (TOP_ONLY/DRESS/TWO_PIECE)')
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+
+        const garmentBuffer = base64ToBuffer(input.garmentImageBase64)
+        let topologyResult: GarmentTopologyResult
+        try {
+            topologyResult = await classifyGarmentTopology(garmentBuffer)
+            logTopologyClassification(topologyResult)
+
+            // Check compatibility with input coverage
+            try {
+                validateCoverageCompatibility(coverageResult, topologyResult.topology)
+            } catch (compatError) {
+                if (compatError instanceof GenerationConstraintError) {
+                    console.warn(`⚠️ ${compatError.message}`)
+                    warnings.push(compatError.message)
+                    // Downgrade to preview mode instead of failing
+                    const downgraded = getDowngradedMode(coverageResult.coverage, topologyResult.topology)
+                    warnings.push(downgraded.message)
+                }
+            }
+
+            stages.push({
+                stage: 1.7,
+                name: 'Garment Topology Classification',
+                status: 'PASS',
+                timeMs: Date.now() - stage17Start,
+                data: {
+                    topology: topologyResult.topology,
+                    confidence: topologyResult.confidence,
+                    requiresPants: topologyResult.requiresPants
+                }
+            })
+        } catch (topologyError) {
+            console.warn('⚠️ Topology classification failed, assuming TOP_ONLY (safest)')
+            topologyResult = {
+                topology: 'TOP_ONLY',
+                confidence: 0.5,
+                reason: 'Classification failed, using safe default',
+                requiresPants: true
+            }
+            stages.push({
+                stage: 1.7,
+                name: 'Garment Topology Classification',
+                status: 'SKIP',
+                timeMs: Date.now() - stage17Start,
+                data: { error: 'Using TOP_ONLY default' }
+            })
+        }
+
+        // ═══════════════════════════════════════════════════════════════
         // STAGE 2: PROMPT GENERATION (OPTIONAL — uses defaults if fails)
         // ═══════════════════════════════════════════════════════════════
         const stage2Start = Date.now()
@@ -351,28 +483,68 @@ export async function runProductionTryOnPipeline(
             // INJECT SCENE AUTHORITY RULES INTO PROMPT
             finalPrompt = finalPrompt + '\n\n' + sceneAuthorityText
 
+            // INJECT GARMENT TOPOLOGY CONSTRAINTS (Prevent top→dress conversion)
+            const topologyPrompt = buildTopologyPromptInjection(topologyResult)
+            finalPrompt = finalPrompt + '\n\n' + topologyPrompt
+            logTopologyInjection(topologyResult)
+
+            // INJECT PANTS INSTRUCTION IF NEEDED
+            if (topologyResult.requiresPants) {
+                const pantsPrompt = getPantsInstruction()
+                finalPrompt = finalPrompt + '\n\n' + pantsPrompt
+                console.log('   👖 PANTS INSTRUCTION INJECTED (topology = TOP_ONLY)')
+            }
+
+            // INJECT COVERAGE CONSTRAINTS (Prevent selfie hallucination)
+            const coveragePrompt = buildCoveragePromptInjection(coverageResult)
+            if (coveragePrompt) {
+                finalPrompt = finalPrompt + '\n\n' + coveragePrompt
+                console.log(`   📷 COVERAGE CONSTRAINT INJECTED (${coverageResult.coverage})`)
+            }
+
+            // INJECT NANO BANANA CONTROL LAYER (Final enforcement)
+            const nanoBananaPrompt = buildNanoBananaInjection(sceneAuthority)
+            finalPrompt = finalPrompt + '\n\n' + nanoBananaPrompt
+            logNanoBananaInjection(sceneAuthority)
+
             stages.push({
                 stage: 2,
                 name: 'Prompt Generation',
                 status: 'PASS',
                 timeMs: Date.now() - stage2Start,
-                data: { promptLength: finalPrompt.length, sceneInjected: true }
+                data: {
+                    promptLength: finalPrompt.length,
+                    sceneInjected: true,
+                    topologyInjected: true,
+                    topology: topologyResult.topology,
+                    coverageInjected: coverageResult.coverage !== 'FULL_BODY'
+                }
             })
         } catch (promptError) {
             console.warn('⚠️ Prompt generation failed, using default prompt')
-            // Simple default prompt WITH SCENE AUTHORITY
+            // Simple default prompt WITH SCENE AUTHORITY AND TOPOLOGY
+            const topologyPrompt = buildTopologyPromptInjection(topologyResult)
+            const pantsPrompt = topologyResult.requiresPants ? getPantsInstruction() : ''
+            const coveragePrompt = buildCoveragePromptInjection(coverageResult)
+
             finalPrompt = `Apply the clothing from Image 2 onto the person in Image 1.
 Keep the same pose, body shape, and camera angle.
 This is a simple clothing swap only.
 
-${sceneAuthorityText}`
+${sceneAuthorityText}
+
+${topologyPrompt}
+
+${pantsPrompt}
+
+${coveragePrompt}`
 
             stages.push({
                 stage: 2,
                 name: 'Prompt Generation',
                 status: 'SKIP',
                 timeMs: Date.now() - stage2Start,
-                data: { error: 'Using default prompt', sceneInjected: true }
+                data: { error: 'Using default prompt', sceneInjected: true, topologyInjected: true }
             })
         }
 

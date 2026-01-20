@@ -16,6 +16,7 @@ export default async function BrandMarketplacePage({
     audience?: string
     gender?: string
     category?: string
+    badge?: string
     sortBy?: string
     order?: string
   }>
@@ -45,6 +46,7 @@ export default async function BrandMarketplacePage({
   if (resolvedSearchParams.audience) params.set('audience', resolvedSearchParams.audience)
   if (resolvedSearchParams.gender) params.set('gender', resolvedSearchParams.gender)
   if (resolvedSearchParams.category) params.set('category', resolvedSearchParams.category)
+  if (resolvedSearchParams.badge) params.set('badge', resolvedSearchParams.badge)
   if (resolvedSearchParams.sortBy) params.set('sortBy', resolvedSearchParams.sortBy)
   if (resolvedSearchParams.order) params.set('order', resolvedSearchParams.order)
 
@@ -65,6 +67,8 @@ export default async function BrandMarketplacePage({
     orderBy.pricePerPost = resolvedSearchParams.order || 'desc'
   } else if (resolvedSearchParams.sortBy === 'engagement') {
     orderBy.engagementRate = resolvedSearchParams.order || 'desc'
+  } else if (resolvedSearchParams.sortBy === 'badge') {
+    orderBy.badgeScore = resolvedSearchParams.order || 'desc'
   } else {
     orderBy.createdAt = 'desc'
   }
@@ -104,6 +108,10 @@ export default async function BrandMarketplacePage({
       const categories = inf.preferredCategories as string[]
       return Array.isArray(categories) && categories.includes(resolvedSearchParams.category!)
     })
+  }
+
+  if (resolvedSearchParams.badge) {
+    influencers = influencers.filter((inf: any) => inf.badgeTier === resolvedSearchParams.badge)
   }
 
   // Batch fetch portfolios and collaboration counts to avoid N+1 queries
@@ -188,6 +196,8 @@ export default async function BrandMarketplacePage({
                 followers: inf.followers ?? undefined,
                 pricePerPost: inf.pricePerPost ? Number(inf.pricePerPost) : undefined,
                 engagementRate: inf.engagementRate ? Number(inf.engagementRate) : undefined,
+                badgeScore: inf.badgeScore ? Number(inf.badgeScore) : undefined,
+                badgeTier: inf.badgeTier ?? undefined,
                 user: {
                   ...inf.user!,
                   name: inf.user?.name ?? undefined,

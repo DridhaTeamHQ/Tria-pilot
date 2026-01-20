@@ -5,8 +5,6 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import { ArrowRight, Shield, Sparkles, KeyRound } from 'lucide-react'
-import { createClient } from '@supabase/supabase-js'
-import { getPublicSiteUrlClient, buildAuthConfirmUrl } from '@/lib/site-url'
 
 export default function AdminRegisterPage() {
   const [email, setEmail] = useState('')
@@ -36,34 +34,22 @@ export default function AdminRegisterPage() {
 
     setLoading(true)
     try {
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
-
-      const emailRedirectTo = buildAuthConfirmUrl(
-        getPublicSiteUrlClient(),
-        '/admin/login?confirmed=true'
-      )
-
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim().toLowerCase(),
-        password,
-        options: { emailRedirectTo },
-      })
-
-      if (error) throw new Error(error.message)
-      if (!data.user?.id) throw new Error('Failed to create admin user')
-
+      const normalizedEmail = email.trim().toLowerCase()
       const res = await fetch('/api/admin/grant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: data.user.id, code: code.trim() }),
+        body: JSON.stringify({
+          email: normalizedEmail,
+          password,
+          code: code.trim(),
+        }),
       })
       const out = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(out?.error || 'Failed to grant admin access')
+      if (!res.ok) {
+        throw new Error(out?.error || out?.hint || 'Failed to create admin account')
+      }
 
-      toast.success('Admin account created! Please confirm your email, then sign in.')
+      toast.success('Admin account created. You can sign in now.')
       window.location.href = '/admin/login'
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to create admin account')

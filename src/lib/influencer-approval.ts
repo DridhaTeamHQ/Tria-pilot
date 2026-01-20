@@ -24,6 +24,6 @@ export async function requireInfluencerApproval(userId: string) {
   const status = await getInfluencerApprovalStatus(userId)
   
   if (status !== 'approved') {
-    redirect('/onboarding/influencer')
+    redirect('/influencer/pending')
   }
 }

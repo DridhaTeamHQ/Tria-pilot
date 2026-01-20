@@ -26,7 +26,7 @@ export default async function AdminPage() {
           </div>
           <div className="flex items-center gap-3">
             <Link
-              href="/"
+              href="/?from=admin"
               className="px-5 py-2.5 rounded-full border border-charcoal/15 text-charcoal text-sm font-medium hover:bg-charcoal/5 transition-colors"
             >
               Back to site

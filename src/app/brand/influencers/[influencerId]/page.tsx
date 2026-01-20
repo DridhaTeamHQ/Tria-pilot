@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft, Mail, Instagram, Youtube, Twitter } from 'lucide-react'
 import RequestCollaborationButton from '@/components/collaborations/RequestCollaborationButton'
+import BadgeDisplay, { type BadgeTier } from '@/components/influencer/BadgeDisplay'
 
 export default async function InfluencerDetailPage({
   params,
@@ -135,7 +136,10 @@ export default async function InfluencerDetailPage({
                   {influencer.user?.name?.charAt(0).toUpperCase() || 'I'}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <CardTitle className="text-xl mb-1 break-words">{influencer.user?.name || 'Influencer'}</CardTitle>
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <CardTitle className="text-xl break-words">{influencer.user?.name || 'Influencer'}</CardTitle>
+                    <BadgeDisplay tier={(influencer.badgeTier as BadgeTier) ?? null} />
+                  </div>
                   <CardDescription className="text-xs break-all">{influencer.user?.email}</CardDescription>
                 </div>
               </div>
@@ -179,7 +183,35 @@ export default async function InfluencerDetailPage({
                   <p className="text-xs text-zinc-500 dark:text-zinc-500 uppercase tracking-wide">Collabs</p>
                   <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{collaborations.length}</p>
                 </div>
+                {influencer.audienceRate && (
+                  <div className="space-y-1">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-500 uppercase tracking-wide">Growth</p>
+                    <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                      {Number(influencer.audienceRate).toFixed(1)}%
+                    </p>
+                  </div>
+                )}
+                {influencer.retentionRate && (
+                  <div className="space-y-1">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-500 uppercase tracking-wide">Retention</p>
+                    <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                      {Number(influencer.retentionRate).toFixed(1)}%
+                    </p>
+                  </div>
+                )}
               </div>
+
+              {influencer.badgeScore !== null && influencer.badgeScore !== undefined && (
+                <div className="rounded-2xl bg-cream/60 border border-charcoal/5 p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-zinc-500 uppercase tracking-wide">Badge Score</p>
+                      <p className="text-lg font-semibold text-zinc-900">{Number(influencer.badgeScore).toFixed(2)}</p>
+                    </div>
+                    <BadgeDisplay tier={(influencer.badgeTier as BadgeTier) ?? null} />
+                  </div>
+                </div>
+              )}
 
               {/* Niches */}
               {influencer.niches && Array.isArray(influencer.niches) && influencer.niches.length > 0 && (

@@ -56,6 +56,14 @@ export default async function Dashboard() {
     if (!profile || !onboardingCompleted) {
       redirect('/onboarding/influencer')
     }
+    const { data: application } = await supabase
+      .from('influencer_applications')
+      .select('status')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (application && application.status !== 'approved') {
+      redirect('/influencer/pending')
+    }
     redirect('/influencer/dashboard')
   } else if (user.role === 'BRAND') {
     const profile = user.brandProfile

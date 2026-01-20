@@ -22,21 +22,41 @@ import 'server-only'
 
 export const LIMITS = {
     // User-level limits
-    MAX_GENERATIONS_PER_DAY: parseInt(process.env.MAX_GENERATIONS_PER_DAY || '50'),
-    COOLDOWN_SECONDS: parseInt(process.env.GENERATION_COOLDOWN_SECONDS || '5'),
+    MAX_GENERATIONS_PER_DAY: parseInt(
+        process.env.MAX_TRYON_PER_DAY ||
+        process.env.MAX_GENERATIONS_PER_DAY ||
+        '10'
+    ),
+    COOLDOWN_SECONDS: parseInt(
+        process.env.TRYON_COOLDOWN_SECONDS ||
+        process.env.GENERATION_COOLDOWN_SECONDS ||
+        '15'
+    ),
 
     // Session-level
     MAX_CONCURRENT_GENERATIONS: 1,  // ALWAYS 1 — no parallel generations
 
     // IP-level backstop
-    MAX_REQUESTS_PER_HOUR_PER_IP: parseInt(process.env.MAX_IP_REQUESTS_PER_HOUR || '30'),
+    MAX_REQUESTS_PER_HOUR_PER_IP: parseInt(
+        process.env.MAX_TRYON_PER_HOUR ||
+        process.env.MAX_IP_REQUESTS_PER_HOUR ||
+        '15'
+    ),
 
     // Cost controls
-    DAILY_GEMINI_SPEND_LIMIT_USD: parseFloat(process.env.DAILY_GEMINI_LIMIT_USD || '50.0'),
+    DAILY_GEMINI_SPEND_LIMIT_USD: parseFloat(
+        process.env.DAILY_TRYON_COST_LIMIT_USD ||
+        process.env.DAILY_GEMINI_LIMIT_USD ||
+        '20.0'
+    ),
     GEMINI_COST_PER_GENERATION_USD: 0.025,  // Approximate cost per Gemini call
 
     // Kill switch thresholds
-    KILL_SWITCH_THRESHOLD_USD: parseFloat(process.env.KILL_SWITCH_THRESHOLD_USD || '40.0'),
+    KILL_SWITCH_THRESHOLD_USD: parseFloat(
+        process.env.TRYON_KILL_SWITCH_THRESHOLD_USD ||
+        process.env.KILL_SWITCH_THRESHOLD_USD ||
+        '15.0'
+    ),
 } as const
 
 // ═══════════════════════════════════════════════════════════════════════════════

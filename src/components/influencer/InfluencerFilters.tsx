@@ -8,10 +8,17 @@ const niches = ['Fashion', 'Lifestyle', 'Tech', 'Beauty', 'Fitness', 'Travel', '
 const audiences = ['Men', 'Women', 'Unisex', 'Kids']
 const genders = ['Male', 'Female', 'Other']
 const categories = ['Casual', 'Formal', 'Streetwear', 'Vintage', 'Sustainable', 'Luxury']
+const badgeOptions = [
+  { value: '', label: 'All Badges' },
+  { value: 'platinum', label: 'Platinum' },
+  { value: 'gold', label: 'Gold' },
+  { value: 'silver', label: 'Silver' },
+]
 const sortOptions = [
   { value: 'followers', label: 'Followers' },
   { value: 'price', label: 'Price per Post' },
   { value: 'engagement', label: 'Engagement Rate' },
+  { value: 'badge', label: 'Badge Tier' },
 ]
 
 export default function InfluencerFilters() {
@@ -93,6 +100,21 @@ export default function InfluencerFilters() {
             {categories.map((category) => (
               <option key={category} value={category}>
                 {category}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <Label className="text-sm font-medium mb-2 block text-zinc-700 dark:text-zinc-300">Badge Tier</Label>
+          <select
+            className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-600"
+            value={searchParams.get('badge') || ''}
+            onChange={(e) => updateFilter('badge', e.target.value)}
+          >
+            {badgeOptions.map((badge) => (
+              <option key={badge.value} value={badge.value}>
+                {badge.label}
               </option>
             ))}
           </select>

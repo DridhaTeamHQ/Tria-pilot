@@ -25,6 +25,7 @@ export const loginSchema = z
     email: emailSchema,
     // Allow short passwords so Supabase can return a consistent auth error, but cap length.
     password: z.string().min(1).max(128),
+    rememberMe: z.boolean().optional(),
   })
   .strict()
 
@@ -32,7 +33,7 @@ export const tryOnSchema = z
   .object({
   // Base64 images can be large; cap to avoid abuse while remaining functional.
   personImage: z.string().min(1).max(15_000_000),
-  personImages: z.array(z.string().min(1).max(15_000_000)).max(5).optional(), // Additional person images for Pro model
+  personImages: z.array(z.string().min(1).max(15_000_000)).max(5).optional(),
   editType: z
     .enum(['clothing_change', 'background_change', 'lighting_change', 'pose_change', 'camera_change'])
     .optional()
@@ -45,7 +46,7 @@ export const tryOnSchema = z
     .array(z.enum(['purse', 'shoes', 'hat', 'jewelry', 'bag', 'watch', 'sunglasses', 'scarf', 'other']))
     .max(10)
     .optional(),
-  model: z.enum(['flash', 'pro', 'production']).optional().default('production'),
+  model: z.enum(['flash', 'production']).optional().default('production'),
   stylePreset: z.string().trim().max(80).optional(),
   userRequest: z.string().trim().max(2000).optional(),
   background: z.string().trim().max(200).optional(),
@@ -56,7 +57,7 @@ export const tryOnSchema = z
   addOns: z.array(z.string().trim().max(80)).max(20).optional(),
   // New fields for user-configurable quality
   aspectRatio: z.enum(['1:1', '4:5', '3:4', '9:16']).optional().default('4:5'),
-  resolution: z.enum(['1K', '2K', '4K']).optional().default('2K'),
+  resolution: z.enum(['1K', '2K']).optional().default('2K'),
 })
   .strict()
 

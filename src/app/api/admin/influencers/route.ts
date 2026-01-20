@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
+import prisma from '@/lib/prisma'
+import { sendEmail } from '@/lib/email/supabase-email'
+import { buildInfluencerApprovalEmail, buildInfluencerRejectionEmail } from '@/lib/email/templates'
+import { getPublicSiteUrlFromRequest } from '@/lib/site-url'
 import { z } from 'zod'
 
 const updateSchema = z
@@ -21,8 +25,9 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Enforce admin access via admin_users
-    const { data: adminCheck } = await supabase
+    // Enforce admin access via admin_users (service role to avoid RLS issues)
+    const service = createServiceClient()
+    const { data: adminCheck } = await service
       .from('admin_users')
       .select('user_id')
       .eq('user_id', authUser.id)
@@ -32,7 +37,6 @@ export async function GET() {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
     }
 
-    const service = createServiceClient()
     const { data, error } = await service
       .from('influencer_applications')
       .select('*')
@@ -63,8 +67,9 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check if user is admin using RLS-protected query
-    const { data: adminCheck } = await supabase
+    // Check if user is admin using service role to avoid RLS issues
+    const service = createServiceClient()
+    const { data: adminCheck } = await service
       .from('admin_users')
       .select('user_id')
       .eq('user_id', authUser.id)
@@ -78,7 +83,6 @@ export async function PATCH(request: Request) {
     const { user_id, status, review_note } = updateSchema.parse(body)
 
     // Update application. Use service role to avoid RLS misconfig blocking admin actions.
-    const service = createServiceClient()
     const { data: updated, error } = await service
       .from('influencer_applications')
       .update({
@@ -93,6 +97,31 @@ export async function PATCH(request: Request) {
     if (error) {
       console.error('Error updating application:', error)
       return NextResponse.json({ error: 'Failed to update application' }, { status: 500 })
+    }
+
+    // Send email notification (best-effort)
+    try {
+      const recipient = await prisma.user.findUnique({
+        where: { id: user_id },
+        select: { email: true, name: true },
+      })
+
+      if (recipient?.email) {
+        const baseUrl = getPublicSiteUrlFromRequest(request)
+        const template =
+          status === 'approved'
+            ? buildInfluencerApprovalEmail({ name: recipient.name, baseUrl })
+            : buildInfluencerRejectionEmail({ name: recipient.name, baseUrl, reviewNote: review_note })
+
+        await sendEmail({
+          to: recipient.email,
+          subject: template.subject,
+          html: template.html,
+          text: template.text,
+        })
+      }
+    } catch (mailError) {
+      console.warn('Failed to send influencer status email:', mailError)
     }
 
     return NextResponse.json(updated)

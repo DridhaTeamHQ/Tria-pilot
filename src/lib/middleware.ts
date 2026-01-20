@@ -71,13 +71,60 @@ export async function updateSession(request: NextRequest) {
         return rateLimited
     }
 
+    // Approval gate for influencers: allow only marketplace + support pages until approved.
+    if (user) {
+        const pathname = request.nextUrl.pathname
+
+        // Skip API routes and auth routes
+        if (!pathname.startsWith('/api') && !pathname.startsWith('/auth')) {
+            const allowedExact = new Set([
+                '/',
+                '/help',
+                '/contact',
+                '/about',
+                '/privacy',
+                '/terms',
+                '/influencer/pending',
+            ])
+            const allowedPrefixes = ['/marketplace']
+
+            const isAllowed =
+                allowedExact.has(pathname) || allowedPrefixes.some((prefix) => pathname.startsWith(prefix))
+
+            if (!isAllowed) {
+                const { data: application } = await supabase
+                    .from('influencer_applications')
+                    .select('status')
+                    .eq('user_id', user.id)
+                    .maybeSingle()
+
+                if (application && application.status !== 'approved') {
+                    const url = request.nextUrl.clone()
+                    url.pathname = '/influencer/pending'
+                    return NextResponse.redirect(url)
+                }
+            }
+        }
+    }
+
     // Authenticated users should not see the marketing homepage.
     // NOTE: We intentionally do NOT redirect /login or /register here because
     // users may be missing an app profile (Prisma) or be admins without a Prisma profile,
     // and forcing /dashboard can cause redirect loops.
+    // Allow access to "/" if explicitly requested (e.g., "Back to site" from admin)
     if (user) {
         const pathname = request.nextUrl.pathname
         if (pathname === '/') {
+            // Check if user explicitly wants to see homepage (from admin or query param)
+            const fromParam = request.nextUrl.searchParams.get('from')
+            const referer = request.headers.get('referer') || ''
+            
+            if (fromParam === 'admin' || referer.includes('/admin')) {
+                // Admin navigating from admin area - allow homepage access
+                return supabaseResponse
+            }
+            
+            // Non-admin users or direct navigation: redirect to dashboard
             const url = request.nextUrl.clone()
             url.pathname = '/dashboard'
             return NextResponse.redirect(url)
