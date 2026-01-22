@@ -1,6 +1,16 @@
 /**
  * CENTRAL DASHBOARD ROUTE
  * 
+ * CORRECT LOGIC AFTER LOGIN:
+ * const profile = await getProfile(user.id);
+ * if (!profile.onboarding_completed) {
+ *   redirect('/onboarding');
+ * }
+ * if (profile.role === 'influencer' && profile.approval_status !== 'approved') {
+ *   redirect('/influencer/pending');
+ * }
+ * redirect('/dashboard');
+ * 
  * Uses new auth state system for routing.
  * This is the single entry point for authenticated users.
  */

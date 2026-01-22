@@ -2,10 +2,14 @@
  * BRAND ONBOARDING API
  * 
  * On submission:
- * - Save brand data
- * - Set onboarding_completed = true
- * - approval_status remains unchanged (brands don't need approval)
- * - Redirect to dashboard
+ * 1. Save brand data (upsert BrandProfile)
+ * 2. Update profiles:
+ *    UPDATE profiles
+ *    SET onboarding_completed = true,
+ *        approval_status = 'approved'
+ *    WHERE id = user.id;
+ * 
+ * ⚠️ Brands do NOT need admin approval
  */
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
@@ -35,12 +39,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Get profile from profiles table (SOURCE OF TRUTH)
+    const service = createServiceClient()
+    const { data: profile } = await service
+      .from('profiles')
+      .select('id, role, onboarding_completed')
+      .eq('id', authUser.id)
+      .single()
+
+    if (!profile || profile.role !== 'brand') {
+      return NextResponse.json({ error: 'Brand profile not found' }, { status: 404 })
+    }
+
+    // Get Prisma user for BrandProfile (details only)
     const dbUser = await prisma.user.findUnique({
-      where: { email: authUser.email! },
+      where: { id: authUser.id },
       include: { brandProfile: true },
     })
 
-    if (!dbUser || dbUser.role !== 'BRAND' || !dbUser.brandProfile) {
+    if (!dbUser || !dbUser.brandProfile) {
       return NextResponse.json({ error: 'Brand profile not found' }, { status: 404 })
     }
 
@@ -59,7 +76,7 @@ export async function POST(request: Request) {
         data.budgetRange
     )
 
-    // Update brand profile
+    // 1. Save brand data (upsert BrandProfile)
     await prisma.brandProfile.update({
       where: { id: dbUser.brandProfile.id },
       data: {
@@ -74,17 +91,16 @@ export async function POST(request: Request) {
       },
     })
 
-    // CRITICAL: Update profiles table when onboarding completes
-    // Brands do NOT need approval - approval_status can stay as 'draft' or be set to 'approved'
-    if (isCompleted && !dbUser.brandProfile.onboardingCompleted) {
-      const service = createServiceClient()
+    // 2. CRITICAL: Update profiles table when onboarding completes
+    // Brands do NOT need admin approval - set approval_status = 'approved'
+    if (isCompleted && !profile.onboarding_completed) {
       await service
         .from('profiles')
         .update({
           onboarding_completed: true,
-          // approval_status remains unchanged (brands don't need approval)
+          approval_status: 'approved', // Brands get immediate approval
         })
-        .eq('id', dbUser.id)
+        .eq('id', authUser.id)
     }
 
     return NextResponse.json({
@@ -117,18 +133,27 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const dbUser = await prisma.user.findUnique({
-      where: { email: authUser.email! },
-      include: { brandProfile: true },
-    })
+    // Get from profiles table (SOURCE OF TRUTH)
+    const service = createServiceClient()
+    const { data: profile } = await service
+      .from('profiles')
+      .select('onboarding_completed')
+      .eq('id', authUser.id)
+      .single()
 
-    if (!dbUser || dbUser.role !== 'BRAND' || !dbUser.brandProfile) {
+    if (!profile) {
       return NextResponse.json({ onboardingCompleted: false })
     }
 
+    // Get brand details from Prisma
+    const dbUser = await prisma.user.findUnique({
+      where: { id: authUser.id },
+      include: { brandProfile: true },
+    })
+
     return NextResponse.json({
-      onboardingCompleted: dbUser.brandProfile.onboardingCompleted,
-      profile: dbUser.brandProfile,
+      onboardingCompleted: profile.onboarding_completed || false,
+      profile: dbUser?.brandProfile || null,
     })
   } catch (error) {
     console.error('Onboarding check error:', error)

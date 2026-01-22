@@ -5,14 +5,21 @@
  * All components and routes use this system.
  * 
  * Database Truth (Supabase):
- * - auth.users (session)
- * - profiles table: id, email, role, onboarding_completed, approval_status
+ * - auth.users → authentication ONLY
+ * - profiles → role, onboarding, approval (SOURCE OF TRUTH)
+ * - InfluencerProfile → influencer details ONLY
+ * - BrandProfile → brand details ONLY
+ * 
+ * profiles table is the ONLY source of truth:
+ * - role: 'influencer' | 'brand' | 'admin'
+ * - onboarding_completed: boolean
+ * - approval_status: 'none' | 'pending' | 'approved' | 'rejected'
  */
 
 import { createClient, createServiceClient } from '@/lib/auth'
 
 export type UserRole = 'influencer' | 'brand' | 'admin'
-export type ApprovalStatus = 'draft' | 'pending' | 'approved' | 'rejected'
+export type ApprovalStatus = 'none' | 'pending' | 'approved' | 'rejected'
 
 export interface Profile {
   id: string
@@ -23,9 +30,20 @@ export interface Profile {
 }
 
 /**
- * STRICT STATE MACHINE (NO NULLS, NO DEFAULTS)
+ * CANONICAL USER STATE MACHINE
  * 
- * These are the ONLY valid states:
+ * Influencer:
+ * - Just signed up: onboarding_completed=false, approval_status='none' → influencer_draft
+ * - Onboarding submitted: onboarding_completed=true, approval_status='pending' → influencer_pending
+ * - Approved: onboarding_completed=true, approval_status='approved' → influencer_approved
+ * - Rejected: onboarding_completed=true, approval_status='rejected' → influencer_pending (blocked)
+ * 
+ * Brand:
+ * - Signed up: onboarding_completed=false, approval_status='none' → brand_draft
+ * - Onboarding done: onboarding_completed=true, approval_status='approved' → brand_active
+ * 
+ * Admin:
+ * - role='admin' → admin (onboarding/approval ignored)
  */
 export type AuthState =
   | { type: 'unauthenticated' }
@@ -58,7 +76,8 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
 
     // Normalize: ensure exact types (no nulls)
     const role = (data.role as UserRole) || 'influencer'
-    const approval_status: ApprovalStatus = (data.approval_status as ApprovalStatus) || 'draft'
+    // Normalize approval_status: null/missing → 'none'
+    const approval_status: ApprovalStatus = (data.approval_status as ApprovalStatus) || 'none'
     const onboarding_completed = Boolean(data.onboarding_completed)
 
     return {
@@ -79,6 +98,9 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
  * 
  * This is the ONLY function that determines auth state.
  * Used everywhere: routes, components, API handlers.
+ * 
+ * CRITICAL: Admin is determined by profiles.role === 'admin'
+ * DO NOT check admin_users table.
  */
 export async function getAuthState(): Promise<AuthState> {
   try {
@@ -93,33 +115,7 @@ export async function getAuthState(): Promise<AuthState> {
     const userId = session.user.id
     const email = session.user.email || ''
 
-    // Check if admin (admin_users table)
-    const { data: adminRow } = await supabase
-      .from('admin_users')
-      .select('user_id')
-      .eq('user_id', userId)
-      .maybeSingle()
-
-    if (adminRow) {
-      // Admin user - fetch profile
-      const profile = await fetchProfile(userId)
-      if (profile && profile.role === 'admin') {
-        return { type: 'admin', profile }
-      }
-      // Admin might not have profile yet - create minimal profile
-      return {
-        type: 'admin',
-        profile: {
-          id: userId,
-          email,
-          role: 'admin',
-          onboarding_completed: true,
-          approval_status: 'approved',
-        },
-      }
-    }
-
-    // Fetch profile
+    // Fetch profile from profiles table (SOURCE OF TRUTH)
     const profile = await fetchProfile(userId)
 
     if (!profile) {
@@ -127,25 +123,36 @@ export async function getAuthState(): Promise<AuthState> {
       return { type: 'authenticated_no_profile', userId, email }
     }
 
+    // CRITICAL: Admin is determined by profiles.role === 'admin'
+    // DO NOT check admin_users table
+    if (profile.role === 'admin') {
+      return { type: 'admin', profile }
+    }
+
     // Map profile to exact state based on role + onboarding + approval
     if (profile.role === 'influencer') {
       if (!profile.onboarding_completed) {
+        // Just signed up: onboarding_completed=false, approval_status='none'
         return { type: 'influencer_draft', profile }
       }
       if (profile.approval_status === 'pending') {
+        // Onboarding submitted: onboarding_completed=true, approval_status='pending'
         return { type: 'influencer_pending', profile }
       }
       if (profile.approval_status === 'approved') {
+        // Approved: onboarding_completed=true, approval_status='approved'
         return { type: 'influencer_approved', profile }
       }
-      // draft or rejected → show pending screen
+      // rejected or none → show pending screen (blocked)
       return { type: 'influencer_pending', profile }
     }
 
     if (profile.role === 'brand') {
       if (!profile.onboarding_completed) {
+        // Signed up: onboarding_completed=false
         return { type: 'brand_draft', profile }
       }
+      // Onboarding done: onboarding_completed=true, approval_status='approved'
       return { type: 'brand_active', profile }
     }
 

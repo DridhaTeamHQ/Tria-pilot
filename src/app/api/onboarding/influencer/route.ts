@@ -1,11 +1,13 @@
 /**
  * INFLUENCER ONBOARDING API
  * 
- * On submission:
- * - Save form data
- * - Set onboarding_completed = true
- * - Set approval_status = 'pending'
- * - Redirect to /influencer/pending
+ * On submission MUST:
+ * 1. Save influencer data (upsert InfluencerProfile)
+ * 2. Update profiles (THIS IS CRITICAL):
+ *    UPDATE profiles
+ *    SET onboarding_completed = true,
+ *        approval_status = 'pending'
+ *    WHERE id = user.id;
  */
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
@@ -71,12 +73,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Get profile from profiles table (SOURCE OF TRUTH)
+    const service = createServiceClient()
+    const { data: profile } = await service
+      .from('profiles')
+      .select('id, role, onboarding_completed')
+      .eq('id', authUser.id)
+      .single()
+
+    if (!profile || profile.role !== 'influencer') {
+      return NextResponse.json({ error: 'Influencer profile not found' }, { status: 404 })
+    }
+
+    // Get Prisma user for InfluencerProfile (details only)
     const dbUser = await prisma.user.findUnique({
-      where: { email: authUser.email! },
+      where: { id: authUser.id },
       include: { influencerProfile: true },
     })
 
-    if (!dbUser || dbUser.role !== 'INFLUENCER' || !dbUser.influencerProfile) {
+    if (!dbUser || !dbUser.influencerProfile) {
       return NextResponse.json({ error: 'Influencer profile not found' }, { status: 404 })
     }
 
@@ -115,7 +130,7 @@ export async function POST(request: Request) {
         data.retentionRate !== undefined
     )
 
-    // Update Prisma influencer profile
+    // 1. Save influencer data (upsert InfluencerProfile)
     await prisma.influencerProfile.update({
       where: { id: dbUser.influencerProfile.id },
       data: {
@@ -135,16 +150,16 @@ export async function POST(request: Request) {
       },
     })
 
-    // CRITICAL: Update profiles table when onboarding completes
-    if (isCompleted && !dbUser.influencerProfile.onboardingCompleted) {
-      const service = createServiceClient()
+    // 2. CRITICAL: Update profiles table when onboarding completes
+    // This is where data was being lost before
+    if (isCompleted && !profile.onboarding_completed) {
       await service
         .from('profiles')
         .update({
           onboarding_completed: true,
           approval_status: 'pending', // Set to pending ONLY when onboarding completes
         })
-        .eq('id', dbUser.id)
+        .eq('id', authUser.id)
     }
 
     return NextResponse.json({
@@ -184,18 +199,27 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const dbUser = await prisma.user.findUnique({
-      where: { email: authUser.email! },
-      include: { influencerProfile: true },
-    })
+    // Get from profiles table (SOURCE OF TRUTH)
+    const service = createServiceClient()
+    const { data: profile } = await service
+      .from('profiles')
+      .select('onboarding_completed')
+      .eq('id', authUser.id)
+      .single()
 
-    if (!dbUser || dbUser.role !== 'INFLUENCER' || !dbUser.influencerProfile) {
+    if (!profile) {
       return NextResponse.json({ onboardingCompleted: false })
     }
 
+    // Get influencer details from Prisma
+    const dbUser = await prisma.user.findUnique({
+      where: { id: authUser.id },
+      include: { influencerProfile: true },
+    })
+
     return NextResponse.json({
-      onboardingCompleted: dbUser.influencerProfile.onboardingCompleted,
-      profile: dbUser.influencerProfile,
+      onboardingCompleted: profile.onboarding_completed || false,
+      profile: dbUser?.influencerProfile || null,
     })
   } catch (error) {
     console.error('Onboarding check error:', error)

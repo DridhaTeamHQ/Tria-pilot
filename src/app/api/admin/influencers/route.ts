@@ -51,15 +51,15 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check admin access
+    // Check admin access - use profiles.role === 'admin' (SOURCE OF TRUTH)
     const service = createServiceClient()
-    const { data: adminCheck } = await service
-      .from('admin_users')
-      .select('user_id')
-      .eq('user_id', authUser.id)
+    const { data: profile } = await service
+      .from('profiles')
+      .select('role')
+      .eq('id', authUser.id)
       .single()
 
-    if (!adminCheck) {
+    if (!profile || profile.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
     }
 
@@ -73,7 +73,7 @@ export async function GET(request: Request) {
 
     // Apply status filter
     if (statusFilter === 'draft') {
-      // Draft tab: onboarding_completed = false
+      // Draft tab: onboarding_completed = false (approval_status = 'none')
       query = query.eq('onboarding_completed', false)
     } else if (statusFilter && ['pending', 'approved', 'rejected'].includes(statusFilter)) {
       // Other tabs: filter by approval_status
@@ -127,9 +127,11 @@ export async function GET(request: Request) {
         }
 
         // Determine status for display
-        let displayStatus = profile.approval_status
+        // Draft: onboarding_completed = false (approval_status = 'none')
+        // Other: use approval_status directly
+        let displayStatus = profile.approval_status || 'none'
         if (!profile.onboarding_completed) {
-          displayStatus = 'draft'
+          displayStatus = 'none' // Draft = 'none' (not 'draft')
         }
 
         return {
@@ -199,15 +201,15 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check admin access
+    // Check admin access - use profiles.role === 'admin' (SOURCE OF TRUTH)
     const service = createServiceClient()
-    const { data: adminCheck } = await service
-      .from('admin_users')
-      .select('user_id')
-      .eq('user_id', authUser.id)
+    const { data: profile } = await service
+      .from('profiles')
+      .select('role')
+      .eq('id', authUser.id)
       .single()
 
-    if (!adminCheck) {
+    if (!profile || profile.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
     }
 
