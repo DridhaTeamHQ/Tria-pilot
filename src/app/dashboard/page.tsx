@@ -1,18 +1,19 @@
 import { createClient } from '@/lib/auth'
-import prisma from '@/lib/prisma'
 import { redirect } from 'next/navigation'
+import { getProfile, getRedirectPath } from '@/lib/auth-guard'
 
 /**
  * Dashboard Route - Central routing hub for authenticated users
  * 
+ * Uses reusable auth guard helper for consistent routing logic.
+ * 
  * Flow (in order):
  * 1. Check authentication → redirect to /login if not authenticated
  * 2. Check if admin → redirect to /admin
- * 3. Check if Prisma user exists → redirect to /complete-profile if missing
+ * 3. Fetch profile from Supabase profiles table (or Prisma fallback)
  * 4. Check email verification → redirect to /login with message if not verified
- * 5. Check onboarding completion → redirect to onboarding page if incomplete
- * 6. Check approval (influencers only) → redirect to /influencer/pending if not approved
- * 7. Redirect to role-specific dashboard
+ * 5. Use guard helper to determine redirect based on role, onboarding, approval_status
+ * 6. Redirect to role-specific dashboard if all checks pass
  */
 export default async function Dashboard() {
   const supabase = await createClient()
@@ -24,8 +25,7 @@ export default async function Dashboard() {
     redirect('/login')
   }
 
-  // STEP 1: Admin users may not have an app profile in Prisma.
-  // If they are in admin_users, send them to the admin dashboard.
+  // STEP 1: Check if admin (admin_users table check)
   const { data: adminRow } = await supabase
     .from('admin_users')
     .select('user_id')
@@ -36,84 +36,50 @@ export default async function Dashboard() {
     redirect('/admin')
   }
 
-  // STEP 2: Check if Prisma user exists (backward compatibility)
-  const user = await prisma.user.findUnique({
-    where: { email: authUser.email!.toLowerCase().trim() },
-    select: {
-      id: true,
-      role: true,
-      email: true,
-      influencerProfile: {
-        select: {
-          onboardingCompleted: true,
-        },
-      },
-      brandProfile: {
-        select: {
-          onboardingCompleted: true,
-        },
-      },
-    },
-  })
-
-  if (!user) {
-    // User exists in Supabase Auth but not in Prisma - needs profile completion
-    redirect('/complete-profile')
-  }
-
-  // STEP 3: Check email verification (critical - must be verified before proceeding)
-  // Note: Supabase handles email verification, we check email_confirmed_at
+  // STEP 2: Check email verification (critical - must be verified before proceeding)
   if (!authUser.email_confirmed_at) {
-    // Email not verified - redirect to login with message
-    // The login page will show appropriate message
     redirect('/login?error=email_not_confirmed')
   }
 
-  // STEP 4: Check onboarding completion
-  if (user.role === 'INFLUENCER') {
-    const profile = user.influencerProfile
-    const onboardingCompleted = profile && 'onboardingCompleted' in profile ? profile.onboardingCompleted : false
-    
-    if (!profile || !onboardingCompleted) {
-      redirect('/onboarding/influencer')
+  // STEP 3: Fetch profile using guard helper
+  // This reads from Supabase profiles table (or Prisma fallback)
+  const profile = await getProfile(authUser.id)
+
+  if (!profile) {
+    // Profile not found - might need profile completion
+    // Check if Prisma user exists as fallback
+    const prisma = (await import('@/lib/prisma')).default
+    const prismaUser = await prisma.user.findUnique({
+      where: { email: authUser.email!.toLowerCase().trim() },
+    })
+
+    if (!prismaUser) {
+      // User exists in Supabase Auth but not in database - needs profile completion
+      redirect('/complete-profile')
     }
-    
-    // STEP 5: Check approval status (influencers only)
-    const { data: application } = await supabase
-      .from('influencer_applications')
-      .select('status')
-      .eq('user_id', user.id)
-      .maybeSingle()
-    
-    // DEFENSIVE: Assert valid state
-    // If approvalStatus exists but onboarding is not completed, this is invalid
-    if (application && !onboardingCompleted) {
-      console.error(`INVALID STATE: User ${user.id} has approvalStatus but onboardingCompleted = false`)
-      // Redirect to onboarding to fix the state
-      redirect('/onboarding/influencer')
-    }
-    
-    if (!application || application.status !== 'approved') {
-      redirect('/influencer/pending')
-    }
-    
-    // All checks passed - redirect to influencer dashboard
-    redirect('/influencer/dashboard')
-    
-  } else if (user.role === 'BRAND') {
-    const profile = user.brandProfile
-    const onboardingCompleted = profile && 'onboardingCompleted' in profile ? profile.onboardingCompleted : false
-    
-    if (!profile || !onboardingCompleted) {
-      redirect('/onboarding/brand')
-    }
-    
-    // Brands don't need approval - redirect to brand dashboard
-    redirect('/brand/dashboard')
+
+    // Prisma user exists but no profile - this is a data inconsistency
+    // Try to create profile or redirect to complete-profile
+    redirect('/complete-profile')
   }
 
-  // If role is neither INFLUENCER nor BRAND, this is an error
-  console.error('User has invalid role:', user.role)
+  // STEP 4: Use guard helper to determine redirect path
+  const redirectPath = getRedirectPath(profile)
+
+  if (redirectPath) {
+    redirect(redirectPath)
+  }
+
+  // STEP 5: All checks passed - redirect to role-specific dashboard
+  if (profile.role === 'influencer') {
+    redirect('/influencer/dashboard')
+  } else if (profile.role === 'brand') {
+    redirect('/brand/dashboard')
+  } else if (profile.role === 'admin') {
+    redirect('/admin')
+  }
+
+  // Unknown role - redirect to home
   redirect('/')
 }
 

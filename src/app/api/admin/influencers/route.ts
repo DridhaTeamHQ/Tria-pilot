@@ -11,6 +11,79 @@ import { z } from 'zod'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
+/**
+ * Fallback function to process applications from influencer_applications table
+ * Used when profiles table doesn't exist
+ */
+async function processApplicationsFallback(
+  applications: any[],
+  sortBy: string,
+  order: 'asc' | 'desc'
+): Promise<NextResponse> {
+  const userIds = applications.map((app: any) => app.user_id)
+  
+  const influencers = await prisma.influencerProfile.findMany({
+    where: {
+      userId: { in: userIds },
+      onboardingCompleted: true, // Only show completed in fallback mode
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          createdAt: true,
+        },
+      },
+    },
+  })
+
+  const enriched = applications
+    .map((app: any) => {
+      const influencer = influencers.find((inf) => inf.userId === app.user_id)
+      
+      if (!influencer || influencer.user.role !== 'INFLUENCER') {
+        return null
+      }
+
+      return {
+        ...app,
+        onboarding: {
+          gender: influencer.gender,
+          niches: influencer.niches,
+          audienceType: influencer.audienceType,
+          preferredCategories: influencer.preferredCategories,
+          socials: influencer.socials,
+          bio: influencer.bio,
+          followers: influencer.followers,
+          engagementRate: influencer.engagementRate,
+          audienceRate: influencer.audienceRate,
+          retentionRate: influencer.retentionRate,
+          badgeScore: influencer.badgeScore,
+          badgeTier: influencer.badgeTier,
+          onboardingCompleted: influencer.onboardingCompleted,
+        },
+        user: influencer.user,
+      }
+    })
+    .filter((app: any) => app !== null)
+
+  // Apply sorting
+  if (sortBy === 'badgeScore' || sortBy === 'followers' || sortBy === 'engagementRate') {
+    enriched.sort((a: any, b: any) => {
+      const aVal = a.onboarding?.[sortBy] ?? 0
+      const bVal = b.onboarding?.[sortBy] ?? 0
+      const aNum = typeof aVal === 'object' && aVal !== null ? Number(aVal) : Number(aVal) || 0
+      const bNum = typeof bVal === 'object' && bVal !== null ? Number(bVal) : Number(bVal) || 0
+      return order === 'asc' ? aNum - bNum : bNum - aNum
+    })
+  }
+
+  return NextResponse.json(enriched)
+}
+
 const updateSchema = z
   .object({
     user_id: z.string().uuid(),
@@ -55,19 +128,22 @@ export async function GET(request: Request) {
     const sortBy = searchParams.get('sortBy') || 'created_at' // 'created_at' | 'badgeScore' | 'followers' | 'engagementRate'
     const order = (searchParams.get('order') || 'desc') as 'asc' | 'desc'
 
-    // CRITICAL: Admin dashboard must only show influencers who:
-    // 1. Have role === 'INFLUENCER'
-    // 2. Have onboardingCompleted === true
-    // 3. Have approvalStatus IN ('pending', 'approved', 'rejected')
+    // CRITICAL: Admin dashboard must show influencers using profiles table
+    // Query conditions:
+    // - role = 'influencer'
+    // - approval_status IN ('draft', 'pending', 'approved', 'rejected')
     // 
-    // We fetch from influencer_applications first, then filter by onboarding completion
+    // DO NOT filter by onboarding_completed in admin list
+    // Admin should see all influencers regardless of onboarding status
     let query = service
-      .from('influencer_applications')
+      .from('profiles')
       .select('*')
+      .eq('role', 'influencer')
+      .in('approval_status', ['draft', 'pending', 'approved', 'rejected'])
 
     // Apply status filter
-    if (statusFilter && ['pending', 'approved', 'rejected'].includes(statusFilter)) {
-      query = query.eq('status', statusFilter)
+    if (statusFilter && ['draft', 'pending', 'approved', 'rejected'].includes(statusFilter)) {
+      query = query.eq('approval_status', statusFilter)
     }
 
     // Apply sorting
@@ -78,28 +154,54 @@ export async function GET(request: Request) {
       query = query.order('created_at', { ascending: false })
     }
 
-    const { data: applications, error } = await query
+    const { data: profiles, error } = await query
 
     if (error) {
-      return NextResponse.json({ error: 'Failed to fetch applications' }, { status: 500 })
+      // Fallback: If profiles table doesn't exist, use influencer_applications
+      console.warn('profiles table query failed, using influencer_applications fallback:', error.message)
+      
+      let fallbackQuery = service
+        .from('influencer_applications')
+        .select('*')
+
+      if (statusFilter && ['pending', 'approved', 'rejected'].includes(statusFilter)) {
+        fallbackQuery = fallbackQuery.eq('status', statusFilter)
+      }
+
+      if (sortBy === 'created_at') {
+        fallbackQuery = fallbackQuery.order('created_at', { ascending: order === 'asc' })
+      } else {
+        fallbackQuery = fallbackQuery.order('created_at', { ascending: false })
+      }
+
+      const { data: applications, error: fallbackError } = await fallbackQuery
+
+      if (fallbackError) {
+        return NextResponse.json({ error: 'Failed to fetch applications' }, { status: 500 })
+      }
+
+      if (!applications || applications.length === 0) {
+        return NextResponse.json([])
+      }
+
+      // Continue with fallback logic (existing code below)
+      return await processApplicationsFallback(applications, sortBy, order)
     }
 
-    if (!applications || applications.length === 0) {
+    if (!profiles || profiles.length === 0) {
       return NextResponse.json([])
     }
 
-    // CRITICAL: Fetch full onboarding data from Prisma for each application
-    // Query must match exactly:
-    // - role === 'INFLUENCER'
-    // - onboardingCompleted === true
-    // - approvalStatus IN ('pending', 'approved', 'rejected') (checked via influencer_applications.status)
-    const userIds = applications.map((app: any) => app.user_id)
-    
-    // First, get all influencers with onboardingCompleted === true
+    // Process profiles data
+    const userIds = profiles.map((p: any) => p.id)
+
+    // Fetch full onboarding data from Prisma for each profile
+    // DO NOT filter by onboarding_completed - admin should see all influencers
     const influencers = await prisma.influencerProfile.findMany({
       where: {
         userId: { in: userIds },
-        onboardingCompleted: true, // CRITICAL: Only show influencers who completed onboarding
+        // CRITICAL: DO NOT filter by onboardingCompleted here
+        // Admin should see all influencers regardless of onboarding status
       },
       include: {
         user: {
@@ -114,37 +216,33 @@ export async function GET(request: Request) {
       },
     })
 
-    // DEFENSIVE: Log if we have applications but no matching influencers
-    if (applications.length > 0 && influencers.length === 0) {
-      console.warn('Admin query: Found applications but no matching influencers with onboardingCompleted=true', {
-        applicationUserIds: userIds,
-        applicationCount: applications.length,
+    // DEFENSIVE: Log if we have profiles but no matching influencers
+    if (profiles.length > 0 && influencers.length === 0) {
+      console.warn('Admin query: Found profiles but no matching influencers in Prisma', {
+        profileUserIds: userIds,
+        profileCount: profiles.length,
       })
     }
 
-    // Merge Supabase application data with Prisma onboarding data
-    // CRITICAL: Only include applications where:
-    // - User exists in Prisma
-    // - Role is INFLUENCER (not BRAND)
-    // - onboardingCompleted === true
-    const enriched = applications
-      .map((app: any) => {
-        const influencer = influencers.find((inf) => inf.userId === app.user_id)
+    // Merge profiles data with Prisma onboarding data
+    const enriched = profiles
+      .map((profile: any) => {
+        const influencer = influencers.find((inf) => inf.userId === profile.id)
         
         // Skip if influencer not found or role is not INFLUENCER
         if (!influencer || influencer.user.role !== 'INFLUENCER') {
           return null
         }
 
-        // DEFENSIVE: Assert valid state
-        if (!influencer.onboardingCompleted) {
-          console.error(`INVALID STATE: Application ${app.user_id} has approvalStatus but onboardingCompleted = false`)
-          // Don't show in admin dashboard - this is an invalid state
-          return null
-        }
-
         return {
-          ...app,
+          user_id: profile.id,
+          email: profile.email,
+          full_name: influencer.user.name,
+          status: profile.approval_status, // Use approval_status from profiles table
+          created_at: profile.created_at,
+          updated_at: profile.updated_at || profile.created_at,
+          reviewed_at: null, // Will be set when admin reviews
+          review_note: null,
           // Full onboarding data
           onboarding: {
             gender: influencer.gender,
@@ -214,22 +312,64 @@ export async function PATCH(request: Request) {
     const body = await request.json().catch(() => null)
     const { user_id, status, review_note } = updateSchema.parse(body)
 
-    // Update application. Use service role to avoid RLS misconfig blocking admin actions.
-    const { data: updated, error } = await service
-      .from('influencer_applications')
+    // CRITICAL: Update profiles table with approval_status
+    // Map status from influencer_applications format to profiles format
+    const approvalStatus = status === 'approved' ? 'approved' : status === 'rejected' ? 'rejected' : 'pending'
+
+    // Try to update profiles table first
+    const { data: profileUpdated, error: profileError } = await service
+      .from('profiles')
       .update({
-        status,
-        reviewed_at: new Date().toISOString(),
-        review_note: review_note || null,
+        approval_status: approvalStatus,
       })
-      .eq('user_id', user_id)
+      .eq('id', user_id)
       .select()
       .single()
 
-    if (error) {
-      console.error('Error updating application:', error)
-      return NextResponse.json({ error: 'Failed to update application' }, { status: 500 })
+    if (profileError) {
+      // Fallback: Update influencer_applications if profiles table doesn't exist
+      console.warn('profiles table update failed, using influencer_applications fallback:', profileError.message)
+      
+      const { data: updated, error } = await service
+        .from('influencer_applications')
+        .update({
+          status,
+          reviewed_at: new Date().toISOString(),
+          review_note: review_note || null,
+        })
+        .eq('user_id', user_id)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error updating application:', error)
+        return NextResponse.json({ error: 'Failed to update application' }, { status: 500 })
+      }
+
+      // Return updated application data
+      return NextResponse.json(updated)
     }
+
+    // Profiles table update succeeded
+    // Also update influencer_applications for backward compatibility
+    await service
+      .from('influencer_applications')
+      .upsert(
+        {
+          user_id,
+          status,
+          reviewed_at: new Date().toISOString(),
+          review_note: review_note || null,
+        },
+        {
+          onConflict: 'user_id',
+        }
+      )
+      .select()
+      .single()
+
+    // Return updated profile data
+    const updated = profileUpdated
 
     // Send email notification (best-effort)
     try {

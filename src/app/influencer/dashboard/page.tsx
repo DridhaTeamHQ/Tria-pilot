@@ -70,34 +70,24 @@ export default function InfluencerDashboard() {
       if (!user?.id) return
 
       try {
-        // First check onboarding completion
-        const onboardingRes = await fetch('/api/onboarding/influencer')
-        const onboardingData = await onboardingRes.json()
+        // Fetch profile status from API
+        const profileRes = await fetch('/api/auth/profile-status')
+        if (!profileRes.ok) {
+          throw new Error('Failed to fetch profile status')
+        }
+
+        const profileData = await profileRes.json()
         
         // DEFENSIVE: Assert valid state
-        if (!onboardingData.onboardingCompleted) {
+        if (!profileData.onboarding_completed) {
           // Redirect to onboarding if not completed
           router.replace('/onboarding/influencer')
           return
         }
 
-        // Then check approval status
-        const supabase = createClient()
-        const { data: application } = await supabase
-          .from('influencer_applications')
-          .select('status')
-          .eq('user_id', user.id)
-          .maybeSingle()
-
-        // DEFENSIVE: If approvalStatus exists but onboarding is not completed, this is invalid
-        if (application && !onboardingData.onboardingCompleted) {
-          console.error('INVALID STATE: approvalStatus exists but onboardingCompleted = false')
-          // Redirect to onboarding to fix the state
-          router.replace('/onboarding/influencer')
-          return
-        }
-
-        if (!application || application.status !== 'approved') {
+        // Check approval status
+        // Only 'approved' status grants access
+        if (profileData.approval_status !== 'approved') {
           // Redirect to pending page if not approved
           router.replace('/influencer/pending')
           return

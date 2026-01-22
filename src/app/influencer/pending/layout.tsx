@@ -2,12 +2,14 @@
  * Server-side layout guard for /influencer/pending
  * 
  * Enforces:
- * - onboardingCompleted === true (redirect to onboarding if false)
- * - approvalStatus !== 'approved' (redirect to dashboard if approved)
+ * - onboarding_completed === true (redirect to onboarding if false)
+ * - approval_status !== 'approved' (redirect to dashboard if approved)
+ * 
+ * Uses reusable auth guard helper for consistent logic.
  */
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/auth'
-import prisma from '@/lib/prisma'
+import { getProfile, getRedirectPath } from '@/lib/auth-guard'
 
 export default async function InfluencerPendingLayout({
   children,
@@ -23,42 +25,26 @@ export default async function InfluencerPendingLayout({
     redirect('/login')
   }
 
-  // Get user from database
-  const dbUser = await prisma.user.findUnique({
-    where: { email: authUser.email!.toLowerCase().trim() },
-    include: {
-      influencerProfile: {
-        select: {
-          onboardingCompleted: true,
-        },
-      },
-    },
-  })
+  // Fetch profile using guard helper
+  const profile = await getProfile(authUser.id)
 
-  if (!dbUser || dbUser.role !== 'INFLUENCER' || !dbUser.influencerProfile) {
+  if (!profile || profile.role !== 'influencer') {
     redirect('/dashboard')
   }
 
   // CRITICAL: Pending page requires onboarding to be completed
   // If onboarding is not completed, redirect to onboarding
-  if (!dbUser.influencerProfile.onboardingCompleted) {
+  if (!profile.onboarding_completed) {
     redirect('/onboarding/influencer')
   }
 
-  // Check approval status
-  const { data: application } = await supabase
-    .from('influencer_applications')
-    .select('status')
-    .eq('user_id', dbUser.id)
-    .maybeSingle()
-
   // If approved, redirect to dashboard (will route to influencer dashboard)
-  if (application?.status === 'approved') {
+  if (profile.approval_status === 'approved') {
     redirect('/dashboard')
   }
 
   // Allow access if:
-  // - onboardingCompleted === true
-  // - approvalStatus === 'pending' OR null (not yet set, but onboarding is done)
+  // - onboarding_completed === true
+  // - approval_status !== 'approved' (draft, pending, or rejected)
   return <>{children}</>
 }

@@ -9,12 +9,12 @@ import { createClient } from '@/lib/auth-client'
 import { CheckCircle2, Clock, RefreshCw, ShieldAlert } from 'lucide-react'
 import { useUser } from '@/lib/react-query/hooks'
 
-type Status = 'pending' | 'approved' | 'rejected' | null
+type Status = 'draft' | 'pending' | 'approved' | 'rejected'
 
 export default function InfluencerPendingPage() {
   const router = useRouter()
   const { data: user, isLoading } = useUser()
-  const [status, setStatus] = useState<Status>(null)
+  const [status, setStatus] = useState<Status>('draft')
   const [loading, setLoading] = useState(false)
 
   const supabase = useMemo(() => {
@@ -25,14 +25,43 @@ export default function InfluencerPendingPage() {
     if (!user?.id) return
     setLoading(true)
     try {
+      // CRITICAL: Fetch from profiles table first (if it exists)
+      // Normalize: treat null/missing as 'draft'
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('approval_status, onboarding_completed')
+        .eq('id', user.id)
+        .single()
+
+      if (!profileError && profile) {
+        // Use approval_status from profiles table
+        const approvalStatus = (profile.approval_status as Status) || 'draft'
+        setStatus(approvalStatus)
+
+        // CRITICAL: If onboarding is not completed, redirect to onboarding
+        if (!profile.onboarding_completed) {
+          router.replace('/onboarding/influencer')
+          return
+        }
+
+        // If approved, redirect to dashboard
+        if (approvalStatus === 'approved') {
+          toast.success("You're approved! Redirecting...")
+          setTimeout(() => {
+            router.replace('/dashboard')
+          }, 1000)
+        }
+        return
+      }
+
+      // Fallback: Use influencer_applications if profiles table doesn't exist
       const { data, error } = await supabase
         .from('influencer_applications')
         .select('status')
         .eq('user_id', user.id)
-        .maybeSingle() // Use maybeSingle instead of single to handle no rows gracefully
+        .maybeSingle()
 
       if (error) {
-        // Log error details for debugging
         console.error('Error fetching application status:', {
           message: error.message,
           code: error.code,
@@ -42,23 +71,27 @@ export default function InfluencerPendingPage() {
         throw error
       }
 
-      // If no application exists, status is null (pending)
-      if (!data) {
-        setStatus('pending')
+      // Normalize status: treat null/missing as 'draft'
+      if (!data || !data.status) {
+        setStatus('draft')
         return
       }
 
-      setStatus((data.status as Status) ?? 'pending')
+      // Map influencer_applications.status to approval_status format
+      const appStatus = data.status as string
+      if (appStatus === 'pending' || appStatus === 'approved' || appStatus === 'rejected') {
+        setStatus(appStatus as Status)
+      } else {
+        setStatus('draft')
+      }
 
       if (data.status === 'approved') {
-        toast.success('You\'re approved! Redirecting...')
-        // Redirect to dashboard which will route to influencer dashboard
+        toast.success("You're approved! Redirecting...")
         setTimeout(() => {
           router.replace('/dashboard')
         }, 1000)
       }
     } catch (e) {
-      // Better error handling with more details
       const errorMessage = e instanceof Error 
         ? e.message 
         : typeof e === 'object' && e !== null && 'message' in e
@@ -71,12 +104,11 @@ export default function InfluencerPendingPage() {
         userId: user?.id,
       })
       
-      // Only show toast if it's not a "no rows" error (which is handled above)
       if (errorMessage && !errorMessage.includes('No rows') && !errorMessage.includes('PGRST116')) {
         toast.error(errorMessage || 'Could not load your approval status')
       } else {
-        // No application found - set to pending
-        setStatus('pending')
+        // No application found - set to draft
+        setStatus('draft')
       }
     } finally {
       setLoading(false)
@@ -112,8 +144,10 @@ export default function InfluencerPendingPage() {
     )
   }
 
+  // Normalize status display
   const isRejected = status === 'rejected'
-  const isPending = !status || status === 'pending'
+  const isPending = status === 'pending' || status === 'draft' // Treat draft as pending for display
+  const isDraft = status === 'draft'
 
   return (
     <div className="min-h-screen bg-cream">
@@ -129,11 +163,13 @@ export default function InfluencerPendingPage() {
               Kiwikoo
             </Link>
             <h1 className="text-4xl md:text-5xl font-serif font-bold text-charcoal mt-4">
-              {isRejected ? 'Application rejected' : 'Approval in progress'}
+              {isRejected ? 'Application rejected' : isDraft ? 'Complete your onboarding' : 'Approval in progress'}
             </h1>
             <p className="text-charcoal/60 mt-3">
               {isRejected
-                ? 'Your influencer application wasn’t approved. You can contact support for next steps.'
+                ? "Your influencer application wasn't approved. You can contact support for next steps."
+                : isDraft
+                ? 'Please complete your onboarding to submit your application for approval.'
                 : 'Your account is created, but influencer features are locked until an admin approves you.'}
             </p>
           </div>
@@ -155,13 +191,15 @@ export default function InfluencerPendingPage() {
                 <h2 className="text-xl font-semibold text-charcoal">
                   Status:{' '}
                   <span className={isRejected ? 'text-red-600' : isPending ? 'text-peach' : 'text-green-600'}>
-                    {status ?? 'pending'}
+                    {status === 'draft' ? 'draft' : status === 'pending' ? 'pending' : status === 'approved' ? 'approved' : 'rejected'}
                   </span>
                 </h2>
                 <p className="text-charcoal/60 mt-1">
                   {isRejected
-                    ? 'If you believe this is a mistake, reach out and we’ll review it.'
-                    : 'You’ll receive an email once approved. Reviews typically complete within 24–48 hours.'}
+                    ? "If you believe this is a mistake, reach out and we'll review it."
+                    : isDraft
+                    ? 'Complete your onboarding form to submit your application for admin review.'
+                    : "You'll receive an email once approved. Reviews typically complete within 24–48 hours."}
                 </p>
               </div>
             </div>

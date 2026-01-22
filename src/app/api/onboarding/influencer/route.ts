@@ -145,48 +145,68 @@ export async function POST(request: Request) {
       })
     }
 
-    // CRITICAL STATE TRANSITION: Set approvalStatus = 'pending' ONLY when onboarding completes
+    // CRITICAL STATE TRANSITION: Set approval_status = 'pending' ONLY when onboarding completes
     // This is the ONLY place where 'pending' should be set
-    // State model: onboardingCompleted = true → approvalStatus = 'pending'
+    // State model: onboardingCompleted = true → approval_status = 'pending'
     if (isCompleted && !dbUser.influencerProfile.onboardingCompleted) {
       try {
         const { createServiceClient } = await import('@/lib/auth')
         const service = createServiceClient()
-        // Create or update influencer_applications entry with status = 'pending'
-        // This is the FIRST time approvalStatus is set to 'pending'
-        // CRITICAL: Use upsert to handle race conditions and ensure idempotency
-        const { data: appData, error: appError } = await service
-          .from('influencer_applications')
-          .upsert(
-            {
-              user_id: dbUser.id, // CRITICAL: Use Prisma user.id (matches auth.users.id)
-              email: dbUser.email,
-              full_name: dbUser.name || null,
-              status: 'pending', // Set to pending ONLY when onboarding completes
-            },
-            {
-              onConflict: 'user_id', // Update if exists, create if not
-            }
-          )
+        
+        // CRITICAL: Update profiles table with approval_status = 'pending'
+        // Try profiles table first (if it exists)
+        const { data: profileData, error: profileError } = await service
+          .from('profiles')
+          .update({
+            onboarding_completed: true,
+            approval_status: 'pending', // Set to pending ONLY when onboarding completes
+          })
+          .eq('id', dbUser.id)
           .select()
           .single()
 
-        if (appError) {
-          console.error('Failed to create/update influencer application status:', {
-            error: appError,
-            userId: dbUser.id,
-            email: dbUser.email,
-          })
-          // This is critical - if this fails, the user will be stuck
-          // Log error but don't throw - the profile update already succeeded
+        if (profileError) {
+          // Profiles table might not exist or update failed - fallback to influencer_applications
+          console.warn('profiles table update failed, using influencer_applications fallback:', profileError.message)
+          
+          // Fallback: Update influencer_applications (backward compatibility)
+          const { data: appData, error: appError } = await service
+            .from('influencer_applications')
+            .upsert(
+              {
+                user_id: dbUser.id, // CRITICAL: Use Prisma user.id (matches auth.users.id)
+                email: dbUser.email,
+                full_name: dbUser.name || null,
+                status: 'pending', // Set to pending ONLY when onboarding completes
+              },
+              {
+                onConflict: 'user_id', // Update if exists, create if not
+              }
+            )
+            .select()
+            .single()
+
+          if (appError) {
+            console.error('Failed to create/update influencer application status:', {
+              error: appError,
+              userId: dbUser.id,
+              email: dbUser.email,
+            })
+          } else {
+            console.log('Successfully created/updated influencer application (fallback):', {
+              userId: dbUser.id,
+              status: appData?.status,
+            })
+          }
         } else {
-          console.log('Successfully created/updated influencer application:', {
+          console.log('Successfully updated profiles table:', {
             userId: dbUser.id,
-            status: appData?.status,
+            approval_status: profileData?.approval_status,
+            onboarding_completed: profileData?.onboarding_completed,
           })
         }
       } catch (appError) {
-        console.error('Exception creating/updating influencer application status:', {
+        console.error('Exception updating approval status:', {
           error: appError,
           userId: dbUser.id,
           email: dbUser.email,
