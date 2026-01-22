@@ -6,14 +6,32 @@ import { z } from 'zod'
 
 const onboardingSchema = z
   .object({
-    gender: z.enum(['Male', 'Female', 'Other']).optional(),
+    // Handle empty strings by transforming them to undefined
+    gender: z
+      .union([z.enum(['Male', 'Female', 'Other']), z.literal(''), z.null()])
+      .transform((val) => (val === '' || val === null ? undefined : val))
+      .optional(),
     niches: z.array(z.string().trim().max(80)).max(30).optional(),
     audienceType: z.array(z.string().trim().max(80)).max(20).optional(),
     preferredCategories: z.array(z.string().trim().max(80)).max(50).optional(),
     socials: z.record(z.string().trim().max(80)).optional(),
     bio: z.string().trim().max(4000).optional(),
-    audienceRate: z.number().min(0).max(100).optional(),
-    retentionRate: z.number().min(0).max(100).optional(),
+    audienceRate: z
+      .union([z.number().min(0).max(100), z.string(), z.null()])
+      .transform((val) => {
+        if (val === '' || val === null) return undefined
+        const num = typeof val === 'string' ? parseFloat(val) : val
+        return isNaN(num) ? undefined : num
+      })
+      .optional(),
+    retentionRate: z
+      .union([z.number().min(0).max(100), z.string(), z.null()])
+      .transform((val) => {
+        if (val === '' || val === null) return undefined
+        const num = typeof val === 'string' ? parseFloat(val) : val
+        return isNaN(num) ? undefined : num
+      })
+      .optional(),
   })
   .strict()
 
@@ -82,6 +100,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ profile: updated, onboardingCompleted: updated.onboardingCompleted })
   } catch (error) {
     console.error('Onboarding error:', error)
+    
+    // Handle Zod validation errors with better messages
+    if (error instanceof z.ZodError) {
+      const firstError = error.errors[0]
+      return NextResponse.json(
+        { 
+          error: `Validation error: ${firstError.path.join('.')} - ${firstError.message}`,
+          details: error.errors 
+        },
+        { status: 400 }
+      )
+    }
+    
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }

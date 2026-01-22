@@ -69,12 +69,17 @@ export default function InfluencerOnboardingPage() {
   }, [identityImages, updateIdentityProgress])
 
   useEffect(() => {
-    // Check if already completed
+    let mounted = true
+    
+    // Check if already completed (only once on mount)
     fetch('/api/onboarding/influencer')
       .then((res) => res.json())
       .then((data) => {
+        if (!mounted) return
+        
         if (data.onboardingCompleted) {
-          router.push('/influencer/dashboard')
+          // Only redirect if truly completed, not if user is actively filling form
+          router.replace('/influencer/dashboard')
         } else if (data.profile) {
           // Load existing data
           const existingSocials = (data.profile.socials as any) || {}
@@ -101,6 +106,9 @@ export default function InfluencerOnboardingPage() {
           })
         }
       })
+      .catch((err) => {
+        console.error('Error loading onboarding data:', err)
+      })
     
     // Load existing identity images
     fetch('/api/identity-images')
@@ -115,6 +123,10 @@ export default function InfluencerOnboardingPage() {
         }
       })
       .catch(() => {}) // Ignore errors for new users
+    
+    return () => {
+      mounted = false
+    }
   }, [router])
 
   const handleIdentityImageSelect = async (type: IdentityImageType, file: File) => {

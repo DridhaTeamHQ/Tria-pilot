@@ -63,14 +63,24 @@ export default function InfluencerDashboard() {
   const [shareImageUrl, setShareImageUrl] = useState<string | null>(null)
   const [shareImageBase64, setShareImageBase64] = useState<string | undefined>(undefined)
 
-  // Check influencer approval status
+  // Check influencer approval status and onboarding completion
   useEffect(() => {
-    async function checkApproval() {
+    async function checkStatus() {
       if (!user?.id) return
 
       try {
-        const supabase = createClient()
+        // First check onboarding completion
+        const onboardingRes = await fetch('/api/onboarding/influencer')
+        const onboardingData = await onboardingRes.json()
+        
+        if (!onboardingData.onboardingCompleted) {
+          // Redirect to onboarding if not completed
+          router.push('/onboarding/influencer')
+          return
+        }
 
+        // Then check approval status
+        const supabase = createClient()
         const { data: application } = await supabase
           .from('influencer_applications')
           .select('status')
@@ -78,21 +88,21 @@ export default function InfluencerDashboard() {
           .single()
 
         if (application?.status !== 'approved') {
-          // Redirect to onboarding if not approved
-          router.push('/onboarding/influencer')
+          // Redirect to pending page if not approved
+          router.push('/influencer/pending')
           return
         }
 
         setApprovalChecked(true)
       } catch (error) {
-        console.error('Error checking approval:', error)
+        console.error('Error checking status:', error)
         // On error, allow access (fail open) - server-side checks are primary
         setApprovalChecked(true)
       }
     }
 
     if (user?.id && user?.role === 'INFLUENCER') {
-      checkApproval()
+      checkStatus()
     }
   }, [user?.id, user?.role, router])
 
