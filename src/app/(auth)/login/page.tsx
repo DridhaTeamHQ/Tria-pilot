@@ -45,7 +45,38 @@ function LoginContent() {
     if (error === 'confirmation_failed') {
       toast.error('Confirmation link is invalid or expired. Please try signing up again.')
     }
-  }, [searchParams])
+    if (error === 'email_not_confirmed') {
+      toast.error('Please verify your email address before accessing the dashboard. Check your inbox for the confirmation link.', {
+        duration: 6000,
+        action: {
+          label: 'Resend Email',
+          onClick: async () => {
+            // Get email from input if available
+            const emailToResend = email.trim().toLowerCase()
+            if (!emailToResend) {
+              toast.error('Please enter your email address first')
+              return
+            }
+            try {
+              const res = await fetch('/api/auth/resend-confirmation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: emailToResend }),
+              })
+              const data = await res.json()
+              if (res.ok) {
+                toast.success('Confirmation email sent! Please check your inbox.')
+              } else {
+                toast.error(data.error || 'Failed to resend confirmation email')
+              }
+            } catch (err) {
+              toast.error('Failed to resend confirmation email')
+            }
+          }
+        }
+      })
+    }
+  }, [searchParams, email])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

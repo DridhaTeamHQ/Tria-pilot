@@ -49,6 +49,7 @@ export default function CompleteProfilePage() {
       if (!res.ok) throw new Error(data?.error || 'Failed to complete profile')
 
       toast.success('Profile completed! Redirecting…')
+      // Redirect to dashboard which will handle onboarding/approval routing
       router.push('/dashboard')
       router.refresh()
     } catch (err) {

@@ -93,14 +93,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Authentication failed' }, { status: 401 })
     }
 
+    // STEP 1: Check email verification (enforce for all users except admins)
     // Admin users may not have an app profile in Prisma. If they are in admin_users, allow login.
     const { data: adminRow } = await supabase
       .from('admin_users')
       .select('user_id')
       .eq('user_id', data.user.id)
-      .single()
+      .maybeSingle()
 
     if (adminRow) {
+      // Admins bypass email verification and Prisma checks
       return NextResponse.json(
         {
           user: {
@@ -116,7 +118,21 @@ export async function POST(request: Request) {
       )
     }
 
-    // Get full user data from database using normalized email
+    // STEP 2: For regular users, check email verification
+    // Note: Supabase signInWithPassword will fail if email not confirmed (if email confirmations are enabled)
+    // But we check explicitly here for clarity and to provide better error messages
+    if (!data.user.email_confirmed_at) {
+      return NextResponse.json(
+        {
+          error: 'Please verify your email address before signing in. Check your inbox for the confirmation link.',
+          emailConfirmed: false,
+          requiresEmailVerification: true,
+        },
+        { status: 403 }
+      )
+    }
+
+    // STEP 3: Get full user data from database using normalized email
     const user = await prisma.user.findUnique({
       where: { email },
       include: {
@@ -142,6 +158,8 @@ export async function POST(request: Request) {
       )
     }
 
+    // STEP 4: Return user data with session
+    // Note: Frontend will handle redirects based on onboarding/approval status via /dashboard route
     return NextResponse.json({ user, session: data.session }, { status: 200 })
   } catch (error) {
     console.error('Login error:', error)

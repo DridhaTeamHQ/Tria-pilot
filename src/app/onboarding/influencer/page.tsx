@@ -79,7 +79,8 @@ export default function InfluencerOnboardingPage() {
         
         if (data.onboardingCompleted) {
           // Only redirect if truly completed, not if user is actively filling form
-          router.replace('/influencer/dashboard')
+          // Redirect to dashboard which will handle approval routing
+          router.replace('/dashboard')
         } else if (data.profile) {
           // Load existing data
           const existingSocials = (data.profile.socials as any) || {}
@@ -231,7 +232,7 @@ export default function InfluencerOnboardingPage() {
       }
 
       if (data.onboardingCompleted) {
-        // Optional: upload profile photos selected in step 8
+        // Optional: upload profile photos selected in step 8 (non-blocking)
         if (photoFiles.length > 0) {
           setUploadingPhotos(true)
           try {
@@ -269,7 +270,8 @@ export default function InfluencerOnboardingPage() {
         }
 
         toast.success('Onboarding completed!')
-        router.push('/influencer/dashboard')
+        // Redirect to dashboard which will handle approval routing
+        router.replace('/dashboard')
       } else {
         toast.error('Please fill all required fields')
       }

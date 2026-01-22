@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/auth-client'
@@ -11,6 +12,7 @@ import { useUser } from '@/lib/react-query/hooks'
 type Status = 'pending' | 'approved' | 'rejected' | null
 
 export default function InfluencerPendingPage() {
+  const router = useRouter()
   const { data: user, isLoading } = useUser()
   const [status, setStatus] = useState<Status>(null)
   const [loading, setLoading] = useState(false)
@@ -50,9 +52,9 @@ export default function InfluencerPendingPage() {
 
       if (data.status === 'approved') {
         toast.success('You\'re approved! Redirecting...')
-        // Use router instead of window.location for better Next.js navigation
+        // Redirect to dashboard which will route to influencer dashboard
         setTimeout(() => {
-          window.location.href = '/influencer/dashboard'
+          router.replace('/dashboard')
         }, 1000)
       }
     } catch (e) {

@@ -72,11 +72,18 @@ export async function updateSession(request: NextRequest) {
     }
 
     // Approval gate for influencers: allow only marketplace + support pages until approved.
+    // NOTE: This is a middleware-level check. Individual pages also check approval status.
+    // This prevents unauthorized access but dashboard route handles the full flow.
     if (user) {
         const pathname = request.nextUrl.pathname
 
-        // Skip API routes and auth routes
-        if (!pathname.startsWith('/api') && !pathname.startsWith('/auth')) {
+        // Skip API routes, auth routes, onboarding, and complete-profile (these have their own guards)
+        if (!pathname.startsWith('/api') && 
+            !pathname.startsWith('/auth') && 
+            !pathname.startsWith('/onboarding') &&
+            !pathname.startsWith('/complete-profile') &&
+            pathname !== '/dashboard') {
+            
             const allowedExact = new Set([
                 '/',
                 '/help',
@@ -85,6 +92,10 @@ export async function updateSession(request: NextRequest) {
                 '/privacy',
                 '/terms',
                 '/influencer/pending',
+                '/login',
+                '/register',
+                '/forgot-password',
+                '/reset-password',
             ])
             const allowedPrefixes = ['/marketplace']
 
@@ -92,6 +103,7 @@ export async function updateSession(request: NextRequest) {
                 allowedExact.has(pathname) || allowedPrefixes.some((prefix) => pathname.startsWith(prefix))
 
             if (!isAllowed) {
+                // Check if user is influencer and not approved
                 const { data: application } = await supabase
                     .from('influencer_applications')
                     .select('status')

@@ -43,7 +43,8 @@ export default function BrandOnboardingPage() {
       .then((res) => res.json())
       .then((data) => {
         if (data.onboardingCompleted) {
-          router.push('/brand/dashboard')
+          // Redirect to dashboard which will handle routing
+        router.replace('/dashboard')
         } else if (data.profile) {
           // Load existing data
           setFormData({
@@ -105,7 +106,8 @@ export default function BrandOnboardingPage() {
 
       if (data.onboardingCompleted) {
         toast.success('Onboarding completed!')
-        router.push('/brand/dashboard')
+        // Redirect to dashboard which will handle routing
+        router.replace('/dashboard')
       } else {
         toast.error('Please fill all required fields')
       }
