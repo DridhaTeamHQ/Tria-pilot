@@ -54,6 +54,8 @@ export default function InfluencerOnboardingPage() {
     bio: '',
     audienceRate: '',
     retentionRate: '',
+    followers: '', // For ranking
+    engagementRate: '', // For ranking (as percentage, e.g., "5.5" means 5.5%)
   })
 
   // Calculate identity upload progress
@@ -103,6 +105,14 @@ export default function InfluencerOnboardingPage() {
             retentionRate:
               data.profile.retentionRate !== null && data.profile.retentionRate !== undefined
                 ? String(data.profile.retentionRate)
+                : '',
+            followers:
+              data.profile.followers !== null && data.profile.followers !== undefined
+                ? String(data.profile.followers)
+                : '',
+            engagementRate:
+              data.profile.engagementRate !== null && data.profile.engagementRate !== undefined
+                ? String(Number(data.profile.engagementRate) * 100) // Convert from decimal to percentage
                 : '',
           })
         }
@@ -200,6 +210,8 @@ export default function InfluencerOnboardingPage() {
         ...formData,
         audienceRate: formData.audienceRate === '' ? undefined : Number(formData.audienceRate),
         retentionRate: formData.retentionRate === '' ? undefined : Number(formData.retentionRate),
+        followers: formData.followers === '' ? undefined : Number(formData.followers),
+        engagementRate: formData.engagementRate === '' ? undefined : Number(formData.engagementRate),
       }
       await fetch('/api/onboarding/influencer', {
         method: 'POST',
@@ -218,6 +230,8 @@ export default function InfluencerOnboardingPage() {
         ...formData,
         audienceRate: formData.audienceRate === '' ? undefined : Number(formData.audienceRate),
         retentionRate: formData.retentionRate === '' ? undefined : Number(formData.retentionRate),
+        followers: formData.followers === '' ? undefined : Number(formData.followers),
+        engagementRate: formData.engagementRate === '' ? undefined : Number(formData.engagementRate),
       }
       const response = await fetch('/api/onboarding/influencer', {
         method: 'POST',
@@ -562,10 +576,37 @@ export default function InfluencerOnboardingPage() {
             <div>
               <Label className="text-lg font-semibold">Audience Metrics</Label>
               <p className="text-sm text-muted-foreground mt-1">
-                Share your latest monthly audience growth and content retention rates. These help brands rank and compare influencers.
+                Share your latest metrics. These help brands rank and compare influencers, and determine your badge tier.
               </p>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="followers">Total Followers</Label>
+                <Input
+                  id="followers"
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="e.g. 50000"
+                  value={formData.followers}
+                  onChange={(e) => setFormData({ ...formData, followers: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground">Your total follower count across all platforms.</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="engagementRate">Engagement Rate (%)</Label>
+                <Input
+                  id="engagementRate"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  placeholder="e.g. 5.5"
+                  value={formData.engagementRate}
+                  onChange={(e) => setFormData({ ...formData, engagementRate: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground">Average engagement rate (likes, comments, shares) as a percentage.</p>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="audienceRate">Audience Growth Rate (%)</Label>
                 <Input

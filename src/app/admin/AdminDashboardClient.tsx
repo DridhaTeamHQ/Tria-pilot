@@ -1,8 +1,25 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Check, X, Clock, User, Mail, Calendar, RefreshCw, Search } from 'lucide-react'
+import { Check, X, Clock, User, Mail, Calendar, RefreshCw, Search, TrendingUp, Users, Filter } from 'lucide-react'
 import { toast } from 'sonner'
+import BadgeDisplay, { type BadgeTier } from '@/components/influencer/BadgeDisplay'
+
+interface OnboardingData {
+  gender?: string | null
+  niches?: string[] | null
+  audienceType?: string[] | null
+  preferredCategories?: string[] | null
+  socials?: Record<string, string> | null
+  bio?: string | null
+  followers?: number | null
+  engagementRate?: number | null
+  audienceRate?: number | null
+  retentionRate?: number | null
+  badgeScore?: number | null
+  badgeTier?: string | null
+  onboardingCompleted?: boolean
+}
 
 interface InfluencerApplication {
   user_id: string
@@ -13,6 +30,13 @@ interface InfluencerApplication {
   updated_at: string
   reviewed_at: string | null
   review_note: string | null
+  onboarding?: OnboardingData | null
+  user?: {
+    id: string
+    email: string
+    name: string | null
+    createdAt: Date | string
+  } | null
 }
 
 interface AdminDashboardClientProps {
@@ -24,21 +48,80 @@ export default function AdminDashboardClient({ initialApplications }: AdminDashb
   const [loading, setLoading] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [activeFilter, setActiveFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending')
+  const [sortBy, setSortBy] = useState<'created_at' | 'badgeScore' | 'followers' | 'engagementRate'>('created_at')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const [showFilters, setShowFilters] = useState(false)
+  const [filterNiche, setFilterNiche] = useState<string>('')
+  const [filterGender, setFilterGender] = useState<string>('')
+  const [filterPlatform, setFilterPlatform] = useState<string>('')
 
   const visibleApplications = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return applications.filter((app) => {
+    let filtered = applications.filter((app) => {
+      // Status filter
       const matchesFilter = activeFilter === 'all' ? true : app.status === activeFilter
       if (!matchesFilter) return false
-      if (!q) return true
-      const hay = `${app.email} ${app.full_name || ''}`.toLowerCase()
-      return hay.includes(q)
+      
+      // Search query
+      if (q) {
+        const hay = `${app.email} ${app.full_name || ''} ${app.onboarding?.bio || ''}`.toLowerCase()
+        if (!hay.includes(q)) return false
+      }
+      
+      // Niche filter
+      if (filterNiche && app.onboarding?.niches) {
+        const niches = Array.isArray(app.onboarding.niches) ? app.onboarding.niches : []
+        if (!niches.includes(filterNiche)) return false
+      }
+      
+      // Gender filter
+      if (filterGender && app.onboarding?.gender !== filterGender) return false
+      
+      // Platform filter (check socials)
+      if (filterPlatform && app.onboarding?.socials) {
+        const socials = app.onboarding.socials as Record<string, string>
+        if (!socials[filterPlatform.toLowerCase()]) return false
+      }
+      
+      return true
     })
-  }, [applications, activeFilter, query])
+    
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let aVal: any = 0
+      let bVal: any = 0
+      
+      if (sortBy === 'created_at') {
+        aVal = new Date(a.created_at).getTime()
+        bVal = new Date(b.created_at).getTime()
+      } else if (sortBy === 'badgeScore') {
+        aVal = a.onboarding?.badgeScore ?? 0
+        bVal = b.onboarding?.badgeScore ?? 0
+      } else if (sortBy === 'followers') {
+        aVal = a.onboarding?.followers ?? 0
+        bVal = b.onboarding?.followers ?? 0
+      } else if (sortBy === 'engagementRate') {
+        aVal = a.onboarding?.engagementRate ?? 0
+        bVal = b.onboarding?.engagementRate ?? 0
+      }
+      
+      const aNum = typeof aVal === 'object' && aVal !== null ? Number(aVal) : Number(aVal) || 0
+      const bNum = typeof bVal === 'object' && bVal !== null ? Number(bVal) : Number(bVal) || 0
+      
+      return sortOrder === 'asc' ? aNum - bNum : bNum - aNum
+    })
+    
+    return filtered
+  }, [applications, activeFilter, query, sortBy, sortOrder, filterNiche, filterGender, filterPlatform])
 
   const refresh = async () => {
     try {
-      const res = await fetch('/api/admin/influencers', { method: 'GET' })
+      const params = new URLSearchParams()
+      if (activeFilter !== 'all') params.set('status', activeFilter)
+      params.set('sortBy', sortBy)
+      params.set('order', sortOrder)
+      
+      const res = await fetch(`/api/admin/influencers?${params.toString()}`, { method: 'GET' })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.error || 'Failed to refresh')
       setApplications(Array.isArray(data) ? data : data?.applications || [])
@@ -243,6 +326,68 @@ export default function AdminDashboardClient({ initialApplications }: AdminDashb
                     {app.review_note && (
                       <div className="mt-2 p-2 bg-cream/50 rounded text-sm text-charcoal/70">
                         <strong>Note:</strong> {app.review_note}
+                      </div>
+                    )}
+                    
+                    {/* Onboarding Data */}
+                    {app.onboarding && (
+                      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        {/* Metrics */}
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-charcoal/80">
+                            <Users className="w-4 h-4" />
+                            <span>Followers: {app.onboarding.followers ? app.onboarding.followers.toLocaleString() : 'N/A'}</span>
+                          </div>
+                          {app.onboarding.engagementRate !== null && app.onboarding.engagementRate !== undefined && (
+                            <div className="flex items-center gap-2 text-charcoal/80">
+                              <TrendingUp className="w-4 h-4" />
+                              <span>Engagement: {(Number(app.onboarding.engagementRate) * 100).toFixed(2)}%</span>
+                            </div>
+                          )}
+                          {app.onboarding.badgeScore !== null && app.onboarding.badgeScore !== undefined && (
+                            <div className="flex items-center gap-2 text-charcoal/80">
+                              <span>Badge Score: {Number(app.onboarding.badgeScore).toFixed(2)}</span>
+                              {app.onboarding.badgeTier && (
+                                <BadgeDisplay tier={app.onboarding.badgeTier as BadgeTier} />
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Details */}
+                        <div className="space-y-2">
+                          {app.onboarding.niches && Array.isArray(app.onboarding.niches) && app.onboarding.niches.length > 0 && (
+                            <div>
+                              <span className="text-charcoal/60 text-xs">Niches: </span>
+                              <span className="text-charcoal/80">{app.onboarding.niches.join(', ')}</span>
+                            </div>
+                          )}
+                          {app.onboarding.gender && (
+                            <div>
+                              <span className="text-charcoal/60 text-xs">Gender: </span>
+                              <span className="text-charcoal/80">{app.onboarding.gender}</span>
+                            </div>
+                          )}
+                          {app.onboarding.socials && (
+                            <div>
+                              <span className="text-charcoal/60 text-xs">Socials: </span>
+                              <span className="text-charcoal/80">
+                                {Object.entries(app.onboarding.socials as Record<string, string>)
+                                  .filter(([, url]) => url)
+                                  .map(([platform]) => platform)
+                                  .join(', ')}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Bio Preview */}
+                        {app.onboarding.bio && (
+                          <div className="md:col-span-2">
+                            <p className="text-xs text-charcoal/60 mb-1">Bio:</p>
+                            <p className="text-sm text-charcoal/80 line-clamp-2">{app.onboarding.bio}</p>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

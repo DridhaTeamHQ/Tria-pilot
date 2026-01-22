@@ -38,6 +38,18 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => null)
     const data = onboardingSchema.parse(body)
 
+    // Determine if onboarding is completed (all required fields present)
+    const isCompleted = Boolean(
+      data.companyName &&
+      data.brandType &&
+      data.targetAudience &&
+      data.targetAudience.length > 0 &&
+      data.productTypes &&
+      data.productTypes.length > 0 &&
+      data.vertical &&
+      data.budgetRange
+    )
+
     // Update brand profile
     const updated = await prisma.brandProfile.update({
       where: { id: dbUser.brandProfile.id },
@@ -49,19 +61,13 @@ export async function POST(request: Request) {
         ...(data.website !== undefined && { website: data.website || null }),
         ...(data.vertical && { vertical: data.vertical }),
         ...(data.budgetRange && { budgetRange: data.budgetRange }),
-        // Mark as completed if all required fields are present
-        onboardingCompleted: Boolean(
-          data.companyName &&
-          data.brandType &&
-          data.targetAudience &&
-          data.targetAudience.length > 0 &&
-          data.productTypes &&
-          data.productTypes.length > 0 &&
-          data.vertical &&
-          data.budgetRange
-        ),
+        onboardingCompleted: isCompleted,
       },
     })
+
+    // IMPORTANT: Brands do NOT require admin approval
+    // They get immediate access after onboarding completion
+    // No need to create or update any approval status
 
     return NextResponse.json({ profile: updated, onboardingCompleted: updated.onboardingCompleted })
   } catch (error) {

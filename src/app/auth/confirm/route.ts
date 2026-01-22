@@ -23,6 +23,14 @@ function sanitizeNext(next: string | null, requestUrl: URL): string {
   return fallback
 }
 
+/**
+ * Email Confirmation Handler
+ * 
+ * After email verification:
+ * - For signup: Redirect to onboarding (not login) - server-side enforcement
+ * - For password reset: Redirect to reset-password page
+ * - For other types: Use the 'next' parameter or default to login
+ */
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const searchParams = requestUrl.searchParams
@@ -33,15 +41,60 @@ export async function GET(request: NextRequest) {
 
   if (token_hash && type) {
     const supabase = await createClient()
-    const { error } = await supabase.auth.verifyOtp({ token_hash, type })
+    const { error, data } = await supabase.auth.verifyOtp({ token_hash, type })
 
-    if (!error) {
-      // For signup confirmations, Supabase establishes a session automatically.
-      // We intentionally sign out here so we can safely redirect to login pages
-      // without triggering middleware redirects or profile checks (prevents loops).
+    if (!error && data.user) {
+      // For signup confirmations, we need to check if user needs onboarding
+      if (type === 'signup') {
+        // Get user role from Prisma to determine onboarding route
+        try {
+          const prisma = (await import('@/lib/prisma')).default
+          const dbUser = await prisma.user.findUnique({
+            where: { email: data.user.email!.toLowerCase().trim() },
+            select: {
+              role: true,
+              influencerProfile: { select: { onboardingCompleted: true } },
+              brandProfile: { select: { onboardingCompleted: true } },
+            },
+          })
+
+          if (dbUser) {
+            // User exists - check onboarding status
+            if (dbUser.role === 'INFLUENCER') {
+              const onboardingCompleted = dbUser.influencerProfile?.onboardingCompleted ?? false
+              if (!onboardingCompleted) {
+                // Force onboarding - sign out to prevent middleware redirects
+                await supabase.auth.signOut()
+                return NextResponse.redirect(new URL('/onboarding/influencer', requestUrl.origin))
+              }
+            } else if (dbUser.role === 'BRAND') {
+              const onboardingCompleted = dbUser.brandProfile?.onboardingCompleted ?? false
+              if (!onboardingCompleted) {
+                // Force onboarding - sign out to prevent middleware redirects
+                await supabase.auth.signOut()
+                return NextResponse.redirect(new URL('/onboarding/brand', requestUrl.origin))
+              }
+            }
+          } else {
+            // User doesn't exist in Prisma yet - they'll be redirected to complete-profile on first login
+            // Sign out to prevent middleware redirects
+            await supabase.auth.signOut()
+            return NextResponse.redirect(new URL('/login?confirmed=true', requestUrl.origin))
+          }
+        } catch (prismaError) {
+          console.error('Error checking user onboarding status:', prismaError)
+          // Fallback: sign out and redirect to login
+          await supabase.auth.signOut()
+          return NextResponse.redirect(new URL('/login?confirmed=true', requestUrl.origin))
+        }
+      }
+
+      // For password reset and other types, use the next parameter
+      // Sign out for signup to prevent middleware redirects
       if (type === 'signup') {
         await supabase.auth.signOut()
       }
+      
       const redirectTo = new URL(next, requestUrl.origin)
       return NextResponse.redirect(redirectTo)
     }

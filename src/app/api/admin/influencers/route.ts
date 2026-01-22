@@ -14,7 +14,14 @@ const updateSchema = z
   })
   .strict()
 
-export async function GET() {
+/**
+ * GET /api/admin/influencers
+ * 
+ * Returns influencer applications with full onboarding data for admin review.
+ * Includes filters for: status, engagement rate, followers, niche, gender, platform.
+ * Includes ranking data: badgeScore, badgeTier.
+ */
+export async function GET(request: Request) {
   try {
     const supabase = await createClient()
     const {
@@ -37,16 +44,98 @@ export async function GET() {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
     }
 
-    const { data, error } = await service
+    // Get query parameters for filtering
+    const { searchParams } = new URL(request.url)
+    const statusFilter = searchParams.get('status') // 'pending' | 'approved' | 'rejected' | null
+    const sortBy = searchParams.get('sortBy') || 'created_at' // 'created_at' | 'badgeScore' | 'followers' | 'engagementRate'
+    const order = (searchParams.get('order') || 'desc') as 'asc' | 'desc'
+
+    // Fetch applications from Supabase
+    let query = service
       .from('influencer_applications')
       .select('*')
-      .order('created_at', { ascending: false })
+
+    // Apply status filter
+    if (statusFilter && ['pending', 'approved', 'rejected'].includes(statusFilter)) {
+      query = query.eq('status', statusFilter)
+    }
+
+    // Apply sorting
+    if (sortBy === 'created_at') {
+      query = query.order('created_at', { ascending: order === 'asc' })
+    } else {
+      // For other sorts, we'll need to join with Prisma data
+      query = query.order('created_at', { ascending: false })
+    }
+
+    const { data: applications, error } = await query
 
     if (error) {
       return NextResponse.json({ error: 'Failed to fetch applications' }, { status: 500 })
     }
 
-    return NextResponse.json(data || [])
+    if (!applications || applications.length === 0) {
+      return NextResponse.json([])
+    }
+
+    // Fetch full onboarding data from Prisma for each application
+    const userIds = applications.map((app: any) => app.user_id)
+    const influencers = await prisma.influencerProfile.findMany({
+      where: {
+        userId: { in: userIds },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            createdAt: true,
+          },
+        },
+      },
+    })
+
+    // Merge Supabase application data with Prisma onboarding data
+    const enriched = applications.map((app: any) => {
+      const influencer = influencers.find((inf) => inf.userId === app.user_id)
+      return {
+        ...app,
+        // Full onboarding data
+        onboarding: influencer
+          ? {
+              gender: influencer.gender,
+              niches: influencer.niches,
+              audienceType: influencer.audienceType,
+              preferredCategories: influencer.preferredCategories,
+              socials: influencer.socials,
+              bio: influencer.bio,
+              followers: influencer.followers,
+              engagementRate: influencer.engagementRate,
+              audienceRate: influencer.audienceRate,
+              retentionRate: influencer.retentionRate,
+              badgeScore: influencer.badgeScore,
+              badgeTier: influencer.badgeTier,
+              onboardingCompleted: influencer.onboardingCompleted,
+            }
+          : null,
+        // User data
+        user: influencer?.user || null,
+      }
+    })
+
+    // Apply sorting that requires Prisma data
+    if (sortBy === 'badgeScore' || sortBy === 'followers' || sortBy === 'engagementRate') {
+      enriched.sort((a: any, b: any) => {
+        const aVal = a.onboarding?.[sortBy] ?? 0
+        const bVal = b.onboarding?.[sortBy] ?? 0
+        const aNum = typeof aVal === 'object' && aVal !== null ? Number(aVal) : Number(aVal) || 0
+        const bNum = typeof bVal === 'object' && bVal !== null ? Number(bVal) : Number(bVal) || 0
+        return order === 'asc' ? aNum - bNum : bNum - aNum
+      })
+    }
+
+    return NextResponse.json(enriched)
   } catch (error) {
     console.error('Admin list error:', error)
     return NextResponse.json(

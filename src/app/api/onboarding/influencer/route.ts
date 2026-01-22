@@ -32,6 +32,25 @@ const onboardingSchema = z
         return isNaN(num) ? undefined : num
       })
       .optional(),
+    // Add followers and engagementRate for ranking
+    followers: z
+      .union([z.number().int().min(0), z.string(), z.null()])
+      .transform((val) => {
+        if (val === '' || val === null) return undefined
+        const num = typeof val === 'string' ? parseInt(val, 10) : val
+        return isNaN(num) ? undefined : num
+      })
+      .optional(),
+    engagementRate: z
+      .union([z.number().min(0).max(1), z.string(), z.null()])
+      .transform((val) => {
+        if (val === '' || val === null) return undefined
+        const num = typeof val === 'string' ? parseFloat(val) : val
+        // If > 1, assume it's a percentage and convert (e.g., 5.5% -> 0.055)
+        if (!isNaN(num) && num > 1) return num / 100
+        return isNaN(num) ? undefined : num
+      })
+      .optional(),
   })
   .strict()
 
@@ -58,12 +77,36 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => null)
     const data = onboardingSchema.parse(body)
 
+    // Calculate badge using updated or existing values
+    const finalFollowers = data.followers ?? dbUser.influencerProfile.followers ?? 0
+    const finalEngagementRate = data.engagementRate !== undefined 
+      ? Number(data.engagementRate) 
+      : Number(dbUser.influencerProfile.engagementRate ?? 0)
+    const finalAudienceRate = data.audienceRate ?? dbUser.influencerProfile.audienceRate?.toNumber?.() ?? 0
+    const finalRetentionRate = data.retentionRate ?? dbUser.influencerProfile.retentionRate?.toNumber?.() ?? 0
+
     const badge = calculateBadge({
-      followers: dbUser.influencerProfile.followers ?? 0,
-      engagementRate: Number(dbUser.influencerProfile.engagementRate ?? 0),
-      audienceRate: data.audienceRate ?? dbUser.influencerProfile.audienceRate?.toNumber?.() ?? 0,
-      retentionRate: data.retentionRate ?? dbUser.influencerProfile.retentionRate?.toNumber?.() ?? 0,
+      followers: finalFollowers,
+      engagementRate: finalEngagementRate,
+      audienceRate: finalAudienceRate,
+      retentionRate: finalRetentionRate,
     })
+
+    // Determine if onboarding is completed (all required fields present)
+    const isCompleted = Boolean(
+      data.gender &&
+      data.niches &&
+      data.niches.length > 0 &&
+      data.audienceType &&
+      data.audienceType.length > 0 &&
+      data.preferredCategories &&
+      data.preferredCategories.length > 0 &&
+      data.socials &&
+      Object.keys(data.socials).length > 0 &&
+      data.bio &&
+      data.audienceRate !== undefined &&
+      data.retentionRate !== undefined
+    )
 
     // Update influencer profile
     const updated = await prisma.influencerProfile.update({
@@ -77,25 +120,31 @@ export async function POST(request: Request) {
         ...(data.bio && { bio: data.bio }),
         ...(data.audienceRate !== undefined && { audienceRate: data.audienceRate }),
         ...(data.retentionRate !== undefined && { retentionRate: data.retentionRate }),
+        ...(data.followers !== undefined && { followers: data.followers }),
+        ...(data.engagementRate !== undefined && { engagementRate: data.engagementRate }),
         badgeScore: badge.score,
         badgeTier: badge.tier,
-        // Mark as completed if all required fields are present
-        onboardingCompleted: Boolean(
-          data.gender &&
-          data.niches &&
-          data.niches.length > 0 &&
-          data.audienceType &&
-          data.audienceType.length > 0 &&
-          data.preferredCategories &&
-          data.preferredCategories.length > 0 &&
-          data.socials &&
-          Object.keys(data.socials).length > 0 &&
-          data.bio &&
-          data.audienceRate !== undefined &&
-          data.retentionRate !== undefined
-        ),
+        onboardingCompleted: isCompleted,
       },
     })
+
+    // If onboarding is completed, ensure influencer_applications status is 'pending'
+    // (This should already exist from registration, but ensure it's set correctly)
+    if (isCompleted && !dbUser.influencerProfile.onboardingCompleted) {
+      try {
+        const { createServiceClient } = await import('@/lib/auth')
+        const service = createServiceClient()
+        await service.from('influencer_applications').upsert({
+          user_id: dbUser.id,
+          email: dbUser.email,
+          full_name: dbUser.name || null,
+          status: 'pending', // Set to pending when onboarding completes
+        })
+      } catch (appError) {
+        console.error('Failed to update influencer application status:', appError)
+        // Non-blocking - application might already exist
+      }
+    }
 
     return NextResponse.json({ profile: updated, onboardingCompleted: updated.onboardingCompleted })
   } catch (error) {

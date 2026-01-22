@@ -1,11 +1,16 @@
 import { createServiceClient } from '@/lib/auth'
 import AdminDashboardClient from '../AdminDashboardClient'
 import Link from 'next/link'
+import prisma from '@/lib/prisma'
+
+// Force dynamic rendering for admin dashboard
+export const dynamic = 'force-dynamic'
 
 export default async function AdminPage() {
-  const supabase = createServiceClient()
+  const service = createServiceClient()
 
-  const { data: applications, error } = await supabase
+  // Fetch applications from Supabase
+  const { data: applicationsData, error } = await service
     .from('influencer_applications')
     .select('*')
     .order('created_at', { ascending: false })
@@ -13,6 +18,47 @@ export default async function AdminPage() {
   if (error) {
     console.error('Error fetching applications:', error)
   }
+
+  // Enrich with Prisma onboarding data
+  const applications = (applicationsData || []).map(async (app: any) => {
+    const influencer = await prisma.influencerProfile.findUnique({
+      where: { userId: app.user_id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            createdAt: true,
+          },
+        },
+      },
+    })
+
+    return {
+      ...app,
+      onboarding: influencer
+        ? {
+            gender: influencer.gender,
+            niches: influencer.niches,
+            audienceType: influencer.audienceType,
+            preferredCategories: influencer.preferredCategories,
+            socials: influencer.socials,
+            bio: influencer.bio,
+            followers: influencer.followers,
+            engagementRate: influencer.engagementRate,
+            audienceRate: influencer.audienceRate,
+            retentionRate: influencer.retentionRate,
+            badgeScore: influencer.badgeScore,
+            badgeTier: influencer.badgeTier,
+            onboardingCompleted: influencer.onboardingCompleted,
+          }
+        : null,
+      user: influencer?.user || null,
+    }
+  })
+
+  const enrichedApplications = await Promise.all(applications)
 
   return (
     <div className="min-h-screen bg-cream">
@@ -34,7 +80,7 @@ export default async function AdminPage() {
           </div>
         </div>
 
-        <AdminDashboardClient initialApplications={applications || []} />
+        <AdminDashboardClient initialApplications={enrichedApplications || []} />
       </div>
     </div>
   )
