@@ -1,5 +1,14 @@
+/**
+ * BRAND ONBOARDING API
+ * 
+ * On submission:
+ * - Save brand data
+ * - Set onboarding_completed = true
+ * - approval_status remains unchanged (brands don't need approval)
+ * - Redirect to dashboard
+ */
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/auth'
+import { createClient, createServiceClient } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { z } from 'zod'
 
@@ -38,20 +47,20 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => null)
     const data = onboardingSchema.parse(body)
 
-    // Determine if onboarding is completed (all required fields present)
+    // Determine if onboarding is completed
     const isCompleted = Boolean(
       data.companyName &&
-      data.brandType &&
-      data.targetAudience &&
-      data.targetAudience.length > 0 &&
-      data.productTypes &&
-      data.productTypes.length > 0 &&
-      data.vertical &&
-      data.budgetRange
+        data.brandType &&
+        data.targetAudience &&
+        data.targetAudience.length > 0 &&
+        data.productTypes &&
+        data.productTypes.length > 0 &&
+        data.vertical &&
+        data.budgetRange
     )
 
     // Update brand profile
-    const updated = await prisma.brandProfile.update({
+    await prisma.brandProfile.update({
       where: { id: dbUser.brandProfile.id },
       data: {
         ...(data.companyName && { companyName: data.companyName }),
@@ -65,13 +74,31 @@ export async function POST(request: Request) {
       },
     })
 
-    // IMPORTANT: Brands do NOT require admin approval
-    // They get immediate access after onboarding completion
-    // No need to create or update any approval status
+    // CRITICAL: Update profiles table when onboarding completes
+    // Brands do NOT need approval - approval_status can stay as 'draft' or be set to 'approved'
+    if (isCompleted && !dbUser.brandProfile.onboardingCompleted) {
+      const service = createServiceClient()
+      await service
+        .from('profiles')
+        .update({
+          onboarding_completed: true,
+          // approval_status remains unchanged (brands don't need approval)
+        })
+        .eq('id', dbUser.id)
+    }
 
-    return NextResponse.json({ profile: updated, onboardingCompleted: updated.onboardingCompleted })
+    return NextResponse.json({
+      success: true,
+      onboardingCompleted: isCompleted,
+      redirectTo: isCompleted ? '/dashboard' : null,
+    })
   } catch (error) {
     console.error('Onboarding error:', error)
+
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Invalid request data' }, { status: 400 })
+    }
+
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
@@ -108,4 +135,3 @@ export async function GET(request: Request) {
     return NextResponse.json({ onboardingCompleted: false })
   }
 }
-

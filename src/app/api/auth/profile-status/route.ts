@@ -2,30 +2,31 @@
  * GET /api/auth/profile-status
  * 
  * Returns current user's profile status for client-side routing checks.
- * Uses profiles table (or Prisma fallback) to get:
- * - role
- * - onboarding_completed
- * - approval_status
+ * Uses new auth state system.
  */
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/auth'
-import { getProfile } from '@/lib/auth-guard'
+import { getAuthState } from '@/lib/auth-state'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser()
+    const state = await getAuthState()
 
-    if (!authUser) {
+    if (state.type === 'unauthenticated') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Fetch profile using guard helper
-    const profile = await getProfile(authUser.id)
+    if (state.type === 'authenticated_no_profile') {
+      return NextResponse.json({
+        role: null,
+        onboarding_completed: false,
+        approval_status: 'draft',
+      })
+    }
+
+    // Extract profile from state
+    const profile = 'profile' in state ? state.profile : null
 
     if (!profile) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })

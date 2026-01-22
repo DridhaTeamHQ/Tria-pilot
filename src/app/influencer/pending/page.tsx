@@ -1,126 +1,84 @@
+/**
+ * INFLUENCER PENDING PAGE
+ * 
+ * Shows approval status for influencers.
+ * Uses new auth state system - no legacy assumptions.
+ */
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
-import { createClient } from '@/lib/auth-client'
 import { CheckCircle2, Clock, RefreshCw, ShieldAlert } from 'lucide-react'
-import { useUser } from '@/lib/react-query/hooks'
+import { createClient } from '@/lib/auth-client'
 
 type Status = 'draft' | 'pending' | 'approved' | 'rejected'
 
 export default function InfluencerPendingPage() {
   const router = useRouter()
-  const { data: user, isLoading } = useUser()
-  const [status, setStatus] = useState<Status>('draft')
-  const [loading, setLoading] = useState(false)
+  const [status, setStatus] = useState<Status>('pending')
+  const [loading, setLoading] = useState(true)
 
-  const supabase = useMemo(() => {
-    return createClient()
-  }, [])
+  useEffect(() => {
+    async function fetchStatus() {
+      try {
+        const supabase = createClient()
+        const {
+          data: { user: authUser },
+        } = await supabase.auth.getUser()
 
-  async function fetchStatus() {
-    if (!user?.id) return
-    setLoading(true)
-    try {
-      // CRITICAL: Fetch from profiles table first (if it exists)
-      // Normalize: treat null/missing as 'draft'
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('approval_status, onboarding_completed')
-        .eq('id', user.id)
-        .single()
+        if (!authUser) {
+          router.replace('/login')
+          return
+        }
 
-      if (!profileError && profile) {
-        // Use approval_status from profiles table
+        // Fetch from profiles table
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('approval_status, onboarding_completed')
+          .eq('id', authUser.id)
+          .single()
+
+        if (error || !profile) {
+          console.error('Error fetching profile:', error)
+          setStatus('draft')
+          setLoading(false)
+          return
+        }
+
+        // Use exact approval_status value (no null handling)
         const approvalStatus = (profile.approval_status as Status) || 'draft'
         setStatus(approvalStatus)
 
-        // CRITICAL: If onboarding is not completed, redirect to onboarding
+        // If onboarding not completed → redirect (should be caught by layout, but defensive)
         if (!profile.onboarding_completed) {
           router.replace('/onboarding/influencer')
           return
         }
 
-        // If approved, redirect to dashboard
+        // If approved → redirect to dashboard
         if (approvalStatus === 'approved') {
           toast.success("You're approved! Redirecting...")
           setTimeout(() => {
             router.replace('/dashboard')
           }, 1000)
+          return
         }
-        return
-      }
 
-      // Fallback: Use influencer_applications if profiles table doesn't exist
-      const { data, error } = await supabase
-        .from('influencer_applications')
-        .select('status')
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-      if (error) {
-        console.error('Error fetching application status:', {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint,
-        })
-        throw error
-      }
-
-      // Normalize status: treat null/missing as 'draft'
-      if (!data || !data.status) {
+        setLoading(false)
+      } catch (error) {
+        console.error('Error fetching status:', error)
         setStatus('draft')
-        return
+        setLoading(false)
       }
-
-      // Map influencer_applications.status to approval_status format
-      const appStatus = data.status as string
-      if (appStatus === 'pending' || appStatus === 'approved' || appStatus === 'rejected') {
-        setStatus(appStatus as Status)
-      } else {
-        setStatus('draft')
-      }
-
-      if (data.status === 'approved') {
-        toast.success("You're approved! Redirecting...")
-        setTimeout(() => {
-          router.replace('/dashboard')
-        }, 1000)
-      }
-    } catch (e) {
-      const errorMessage = e instanceof Error 
-        ? e.message 
-        : typeof e === 'object' && e !== null && 'message' in e
-        ? String(e.message)
-        : 'Could not load your approval status'
-      
-      console.error('Failed to fetch approval status:', {
-        error: e,
-        message: errorMessage,
-        userId: user?.id,
-      })
-      
-      if (errorMessage && !errorMessage.includes('No rows') && !errorMessage.includes('PGRST116')) {
-        toast.error(errorMessage || 'Could not load your approval status')
-      } else {
-        // No application found - set to draft
-        setStatus('draft')
-      }
-    } finally {
-      setLoading(false)
     }
-  }
 
-  useEffect(() => {
-    if (user?.id) fetchStatus()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id])
+    fetchStatus()
+  }, [router])
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-cream">
         <div className="text-center">
@@ -131,23 +89,8 @@ export default function InfluencerPendingPage() {
     )
   }
 
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-cream">
-        <div className="text-center">
-          <p className="text-charcoal/60 mb-4">Please sign in to continue.</p>
-          <Link href="/login" className="text-charcoal font-medium hover:underline">
-            Sign in
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
-  // Normalize status display
   const isRejected = status === 'rejected'
-  const isPending = status === 'pending' || status === 'draft' // Treat draft as pending for display
-  const isDraft = status === 'draft'
+  const isPending = status === 'pending' || status === 'draft'
 
   return (
     <div className="min-h-screen bg-cream">
@@ -163,14 +106,12 @@ export default function InfluencerPendingPage() {
               Kiwikoo
             </Link>
             <h1 className="text-4xl md:text-5xl font-serif font-bold text-charcoal mt-4">
-              {isRejected ? 'Application rejected' : isDraft ? 'Complete your onboarding' : 'Approval in progress'}
+              {isRejected ? 'Application rejected' : 'Approval in progress'}
             </h1>
             <p className="text-charcoal/60 mt-3">
               {isRejected
                 ? "Your influencer application wasn't approved. You can contact support for next steps."
-                : isDraft
-                ? 'Please complete your onboarding to submit your application for approval.'
-                : 'Your account is created, but influencer features are locked until an admin approves you.'}
+                : "Your account is created, but influencer features are locked until an admin approves you."}
             </p>
           </div>
 
@@ -189,16 +130,11 @@ export default function InfluencerPendingPage() {
               </div>
               <div className="flex-1">
                 <h2 className="text-xl font-semibold text-charcoal">
-                  Status:{' '}
-                  <span className={isRejected ? 'text-red-600' : isPending ? 'text-peach' : 'text-green-600'}>
-                    {status === 'draft' ? 'draft' : status === 'pending' ? 'pending' : status === 'approved' ? 'approved' : 'rejected'}
-                  </span>
+                  Status: <span className={isRejected ? 'text-red-600' : 'text-peach'}>{status}</span>
                 </h2>
                 <p className="text-charcoal/60 mt-1">
                   {isRejected
                     ? "If you believe this is a mistake, reach out and we'll review it."
-                    : isDraft
-                    ? 'Complete your onboarding form to submit your application for admin review.'
                     : "You'll receive an email once approved. Reviews typically complete within 24–48 hours."}
                 </p>
               </div>
@@ -219,7 +155,7 @@ export default function InfluencerPendingPage() {
 
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
               <button
-                onClick={fetchStatus}
+                onClick={() => window.location.reload()}
                 disabled={loading}
                 className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-charcoal text-cream font-medium hover:bg-charcoal/90 disabled:opacity-50"
               >
@@ -259,4 +195,3 @@ export default function InfluencerPendingPage() {
     </div>
   )
 }
-

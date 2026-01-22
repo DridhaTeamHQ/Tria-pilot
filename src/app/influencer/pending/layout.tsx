@@ -1,50 +1,40 @@
 /**
- * Server-side layout guard for /influencer/pending
+ * INFLUENCER PENDING LAYOUT GUARD
  * 
  * Enforces:
- * - onboarding_completed === true (redirect to onboarding if false)
- * - approval_status !== 'approved' (redirect to dashboard if approved)
- * 
- * Uses reusable auth guard helper for consistent logic.
+ * - Must have completed onboarding
+ * - Must NOT be approved
  */
+import { getAuthState } from '@/lib/auth-state'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/auth'
-import { getProfile, getRedirectPath } from '@/lib/auth-guard'
+
+export const dynamic = 'force-dynamic'
 
 export default async function InfluencerPendingLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const supabase = await createClient()
-  const {
-    data: { user: authUser },
-  } = await supabase.auth.getUser()
+  const state = await getAuthState()
 
-  if (!authUser) {
+  // Must be authenticated
+  if (state.type === 'unauthenticated') {
     redirect('/login')
   }
 
-  // Fetch profile using guard helper
-  const profile = await getProfile(authUser.id)
-
-  if (!profile || profile.role !== 'influencer') {
+  // Must be influencer_pending (onboarding completed, not approved)
+  if (state.type !== 'influencer_pending') {
+    // If draft → redirect to onboarding
+    if (state.type === 'influencer_draft') {
+      redirect('/onboarding/influencer')
+    }
+    // If approved → redirect to dashboard
+    if (state.type === 'influencer_approved') {
+      redirect('/dashboard')
+    }
+    // Other states → dashboard
     redirect('/dashboard')
   }
 
-  // CRITICAL: Pending page requires onboarding to be completed
-  // If onboarding is not completed, redirect to onboarding
-  if (!profile.onboarding_completed) {
-    redirect('/onboarding/influencer')
-  }
-
-  // If approved, redirect to dashboard (will route to influencer dashboard)
-  if (profile.approval_status === 'approved') {
-    redirect('/dashboard')
-  }
-
-  // Allow access if:
-  // - onboarding_completed === true
-  // - approval_status !== 'approved' (draft, pending, or rejected)
   return <>{children}</>
 }

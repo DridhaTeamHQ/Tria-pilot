@@ -1,48 +1,41 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/auth'
-import { getProfile, getRedirectPath } from '@/lib/auth-guard'
-
 /**
- * Influencer Layout Guard
+ * INFLUENCER LAYOUT GUARD
  * 
- * Uses reusable auth guard helper for consistent routing logic.
- * Enforces:
- * - onboarding_completed === true (redirect to onboarding if false)
- * - approval_status === 'approved' (redirect to pending if not approved)
+ * Enforces routing based on auth state.
+ * Only approved influencers can access influencer routes.
  */
+import { getAuthState, getRedirectPath } from '@/lib/auth-state'
+import { redirect } from 'next/navigation'
+
+export const dynamic = 'force-dynamic'
+
 export default async function InfluencerLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const supabase = await createClient()
-  const {
-    data: { user: authUser },
-  } = await supabase.auth.getUser()
+  const state = await getAuthState()
 
-  if (!authUser) {
+  // Must be authenticated
+  if (state.type === 'unauthenticated') {
     redirect('/login')
   }
 
-  // Fetch profile using guard helper
-  const profile = await getProfile(authUser.id)
-
-  if (!profile) {
+  // Must be influencer
+  if (
+    state.type !== 'influencer_draft' &&
+    state.type !== 'influencer_pending' &&
+    state.type !== 'influencer_approved'
+  ) {
     redirect('/dashboard')
   }
 
-  // CRITICAL: Only allow influencers
-  if (profile.role !== 'influencer') {
-    redirect('/dashboard')
-  }
-
-  // Use guard helper to determine redirect
-  const redirectPath = getRedirectPath(profile)
+  // Check if redirect is needed
+  const redirectPath = getRedirectPath(state, '/influencer')
 
   if (redirectPath) {
     redirect(redirectPath)
   }
 
-  // All checks passed - allow access
   return <>{children}</>
 }
