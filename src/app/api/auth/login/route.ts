@@ -93,14 +93,18 @@ export async function POST(request: Request) {
 
     if (!user) {
       // Backward-compat: user exists in Supabase Auth but not in app DB.
+      // This happens when a user was created in Supabase Auth but the Prisma user creation failed
+      // or they registered before the Prisma sync was implemented.
       // Keep the Supabase session (already set via cookies) and send them to complete profile.
+      console.log(`User ${email} authenticated in Supabase but missing in Prisma - redirecting to profile completion`)
       return NextResponse.json(
         {
-          error: 'Please complete your profile to continue.',
+          user: null,
           requiresProfile: true,
           next: '/complete-profile',
+          message: 'Please complete your profile to continue.',
         },
-        { status: 409 }
+        { status: 200 } // Return 200 so the frontend can handle the redirect
       )
     }
 

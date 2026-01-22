@@ -73,7 +73,8 @@ function LoginContent() {
 
       const data = await response.json()
 
-      if (response.status === 409 && data?.requiresProfile && data?.next) {
+      // Handle users that exist in Supabase but not in Prisma
+      if (data?.requiresProfile && data?.next) {
         toast.info('One-time setup required. Please complete your profile.')
         router.push(data.next)
         return
