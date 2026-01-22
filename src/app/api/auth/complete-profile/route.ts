@@ -52,20 +52,10 @@ export async function POST(request: Request) {
       },
     })
 
-    // For influencers, create a pending application (use service role because this endpoint might run with limited RLS)
-    if (role === 'INFLUENCER') {
-      try {
-        const service = createServiceClient()
-        await service.from('influencer_applications').upsert({
-          user_id: authUser.id,
-          email,
-          full_name: name,
-          status: 'pending',
-        })
-      } catch (e) {
-        console.error('Failed to create influencer application:', e)
-      }
-    }
+    // CRITICAL: Do NOT create influencer_applications entry on profile completion
+    // approvalStatus must remain 'none' until onboarding is completed
+    // The application entry will be created in /api/onboarding/influencer when onboardingCompleted = true
+    // This prevents impossible states where approvalStatus = 'pending' but onboardingCompleted = false
 
     return NextResponse.json({ user })
   } catch (error) {

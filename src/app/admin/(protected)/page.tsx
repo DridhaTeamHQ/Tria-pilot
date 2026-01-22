@@ -20,6 +20,8 @@ export default async function AdminPage() {
   }
 
   // Enrich with Prisma onboarding data
+  // CRITICAL: Only include influencers with onboardingCompleted === true
+  // CRITICAL: Exclude brands (role !== 'INFLUENCER')
   const applications = (applicationsData || []).map(async (app: any) => {
     const influencer = await prisma.influencerProfile.findUnique({
       where: { userId: app.user_id },
@@ -29,36 +31,47 @@ export default async function AdminPage() {
             id: true,
             email: true,
             name: true,
+            role: true, // Include role to filter out brands
             createdAt: true,
           },
         },
       },
     })
 
+    // Skip if influencer not found or role is not INFLUENCER (could be a brand)
+    if (!influencer || influencer.user.role !== 'INFLUENCER') {
+      return null
+    }
+
+    // CRITICAL: Only include influencers who completed onboarding
+    if (!influencer.onboardingCompleted) {
+      // DEFENSIVE: Log invalid state but don't show in admin dashboard
+      console.warn(`INVALID STATE: Application ${app.user_id} has approvalStatus but onboardingCompleted = false`)
+      return null
+    }
+
     return {
       ...app,
-      onboarding: influencer
-        ? {
-            gender: influencer.gender,
-            niches: influencer.niches,
-            audienceType: influencer.audienceType,
-            preferredCategories: influencer.preferredCategories,
-            socials: influencer.socials,
-            bio: influencer.bio,
-            followers: influencer.followers,
-            engagementRate: influencer.engagementRate,
-            audienceRate: influencer.audienceRate,
-            retentionRate: influencer.retentionRate,
-            badgeScore: influencer.badgeScore,
-            badgeTier: influencer.badgeTier,
-            onboardingCompleted: influencer.onboardingCompleted,
-          }
-        : null,
-      user: influencer?.user || null,
+      onboarding: {
+        gender: influencer.gender,
+        niches: influencer.niches,
+        audienceType: influencer.audienceType,
+        preferredCategories: influencer.preferredCategories,
+        socials: influencer.socials,
+        bio: influencer.bio,
+        followers: influencer.followers,
+        engagementRate: influencer.engagementRate,
+        audienceRate: influencer.audienceRate,
+        retentionRate: influencer.retentionRate,
+        badgeScore: influencer.badgeScore,
+        badgeTier: influencer.badgeTier,
+        onboardingCompleted: influencer.onboardingCompleted,
+      },
+      user: influencer.user,
     }
   })
 
-  const enrichedApplications = await Promise.all(applications)
+  const enrichedApplications = (await Promise.all(applications)).filter((app: any) => app !== null)
 
   return (
     <div className="min-h-screen bg-cream">

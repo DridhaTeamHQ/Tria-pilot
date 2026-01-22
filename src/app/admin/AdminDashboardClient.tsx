@@ -57,7 +57,17 @@ export default function AdminDashboardClient({ initialApplications }: AdminDashb
 
   const visibleApplications = useMemo(() => {
     const q = query.trim().toLowerCase()
-    let filtered = applications.filter((app) => {
+    
+    // DEFENSIVE: Filter out invalid states first
+    const validApps = applications.filter((app) => {
+      // Skip if onboarding data exists but onboardingCompleted is false
+      if (app.onboarding && !app.onboarding.onboardingCompleted) {
+        return false
+      }
+      return true
+    })
+    
+    let filtered = validApps.filter((app) => {
       // Status filter
       const matchesFilter = activeFilter === 'all' ? true : app.status === activeFilter
       if (!matchesFilter) return false
@@ -193,9 +203,22 @@ export default function AdminDashboardClient({ initialApplications }: AdminDashb
     }
   }
 
-  const pendingCount = applications.filter((app) => app.status === 'pending').length
-  const approvedCount = applications.filter((app) => app.status === 'approved').length
-  const rejectedCount = applications.filter((app) => app.status === 'rejected').length
+  // CRITICAL: Stats must be computed from real data, ensuring:
+  // - Only influencers with onboardingCompleted === true are counted
+  // - Only valid approvalStatus values are counted
+  // - Same dataset powers counters, table list, and filters
+  const validApplications = applications.filter((app) => {
+    // DEFENSIVE: Assert valid state - skip invalid entries
+    if (app.onboarding && !app.onboarding.onboardingCompleted) {
+      console.warn(`INVALID STATE: Application ${app.user_id} has approvalStatus but onboardingCompleted = false`)
+      return false
+    }
+    return true
+  })
+
+  const pendingCount = validApplications.filter((app) => app.status === 'pending').length
+  const approvedCount = validApplications.filter((app) => app.status === 'approved').length
+  const rejectedCount = validApplications.filter((app) => app.status === 'rejected').length
 
   return (
     <div className="space-y-6">

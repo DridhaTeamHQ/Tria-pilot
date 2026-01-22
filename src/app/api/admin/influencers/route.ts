@@ -50,7 +50,12 @@ export async function GET(request: Request) {
     const sortBy = searchParams.get('sortBy') || 'created_at' // 'created_at' | 'badgeScore' | 'followers' | 'engagementRate'
     const order = (searchParams.get('order') || 'desc') as 'asc' | 'desc'
 
-    // Fetch applications from Supabase
+    // CRITICAL: Admin dashboard must only show influencers who:
+    // 1. Have role === 'INFLUENCER'
+    // 2. Have onboardingCompleted === true
+    // 3. Have approvalStatus IN ('pending', 'approved', 'rejected')
+    // 
+    // We fetch from influencer_applications first, then filter by onboarding completion
     let query = service
       .from('influencer_applications')
       .select('*')
@@ -79,10 +84,12 @@ export async function GET(request: Request) {
     }
 
     // Fetch full onboarding data from Prisma for each application
+    // CRITICAL: Filter to only include influencers with onboardingCompleted === true
     const userIds = applications.map((app: any) => app.user_id)
     const influencers = await prisma.influencerProfile.findMany({
       where: {
         userId: { in: userIds },
+        onboardingCompleted: true, // CRITICAL: Only show influencers who completed onboarding
       },
       include: {
         user: {
@@ -90,6 +97,7 @@ export async function GET(request: Request) {
             id: true,
             email: true,
             name: true,
+            role: true, // Include role to ensure we're not showing brands
             createdAt: true,
           },
         },
@@ -97,32 +105,49 @@ export async function GET(request: Request) {
     })
 
     // Merge Supabase application data with Prisma onboarding data
-    const enriched = applications.map((app: any) => {
-      const influencer = influencers.find((inf) => inf.userId === app.user_id)
-      return {
-        ...app,
-        // Full onboarding data
-        onboarding: influencer
-          ? {
-              gender: influencer.gender,
-              niches: influencer.niches,
-              audienceType: influencer.audienceType,
-              preferredCategories: influencer.preferredCategories,
-              socials: influencer.socials,
-              bio: influencer.bio,
-              followers: influencer.followers,
-              engagementRate: influencer.engagementRate,
-              audienceRate: influencer.audienceRate,
-              retentionRate: influencer.retentionRate,
-              badgeScore: influencer.badgeScore,
-              badgeTier: influencer.badgeTier,
-              onboardingCompleted: influencer.onboardingCompleted,
-            }
-          : null,
-        // User data
-        user: influencer?.user || null,
-      }
-    })
+    // CRITICAL: Only include applications where:
+    // - User exists in Prisma
+    // - Role is INFLUENCER (not BRAND)
+    // - onboardingCompleted === true
+    const enriched = applications
+      .map((app: any) => {
+        const influencer = influencers.find((inf) => inf.userId === app.user_id)
+        
+        // Skip if influencer not found or role is not INFLUENCER
+        if (!influencer || influencer.user.role !== 'INFLUENCER') {
+          return null
+        }
+
+        // DEFENSIVE: Assert valid state
+        if (!influencer.onboardingCompleted) {
+          console.error(`INVALID STATE: Application ${app.user_id} has approvalStatus but onboardingCompleted = false`)
+          // Don't show in admin dashboard - this is an invalid state
+          return null
+        }
+
+        return {
+          ...app,
+          // Full onboarding data
+          onboarding: {
+            gender: influencer.gender,
+            niches: influencer.niches,
+            audienceType: influencer.audienceType,
+            preferredCategories: influencer.preferredCategories,
+            socials: influencer.socials,
+            bio: influencer.bio,
+            followers: influencer.followers,
+            engagementRate: influencer.engagementRate,
+            audienceRate: influencer.audienceRate,
+            retentionRate: influencer.retentionRate,
+            badgeScore: influencer.badgeScore,
+            badgeTier: influencer.badgeTier,
+            onboardingCompleted: influencer.onboardingCompleted,
+          },
+          // User data
+          user: influencer.user,
+        }
+      })
+      .filter((app: any) => app !== null) // Remove null entries
 
     // Apply sorting that requires Prisma data
     if (sortBy === 'badgeScore' || sortBy === 'followers' || sortBy === 'engagementRate') {

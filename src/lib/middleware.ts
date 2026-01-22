@@ -104,12 +104,17 @@ export async function updateSession(request: NextRequest) {
 
             if (!isAllowed) {
                 // Check if user is influencer and not approved
+                // CRITICAL: Also check onboarding completion - pending page requires onboarding to be done
                 const { data: application } = await supabase
                     .from('influencer_applications')
                     .select('status')
                     .eq('user_id', user.id)
                     .maybeSingle()
 
+                // DEFENSIVE: If approvalStatus exists but onboarding might not be completed,
+                // we need to check onboarding status. However, this is middleware and we want to keep it fast.
+                // The individual pages (dashboard, pending, etc.) will do the full check.
+                // Here we just redirect to pending if status is not approved.
                 if (application && application.status !== 'approved') {
                     const url = request.nextUrl.clone()
                     url.pathname = '/influencer/pending'

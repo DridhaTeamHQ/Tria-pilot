@@ -85,6 +85,14 @@ export default async function Dashboard() {
       .eq('user_id', user.id)
       .maybeSingle()
     
+    // DEFENSIVE: Assert valid state
+    // If approvalStatus exists but onboarding is not completed, this is invalid
+    if (application && !onboardingCompleted) {
+      console.error(`INVALID STATE: User ${user.id} has approvalStatus but onboardingCompleted = false`)
+      // Redirect to onboarding to fix the state
+      redirect('/onboarding/influencer')
+    }
+    
     if (!application || application.status !== 'approved') {
       redirect('/influencer/pending')
     }

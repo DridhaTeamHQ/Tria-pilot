@@ -75,29 +75,10 @@ export async function POST(request: Request) {
             },
         })
 
-        // If influencer, create pending application in Supabase
-        if (role === 'INFLUENCER') {
-            try {
-                // Registration happens before the user has a session cookie,
-                // so use the service role client to reliably create the application.
-                const service = createServiceClient()
-                const { error: appError } = await service.from('influencer_applications').upsert({
-                    user_id: id,
-                    email: email,
-                    full_name: name || null,
-                    status: 'pending',
-                })
-
-                if (appError) {
-                    console.error('Failed to create influencer application:', appError)
-                    // Don't fail registration if application creation fails
-                    // Admin can manually create it if needed
-                }
-            } catch (appErr) {
-                console.error('Error creating influencer application:', appErr)
-                // Continue - registration succeeded even if application creation failed
-            }
-        }
+        // CRITICAL: Do NOT create influencer_applications entry on registration
+        // approvalStatus must remain 'none' until onboarding is completed
+        // The application entry will be created in /api/onboarding/influencer when onboardingCompleted = true
+        // This prevents impossible states where approvalStatus = 'pending' but onboardingCompleted = false
 
         return NextResponse.json({ user }, { status: 201 })
     } catch (error) {

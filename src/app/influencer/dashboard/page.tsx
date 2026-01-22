@@ -64,6 +64,7 @@ export default function InfluencerDashboard() {
   const [shareImageBase64, setShareImageBase64] = useState<string | undefined>(undefined)
 
   // Check influencer approval status and onboarding completion
+  // CRITICAL: Server-side checks are primary, but this provides client-side validation
   useEffect(() => {
     async function checkStatus() {
       if (!user?.id) return
@@ -73,9 +74,10 @@ export default function InfluencerDashboard() {
         const onboardingRes = await fetch('/api/onboarding/influencer')
         const onboardingData = await onboardingRes.json()
         
+        // DEFENSIVE: Assert valid state
         if (!onboardingData.onboardingCompleted) {
           // Redirect to onboarding if not completed
-          router.push('/onboarding/influencer')
+          router.replace('/onboarding/influencer')
           return
         }
 
@@ -85,11 +87,19 @@ export default function InfluencerDashboard() {
           .from('influencer_applications')
           .select('status')
           .eq('user_id', user.id)
-          .single()
+          .maybeSingle()
 
-        if (application?.status !== 'approved') {
+        // DEFENSIVE: If approvalStatus exists but onboarding is not completed, this is invalid
+        if (application && !onboardingData.onboardingCompleted) {
+          console.error('INVALID STATE: approvalStatus exists but onboardingCompleted = false')
+          // Redirect to onboarding to fix the state
+          router.replace('/onboarding/influencer')
+          return
+        }
+
+        if (!application || application.status !== 'approved') {
           // Redirect to pending page if not approved
-          router.push('/influencer/pending')
+          router.replace('/influencer/pending')
           return
         }
 

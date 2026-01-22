@@ -16,14 +16,26 @@ export default async function InfluencerLayout({
     redirect('/login')
   }
 
-  // Get user from database
+  // Get user from database with onboarding status
   const dbUser = await prisma.user.findUnique({
     where: { email: authUser.email! },
-    select: { id: true, role: true },
+    include: {
+      influencerProfile: {
+        select: {
+          onboardingCompleted: true,
+        },
+      },
+    },
   })
 
   if (!dbUser || dbUser.role !== 'INFLUENCER') {
     redirect('/dashboard')
+  }
+
+  // CRITICAL: Check onboarding completion first
+  // If onboarding is not completed, redirect to onboarding
+  if (!dbUser.influencerProfile?.onboardingCompleted) {
+    redirect('/onboarding/influencer')
   }
 
   // Check influencer approval status
@@ -31,12 +43,24 @@ export default async function InfluencerLayout({
     .from('influencer_applications')
     .select('status')
     .eq('user_id', dbUser.id)
-    .single()
+    .maybeSingle()
 
-  // If not approved, redirect to onboarding (but allow onboarding pages themselves)
-  const isApproved = application?.status === 'approved'
-  
-  // Note: Individual pages will check approval status and redirect if needed
-  // This layout just ensures user is authenticated and is an influencer
+  // DEFENSIVE: Assert valid state
+  // If approvalStatus exists but onboarding is not completed, this is invalid
+  if (application && !dbUser.influencerProfile.onboardingCompleted) {
+    console.error(`INVALID STATE: User ${dbUser.id} has approvalStatus but onboardingCompleted = false`)
+    // Redirect to onboarding to fix the state
+    redirect('/onboarding/influencer')
+  }
+
+  // If not approved, redirect to pending page
+  // (Individual pages like dashboard will also check, but this provides layout-level protection)
+  if (!application || application.status !== 'approved') {
+    // Allow access to pending page itself
+    // Other pages will redirect to pending if needed
+    return <>{children}</>
+  }
+
+  // User is approved - allow access to all influencer pages
   return <>{children}</>
 }

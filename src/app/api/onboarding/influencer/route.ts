@@ -128,21 +128,25 @@ export async function POST(request: Request) {
       },
     })
 
-    // If onboarding is completed, ensure influencer_applications status is 'pending'
-    // (This should already exist from registration, but ensure it's set correctly)
+    // CRITICAL STATE TRANSITION: Set approvalStatus = 'pending' ONLY when onboarding completes
+    // This is the ONLY place where 'pending' should be set
+    // State model: onboardingCompleted = true → approvalStatus = 'pending'
     if (isCompleted && !dbUser.influencerProfile.onboardingCompleted) {
       try {
         const { createServiceClient } = await import('@/lib/auth')
         const service = createServiceClient()
+        // Create or update influencer_applications entry with status = 'pending'
+        // This is the FIRST time approvalStatus is set to 'pending'
         await service.from('influencer_applications').upsert({
           user_id: dbUser.id,
           email: dbUser.email,
           full_name: dbUser.name || null,
-          status: 'pending', // Set to pending when onboarding completes
+          status: 'pending', // Set to pending ONLY when onboarding completes
         })
       } catch (appError) {
-        console.error('Failed to update influencer application status:', appError)
-        // Non-blocking - application might already exist
+        console.error('Failed to create/update influencer application status:', appError)
+        // This is critical - if this fails, the user will be stuck
+        // Log error but don't throw - the profile update already succeeded
       }
     }
 
