@@ -6,6 +6,11 @@ import { buildInfluencerApprovalEmail, buildInfluencerRejectionEmail } from '@/l
 import { getPublicSiteUrlFromRequest } from '@/lib/site-url'
 import { z } from 'zod'
 
+// CRITICAL: Force dynamic rendering - no caching for admin data
+// Admin must see fresh data from database, especially in multi-session scenarios
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 const updateSchema = z
   .object({
     user_id: z.string().uuid(),
@@ -83,9 +88,14 @@ export async function GET(request: Request) {
       return NextResponse.json([])
     }
 
-    // Fetch full onboarding data from Prisma for each application
-    // CRITICAL: Filter to only include influencers with onboardingCompleted === true
+    // CRITICAL: Fetch full onboarding data from Prisma for each application
+    // Query must match exactly:
+    // - role === 'INFLUENCER'
+    // - onboardingCompleted === true
+    // - approvalStatus IN ('pending', 'approved', 'rejected') (checked via influencer_applications.status)
     const userIds = applications.map((app: any) => app.user_id)
+    
+    // First, get all influencers with onboardingCompleted === true
     const influencers = await prisma.influencerProfile.findMany({
       where: {
         userId: { in: userIds },
@@ -97,12 +107,20 @@ export async function GET(request: Request) {
             id: true,
             email: true,
             name: true,
-            role: true, // Include role to ensure we're not showing brands
+            role: true, // CRITICAL: Include role to filter out brands
             createdAt: true,
           },
         },
       },
     })
+
+    // DEFENSIVE: Log if we have applications but no matching influencers
+    if (applications.length > 0 && influencers.length === 0) {
+      console.warn('Admin query: Found applications but no matching influencers with onboardingCompleted=true', {
+        applicationUserIds: userIds,
+        applicationCount: applications.length,
+      })
+    }
 
     // Merge Supabase application data with Prisma onboarding data
     // CRITICAL: Only include applications where:

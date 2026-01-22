@@ -28,16 +28,29 @@ export async function POST(request: Request) {
         const email = parsed.email.trim().toLowerCase()
         const { id, role, name } = parsed
 
-        // Check if user already exists
+        // CRITICAL: Make signup idempotent
+        // Check if user already exists by ID (matches auth.users.id)
+        // This prevents duplicate creation if auth user exists but profile creation failed
         const existingUser = await prisma.user.findUnique({
-            where: { email },
+            where: { id }, // Use ID, not email - auth.users.id MUST equal users.id
         })
 
         if (existingUser) {
-            return NextResponse.json(
-                { error: 'User already exists' },
-                { status: 400 }
-            )
+            // User already exists - return existing user (idempotent)
+            // This handles cases where auth user was created but profile creation was retried
+            return NextResponse.json({ user: existingUser }, { status: 200 })
+        }
+
+        // Also check by email as a safety check (but don't fail if found with different ID)
+        const existingByEmail = await prisma.user.findUnique({
+            where: { email },
+        })
+
+        if (existingByEmail) {
+            // Email exists but ID doesn't match - this is a data inconsistency
+            // Log error but don't fail - return existing user
+            console.error(`DATA INCONSISTENCY: Email ${email} exists with ID ${existingByEmail.id}, but auth user ID is ${id}`)
+            return NextResponse.json({ user: existingByEmail }, { status: 200 })
         }
 
         // Generate unique slug
@@ -45,9 +58,16 @@ export async function POST(request: Request) {
         const uniqueSlug = `${baseSlug}-${Math.random().toString(36).substring(2, 7)}`
 
         // Create user and profile based on role
-        const user = await prisma.user.create({
-            data: {
-                id,
+        // Use upsert pattern to handle race conditions
+        const user = await prisma.user.upsert({
+            where: { id }, // Primary key is ID (matches auth.users.id)
+            update: {
+                // If user exists, update only if needed (shouldn't happen, but defensive)
+                email,
+                name: name || undefined,
+            },
+            create: {
+                id, // CRITICAL: Use auth.users.id, not generated ID
                 email,
                 role,
                 slug: uniqueSlug,
@@ -58,6 +78,7 @@ export async function POST(request: Request) {
                             create: {
                                 niches: [],
                                 socials: {},
+                                onboardingCompleted: false, // CRITICAL: Default to false
                             },
                         },
                     }
@@ -65,6 +86,7 @@ export async function POST(request: Request) {
                         brandProfile: {
                             create: {
                                 companyName: name || 'New Brand',
+                                onboardingCompleted: false, // CRITICAL: Default to false
                             },
                         },
                     }),

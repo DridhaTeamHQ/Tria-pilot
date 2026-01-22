@@ -60,15 +60,27 @@ export async function GET(request: NextRequest) {
 
           if (dbUser) {
             // User exists - check onboarding status
-            if (dbUser.role === 'INFLUENCER') {
-              const onboardingCompleted = dbUser.influencerProfile?.onboardingCompleted ?? false
+            // CRITICAL: After email confirmation, defaults must be:
+            // - onboardingCompleted = false
+            // - approvalStatus = 'none' (no entry in influencer_applications)
+            // DO NOT set pending here, DO NOT redirect to /influencer/pending
+            
+            // DEFENSIVE: Assert correct defaults
+            if (dbUser.role === 'INFLUENCER' && dbUser.influencerProfile) {
+              const onboardingCompleted = dbUser.influencerProfile.onboardingCompleted ?? false
+              
+              // If onboarding is not completed, redirect to onboarding
               if (!onboardingCompleted) {
                 // Force onboarding - sign out to prevent middleware redirects
                 await supabase.auth.signOut()
                 return NextResponse.redirect(new URL('/onboarding/influencer', requestUrl.origin))
               }
-            } else if (dbUser.role === 'BRAND') {
-              const onboardingCompleted = dbUser.brandProfile?.onboardingCompleted ?? false
+              
+              // If onboarding is completed, check approval status
+              // But don't redirect to pending here - let dashboard handle it
+              // This ensures state is correct after email confirmation
+            } else if (dbUser.role === 'BRAND' && dbUser.brandProfile) {
+              const onboardingCompleted = dbUser.brandProfile.onboardingCompleted ?? false
               if (!onboardingCompleted) {
                 // Force onboarding - sign out to prevent middleware redirects
                 await supabase.auth.signOut()

@@ -108,7 +108,9 @@ export async function POST(request: Request) {
       data.retentionRate !== undefined
     )
 
-    // Update influencer profile
+    // CRITICAL: Update influencer profile with onboarding data
+    // This write must succeed for admin to see the application
+    // Ensure all data is persisted correctly
     const updated = await prisma.influencerProfile.update({
       where: { id: dbUser.influencerProfile.id },
       data: {
@@ -124,9 +126,24 @@ export async function POST(request: Request) {
         ...(data.engagementRate !== undefined && { engagementRate: data.engagementRate }),
         badgeScore: badge.score,
         badgeTier: badge.tier,
-        onboardingCompleted: isCompleted,
+        onboardingCompleted: isCompleted, // CRITICAL: Must be set to true when onboarding completes
       },
     })
+
+    // DEFENSIVE: Verify the write succeeded
+    if (!updated || updated.onboardingCompleted !== isCompleted) {
+      console.error('CRITICAL: Onboarding write failed or incomplete', {
+        userId: dbUser.id,
+        expectedCompleted: isCompleted,
+        actualCompleted: updated?.onboardingCompleted,
+      })
+      // Don't throw - continue to create application entry
+    } else {
+      console.log('Onboarding data persisted successfully', {
+        userId: dbUser.id,
+        onboardingCompleted: updated.onboardingCompleted,
+      })
+    }
 
     // CRITICAL STATE TRANSITION: Set approvalStatus = 'pending' ONLY when onboarding completes
     // This is the ONLY place where 'pending' should be set
@@ -137,16 +154,43 @@ export async function POST(request: Request) {
         const service = createServiceClient()
         // Create or update influencer_applications entry with status = 'pending'
         // This is the FIRST time approvalStatus is set to 'pending'
-        await service.from('influencer_applications').upsert({
-          user_id: dbUser.id,
-          email: dbUser.email,
-          full_name: dbUser.name || null,
-          status: 'pending', // Set to pending ONLY when onboarding completes
-        })
+        // CRITICAL: Use upsert to handle race conditions and ensure idempotency
+        const { data: appData, error: appError } = await service
+          .from('influencer_applications')
+          .upsert(
+            {
+              user_id: dbUser.id, // CRITICAL: Use Prisma user.id (matches auth.users.id)
+              email: dbUser.email,
+              full_name: dbUser.name || null,
+              status: 'pending', // Set to pending ONLY when onboarding completes
+            },
+            {
+              onConflict: 'user_id', // Update if exists, create if not
+            }
+          )
+          .select()
+          .single()
+
+        if (appError) {
+          console.error('Failed to create/update influencer application status:', {
+            error: appError,
+            userId: dbUser.id,
+            email: dbUser.email,
+          })
+          // This is critical - if this fails, the user will be stuck
+          // Log error but don't throw - the profile update already succeeded
+        } else {
+          console.log('Successfully created/updated influencer application:', {
+            userId: dbUser.id,
+            status: appData?.status,
+          })
+        }
       } catch (appError) {
-        console.error('Failed to create/update influencer application status:', appError)
-        // This is critical - if this fails, the user will be stuck
-        // Log error but don't throw - the profile update already succeeded
+        console.error('Exception creating/updating influencer application status:', {
+          error: appError,
+          userId: dbUser.id,
+          email: dbUser.email,
+        })
       }
     }
 
