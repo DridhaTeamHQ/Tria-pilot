@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { Sparkles, ArrowRight, ArrowLeft, User, Building2, Camera, TrendingUp, Instagram, Youtube, Twitter, ChevronDown, ChevronUp } from 'lucide-react'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/auth-client'
 import { getPublicSiteUrlClient, buildAuthConfirmUrl } from '@/lib/site-url'
 
 type Role = 'INFLUENCER' | 'BRAND'
@@ -52,10 +52,7 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
+      const supabase = createClient()
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),
@@ -71,32 +68,57 @@ export default function RegisterPage() {
       })
 
       if (authError) {
-        throw new Error(authError.message)
+        // Handle specific Supabase errors
+        let errorMessage = authError.message
+        if (authError.message.includes('User already registered')) {
+          errorMessage = 'An account with this email already exists. Please sign in instead.'
+        } else if (authError.message.includes('Password')) {
+          errorMessage = 'Password does not meet requirements. Please use a stronger password.'
+        } else if (authError.message.includes('Email')) {
+          errorMessage = 'Invalid email address. Please check and try again.'
+        }
+        throw new Error(errorMessage)
       }
 
       if (!authData.user) {
-        throw new Error('Failed to create user')
+        throw new Error('Failed to create user account. Please try again.')
       }
 
+      // Create user profile in database
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: authData.user.id,
-          email,
+          email: email.trim().toLowerCase(), // Normalize email
           role,
-          name: name || null,
+          name: name?.trim() || null,
         }),
       })
 
       if (!response.ok) {
         const contentType = response.headers.get('content-type')
+        let errorMessage = 'Registration failed. Please try again.'
+        
         if (contentType && contentType.includes('application/json')) {
-          const data = await response.json()
-          throw new Error(data.error || 'Registration failed')
-        } else {
-          throw new Error('Registration failed. Please try again.')
+          try {
+            const data = await response.json()
+            errorMessage = data.error || errorMessage
+          } catch {
+            // If JSON parsing fails, use default message
+          }
         }
+        
+        // If Supabase user was created but database registration failed,
+        // we should still show success since the auth account exists
+        // The user can complete their profile later
+        if (response.status === 500 || response.status === 503) {
+          toast.warning('Account created, but profile setup encountered an issue. Please sign in to complete your profile.')
+          router.push('/login')
+          return
+        }
+        
+        throw new Error(errorMessage)
       }
 
       toast.success('Account created! Please check your email to confirm your account.')

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import { ArrowRight, Mail, Sparkles } from 'lucide-react'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/auth-client'
 import { getPublicSiteUrlClient, buildAuthConfirmUrl } from '@/lib/site-url'
 
 export default function ForgotPasswordPage() {
@@ -16,10 +16,7 @@ export default function ForgotPasswordPage() {
     e.preventDefault()
     setLoading(true)
     try {
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
+      const supabase = createClient()
 
       const redirectTo = buildAuthConfirmUrl(getPublicSiteUrlClient(), '/reset-password')
 

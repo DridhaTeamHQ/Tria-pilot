@@ -6,6 +6,14 @@ import prisma from '@/lib/prisma'
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => null)
+    
+    if (!body) {
+      return NextResponse.json(
+        { error: 'Request body is required' },
+        { status: 400 }
+      )
+    }
+    
     const { email: rawEmail, password, rememberMe = true } = loginSchema.parse(body)
 
     // Normalize email: trim whitespace and convert to lowercase

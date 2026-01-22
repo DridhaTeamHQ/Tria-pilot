@@ -23,7 +23,10 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json().catch(() => null)
-        const { id, email, role, name } = registerSchema.parse(body)
+        const parsed = registerSchema.parse(body)
+        // Normalize email: trim whitespace and convert to lowercase
+        const email = parsed.email.trim().toLowerCase()
+        const { id, role, name } = parsed
 
         // Check if user already exists
         const existingUser = await prisma.user.findUnique({
@@ -104,7 +107,18 @@ export async function POST(request: Request) {
         let errorMessage = 'Internal server error'
         let statusCode = 500
         
-        if (error instanceof Error) {
+        // Handle Zod validation errors
+        if (error && typeof error === 'object' && 'issues' in error) {
+            const zodError = error as { issues: Array<{ path: string[]; message: string }> }
+            const firstError = zodError.issues[0]
+            if (firstError) {
+                errorMessage = `Invalid ${firstError.path.join('.')}: ${firstError.message}`
+                statusCode = 400
+            } else {
+                errorMessage = 'Invalid request data. Please check your input and try again.'
+                statusCode = 400
+            }
+        } else if (error instanceof Error) {
             errorMessage = error.message
             
             // Handle Prisma errors
@@ -117,6 +131,9 @@ export async function POST(request: Request) {
                 errorMessage = 'Database connection failed. Please check your database configuration.'
             } else if (error.message.includes('P2002')) {
                 errorMessage = 'User with this email already exists'
+                statusCode = 400
+            } else if (error.message.includes('Invalid uuid')) {
+                errorMessage = 'Invalid user ID format'
                 statusCode = 400
             }
         }

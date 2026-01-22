@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/auth-client'
 
 interface ApprovalGuardProps {
   userId: string
@@ -17,10 +17,7 @@ export default function ApprovalGuard({ userId, children }: ApprovalGuardProps) 
   useEffect(() => {
     async function checkApproval() {
       try {
-        const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        )
+        const supabase = createClient()
 
         const { data: application } = await supabase
           .from('influencer_applications')

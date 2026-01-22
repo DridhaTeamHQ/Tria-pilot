@@ -9,7 +9,7 @@ import { ShoppingBag, Upload, Sparkles, Palette, Download, RefreshCw, ArrowRight
 import { useProduct, useUser } from '@/lib/react-query/hooks'
 import { safeParseResponse } from '@/lib/api-utils'
 import { useProductLink } from '@/lib/hooks/useProductLink'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/auth-client'
 
 // Try-on preset type (v3)
 interface TryOnPreset {
@@ -45,10 +45,7 @@ function TryOnPageContent() {
             if (!user?.id || user?.role !== 'INFLUENCER') return
 
             try {
-                const supabase = createClient(
-                    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-                )
+                const supabase = createClient()
 
                 const { data: application } = await supabase
                     .from('influencer_applications')

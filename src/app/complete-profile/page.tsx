@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/auth-client'
 import { useRouter } from 'next/navigation'
 import { Building2, Camera, Sparkles, ArrowLeft } from 'lucide-react'
 
@@ -17,7 +17,7 @@ export default function CompleteProfilePage() {
   const [saving, setSaving] = useState(false)
 
   const supabase = useMemo(() => {
-    return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+    return createClient()
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {

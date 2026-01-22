@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/auth-client'
 import { CheckCircle2, Clock, RefreshCw, ShieldAlert } from 'lucide-react'
 import { useUser } from '@/lib/react-query/hooks'
 
@@ -16,7 +16,7 @@ export default function InfluencerPendingPage() {
   const [loading, setLoading] = useState(false)
 
   const supabase = useMemo(() => {
-    return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+    return createClient()
   }, [])
 
   async function fetchStatus() {

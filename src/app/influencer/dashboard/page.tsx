@@ -22,7 +22,7 @@ import {
 import { useUser, useGenerations } from '@/lib/react-query/hooks'
 import { ShareModal } from '@/components/tryon/ShareModal'
 import { toast } from 'sonner'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/auth-client'
 
 // Animation variants
 const containerVariants = {
@@ -69,10 +69,7 @@ export default function InfluencerDashboard() {
       if (!user?.id) return
 
       try {
-        const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        )
+        const supabase = createClient()
 
         const { data: application } = await supabase
           .from('influencer_applications')
