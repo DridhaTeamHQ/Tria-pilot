@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/auth'
+import { createClient, createServiceClient } from '@/lib/auth'
 import { loginSchema } from '@/lib/validation'
 import prisma from '@/lib/prisma'
 
@@ -39,19 +39,53 @@ export async function POST(request: Request) {
         email: email, // Log normalized email (not password)
       })
       
-      // Provide more helpful error messages
+      // Check if user exists in Supabase (for better error messages)
+      let userExists = false
+      let emailConfirmed = false
+      try {
+        const service = createServiceClient()
+        const { data: users } = await service.auth.admin.listUsers()
+        const foundUser = users?.users?.find(
+          (u: any) => u.email?.toLowerCase().trim() === email
+        )
+        if (foundUser) {
+          userExists = true
+          emailConfirmed = !!foundUser.email_confirmed_at
+        }
+      } catch (checkError) {
+        // If we can't check, continue with generic error
+        console.warn('Could not check user existence:', checkError)
+      }
+      
+      // Provide more helpful error messages based on actual user status
       let errorMessage = error.message
+      let statusCode = 401
+      
       if (error.message.includes('Invalid login credentials') || error.message.includes('Invalid login')) {
-        errorMessage = 'Invalid email or password. Please check your credentials and try again.'
-      } else if (error.message.includes('Email not confirmed')) {
-        errorMessage = 'Please verify your email address before signing in.'
+        if (userExists && !emailConfirmed) {
+          errorMessage = 'Please verify your email address before signing in. Check your inbox for the confirmation link.'
+          statusCode = 403 // Forbidden - account exists but not confirmed
+        } else if (userExists) {
+          errorMessage = 'Invalid password. Please check your password or use "Forgot Password" to reset it.'
+        } else {
+          errorMessage = 'No account found with this email. Please register first or check your email address.'
+        }
+      } else if (error.message.includes('Email not confirmed') || error.message.includes('email_not_confirmed')) {
+        errorMessage = 'Please verify your email address before signing in. Check your inbox for the confirmation link.'
+        statusCode = 403
       } else if (error.message.includes('Too many requests')) {
         errorMessage = 'Too many login attempts. Please try again later.'
+        statusCode = 429
       } else if (error.message.includes('User not found')) {
         errorMessage = 'Account not found. Please make sure you have registered an account.'
       }
       
-      return NextResponse.json({ error: errorMessage }, { status: 401 })
+      return NextResponse.json({ 
+        error: errorMessage,
+        userExists,
+        emailConfirmed,
+        canResetPassword: userExists && emailConfirmed,
+      }, { status: statusCode })
     }
 
     if (!data.user) {

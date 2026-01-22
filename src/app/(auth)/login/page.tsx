@@ -81,6 +81,34 @@ function LoginContent() {
       }
 
       if (!response.ok) {
+        // Handle specific error cases with helpful messages
+        if (response.status === 403 && data?.emailConfirmed === false) {
+          // Email not confirmed
+          toast.error(data.error || 'Please verify your email address before signing in.', {
+            duration: 6000,
+            action: {
+              label: 'Resend Email',
+              onClick: () => {
+                // TODO: Add resend confirmation email functionality
+                toast.info('Resend confirmation email feature coming soon')
+              }
+            }
+          })
+          return
+        }
+        
+        if (data?.canResetPassword) {
+          // User exists but password is wrong - suggest password reset
+          toast.error(data.error || 'Invalid password', {
+            duration: 5000,
+            action: {
+              label: 'Reset Password',
+              onClick: () => router.push('/forgot-password')
+            }
+          })
+          return
+        }
+        
         throw new Error(data.error || 'Login failed')
       }
 
@@ -224,9 +252,14 @@ function LoginContent() {
                 Remember me
               </label>
 
-              <Link href="/forgot-password" className="text-sm text-charcoal hover:underline">
-                Forgot password?
-              </Link>
+              <div className="flex flex-col items-end gap-1">
+                <Link href="/forgot-password" className="text-sm text-charcoal hover:underline">
+                  Forgot password?
+                </Link>
+                <Link href="/register" className="text-xs text-charcoal/60 hover:text-charcoal hover:underline">
+                  Don't have an account?
+                </Link>
+              </div>
             </div>
 
             <motion.button
