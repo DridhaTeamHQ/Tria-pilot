@@ -54,16 +54,24 @@ export default function RegisterPage() {
     try {
       const supabase = createClient()
 
+      // Get the correct site URL for email redirects
+      const siteUrl = getPublicSiteUrlClient()
+      const redirectUrl = buildAuthConfirmUrl(siteUrl, '/login?confirmed=true')
+      
+      console.log('Registering user with redirect URL:', redirectUrl)
+      
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),
         password,
         options: {
           // After the user clicks the email confirmation link, Supabase will redirect here.
           // Ensure this URL is allowed in Supabase Auth Redirect URLs.
-          emailRedirectTo: buildAuthConfirmUrl(
-            getPublicSiteUrlClient(),
-            '/login?confirmed=true'
-          ),
+          emailRedirectTo: redirectUrl,
+          // Also set data for custom email templates if needed
+          data: {
+            role: role,
+            name: name.trim(),
+          },
         },
       })
 

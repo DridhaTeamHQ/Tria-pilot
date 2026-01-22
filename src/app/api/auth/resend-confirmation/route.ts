@@ -39,28 +39,53 @@ export async function POST(request: Request) {
       )
     }
 
-    // Resend confirmation email using magic link (doesn't require password)
-    // This will send a confirmation email if the user hasn't confirmed yet
-    const { error } = await service.auth.admin.generateLink({
-      type: 'magiclink',
+    // Resend confirmation email using signup link (requires temporary password)
+    // This is the most reliable method for resending confirmation emails
+    const { data: linkData, error } = await service.auth.admin.generateLink({
+      type: 'signup',
       email: email,
+      password: 'TempPassword123!', // Temporary password - user will set their own after confirmation
       options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/confirm?next=/login?confirmed=true`,
+        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_VERCEL_URL || 'http://localhost:3000'}/auth/confirm?next=/login?confirmed=true`,
       },
     })
 
     if (error) {
       console.error('Resend confirmation error:', error)
-      // Try alternative method - resend via user update
-      try {
-        await service.auth.admin.updateUserById(user.id, {
-          email_confirm: false, // This will trigger a new confirmation email
-        })
-      } catch (updateError) {
-        return NextResponse.json(
-          { error: 'Failed to resend confirmation email. Please try again later.' },
-          { status: 500 }
-        )
+      
+      // Try alternative: Use recovery link which can also trigger confirmation
+      const { error: recoveryError } = await service.auth.admin.generateLink({
+        type: 'recovery',
+        email: email,
+        options: {
+          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_VERCEL_URL || 'http://localhost:3000'}/auth/confirm?next=/login?confirmed=true`,
+        },
+      })
+
+      if (recoveryError) {
+        // Last resort: Update user to trigger email
+        try {
+          await service.auth.admin.updateUserById(user.id, {
+            email_confirm: false,
+          })
+          // Then try to resend
+          await service.auth.admin.generateLink({
+            type: 'signup',
+            email: email,
+            password: 'TempPassword123!',
+            options: {
+              redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_VERCEL_URL || 'http://localhost:3000'}/auth/confirm?next=/login?confirmed=true`,
+            },
+          })
+        } catch (updateError) {
+          return NextResponse.json(
+            { 
+              error: 'Failed to resend confirmation email. Please check your Supabase email configuration.',
+              details: error.message,
+            },
+            { status: 500 }
+          )
+        }
       }
     }
 

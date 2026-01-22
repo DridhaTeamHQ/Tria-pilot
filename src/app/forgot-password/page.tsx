@@ -18,7 +18,10 @@ export default function ForgotPasswordPage() {
     try {
       const supabase = createClient()
 
-      const redirectTo = buildAuthConfirmUrl(getPublicSiteUrlClient(), '/reset-password')
+      const siteUrl = getPublicSiteUrlClient()
+      const redirectTo = buildAuthConfirmUrl(siteUrl, '/reset-password')
+      
+      console.log('Sending password reset email with redirect URL:', redirectTo)
 
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
         redirectTo,
