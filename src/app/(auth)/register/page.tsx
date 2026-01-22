@@ -93,13 +93,16 @@ export default function RegisterPage() {
       }
 
       // Create user profile in database
+      // CRITICAL: Map role from uppercase (INFLUENCER/BRAND) to lowercase (influencer/brand)
+      const roleLowercase = role.toLowerCase() as 'influencer' | 'brand'
+      
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: authData.user.id,
           email: email.trim().toLowerCase(), // Normalize email
-          role,
+          role: roleLowercase, // Use lowercase to match profiles table
           name: name?.trim() || null,
         }),
       })

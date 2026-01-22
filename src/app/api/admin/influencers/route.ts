@@ -64,7 +64,7 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url)
-    const statusFilter = searchParams.get('status') // 'draft' | 'pending' | 'approved' | 'rejected' | null
+    const statusFilter = searchParams.get('status') // 'none' | 'pending' | 'approved' | 'rejected' | null
     const sortBy = searchParams.get('sortBy') || 'created_at'
     const order = (searchParams.get('order') || 'desc') as 'asc' | 'desc'
 
@@ -72,7 +72,7 @@ export async function GET(request: Request) {
     let query = service.from('profiles').select('*').eq('role', 'influencer')
 
     // Apply status filter
-    if (statusFilter === 'draft') {
+    if (statusFilter === 'none') {
       // Draft tab: onboarding_completed = false (approval_status = 'none')
       query = query.eq('onboarding_completed', false)
     } else if (statusFilter && ['pending', 'approved', 'rejected'].includes(statusFilter)) {

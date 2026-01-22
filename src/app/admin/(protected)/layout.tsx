@@ -1,5 +1,12 @@
+/**
+ * ADMIN PROTECTED LAYOUT
+ * 
+ * Admins are identified ONLY by: profiles.role === 'admin'
+ * DO NOT check admin_users table
+ */
 import { redirect } from 'next/navigation'
-import { createClient, createServiceClient } from '@/lib/auth'
+import { createClient } from '@/lib/auth'
+import { fetchProfile } from '@/lib/auth-state'
 
 export default async function AdminProtectedLayout({
   children,
@@ -15,17 +22,12 @@ export default async function AdminProtectedLayout({
     redirect('/admin/login')
   }
 
-  const service = createServiceClient()
-  const { data: adminCheck } = await service
-    .from('admin_users')
-    .select('user_id')
-    .eq('user_id', authUser.id)
-    .single()
+  // Check admin access - use profiles.role === 'admin' (SOURCE OF TRUTH)
+  const profile = await fetchProfile(authUser.id)
 
-  if (!adminCheck) {
+  if (!profile || profile.role !== 'admin') {
     redirect('/admin/login?error=not_admin')
   }
 
   return <>{children}</>
 }
-

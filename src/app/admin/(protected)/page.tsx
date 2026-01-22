@@ -1,42 +1,73 @@
+/**
+ * ADMIN DASHBOARD PAGE
+ * 
+ * DATA SOURCE: ONLY query profiles table
+ * NEVER query auth.users or influencer_applications
+ * 
+ * Query: FROM profiles WHERE role = 'influencer'
+ * 
+ * FILTER LOGIC (IN CODE, NOT SQL):
+ * - Draft: onboarding_completed === false
+ * - Pending: onboarding_completed === true && approval_status === 'pending'
+ * - Approved: approval_status === 'approved'
+ * - Rejected: approval_status === 'rejected'
+ */
 import { createServiceClient } from '@/lib/auth'
 import AdminDashboardClient from '../AdminDashboardClient'
 import Link from 'next/link'
 import prisma from '@/lib/prisma'
 
-// Force dynamic rendering for admin dashboard
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export default async function AdminPage() {
-  // CRITICAL: Force dynamic rendering and no caching for admin dashboard
-  // Admin must see fresh data from database, not cached responses
   const service = createServiceClient()
 
-  // Fetch applications from Supabase (fresh data, no cache)
-  const { data: applicationsData, error } = await service
-    .from('influencer_applications')
+  // CRITICAL: ONLY query profiles table
+  // FROM profiles WHERE role = 'influencer'
+  const { data: profiles, error } = await service
+    .from('profiles')
     .select('*')
+    .eq('role', 'influencer')
     .order('created_at', { ascending: false })
 
   if (error) {
-    console.error('Error fetching applications from Supabase:', {
+    console.error('Error fetching profiles:', {
       error: error.message,
       code: error.code,
       details: error.details,
     })
   }
 
-  // CRITICAL: Enrich with Prisma onboarding data using batch query (more efficient)
-  // Query must match exactly:
-  // - role === 'INFLUENCER'
-  // - onboardingCompleted === true
-  // - approvalStatus IN ('pending', 'approved', 'rejected') (from influencer_applications.status)
-  const userIds = (applicationsData || []).map((app: any) => app.user_id)
-  
-  // Fetch influencers with onboardingCompleted === true in batch (more efficient than individual queries)
+  if (!profiles || profiles.length === 0) {
+    return (
+      <div className="min-h-screen bg-cream">
+        <div className="container mx-auto px-6 py-12">
+          <div className="mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+            <div>
+              <h1 className="text-4xl md:text-5xl font-serif font-bold text-charcoal mb-2">Admin Dashboard</h1>
+              <p className="text-charcoal/60">Review influencer applications and control access to influencer features.</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/?from=admin"
+                className="px-5 py-2.5 rounded-full border border-charcoal/15 text-charcoal text-sm font-medium hover:bg-charcoal/5 transition-colors"
+              >
+                Back to site
+              </Link>
+            </div>
+          </div>
+          <AdminDashboardClient initialApplications={[]} />
+        </div>
+      </div>
+    )
+  }
+
+  // Fetch onboarding data from Prisma for enrichment
+  const userIds = profiles.map((p: any) => p.id)
   const influencers = await prisma.influencerProfile.findMany({
     where: {
       userId: { in: userIds },
-      onboardingCompleted: true, // CRITICAL: Only show influencers who completed onboarding
     },
     include: {
       user: {
@@ -44,58 +75,56 @@ export default async function AdminPage() {
           id: true,
           email: true,
           name: true,
-          role: true, // CRITICAL: Include role to filter out brands
+          role: true,
           createdAt: true,
         },
       },
     },
   })
 
-  // DEFENSIVE: Log if we have applications but no matching influencers
-  if (applicationsData && applicationsData.length > 0 && influencers.length === 0) {
-    console.warn('Admin page: Found applications but no matching influencers with onboardingCompleted=true', {
-      applicationUserIds: userIds,
-      applicationCount: applicationsData.length,
-    })
-  }
+  // Enrich profiles with onboarding data
+  const enrichedApplications = profiles
+    .map((profile: any) => {
+      const influencer = influencers.find((inf) => inf.userId === profile.id)
 
-  // Merge Supabase application data with Prisma onboarding data
-  const enrichedApplications = (applicationsData || [])
-    .map((app: any) => {
-      const influencer = influencers.find((inf) => inf.userId === app.user_id)
-
-      // Skip if influencer not found or role is not INFLUENCER (could be a brand)
       if (!influencer || influencer.user.role !== 'INFLUENCER') {
         return null
       }
 
-      // DEFENSIVE: Assert valid state
-      if (!influencer.onboardingCompleted) {
-        console.error(`INVALID STATE: Application ${app.user_id} has approvalStatus but onboardingCompleted = false`)
-        return null
+      // Determine status for display (FILTER LOGIC IN CODE)
+      let displayStatus = profile.approval_status || 'none'
+      if (!profile.onboarding_completed) {
+        displayStatus = 'none' // Draft = onboarding_completed === false
       }
 
       return {
-        ...app,
+        user_id: profile.id,
+        email: profile.email,
+        full_name: influencer.user.name,
+        status: displayStatus,
+        created_at: profile.created_at,
+        updated_at: profile.updated_at || profile.created_at,
+        reviewed_at: null,
+        review_note: null,
         onboarding: {
           gender: influencer.gender,
-          niches: influencer.niches,
-          audienceType: influencer.audienceType,
-          preferredCategories: influencer.preferredCategories,
-          socials: influencer.socials,
+          niches: Array.isArray(influencer.niches) ? (influencer.niches as string[]) : [],
+          audienceType: Array.isArray(influencer.audienceType) ? (influencer.audienceType as string[]) : [],
+          preferredCategories: Array.isArray(influencer.preferredCategories) ? (influencer.preferredCategories as string[]) : [],
+          socials: typeof influencer.socials === 'object' && influencer.socials !== null ? (influencer.socials as Record<string, string>) : {},
           bio: influencer.bio,
           followers: influencer.followers,
-          engagementRate: influencer.engagementRate,
-          audienceRate: influencer.audienceRate,
-          retentionRate: influencer.retentionRate,
-          badgeScore: influencer.badgeScore,
+          engagementRate: influencer.engagementRate ? Number(influencer.engagementRate) : null,
+          audienceRate: influencer.audienceRate ? Number(influencer.audienceRate) : null,
+          retentionRate: influencer.retentionRate ? Number(influencer.retentionRate) : null,
+          badgeScore: influencer.badgeScore ? Number(influencer.badgeScore) : null,
           badgeTier: influencer.badgeTier,
           onboardingCompleted: influencer.onboardingCompleted,
         },
         user: influencer.user,
       }
     })
-    .filter((app: any) => app !== null) // Remove null entries
+    .filter((app: any) => app !== null)
 
   return (
     <div className="min-h-screen bg-cream">
@@ -117,9 +146,8 @@ export default async function AdminPage() {
           </div>
         </div>
 
-        <AdminDashboardClient initialApplications={enrichedApplications || []} />
+        <AdminDashboardClient initialApplications={enrichedApplications.filter((app): app is NonNullable<typeof app> => app !== null)} />
       </div>
     </div>
   )
 }
-

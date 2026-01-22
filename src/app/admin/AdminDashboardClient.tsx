@@ -25,7 +25,7 @@ interface InfluencerApplication {
   user_id: string
   email: string
   full_name: string | null
-  status: 'draft' | 'pending' | 'approved' | 'rejected' // CRITICAL: Include 'draft' status
+  status: 'none' | 'pending' | 'approved' | 'rejected' // Use 'none' instead of 'draft'
   created_at: string
   updated_at: string
   reviewed_at: string | null
@@ -47,7 +47,7 @@ export default function AdminDashboardClient({ initialApplications }: AdminDashb
   const [applications, setApplications] = useState<InfluencerApplication[]>(initialApplications)
   const [loading, setLoading] = useState<string | null>(null)
   const [query, setQuery] = useState('')
-  const [activeFilter, setActiveFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'draft'>('pending')
+  const [activeFilter, setActiveFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'none'>('pending')
   const [sortBy, setSortBy] = useState<'created_at' | 'badgeScore' | 'followers' | 'engagementRate'>('created_at')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [showFilters, setShowFilters] = useState(false)
@@ -198,6 +198,10 @@ export default function AdminDashboardClient({ initialApplications }: AdminDashb
         return <Check className="w-4 h-4" />
       case 'rejected':
         return <X className="w-4 h-4" />
+      case 'pending':
+        return <Clock className="w-4 h-4" />
+      case 'none':
+        return <Clock className="w-4 h-4" /> // Draft status
       default:
         return <Clock className="w-4 h-4" />
     }
@@ -217,11 +221,11 @@ export default function AdminDashboardClient({ initialApplications }: AdminDashb
   })
 
   // CRITICAL: Count using exact status values from profiles table
-  // Status values: 'draft' | 'pending' | 'approved' | 'rejected'
+  // Status values: 'none' | 'pending' | 'approved' | 'rejected'
   const pendingCount = validApplications.filter((app) => app.status === 'pending').length
   const approvedCount = validApplications.filter((app) => app.status === 'approved').length
   const rejectedCount = validApplications.filter((app) => app.status === 'rejected').length
-  const draftCount = validApplications.filter((app) => app.status === 'draft').length
+  const draftCount = validApplications.filter((app) => app.status === 'none').length
 
   return (
     <div className="space-y-6">
@@ -294,7 +298,7 @@ export default function AdminDashboardClient({ initialApplications }: AdminDashb
             { key: 'pending', label: 'Pending' },
             { key: 'approved', label: 'Approved' },
             { key: 'rejected', label: 'Rejected' },
-            { key: 'draft', label: 'Draft' },
+            { key: 'none', label: 'Draft' },
             { key: 'all', label: 'All' },
           ].map((f) => (
             <button

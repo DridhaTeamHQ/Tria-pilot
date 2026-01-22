@@ -34,17 +34,23 @@ export async function POST(request: Request) {
 
     const service = createServiceClient()
 
+    // CRITICAL: Set approval_status based on role
+    // influencer → 'none' (needs admin approval after onboarding)
+    // brand → 'approved' (no admin approval needed)
+    const approvalStatus = role === 'influencer' ? 'none' : 'approved'
+
     // CRITICAL: ONLY create profile in profiles table
     // Use upsert to handle idempotency (ON CONFLICT DO NOTHING)
+    // profiles.id MUST ALWAYS = auth.users.id
     const { data: profile, error } = await service
       .from('profiles')
       .upsert(
         {
-          id, // auth.users.id
+          id, // auth.users.id - MUST match exactly
           email,
           role,
           onboarding_completed: false,
-          approval_status: 'none', // Default to 'none' (not 'draft')
+          approval_status: approvalStatus, // Set based on role
         },
         {
           onConflict: 'id', // If profile exists, do nothing (idempotent)
@@ -54,9 +60,28 @@ export async function POST(request: Request) {
       .single()
 
     if (error) {
-      console.error('Error creating profile:', error)
+      console.error('Error creating profile:', {
+        error: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        userId: id,
+        email,
+        role,
+      })
+      
+      // Provide more specific error message
+      let errorMessage = 'Database error saving new user'
+      if (error.code === '23505') {
+        errorMessage = 'User profile already exists'
+      } else if (error.code === '23503') {
+        errorMessage = 'Invalid user reference'
+      } else if (error.message.includes('foreign key')) {
+        errorMessage = 'User account not found in authentication system'
+      }
+      
       return NextResponse.json(
-        { error: 'Failed to create profile' },
+        { error: errorMessage },
         { status: 500 }
       )
     }
