@@ -27,18 +27,55 @@ export default function InfluencerPendingPage() {
         .from('influencer_applications')
         .select('status')
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle() // Use maybeSingle instead of single to handle no rows gracefully
 
-      if (error) throw error
-      setStatus((data?.status as Status) ?? null)
+      if (error) {
+        // Log error details for debugging
+        console.error('Error fetching application status:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint,
+        })
+        throw error
+      }
 
-      if (data?.status === 'approved') {
-        toast.success('You’re approved! Redirecting…')
-        window.location.href = '/influencer/dashboard'
+      // If no application exists, status is null (pending)
+      if (!data) {
+        setStatus('pending')
+        return
+      }
+
+      setStatus((data.status as Status) ?? 'pending')
+
+      if (data.status === 'approved') {
+        toast.success('You\'re approved! Redirecting...')
+        // Use router instead of window.location for better Next.js navigation
+        setTimeout(() => {
+          window.location.href = '/influencer/dashboard'
+        }, 1000)
       }
     } catch (e) {
-      console.error(e)
-      toast.error('Could not load your approval status')
+      // Better error handling with more details
+      const errorMessage = e instanceof Error 
+        ? e.message 
+        : typeof e === 'object' && e !== null && 'message' in e
+        ? String(e.message)
+        : 'Could not load your approval status'
+      
+      console.error('Failed to fetch approval status:', {
+        error: e,
+        message: errorMessage,
+        userId: user?.id,
+      })
+      
+      // Only show toast if it's not a "no rows" error (which is handled above)
+      if (errorMessage && !errorMessage.includes('No rows') && !errorMessage.includes('PGRST116')) {
+        toast.error(errorMessage || 'Could not load your approval status')
+      } else {
+        // No application found - set to pending
+        setStatus('pending')
+      }
     } finally {
       setLoading(false)
     }
