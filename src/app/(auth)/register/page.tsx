@@ -1,35 +1,49 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { Sparkles, ArrowRight, ArrowLeft, User, Building2, Camera, TrendingUp, Instagram, Youtube, Twitter, ChevronDown, ChevronUp } from 'lucide-react'
+import { Sparkles, ArrowRight, Camera, Building2, Zap, Star, Users, Megaphone, Check } from 'lucide-react'
 import { createClient } from '@/lib/auth-client'
 import { getPublicSiteUrlClient, buildAuthConfirmUrl } from '@/lib/site-url'
 
 type Role = 'INFLUENCER' | 'BRAND'
 
-export default function RegisterPage() {
+function RegisterPageContent() {
   const router = useRouter()
-  const [step, setStep] = useState(1)
-  const [role, setRole] = useState<Role | null>(null)
+  const searchParams = useSearchParams()
+  const [selectedRole, setSelectedRole] = useState<Role | null>(null)
+  const [showForm, setShowForm] = useState(false)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [showSocials, setShowSocials] = useState(false)
-  const [socials, setSocials] = useState({
-    instagram: '',
-    tiktok: '',
-    youtube: '',
-    twitter: '',
-  })
+
+  // Check URL params for role preselection
+  useEffect(() => {
+    const roleParam = searchParams.get('role')
+    if (roleParam === 'influencer') {
+      setSelectedRole('INFLUENCER')
+    } else if (roleParam === 'brand') {
+      setSelectedRole('BRAND')
+    }
+  }, [searchParams])
+
+  const handleRoleSelect = (role: Role) => {
+    setSelectedRole(role)
+  }
+
+  const handleJoin = (role: Role) => {
+    // Route to new premium signup pages
+    const routeRole = role.toLowerCase()
+    router.push(`/signup/${routeRole}`)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!role) {
+    if (!selectedRole) {
       toast.error('Please select a role')
       return
     }
@@ -41,49 +55,33 @@ export default function RegisterPage() {
       toast.error('Password must be at least 8 characters')
       return
     }
-    if (role === 'INFLUENCER' && !name.trim()) {
-      toast.error('Please enter your full name')
-      return
-    }
-    if (role === 'BRAND' && !name.trim()) {
-      toast.error('Please enter your company name')
+    if (!name.trim()) {
+      toast.error(selectedRole === 'BRAND' ? 'Please enter your company name' : 'Please enter your full name')
       return
     }
     setLoading(true)
 
     try {
       const supabase = createClient()
-
-      // Get the correct site URL for email redirects
       const siteUrl = getPublicSiteUrlClient()
       const redirectUrl = buildAuthConfirmUrl(siteUrl, '/login?confirmed=true')
-      
-      console.log('Registering user with redirect URL:', redirectUrl)
-      
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),
         password,
         options: {
-          // After the user clicks the email confirmation link, Supabase will redirect here.
-          // Ensure this URL is allowed in Supabase Auth Redirect URLs.
           emailRedirectTo: redirectUrl,
-          // Also set data for custom email templates if needed
           data: {
-            role: role,
+            role: selectedRole,
             name: name.trim(),
           },
         },
       })
 
       if (authError) {
-        // Handle specific Supabase errors
         let errorMessage = authError.message
         if (authError.message.includes('User already registered')) {
           errorMessage = 'An account with this email already exists. Please sign in instead.'
-        } else if (authError.message.includes('Password')) {
-          errorMessage = 'Password does not meet requirements. Please use a stronger password.'
-        } else if (authError.message.includes('Email')) {
-          errorMessage = 'Invalid email address. Please check and try again.'
         }
         throw new Error(errorMessage)
       }
@@ -92,17 +90,15 @@ export default function RegisterPage() {
         throw new Error('Failed to create user account. Please try again.')
       }
 
-      // Create user profile in database
-      // CRITICAL: Map role from uppercase (INFLUENCER/BRAND) to lowercase (influencer/brand)
-      const roleLowercase = role.toLowerCase() as 'influencer' | 'brand'
-      
+      const roleLowercase = selectedRole.toLowerCase() as 'influencer' | 'brand'
+
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: authData.user.id,
-          email: email.trim().toLowerCase(), // Normalize email
-          role: roleLowercase, // Use lowercase to match profiles table
+          email: email.trim().toLowerCase(),
+          role: roleLowercase,
           name: name?.trim() || null,
         }),
       })
@@ -110,7 +106,7 @@ export default function RegisterPage() {
       if (!response.ok) {
         const contentType = response.headers.get('content-type')
         let errorMessage = 'Registration failed. Please try again.'
-        
+
         if (contentType && contentType.includes('application/json')) {
           try {
             const data = await response.json()
@@ -119,16 +115,13 @@ export default function RegisterPage() {
             // If JSON parsing fails, use default message
           }
         }
-        
-        // If Supabase user was created but database registration failed,
-        // we should still show success since the auth account exists
-        // The user can complete their profile later
+
         if (response.status === 500 || response.status === 503) {
           toast.warning('Account created, but profile setup encountered an issue. Please sign in to complete your profile.')
           router.push('/login')
           return
         }
-        
+
         throw new Error(errorMessage)
       }
 
@@ -141,344 +134,332 @@ export default function RegisterPage() {
     }
   }
 
-  const roleCards = [
-    {
-      role: 'INFLUENCER' as Role,
-      icon: Camera,
-      title: 'Influencer',
-      description: 'Create virtual try-ons, grow your portfolio, and connect with brands',
-      features: ['AI Virtual Try-On', 'Portfolio Showcase', 'Brand Collaborations'],
-    },
-    {
-      role: 'BRAND' as Role,
-      icon: Building2,
-      title: 'Brand',
-      description: 'Discover influencers, manage products, and run campaigns',
-      features: ['Influencer Discovery', 'Campaign Management', 'Ad Generation'],
-    },
+  // Stats data
+  const stats = [
+    { value: '10K+', label: 'Influencers', color: 'bg-green-500' },
+    { value: '500+', label: 'Brands', color: 'bg-orange-500' },
+    { value: '1M+', label: 'Try-Ons Generated', color: 'bg-purple-500' },
+    { value: '98%', label: 'Satisfaction', color: 'bg-blue-500' },
   ]
 
-  return (
-    <div className="min-h-screen flex bg-cream">
-      {/* Left Side - Branding */}
-      <motion.div
-        initial={{ opacity: 0, x: -50 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-        className="hidden lg:flex lg:w-1/2 relative overflow-hidden"
+  if (showForm) {
+    // Form step
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center p-6"
+        style={{
+          backgroundImage: `url('/assests/signup sign in background image.png')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
       >
-        {/* Gradient Background */}
-        <div className="absolute inset-0">
-          <div className="absolute top-[-20%] right-[-10%] w-[80%] h-[80%] bg-peach/40 rounded-full blur-[100px]" />
-          <div className="absolute bottom-[-20%] left-[-10%] w-[70%] h-[70%] bg-orange-200/40 rounded-full blur-[100px]" />
-        </div>
+        <div className="absolute inset-0 bg-[#F9F8F4]/80" />
 
-        {/* Content */}
-        <div className="relative z-10 flex flex-col justify-center px-16">
-          <Link href="/" className="text-4xl font-serif font-bold text-charcoal mb-8">
-            Kiwikoo
-          </Link>
-          <h1 className="text-5xl font-serif text-charcoal leading-tight mb-6">
-            Start your <br />
-            <span className="italic">fashion journey</span>
-          </h1>
-          <p className="text-lg text-charcoal/70 max-w-md">
-            Join thousands of influencers and brands revolutionizing fashion with AI-powered virtual try-ons.
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative z-10 w-full max-w-md bg-white border-2 border-black rounded-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] p-8"
+        >
+          <button
+            onClick={() => setShowForm(false)}
+            className="text-sm text-black/60 hover:text-black mb-4 flex items-center gap-1"
+          >
+            ← Back
+          </button>
+
+          <h2 className="text-2xl font-bold text-black mb-2">
+            Create your account
+          </h2>
+          <p className="text-black/60 mb-6">
+            Signing up as {selectedRole === 'INFLUENCER' ? 'an Influencer' : 'a Brand'}
           </p>
 
-          {/* Stats */}
-          <div className="mt-12 grid grid-cols-2 gap-6">
-            {[
-              { value: '10K+', label: 'Influencers' },
-              { value: '500+', label: 'Brands' },
-              { value: '1M+', label: 'Try-Ons Generated' },
-              { value: '98%', label: 'Satisfaction' },
-            ].map((stat, index) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 + index * 0.1 }}
-                className="text-charcoal"
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-black mb-1">
+                {selectedRole === 'BRAND' ? 'Company Name' : 'Full Name'}
+              </label>
+              <input
+                type="text"
+                placeholder={selectedRole === 'BRAND' ? 'Your company name' : 'Your full name'}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="w-full px-4 py-3 rounded-xl border-2 border-black bg-white text-black placeholder:text-black/40 focus:outline-none focus:ring-2 focus:ring-orange-400"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-black mb-1">
+                Email
+              </label>
+              <input
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full px-4 py-3 rounded-xl border-2 border-black bg-white text-black placeholder:text-black/40 focus:outline-none focus:ring-2 focus:ring-orange-400"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-black mb-1">
+                Password
+              </label>
+              <input
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={8}
+                className="w-full px-4 py-3 rounded-xl border-2 border-black bg-white text-black placeholder:text-black/40 focus:outline-none focus:ring-2 focus:ring-orange-400"
+              />
+              <p className="text-xs text-black/50 mt-1">Minimum 8 characters</p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-4 bg-[#FF8C69] text-black font-bold rounded-xl border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:shadow-none transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  >
+                    <Sparkles className="w-5 h-5" />
+                  </motion.div>
+                  Creating account...
+                </span>
+              ) : (
+                <>
+                  Create account
+                  <ArrowRight className="w-5 h-5" />
+                </>
+              )}
+            </button>
+          </form>
+
+          <p className="mt-6 text-center text-xs text-black/50">
+            By creating an account, you agree to our Terms of Service and Privacy Policy
+          </p>
+        </motion.div>
+      </div>
+    )
+  }
+
+  return (
+    <div
+      className="min-h-screen flex"
+      style={{
+        backgroundImage: `url('/assests/signup sign in background image.png')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+      {/* NO global overlay - neo-brutalist is bold */}
+
+      {/* Left Side - Messaging & Stats */}
+      <motion.div
+        initial={{ opacity: 0, x: -30 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className="relative z-10 hidden lg:flex lg:w-1/2 flex-col justify-center px-16 py-8"
+      >
+        {/* Subtle warm gradient ONLY behind left text for readability */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#F9F8F4]/90 via-[#F9F8F4]/70 to-transparent" />
+        {/* Logo - Moved up */}
+        <Link href="/" className="relative z-10 text-3xl font-bold text-black mb-8 tracking-tight">
+          Kiwikoo
+        </Link>
+
+        {/* Main Headline - Adjusted font weight */}
+        <h1 className="relative z-10 text-5xl xl:text-6xl font-bold text-black leading-[1.1] mb-6">
+          Start your<br />
+          <span className="italic font-serif font-medium">fashion journey.</span>
+        </h1>
+
+        {/* Subtext */}
+        <p className="relative z-10 text-lg text-black/80 max-w-md mb-12">
+          Join thousands of influencers and brands revolutionizing fashion with AI-powered virtual try-ons.
+        </p>
+
+        {/* Stats Grid */}
+        <div className="relative z-10 grid grid-cols-2 gap-6 max-w-sm">
+          {stats.map((stat, index) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 + index * 0.1 }}
+              className="flex items-start gap-4"
+            >
+              <div className={`w-6 h-6 ${stat.color} rounded-full flex items-center justify-center mt-1 text-white shadow-sm`}>
+                <Check className="w-3.5 h-3.5" strokeWidth={3} />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-black">{stat.value}</p>
+                <p className="text-sm font-medium text-black/60">{stat.label}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Vertical Divider */}
+      <div className="hidden lg:block w-px bg-black/10 relative z-10" />
+
+      {/* Right Side - Role Selection Cards */}
+      <motion.div
+        initial={{ opacity: 0, x: 30 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className="relative z-10 w-full lg:w-1/2 flex flex-col justify-center px-8 lg:px-16 py-12"
+      >
+        {/* Mobile Logo */}
+        <Link href="/" className="lg:hidden text-2xl font-black text-black mb-8 tracking-tight">
+          Kiwikoo
+        </Link>
+
+        <h2 className="text-3xl font-bold text-black mb-2">Join Kiwikoo</h2>
+        <p className="text-black/60 mb-8">Select how you want to use Kiwikoo</p>
+
+        {/* Influencer Card - Thinner border, cleaner look */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          whileHover={{ y: -4, scale: 1.01 }}
+          className={`relative bg-white border-2 border-black rounded-2xl p-6 mb-5 cursor-pointer transition-all shadow-[6px_6px_0px_0px_rgba(0,0,0,0.9)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,0.95)] ${selectedRole === 'INFLUENCER' ? 'shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -translate-y-1' : ''}`}
+          onClick={() => handleRoleSelect('INFLUENCER')}
+        >
+          {/* Selected Indicator */}
+          {selectedRole === 'INFLUENCER' && (
+            <div className="absolute top-4 right-4 w-6 h-6 bg-[#B4F056] rounded-full border-2 border-black flex items-center justify-center">
+              <Check className="w-4 h-4 text-black" />
+            </div>
+          )}
+
+          <div className="flex items-start gap-5">
+            {/* Icon - Thinner strokes, subtle color */}
+            <div className="w-14 h-14 bg-[#FFF5EE] border-2 border-black rounded-2xl flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]">
+              <Camera className="w-7 h-7 text-gray-800" strokeWidth={1.5} />
+            </div>
+
+            <div className="flex-1">
+              <h3 className="text-xl font-bold text-black mb-1">Influencer</h3>
+              <p className="text-sm text-black/60 mb-4">
+                Create virtual try-ons, grow your portfolio, and connect with brands.
+              </p>
+
+              {/* Features */}
+              <div className="flex flex-wrap gap-3 mb-4">
+                <div className="flex items-center gap-1.5 text-sm text-black/80">
+                  <Zap className="w-4 h-4" />
+                  AI Virtual Try-On
+                </div>
+                <div className="flex items-center gap-1.5 text-sm text-black/80">
+                  <Star className="w-4 h-4" />
+                  Portfolio Showcase
+                </div>
+              </div>
+
+              {/* CTA Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleJoin('INFLUENCER')
+                }}
+                className="px-6 py-3 bg-[#FF8C69] text-black font-bold rounded-full border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center gap-2"
               >
-                <p className="text-3xl font-serif font-bold">{stat.value}</p>
-                <p className="text-sm text-charcoal/60">{stat.label}</p>
-              </motion.div>
-            ))}
+                Join as Influencer
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Brand Card - Thinner border */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+          whileHover={{ y: -4, scale: 1.01 }}
+          className={`relative bg-white border-2 border-black rounded-2xl p-6 mb-8 cursor-pointer transition-all shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[7px_7px_0px_0px_rgba(0,0,0,0.95)] ${selectedRole === 'BRAND' ? 'shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -translate-y-1' : ''}`}
+          onClick={() => handleRoleSelect('BRAND')}
+        >
+          {/* Selected Indicator */}
+          {selectedRole === 'BRAND' && (
+            <div className="absolute top-4 right-4 w-6 h-6 bg-[#B4F056] rounded-full border-2 border-black flex items-center justify-center">
+              <Check className="w-4 h-4 text-black" />
+            </div>
+          )}
+
+          <div className="flex items-start gap-5">
+            {/* Icon - Thinner strokes */}
+            <div className="w-14 h-14 bg-[#FFF5EE] border-2 border-black rounded-2xl flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]">
+              <Building2 className="w-7 h-7 text-gray-800" strokeWidth={1.5} />
+            </div>
+
+            <div className="flex-1">
+              <h3 className="text-xl font-bold text-black mb-1">Brand</h3>
+              <p className="text-sm text-black/60 mb-4">
+                Discover influencers, manage products, and run campaigns.
+              </p>
+
+              {/* Features */}
+              <div className="flex flex-wrap gap-3 mb-4">
+                <div className="flex items-center gap-1.5 text-sm text-black/80">
+                  <Users className="w-4 h-4" />
+                  Influencer Discovery
+                </div>
+                <div className="flex items-center gap-1.5 text-sm text-black/80">
+                  <Megaphone className="w-4 h-4" />
+                  Campaign Management
+                </div>
+              </div>
+
+              {/* CTA Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleJoin('BRAND')
+                }}
+                className="px-6 py-3 bg-[#FF8C69] text-black font-bold rounded-full border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center gap-2"
+              >
+                Join as Brand
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Sign In Link - Added pill background for visibility */}
+        <div className="flex justify-center">
+          <div className="inline-flex items-center gap-1.5 px-6 py-3 bg-white border-2 border-black rounded-full shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] transition-all">
+            <span className="text-black/70 font-medium">Already have an account?</span>
+            <Link href="/login" className="font-bold text-black border-b-2 border-black hover:text-[#FF8C69] transition-colors">
+              Sign In
+            </Link>
           </div>
         </div>
       </motion.div>
-
-      {/* Right Side - Form */}
-      <motion.div
-        initial={{ opacity: 0, x: 50 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full lg:w-1/2 flex items-center justify-center px-8 py-12"
-      >
-        <div className="w-full max-w-lg">
-          {/* Mobile Logo */}
-          <Link href="/" className="lg:hidden text-3xl font-serif font-bold text-charcoal mb-8 block">
-            Kiwikoo
-          </Link>
-
-          <AnimatePresence mode="wait">
-            {step === 1 ? (
-              <motion.div
-                key="step1"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <h2 className="text-3xl font-serif text-charcoal mb-2">Join Kiwikoo</h2>
-                <p className="text-charcoal/60 mb-8">Choose how you want to use Kiwikoo</p>
-
-                <div className="space-y-4">
-                  {roleCards.map((card) => {
-                    const Icon = card.icon
-                    const isSelected = role === card.role
-                    return (
-                      <motion.button
-                        key={card.role}
-                        type="button"
-                        onClick={() => setRole(card.role)}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className={`w-full p-6 rounded-2xl border-2 text-left transition-all ${isSelected
-                            ? 'border-charcoal bg-charcoal/5'
-                            : 'border-subtle hover:border-charcoal/30 bg-white/50'
-                          }`}
-                      >
-                        <div className="flex items-start gap-4">
-                          <div
-                            className={`p-3 rounded-xl ${isSelected ? 'bg-charcoal text-cream' : 'bg-cream text-charcoal'
-                              }`}
-                          >
-                            <Icon className="w-6 h-6" />
-                          </div>
-                          <div className="flex-1">
-                            <h3 className="text-xl font-semibold text-charcoal mb-1">{card.title}</h3>
-                            <p className="text-sm text-charcoal/60 mb-3">{card.description}</p>
-                            <div className="flex flex-wrap gap-2">
-                              {card.features.map((feature) => (
-                                <span
-                                  key={feature}
-                                  className="px-2 py-1 text-xs bg-cream rounded-full text-charcoal/70"
-                                >
-                                  {feature}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </motion.button>
-                    )
-                  })}
-                </div>
-
-                <motion.button
-                  type="button"
-                  onClick={() => role && setStep(2)}
-                  disabled={!role}
-                  whileHover={{ scale: role ? 1.02 : 1 }}
-                  whileTap={{ scale: role ? 0.98 : 1 }}
-                  className="w-full mt-8 py-4 bg-charcoal text-cream font-medium rounded-full flex items-center justify-center gap-2 hover:bg-charcoal/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Continue
-                  <ArrowRight className="w-5 h-5" />
-                </motion.button>
-
-                <p className="mt-6 text-center text-charcoal/60">
-                  Already have an account?{' '}
-                  <Link href="/login" className="text-charcoal font-medium hover:underline">
-                    Sign in
-                  </Link>
-                </p>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="step2"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <button
-                  onClick={() => setStep(1)}
-                  className="flex items-center gap-2 text-charcoal/60 hover:text-charcoal mb-6 transition-colors"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Back
-                </button>
-
-                <h2 className="text-3xl font-serif text-charcoal mb-2">Create your account</h2>
-                <p className="text-charcoal/60 mb-8">
-                  Signing up as {role === 'INFLUENCER' ? 'an Influencer' : 'a Brand'}
-                </p>
-
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="space-y-2">
-                    <label htmlFor="name" className="block text-sm font-medium text-charcoal">
-                      {role === 'BRAND' ? 'Company Name' : 'Full Name'}
-                    </label>
-                    <input
-                      id="name"
-                      type="text"
-                      placeholder={role === 'BRAND' ? 'Your company name' : 'Your full name'}
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required
-                      className="w-full px-4 py-3 rounded-xl border border-subtle bg-white/50 text-charcoal placeholder:text-charcoal/40 focus:outline-none focus:ring-2 focus:ring-peach/50 focus:border-peach transition-all"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label htmlFor="email" className="block text-sm font-medium text-charcoal">
-                      Email
-                    </label>
-                    <input
-                      id="email"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      className="w-full px-4 py-3 rounded-xl border border-subtle bg-white/50 text-charcoal placeholder:text-charcoal/40 focus:outline-none focus:ring-2 focus:ring-peach/50 focus:border-peach transition-all"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label htmlFor="password" className="block text-sm font-medium text-charcoal">
-                      Password
-                    </label>
-                    <input
-                      id="password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      minLength={8}
-                      className="w-full px-4 py-3 rounded-xl border border-subtle bg-white/50 text-charcoal placeholder:text-charcoal/40 focus:outline-none focus:ring-2 focus:ring-peach/50 focus:border-peach transition-all"
-                    />
-                    <p className="text-xs text-charcoal/50">Minimum 8 characters</p>
-                  </div>
-
-                  {/* Optional Social Media - Only for Influencers */}
-                  {role === 'INFLUENCER' && (
-                    <div className="space-y-3">
-                      <button
-                        type="button"
-                        onClick={() => setShowSocials(!showSocials)}
-                        className="w-full flex items-center justify-between text-sm text-charcoal/60 hover:text-charcoal transition-colors"
-                      >
-                        <span>Add Social Media (Optional)</span>
-                        {showSocials ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                      </button>
-                      {showSocials && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="space-y-3 p-4 bg-cream/50 rounded-xl border border-subtle"
-                        >
-                          <p className="text-xs text-charcoal/50">
-                            You can add or update these later in your profile
-                          </p>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                              <label className="text-xs text-charcoal/60 flex items-center gap-1">
-                                <Instagram className="w-3 h-3" />
-                                Instagram
-                              </label>
-                              <input
-                                type="text"
-                                placeholder="@username"
-                                value={socials.instagram}
-                                onChange={(e) => setSocials({ ...socials, instagram: e.target.value })}
-                                className="w-full px-3 py-2 rounded-lg border border-subtle bg-white/50 text-charcoal placeholder:text-charcoal/40 focus:outline-none focus:ring-2 focus:ring-peach/50 text-sm"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <label className="text-xs text-charcoal/60 flex items-center gap-1">
-                                <span className="w-3 h-3 bg-black rounded text-white text-[8px] flex items-center justify-center font-bold">TT</span>
-                                TikTok
-                              </label>
-                              <input
-                                type="text"
-                                placeholder="@username"
-                                value={socials.tiktok}
-                                onChange={(e) => setSocials({ ...socials, tiktok: e.target.value })}
-                                className="w-full px-3 py-2 rounded-lg border border-subtle bg-white/50 text-charcoal placeholder:text-charcoal/40 focus:outline-none focus:ring-2 focus:ring-peach/50 text-sm"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <label className="text-xs text-charcoal/60 flex items-center gap-1">
-                                <Youtube className="w-3 h-3 text-red-600" />
-                                YouTube
-                              </label>
-                              <input
-                                type="text"
-                                placeholder="Channel name"
-                                value={socials.youtube}
-                                onChange={(e) => setSocials({ ...socials, youtube: e.target.value })}
-                                className="w-full px-3 py-2 rounded-lg border border-subtle bg-white/50 text-charcoal placeholder:text-charcoal/40 focus:outline-none focus:ring-2 focus:ring-peach/50 text-sm"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <label className="text-xs text-charcoal/60 flex items-center gap-1">
-                                <Twitter className="w-3 h-3" />
-                                Twitter/X
-                              </label>
-                              <input
-                                type="text"
-                                placeholder="@username"
-                                value={socials.twitter}
-                                onChange={(e) => setSocials({ ...socials, twitter: e.target.value })}
-                                className="w-full px-3 py-2 rounded-lg border border-subtle bg-white/50 text-charcoal placeholder:text-charcoal/40 focus:outline-none focus:ring-2 focus:ring-peach/50 text-sm"
-                              />
-                            </div>
-                          </div>
-                        </motion.div>
-                      )}
-                    </div>
-                  )}
-
-                  <motion.button
-                    type="submit"
-                    disabled={loading}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="w-full py-4 bg-charcoal text-cream font-medium rounded-full flex items-center justify-center gap-2 hover:bg-charcoal/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loading ? (
-                      <span className="flex items-center gap-2">
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                        >
-                          <Sparkles className="w-5 h-5" />
-                        </motion.div>
-                        Creating account...
-                      </span>
-                    ) : (
-                      <>
-                        Create account
-                        <ArrowRight className="w-5 h-5" />
-                      </>
-                    )}
-                  </motion.button>
-                </form>
-
-                <p className="mt-6 text-center text-xs text-charcoal/50">
-                  By creating an account, you agree to our Terms of Service and Privacy Policy
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </motion.div>
     </div>
+  )
+}
+
+// Wrap in Suspense for Next.js 15 static generation (useSearchParams requires it)
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#FDF6EC]">
+        <div className="w-16 h-16 border-[4px] border-[#FF8C69] border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <RegisterPageContent />
+    </Suspense>
   )
 }

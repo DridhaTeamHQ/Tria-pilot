@@ -37,6 +37,7 @@ export default function Header() {
         pathname?.startsWith('/reset-password') ||
         pathname?.startsWith('/auth/confirm') ||
         pathname?.startsWith('/complete-profile') ||
+        pathname?.startsWith('/signup') ||
         pathname?.startsWith('/admin')
 
     useEffect(() => {

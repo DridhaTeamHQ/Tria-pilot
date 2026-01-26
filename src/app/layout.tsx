@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { Toaster } from '@/components/ui/sonner'
-import Header from '@/components/Header'
+import BrutalNavbar from '@/components/brutal/BrutalNavbar'
 import ProfileCompletionGate from '@/components/ProfileCompletionGate'
 import { ReactQueryProvider } from '@/lib/react-query/provider'
 import './globals.css'
@@ -34,7 +34,7 @@ export default function RootLayout({
       <body className={`${playfair.variable} ${inter.variable} antialiased bg-cream text-charcoal`}>
         <ReactQueryProvider>
           <ReactLenis>
-            <Header />
+            <BrutalNavbar />
             <ProfileCompletionGate />
             <main className="animate-fade-in">
               {children}

@@ -1,9 +1,13 @@
 /**
  * INFLUENCER ONBOARDING API
  * 
+ * CRITICAL: Users are created at SIGNUP, not during onboarding.
+ * Onboarding ONLY UPDATES existing user data.
+ * 
  * On submission MUST:
- * 1. Save influencer data (upsert InfluencerProfile)
- * 2. Update profiles (THIS IS CRITICAL):
+ * 1. Find or link existing User/InfluencerProfile
+ * 2. UPDATE (never create) user data with onboarding fields
+ * 3. Update profiles table:
  *    UPDATE profiles
  *    SET onboarding_completed = true,
  *        approval_status = 'pending'
@@ -14,6 +18,7 @@ import { createClient, createServiceClient } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { calculateBadge } from '@/lib/influencer/badge-calculator'
 import { z } from 'zod'
+import { nanoid } from 'nanoid'
 
 const onboardingSchema = z
   .object({
@@ -51,16 +56,119 @@ const onboardingSchema = z
       })
       .optional(),
     engagementRate: z
-      .union([z.number().min(0).max(1), z.string(), z.null()])
+      .union([z.number().min(0).max(100), z.string(), z.null()])
       .transform((val) => {
         if (val === '' || val === null) return undefined
         const num = typeof val === 'string' ? parseFloat(val) : val
-        if (!isNaN(num) && num > 1) return num / 100
-        return isNaN(num) ? undefined : num
+        if (isNaN(num)) return undefined
+        // Convert percentage to decimal for storage (5.5% -> 0.055)
+        return num > 1 ? num / 100 : num
       })
       .optional(),
   })
   .strict()
+
+/**
+ * SAFE: Ensures User and InfluencerProfile exist in Prisma
+ * Uses UPSERT to handle edge cases where user may exist with same email
+ * 
+ * Strategy:
+ * 1. Try to find user by authId first
+ * 2. If not found, check by email (handles previous signup attempts)
+ * 3. If user exists by email with different ID -> update their ID to match auth
+ * 4. Use upsert for atomic create-or-update operation
+ */
+async function ensureInfluencerProfile(authId: string, email: string) {
+  // First: Try to find user by auth ID
+  let dbUser = await prisma.user.findUnique({
+    where: { id: authId },
+    include: { influencerProfile: true },
+  })
+
+  if (dbUser) {
+    // User exists with correct ID - ensure they have an influencer profile
+    if (!dbUser.influencerProfile) {
+      console.log(`Creating InfluencerProfile for existing user ${authId}`)
+      await prisma.influencerProfile.create({
+        data: {
+          userId: authId,
+          niches: [],
+          socials: {},
+          audienceType: [],
+          preferredCategories: [],
+          onboardingCompleted: false,
+        },
+      })
+      dbUser = await prisma.user.findUnique({
+        where: { id: authId },
+        include: { influencerProfile: true },
+      })
+    }
+    return dbUser
+  }
+
+  // Second: Check if user exists by email (edge case - previous signup with different ID)
+  const existingByEmail = await prisma.user.findUnique({
+    where: { email },
+    include: { influencerProfile: true },
+  })
+
+  if (existingByEmail) {
+    // User exists with this email but different ID
+    // Update their ID to match the current auth ID (link accounts)
+    console.log(`Linking existing user ${existingByEmail.id} to auth ID ${authId}`)
+    dbUser = await prisma.user.update({
+      where: { id: existingByEmail.id },
+      data: {
+        id: authId  // Update to match Supabase auth ID
+      },
+      include: { influencerProfile: true },
+    })
+
+    // Ensure they have an influencer profile
+    if (!dbUser.influencerProfile) {
+      await prisma.influencerProfile.create({
+        data: {
+          userId: authId,
+          niches: [],
+          socials: {},
+          audienceType: [],
+          preferredCategories: [],
+          onboardingCompleted: false,
+        },
+      })
+      dbUser = await prisma.user.findUnique({
+        where: { id: authId },
+        include: { influencerProfile: true },
+      })
+    }
+    return dbUser
+  }
+
+  // Third: No user exists at all - create new user with profile
+  // This should only happen if signup didn't create a Prisma user
+  console.log(`Creating new Prisma user for ${authId}`)
+  dbUser = await prisma.user.create({
+    data: {
+      id: authId,
+      email,
+      role: 'INFLUENCER',
+      slug: `influencer-${nanoid(8)}`,
+      influencerProfile: {
+        create: {
+          niches: [],
+          socials: {},
+          audienceType: [],
+          preferredCategories: [],
+          onboardingCompleted: false,
+        },
+      },
+    },
+    include: { influencerProfile: true },
+  })
+
+  return dbUser
+}
 
 export async function POST(request: Request) {
   try {
@@ -75,24 +183,26 @@ export async function POST(request: Request) {
 
     // Get profile from profiles table (SOURCE OF TRUTH)
     const service = createServiceClient()
-    const { data: profile } = await service
+    const { data: profile, error: profileError } = await service
       .from('profiles')
-      .select('id, role, onboarding_completed')
+      .select('id, email, role, onboarding_completed')
       .eq('id', authUser.id)
       .single()
 
-    if (!profile || profile.role !== 'influencer') {
-      return NextResponse.json({ error: 'Influencer profile not found' }, { status: 404 })
+    if (profileError || !profile) {
+      console.error('Profile fetch error:', profileError)
+      return NextResponse.json({ error: 'Profile not found in database' }, { status: 404 })
     }
 
-    // Get Prisma user for InfluencerProfile (details only)
-    const dbUser = await prisma.user.findUnique({
-      where: { id: authUser.id },
-      include: { influencerProfile: true },
-    })
+    if (profile.role !== 'influencer') {
+      return NextResponse.json({ error: 'Not an influencer account' }, { status: 403 })
+    }
+
+    // SAFE: Ensure Prisma records exist (handles all edge cases)
+    const dbUser = await ensureInfluencerProfile(authUser.id, profile.email || authUser.email || '')
 
     if (!dbUser || !dbUser.influencerProfile) {
-      return NextResponse.json({ error: 'Influencer profile not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Failed to setup influencer profile' }, { status: 500 })
     }
 
     const body = await request.json().catch(() => null)
@@ -115,22 +225,23 @@ export async function POST(request: Request) {
     })
 
     // Determine if onboarding is completed
-    const isCompleted = Boolean(
-      data.gender &&
-        data.niches &&
-        data.niches.length > 0 &&
-        data.audienceType &&
-        data.audienceType.length > 0 &&
-        data.preferredCategories &&
-        data.preferredCategories.length > 0 &&
-        data.socials &&
-        Object.keys(data.socials).length > 0 &&
-        data.bio &&
-        data.audienceRate !== undefined &&
-        data.retentionRate !== undefined
-    )
+    // REQUIRED: gender, niches, audienceType, preferredCategories, audience metrics
+    // Check BOTH submitted data AND existing profile data
+    const existingProfile = dbUser.influencerProfile
 
-    // 1. Save influencer data (upsert InfluencerProfile)
+    const hasGender = data.gender || existingProfile.gender
+    const hasNiches = (data.niches && data.niches.length > 0) ||
+      (Array.isArray(existingProfile.niches) && (existingProfile.niches as string[]).length > 0)
+    const hasAudienceType = (data.audienceType && data.audienceType.length > 0) ||
+      (Array.isArray(existingProfile.audienceType) && (existingProfile.audienceType as string[]).length > 0)
+    const hasCategories = (data.preferredCategories && data.preferredCategories.length > 0) ||
+      (Array.isArray(existingProfile.preferredCategories) && (existingProfile.preferredCategories as string[]).length > 0)
+    const hasMetrics = (data.audienceRate !== undefined || existingProfile.audienceRate !== null) &&
+      (data.retentionRate !== undefined || existingProfile.retentionRate !== null)
+
+    const isCompleted = Boolean(hasGender && hasNiches && hasAudienceType && hasCategories && hasMetrics)
+
+    // UPDATE (never create) influencer data
     await prisma.influencerProfile.update({
       where: { id: dbUser.influencerProfile.id },
       data: {
@@ -150,14 +261,13 @@ export async function POST(request: Request) {
       },
     })
 
-    // 2. CRITICAL: Update profiles table when onboarding completes
-    // This is where data was being lost before
+    // CRITICAL: Update profiles table when onboarding completes
     if (isCompleted && !profile.onboarding_completed) {
       await service
         .from('profiles')
         .update({
           onboarding_completed: true,
-          approval_status: 'pending', // Set to pending ONLY when onboarding completes
+          approval_status: 'pending',
         })
         .eq('id', authUser.id)
     }
@@ -188,7 +298,7 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const supabase = await createClient()
     const {
@@ -203,7 +313,7 @@ export async function GET(request: Request) {
     const service = createServiceClient()
     const { data: profile } = await service
       .from('profiles')
-      .select('onboarding_completed')
+      .select('email, onboarding_completed')
       .eq('id', authUser.id)
       .single()
 
@@ -211,11 +321,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ onboardingCompleted: false })
     }
 
-    // Get influencer details from Prisma
-    const dbUser = await prisma.user.findUnique({
-      where: { id: authUser.id },
-      include: { influencerProfile: true },
-    })
+    // SAFE: Ensure Prisma records exist for GET as well
+    const dbUser = await ensureInfluencerProfile(authUser.id, profile.email || authUser.email || '')
 
     return NextResponse.json({
       onboardingCompleted: profile.onboarding_completed || false,

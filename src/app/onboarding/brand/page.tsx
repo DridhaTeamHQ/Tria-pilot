@@ -2,26 +2,22 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
+import { motion, AnimatePresence } from 'framer-motion'
+import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react'
 
-const BRAND_TYPE_OPTIONS = [
-  'Fast Fashion',
-  'Luxury',
-  'Sustainable',
-  'Streetwear',
-  'Vintage',
-  'Athleisure',
-  'Minimalist',
-  'Bohemian',
-]
+// Neo-Brutal Components
+import { OnboardingCard } from '@/components/brutal/onboarding/OnboardingCard'
+import { ChoiceChip } from '@/components/brutal/onboarding/ChoiceChip'
+import { BrutalInput } from '@/components/brutal/onboarding/BrutalInput'
+import { DecorativeShapes } from '@/components/brutal/onboarding/DecorativeShapes'
+
+const BRAND_TYPE_OPTIONS = ['Fast Fashion', 'Luxury', 'Sustainable', 'Streetwear', 'Vintage', 'Athleisure', 'Minimalist', 'Bohemian']
 const AUDIENCE_OPTIONS = ['Men', 'Women', 'Unisex', 'Kids']
 const PRODUCT_TYPE_OPTIONS = ['Clothing', 'Accessories', 'Footwear', 'Beauty', 'Lifestyle', 'Jewelry']
 const VERTICAL_OPTIONS = ['Fashion', 'Tech', 'Lifestyle', 'Sports', 'Entertainment', 'Other']
 const BUDGET_RANGES = ['$0-1k', '$1k-5k', '$5k-10k', '$10k-25k', '$25k+']
+const TOTAL_STEPS = 7
 
 export default function BrandOnboardingPage() {
   const router = useRouter()
@@ -37,16 +33,14 @@ export default function BrandOnboardingPage() {
     budgetRange: '',
   })
 
+  // Load existing onboarding data from Supabase
   useEffect(() => {
-    // Check if already completed
     fetch('/api/onboarding/brand')
       .then((res) => res.json())
       .then((data) => {
         if (data.onboardingCompleted) {
-          // Redirect to dashboard which will handle routing
-        router.replace('/dashboard')
+          router.replace('/dashboard')
         } else if (data.profile) {
-          // Load existing data
           setFormData({
             companyName: data.profile.companyName || '',
             brandType: data.profile.brandType || '',
@@ -58,25 +52,10 @@ export default function BrandOnboardingPage() {
           })
         }
       })
+      .catch((err) => console.error('Error loading brand data:', err))
   }, [router])
 
-  const handleNext = async () => {
-    if (step < 7) {
-      // Save progress
-      await saveProgress()
-      setStep(step + 1)
-    } else {
-      // Final submission
-      await handleSubmit()
-    }
-  }
-
-  const handleBack = () => {
-    if (step > 1) {
-      setStep(step - 1)
-    }
-  }
-
+  // Save progress to Supabase
   const saveProgress = async () => {
     try {
       await fetch('/api/onboarding/brand', {
@@ -87,6 +66,19 @@ export default function BrandOnboardingPage() {
     } catch (error) {
       console.error('Failed to save progress:', error)
     }
+  }
+
+  const handleNext = async () => {
+    if (step < TOTAL_STEPS) {
+      await saveProgress()
+      setStep(step + 1)
+    } else {
+      await handleSubmit()
+    }
+  }
+
+  const handleBack = () => {
+    if (step > 1) setStep(step - 1)
   }
 
   const handleSubmit = async () => {
@@ -105,8 +97,9 @@ export default function BrandOnboardingPage() {
       }
 
       if (data.onboardingCompleted) {
-        toast.success('Onboarding completed!')
-        // Redirect to dashboard which will handle routing
+        toast.success('Brand profile ready! Let\'s grow together.', {
+          style: { background: '#B4F056', border: '2px solid black', color: 'black', fontWeight: 'bold' }
+        })
         router.replace('/dashboard')
       } else {
         toast.error('Please fill all required fields')
@@ -127,126 +120,116 @@ export default function BrandOnboardingPage() {
     }))
   }
 
+  const getStepTitle = () => {
+    switch (step) {
+      case 1: return 'Company Name'
+      case 2: return 'Brand Type'
+      case 3: return 'Target Audience'
+      case 4: return 'Product Types'
+      case 5: return 'Website'
+      case 6: return 'Industry Vertical'
+      case 7: return 'Budget Range'
+      default: return 'Setup'
+    }
+  }
+
   const renderStep = () => {
     switch (step) {
-      case 1:
+      case 1: // Company Name
         return (
           <div className="space-y-4">
-            <Label htmlFor="companyName">Company Name</Label>
-            <Input
-              id="companyName"
-              placeholder="Your brand name"
+            <BrutalInput
+              label="What's your brand called?"
+              placeholder="e.g. Acme Fashion Co."
               value={formData.companyName}
               onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-              required
             />
           </div>
         )
 
-      case 2:
+      case 2: // Brand Type
         return (
-          <div className="space-y-4">
-            <Label>Brand Type</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {BRAND_TYPE_OPTIONS.map((type) => (
-                <Button
-                  key={type}
-                  type="button"
-                  variant={formData.brandType === type ? 'default' : 'outline'}
-                  onClick={() => setFormData({ ...formData, brandType: type })}
-                >
-                  {type}
-                </Button>
-              ))}
-            </div>
+          <div className="grid grid-cols-2 gap-3">
+            {BRAND_TYPE_OPTIONS.map((type) => (
+              <ChoiceChip
+                key={type}
+                label={type}
+                selected={formData.brandType === type}
+                onClick={() => setFormData({ ...formData, brandType: type })}
+              />
+            ))}
           </div>
         )
 
-      case 3:
+      case 3: // Audience
         return (
-          <div className="space-y-4">
-            <Label>Target Audience (select all that apply)</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {AUDIENCE_OPTIONS.map((audience) => (
-                <Button
-                  key={audience}
-                  type="button"
-                  variant={formData.targetAudience.includes(audience) ? 'default' : 'outline'}
-                  onClick={() => toggleSelection('targetAudience', audience)}
-                >
-                  {audience}
-                </Button>
-              ))}
-            </div>
+          <div className="grid grid-cols-2 gap-3">
+            {AUDIENCE_OPTIONS.map((audience) => (
+              <ChoiceChip
+                key={audience}
+                label={audience}
+                selected={formData.targetAudience.includes(audience)}
+                onClick={() => toggleSelection('targetAudience', audience)}
+                icon={audience === 'Men' ? '👔' : audience === 'Women' ? '👗' : audience === 'Kids' ? '🧒' : '👕'}
+              />
+            ))}
           </div>
         )
 
-      case 4:
+      case 4: // Products
         return (
-          <div className="space-y-4">
-            <Label>Product Types (select all that apply)</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {PRODUCT_TYPE_OPTIONS.map((type) => (
-                <Button
-                  key={type}
-                  type="button"
-                  variant={formData.productTypes.includes(type) ? 'default' : 'outline'}
-                  onClick={() => toggleSelection('productTypes', type)}
-                >
-                  {type}
-                </Button>
-              ))}
-            </div>
+          <div className="grid grid-cols-2 gap-3">
+            {PRODUCT_TYPE_OPTIONS.map((type) => (
+              <ChoiceChip
+                key={type}
+                label={type}
+                selected={formData.productTypes.includes(type)}
+                onClick={() => toggleSelection('productTypes', type)}
+              />
+            ))}
           </div>
         )
 
-      case 5:
+      case 5: // Website
         return (
-          <div className="space-y-4">
-            <Label htmlFor="website">Website URL</Label>
-            <Input
-              id="website"
-              type="url"
-              placeholder="https://yourbrand.com"
-              value={formData.website}
-              onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-            />
+          <BrutalInput
+            label="Your brand's website"
+            type="url"
+            placeholder="https://yourbrand.com"
+            value={formData.website}
+            onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+          />
+        )
+
+      case 6: // Vertical
+        return (
+          <div className="grid grid-cols-2 gap-3">
+            {VERTICAL_OPTIONS.map((v) => (
+              <ChoiceChip
+                key={v}
+                label={v}
+                selected={formData.vertical === v}
+                onClick={() => setFormData({ ...formData, vertical: v })}
+              />
+            ))}
           </div>
         )
 
-      case 6:
+      case 7: // Budget
         return (
           <div className="space-y-4">
-            <Label>Industry Vertical</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {VERTICAL_OPTIONS.map((vertical) => (
-                <Button
-                  key={vertical}
-                  type="button"
-                  variant={formData.vertical === vertical ? 'default' : 'outline'}
-                  onClick={() => setFormData({ ...formData, vertical })}
-                >
-                  {vertical}
-                </Button>
-              ))}
-            </div>
-          </div>
-        )
-
-      case 7:
-        return (
-          <div className="space-y-4">
-            <Label>Budget Range for Collaborations</Label>
-            <div className="grid grid-cols-2 gap-2">
+            <p className="text-sm text-black/60 font-medium mb-2">
+              What's your typical budget for influencer collaborations?
+            </p>
+            <div className="grid grid-cols-2 gap-3">
               {BUDGET_RANGES.map((range) => (
-                <Button
+                <ChoiceChip
                   key={range}
-                  type="button"
-                  variant={formData.budgetRange === range ? 'default' : 'outline'}
+                  label={range}
+                  selected={formData.budgetRange === range}
                   onClick={() => setFormData({ ...formData, budgetRange: range })}
-                >
-                  {range}
-                </Button>
+                  icon="💰"
+                />
               ))}
             </div>
           </div>
@@ -258,47 +241,85 @@ export default function BrandOnboardingPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black p-4">
-      <Card className="w-full max-w-2xl">
-        <CardHeader>
-          <CardTitle>Complete Your Brand Profile</CardTitle>
-          <CardDescription>
-            Step {step} of 7 - Let&apos;s set up your brand profile
-          </CardDescription>
-          <div className="mt-4">
-            <div className="flex gap-2">
-              {[1, 2, 3, 4, 5, 6, 7].map((s) => (
-                <div
-                  key={s}
-                  className={`h-2 flex-1 rounded ${
-                    s <= step ? 'bg-primary' : 'bg-zinc-200 dark:bg-zinc-800'
-                  }`}
-                />
-              ))}
-            </div>
+    <div className="min-h-screen w-full relative flex items-center justify-center bg-[#1a1a1a] p-4 lg:p-8 overflow-hidden">
+      {/* Background */}
+      <div
+        className="absolute inset-0 z-0 opacity-50"
+        style={{
+          backgroundImage: "url('/assets/login-brand-background.jpg')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          filter: 'blur(3px)',
+        }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-br from-[#1a2a1a]/60 via-transparent to-black/70 z-[1]" />
+
+      <DecorativeShapes />
+
+      <div className="w-full max-w-2xl relative z-20 py-12">
+        <OnboardingCard
+          title="Setup Brand Profile"
+          step={step}
+          totalSteps={TOTAL_STEPS}
+          stepTitle={getStepTitle()}
+        >
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={step}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              {renderStep()}
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Navigation Buttons */}
+          <div className="flex justify-between mt-8 pt-6 border-t-2 border-black/10">
+            <motion.button
+              whileHover={{ scale: step === 1 ? 1 : 1.05 }}
+              whileTap={{ scale: step === 1 ? 1 : 0.95 }}
+              onClick={handleBack}
+              disabled={step === 1}
+              className={`
+                px-6 py-3 rounded-xl font-black flex items-center gap-2 transition-all border-[3px]
+                ${step === 1
+                  ? 'opacity-0 pointer-events-none border-transparent'
+                  : 'border-black/20 hover:border-black hover:bg-white text-black/60 hover:text-black hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,0.3)]'
+                }
+              `}
+            >
+              <ArrowLeft className="w-5 h-5" strokeWidth={3} />
+              Back
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.03, y: -2 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={handleNext}
+              disabled={loading}
+              className="px-8 py-3.5 bg-[#B4F056] border-[3px] border-black rounded-xl font-black text-black shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] hover:shadow-[7px_7px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center gap-2 disabled:opacity-60"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Saving...
+                </>
+              ) : step === TOTAL_STEPS ? (
+                <>
+                  🚀 Launch Portal
+                </>
+              ) : (
+                <>
+                  Next
+                  <ArrowRight className="w-5 h-5" strokeWidth={3} />
+                </>
+              )}
+            </motion.button>
           </div>
-        </CardHeader>
-        <CardContent>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              handleNext()
-            }}
-            className="space-y-6"
-          >
-            {renderStep()}
-            <div className="flex justify-between">
-              <Button type="button" variant="outline" onClick={handleBack} disabled={step === 1}>
-                Back
-              </Button>
-              <Button type="submit" disabled={loading}>
-                {step === 7 ? (loading ? 'Completing...' : 'Complete') : 'Next'}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+        </OnboardingCard>
+      </div>
     </div>
   )
 }
-

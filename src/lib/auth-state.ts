@@ -105,15 +105,18 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
 export async function getAuthState(): Promise<AuthState> {
   try {
     const supabase = await createClient()
-    const { data: { session } } = await supabase.auth.getSession()
+    // SECURITY: Use getUser() NOT getSession()
+    // getSession() reads from cookies (can be tampered)
+    // getUser() validates with Supabase Auth server (secure)
+    const { data: { user }, error } = await supabase.auth.getUser()
 
-    // No session → unauthenticated
-    if (!session?.user) {
+    // No user or auth error → unauthenticated
+    if (error || !user) {
       return { type: 'unauthenticated' }
     }
 
-    const userId = session.user.id
-    const email = session.user.email || ''
+    const userId = user.id
+    const email = user.email || ''
 
     // Fetch profile from profiles table (SOURCE OF TRUTH)
     const profile = await fetchProfile(userId)

@@ -584,7 +584,8 @@ img {
 
 /* Instant scrolling - no smooth behavior delay */
 html {
-  scroll-behavior: auto; /* Changed from 'smooth' to 'auto' for instant scroll */
+  scroll-behavior: auto;
+  /* Changed from 'smooth' to 'auto' for instant scroll */
   -webkit-overflow-scrolling: touch;
 }
 
@@ -668,4 +669,90 @@ img {
   100% {
     stroke-dashoffset: 5;
   }
+}
+
+/* ========================================
+   ONBOARDING LAYOUT - Hide Navbar
+   ======================================== */
+.onboarding-wrapper {
+  position: relative;
+  z-index: 50;
+}
+
+/* Hide navbar when onboarding layout is active */
+body:has(.onboarding-wrapper) nav,
+body:has(.onboarding-wrapper) header,
+body:has(.onboarding-wrapper) .brutal-navbar {
+  display: none !important;
+}
+
+/* Reset main element spacing in onboarding */
+body:has(.onboarding-wrapper) main {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Custom scrollbar for onboarding */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* ========================================
+   PERFORMANCE OPTIMIZED ANIMATIONS
+   ======================================== */
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes spin-slow-reverse {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes bounce-slow {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 20s linear infinite;
+}
+
+.animate-spin-slow-reverse {
+  animation: spin-slow-reverse 15s linear infinite;
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 4s ease-in-out infinite;
 }

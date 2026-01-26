@@ -3,8 +3,11 @@
  * 
  * Enforces routing based on auth state.
  * Only approved influencers can access influencer routes.
+ * 
+ * NOTE: /influencer/pending has its own layout guard that ensures
+ * only influencer_pending users can access it.
  */
-import { getAuthState, getRedirectPath } from '@/lib/auth-state'
+import { getAuthState } from '@/lib/auth-state'
 import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
@@ -30,12 +33,13 @@ export default async function InfluencerLayout({
     redirect('/dashboard')
   }
 
-  // Check if redirect is needed
-  const redirectPath = getRedirectPath(state, '/influencer')
-
-  if (redirectPath) {
-    redirect(redirectPath)
+  // Drafts must complete onboarding
+  if (state.type === 'influencer_draft') {
+    redirect('/onboarding/influencer')
   }
 
+  // Pending and approved users can proceed
+  // - Pending users: child layouts will handle /pending vs other routes
+  // - Approved users: full access to all influencer routes
   return <>{children}</>
 }

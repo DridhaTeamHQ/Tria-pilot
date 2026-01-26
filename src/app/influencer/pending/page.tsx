@@ -1,8 +1,8 @@
 /**
- * INFLUENCER PENDING PAGE
+ * INFLUENCER PENDING PAGE - NEO-BRUTALIST DESIGN
  * 
  * Shows approval status for influencers.
- * Uses new auth state system - no legacy assumptions.
+ * Uses consistent neo-brutalist styling with thick borders and offset shadows.
  */
 'use client'
 
@@ -11,8 +11,20 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
-import { CheckCircle2, Clock, RefreshCw, ShieldAlert } from 'lucide-react'
+import {
+  CheckCircle2,
+  Clock,
+  RefreshCw,
+  ShieldAlert,
+  Sparkles,
+  Store,
+  MessageCircle,
+  FileCheck,
+  Users,
+  Zap
+} from 'lucide-react'
 import { createClient } from '@/lib/auth-client'
+import { DecorativeShapes } from '@/components/brutal/onboarding/DecorativeShapes'
 
 type Status = 'draft' | 'pending' | 'approved' | 'rejected'
 
@@ -20,177 +32,291 @@ export default function InfluencerPendingPage() {
   const router = useRouter()
   const [status, setStatus] = useState<Status>('pending')
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
 
-  useEffect(() => {
-    async function fetchStatus() {
-      try {
-        const supabase = createClient()
-        const {
-          data: { user: authUser },
-        } = await supabase.auth.getUser()
+  const fetchStatus = async (showToast = false) => {
+    try {
+      if (showToast) setRefreshing(true)
 
-        if (!authUser) {
-          router.replace('/login')
-          return
-        }
+      const supabase = createClient()
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser()
 
-        // Fetch from profiles table
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('approval_status, onboarding_completed')
-          .eq('id', authUser.id)
-          .single()
+      if (!authUser) {
+        router.replace('/login')
+        return
+      }
 
-        if (error || !profile) {
-          console.error('Error fetching profile:', error)
-          setStatus('draft')
-          setLoading(false)
-          return
-        }
+      // Fetch from profiles table
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('approval_status, onboarding_completed')
+        .eq('id', authUser.id)
+        .single()
 
-        // Use exact approval_status value (no null handling)
-        const approvalStatus = (profile.approval_status as Status) || 'draft'
-        setStatus(approvalStatus)
-
-        // If onboarding not completed → redirect (should be caught by layout, but defensive)
-        if (!profile.onboarding_completed) {
-          router.replace('/onboarding/influencer')
-          return
-        }
-
-        // If approved → redirect to dashboard
-        if (approvalStatus === 'approved') {
-          toast.success("You're approved! Redirecting...")
-          setTimeout(() => {
-            router.replace('/dashboard')
-          }, 1000)
-          return
-        }
-
-        setLoading(false)
-      } catch (error) {
-        console.error('Error fetching status:', error)
+      if (error || !profile) {
+        console.error('Error fetching profile:', error)
         setStatus('draft')
         setLoading(false)
+        if (showToast) setRefreshing(false)
+        return
       }
-    }
 
+      // Use exact approval_status value
+      const approvalStatus = (profile.approval_status as Status) || 'pending'
+      setStatus(approvalStatus)
+
+      // If onboarding not completed → redirect
+      if (!profile.onboarding_completed) {
+        router.replace('/onboarding/influencer')
+        return
+      }
+
+      // If approved → redirect to dashboard
+      if (approvalStatus === 'approved') {
+        toast.success("🎉 You're approved! Redirecting to dashboard...", {
+          style: { background: '#B4F056', border: '3px solid black', fontWeight: 'bold' }
+        })
+        setTimeout(() => {
+          router.replace('/dashboard')
+        }, 1500)
+        return
+      }
+
+      setLoading(false)
+      if (showToast) {
+        setRefreshing(false)
+        toast.info('Status updated', {
+          style: { background: 'white', border: '3px solid black' }
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching status:', error)
+      setStatus('draft')
+      setLoading(false)
+      if (showToast) setRefreshing(false)
+    }
+  }
+
+  useEffect(() => {
     fetchStatus()
-  }, [router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-cream">
+      <div className="min-h-screen flex items-center justify-center bg-[#FDF6EC]">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-peach border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-charcoal/60">Loading…</p>
+          <div className="w-16 h-16 border-[4px] border-[#FF8C69] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-black/60 font-bold">Loading your status…</p>
         </div>
       </div>
     )
   }
 
   const isRejected = status === 'rejected'
-  const isPending = status === 'pending' || status === 'draft'
+
+  const steps = [
+    {
+      icon: FileCheck,
+      title: 'Submit Profile',
+      desc: 'Complete your onboarding and upload identity photos.',
+      done: true
+    },
+    {
+      icon: Users,
+      title: 'Admin Review',
+      desc: 'Our team reviews your profile for authenticity.',
+      done: false,
+      active: !isRejected
+    },
+    {
+      icon: Zap,
+      title: 'Get Approved',
+      desc: 'Unlock AI try-ons, collaborations, and analytics.',
+      done: false
+    },
+  ]
 
   return (
-    <div className="min-h-screen bg-cream">
-      <div className="container mx-auto px-6 py-14">
+    <div className="min-h-screen bg-[#FDF6EC] overflow-hidden">
+      {/* Background decorative shapes */}
+      <DecorativeShapes />
+
+      <div className="relative z-20 container mx-auto px-4 sm:px-6 py-8 lg:py-12 flex flex-col items-center min-h-screen">
+        {/* Logo */}
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="max-w-3xl mx-auto"
+          className="text-3xl font-black text-black mb-6 lg:mb-10"
         >
-          <div className="text-center mb-10">
-            <Link href="/" className="text-3xl font-serif font-bold text-charcoal">
-              Kiwikoo
-            </Link>
-            <h1 className="text-4xl md:text-5xl font-serif font-bold text-charcoal mt-4">
-              {isRejected ? 'Application rejected' : 'Approval in progress'}
-            </h1>
-            <p className="text-charcoal/60 mt-3">
-              {isRejected
-                ? "Your influencer application wasn't approved. You can contact support for next steps."
-                : "Your account is created, but influencer features are locked until an admin approves you."}
-            </p>
+          Kiwikoo
+        </motion.div>
+
+        {/* Main Card Container */}
+        <div className="relative w-full max-w-2xl mx-auto">
+          {/* Status Badge - Floating Top Center */}
+          <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-30">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className={`
+                px-6 py-3 border-[3px] border-black rounded-full shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
+                flex items-center gap-3
+                ${isRejected
+                  ? 'bg-red-100'
+                  : 'bg-gradient-to-r from-[#FFE066] to-[#FFD93D]'
+                }
+              `}
+            >
+              {isRejected ? (
+                <ShieldAlert className="w-6 h-6 text-red-600" strokeWidth={2.5} />
+              ) : (
+                <Clock className="w-6 h-6 text-[#FF8C69]" strokeWidth={2.5} />
+              )}
+              <span className="font-black text-black text-sm">
+                {isRejected ? 'Application Rejected' : 'Pending Approval'}
+              </span>
+            </motion.div>
           </div>
 
-          <div className="bg-white rounded-3xl border border-charcoal/10 p-8">
-            <div className="flex items-start gap-4">
-              <div
-                className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
-                  isRejected ? 'bg-red-500/10' : 'bg-peach/20'
-                }`}
+          {/* Main Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="relative z-20 bg-[#FFFDF8] border-[4px] border-black rounded-3xl p-6 lg:p-10 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]"
+          >
+            {/* Title */}
+            <div className="text-center mt-8 mb-8">
+              <h1
+                className="text-3xl lg:text-4xl font-black text-black mb-3 tracking-tight"
+                style={{ fontFamily: 'var(--font-playfair), serif' }}
               >
-                {isRejected ? (
-                  <ShieldAlert className="w-6 h-6 text-red-600" />
-                ) : (
-                  <Clock className="w-6 h-6 text-peach" />
-                )}
-              </div>
-              <div className="flex-1">
-                <h2 className="text-xl font-semibold text-charcoal">
-                  Status: <span className={isRejected ? 'text-red-600' : 'text-peach'}>{status}</span>
-                </h2>
-                <p className="text-charcoal/60 mt-1">
-                  {isRejected
-                    ? "If you believe this is a mistake, reach out and we'll review it."
-                    : "You'll receive an email once approved. Reviews typically complete within 24–48 hours."}
-                </p>
+                {isRejected ? 'Application Not Approved' : 'Almost There!'}
+              </h1>
+              <p className="text-black/60 font-medium max-w-md mx-auto">
+                {isRejected
+                  ? "Your application wasn't approved this time. You can contact support for more details."
+                  : "Your account is created! We're reviewing your profile. You'll get access once approved."
+                }
+              </p>
+            </div>
+
+            {/* Progress Steps */}
+            <div className="bg-white/60 border-2 border-black/10 rounded-2xl p-5 mb-6">
+              <div className="grid gap-4 md:grid-cols-3">
+                {steps.map((step, i) => (
+                  <div
+                    key={step.title}
+                    className={`
+                      relative p-4 rounded-xl border-2 transition-all
+                      ${step.done
+                        ? 'bg-[#B4F056]/20 border-[#B4F056]'
+                        : step.active
+                          ? 'bg-[#FFD93D]/20 border-[#FFD93D] animate-pulse'
+                          : 'bg-white border-black/10'
+                      }
+                    `}
+                  >
+                    <div className={`
+                      w-10 h-10 rounded-xl border-2 border-black flex items-center justify-center mb-3
+                      ${step.done
+                        ? 'bg-[#B4F056]'
+                        : step.active
+                          ? 'bg-[#FFD93D]'
+                          : 'bg-gray-100'
+                      }
+                    `}>
+                      {step.done ? (
+                        <CheckCircle2 className="w-5 h-5 text-black" strokeWidth={2.5} />
+                      ) : (
+                        <step.icon className="w-5 h-5 text-black" strokeWidth={2} />
+                      )}
+                    </div>
+                    <h3 className="font-bold text-black text-sm mb-1">{step.title}</h3>
+                    <p className="text-xs text-black/50">{step.desc}</p>
+                  </div>
+                ))}
               </div>
             </div>
 
-            <div className="mt-8 grid gap-4 md:grid-cols-3">
-              {[
-                { title: 'Submit profile', detail: 'Complete onboarding and identity photos.' },
-                { title: 'Admin review', detail: 'We check for authenticity and quality.' },
-                { title: 'Get approved', detail: 'Unlock collaborations and try-on tools.' },
-              ].map((stepItem) => (
-                <div key={stepItem.title} className="rounded-2xl border border-charcoal/10 p-4 bg-cream/40">
-                  <div className="font-semibold text-charcoal">{stepItem.title}</div>
-                  <p className="text-sm text-charcoal/60 mt-1">{stepItem.detail}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-8 flex flex-col sm:flex-row gap-3">
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 mb-6">
               <button
-                onClick={() => window.location.reload()}
-                disabled={loading}
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-charcoal text-cream font-medium hover:bg-charcoal/90 disabled:opacity-50"
+                onClick={() => fetchStatus(true)}
+                disabled={refreshing}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-black text-white font-black border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,0.3)] hover:-translate-y-0.5 transition-all disabled:opacity-60"
               >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                Check status
+                <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} strokeWidth={2.5} />
+                Check Status
               </button>
 
               <Link
                 href="/marketplace"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-charcoal/15 text-charcoal font-medium hover:bg-charcoal/5"
+                className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-white text-black font-black border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all"
               >
-                Browse marketplace
-              </Link>
-
-              <Link
-                href="/contact"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-charcoal/15 text-charcoal font-medium hover:bg-charcoal/5"
-              >
-                Contact support
+                <Store className="w-5 h-5" strokeWidth={2.5} />
+                Browse Marketplace
               </Link>
             </div>
 
-            <div className="mt-8 p-5 rounded-2xl bg-cream/60 border border-charcoal/5">
-              <div className="flex items-center gap-2 text-charcoal font-medium">
-                <CheckCircle2 className="w-5 h-5 text-green-600" />
+            {/* Contact Support Link */}
+            <Link
+              href="/contact"
+              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-black/60 font-bold hover:text-black hover:bg-black/5 transition-all border-2 border-dashed border-black/20"
+            >
+              <MessageCircle className="w-4 h-4" />
+              Contact Support
+            </Link>
+
+            {/* What You Can Do Now */}
+            <div className="mt-6 p-5 rounded-2xl bg-[#B4F056]/10 border-2 border-[#B4F056]/30">
+              <div className="flex items-center gap-2 text-black font-bold mb-3">
+                <Sparkles className="w-5 h-5 text-[#FF8C69]" />
                 What you can do now
               </div>
-              <ul className="mt-3 text-sm text-charcoal/70 space-y-2">
-                <li>- Browse the marketplace and explore products</li>
-                <li>- Keep your profile details updated</li>
-                <li>- Check this page for approval status</li>
+              <ul className="grid gap-2 text-sm text-black/70">
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#FF8C69]" />
+                  Browse the marketplace and explore products
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#FF8C69]" />
+                  Keep your profile details updated
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#FF8C69]" />
+                  Check this page for approval status
+                </li>
               </ul>
             </div>
+          </motion.div>
+
+          {/* Decorative Orange Side Strip */}
+          <div
+            className="absolute top-10 -right-5 lg:-right-8 w-20 lg:w-24 h-[80%] bg-gradient-to-b from-[#FF8C69] to-[#E76B4A] border-[4px] border-black rounded-r-3xl z-10 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hidden lg:block overflow-hidden"
+          >
+            <div className="absolute inset-0" style={{
+              backgroundImage: 'radial-gradient(circle, rgba(0,0,0,0.15) 2px, transparent 2px)',
+              backgroundSize: '10px 10px'
+            }} />
           </div>
-        </motion.div>
+
+          {/* Bottom accent line */}
+          <div className="absolute -bottom-4 left-8 right-8 h-3 bg-[#FFD93D] border-[3px] border-black rounded-full z-0 hidden lg:block" />
+        </div>
+
+        {/* Footer text */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="text-center text-black/40 text-sm mt-10"
+        >
+          Reviews typically complete within 24–48 hours
+        </motion.p>
       </div>
     </div>
   )
