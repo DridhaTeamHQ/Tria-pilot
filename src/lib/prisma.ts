@@ -12,19 +12,25 @@ function createPrismaClient() {
   }
 
   const isProduction = process.env.NODE_ENV === 'production'
+  const url = process.env.DATABASE_URL
+  const isSupabase = url?.includes('supabase') ?? false
 
-  // Production (serverless): use longer connection timeout so direct Postgres (e.g. port 5432)
-  // has time to connect; 2s was too short and caused fallback to Supabase-only in admin.
+  // Supabase requires SSL; pg does not enable it from connection string alone in some runtimes.
+  const ssl = isSupabase
+    ? { rejectUnauthorized: false }
+    : undefined
+
+  // Production (serverless): longer connection timeout so Postgres has time to connect.
   const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: url,
     max: isProduction ? 2 : 5,
     min: 0,
     idleTimeoutMillis: isProduction ? 5000 : 10000,
     connectionTimeoutMillis: isProduction ? 10000 : 10000,
     allowExitOnIdle: true,
-    // Keep connections alive but very short for serverless
     keepAlive: true,
     keepAliveInitialDelayMillis: 2000,
+    ssl,
   })
 
   // Handle pool errors gracefully - don't crash on connection errors
