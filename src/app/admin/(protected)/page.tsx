@@ -23,12 +23,11 @@ export const revalidate = 0
 export default async function AdminPage() {
   const service = createServiceClient()
 
-  // CRITICAL: ONLY query profiles table
-  // FROM profiles WHERE role = 'influencer'
+  // CRITICAL: Query profiles table – role is stored UPPERCASE (INFLUENCER) from register
   const { data: profiles, error } = await service
     .from('profiles')
     .select('*')
-    .eq('role', 'influencer')
+    .or('role.eq.INFLUENCER,role.eq.influencer')
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -91,8 +90,8 @@ export default async function AdminPage() {
         return null
       }
 
-      // Determine status for display (FILTER LOGIC IN CODE)
-      let displayStatus = profile.approval_status || 'none'
+      // Determine status for display (normalize DB CAPS to lowercase for frontend)
+      let displayStatus = (profile.approval_status || 'none').toString().toLowerCase()
       if (!profile.onboarding_completed) {
         displayStatus = 'none' // Draft = onboarding_completed === false
       }

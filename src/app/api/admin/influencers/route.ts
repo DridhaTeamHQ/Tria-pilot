@@ -69,83 +69,102 @@ export async function GET(request: Request) {
     const sortBy = searchParams.get('sortBy') || 'created_at'
     const order = (searchParams.get('order') || 'desc') as 'asc' | 'desc'
 
-    // Query optimized View directly
-    let query = service.from('admin_influencers_view').select('*')
+    // Query profiles table (role stored UPPERCASE in Supabase); no view required
+    const { data: profiles, error: profilesError } = await service
+      .from('profiles')
+      .select('*')
+      .or('role.eq.INFLUENCER,role.eq.influencer')
+      .order('created_at', { ascending: order === 'desc' })
 
-    // Apply status filter
-    if (statusFilter === 'none') {
-      // Draft tab: onboarding_completed = false
-      query = query.eq('onboarding_completed', false)
-    } else if (statusFilter && ['pending', 'approved', 'rejected'].includes(statusFilter)) {
-      // Other tabs: filter by approval_status
-      query = query.eq('status', statusFilter)
-    }
-
-    // Apply sorting (Now efficiently handled by DB View)
-    const sortFieldMap: Record<string, string> = {
-      created_at: 'created_at',
-      followers: 'followers',
-      engagementRate: 'engagement_rate',
-      badgeScore: 'badge_score',
-    }
-    const dbSortField = sortFieldMap[sortBy] || 'created_at'
-
-    // Handle specific sort fields or default
-    query = query.order(dbSortField, { ascending: order === 'asc' })
-
-    const { data: rows, error } = await query
-
-    if (error) {
-      console.error('Error fetching profiles from view:', error)
+    if (profilesError) {
+      console.error('Error fetching profiles:', profilesError)
       return NextResponse.json({ error: 'Failed to fetch applications' }, { status: 500 })
     }
 
-    if (!rows || rows.length === 0) {
+    if (!profiles || profiles.length === 0) {
       return NextResponse.json([])
     }
 
-    // Transform flat view data to expected nested structure
-    // This maintains backward compatibility with the frontend
-    const enriched = rows.map((row) => {
-      // Determine status for display
-      let displayStatus = row.status || 'none'
-      if (!row.onboarding_completed) {
-        displayStatus = 'none'
-      }
+    // Enrich with Prisma InfluencerProfile
+    const userIds = profiles.map((p: { id: string }) => p.id)
+    const influencerProfiles = await prisma.influencerProfile.findMany({
+      where: { userId: { in: userIds } },
+      include: {
+        user: { select: { id: true, email: true, name: true, role: true, createdAt: true } },
+      },
+    })
 
-      return {
-        user_id: row.user_id,
-        email: row.email,
-        full_name: row.name, // Name from profiles
-        status: displayStatus,
-        created_at: row.created_at,
-        updated_at: row.created_at, // View doesn't have updated_at, fallback to created_at
-        reviewed_at: null,
-        review_note: null,
-        onboarding: {
-          gender: row.gender,
-          niches: row.niches,
-          audienceType: row.audience_type,
-          preferredCategories: row.preferred_categories,
-          socials: row.socials,
-          bio: row.bio,
-          followers: row.followers,
-          engagementRate: row.engagement_rate,
-          audienceRate: row.audience_rate,
-          retentionRate: row.retention_rate,
-          badgeScore: row.badge_score,
-          badgeTier: row.badge_tier,
-          onboardingCompleted: row.onboarding_completed,
-          portfolioVisibility: row.portfolio_visibility,
-        },
-        user: {
-          id: row.user_id,
-          email: row.email,
-          name: row.name,
-          role: row.role,
-          createdAt: row.created_at,
-        },
+    let enriched = profiles
+      .map((profile: Record<string, unknown>) => {
+        const inf = influencerProfiles.find((i) => i.userId === profile.id)
+        if (!inf || inf.user.role !== 'INFLUENCER') return null
+
+        const approvalStatus = (profile.approval_status as string) || 'none'
+        let displayStatus = approvalStatus.toString().toLowerCase()
+        if (!profile.onboarding_completed) displayStatus = 'none'
+
+        // Apply status filter in code
+        if (statusFilter === 'none' && displayStatus !== 'none') return null
+        if (statusFilter === 'pending' && displayStatus !== 'pending') return null
+        if (statusFilter === 'approved' && displayStatus !== 'approved') return null
+        if (statusFilter === 'rejected' && displayStatus !== 'rejected') return null
+
+        return {
+          user_id: profile.id,
+          email: profile.email,
+          full_name: inf.user.name,
+          status: displayStatus,
+          created_at: profile.created_at,
+          updated_at: profile.updated_at ?? profile.created_at,
+          reviewed_at: null,
+          review_note: null,
+          onboarding: {
+            gender: inf.gender,
+            niches: Array.isArray(inf.niches) ? inf.niches : [],
+            audienceType: Array.isArray(inf.audienceType) ? inf.audienceType : [],
+            preferredCategories: Array.isArray(inf.preferredCategories) ? inf.preferredCategories : [],
+            socials: typeof inf.socials === 'object' && inf.socials ? inf.socials : {},
+            bio: inf.bio,
+            followers: inf.followers,
+            engagementRate: inf.engagementRate ? Number(inf.engagementRate) : null,
+            audienceRate: inf.audienceRate ? Number(inf.audienceRate) : null,
+            retentionRate: inf.retentionRate ? Number(inf.retentionRate) : null,
+            badgeScore: inf.badgeScore ? Number(inf.badgeScore) : null,
+            badgeTier: inf.badgeTier,
+            onboardingCompleted: inf.onboardingCompleted,
+            portfolioVisibility: inf.portfolioVisibility,
+          },
+          user: {
+            id: inf.user.id,
+            email: inf.user.email,
+            name: inf.user.name,
+            role: inf.user.role,
+            createdAt: inf.user.createdAt,
+          },
+        }
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null)
+
+    // Sort in code (profiles from Supabase may not support all sort fields)
+    const sortKey = sortBy === 'created_at' ? 'created_at' : sortBy
+    enriched.sort((a, b) => {
+      let aVal: number | string = 0
+      let bVal: number | string = 0
+      if (sortKey === 'created_at') {
+        aVal = new Date(String(a.created_at)).getTime()
+        bVal = new Date(String(b.created_at)).getTime()
+      } else if (sortKey === 'badgeScore') {
+        aVal = a.onboarding?.badgeScore ?? 0
+        bVal = b.onboarding?.badgeScore ?? 0
+      } else if (sortKey === 'followers') {
+        aVal = a.onboarding?.followers ?? 0
+        bVal = b.onboarding?.followers ?? 0
+      } else if (sortKey === 'engagementRate') {
+        aVal = a.onboarding?.engagementRate ?? 0
+        bVal = b.onboarding?.engagementRate ?? 0
       }
+      const diff = Number(aVal) - Number(bVal)
+      return order === 'asc' ? diff : -diff
     })
 
     return NextResponse.json(enriched)

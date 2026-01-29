@@ -1,10 +1,11 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Check, X, Clock, User, Mail, Calendar, RefreshCw, Search, TrendingUp, Users, Filter } from 'lucide-react'
 import { toast } from 'sonner'
 import BadgeDisplay, { type BadgeTier } from '@/components/influencer/BadgeDisplay'
 import { DecorativeShapes } from '@/components/brutal/onboarding/DecorativeShapes'
+import { createClient } from '@/lib/auth-client'
 
 interface OnboardingData {
   gender?: string | null
@@ -55,6 +56,31 @@ export default function AdminDashboardClient({ initialApplications }: AdminDashb
   const [filterNiche, setFilterNiche] = useState<string>('')
   const [filterGender, setFilterGender] = useState<string>('')
   const [filterPlatform, setFilterPlatform] = useState<string>('')
+
+  const refreshRef = useRef<() => Promise<void>>(() => Promise.resolve())
+  useEffect(() => {
+    refreshRef.current = refresh
+  })
+
+  // Realtime: refetch when profiles change. Enable in Supabase: Database → Replication → add table "profiles".
+  useEffect(() => {
+    const supabase = createClient()
+    const channel = supabase
+      .channel('admin-profiles-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        () => {
+          refreshRef.current()
+          toast.info('Applications updated')
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [])
 
   const visibleApplications = useMemo(() => {
     const q = query.trim().toLowerCase()
