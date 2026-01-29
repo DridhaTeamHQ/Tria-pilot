@@ -18,7 +18,7 @@ import { createClient, createServiceClient } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { calculateBadge } from '@/lib/influencer/badge-calculator'
 import { z } from 'zod'
-import { nanoid } from 'nanoid'
+import { syncUser } from '@/lib/auth-sync'
 
 const onboardingSchema = z
   .object({
@@ -70,77 +70,25 @@ const onboardingSchema = z
 
 /**
  * SAFE: Ensures User and InfluencerProfile exist in Prisma
- * Uses UPSERT to handle edge cases where user may exist with same email
- * 
- * Strategy:
- * 1. Try to find user by authId first
- * 2. If not found, check by email (handles previous signup attempts)
- * 3. If user exists by email with different ID -> update their ID to match auth
- * 4. Use upsert for atomic create-or-update operation
+ * Uses SYNC logic to guarantee User existence before touching Profile
  */
 async function ensureInfluencerProfile(authId: string, email: string) {
-  console.log(`[ensureInfluencerProfile] Checking user ${authId} / ${email}`)
+  // 1. Sync User (Guarantees existence in 'profiles')
+  const user = await syncUser({ id: authId, email })
 
-  // 1. Check if user exists by ID
-  let dbUser = await prisma.user.findUnique({
-    where: { id: authId },
-    include: { influencerProfile: true },
+  // 2. Ensure InfluencerProfile exists
+  // We check via findUnique on the profile table to be sure
+  const existingProfile = await prisma.influencerProfile.findUnique({
+    where: { userId: user.id }
   })
 
-  // 2. If not found by ID, check by Email (legacy account)
-  if (!dbUser && email) {
-    const existingByEmail = await prisma.user.findUnique({
-      where: { email },
-      include: { influencerProfile: true },
-    })
-
-    if (existingByEmail) {
-      console.log(`[ensureInfluencerProfile] Linking legacy user ${existingByEmail.id} -> ${authId}`)
-      // Update ID to match key from Auth
-      // Note: This requires the old ID to NOT be referenced by strict FKs else it fails.
-      // But we assume clean state or cascade. If this fails, manual intervention needed.
-      try {
-        dbUser = await prisma.user.update({
-          where: { id: existingByEmail.id },
-          data: { id: authId },
-          include: { influencerProfile: true },
-        })
-      } catch (e) {
-        console.error("Failed to link account, proceeding to create new one", e)
-        // If update fails, ignore and treat as new user (unique email might conflict though)
-        // Ideally we throw, but for onboarding robustness we continue if possible
-      }
-    }
-  }
-
-  // 3. If still no user, CREATE it (Explicitly, no nested influencer yet)
-  if (!dbUser) {
-    console.log(`[ensureInfluencerProfile] Creating new User ${authId}`)
+  if (!existingProfile) {
+    console.log(`[ensureInfluencerProfile] Creating profile for ${user.id}`)
     try {
-      dbUser = await prisma.user.create({
-        data: {
-          id: authId,
-          email,
-          role: 'INFLUENCER',
-          slug: `influencer-${nanoid(8)}`,
-          status: 'PENDING', // default
-        },
-        include: { influencerProfile: true } // will be null
-      })
-    } catch (e: any) {
-      // If create fails (e.g. email taken but ID different), we have a conflict
-      console.error("[ensureInfluencerProfile] User creation failed:", e)
-      throw new Error(`Failed to create user record: ${e.message}`)
-    }
-  }
-
-  // 4. Now Ensure InfluencerProfile exists (Upsert-like logic)
-  if (!dbUser.influencerProfile) {
-    console.log(`[ensureInfluencerProfile] Creating InfluencerProfile for ${authId}`)
-    try {
+      // Explicitly create profile linked to confirmed user
       await prisma.influencerProfile.create({
         data: {
-          userId: authId, // FK to profiles.id
+          userId: user.id,
           niches: [],
           socials: {},
           audienceType: [],
@@ -149,17 +97,19 @@ async function ensureInfluencerProfile(authId: string, email: string) {
         }
       })
     } catch (e: any) {
-      console.error("[ensureInfluencerProfile] InfluencerProfile creation failed:", e)
-      // Check if it's because User is mysteriously missing (shouldn't be)
-      throw new Error(`Failed to create influencer profile: ${e.message}`)
+      console.error("Critical: Failed to create InfluencerProfile even after User sync.", e)
+      throw e
     }
   }
 
-  // Return fresh data
-  return prisma.user.findUnique({
+  // Return User with Profile (Strict Fetch for Type Safety)
+  const finalUser = await prisma.user.findUnique({
     where: { id: authId },
     include: { influencerProfile: true }
   })
+
+  if (!finalUser) throw new Error("User lost after sync (Impossible state)")
+  return finalUser
 }
 
 export async function POST(request: Request) {
@@ -190,7 +140,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Not an influencer account' }, { status: 403 })
     }
 
-    // SAFE: Ensure Prisma records exist (handles all edge cases)
+    // SAFE: Sync User then Ensure Profile
     const dbUser = await ensureInfluencerProfile(authUser.id, profile.email || authUser.email || '')
 
     if (!dbUser || !dbUser.influencerProfile) {
@@ -217,8 +167,6 @@ export async function POST(request: Request) {
     })
 
     // Determine if onboarding is completed
-    // REQUIRED: gender, niches, audienceType, preferredCategories, audience metrics
-    // Check BOTH submitted data AND existing profile data
     const existingProfile = dbUser.influencerProfile
 
     const hasGender = data.gender || existingProfile.gender
@@ -313,7 +261,7 @@ export async function GET() {
       return NextResponse.json({ onboardingCompleted: false })
     }
 
-    // SAFE: Ensure Prisma records exist for GET as well
+    // SAFE: Sync User then Ensure Profile for GET (idempotent)
     const dbUser = await ensureInfluencerProfile(authUser.id, profile.email || authUser.email || '')
 
     return NextResponse.json({
