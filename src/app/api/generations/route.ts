@@ -33,7 +33,7 @@ export async function GET() {
                 status: true,
                 outputImagePath: true,
                 settings: true,  // Contains variant data
-                inputs: false,   // Exclude heavy inputs (images)
+                // inputs is excluded implicitly by not being in select
                 createdAt: true,
                 updatedAt: true,
             },
