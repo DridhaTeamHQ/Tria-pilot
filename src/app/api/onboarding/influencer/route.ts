@@ -32,11 +32,11 @@ const onboardingSchema = z
     socials: z.record(z.string().trim().max(80)).optional(),
     bio: z.string().trim().max(4000).optional(),
     audienceRate: z
-      .union([z.number().min(0).max(100), z.string(), z.null()])
+      .union([z.number().min(0).max(1000), z.string(), z.null()])
       .transform((val) => {
         if (val === '' || val === null) return undefined
         const num = typeof val === 'string' ? parseFloat(val) : val
-        return isNaN(num) ? undefined : num
+        return isNaN(num) || num < 0 || num > 1000 ? undefined : num
       })
       .optional(),
     retentionRate: z
@@ -44,15 +44,17 @@ const onboardingSchema = z
       .transform((val) => {
         if (val === '' || val === null) return undefined
         const num = typeof val === 'string' ? parseFloat(val) : val
-        return isNaN(num) ? undefined : num
+        return isNaN(num) || num < 0 || num > 100 ? undefined : num
       })
       .optional(),
     followers: z
-      .union([z.number().int().min(0), z.string(), z.null()])
+      .union([z.number().int().min(0).max(500000000), z.string(), z.null()])
       .transform((val) => {
         if (val === '' || val === null) return undefined
         const num = typeof val === 'string' ? parseInt(val, 10) : val
-        return isNaN(num) ? undefined : num
+        // Reject absurdly large values
+        if (isNaN(num) || num < 0 || num > 500000000) return undefined
+        return num
       })
       .optional(),
     engagementRate: z

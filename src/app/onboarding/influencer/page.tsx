@@ -430,9 +430,11 @@ export default function InfluencerOnboardingPage() {
             <BrutalNumberInput
               label="Total Followers"
               icon={<Users className="w-4 h-4 text-[#FF8C69]" />}
-              placeholder="e.g. 50000"
+              placeholder="e.g. 50K or 1.5M"
               value={formData.followers}
               onChange={(e) => setFormData({ ...formData, followers: e.target.value })}
+              max={500000000}
+              allowKMNotation={true}
             />
             <BrutalNumberInput
               label="Engagement Rate"
@@ -441,6 +443,7 @@ export default function InfluencerOnboardingPage() {
               unit="%"
               value={formData.engagementRate}
               onChange={(e) => setFormData({ ...formData, engagementRate: e.target.value })}
+              max={100}
             />
             <BrutalNumberInput
               label="Growth Rate"
@@ -449,6 +452,7 @@ export default function InfluencerOnboardingPage() {
               unit="%"
               value={formData.audienceRate}
               onChange={(e) => setFormData({ ...formData, audienceRate: e.target.value })}
+              max={1000}
             />
             <BrutalNumberInput
               label="Retention Rate"
@@ -457,6 +461,7 @@ export default function InfluencerOnboardingPage() {
               unit="%"
               value={formData.retentionRate}
               onChange={(e) => setFormData({ ...formData, retentionRate: e.target.value })}
+              max={100}
             />
           </div>
         )

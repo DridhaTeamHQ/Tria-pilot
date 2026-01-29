@@ -109,11 +109,46 @@ export function BrutalInput({
     )
 }
 
-interface BrutalNumberInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
+interface BrutalNumberInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type' | 'onChange'> {
     label: string
     icon?: React.ReactNode
     unit?: string
     formatDisplay?: boolean
+    max?: number
+    min?: number
+    error?: string
+    onValueChange?: (value: string, numericValue: number | null) => void
+    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
+    allowKMNotation?: boolean
+}
+
+/**
+ * Parse K/M notation input (e.g., "1.5M" → 1500000, "500K" → 500000)
+ */
+function parseKMNotation(input: string): number | null {
+    if (!input) return null
+    const cleaned = input.trim().toUpperCase()
+    const match = cleaned.match(/^([\d.]+)\s*([KMB])?$/)
+    if (!match) return null
+
+    const num = parseFloat(match[1])
+    if (isNaN(num)) return null
+
+    const suffix = match[2]
+    if (suffix === 'K') return num * 1000
+    if (suffix === 'M') return num * 1000000
+    if (suffix === 'B') return num * 1000000000
+    return num
+}
+
+/**
+ * Format number with K/M/B suffix for display
+ */
+function formatWithSuffix(num: number): string {
+    if (num >= 1000000000) return (num / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B'
+    if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M'
+    if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K'
+    return num.toString()
 }
 
 export function BrutalNumberInput({
@@ -124,40 +159,104 @@ export function BrutalNumberInput({
     formatDisplay,
     value,
     onChange,
+    onValueChange,
+    max,
+    min = 0,
+    error,
+    allowKMNotation = false,
     ...props
 }: BrutalNumberInputProps) {
-    const displayValue = formatDisplay && typeof value === 'string' && value
-        ? Number(value).toLocaleString()
-        : value
+    const [localError, setLocalError] = useState<string | null>(null)
+    const displayError = error || localError
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const rawValue = e.target.value
+        setLocalError(null)
+
+        // Try K/M notation parsing if enabled
+        if (allowKMNotation && /[KMBkmb]/.test(rawValue)) {
+            const parsed = parseKMNotation(rawValue)
+            if (parsed !== null) {
+                if (max !== undefined && parsed > max) {
+                    setLocalError(`Max: ${formatWithSuffix(max)}`)
+                    return
+                }
+                if (min !== undefined && parsed < min) {
+                    setLocalError(`Min: ${formatWithSuffix(min)}`)
+                    return
+                }
+                onValueChange?.(parsed.toString(), parsed)
+                return
+            }
+        }
+
+        // Standard numeric handling
+        const numValue = rawValue === '' ? null : Number(rawValue)
+
+        if (numValue !== null) {
+            if (max !== undefined && numValue > max) {
+                setLocalError(`Max: ${formatWithSuffix(max)}`)
+                return
+            }
+            if (min !== undefined && numValue < min) {
+                setLocalError(`Min: ${formatWithSuffix(min)}`)
+                return
+            }
+        }
+
+        onChange?.(e)
+        onValueChange?.(rawValue, numValue)
+    }
+
+    const hasError = Boolean(displayError)
 
     return (
         <div className="space-y-1.5">
             <Label className="text-black font-bold text-sm tracking-wide ml-1 flex items-center gap-2">
                 {icon}
                 {label}
+                {max !== undefined && (
+                    <span className="text-black/40 font-medium text-xs ml-auto">
+                        max {formatWithSuffix(max)}
+                    </span>
+                )}
             </Label>
             <div className="relative">
                 <Input
-                    type="number"
+                    type={allowKMNotation ? "text" : "number"}
+                    inputMode="decimal"
                     value={value}
-                    onChange={onChange}
+                    onChange={handleChange}
                     className={`
-            border-[2px] border-black rounded-xl px-4 py-6 text-lg font-black
+            border-[2px] rounded-xl px-4 py-6 text-lg font-black
             bg-white placeholder:text-black/30 placeholder:font-medium
-            focus-visible:ring-0 focus-visible:border-black focus-visible:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
+            focus-visible:ring-0 focus-visible:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
             transition-all duration-200
             [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none
             ${unit ? 'pr-14' : ''}
+            ${hasError
+                            ? 'border-red-500 focus-visible:border-red-500 bg-red-50'
+                            : 'border-black focus-visible:border-black'
+                        }
             ${className}
           `}
                     {...props}
                 />
                 {unit && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 bg-[#FF8C69] rounded-lg border-2 border-black text-xs font-black">
+                    <div className={`absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 rounded-lg border-2 border-black text-xs font-black ${hasError ? 'bg-red-400' : 'bg-[#FF8C69]'}`}>
                         {unit}
                     </div>
                 )}
             </div>
+            {displayError && (
+                <motion.p
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-red-500 text-xs font-bold ml-1"
+                >
+                    ⚠️ {displayError}
+                </motion.p>
+            )}
         </div>
     )
 }
