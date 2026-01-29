@@ -49,19 +49,38 @@ export default function InfluencerPendingPage() {
       }
 
       // Fetch from profiles table
-      const { data: profile, error } = await supabase
+      // REMOVED .single() to debug RLS issues
+      const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('approval_status, onboarding_completed')
+        .select('approval_status, onboarding_completed, id')
         .eq('id', authUser.id)
-        .single()
 
-      if (error || !profile) {
+      if (error) {
         console.error('Error fetching profile:', error)
+        toast.error(`Fetch Error: ${error.message} (${error.code})`)
+
+        // Update Debug UI
+        const debugAuth = document.getElementById('debug-auth-id')
+        const debugErr = document.getElementById('debug-error')
+        if (debugAuth) debugAuth.innerText = `Auth ID: ${authUser.id}`
+        if (debugErr) debugErr.innerText = `Error: ${JSON.stringify(error, null, 2)}`
+
         setStatus('draft')
         setLoading(false)
         if (showToast) setRefreshing(false)
         return
       }
+
+      if (!profiles || profiles.length === 0) {
+        console.error('No profile found for ID:', authUser.id)
+        toast.error(`No profile found. ID: ${authUser.id}. RLS?`)
+        setStatus('draft')
+        setLoading(false)
+        if (showToast) setRefreshing(false)
+        return
+      }
+
+      const profile = profiles[0]
 
       // Use exact approval_status value
       const approvalStatus = (profile.approval_status as Status) || 'pending'

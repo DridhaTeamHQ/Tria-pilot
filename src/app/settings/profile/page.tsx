@@ -4,8 +4,22 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
-import { ArrowLeft, Mail, Shield, Sparkles } from 'lucide-react'
+import { ArrowLeft, Mail, Shield, Sparkles, Save, Lock } from 'lucide-react'
 import { useUser } from '@/lib/react-query/hooks'
+
+// Reusing Brutalist components for consistency
+function BrutalCard({ children, className = '', title }: { children: React.ReactNode, className?: string, title?: string }) {
+  return (
+    <div className={`bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-8 relative ${className}`}>
+      {title && (
+        <div className="absolute -top-4 left-6 bg-white px-4 border-[3px] border-black text-sm font-bold uppercase tracking-widest shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+          {title}
+        </div>
+      )}
+      {children}
+    </div>
+  )
+}
 
 export default function SettingsProfilePage() {
   const { data: user, isLoading } = useUser()
@@ -57,21 +71,18 @@ export default function SettingsProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-cream">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-peach border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-charcoal/60">Loading settings...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-[#FDFBF7]">
+        <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-cream">
+      <div className="min-h-screen flex items-center justify-center bg-[#FDFBF7]">
         <div className="text-center">
-          <p className="text-charcoal/60 mb-4">Please sign in to access settings.</p>
-          <Link href="/login" className="text-charcoal font-medium hover:underline">
+          <p className="text-black/60 mb-4 font-bold">Please sign in to access settings.</p>
+          <Link href="/login" className="text-black font-black uppercase tracking-wide hover:underline border-[3px] border-black px-6 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white">
             Sign in
           </Link>
         </div>
@@ -80,85 +91,92 @@ export default function SettingsProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-cream">
-      <div className="container mx-auto px-6 py-12">
-        <div className="mb-8">
-          <Link href="/profile" className="inline-flex items-center gap-2 text-charcoal/70 hover:text-charcoal">
-            <ArrowLeft className="w-4 h-4" />
+    <div className="min-h-screen bg-[#FDFBF7] pt-28 pb-20">
+      <div className="container mx-auto px-6 max-w-4xl">
+        <div className="mb-12">
+          <Link href="/profile" className="inline-flex items-center gap-2 text-black font-bold uppercase tracking-wide mb-6 hover:translate-x-[-4px] transition-transform">
+            <ArrowLeft className="w-5 h-5" />
             Back to profile
           </Link>
-          <h1 className="text-4xl font-serif font-bold text-charcoal mt-4 mb-2">Settings</h1>
-          <p className="text-charcoal/60">Manage your account details</p>
+          <h1 className="text-5xl font-black text-black uppercase mb-2">Settings</h1>
+          <p className="text-lg font-bold text-black/60 border-l-[4px] border-[#FFD93D] pl-4">
+            Manage your account security and preferences
+          </p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-charcoal/10 p-8 max-w-2xl">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-xl bg-peach/20 flex items-center justify-center">
-              <Mail className="w-6 h-6 text-peach" />
+        <BrutalCard title="Account Security">
+          <div className="flex items-start gap-6 mb-8">
+            <div className="w-16 h-16 border-[3px] border-black bg-[#FFD93D] flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              <Lock className="w-8 h-8 text-black" />
             </div>
             <div>
-              <h2 className="text-2xl font-semibold text-charcoal">Email</h2>
-              <p className="text-sm text-charcoal/60">Change the email you use to sign in</p>
+              <h2 className="text-2xl font-black uppercase">Email Address</h2>
+              <p className="text-black/70 font-medium">Update the email address associated with your account.</p>
             </div>
           </div>
 
-          <form onSubmit={handleChangeEmail} className="space-y-6">
+          <form onSubmit={handleChangeEmail} className="space-y-6 max-w-xl">
             <div className="space-y-2">
-              <label htmlFor="newEmail" className="block text-sm font-medium text-charcoal">
-                New email address
+              <label htmlFor="newEmail" className="block text-sm font-bold uppercase tracking-wide text-black">
+                New Email Address
               </label>
-              <input
-                id="newEmail"
-                type="email"
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-subtle bg-white/50 text-charcoal placeholder:text-charcoal/40 focus:outline-none focus:ring-2 focus:ring-peach/50 focus:border-peach transition-all"
-              />
-              <p className="text-xs text-charcoal/50">You’ll need to confirm this email via a link we send you.</p>
+              <div className="relative">
+                <input
+                  id="newEmail"
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  className="w-full px-4 py-3 bg-white border-[3px] border-black text-black font-bold focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all placeholder:text-black/30"
+                />
+                <Mail className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-black/40" />
+              </div>
+              <p className="text-xs font-bold text-black/50 uppercase tracking-wide">
+                We'll send a confirmation link to your new address.
+              </p>
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="password" className="block text-sm font-medium text-charcoal">
-                Confirm password
+              <label htmlFor="password" className="block text-sm font-bold uppercase tracking-wide text-black">
+                Current Password
               </label>
               <div className="relative">
-                <Shield className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-charcoal/40" />
                 <input
                   id="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-11 pr-4 py-3 rounded-xl border border-subtle bg-white/50 text-charcoal placeholder:text-charcoal/40 focus:outline-none focus:ring-2 focus:ring-peach/50 focus:border-peach transition-all"
+                  className="w-full px-4 py-3 bg-white border-[3px] border-black text-black font-bold focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all placeholder:text-black/30"
                 />
+                <Shield className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-black/40" />
               </div>
+              <p className="text-xs font-bold text-black/50 uppercase tracking-wide">
+                Required to verify your identity.
+              </p>
             </div>
 
-            <motion.button
+            <button
               type="submit"
               disabled={saving}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="w-full py-4 bg-charcoal text-cream font-medium rounded-full flex items-center justify-center gap-2 hover:bg-charcoal/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-4 bg-black text-white font-black uppercase tracking-wider border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] hover:bg-white hover:text-black transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? (
-                <span className="flex items-center gap-2">
+                <>
                   <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
                     <Sparkles className="w-5 h-5" />
                   </motion.div>
                   Saving...
-                </span>
+                </>
               ) : (
                 <>
-                  Save changes
-                  <Sparkles className="w-5 h-5" />
+                  <Save className="w-5 h-5" />
+                  Save Changes
                 </>
               )}
-            </motion.button>
+            </button>
           </form>
-        </div>
+        </BrutalCard>
       </div>
     </div>
   )
 }
-

@@ -34,23 +34,22 @@ export default function FavoriteButton({ productId }: FavoriteButtonProps) {
   }
 
   return (
-    <Button
-      variant="outline"
-      className="flex-1 transition-all"
+    <button
+      className={`flex-1 py-3 px-6 border-[3px] border-black font-bold uppercase tracking-wider shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center justify-center gap-2 ${isFavorited ? 'bg-red-500 text-white' : 'bg-white text-black'
+        }`}
       onClick={handleToggle}
       disabled={toggleMutation.isPending || isLoading}
     >
       <Heart
-        className={`mr-2 h-4 w-4 transition-all ${
-          isFavorited ? 'fill-red-500 text-red-500 scale-110' : ''
-        }`}
+        className={`h-5 w-5 ${isFavorited ? 'fill-current' : ''
+          }`}
       />
       {toggleMutation.isPending
-        ? 'Updating...'
+        ? '...'
         : isFavorited
-        ? 'Favorited'
-        : 'Add to Favorites'}
-    </Button>
+          ? 'SAVED'
+          : 'SAVE'}
+    </button>
   )
 }
 

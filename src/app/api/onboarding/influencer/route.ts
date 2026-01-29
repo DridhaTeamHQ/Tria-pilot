@@ -194,7 +194,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Profile not found in database' }, { status: 404 })
     }
 
-    if (profile.role !== 'influencer') {
+    if ((profile.role || '').toLowerCase() !== 'influencer') {
       return NextResponse.json({ error: 'Not an influencer account' }, { status: 403 })
     }
 

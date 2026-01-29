@@ -59,7 +59,8 @@ export async function GET(request: Request) {
       .eq('id', authUser.id)
       .single()
 
-    if (!profile || profile.role !== 'admin') {
+    const role = (profile?.role || '').toLowerCase()
+    if (!profile || role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
     }
 
@@ -68,111 +69,84 @@ export async function GET(request: Request) {
     const sortBy = searchParams.get('sortBy') || 'created_at'
     const order = (searchParams.get('order') || 'desc') as 'asc' | 'desc'
 
-    // Query profiles table: WHERE role = 'influencer'
-    let query = service.from('profiles').select('*').eq('role', 'influencer')
+    // Query optimized View directly
+    let query = service.from('admin_influencers_view').select('*')
 
     // Apply status filter
     if (statusFilter === 'none') {
-      // Draft tab: onboarding_completed = false (approval_status = 'none')
+      // Draft tab: onboarding_completed = false
       query = query.eq('onboarding_completed', false)
     } else if (statusFilter && ['pending', 'approved', 'rejected'].includes(statusFilter)) {
       // Other tabs: filter by approval_status
-      query = query.eq('approval_status', statusFilter)
+      query = query.eq('status', statusFilter)
     }
 
-    // Apply sorting
-    if (sortBy === 'created_at') {
-      query = query.order('created_at', { ascending: order === 'asc' })
-    } else {
-      query = query.order('created_at', { ascending: false })
+    // Apply sorting (Now efficiently handled by DB View)
+    const sortFieldMap: Record<string, string> = {
+      created_at: 'created_at',
+      followers: 'followers',
+      engagementRate: 'engagement_rate',
+      badgeScore: 'badge_score',
     }
+    const dbSortField = sortFieldMap[sortBy] || 'created_at'
 
-    const { data: profiles, error } = await query
+    // Handle specific sort fields or default
+    query = query.order(dbSortField, { ascending: order === 'asc' })
+
+    const { data: rows, error } = await query
 
     if (error) {
-      console.error('Error fetching profiles:', error)
+      console.error('Error fetching profiles from view:', error)
       return NextResponse.json({ error: 'Failed to fetch applications' }, { status: 500 })
     }
 
-    if (!profiles || profiles.length === 0) {
+    if (!rows || rows.length === 0) {
       return NextResponse.json([])
     }
 
-    // Fetch onboarding data from Prisma
-    const userIds = profiles.map((p: any) => p.id)
-    const influencers = await prisma.influencerProfile.findMany({
-      where: {
-        userId: { in: userIds },
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            role: true,
-            createdAt: true,
-          },
+    // Transform flat view data to expected nested structure
+    // This maintains backward compatibility with the frontend
+    const enriched = rows.map((row) => {
+      // Determine status for display
+      let displayStatus = row.status || 'none'
+      if (!row.onboarding_completed) {
+        displayStatus = 'none'
+      }
+
+      return {
+        user_id: row.user_id,
+        email: row.email,
+        full_name: row.name, // Name from profiles
+        status: displayStatus,
+        created_at: row.created_at,
+        updated_at: row.created_at, // View doesn't have updated_at, fallback to created_at
+        reviewed_at: null,
+        review_note: null,
+        onboarding: {
+          gender: row.gender,
+          niches: row.niches,
+          audienceType: row.audience_type,
+          preferredCategories: row.preferred_categories,
+          socials: row.socials,
+          bio: row.bio,
+          followers: row.followers,
+          engagementRate: row.engagement_rate,
+          audienceRate: row.audience_rate,
+          retentionRate: row.retention_rate,
+          badgeScore: row.badge_score,
+          badgeTier: row.badge_tier,
+          onboardingCompleted: row.onboarding_completed,
+          portfolioVisibility: row.portfolio_visibility,
         },
-      },
+        user: {
+          id: row.user_id,
+          email: row.email,
+          name: row.name,
+          role: row.role,
+          createdAt: row.created_at,
+        },
+      }
     })
-
-    // Enrich profiles with onboarding data
-    const enriched = profiles
-      .map((profile: any) => {
-        const influencer = influencers.find((inf) => inf.userId === profile.id)
-
-        if (!influencer || influencer.user.role !== 'INFLUENCER') {
-          return null
-        }
-
-        // Determine status for display
-        // Draft: onboarding_completed = false (approval_status = 'none')
-        // Other: use approval_status directly
-        let displayStatus = profile.approval_status || 'none'
-        if (!profile.onboarding_completed) {
-          displayStatus = 'none' // Draft = 'none' (not 'draft')
-        }
-
-        return {
-          user_id: profile.id,
-          email: profile.email,
-          full_name: influencer.user.name,
-          status: displayStatus,
-          created_at: profile.created_at,
-          updated_at: profile.updated_at || profile.created_at,
-          reviewed_at: null,
-          review_note: null,
-          onboarding: {
-            gender: influencer.gender,
-            niches: influencer.niches,
-            audienceType: influencer.audienceType,
-            preferredCategories: influencer.preferredCategories,
-            socials: influencer.socials,
-            bio: influencer.bio,
-            followers: influencer.followers,
-            engagementRate: influencer.engagementRate,
-            audienceRate: influencer.audienceRate,
-            retentionRate: influencer.retentionRate,
-            badgeScore: influencer.badgeScore,
-            badgeTier: influencer.badgeTier,
-            onboardingCompleted: influencer.onboardingCompleted,
-          },
-          user: influencer.user,
-        }
-      })
-      .filter((app: any) => app !== null)
-
-    // Apply sorting that requires Prisma data
-    if (sortBy === 'badgeScore' || sortBy === 'followers' || sortBy === 'engagementRate') {
-      enriched.sort((a: any, b: any) => {
-        const aVal = a.onboarding?.[sortBy] ?? 0
-        const bVal = b.onboarding?.[sortBy] ?? 0
-        const aNum = typeof aVal === 'object' && aVal !== null ? Number(aVal) : Number(aVal) || 0
-        const bNum = typeof bVal === 'object' && bVal !== null ? Number(bVal) : Number(bVal) || 0
-        return order === 'asc' ? aNum - bNum : bNum - aNum
-      })
-    }
 
     return NextResponse.json(enriched)
   } catch (error) {
@@ -209,7 +183,8 @@ export async function PATCH(request: Request) {
       .eq('id', authUser.id)
       .single()
 
-    if (!profile || profile.role !== 'admin') {
+    const role = (profile?.role || '').toLowerCase()
+    if (!profile || role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
     }
 

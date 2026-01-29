@@ -121,13 +121,13 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
             <Link href={`/marketplace/${product.id}`} prefetch={index < 8}>
                 <div
                     data-cursor="View"
-                    className={`group relative bg-cream/50 rounded-3xl overflow-hidden cursor-pointer transform-gpu transition-all duration-300 p-4 ${isHovered ? 'shadow-xl shadow-charcoal/10 -translate-y-1' : 'shadow-sm hover:shadow-md'
+                    className={`group relative bg-white border-[3px] border-black rounded-xl overflow-hidden cursor-pointer transform-gpu transition-all duration-200 p-0 ${isHovered ? 'shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -translate-y-1' : 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
                         }`}
                     onMouseEnter={handleMouseEnter}
                     onMouseLeave={handleMouseLeave}
                 >
                     {/* Image Container - Rounded */}
-                    <div className="aspect-[3/4] relative overflow-hidden rounded-2xl bg-white mb-4">
+                    <div className="aspect-[3/4] relative overflow-hidden bg-white border-b-[3px] border-black">
                         {/* Skeleton loader */}
                         {!firstImageLoaded && (
                             <div className="absolute inset-0 bg-gradient-to-br from-cream via-charcoal/5 to-cream animate-pulse">
@@ -188,7 +188,7 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                     </div>
 
                     {/* Content */}
-                    <div className="space-y-2">
+                    <div className="space-y-3 p-4">
                         {/* Product Name */}
                         <h3 className="font-semibold text-charcoal text-base line-clamp-2 leading-tight min-h-[40px]">
                             {product.name}
@@ -208,7 +208,7 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                         {/* Buttons Row */}
                         <div className="flex items-center justify-between pt-2">
                             {/* Category Tag */}
-                            <span className="px-3 py-1.5 bg-white border border-charcoal/10 rounded-full text-xs font-medium text-charcoal/70">
+                            <span className="px-3 py-1.5 bg-white border-[2px] border-black rounded-lg text-xs font-bold text-charcoal shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                                 {product.category || 'Product'}
                             </span>
 
@@ -219,7 +219,7 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                                     e.preventDefault()
                                     window.location.href = `/influencer/try-on?productId=${product.id}`
                                 }}
-                                className="px-4 py-1.5 bg-charcoal text-white rounded-full text-xs font-medium hover:bg-charcoal/90 transition-colors flex items-center gap-1.5"
+                                className="px-4 py-1.5 bg-[#FFD93D] text-black border-[2px] border-black rounded-lg text-xs font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center gap-1.5"
                             >
                                 Try Tryon
                                 <ArrowRight className="w-3 h-3" />

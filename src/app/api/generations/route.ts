@@ -33,14 +33,14 @@ export async function GET() {
                 status: true,
                 outputImagePath: true,
                 settings: true,  // Contains variant data
-                inputs: true,    // Contains input images
+                inputs: false,   // Exclude heavy inputs (images)
                 createdAt: true,
                 updatedAt: true,
             },
             orderBy: {
                 createdAt: 'desc',
             },
-            take: 100, // Limit to last 100 generations
+            take: 20, // Limit to 20 items for performance
         })
 
         return NextResponse.json({ generations })

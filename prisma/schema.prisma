@@ -7,31 +7,41 @@ datasource db {
 }
 
 enum UserRole {
+  ADMIN
   INFLUENCER
   BRAND
 }
 
+enum AccountStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
+  id        String        @id // UUID from Supabase Auth
+  email     String        @unique
   name      String?
   role      UserRole
-  slug      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  status    AccountStatus @default(PENDING) @map("approval_status")
+  slug      String?       @unique
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
   
-  influencerProfile InfluencerProfile?
-  brandProfile      BrandProfile?
-  profileImages     UserProfileImage[]
-  generationJobs    GenerationJob[]
-  campaigns         Campaign[]
-  adCreatives       AdCreative[]
-  portfolio         Portfolio[]
-  notifications     Notification[]
+  influencerProfile     InfluencerProfile?
+  brandProfile          BrandProfile?
+  profileImages         UserProfileImage[]
+  generationJobs        GenerationJob[]
+  campaigns             Campaign[]
+  adCreatives           AdCreative[]
+  portfolio             Portfolio[]
+  notifications         Notification[]
   sentCollaborations    CollaborationRequest[] @relation("BrandCollaborations")
   receivedCollaborations CollaborationRequest[] @relation("InfluencerCollaborations")
-  favorites         Favorite[]
+  favorites             Favorite[]
 
+  @@map("profiles")
   @@index([role])
   @@index([email])
 }
@@ -180,6 +190,8 @@ model GenerationJob {
   updatedAt       DateTime @updatedAt
   
   feedback        Feedback[]
+
+  @@index([userId, createdAt])
 }
 
 model Campaign {
@@ -259,6 +271,7 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@index([userId, isRead])
+  @@index([userId, createdAt])
   @@index([createdAt])
 }
 

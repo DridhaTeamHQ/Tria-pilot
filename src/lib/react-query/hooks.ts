@@ -44,10 +44,9 @@ export function useNotifications() {
       if (!res.ok) throw new Error('Failed to fetch notifications')
       return safeParseResponse(res, 'notifications')
     },
-    staleTime: 10 * 1000, // 10 seconds - notifications update frequently
-    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
-    refetchInterval: 30 * 1000, // Poll every 30 seconds
-    refetchOnWindowFocus: true, // Refetch when window regains focus
+    staleTime: Infinity, // Rely on Realtime invalidation or manual refetch
+    queryKeyHashFn: JSON.stringify, // Stable key hashing
+    refetchOnWindowFocus: true, // Refetch when window regains focus (good backup)
   })
 }
 
@@ -228,8 +227,9 @@ export function useGenerations() {
       const data = await safeParseResponse(res, 'generations')
       return data.generations || []
     },
-    staleTime: 60 * 1000, // 1 minute
-    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    staleTime: Infinity, // Rely on Realtime invalidation
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    queryKeyHashFn: JSON.stringify,
   })
 }
 

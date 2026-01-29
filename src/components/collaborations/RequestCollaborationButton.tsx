@@ -21,14 +21,12 @@ export default function RequestCollaborationButton({
 
   return (
     <>
-      <Button
-        variant="default"
-        className="w-full bg-green-600 hover:bg-green-700 text-white font-medium shadow-sm hover:shadow-md transition-all"
-        size="lg"
+      <button
+        className="w-full py-4 bg-white text-black font-bold text-lg uppercase tracking-wider border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
         onClick={() => setIsOpen(true)}
       >
         Request Collaboration
-      </Button>
+      </button>
       <RequestModal
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}

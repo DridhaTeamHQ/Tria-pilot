@@ -78,12 +78,12 @@ export async function updateSession(request: NextRequest) {
         const pathname = request.nextUrl.pathname
 
         // Skip API routes, auth routes, onboarding, and complete-profile (these have their own guards)
-        if (!pathname.startsWith('/api') && 
-            !pathname.startsWith('/auth') && 
+        if (!pathname.startsWith('/api') &&
+            !pathname.startsWith('/auth') &&
             !pathname.startsWith('/onboarding') &&
             !pathname.startsWith('/complete-profile') &&
             pathname !== '/dashboard') {
-            
+
             const allowedExact = new Set([
                 '/',
                 '/help',
@@ -111,11 +111,25 @@ export async function updateSession(request: NextRequest) {
                     .eq('id', user.id)
                     .maybeSingle()
 
-                // If influencer and not approved, redirect to pending
-                if (profile && profile.role === 'influencer' && profile.approval_status !== 'approved') {
-                    const url = request.nextUrl.clone()
-                    url.pathname = '/influencer/pending'
-                    return NextResponse.redirect(url)
+                if (profile) {
+                    const role = (profile.role || '').toLowerCase()
+                    const status = (profile.approval_status || '').toLowerCase()
+
+                    // Protections for /admin routes
+                    if (pathname.startsWith('/admin')) {
+                        if (role !== 'admin') {
+                            const url = request.nextUrl.clone()
+                            url.pathname = '/dashboard'
+                            return NextResponse.redirect(url)
+                        }
+                    }
+
+                    // If influencer and not approved, redirect to pending
+                    if (role === 'influencer' && status !== 'approved') {
+                        const url = request.nextUrl.clone()
+                        url.pathname = '/influencer/pending'
+                        return NextResponse.redirect(url)
+                    }
                 }
             }
         }
@@ -126,22 +140,41 @@ export async function updateSession(request: NextRequest) {
     // users may be missing an app profile (Prisma) or be admins without a Prisma profile,
     // and forcing /dashboard can cause redirect loops.
     // Allow access to "/" if explicitly requested (e.g., "Back to site" from admin)
+    // ADMIN Handling: Redirect Admin to /admin/dashboard by default if hitting root or dashboard
     if (user) {
         const pathname = request.nextUrl.pathname
-        if (pathname === '/') {
+        if (pathname === '/' || pathname === '/dashboard') {
             // Check if user explicitly wants to see homepage (from admin or query param)
             const fromParam = request.nextUrl.searchParams.get('from')
             const referer = request.headers.get('referer') || ''
-            
+
             if (fromParam === 'admin' || referer.includes('/admin')) {
                 // Admin navigating from admin area - allow homepage access
                 return supabaseResponse
             }
-            
+
+            // Check role again to redirect admin to /admin/dashboard
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', user.id)
+                .maybeSingle()
+
+            const role = (profile?.role || '').toLowerCase()
+
+            if (role === 'admin') {
+                // Redirect admin to /admin/dashboard
+                const url = request.nextUrl.clone()
+                url.pathname = '/admin/dashboard'
+                return NextResponse.redirect(url)
+            }
+
             // Non-admin users or direct navigation: redirect to dashboard
-            const url = request.nextUrl.clone()
-            url.pathname = '/dashboard'
-            return NextResponse.redirect(url)
+            if (pathname === '/') {
+                const url = request.nextUrl.clone()
+                url.pathname = '/dashboard'
+                return NextResponse.redirect(url)
+            }
         }
     }
 

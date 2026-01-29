@@ -72,6 +72,7 @@ export async function GET(request: Request) {
           name: null, // Name is stored in InfluencerProfile/BrandProfile, not profiles
           role: profile.role.toUpperCase(), // Convert to uppercase for backward compatibility
           slug: profile.email.split('@')[0], // Generate slug from email
+          status: profile.approval_status,
         },
         profile: {
           id: profile.id,

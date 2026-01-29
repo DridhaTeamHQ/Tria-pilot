@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { Check, X, Clock, User, Mail, Calendar, RefreshCw, Search, TrendingUp, Users, Filter } from 'lucide-react'
 import { toast } from 'sonner'
 import BadgeDisplay, { type BadgeTier } from '@/components/influencer/BadgeDisplay'
+import { DecorativeShapes } from '@/components/brutal/onboarding/DecorativeShapes'
 
 interface OnboardingData {
   gender?: string | null
@@ -57,7 +58,7 @@ export default function AdminDashboardClient({ initialApplications }: AdminDashb
 
   const visibleApplications = useMemo(() => {
     const q = query.trim().toLowerCase()
-    
+
     // DEFENSIVE: Filter out invalid states first
     const validApps = applications.filter((app) => {
       // Skip if onboarding data exists but onboardingCompleted is false
@@ -66,41 +67,41 @@ export default function AdminDashboardClient({ initialApplications }: AdminDashb
       }
       return true
     })
-    
+
     let filtered = validApps.filter((app) => {
       // Status filter
       const matchesFilter = activeFilter === 'all' ? true : app.status === activeFilter
       if (!matchesFilter) return false
-      
+
       // Search query
       if (q) {
         const hay = `${app.email} ${app.full_name || ''} ${app.onboarding?.bio || ''}`.toLowerCase()
         if (!hay.includes(q)) return false
       }
-      
+
       // Niche filter
       if (filterNiche && app.onboarding?.niches) {
         const niches = Array.isArray(app.onboarding.niches) ? app.onboarding.niches : []
         if (!niches.includes(filterNiche)) return false
       }
-      
+
       // Gender filter
       if (filterGender && app.onboarding?.gender !== filterGender) return false
-      
+
       // Platform filter (check socials)
       if (filterPlatform && app.onboarding?.socials) {
         const socials = app.onboarding.socials as Record<string, string>
         if (!socials[filterPlatform.toLowerCase()]) return false
       }
-      
+
       return true
     })
-    
+
     // Apply sorting
     filtered.sort((a, b) => {
       let aVal: any = 0
       let bVal: any = 0
-      
+
       if (sortBy === 'created_at') {
         aVal = new Date(a.created_at).getTime()
         bVal = new Date(b.created_at).getTime()
@@ -114,13 +115,13 @@ export default function AdminDashboardClient({ initialApplications }: AdminDashb
         aVal = a.onboarding?.engagementRate ?? 0
         bVal = b.onboarding?.engagementRate ?? 0
       }
-      
+
       const aNum = typeof aVal === 'object' && aVal !== null ? Number(aVal) : Number(aVal) || 0
       const bNum = typeof bVal === 'object' && bVal !== null ? Number(bVal) : Number(bVal) || 0
-      
+
       return sortOrder === 'asc' ? aNum - bNum : bNum - aNum
     })
-    
+
     return filtered
   }, [applications, activeFilter, query, sortBy, sortOrder, filterNiche, filterGender, filterPlatform])
 
@@ -130,7 +131,7 @@ export default function AdminDashboardClient({ initialApplications }: AdminDashb
       if (activeFilter !== 'all') params.set('status', activeFilter)
       params.set('sortBy', sortBy)
       params.set('order', sortOrder)
-      
+
       const res = await fetch(`/api/admin/influencers?${params.toString()}`, { method: 'GET' })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.error || 'Failed to refresh')
@@ -160,22 +161,26 @@ export default function AdminDashboardClient({ initialApplications }: AdminDashb
       }
 
       const updated = await response.json()
-      
-      // Update local state
+
+      // Update local state IMMEDIATELY (Optimistic UI)
+      // Use newStatus directly because API returns raw DB row (approval_status) not mapped entity
       setApplications((prev) =>
         prev.map((app) =>
           app.user_id === userId
             ? {
-                ...app,
-                status: updated.status,
-                reviewed_at: updated.reviewed_at,
-                review_note: updated.review_note,
-              }
+              ...app,
+              status: newStatus,
+              reviewed_at: new Date().toISOString(),
+              review_note: reviewNote || null,
+            }
             : app
         )
       )
 
       toast.success(`Influencer ${newStatus === 'approved' ? 'approved' : 'rejected'} successfully`)
+
+      // Sync with server in background to ensure View consistency
+      await refresh()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to update status')
     } finally {
@@ -228,239 +233,263 @@ export default function AdminDashboardClient({ initialApplications }: AdminDashb
   const draftCount = validApplications.filter((app) => app.status === 'none').length
 
   return (
-    <div className="space-y-6">
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl p-6 border border-charcoal/10">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-charcoal/60 mb-1">Pending</p>
-              <p className="text-3xl font-bold text-charcoal">{pendingCount}</p>
-            </div>
-            <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
-              <Clock className="w-6 h-6 text-yellow-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-6 border border-charcoal/10">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-charcoal/60 mb-1">Approved</p>
-              <p className="text-3xl font-bold text-charcoal">{approvedCount}</p>
-            </div>
-            <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-              <Check className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-6 border border-charcoal/10">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-charcoal/60 mb-1">Rejected</p>
-              <p className="text-3xl font-bold text-charcoal">{rejectedCount}</p>
-            </div>
-            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-              <X className="w-6 h-6 text-red-600" />
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-[#FDF6EC] font-sans relative overflow-hidden">
+      <DecorativeShapes />
 
-      {/* Applications List */}
-      <div className="bg-white rounded-xl border border-charcoal/10 overflow-hidden">
-        <div className="p-6 border-b border-charcoal/10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="relative z-20 mx-auto max-w-6xl p-6 sm:p-8">
+        <header className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-semibold text-charcoal">Influencer Applications</h2>
-            <p className="text-sm text-charcoal/50 mt-1">Approve or reject new influencers.</p>
+            <h1 className="text-4xl font-black text-black mb-2" style={{ fontFamily: 'var(--font-playfair), serif' }}>
+              Admin Dashboard
+            </h1>
+            <p className="text-black/60 font-medium">Review applications and manage platform access.</p>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-            <div className="relative">
-              <Search className="w-4 h-4 text-charcoal/40 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by name or email…"
-                className="pl-9 pr-3 py-2 rounded-full border border-charcoal/10 bg-cream/40 text-sm text-charcoal placeholder:text-charcoal/40 focus:outline-none focus:ring-2 focus:ring-peach/40 focus:border-peach transition-all w-full sm:w-72"
-              />
+          <button
+            onClick={refresh}
+            className="flex items-center gap-2 rounded-xl border-[3px] border-black bg-white px-5 py-3 font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+          >
+            <RefreshCw size={20} className={loading ? 'animate-spin' : ''} strokeWidth={2.5} />
+            Refresh Data
+          </button>
+        </header>
+
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {/* Pending */}
+          <div className="bg-[#FFFDF8] rounded-xl p-6 border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden group hover:-translate-y-1 transition-transform">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <Clock className="w-24 h-24 text-black" />
             </div>
-            <button
-              type="button"
-              onClick={refresh}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full border border-charcoal/10 text-sm font-medium text-charcoal hover:bg-charcoal/5 transition-colors"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Refresh
-            </button>
+            <div className="relative z-10">
+              <div className="flex justify-between items-start mb-4">
+                <div className="w-12 h-12 rounded-full bg-[#FFD93D] border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  <Clock className="w-6 h-6 text-black" strokeWidth={2.5} />
+                </div>
+                <span className="bg-black text-white text-xs font-bold px-2 py-1 rounded-md">ACTION REQUIRED</span>
+              </div>
+              <p className="text-4xl font-black text-black mb-1">{pendingCount}</p>
+              <p className="text-sm font-bold text-black/60 uppercase tracking-wide">Pending Reviews</p>
+            </div>
+          </div>
+
+          {/* Approved */}
+          <div className="bg-[#FFFDF8] rounded-xl p-6 border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden group hover:-translate-y-1 transition-transform">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <Check className="w-24 h-24 text-black" />
+            </div>
+            <div className="relative z-10">
+              <div className="flex justify-between items-start mb-4">
+                <div className="w-12 h-12 rounded-full bg-[#B4F056] border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  <Check className="w-6 h-6 text-black" strokeWidth={2.5} />
+                </div>
+              </div>
+              <p className="text-4xl font-black text-black mb-1">{approvedCount}</p>
+              <p className="text-sm font-bold text-black/60 uppercase tracking-wide">Approved Influencers</p>
+            </div>
+          </div>
+
+          {/* Rejected */}
+          <div className="bg-[#FFFDF8] rounded-xl p-6 border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden group hover:-translate-y-1 transition-transform">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <X className="w-24 h-24 text-black" />
+            </div>
+            <div className="relative z-10">
+              <div className="flex justify-between items-start mb-4">
+                <div className="w-12 h-12 rounded-full bg-[#FF8C69] border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  <X className="w-6 h-6 text-black" strokeWidth={2.5} />
+                </div>
+              </div>
+              <p className="text-4xl font-black text-black mb-1">{rejectedCount}</p>
+              <p className="text-sm font-bold text-black/60 uppercase tracking-wide">Rejected Applications</p>
+            </div>
           </div>
         </div>
-        <div className="px-6 py-4 border-b border-charcoal/10 flex flex-wrap gap-2">
-          {[
-            { key: 'pending', label: 'Pending' },
-            { key: 'approved', label: 'Approved' },
-            { key: 'rejected', label: 'Rejected' },
-            { key: 'none', label: 'Draft' },
-            { key: 'all', label: 'All' },
-          ].map((f) => (
-            <button
-              key={f.key}
-              type="button"
-              onClick={() => setActiveFilter(f.key as any)}
-              className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
-                activeFilter === f.key
-                  ? 'bg-charcoal text-cream border-charcoal'
-                  : 'bg-white text-charcoal border-charcoal/10 hover:bg-charcoal/5'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-        <div className="divide-y divide-charcoal/10">
-          {visibleApplications.length === 0 ? (
-            <div className="p-12 text-center text-charcoal/60">
-              <p className="font-medium text-charcoal">No applications found</p>
-              <p className="text-sm text-charcoal/50 mt-2">
-                Try changing the filter or search query.
-              </p>
+
+        {/* Applications List */}
+        <div className="bg-[#FFFDF8] rounded-xl border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+          {/* Toolbar */}
+          <div className="p-6 border-b-[3px] border-black flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white/50">
+            <div>
+              <h2 className="text-2xl font-black text-black">Applications</h2>
+              <p className="text-sm text-black/60 font-medium mt-1">Manage influencer onboarding requests</p>
             </div>
-          ) : (
-            visibleApplications.map((app) => (
-              <div key={app.user_id} className="p-6 hover:bg-cream/50 transition-colors">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-10 h-10 rounded-full bg-peach/20 flex items-center justify-center">
-                        <User className="w-5 h-5 text-peach" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-charcoal">
-                          {app.full_name || 'No name provided'}
-                        </h3>
-                        <div className="flex items-center gap-2 text-sm text-charcoal/60">
-                          <Mail className="w-4 h-4" />
-                          {app.email}
+
+            <div className="flex flex-col sm:flex-row gap-4">
+              {/* Search */}
+              <div className="relative group">
+                <Search className="w-5 h-5 text-black absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search users..."
+                  className="w-full sm:w-64 pl-12 pr-4 py-3 rounded-xl border-2 border-black bg-white text-black placeholder:text-black/40 focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:-translate-y-0.5 transition-all font-medium"
+                />
+              </div>
+
+              {/* Filters */}
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: 'pending', label: 'Pending' },
+                  { key: 'approved', label: 'Approved' },
+                  { key: 'rejected', label: 'Rejected' },
+                  { key: 'all', label: 'All' },
+                ].map((f) => (
+                  <button
+                    key={f.key}
+                    onClick={() => setActiveFilter(f.key as any)}
+                    className={`
+                        px-4 py-2 rounded-lg font-bold border-2 transition-all
+                        ${activeFilter === f.key
+                        ? 'bg-black text-white border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]'
+                        : 'bg-white text-black border-black/10 hover:border-black hover:bg-[#FFD93D]/20'
+                      }
+                      `}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* List Content */}
+          <div className="divide-y-[2px] divide-black/5 min-h-[400px]">
+            {loading && typeof loading === 'string' ? (
+              // Optimistic loading state handled in buttons, 
+              // but if full refresh, shown here usually
+              null
+            ) : null}
+
+            {visibleApplications.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center px-4">
+                <div className="w-20 h-20 rounded-full bg-black/5 flex items-center justify-center mb-4 border-2 border-black/10">
+                  <Search className="w-10 h-10 text-black/20" />
+                </div>
+                <p className="text-xl font-bold text-black">No applications found</p>
+                <p className="text-black/50 mt-2 max-w-sm">
+                  Try adjusting your filters or search query. Only users who completed onboarding appear here.
+                </p>
+              </div>
+            ) : (
+              visibleApplications.map((app) => (
+                <div key={app.user_id} className="p-6 hover:bg-[#FFD93D]/5 transition-colors group">
+                  <div className="flex flex-col lg:flex-row gap-6">
+                    {/* User Info */}
+                    <div className="flex-1">
+                      <div className="flex items-start gap-4 mb-4">
+                        <div className="w-14 h-14 rounded-xl bg-black flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
+                          <User className="w-7 h-7 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-black text-black leading-tight">
+                            {app.full_name || 'No Name'}
+                          </h3>
+                          <div className="flex items-center gap-2 text-black/60 font-medium text-sm mt-1">
+                            <Mail className="w-4 h-4" />
+                            {app.email}
+                          </div>
+
+                          {/* Badges/Tags */}
+                          <div className="flex flex-wrap gap-2 mt-3">
+                            <span className={`
+                                inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold border-2 uppercase tracking-wide
+                                ${getStatusBadge(app.status)}
+                             `}>
+                              {getStatusIcon(app.status)}
+                              {app.status}
+                            </span>
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold border-2 border-black/10 bg-white text-black/70">
+                              <Calendar className="w-3 h-3" />
+                              {new Date(app.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-4 mt-3 text-sm text-charcoal/60">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        Applied: {new Date(app.created_at).toLocaleDateString()}
-                      </div>
-                      {app.reviewed_at && (
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-4 h-4" />
-                          Reviewed: {new Date(app.reviewed_at).toLocaleDateString()}
+
+                      {/* Onboarding Details Grid */}
+                      {app.onboarding && (
+                        <div className="bg-white/50 rounded-xl border-2 border-black/5 p-4 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+                          <div className="flex justify-between border-b border-black/5 pb-2">
+                            <span className="text-black/50 font-medium">Followers</span>
+                            <span className="font-bold text-black">{app.onboarding.followers?.toLocaleString() ?? '-'}</span>
+                          </div>
+                          <div className="flex justify-between border-b border-black/5 pb-2">
+                            <span className="text-black/50 font-medium">Engagement</span>
+                            <span className="font-bold text-black">{(Number(app.onboarding.engagementRate) * 100).toFixed(2)}%</span>
+                          </div>
+                          <div className="flex justify-between border-b border-black/5 pb-2">
+                            <span className="text-black/50 font-medium">Badge Score</span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-black">{Number(app.onboarding.badgeScore).toFixed(1)}</span>
+                              {app.onboarding.badgeTier && <BadgeDisplay tier={app.onboarding.badgeTier as BadgeTier} />}
+                            </div>
+                          </div>
+                          <div className="flex justify-between border-b border-black/5 pb-2">
+                            <span className="text-black/50 font-medium">Gender</span>
+                            <span className="font-bold text-black">{app.onboarding.gender ?? '-'}</span>
+                          </div>
+
+                          {/* Full width items */}
+                          <div className="md:col-span-2 pt-2">
+                            <span className="text-black/50 font-medium text-xs uppercase tracking-wider block mb-1">Socials</span>
+                            <div className="flex gap-2">
+                              {app.onboarding.socials && Object.entries(app.onboarding.socials as Record<string, string>)
+                                .filter(([, url]) => url)
+                                .map(([platform]) => (
+                                  <span key={platform} className="px-2 py-1 bg-black/5 rounded text-xs font-bold uppercase text-black/70">
+                                    {platform}
+                                  </span>
+                                ))
+                              }
+                            </div>
+                          </div>
+
+                          {app.onboarding.bio && (
+                            <div className="md:col-span-2 pt-2">
+                              <span className="text-black/50 font-medium text-xs uppercase tracking-wider block mb-1">Bio</span>
+                              <p className="text-black/80 italic">"{app.onboarding.bio}"</p>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
-                    {app.review_note && (
-                      <div className="mt-2 p-2 bg-cream/50 rounded text-sm text-charcoal/70">
-                        <strong>Note:</strong> {app.review_note}
-                      </div>
-                    )}
-                    
-                    {/* Onboarding Data */}
-                    {app.onboarding && (
-                      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                        {/* Metrics */}
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-charcoal/80">
-                            <Users className="w-4 h-4" />
-                            <span>Followers: {app.onboarding.followers ? app.onboarding.followers.toLocaleString() : 'N/A'}</span>
-                          </div>
-                          {app.onboarding.engagementRate !== null && app.onboarding.engagementRate !== undefined && (
-                            <div className="flex items-center gap-2 text-charcoal/80">
-                              <TrendingUp className="w-4 h-4" />
-                              <span>Engagement: {(Number(app.onboarding.engagementRate) * 100).toFixed(2)}%</span>
-                            </div>
-                          )}
-                          {app.onboarding.badgeScore !== null && app.onboarding.badgeScore !== undefined && (
-                            <div className="flex items-center gap-2 text-charcoal/80">
-                              <span>Badge Score: {Number(app.onboarding.badgeScore).toFixed(2)}</span>
-                              {app.onboarding.badgeTier && (
-                                <BadgeDisplay tier={app.onboarding.badgeTier as BadgeTier} />
-                              )}
-                            </div>
-                          )}
+
+                    {/* Actions Panel */}
+                    <div className="lg:w-64 flex flex-col gap-3 justify-center border-t-2 border-dashed border-black/10 lg:border-t-0 lg:border-l-2 lg:pl-6 pt-4 lg:pt-0">
+                      {app.status === 'pending' ? (
+                        <>
+                          <button
+                            onClick={() => handleStatusUpdate(app.user_id, 'approved')}
+                            disabled={loading === app.user_id}
+                            className="w-full py-3 bg-[#B4F056] text-black font-black border-2 border-black rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-y-0.5 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                          >
+                            <Check className="w-5 h-5" strokeWidth={3} />
+                            APPROVE
+                          </button>
+                          <button
+                            onClick={() => {
+                              const note = prompt('Rejection reason (optional):')
+                              if (note !== null) handleStatusUpdate(app.user_id, 'rejected', note)
+                            }}
+                            disabled={loading === app.user_id}
+                            className="w-full py-3 bg-[#FF8C69] text-black font-black border-2 border-black rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-y-0.5 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                          >
+                            <X className="w-5 h-5" strokeWidth={3} />
+                            REJECT
+                          </button>
+                        </>
+                      ) : (
+                        <div className="text-center py-4 bg-black/5 rounded-xl border-2 border-black/5">
+                          <span className="text-sm font-bold text-black/40">Action completed</span>
+                          <div className="text-xs text-black/30 mt-1">Status: {app.status}</div>
                         </div>
-                        
-                        {/* Details */}
-                        <div className="space-y-2">
-                          {app.onboarding.niches && Array.isArray(app.onboarding.niches) && app.onboarding.niches.length > 0 && (
-                            <div>
-                              <span className="text-charcoal/60 text-xs">Niches: </span>
-                              <span className="text-charcoal/80">{app.onboarding.niches.join(', ')}</span>
-                            </div>
-                          )}
-                          {app.onboarding.gender && (
-                            <div>
-                              <span className="text-charcoal/60 text-xs">Gender: </span>
-                              <span className="text-charcoal/80">{app.onboarding.gender}</span>
-                            </div>
-                          )}
-                          {app.onboarding.socials && (
-                            <div>
-                              <span className="text-charcoal/60 text-xs">Socials: </span>
-                              <span className="text-charcoal/80">
-                                {Object.entries(app.onboarding.socials as Record<string, string>)
-                                  .filter(([, url]) => url)
-                                  .map(([platform]) => platform)
-                                  .join(', ')}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        
-                        {/* Bio Preview */}
-                        {app.onboarding.bio && (
-                          <div className="md:col-span-2">
-                            <p className="text-xs text-charcoal/60 mb-1">Bio:</p>
-                            <p className="text-sm text-charcoal/80 line-clamp-2">{app.onboarding.bio}</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-1 ${getStatusBadge(
-                        app.status
-                      )}`}
-                    >
-                      {getStatusIcon(app.status)}
-                      {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
-                    </span>
-                    {app.status === 'pending' && (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleStatusUpdate(app.user_id, 'approved')}
-                          disabled={loading === app.user_id}
-                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-                        >
-                          <Check className="w-4 h-4" />
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => {
-                            const note = prompt('Rejection reason (optional):')
-                            if (note !== null) {
-                              handleStatusUpdate(app.user_id, 'rejected', note)
-                            }
-                          }}
-                          disabled={loading === app.user_id}
-                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-                        >
-                          <X className="w-4 h-4" />
-                          Reject
-                        </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
-          )}
+              ))
+            )}
+          </div>
         </div>
       </div>
     </div>

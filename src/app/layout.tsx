@@ -3,6 +3,7 @@ import { Toaster } from '@/components/ui/sonner'
 import BrutalNavbar from '@/components/brutal/BrutalNavbar'
 import ProfileCompletionGate from '@/components/ProfileCompletionGate'
 import { ReactQueryProvider } from '@/lib/react-query/provider'
+import { RealtimeListener } from '@/components/providers/realtime-listener'
 import './globals.css'
 import { Playfair_Display, Inter } from 'next/font/google'
 import { ReactLenis } from '@/lib/lenis'
@@ -35,6 +36,7 @@ export default function RootLayout({
         <ReactQueryProvider>
           <ReactLenis>
             <BrutalNavbar />
+            <RealtimeListener />
             <ProfileCompletionGate />
             <main className="animate-fade-in">
               {children}

@@ -70,14 +70,26 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
       .eq('id', userId)
       .single()
 
-    if (error || !data) {
+    if (error) {
+      console.error('fetchProfile Supabase error:', error)
       return null
     }
 
-    // Normalize: ensure exact types (no nulls)
-    const role = (data.role as UserRole) || 'influencer'
-    // Normalize approval_status: null/missing → 'none'
-    const approval_status: ApprovalStatus = (data.approval_status as ApprovalStatus) || 'none'
+    if (!data) {
+      console.warn('fetchProfile: No profile found for userId:', userId)
+      return null
+    }
+
+    // Normalize: ensure exact types (no nulls) and convert from DB CAPS to lowercase
+    const roleStr = (data.role || 'influencer').toLowerCase()
+    const role = (roleStr as UserRole)
+
+    // Normalize approval_status: null/missing → 'none', DB CAPS → lowercase
+    const statusStr = (data.approval_status || 'none').toLowerCase()
+    const approval_status: ApprovalStatus = (statusStr as ApprovalStatus)
+
+    // Map PENDING -> pending, APPROVED -> approved if needed (already handled by toLowerCase if names match)
+
     const onboarding_completed = Boolean(data.onboarding_completed)
 
     return {

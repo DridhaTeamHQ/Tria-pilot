@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Mail, CheckCircle2, Clock, MessageSquare, Bell, Sparkles } from 'lucide-react'
+import { Mail, CheckCircle2, Clock, MessageSquare, Bell, Sparkles, ArrowRight } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   useNotifications,
@@ -11,16 +11,44 @@ import {
   useMarkAllNotificationsRead,
   useUser,
 } from '@/lib/react-query/hooks'
+import { BrutalLoader } from '@/components/ui/BrutalLoader'
+
+// Neo-Brutalist Components
+function BrutalCard({ children, className = '' }: { children: React.ReactNode, className?: string }) {
+  return (
+    <div className={`bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 relative transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] ${className}`}>
+      {children}
+    </div>
+  )
+}
+
+function BrutalButton({ onClick, children, variant = 'primary', className = '' }: { onClick?: () => void, children: React.ReactNode, variant?: 'primary' | 'secondary' | 'outline', className?: string }) {
+  const variants = {
+    primary: 'bg-[#FFD93D] text-black hover:bg-[#ffe066]',
+    secondary: 'bg-black text-white hover:bg-gray-800',
+    outline: 'bg-white text-black hover:bg-gray-50'
+  }
+
+  return (
+    <button
+      onClick={onClick}
+      className={`px-4 py-2 font-bold uppercase tracking-wider border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center gap-2 ${variants[variant]} ${className}`}
+    >
+      {children}
+    </button>
+  )
+}
+
 
 function formatDistanceToNow(date: Date): string {
   const now = new Date()
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
 
-  if (diffInSeconds < 60) return 'just now'
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`
-  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days ago`
-  return `${Math.floor(diffInSeconds / 604800)} weeks ago`
+  if (diffInSeconds < 60) return 'JUST NOW'
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} MINS AGO`
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} HRS AGO`
+  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} DAYS AGO`
+  return `${Math.floor(diffInSeconds / 604800)} WEEKS AGO`
 }
 
 export default function InboxPage() {
@@ -46,31 +74,20 @@ export default function InboxPage() {
 
     // Navigate based on notification type
     if (notification.type === 'collab_request' || notification.type === 'collab_accepted' || notification.type === 'collab_declined') {
-      // Navigate to collaborations page based on user role
       if (user?.role === 'BRAND') {
         router.push('/brand/collaborations')
       } else if (user?.role === 'INFLUENCER') {
         router.push('/influencer/collaborations')
       } else {
-        // Fallback - try to determine from pathname or default
         router.push('/brand/collaborations')
       }
-    }
-  }
-
-  const markAsRead = async (id: string) => {
-    try {
-      await markAsReadMutation.mutateAsync(id)
-      toast.success('Marked as read!')
-    } catch (error) {
-      toast.error('Failed to mark as read')
     }
   }
 
   const markAllAsRead = async () => {
     try {
       await markAllAsReadMutation.mutateAsync()
-      toast.success('All notifications marked as read!')
+      toast.success('All marked as read!')
     } catch (error) {
       toast.error('Failed to mark all as read')
     }
@@ -79,13 +96,13 @@ export default function InboxPage() {
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'collab_request':
-        return <MessageSquare className="h-5 w-5 text-blue-500" />
+        return <div className="p-2 bg-[#90E8FF] border-[2px] border-black"><MessageSquare className="h-5 w-5 text-black" /></div>
       case 'collab_accepted':
-        return <CheckCircle2 className="h-5 w-5 text-green-500" />
+        return <div className="p-2 bg-[#BAFCA2] border-[2px] border-black"><CheckCircle2 className="h-5 w-5 text-black" /></div>
       case 'collab_declined':
-        return <Clock className="h-5 w-5 text-orange-500" />
+        return <div className="p-2 bg-[#FFABAB] border-[2px] border-black"><Clock className="h-5 w-5 text-black" /></div>
       default:
-        return <Bell className="h-5 w-5 text-charcoal/50" />
+        return <div className="p-2 bg-white border-[2px] border-black"><Bell className="h-5 w-5 text-black" /></div>
     }
   }
 
@@ -99,43 +116,37 @@ export default function InboxPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-cream pt-24 flex items-center justify-center">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-        >
-          <Sparkles className="w-8 h-8 text-charcoal/30" />
-        </motion.div>
+      <div className="min-h-screen bg-[#FDFBF7] pt-24 flex items-center justify-center">
+        <BrutalLoader size="lg" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-cream pt-24">
-      <div className="container mx-auto px-6 py-8 max-w-4xl">
+    <div className="min-h-screen bg-[#FDFBF7] pt-28 pb-20">
+      <div className="container mx-auto px-6 max-w-4xl">
+
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
           <div>
-            <h1 className="text-3xl sm:text-4xl font-serif text-charcoal mb-1 sm:mb-2">
-              <span className="italic">Inbox</span>
+            <h1 className="text-6xl font-black text-black uppercase leading-none mb-2">
+              Inbox
             </h1>
-            <p className="text-charcoal/60 text-sm sm:text-base">
-              {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up!'}
+            <p className="text-xl font-bold text-black/60 border-l-[4px] border-[#FFD93D] pl-4">
+              {unreadCount > 0 ? `${unreadCount} NEW UPDATES` : 'ALL CAUGHT UP'}
             </p>
           </div>
+
           {unreadCount > 0 && (
-            <button
-              onClick={markAllAsRead}
-              className="self-start sm:self-auto px-4 py-2 border border-charcoal/20 text-charcoal rounded-full flex items-center gap-2 hover:bg-charcoal/5 transition-colors text-sm"
-            >
-              <CheckCircle2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Mark All</span> Read
-            </button>
+            <BrutalButton onClick={markAllAsRead} variant="outline">
+              <CheckCircle2 className="w-4 h-4" />
+              Mark All Read
+            </BrutalButton>
           )}
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex flex-wrap gap-2 mb-6 sm:mb-8">
+        <div className="flex flex-wrap gap-4 mb-8">
           {[
             { id: 'all', label: 'All', count: notifications.length },
             { id: 'unread', label: 'Unread', count: unreadCount },
@@ -144,9 +155,9 @@ export default function InboxPage() {
             <button
               key={tab.id}
               onClick={() => setFilter(tab.id as any)}
-              className={`px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all ${filter === tab.id
-                ? 'bg-charcoal text-cream'
-                : 'bg-white border border-subtle text-charcoal/70 hover:border-charcoal/30'
+              className={`px-6 py-2 font-black uppercase tracking-wider border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all ${filter === tab.id
+                  ? 'bg-black text-white hover:bg-gray-800'
+                  : 'bg-white text-black hover:bg-[#FFD93D]'
                 }`}
             >
               {tab.label} ({tab.count})
@@ -161,14 +172,16 @@ export default function InboxPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="bg-white rounded-2xl border border-subtle p-16 text-center"
+              className="bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-16 text-center"
             >
-              <Mail className="w-16 h-16 text-charcoal/20 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-charcoal mb-2">No notifications</h3>
-              <p className="text-charcoal/60">
+              <div className="w-20 h-20 bg-[#FDFBF7] border-[3px] border-black flex items-center justify-center mx-auto mb-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <Mail className="w-10 h-10 text-black" />
+              </div>
+              <h3 className="text-2xl font-black uppercase mb-2">No Notifications</h3>
+              <p className="font-bold text-black/60 uppercase tracking-wide">
                 {filter === 'unread'
-                  ? "You're all caught up! No unread notifications."
-                  : 'No notifications found.'}
+                  ? "You're seeing this because you're awesome."
+                  : 'Check back later for updates.'}
               </p>
             </motion.div>
           ) : (
@@ -176,39 +189,44 @@ export default function InboxPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="space-y-3"
+              className="space-y-4"
             >
               {filteredNotifications.map((notification: any, index: number) => (
                 <motion.div
                   key={notification.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  onClick={() => handleNotificationClick(notification)}
-                  className={`bg-white rounded-2xl border p-5 cursor-pointer transition-all hover:shadow-md hover:scale-[1.01] ${!notification.isRead
-                    ? 'border-l-4 border-l-peach border-t-subtle border-r-subtle border-b-subtle bg-peach/5'
-                    : 'border-subtle'
-                    }`}
                 >
-                  <div className="flex items-start gap-4">
-                    <div className="mt-0.5 p-2 bg-cream rounded-xl">
-                      {getNotificationIcon(notification.type)}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <p className="font-medium text-charcoal">{notification.content}</p>
-                          <p className="text-sm text-charcoal/50 mt-1">
-                            {formatDistanceToNow(new Date(notification.createdAt))}
-                          </p>
-                        </div>
-                        {!notification.isRead && (
-                          <span className="px-3 py-1 bg-peach text-charcoal text-xs font-medium rounded-full">
-                            New
-                          </span>
-                        )}
+                  <div
+                    onClick={() => handleNotificationClick(notification)}
+                    className={`group cursor-pointer relative ${!notification.isRead ? 'z-10' : 'z-0'}`}
+                  >
+                    {/* "NEW" Badge for unread */}
+                    {!notification.isRead && (
+                      <div className="absolute -top-3 -right-2 bg-[#FFD93D] px-2 py-1 border-[2px] border-black text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] z-20">
+                        NEW
                       </div>
-                    </div>
+                    )}
+
+                    <BrutalCard className={`${!notification.isRead ? 'bg-[#fffdf5]' : 'bg-white'}`}>
+                      <div className="flex items-start gap-4">
+                        {getNotificationIcon(notification.type)}
+                        <div className="flex-1">
+                          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                            <p className="font-bold text-lg leading-tight uppercase mb-1 group-hover:underline decoration-2 underline-offset-2">
+                              {notification.content}
+                            </p>
+                            <span className="text-xs font-black text-black/40 whitespace-nowrap bg-gray-100 px-2 py-1 border-[1px] border-black">
+                              {formatDistanceToNow(new Date(notification.createdAt))}
+                            </span>
+                          </div>
+                          <div className="mt-2 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#FFD93D] group-hover:text-black transition-colors">
+                            View Details <ArrowRight className="w-4 h-4" />
+                          </div>
+                        </div>
+                      </div>
+                    </BrutalCard>
                   </div>
                 </motion.div>
               ))}

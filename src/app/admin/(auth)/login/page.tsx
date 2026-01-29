@@ -7,6 +7,7 @@ import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import { ArrowRight, Shield, Sparkles } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
+import { DecorativeShapes } from '@/components/brutal/onboarding/DecorativeShapes'
 
 export default function AdminLoginPage() {
   return (
@@ -74,30 +75,33 @@ function AdminLoginContent() {
   }
 
   return (
-    <div className="min-h-screen flex bg-cream">
+    <div className="min-h-screen flex bg-[#FDF6EC] font-sans overflow-hidden relative">
+      <div className="lg:hidden absolute inset-0 z-0">
+        <DecorativeShapes />
+      </div>
+
       <motion.div
         initial={{ opacity: 0, x: -50 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-        className="hidden lg:flex lg:w-1/2 relative overflow-hidden"
+        className="hidden lg:flex lg:w-1/2 relative border-r-[3px] border-black bg-[#FFD93D]/10 items-center justify-center p-12 overflow-hidden"
       >
-        <div className="absolute inset-0">
-          <div className="absolute top-[-20%] left-[-10%] w-[80%] h-[80%] bg-peach/40 rounded-full blur-[100px]" />
-          <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[70%] bg-orange-200/40 rounded-full blur-[100px]" />
-        </div>
-        <div className="relative z-10 flex flex-col justify-center px-16">
-          <Link href="/" className="text-4xl font-serif font-bold text-charcoal mb-8">
+        <DecorativeShapes />
+        <div className="relative z-10 max-w-lg">
+          <Link href="/" className="text-5xl font-black text-black mb-8 block font-serif tracking-tight">
             Kiwikoo
           </Link>
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 border border-charcoal/10 w-fit">
-            <Shield className="w-4 h-4 text-charcoal" />
-            <span className="text-xs font-semibold tracking-wider uppercase text-charcoal">Admin access</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-black text-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] w-fit mb-8">
+            <Shield className="w-4 h-4" />
+            <span className="text-xs font-bold tracking-wider uppercase">Admin Portal</span>
           </div>
-          <h1 className="text-5xl font-serif text-charcoal leading-tight mt-6 mb-6">
-            Sign in to <br />
-            <span className="italic">Admin</span>
+          <h1 className="text-6xl font-black text-black leading-none mb-6 font-serif">
+            Command <br />
+            <span className="italic text-[#FF8C69]">Center</span>
           </h1>
-          <p className="text-lg text-charcoal/70 max-w-md">Manage influencer approvals and platform operations.</p>
+          <p className="text-xl text-black/80 font-medium border-l-4 border-black pl-6 py-2">
+            Manage influencer approvals, monitor platform growth, and oversee operations with precision.
+          </p>
         </div>
       </motion.div>
 
@@ -105,34 +109,34 @@ function AdminLoginContent() {
         initial={{ opacity: 0, x: 50 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full lg:w-1/2 flex items-center justify-center px-8 py-12"
+        className="w-full lg:w-1/2 flex items-center justify-center px-8 py-12 relative z-10"
       >
-        <div className="w-full max-w-md">
-          <Link href="/" className="lg:hidden text-3xl font-serif font-bold text-charcoal mb-8 block">
+        <div className="w-full max-w-md bg-white p-8 rounded-xl border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <Link href="/" className="lg:hidden text-4xl font-black text-black mb-8 block font-serif">
             Kiwikoo
           </Link>
 
-          <h2 className="text-3xl font-serif text-charcoal mb-2">Admin sign in</h2>
-          <p className="text-charcoal/60 mb-8">Use your admin credentials to continue.</p>
+          <h2 className="text-3xl font-black text-black mb-2 font-serif">Admin Access</h2>
+          <p className="text-black/60 mb-8 font-medium">Enter your credentials to continue.</p>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <label htmlFor="email" className="block text-sm font-medium text-charcoal">
-                Email
+              <label htmlFor="email" className="block text-sm font-bold text-black uppercase tracking-wide">
+                Email Address
               </label>
               <input
                 id="email"
                 type="email"
-                placeholder="admin@company.com"
+                placeholder="admin@kiwikoo.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-3 rounded-xl border border-subtle bg-white/50 text-charcoal placeholder:text-charcoal/40 focus:outline-none focus:ring-2 focus:ring-peach/50 focus:border-peach transition-all"
+                className="w-full px-4 py-3 rounded-lg border-2 border-black bg-[#FDF6EC] text-black placeholder:text-black/30 focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:-translate-y-0.5 transition-all font-medium"
               />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="password" className="block text-sm font-medium text-charcoal">
+              <label htmlFor="password" className="block text-sm font-bold text-black uppercase tracking-wide">
                 Password
               </label>
               <input
@@ -142,7 +146,7 @@ function AdminLoginContent() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full px-4 py-3 rounded-xl border border-subtle bg-white/50 text-charcoal placeholder:text-charcoal/40 focus:outline-none focus:ring-2 focus:ring-peach/50 focus:border-peach transition-all"
+                className="w-full px-4 py-3 rounded-lg border-2 border-black bg-[#FDF6EC] text-black placeholder:text-black/30 focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:-translate-y-0.5 transition-all font-medium"
               />
             </div>
 
@@ -151,37 +155,35 @@ function AdminLoginContent() {
               disabled={loading}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="w-full py-4 bg-charcoal text-cream font-medium rounded-full flex items-center justify-center gap-2 hover:bg-charcoal/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-4 bg-[#B4F056] text-black font-black text-lg rounded-lg border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:translate-y-0"
             >
               {loading ? (
                 <span className="flex items-center gap-2">
                   <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
                     <Sparkles className="w-5 h-5" />
                   </motion.div>
-                  Signing in…
+                  Verifying...
                 </span>
               ) : (
                 <>
-                  Continue
-                  <ArrowRight className="w-5 h-5" />
+                  ENTER DASHBOARD
+                  <ArrowRight className="w-6 h-6" strokeWidth={3} />
                 </>
               )}
             </motion.button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-charcoal/60">
-            Need an admin account?{' '}
-            <Link href="/admin/register" className="text-charcoal font-medium hover:underline">
-              Create one
+          <div className="mt-8 pt-6 border-t-2 border-black/10 flex flex-col gap-3 text-center">
+            <p className="text-sm text-black/60 font-medium">
+              Need access?{' '}
+              <Link href="/admin/register" className="text-black font-bold underline decoration-2 underline-offset-2 hover:text-[#FF8C69] transition-colors">
+                Create Account
+              </Link>
+            </p>
+            <Link href="/login" className="text-xs text-black/40 font-bold uppercase tracking-wider hover:text-black transition-colors">
+              ← Go to Regular Sign In
             </Link>
-          </p>
-
-          <p className="mt-8 text-center text-charcoal/60">
-            Not an admin?{' '}
-            <Link href="/login" className="text-charcoal font-medium hover:underline">
-              Go to user login
-            </Link>
-          </p>
+          </div>
         </div>
       </motion.div>
     </div>

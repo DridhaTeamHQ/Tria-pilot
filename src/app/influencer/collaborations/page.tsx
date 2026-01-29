@@ -1,11 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
 import {
   Dialog,
   DialogContent,
@@ -15,9 +11,27 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
-import { CheckCircle2, XCircle, Clock, MessageSquare, ArrowRight, Sparkles } from 'lucide-react'
+import { CheckCircle2, XCircle, MessageSquare, ArrowRight, Sparkles, X, Check } from 'lucide-react'
 import Link from 'next/link'
 import { useCollaborations, useUpdateCollaborationStatus } from '@/lib/react-query/collaborations'
+import { BrutalLoader } from '@/components/ui/BrutalLoader'
+
+// Neo-Brutalist Components
+function BrutalCard({ children, className = '' }: { children: React.ReactNode, className?: string }) {
+  return (
+    <div className={`bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6 relative transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] ${className}`}>
+      {children}
+    </div>
+  )
+}
+
+function BrutalTag({ label, color = 'bg-white', textColor = 'text-black' }: { label: string, color?: string, textColor?: string }) {
+  return (
+    <span className={`px-3 py-1 text-xs font-black border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase tracking-wide ${color} ${textColor}`}>
+      {label}
+    </span>
+  )
+}
 
 interface Collaboration {
   id: string
@@ -71,13 +85,13 @@ export default function InfluencerCollaborationsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'accepted':
-        return <Badge className="bg-green-500 text-white">Accepted</Badge>
+        return <BrutalTag label="Accepted" color="bg-[#BAFCA2]" />
       case 'declined':
-        return <Badge className="bg-red-500 text-white">Declined</Badge>
+        return <BrutalTag label="Declined" color="bg-[#FFABAB]" />
       case 'pending':
-        return <Badge className="bg-yellow-500 text-white">Pending</Badge>
+        return <BrutalTag label="Pending" color="bg-[#FFD93D]" />
       default:
-        return <Badge>{status}</Badge>
+        return <BrutalTag label={status} />
     }
   }
 
@@ -87,304 +101,171 @@ export default function InfluencerCollaborationsPage() {
   })
 
   return (
-    <div className="min-h-screen bg-cream pt-24 pb-8">
-      <div className="container mx-auto px-4 max-w-7xl">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="mb-8"
-        >
-          <div className="flex items-center gap-3 mb-2">
-            <motion.div
-              initial={{ scale: 0, rotate: -180 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ duration: 0.5, type: 'spring' }}
-            >
-              <MessageSquare className="h-7 w-7 text-zinc-900 dark:text-zinc-100" />
-            </motion.div>
-            <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100">Collaborations</h1>
-          </div>
-          <p className="text-zinc-600 dark:text-zinc-400 text-base ml-10">
-            Manage collaboration requests from brands
+    <div className="min-h-screen bg-[#FDFBF7] pt-28 pb-20">
+      <div className="container mx-auto px-6 max-w-6xl">
+
+        {/* Header */}
+        <div className="mb-12">
+          <h1 className="text-6xl font-black text-black uppercase leading-none mb-4">
+            Collaborations
+          </h1>
+          <p className="text-xl font-bold text-black/60 border-l-[4px] border-[#90E8FF] pl-4 max-w-2xl">
+            Manage requests, seal deals, and track your brand partnerships.
           </p>
-        </motion.div>
+        </div>
 
         {/* Filter Tabs */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
-          className="flex gap-2 mb-6"
-        >
+        <div className="flex flex-wrap gap-4 mb-10">
           {[
             { id: 'all', label: 'All', count: collaborations.length },
             { id: 'pending', label: 'Pending', count: collaborations.filter((c) => c.status === 'pending').length },
             { id: 'accepted', label: 'Accepted', count: collaborations.filter((c) => c.status === 'accepted').length },
             { id: 'declined', label: 'Declined', count: collaborations.filter((c) => c.status === 'declined').length },
-          ].map((tab, index) => (
-            <motion.button
+          ].map((tab) => (
+            <button
               key={tab.id}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3, delay: 0.1 + index * 0.05 }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
               onClick={() => setFilter(tab.id as any)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                filter === tab.id
-                  ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-lg'
-                  : 'bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-600 hover:shadow-md'
-              }`}
+              className={`px-5 py-2 font-black uppercase tracking-wider border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all transform hover:-translate-y-1 ${filter === tab.id
+                  ? 'bg-black text-white'
+                  : 'bg-white text-black hover:bg-gray-50'
+                }`}
             >
               {tab.label} ({tab.count})
-            </motion.button>
+            </button>
           ))}
-        </motion.div>
+        </div>
 
+        {/* Content */}
         {loading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: i * 0.1 }}
-              >
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center gap-3">
-                      <Skeleton className="h-6 w-48" />
-                      <Skeleton className="h-5 w-20 rounded-full" />
-                    </div>
-                    <Skeleton className="h-4 w-32 mt-2" />
-                  </CardHeader>
-                  <CardContent>
-                    <Skeleton className="h-4 w-full mb-2" />
-                    <Skeleton className="h-4 w-3/4 mb-4" />
-                    <div className="grid grid-cols-2 gap-4">
-                      <Skeleton className="h-16" />
-                      <Skeleton className="h-16" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+          <div className="flex justify-center py-20">
+            <BrutalLoader size="lg" />
           </div>
         ) : filteredCollaborations.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4 }}
-            className="flex flex-col items-center justify-center py-16 px-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800"
-          >
-            <motion.div
-              animate={{ rotate: [0, 10, -10, 0] }}
-              transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-            >
-              <MessageSquare className="w-16 h-16 text-zinc-400 dark:text-zinc-600 mb-4" />
-            </motion.div>
-            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
-              No collaborations found
-            </h3>
-            <p className="text-zinc-600 dark:text-zinc-400 text-center max-w-md">
+          <div className="bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-16 text-center">
+            <div className="w-20 h-20 bg-[#FDFBF7] border-[3px] border-black flex items-center justify-center mx-auto mb-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-3">
+              <MessageSquare className="w-10 h-10 text-black" />
+            </div>
+            <h3 className="text-2xl font-black uppercase mb-2">No Collaborations Found</h3>
+            <p className="font-bold text-black/60 uppercase tracking-wide max-w-md mx-auto">
               {filter === 'all'
-                ? "You haven't received any collaboration requests yet. Brands will send you requests through the platform."
+                ? "You haven't received any collaboration requests yet. Time to shine!"
                 : `No ${filter} collaborations found.`}
             </p>
-          </motion.div>
+          </div>
         ) : (
-          <AnimatePresence mode="wait">
-            <div className="space-y-4">
-              {filteredCollaborations.map((collab, index) => (
+          <div className="grid md:grid-cols-2 gap-8">
+            <AnimatePresence>
+              {filteredCollaborations.map((collab) => (
                 <motion.div
                   key={collab.id}
-                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                  transition={{ 
-                    duration: 0.3, 
-                    delay: index * 0.05,
-                    type: 'spring',
-                    stiffness: 100
-                  }}
-                  whileHover={{ scale: 1.01, y: -2 }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  layout
                 >
-                  <Card className={`hover:shadow-xl transition-all duration-300 ${
-                    updateStatusMutation.isPending && updateStatusMutation.variables?.id === collab.id ? 'opacity-60 pointer-events-none' : ''
-                  }`}>
-                <CardHeader className="pb-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <CardTitle className="text-lg">
+                  <BrutalCard className="h-full flex flex-col">
+                    <div className="flex justify-between items-start mb-6">
+                      <div>
+                        <h3 className="text-2xl font-black uppercase leading-tight">
                           {collab.brand.brandProfile?.companyName || collab.brand.name || 'Brand'}
-                        </CardTitle>
-                        {getStatusBadge(collab.status)}
+                        </h3>
+                        <p className="text-xs font-bold text-black/50 uppercase tracking-widest mt-1">
+                          Received {new Date(collab.createdAt).toLocaleDateString()}
+                        </p>
                       </div>
-                      <CardDescription className="text-xs">
-                        Received: {new Date(collab.createdAt).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                        })}
-                      </CardDescription>
+                      {getStatusBadge(collab.status)}
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                    {collab.message}
-                  </p>
 
-                  {collab.proposalDetails && (
-                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
-                      {collab.proposalDetails.budget && (
-                        <div>
-                          <p className="text-xs text-zinc-500 dark:text-zinc-500 uppercase tracking-wide mb-1">
-                            Budget
-                          </p>
-                          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                            ₹{collab.proposalDetails.budget.toLocaleString()}
-                          </p>
-                        </div>
-                      )}
-                      {collab.proposalDetails.timeline && (
-                        <div>
-                          <p className="text-xs text-zinc-500 dark:text-zinc-500 uppercase tracking-wide mb-1">
-                            Timeline
-                          </p>
-                          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                            {collab.proposalDetails.timeline}
-                          </p>
-                        </div>
-                      )}
-                      {collab.proposalDetails.goals && collab.proposalDetails.goals.length > 0 && (
-                        <div className="col-span-2">
-                          <p className="text-xs text-zinc-500 dark:text-zinc-500 uppercase tracking-wide mb-2">
-                            Goals
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            {(collab.proposalDetails.goals as string[]).map((goal, idx) => (
-                              <Badge key={idx} variant="outline" className="text-xs">
-                                {goal}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                    <div className="mb-6 flex-grow">
+                      <p className="text-lg font-medium leading-relaxed border-l-[2px] border-black pl-4 py-1 mb-4 bg-gray-50">
+                        "{collab.message}"
+                      </p>
 
-                  {collab.status === 'pending' && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.2 }}
-                      className="flex gap-3 pt-4 border-t border-zinc-200 dark:border-zinc-800"
-                    >
-                      <motion.div className="flex-1" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                        <Button
-                          onClick={() => handleStatusChange(collab.id, 'accepted')}
-                          disabled={updateStatusMutation.isPending && updateStatusMutation.variables?.id === collab.id}
-                          className="w-full bg-green-600 hover:bg-green-700 text-white font-medium shadow-sm hover:shadow-md transition-all"
-                        >
-                          {updateStatusMutation.isPending && updateStatusMutation.variables?.id === collab.id ? (
-                            <motion.div
-                              animate={{ rotate: 360 }}
-                              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                              className="flex items-center gap-2"
-                            >
-                              <Sparkles className="h-4 w-4" />
-                              Processing...
-                            </motion.div>
-                          ) : (
-                            <>
-                              <CheckCircle2 className="h-4 w-4 mr-2" />
-                              Accept
-                            </>
+                      {collab.proposalDetails && (
+                        <div className="grid grid-cols-2 gap-4 mt-4">
+                          {collab.proposalDetails.budget && (
+                            <div className="border-[2px] border-black p-3 bg-[#FFD93D]/20">
+                              <p className="text-xs font-black uppercase">Budget</p>
+                              <p className="text-xl font-bold">₹{collab.proposalDetails.budget.toLocaleString()}</p>
+                            </div>
                           )}
-                        </Button>
-                      </motion.div>
-                      <motion.div className="flex-1" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                        <Button
-                          onClick={() => handleStatusChange(collab.id, 'declined')}
-                          disabled={updateStatusMutation.isPending && updateStatusMutation.variables?.id === collab.id}
-                          variant="outline"
-                          className="w-full border-red-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-950 hover:border-red-400 transition-all"
-                        >
-                          {updateStatusMutation.isPending && updateStatusMutation.variables?.id === collab.id ? (
-                            <motion.div
-                              animate={{ rotate: 360 }}
-                              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                              className="flex items-center gap-2"
-                            >
-                              <Sparkles className="h-4 w-4" />
-                              Processing...
-                            </motion.div>
-                          ) : (
-                            <>
-                              <XCircle className="h-4 w-4 mr-2" />
-                              Decline
-                            </>
+                          {collab.proposalDetails.timeline && (
+                            <div className="border-[2px] border-black p-3 bg-[#90E8FF]/20">
+                              <p className="text-xs font-black uppercase">Timeline</p>
+                              <p className="text-xl font-bold">{collab.proposalDetails.timeline}</p>
+                            </div>
                           )}
-                        </Button>
-                      </motion.div>
-                    </motion.div>
-                  )}
-
-                  {collab.proposalDetails?.productId && (
-                    <div className="pt-2">
-                      <Link
-                        href={`/marketplace/${collab.proposalDetails.productId}`}
-                        className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center gap-1"
-                      >
-                        View Product <ArrowRight className="h-3 w-3" />
-                      </Link>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </CardContent>
-                  </Card>
+
+                    {/* Actions */}
+                    <div className="space-y-3 mt-auto pt-6 border-t-[2px] border-black border-dashed">
+                      {collab.status === 'pending' && (
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => handleStatusChange(collab.id, 'accepted')}
+                            disabled={updateStatusMutation.isPending}
+                            className="flex-1 bg-[#BAFCA2] border-[2px] border-black font-black uppercase py-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all flex items-center justify-center gap-2"
+                          >
+                            <CheckCircle2 className="w-5 h-5" /> Accept
+                          </button>
+                          <button
+                            onClick={() => handleStatusChange(collab.id, 'declined')}
+                            disabled={updateStatusMutation.isPending}
+                            className="flex-1 bg-[#FFABAB] border-[2px] border-black font-black uppercase py-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all flex items-center justify-center gap-2"
+                          >
+                            <XCircle className="w-5 h-5" /> Decline
+                          </button>
+                        </div>
+                      )}
+
+                      {collab.proposalDetails?.productId && (
+                        <Link
+                          href={`/marketplace/${collab.proposalDetails.productId}`}
+                          className="block w-full text-center bg-black text-white border-[2px] border-black font-black uppercase py-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+                        >
+                          View Product Details <ArrowRight className="inline w-4 h-4 ml-1" />
+                        </Link>
+                      )}
+                    </div>
+                  </BrutalCard>
                 </motion.div>
               ))}
-            </div>
-          </AnimatePresence>
+            </AnimatePresence>
+          </div>
         )}
 
-        {/* Confirmation Dialog */}
+        {/* Confirmation Dialog (Keeping Shadcn Dialog but styling trigger) */}
         <Dialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog({ open, collabId: null, status: null })}>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
+          <DialogContent className="sm:max-w-[425px] border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-0 overflow-hidden bg-white">
+            <DialogHeader className="p-6 bg-[#FDFBF7] border-b-[3px] border-black">
+              <DialogTitle className="flex items-center gap-2 text-2xl font-black uppercase">
                 {confirmDialog.status === 'accepted' ? (
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  <CheckCircle2 className="h-6 w-6 text-green-600" />
                 ) : (
-                  <XCircle className="h-5 w-5 text-red-600" />
+                  <XCircle className="h-6 w-6 text-red-600" />
                 )}
                 Confirm {confirmDialog.status === 'accepted' ? 'Acceptance' : 'Decline'}
               </DialogTitle>
-              <DialogDescription>
-                Are you sure you want to {confirmDialog.status === 'accepted' ? 'accept' : 'decline'} this collaboration request? 
-                {confirmDialog.status === 'accepted' && ' This action will notify the brand and start the collaboration.'}
+              <DialogDescription className="text-black/70 font-bold">
+                Are you sure you want to {confirmDialog.status === 'accepted' ? 'accept' : 'decline'} this collaboration?
               </DialogDescription>
             </DialogHeader>
-            <DialogFooter className="gap-2">
-              <Button
-                variant="outline"
+            <DialogFooter className="p-6 gap-3">
+              <button
                 onClick={() => setConfirmDialog({ open: false, collabId: null, status: null })}
+                className="px-4 py-2 bg-white border-[2px] border-black font-bold uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none transition-all"
               >
                 Cancel
-              </Button>
-              <Button
+              </button>
+              <button
                 onClick={confirmStatusChange}
-                className={
-                  confirmDialog.status === 'accepted'
-                    ? 'bg-green-600 hover:bg-green-700'
-                    : 'bg-red-600 hover:bg-red-700'
-                }
+                className={`px-4 py-2 border-[2px] border-black font-bold uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none transition-all text-black ${confirmDialog.status === 'accepted' ? 'bg-[#BAFCA2]' : 'bg-[#FFABAB]'
+                  }`}
               >
-                {confirmDialog.status === 'accepted' ? 'Accept' : 'Decline'}
-              </Button>
+                {confirmDialog.status === 'accepted' ? 'Yes, Accept' : 'Yes, Decline'}
+              </button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -392,4 +273,3 @@ export default function InfluencerCollaborationsPage() {
     </div>
   )
 }
-

@@ -46,3 +46,56 @@ export async function PATCH(request: Request) {
   }
 }
 
+export async function GET() {
+  try {
+    const supabase = await createClient()
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const dbUser = await prisma.user.findUnique({
+      where: { email: authUser.email! },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+        influencerProfile: {
+          select: {
+            id: true,
+            bio: true,
+            niches: true,
+            socials: true,
+            audienceType: true,
+            preferredCategories: true,
+            followers: true,
+            engagementRate: true,
+            audienceRate: true,
+            retentionRate: true,
+            badgeTier: true,
+            badgeScore: true,
+            gender: true,
+          }
+        }
+      }
+    })
+
+    if (!dbUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    return NextResponse.json({ user: dbUser })
+  } catch (error) {
+    console.error('Profile fetch error:', error)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+

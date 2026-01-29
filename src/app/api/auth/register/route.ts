@@ -35,9 +35,11 @@ export async function POST(request: Request) {
     const service = createServiceClient()
 
     // CRITICAL: Set approval_status based on role
-    // influencer → 'none' (needs admin approval after onboarding)
-    // brand → 'approved' (no admin approval needed)
-    const approvalStatus = role === 'influencer' ? 'none' : 'approved'
+    // influencer → 'PENDING' (needs admin approval after onboarding)
+    // brand → 'APPROVED' (no admin approval needed)
+    // roles are mapped to uppercase for storage if using strict Enums
+    const dbRole = role.toUpperCase()
+    const approvalStatus = role === 'influencer' ? 'PENDING' : 'APPROVED'
 
     // CRITICAL: ONLY create profile in profiles table
     // Use upsert to handle idempotency (ON CONFLICT DO NOTHING)
@@ -48,9 +50,9 @@ export async function POST(request: Request) {
         {
           id, // auth.users.id - MUST match exactly
           email,
-          role,
+          role: dbRole, // Store as Uppercase to match Prisma Enum
           onboarding_completed: false,
-          approval_status: approvalStatus, // Set based on role
+          approval_status: approvalStatus, // Set based on role (PENDING/APPROVED)
         },
         {
           onConflict: 'id', // If profile exists, do nothing (idempotent)
@@ -69,7 +71,7 @@ export async function POST(request: Request) {
         email,
         role,
       })
-      
+
       // Provide more specific error message
       let errorMessage = 'Database error saving new user'
       if (error.code === '23505') {
@@ -79,7 +81,7 @@ export async function POST(request: Request) {
       } else if (error.message.includes('foreign key')) {
         errorMessage = 'User account not found in authentication system'
       }
-      
+
       return NextResponse.json(
         { error: errorMessage },
         { status: 500 }

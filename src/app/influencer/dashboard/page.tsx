@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { useUser, useGenerations } from '@/lib/react-query/hooks'
 import { ShareModal } from '@/components/tryon/ShareModal'
+import { PortalModal } from '@/components/ui/PortalModal'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/auth-client'
 
@@ -72,12 +73,21 @@ export default function InfluencerDashboard() {
       try {
         // Fetch profile status from API
         const profileRes = await fetch('/api/auth/profile-status')
+
+        if (profileRes.status === 401) {
+          console.warn('Session expired or unauthorized, redirecting to login')
+          const supabase = createClient()
+          await supabase.auth.signOut()
+          router.replace('/login')
+          return
+        }
+
         if (!profileRes.ok) {
-          throw new Error('Failed to fetch profile status')
+          throw new Error(`Failed to fetch profile status: ${profileRes.status} ${profileRes.statusText}`)
         }
 
         const profileData = await profileRes.json()
-        
+
         // DEFENSIVE: Assert valid state
         if (!profileData.onboarding_completed) {
           // Redirect to onboarding if not completed
@@ -257,21 +267,33 @@ export default function InfluencerDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-cream via-cream to-white pt-20 sm:pt-24 pb-16">
-      <div className="container mx-auto px-4 sm:px-6">
+    <div className="min-h-screen bg-[#FDF6EC] pt-20 sm:pt-24 pb-16">
+      <div className="container mx-auto px-4 sm:px-6 z-10">
         {/* Welcome Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", stiffness: 300, damping: 25 }}
-          className="mb-8 sm:mb-10"
+          className="mb-10 sm:mb-12 border-b-[3px] border-black pb-8"
         >
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif text-charcoal mb-2">
-            Welcome Back, <span className="italic text-charcoal/80">{user?.name || 'Creator'}</span>
-          </h1>
-          <p className="text-sm sm:text-base text-charcoal/50">
-            Here&apos;s What&apos;s Happening With Your Account Today.
-          </p>
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-black mb-3 tracking-tight">
+                Welcome Back, <span className="text-black/70">{user?.name || 'Creator'}</span>
+              </h1>
+              <p className="text-base sm:text-lg text-black font-medium">
+                Here&apos;s what&apos;s happening with your account today.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Link
+                href="/influencer/try-on"
+                className="px-6 py-3 bg-black text-white rounded-xl font-bold border-[3px] border-black hover:bg-[#B4F056] hover:text-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+              >
+                New Try-On
+              </Link>
+            </div>
+          </div>
         </motion.div>
 
         {/* Stats Grid */}
@@ -279,22 +301,26 @@ export default function InfluencerDashboard() {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8 sm:mb-10"
+          className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-12 sm:mb-16"
         >
           {stats.map((stat, index) => {
             const Icon = stat.icon
+            // Neo-Brutal colors for stats
+            const bgColors = ['bg-[#FFD93D]', 'bg-[#FF8C69]', 'bg-[#B4F056]', 'bg-[#6EC1E4]']
+            const bgColor = bgColors[index % bgColors.length]
+
             return (
               <motion.div
                 key={stat.label}
                 variants={cardVariants}
-                whileHover={{ y: -4, scale: 1.02 }}
-                className="bg-white rounded-2xl p-5 sm:p-6 border border-charcoal/5 shadow-sm hover:shadow-lg transition-all duration-300"
+                whileHover={{ y: -4 }}
+                className={`bg-white rounded-xl p-6 sm:p-8 border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 relative overflow-hidden group`}
               >
-                <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl ${stat.color} flex items-center justify-center mb-3`}>
-                  <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
+                <div className={`w-12 h-12 rounded-lg ${bgColor} border-[2px] border-black flex items-center justify-center mb-6`}>
+                  <Icon className="w-6 h-6 text-black" />
                 </div>
-                <p className="text-3xl sm:text-4xl font-serif font-bold text-charcoal mb-1">{stat.value}</p>
-                <p className="text-xs sm:text-sm text-charcoal/50">{stat.label}</p>
+                <p className="text-4xl sm:text-5xl font-bold text-black mb-2 tracking-tight">{stat.value}</p>
+                <p className="text-sm text-black font-bold uppercase tracking-wider">{stat.label}</p>
               </motion.div>
             )
           })}
@@ -307,8 +333,8 @@ export default function InfluencerDashboard() {
           transition={{ delay: 0.2 }}
           className="mb-8 sm:mb-12"
         >
-          <h2 className="text-xl sm:text-2xl font-serif text-charcoal mb-4 sm:mb-6">Quick Actions</h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <h2 className="text-xl sm:text-2xl font-bold text-black mb-4 sm:mb-6 uppercase tracking-tight">Quick Actions</h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {quickActions.map((action, index) => {
               const Icon = action.icon
               return (
@@ -319,16 +345,16 @@ export default function InfluencerDashboard() {
                 >
                   <Link
                     href={action.href}
-                    className={`group relative block overflow-hidden rounded-2xl p-5 sm:p-6 transition-all duration-300 h-full ${action.primary
-                      ? 'bg-gradient-to-br from-peach to-orange-300 text-charcoal shadow-lg shadow-peach/20 hover:shadow-xl hover:shadow-peach/30'
-                      : 'bg-white border border-charcoal/5 text-charcoal hover:border-charcoal/15 hover:shadow-lg'
+                    className={`group relative block overflow-hidden rounded-xl p-5 sm:p-6 transition-all duration-300 h-full border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] ${action.primary
+                      ? 'bg-[#FF8C69] text-black'
+                      : 'bg-white text-black'
                       }`}
                   >
-                    <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl ${action.primary ? 'bg-white/40' : 'bg-cream'} flex items-center justify-center mb-3`}>
+                    <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-lg ${action.primary ? 'bg-white border-[2px] border-black' : 'bg-gray-100 border-[2px] border-black'} flex items-center justify-center mb-3`}>
                       <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
-                    <h3 className="font-semibold text-sm sm:text-base mb-1">{action.title}</h3>
-                    <p className={`text-xs sm:text-sm line-clamp-2 ${action.primary ? 'text-charcoal/70' : 'text-charcoal/50'}`}>
+                    <h3 className="font-bold text-sm sm:text-base mb-1">{action.title}</h3>
+                    <p className="text-xs sm:text-sm font-medium opacity-80 line-clamp-2">
                       {action.description}
                     </p>
                     <ArrowRight className="absolute bottom-5 right-5 w-4 h-4 sm:w-5 sm:h-5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -345,13 +371,13 @@ export default function InfluencerDashboard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl sm:text-2xl font-serif text-charcoal">Recent Generations</h2>
+          <div className="flex items-center justify-between mb-6 sm:mb-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-black uppercase tracking-tight">Recent Creations</h2>
             <Link
               href="/influencer/generations"
-              className="text-sm text-charcoal/50 hover:text-charcoal flex items-center gap-1 transition-colors group"
+              className="text-sm font-bold text-black hover:underline flex items-center gap-1.5 transition-colors group px-4 py-2 rounded-lg border-[2px] border-transparent hover:border-black hover:bg-white"
             >
-              View all
+              View gallery
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
@@ -361,104 +387,96 @@ export default function InfluencerDashboard() {
               variants={containerVariants}
               initial="hidden"
               animate="visible"
-              className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
             >
-              {completedGenerations.slice(0, 6).map((job: any) => (
+              {completedGenerations.slice(0, 4).map((job: any) => (
                 <motion.div
                   key={job.id}
                   variants={cardVariants}
                   whileHover={{ y: -6 }}
-                  className="group bg-white rounded-2xl overflow-hidden border border-charcoal/5 shadow-sm hover:shadow-xl hover:border-charcoal/10 transition-all duration-500 cursor-pointer"
+                  className="group bg-white rounded-xl overflow-hidden border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 cursor-pointer flex flex-col"
                   onClick={() => openVariantViewer(job)}
                 >
                   {/* Image Container */}
-                  <div className="aspect-[3/4] overflow-hidden relative">
+                  <div className="aspect-[3/4] overflow-hidden relative bg-gray-100 border-b-[3px] border-black">
                     <motion.img
                       src={job.outputImagePath}
                       alt={`Generation ${job.id.slice(0, 8)}`}
                       className="w-full h-full object-cover"
-                      whileHover={{ scale: 1.08 }}
+                      whileHover={{ scale: 1.05 }}
                       transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
                     />
-                    {/* Gradient overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-                    {/* View variants hint */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      whileHover={{ opacity: 1, y: 0 }}
-                      className="absolute bottom-3 left-3 right-3 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300"
-                    >
-                      <span className="px-3 py-1.5 bg-white/95 backdrop-blur-sm rounded-full text-xs font-medium text-charcoal shadow-lg">
-                        Click to view all variants
-                      </span>
-                    </motion.div>
+                    {/* View Label */}
+                    {/* View Label */}
+                    <div className="absolute inset-x-0 bottom-4 flex justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                      <span className="bg-black text-white font-bold text-sm px-4 py-2 rounded-lg border-[2px] border-white shadow-[2px_2px_0px_0px_rgba(255,255,255,1)]">View Result</span>
+                    </div>
                   </div>
 
                   {/* Info */}
-                  <div className="p-4">
-                    <p className="text-sm font-medium text-charcoal/70 mb-1">
-                      Generation #{job.id.slice(0, 8)}
-                    </p>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-charcoal/40">Status:</span>
-                      <span className={`text-xs font-medium ${job.status?.toLowerCase() === 'completed' || job.status?.toLowerCase() === 'complete'
-                        ? 'text-emerald-600'
-                        : 'text-amber-600'
-                        }`}>
-                        {job.status?.toLowerCase() === 'completed' || job.status?.toLowerCase() === 'complete'
-                          ? 'Completed'
-                          : job.status}
-                      </span>
+                  <div className="p-4 sm:p-5 flex items-center justify-between bg-white">
+                    <div>
+                      <p className="text-xs font-mono font-bold text-black/60 mb-1">
+                        #{job.id.slice(0, 6)}
+                      </p>
+                      <p className="text-sm font-bold text-black">
+                        {new Date(job.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </p>
                     </div>
+                    {/* Status Dot */}
+                    <div className={`w-3 h-3 rounded-none border border-black ${job.status?.toLowerCase() === 'completed' || job.status?.toLowerCase() === 'complete' ? 'bg-[#98FB98]' : 'bg-[#FFE4B5]'}`} />
                   </div>
                 </motion.div>
               ))}
             </motion.div>
           ) : (
-            <div className="bg-white rounded-2xl border border-dashed border-charcoal/10 p-12 text-center">
-              <Sparkles className="w-16 h-16 text-charcoal/15 mx-auto mb-4" />
-              <h3 className="text-xl font-serif text-charcoal mb-2">No generations yet</h3>
-              <p className="text-charcoal/50 mb-6">Start creating stunning virtual try-ons with AI</p>
+            <div className="bg-white rounded-xl border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-12 text-center max-w-lg mx-auto">
+              <div className="w-16 h-16 bg-[#FFD93D] rounded-lg border-[3px] border-black flex items-center justify-center mx-auto mb-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <Sparkles className="w-8 h-8 text-black" />
+              </div>
+              <h3 className="text-xl font-bold text-black mb-2 uppercase">Build your portfolio</h3>
+              <p className="text-black font-medium mb-8">Create your first virtual try-on to start seeing results here.</p>
               <Link
                 href="/influencer/try-on"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-charcoal text-cream rounded-full font-medium hover:bg-charcoal/90 transition-colors shadow-lg shadow-charcoal/20"
+                className="inline-flex items-center gap-2 px-8 py-3 bg-black text-white rounded-none font-bold hover:bg-[#B4F056] hover:text-black border-[3px] border-black transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
               >
                 <Camera className="w-5 h-5" />
-                Start Generating
+                Start Creating
               </Link>
             </div>
           )}
         </motion.div>
       </div>
 
-      {/* Variant Viewer Modal */}
-      <AnimatePresence>
+      {/* Variant Viewer Modal - Moved to Portal */}
+      <PortalModal isOpen={!!selectedGeneration} onClose={closeVariantViewer}>
         {selectedGeneration && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex flex-col"
+            className="fixed inset-0 bg-black/80 backdrop-blur-md flex flex-col"
             onClick={closeVariantViewer}
           >
-            {/* Large Floating Back Button - Below navbar */}
+            {/* Large Floating Back Button - Restored & Styled - Z-Index Safe */}
             <motion.button
               onClick={closeVariantViewer}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="fixed top-20 left-4 z-[120] flex items-center gap-2 px-5 py-3 bg-white text-charcoal rounded-full font-semibold shadow-2xl hover:shadow-xl transition-all border border-charcoal/10"
+              className="absolute top-4 left-4 z-[10000] md:hidden flex items-center gap-2 px-4 py-3 bg-white text-black rounded-xl font-bold border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
             >
               <ArrowLeft className="w-5 h-5" />
-              ← Back
+              <span className="sr-only">Back</span>
             </motion.button>
+
             {/* Header */}
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-white/10"
+              className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-white/20 relative z-[200]"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Left side - Back button + Actions */}
@@ -467,7 +485,7 @@ export default function InfluencerDashboard() {
                   onClick={closeVariantViewer}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full text-sm font-medium transition-colors"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-white text-black rounded-lg text-sm font-bold border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-colors"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Back
@@ -476,7 +494,7 @@ export default function InfluencerDashboard() {
                   onClick={() => handleDownload(getGenerationVariants(selectedGeneration)[selectedVariantIndex]?.url)}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-white text-charcoal rounded-full text-sm font-medium shadow-lg"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-white text-black rounded-lg text-sm font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-[2px] border-black"
                 >
                   <Download className="w-4 h-4" />
                   Download
@@ -485,7 +503,7 @@ export default function InfluencerDashboard() {
                   onClick={() => handleShare(getGenerationVariants(selectedGeneration)[selectedVariantIndex]?.url)}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-peach text-white rounded-full text-sm font-medium shadow-lg"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-[#FF8C69] text-black rounded-lg text-sm font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-[2px] border-black"
                 >
                   <Share2 className="w-4 h-4" />
                   Share
@@ -493,7 +511,7 @@ export default function InfluencerDashboard() {
               </div>
 
               <div className="text-center">
-                <span className="text-white/60 text-xs">Generation</span>
+                <span className="text-white/60 text-xs font-mono">Generation</span>
                 <p className="text-white font-mono text-sm">#{selectedGeneration.id.slice(0, 8)}</p>
               </div>
 
@@ -501,14 +519,14 @@ export default function InfluencerDashboard() {
                 onClick={closeVariantViewer}
                 whileHover={{ scale: 1.1, rotate: 90 }}
                 whileTap={{ scale: 0.9 }}
-                className="p-2.5 bg-white/10 hover:bg-white/20 rounded-full text-white"
+                className="p-2.5 bg-white text-black rounded-lg border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
               >
                 <X className="w-5 h-5" />
               </motion.button>
             </motion.div>
 
             {/* Main Image Display */}
-            <div className="flex-1 flex items-center justify-center p-4 sm:p-8 relative" onClick={(e) => e.stopPropagation()}>
+            <div className="flex-1 flex items-center justify-center p-4 sm:p-8 relative z-[100]" onClick={(e) => e.stopPropagation()}>
               {/* Navigation Arrows */}
               {getGenerationVariants(selectedGeneration).length > 1 && (
                 <>
@@ -516,7 +534,7 @@ export default function InfluencerDashboard() {
                     onClick={() => navigateVariant('prev')}
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    className="absolute left-4 sm:left-8 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white z-10"
+                    className="absolute left-4 sm:left-8 p-3 bg-white text-black rounded-full border-[2px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-10"
                   >
                     <ChevronLeft className="w-6 h-6" />
                   </motion.button>
@@ -524,7 +542,7 @@ export default function InfluencerDashboard() {
                     onClick={() => navigateVariant('next')}
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    className="absolute right-4 sm:right-8 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white z-10"
+                    className="absolute right-4 sm:right-8 p-3 bg-white text-black rounded-full border-[2px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-10"
                   >
                     <ChevronRight className="w-6 h-6" />
                   </motion.button>
@@ -539,7 +557,7 @@ export default function InfluencerDashboard() {
                 transition={{ type: "spring", stiffness: 300, damping: 25 }}
                 src={getGenerationVariants(selectedGeneration)[selectedVariantIndex]?.url}
                 alt="Generated image"
-                className="max-w-full max-h-[70vh] object-contain rounded-xl shadow-2xl"
+                className="max-w-full max-h-[85vh] object-contain rounded-xl border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(255,255,255,0.2)]"
                 draggable={false}
               />
             </div>
@@ -548,7 +566,7 @@ export default function InfluencerDashboard() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="px-4 sm:px-6 py-4 border-t border-white/10"
+              className="px-4 sm:px-6 py-4 border-t border-white/10 relative z-[200]"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-center gap-4">
@@ -558,9 +576,9 @@ export default function InfluencerDashboard() {
                     onClick={() => setSelectedVariantIndex(idx)}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className={`relative rounded-xl overflow-hidden border-2 transition-all ${selectedVariantIndex === idx
-                      ? 'border-peach ring-2 ring-peach/30'
-                      : 'border-white/20 hover:border-white/40'
+                    className={`relative rounded-lg overflow-hidden border-[3px] transition-all ${selectedVariantIndex === idx
+                      ? 'border-[#FF8C69] shadow-[4px_4px_0px_0px_#FF8C69]'
+                      : 'border-white/20 hover:border-white/50'
                       }`}
                   >
                     <img
@@ -568,9 +586,9 @@ export default function InfluencerDashboard() {
                       alt={variant.label}
                       className="w-20 h-28 sm:w-24 sm:h-32 object-cover"
                     />
-                    <div className={`absolute bottom-0 left-0 right-0 py-1.5 text-center text-[10px] font-medium ${selectedVariantIndex === idx
-                      ? 'bg-peach text-white'
-                      : 'bg-black/60 text-white/80'
+                    <div className={`absolute bottom-0 left-0 right-0 py-1.5 text-center text-[10px] font-bold uppercase ${selectedVariantIndex === idx
+                      ? 'bg-[#FF8C69] text-black'
+                      : 'bg-black/60 text-white'
                       }`}>
                       {variant.label}
                     </div>
@@ -580,7 +598,7 @@ export default function InfluencerDashboard() {
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </PortalModal>
 
       {/* Share Modal */}
       <ShareModal

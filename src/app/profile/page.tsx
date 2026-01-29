@@ -7,1051 +7,357 @@ import {
   Mail,
   Calendar,
   Loader2,
-  Image as ImageIcon,
-  TrendingUp,
-  Trophy,
-  Zap,
-  Target,
-  Check,
-  X,
   Camera,
   Edit3,
   Shield,
   Star,
   Award,
   Settings,
-  Trash2,
-  Crown,
+  TrendingUp,
+  Trophy,
+  Zap,
+  Check,
+  X,
   Instagram,
   Youtube,
   Twitter,
-  Search,
   ExternalLink,
+  MapPin,
+  Briefcase,
+  Users
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useUser, useProfileStats } from '@/lib/react-query/hooks'
-import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import BadgeDisplay, { type BadgeTier } from '@/components/influencer/BadgeDisplay'
+import { useQueryClient, useQuery } from '@tanstack/react-query'
 
-type ProfileImage = {
-  id: string
-  imageUrl: string
-  label: string | null
-  isPrimary: boolean
-  createdAt: string
+// Neo-Brutalist Card Component
+function BrutalCard({ children, className = '', title }: { children: React.ReactNode, className?: string, title?: string }) {
+  return (
+    <div className={`bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-8 relative ${className}`}>
+      {title && (
+        <div className="absolute -top-4 left-6 bg-white px-4 border-[3px] border-black text-sm font-bold uppercase tracking-widest shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+          {title}
+        </div>
+      )}
+      {children}
+    </div>
+  )
+}
+
+// Neo-Brutalist Tag
+function BrutalTag({ label, color = 'bg-white' }: { label: string, color?: string }) {
+  return (
+    <span className={`px-4 py-2 text-sm font-bold border-[2px] border-black text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all cursor-default uppercase tracking-wide ${color}`}>
+      {label}
+    </span>
+  )
+}
+
+// Fetcher function
+const fetchProfileData = async () => {
+  const res = await fetch('/api/profile')
+  if (!res.ok) throw new Error('Failed to fetch profile')
+  return res.json()
 }
 
 export default function ProfilePage() {
-  const { data: userData, isLoading: userLoading } = useUser()
-  const { data: stats, isLoading: statsLoading } = useProfileStats()
-  const queryClient = useQueryClient()
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState('')
   const [saving, setSaving] = useState(false)
-  const [profileImages, setProfileImages] = useState<ProfileImage[]>([])
-  const [profileImagesLoading, setProfileImagesLoading] = useState(false)
-  const [profileImagesUploading, setProfileImagesUploading] = useState(false)
-  const [editingSocials, setEditingSocials] = useState(false)
-  const [socials, setSocials] = useState<Record<string, string>>({})
-  const [socialsLoading, setSocialsLoading] = useState(false)
-  const [socialsSaving, setSocialsSaving] = useState(false)
-  const [metrics, setMetrics] = useState({ audienceRate: '', retentionRate: '' })
-  const [badgeTier, setBadgeTier] = useState<BadgeTier>(null)
-  const [badgeScore, setBadgeScore] = useState<number | null>(null)
-  const [metricsLoading, setMetricsLoading] = useState(false)
-  const [metricsSaving, setMetricsSaving] = useState(false)
 
+  const queryClient = useQueryClient()
+
+  // REAL-TIME DATA FETCHING
+  // uses react-query to cache and auto-update data
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['full-profile'],
+    queryFn: fetchProfileData,
+    refetchOnWindowFocus: true // Auto-refresh when user comes back to tab
+  })
+
+  // Sync name state when data loads
   useEffect(() => {
-    if (userData?.name) {
-      setName(userData.name)
+    if (data?.user?.name) {
+      setName(data.user.name)
     }
-  }, [userData?.name])
+  }, [data?.user?.name])
 
-  const fetchProfileImages = async () => {
-    setProfileImagesLoading(true)
-    try {
-      const res = await fetch('/api/profile-images', { cache: 'no-store' })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to fetch profile images')
-      setProfileImages((data.images || []) as ProfileImage[])
-    } catch (e) {
-      console.warn(e)
-      // Silent: profile page still usable even if images fail
-    } finally {
-      setProfileImagesLoading(false)
-    }
-  }
+  const user = data?.user
+  const profile = user?.influencerProfile
 
-  useEffect(() => {
-    if (userData?.id) {
-      fetchProfileImages()
-      if (userData?.role === 'INFLUENCER') {
-        fetchSocials()
-        fetchMetrics()
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userData?.id, userData?.role])
-
-  const fetchSocials = async () => {
-    setSocialsLoading(true)
-    try {
-      const res = await fetch('/api/profile/socials')
-      const data = await res.json()
-      if (res.ok) {
-        setSocials((data.socials || {}) as Record<string, string>)
-      }
-    } catch (e) {
-      console.warn('Failed to fetch socials:', e)
-    } finally {
-      setSocialsLoading(false)
-    }
-  }
-
-  const fetchMetrics = async () => {
-    setMetricsLoading(true)
-    try {
-      const res = await fetch('/api/profile/metrics')
-      const data = await res.json()
-      if (res.ok && data?.profile) {
-        setMetrics({
-          audienceRate:
-            data.profile.audienceRate !== null && data.profile.audienceRate !== undefined
-              ? String(data.profile.audienceRate)
-              : '',
-          retentionRate:
-            data.profile.retentionRate !== null && data.profile.retentionRate !== undefined
-              ? String(data.profile.retentionRate)
-              : '',
-        })
-        setBadgeTier(data.profile.badgeTier ?? null)
-        setBadgeScore(
-          data.profile.badgeScore !== null && data.profile.badgeScore !== undefined
-            ? Number(data.profile.badgeScore)
-            : null
-        )
-      }
-    } catch (e) {
-      console.warn('Failed to fetch metrics:', e)
-    } finally {
-      setMetricsLoading(false)
-    }
-  }
-
-  const handleSaveSocials = async () => {
-    setSocialsSaving(true)
-    try {
-      const response = await fetch('/api/profile/socials', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(socials),
-      })
-      if (response.ok) {
-        setEditingSocials(false)
-        toast.success('Social media links updated successfully')
-      } else {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to update social media')
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update social media')
-    } finally {
-      setSocialsSaving(false)
-    }
-  }
-
-  const handleSaveMetrics = async () => {
-    setMetricsSaving(true)
-    try {
-      const response = await fetch('/api/profile/metrics', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          audienceRate: metrics.audienceRate === '' ? 0 : Number(metrics.audienceRate),
-          retentionRate: metrics.retentionRate === '' ? 0 : Number(metrics.retentionRate),
-        }),
-      })
-      const data = await response.json()
-      if (response.ok) {
-        toast.success('Audience metrics updated')
-        setBadgeTier(data?.profile?.badgeTier ?? badgeTier)
-        setBadgeScore(
-          data?.profile?.badgeScore !== null && data?.profile?.badgeScore !== undefined
-            ? Number(data.profile.badgeScore)
-            : badgeScore
-        )
-      } else {
-        throw new Error(data.error || 'Failed to update metrics')
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update metrics')
-    } finally {
-      setMetricsSaving(false)
-    }
-  }
-
-  const loading = userLoading || statsLoading
-  const profile = userData
-
-  const handleSave = async () => {
-    if (!name.trim()) {
-      toast.error('Name cannot be empty')
-      return
-    }
+  const handleSaveName = async () => {
+    if (!name.trim()) return
     setSaving(true)
     try {
-      const response = await fetch('/api/profile', {
+      const res = await fetch('/api/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim() }),
+        body: JSON.stringify({ name: name.trim() })
       })
-      if (response.ok) {
-        queryClient.invalidateQueries({ queryKey: ['user'] })
+      if (res.ok) {
+        // Invalidate query to trigger real-time update
+        await queryClient.invalidateQueries({ queryKey: ['full-profile'] })
         setEditing(false)
-        toast.success('Profile updated successfully')
+        toast.success('Name updated')
       } else {
-        toast.error('Failed to update profile')
+        throw new Error('Failed')
       }
     } catch {
-      toast.error('Failed to update profile')
+      toast.error('Failed to update name')
     } finally {
       setSaving(false)
     }
   }
 
-  const getLevelInfo = (level: number) => {
-    if (level >= 10) return { label: 'Master', color: 'bg-purple-500', textColor: 'text-purple-600', bgColor: 'bg-purple-50', icon: Award }
-    if (level >= 7) return { label: 'Expert', color: 'bg-blue-500', textColor: 'text-blue-600', bgColor: 'bg-blue-50', icon: Star }
-    if (level >= 5) return { label: 'Pro', color: 'bg-emerald-500', textColor: 'text-emerald-600', bgColor: 'bg-emerald-50', icon: Trophy }
-    if (level >= 3) return { label: 'Rising', color: 'bg-amber-500', textColor: 'text-amber-600', bgColor: 'bg-amber-50', icon: TrendingUp }
-    return { label: 'Starter', color: 'bg-gray-400', textColor: 'text-gray-600', bgColor: 'bg-gray-50', icon: Zap }
+  const getLevelInfo = (score: number = 0) => {
+    // Simple level calc based on score (0-100) or just default
+    if (score >= 90) return { label: 'Master', bg: 'bg-purple-400' }
+    if (score >= 70) return { label: 'Expert', bg: 'bg-blue-400' }
+    if (score >= 50) return { label: 'Pro', bg: 'bg-green-400' }
+    return { label: 'Starter', bg: 'bg-yellow-400' }
   }
 
-  const formatDate = (dateString: string | undefined) => {
-    if (!dateString) return 'Recently joined'
-    try {
-      const date = new Date(dateString)
-      if (isNaN(date.getTime())) return 'Recently joined'
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })
-    } catch {
-      return 'Recently joined'
-    }
-  }
-
-  const fileToBase64 = (file: File) =>
-    new Promise<string>((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => resolve(String(reader.result))
-      reader.onerror = () => reject(new Error('Failed to read image'))
-      reader.readAsDataURL(file)
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      year: 'numeric'
     })
-
-  const handleUploadProfileImages = async (files: FileList | null) => {
-    if (!files || files.length === 0) return
-    const fileArr = Array.from(files)
-    setProfileImagesUploading(true)
-    try {
-      for (let i = 0; i < fileArr.length; i++) {
-        const base64 = await fileToBase64(fileArr[i])
-        const res = await fetch('/api/profile-images', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            imageBase64: base64,
-            label: fileArr[i].name.slice(0, 60),
-            makePrimary: profileImages.length === 0 && i === 0,
-          }),
-        })
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error || 'Upload failed')
-      }
-      toast.success('Photo(s) uploaded')
-      await fetchProfileImages()
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to upload photo(s)')
-    } finally {
-      setProfileImagesUploading(false)
-    }
   }
 
-  const handleDeleteProfileImage = async (id: string) => {
-    try {
-      const res = await fetch(`/api/profile-images/${id}`, { method: 'DELETE' })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Delete failed')
-      toast.success('Photo deleted')
-      await fetchProfileImages()
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to delete photo')
-    }
-  }
-
-  const handleSetPrimaryProfileImage = async (id: string) => {
-    try {
-      const res = await fetch(`/api/profile-images/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ makePrimary: true }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Update failed')
-      toast.success('Primary photo updated')
-      await fetchProfileImages()
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to set primary photo')
-    }
-  }
-
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-cream pt-24 flex items-center justify-center">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-        >
-          <Loader2 className="w-8 h-8 text-charcoal/30" />
-        </motion.div>
+      <div className="min-h-screen bg-[#FDFBF7] pt-24 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-black" />
       </div>
     )
   }
 
-  if (!profile) {
+  if (!user) {
     return (
-      <div className="min-h-screen bg-cream pt-24">
-        <div className="container mx-auto px-6 py-8">
-          <div className="bg-white rounded-2xl border border-subtle p-16 text-center">
-            <User className="w-16 h-16 text-charcoal/20 mx-auto mb-4" />
-            <p className="text-charcoal/60 mb-4">Profile not found</p>
-            <Link href="/login" className="text-peach hover:underline">
-              Please log in
-            </Link>
-          </div>
-        </div>
+      <div className="min-h-screen bg-[#FDFBF7] pt-24 flex items-center justify-center">
+        <p className="text-xl font-bold">Profile not found. Please log in.</p>
       </div>
     )
   }
 
-  const xpPercentage = stats ? Math.min((stats.xp / stats.nextLevelXp) * 100, 100) : 0
-  const levelInfo = stats ? getLevelInfo(stats.level) : getLevelInfo(1)
-  const LevelIcon = levelInfo.icon
+  const level = getLevelInfo(Number(profile?.badgeScore || 0))
 
   return (
-    <div className="min-h-screen bg-cream pt-24 pb-12">
-      <div className="container mx-auto px-6">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-10"
-        >
-          <h1 className="text-4xl md:text-5xl font-serif text-charcoal">
-            Your <span className="italic">Profile</span>
-          </h1>
-          <p className="text-charcoal/60 mt-2">Manage your account and view your progress</p>
-        </motion.div>
+    <div className="min-h-screen bg-[#FDFBF7] pt-28 pb-20">
+      <div className="container mx-auto px-6 max-w-7xl">
 
-        <div className="grid gap-8 lg:grid-cols-3">
-          {/* Main Profile Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="lg:col-span-2 space-y-6"
-          >
-            {/* Profile Header Card */}
-            <div className="bg-white rounded-3xl border border-subtle overflow-hidden">
-              {/* Cover gradient */}
-              <div className="h-32 bg-gradient-to-r from-peach via-rose/60 to-orange-300 relative">
-                <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
+        {/* Header */}
+        <div className="mb-16">
+          <h1 className="text-6xl md:text-7xl font-black text-black uppercase mb-4 tracking-tight leading-none">
+            Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-black to-gray-500">Profile</span>
+          </h1>
+          <p className="text-xl font-bold text-black/60 max-w-2xl border-l-[4px] border-[#FFD93D] pl-6 py-2">
+            Manage your digital persona, track your growth, and showcase your influence.
+          </p>
+        </div>
+
+        <div className="grid lg:grid-cols-12 gap-10">
+
+          {/* Left Column: Main Profile Info */}
+          <div className="lg:col-span-8 space-y-10">
+
+            {/* Identity Card */}
+            <BrutalCard className="pt-20 mt-12">
+              {/* Avatar */}
+              <div className="absolute -top-12 left-8">
+                <div className="w-32 h-32 bg-[#FFD93D] border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-5xl font-black text-black">
+                  {user.name?.charAt(0).toUpperCase() || 'U'}
+                </div>
               </div>
 
-              {/* Avatar and basic info */}
-              <div className="px-8 pb-8 -mt-16 relative">
-                <div className="flex flex-col sm:flex-row sm:items-end gap-6">
-                  {/* Avatar */}
-                  <div className="relative">
-                    <div className="w-32 h-32 rounded-2xl bg-gradient-to-br from-peach to-orange-400 flex items-center justify-center text-5xl font-bold text-white shadow-xl border-4 border-white">
-                      {profile.name?.charAt(0).toUpperCase() || profile.email?.charAt(0).toUpperCase() || 'U'}
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div>
+                  {editing ? (
+                    <div className="flex items-center gap-3 mb-2">
+                      <input
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="text-3xl font-black bg-white border-[3px] border-black px-4 py-2 w-full max-w-sm focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+                        autoFocus
+                      />
+                      <button onClick={handleSaveName} disabled={saving} className="bg-black text-white p-3 border-[3px] border-black hover:bg-white hover:text-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
+                        <Check className="w-5 h-5" />
+                      </button>
+                      <button onClick={() => setEditing(false)} className="bg-white text-black p-3 border-[3px] border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
+                        <X className="w-5 h-5" />
+                      </button>
                     </div>
-                    <button className="absolute bottom-2 right-2 w-8 h-8 bg-charcoal text-white rounded-lg flex items-center justify-center shadow-lg hover:bg-charcoal/80 transition-colors">
-                      <Camera className="w-4 h-4" />
-                    </button>
-                  </div>
+                  ) : (
+                    <div className="flex items-center gap-4 group">
+                      <h2 className="text-4xl font-black uppercase tracking-tight">{user.name || 'Set Name'}</h2>
+                      <button onClick={() => setEditing(true)} className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-black/5 rounded">
+                        <Edit3 className="w-5 h-5" />
+                      </button>
+                    </div>
+                  )}
 
-                  {/* Name and role */}
-                  <div className="flex-1 pt-4 sm:pt-0">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h2 className="text-2xl md:text-3xl font-serif text-charcoal">
-                          {profile.name || 'Set your name'}
-                        </h2>
-                        <div className="flex items-center gap-3 mt-2">
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 text-sm font-medium bg-charcoal/5 rounded-full text-charcoal/70">
-                            <Shield className="w-3.5 h-3.5" />
-                            {profile.role === 'INFLUENCER' ? 'Influencer' : 'Brand'}
-                          </span>
-                          {stats && (
-                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-sm font-medium rounded-full ${levelInfo.bgColor} ${levelInfo.textColor}`}>
-                              <LevelIcon className="w-3.5 h-3.5" />
-                              {levelInfo.label}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <Link
-                        href="/settings"
-                        className="p-2 text-charcoal/50 hover:text-charcoal hover:bg-charcoal/5 rounded-xl transition-all"
-                      >
-                        <Settings className="w-5 h-5" />
-                      </Link>
-                    </div>
+                  <div className="flex flex-wrap gap-3 mt-4">
+                    <span className="px-3 py-1 bg-black text-white text-xs font-bold uppercase tracking-widest border-[2px] border-black">
+                      {user.role}
+                    </span>
+                    <span className={`px-3 py-1 ${level.bg} text-black text-xs font-bold uppercase tracking-widest border-[2px] border-black`}>
+                      {level.label}
+                    </span>
+                    <span className="px-3 py-1 bg-white text-black text-xs font-bold uppercase tracking-widest border-[2px] border-black flex items-center gap-2">
+                      <Calendar className="w-3 h-3" />
+                      Joined {formatDate(user.createdAt)}
+                    </span>
+                  </div>
+                </div>
+
+                <Link href="/settings" className="px-6 py-3 bg-white border-[3px] border-black font-bold uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center gap-2 text-sm">
+                  <Settings className="w-4 h-4" />
+                  Settings
+                </Link>
+              </div>
+
+              <div className="mt-8 pt-8 border-t-[3px] border-black space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 border-[2px] border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    <Mail className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold uppercase text-black/50 tracking-widest">Email Address</p>
+                    <p className="text-lg font-bold">{user.email}</p>
                   </div>
                 </div>
               </div>
-            </div>
+            </BrutalCard>
 
-            {/* Account Details Card */}
-            <div className="bg-white rounded-3xl border border-subtle p-8">
-              <h3 className="text-lg font-semibold text-charcoal mb-6">Account Details</h3>
+            {/* About & Bio */}
+            <BrutalCard title="About Me">
+              <p className="text-lg font-medium leading-relaxed text-black/80">
+                {profile?.bio || 'No bio added yet. Tell brands about yourself!'}
+              </p>
 
-              <div className="space-y-6">
-                {/* Name Field */}
-                <div className="flex items-start justify-between gap-4 p-4 bg-cream/50 rounded-2xl">
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm">
-                      <User className="w-5 h-5 text-charcoal/60" />
+              {/* Niches */}
+              <div className="mt-8">
+                <h3 className="text-xs font-bold uppercase text-black/50 tracking-widest mb-4">Niches & Focus</h3>
+                <div className="flex flex-wrap gap-3">
+                  {profile?.niches && Array.isArray(profile.niches) && profile.niches.map((niche: string) => (
+                    <BrutalTag key={niche} label={niche} color="bg-[#FF90E8]" />
+                  ))}
+                  {profile?.preferredCategories && Array.isArray(profile.preferredCategories) && profile.preferredCategories.map((cat: string) => (
+                    <BrutalTag key={cat} label={cat} color="bg-[#90E8FF]" />
+                  ))}
+                  {(!profile?.niches?.length && !profile?.preferredCategories?.length) && (
+                    <span className="text-black/50 italic font-medium">No niches selected. Update in settings.</span>
+                  )}
+                </div>
+              </div>
+            </BrutalCard>
+
+            {/* Socials - Display Only for readability */}
+            {profile?.socials && Object.keys(profile.socials).length > 0 && (
+              <BrutalCard title="Social Presence">
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {Object.entries(profile.socials).map(([platform, handle]) => {
+                    if (!handle) return null
+                    const p = platform.toLowerCase()
+                    let Icon = ExternalLink
+                    let bg = 'bg-white'
+
+                    if (p === 'instagram') { Icon = Instagram; bg = 'bg-pink-100' }
+                    if (p === 'youtube') { Icon = Youtube; bg = 'bg-red-100' }
+                    if (p === 'twitter') { Icon = Twitter; bg = 'bg-blue-100' }
+                    return (
+                      <div key={platform} className={`flex items-center gap-4 p-4 border-[2px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${bg}`}>
+                        <Icon className="w-6 h-6" />
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-widest">{platform}</p>
+                          <p className="font-bold">{(handle as string).replace('@', '')}</p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </BrutalCard>
+            )}
+
+          </div>
+
+          {/* Right Column: Stats & Metrics */}
+          <div className="lg:col-span-4 space-y-8">
+
+            {/* Level Card */}
+            <BrutalCard className="text-center">
+              <h3 className="text-sm font-bold uppercase tracking-widest mb-2">Current Level</h3>
+              <div className="text-6xl font-black mb-2">{Math.round(Number(profile?.badgeScore || 0))}</div>
+              <div className={`inline-block px-4 py-1 border-[2px] border-black text-xs font-bold uppercase tracking-widest ${level.bg} mb-6`}>
+                {level.label}
+              </div>
+
+              <div className="w-full h-4 border-[2px] border-black bg-white rounded-full overflow-hidden relative">
+                <div
+                  className="absolute top-0 left-0 h-full bg-black"
+                  style={{ width: `${Number(profile?.badgeScore || 0)}%` }}
+                />
+              </div>
+              <p className="text-xs font-bold mt-2 text-right">{profile?.badgeScore || 0}/100 XP</p>
+            </BrutalCard>
+
+            {/* Metrics Grid */}
+            <BrutalCard title="Audience Metrics">
+              <div className="space-y-6 mt-2">
+                <div className="flex items-center justify-between pb-4 border-b-[2px] border-black/10">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-[#FFD93D] border-[2px] border-black flex items-center justify-center">
+                      <Users className="w-5 h-5" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-charcoal/60 mb-1">Display Name</label>
-                      {editing ? (
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            className="px-3 py-2 rounded-lg border border-subtle bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-peach/50 transition-all min-w-[200px]"
-                            autoFocus
-                          />
-                          <button
-                            onClick={handleSave}
-                            disabled={saving}
-                            className="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
-                          >
-                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                          </button>
-                          <button
-                            onClick={() => { setEditing(false); setName(profile.name || '') }}
-                            className="p-2 bg-charcoal/10 text-charcoal rounded-lg hover:bg-charcoal/20 transition-colors"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ) : (
-                        <p className="text-charcoal font-medium">{profile.name || 'Not set'}</p>
-                      )}
+                      <p className="text-xs font-bold uppercase text-black/50">Followers</p>
+                      <p className="text-2xl font-black">{profile?.followers?.toLocaleString() || 0}</p>
                     </div>
                   </div>
-                  {!editing && (
-                    <button
-                      onClick={() => setEditing(true)}
-                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-charcoal/70 bg-white border border-charcoal/10 rounded-xl hover:bg-charcoal hover:text-cream transition-all"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                      Edit
-                    </button>
-                  )}
                 </div>
 
-                {/* Email Field */}
-                <div className="flex items-start gap-4 p-4 bg-cream/50 rounded-2xl">
-                  <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm">
-                    <Mail className="w-5 h-5 text-charcoal/60" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-charcoal/60 mb-1">Email Address</label>
-                    <p className="text-charcoal font-medium">{profile.email}</p>
+                <div className="flex items-center justify-between pb-4 border-b-[2px] border-black/10">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-[#90E8FF] border-[2px] border-black flex items-center justify-center">
+                      <Zap className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold uppercase text-black/50">Engagement</p>
+                      <p className="text-2xl font-black">{Number(profile?.engagementRate || 0)}%</p>
+                    </div>
                   </div>
                 </div>
 
-                {/* Member Since */}
-                <div className="flex items-start gap-4 p-4 bg-cream/50 rounded-2xl">
-                  <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm">
-                    <Calendar className="w-5 h-5 text-charcoal/60" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-charcoal/60 mb-1">Member Since</label>
-                    <p className="text-charcoal font-medium">{formatDate(profile.createdAt)}</p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-[#FF90E8] border-[2px] border-black flex items-center justify-center">
+                      <TrendingUp className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold uppercase text-black/50">Audience Growth</p>
+                      <p className="text-2xl font-black">{Number(profile?.audienceRate || 0)}%</p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </BrutalCard>
 
-            {/* Social Media - Only for Influencers */}
-            {profile?.role === 'INFLUENCER' && (
-              <div className="bg-white rounded-3xl border border-subtle p-8">
-                <div className="flex items-start justify-between gap-4 mb-6">
-                  <div>
-                    <h3 className="text-lg font-semibold text-charcoal">Social Media</h3>
-                    <p className="text-sm text-charcoal/60 mt-1">
-                      Connect your social media accounts to showcase your presence
-                    </p>
-                  </div>
-                  {!editingSocials && (
-                    <button
-                      onClick={() => setEditingSocials(true)}
-                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-charcoal/70 bg-white border border-charcoal/10 rounded-xl hover:bg-charcoal hover:text-cream transition-all"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                      Edit
-                    </button>
-                  )}
-                </div>
-
-                {socialsLoading ? (
-                  <div className="flex items-center justify-center py-10">
-                    <Loader2 className="w-6 h-6 animate-spin text-charcoal/40" />
-                  </div>
-                ) : editingSocials ? (
-                  <div className="space-y-4">
-                    <div className="grid gap-4">
-                      {/* Instagram */}
-                      <div className="flex items-center gap-4 p-4 bg-cream/50 rounded-2xl">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 flex items-center justify-center flex-shrink-0">
-                          <Instagram className="w-5 h-5 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <label className="block text-sm font-medium text-charcoal/60 mb-1">
-                            Instagram
-                          </label>
-                          <div className="flex items-center gap-2">
-                            <span className="text-charcoal/40">@</span>
-                            <input
-                              type="text"
-                              placeholder="username"
-                              value={socials.instagram || ''}
-                              onChange={(e) =>
-                                setSocials({ ...socials, instagram: e.target.value })
-                              }
-                              className="flex-1 px-3 py-2 rounded-lg border border-subtle bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-peach/50 transition-all"
-                            />
-                            {socials.instagram && (
-                              <a
-                                href={`https://instagram.com/${socials.instagram.replace('@', '')}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-2 text-charcoal/60 hover:text-charcoal transition-colors"
-                              >
-                                <ExternalLink className="w-4 h-4" />
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* TikTok */}
-                      <div className="flex items-center gap-4 p-4 bg-cream/50 rounded-2xl">
-                        <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center flex-shrink-0">
-                          <span className="text-white font-bold text-xs">TT</span>
-                        </div>
-                        <div className="flex-1">
-                          <label className="block text-sm font-medium text-charcoal/60 mb-1">
-                            TikTok
-                          </label>
-                          <div className="flex items-center gap-2">
-                            <span className="text-charcoal/40">@</span>
-                            <input
-                              type="text"
-                              placeholder="username"
-                              value={socials.tiktok || ''}
-                              onChange={(e) =>
-                                setSocials({ ...socials, tiktok: e.target.value })
-                              }
-                              className="flex-1 px-3 py-2 rounded-lg border border-subtle bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-peach/50 transition-all"
-                            />
-                            {socials.tiktok && (
-                              <a
-                                href={`https://tiktok.com/@${socials.tiktok.replace('@', '')}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-2 text-charcoal/60 hover:text-charcoal transition-colors"
-                              >
-                                <ExternalLink className="w-4 h-4" />
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* YouTube */}
-                      <div className="flex items-center gap-4 p-4 bg-cream/50 rounded-2xl">
-                        <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center flex-shrink-0">
-                          <Youtube className="w-5 h-5 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <label className="block text-sm font-medium text-charcoal/60 mb-1">
-                            YouTube
-                          </label>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="text"
-                              placeholder="Channel name or @username"
-                              value={socials.youtube || ''}
-                              onChange={(e) =>
-                                setSocials({ ...socials, youtube: e.target.value })
-                              }
-                              className="flex-1 px-3 py-2 rounded-lg border border-subtle bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-peach/50 transition-all"
-                            />
-                            {socials.youtube && (
-                              <a
-                                href={`https://youtube.com/${socials.youtube.startsWith('@') ? socials.youtube.replace('@', '') : `c/${socials.youtube}`}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-2 text-charcoal/60 hover:text-charcoal transition-colors"
-                              >
-                                <ExternalLink className="w-4 h-4" />
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Twitter/X */}
-                      <div className="flex items-center gap-4 p-4 bg-cream/50 rounded-2xl">
-                        <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center flex-shrink-0">
-                          <Twitter className="w-5 h-5 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <label className="block text-sm font-medium text-charcoal/60 mb-1">
-                            Twitter/X
-                          </label>
-                          <div className="flex items-center gap-2">
-                            <span className="text-charcoal/40">@</span>
-                            <input
-                              type="text"
-                              placeholder="username"
-                              value={socials.twitter || ''}
-                              onChange={(e) =>
-                                setSocials({ ...socials, twitter: e.target.value })
-                              }
-                              className="flex-1 px-3 py-2 rounded-lg border border-subtle bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-peach/50 transition-all"
-                            />
-                            {socials.twitter && (
-                              <a
-                                href={`https://twitter.com/${socials.twitter.replace('@', '')}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-2 text-charcoal/60 hover:text-charcoal transition-colors"
-                              >
-                                <ExternalLink className="w-4 h-4" />
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end gap-2 pt-4">
-                      <button
-                        onClick={() => {
-                          setEditingSocials(false)
-                          fetchSocials() // Reset to original values
-                        }}
-                        className="px-4 py-2 text-sm font-medium text-charcoal/70 bg-white border border-charcoal/10 rounded-xl hover:bg-charcoal/5 transition-all"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleSaveSocials}
-                        disabled={socialsSaving}
-                        className="px-4 py-2 text-sm font-medium text-white bg-charcoal rounded-xl hover:bg-charcoal/90 transition-all disabled:opacity-50 flex items-center gap-2"
-                      >
-                        {socialsSaving ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Saving...
-                          </>
-                        ) : (
-                          <>
-                            <Check className="w-4 h-4" />
-                            Save
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {Object.keys(socials).length === 0 ? (
-                      <div className="text-center py-8 text-charcoal/60">
-                        <p className="text-sm">No social media accounts added yet.</p>
-                        <p className="text-xs mt-1">Click Edit to add your accounts</p>
-                      </div>
-                    ) : (
-                      <>
-                        {socials.instagram && (
-                          <a
-                            href={`https://instagram.com/${socials.instagram.replace('@', '')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-3 p-4 bg-cream/50 rounded-2xl hover:bg-cream transition-colors group"
-                          >
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 flex items-center justify-center flex-shrink-0">
-                              <Instagram className="w-5 h-5 text-white" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-charcoal">Instagram</p>
-                              <p className="text-xs text-charcoal/60 truncate">
-                                @{socials.instagram.replace('@', '')}
-                              </p>
-                            </div>
-                            <ExternalLink className="w-4 h-4 text-charcoal/40 group-hover:text-charcoal transition-colors" />
-                          </a>
-                        )}
-                        {socials.tiktok && (
-                          <a
-                            href={`https://tiktok.com/@${socials.tiktok.replace('@', '')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-3 p-4 bg-cream/50 rounded-2xl hover:bg-cream transition-colors group"
-                          >
-                            <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center flex-shrink-0">
-                              <span className="text-white font-bold text-xs">TT</span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-charcoal">TikTok</p>
-                              <p className="text-xs text-charcoal/60 truncate">
-                                @{socials.tiktok.replace('@', '')}
-                              </p>
-                            </div>
-                            <ExternalLink className="w-4 h-4 text-charcoal/40 group-hover:text-charcoal transition-colors" />
-                          </a>
-                        )}
-                        {socials.youtube && (
-                          <a
-                            href={`https://youtube.com/${socials.youtube.startsWith('@') ? socials.youtube.replace('@', '') : `c/${socials.youtube}`}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-3 p-4 bg-cream/50 rounded-2xl hover:bg-cream transition-colors group"
-                          >
-                            <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center flex-shrink-0">
-                              <Youtube className="w-5 h-5 text-white" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-charcoal">YouTube</p>
-                              <p className="text-xs text-charcoal/60 truncate">{socials.youtube}</p>
-                            </div>
-                            <ExternalLink className="w-4 h-4 text-charcoal/40 group-hover:text-charcoal transition-colors" />
-                          </a>
-                        )}
-                        {socials.twitter && (
-                          <a
-                            href={`https://twitter.com/${socials.twitter.replace('@', '')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-3 p-4 bg-cream/50 rounded-2xl hover:bg-cream transition-colors group"
-                          >
-                            <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center flex-shrink-0">
-                              <Twitter className="w-5 h-5 text-white" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-charcoal">Twitter/X</p>
-                              <p className="text-xs text-charcoal/60 truncate">
-                                @{socials.twitter.replace('@', '')}
-                              </p>
-                            </div>
-                            <ExternalLink className="w-4 h-4 text-charcoal/40 group-hover:text-charcoal transition-colors" />
-                          </a>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Audience Metrics - Only for Influencers */}
-            {profile?.role === 'INFLUENCER' && (
-              <div className="bg-white rounded-3xl border border-subtle p-8">
-                <div className="flex items-start justify-between gap-4 mb-6">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-lg font-semibold text-charcoal">Audience Metrics</h3>
-                      <BadgeDisplay tier={badgeTier} />
-                    </div>
-                    <p className="text-sm text-charcoal/60 mt-1">
-                      Help brands evaluate your growth and retention. Update these monthly.
-                    </p>
-                  </div>
-                  <button
-                    onClick={handleSaveMetrics}
-                    disabled={metricsSaving}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-charcoal rounded-xl hover:bg-charcoal/90 transition-all disabled:opacity-50"
-                  >
-                    {metricsSaving ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Check className="w-4 h-4" />
-                        Save
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {metricsLoading ? (
-                  <div className="flex items-center justify-center py-10">
-                    <Loader2 className="w-6 h-6 animate-spin text-charcoal/40" />
-                  </div>
-                ) : (
-                  <div className="grid gap-5 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-charcoal/60">
-                        Audience Growth Rate (%)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        value={metrics.audienceRate}
-                        onChange={(e) => setMetrics({ ...metrics, audienceRate: e.target.value })}
-                        className="w-full px-3 py-2 rounded-lg border border-subtle bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-peach/50 transition-all"
-                      />
-                      <p className="text-xs text-charcoal/50">Monthly follower growth percentage.</p>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-charcoal/60">
-                        Content Retention Rate (%)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        value={metrics.retentionRate}
-                        onChange={(e) => setMetrics({ ...metrics, retentionRate: e.target.value })}
-                        className="w-full px-3 py-2 rounded-lg border border-subtle bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-peach/50 transition-all"
-                      />
-                      <p className="text-xs text-charcoal/50">Percent of viewers who return or stay engaged.</p>
-                    </div>
-                    <div className="md:col-span-2">
-                      <div className="flex items-center justify-between rounded-2xl bg-cream/60 border border-charcoal/5 p-4">
-                        <div>
-                          <p className="text-sm text-charcoal/60">Badge Score</p>
-                          <p className="text-xl font-semibold text-charcoal">
-                            {badgeScore !== null ? badgeScore.toFixed(2) : '—'}
-                          </p>
-                        </div>
-                        <BadgeDisplay tier={badgeTier} />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Profile Images */}
-            <div className="bg-white rounded-3xl border border-subtle p-8">
-              <div className="flex items-start justify-between gap-4 mb-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-charcoal">Your Photos</h3>
-                  <p className="text-sm text-charcoal/60 mt-1">
-                    Use these photos in Try-On. You can store up to 10.
-                  </p>
-                </div>
-                <label className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-charcoal/70 bg-white border border-charcoal/10 rounded-xl hover:bg-charcoal hover:text-cream transition-all cursor-pointer">
-                  <ImageIcon className="w-4 h-4" />
-                  {profileImagesUploading ? 'Uploading...' : 'Add Photos'}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    disabled={profileImagesUploading}
-                    onChange={(e) => handleUploadProfileImages(e.target.files)}
-                  />
-                </label>
-              </div>
-
-              {profileImagesLoading ? (
-                <div className="flex items-center justify-center py-10">
-                  <Loader2 className="w-6 h-6 animate-spin text-charcoal/40" />
-                </div>
-              ) : profileImages.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-charcoal/15 p-10 text-center">
-                  <p className="text-charcoal/60">No photos yet. Add at least one to improve face consistency.</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {profileImages.map((img) => (
-                    <div key={img.id} className="group relative rounded-2xl overflow-hidden border border-subtle">
-                      <img
-                        src={img.imageUrl}
-                        alt={img.label || 'profile image'}
-                        className="w-full h-44 object-cover bg-cream"
-                      />
-                      <div className="absolute top-2 left-2 flex items-center gap-2">
-                        {img.isPrimary && (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-white/90 rounded-full text-charcoal">
-                            <Crown className="w-3.5 h-3.5 text-amber-500" />
-                            Primary
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-100">
-                        <div className="flex items-center justify-between gap-2">
-                          <button
-                            onClick={() => handleSetPrimaryProfileImage(img.id)}
-                            className="text-xs font-medium text-white/95 hover:text-white underline-offset-2 hover:underline"
-                          >
-                            Set primary
-                          </button>
-                          <button
-                            onClick={() => handleDeleteProfileImage(img.id)}
-                            className="inline-flex items-center gap-1 text-xs font-medium text-white/95 hover:text-white"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            Delete
-                          </button>
-                        </div>
-                        {img.label && <p className="text-[11px] text-white/80 mt-1 truncate">{img.label}</p>}
-                      </div>
-                    </div>
+            {/* Audience Type */}
+            {profile?.audienceType && Array.isArray(profile.audienceType) && profile.audienceType.length > 0 && (
+              <BrutalCard title="Audience Type">
+                <div className="flex flex-wrap gap-2">
+                  {profile.audienceType.map((type: string) => (
+                    <span key={type} className="px-3 py-1 bg-gray-200 border-[2px] border-black font-bold text-xs uppercase">
+                      {type}
+                    </span>
                   ))}
                 </div>
-              )}
-            </div>
-          </motion.div>
-
-          {/* Stats Sidebar */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="space-y-6"
-          >
-            {/* Level Card */}
-            {stats && (
-              <div className="bg-white rounded-3xl border border-subtle p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-charcoal">Your Level</h3>
-                  <div className={`w-10 h-10 rounded-xl ${levelInfo.color} flex items-center justify-center`}>
-                    <LevelIcon className="w-5 h-5 text-white" />
-                  </div>
-                </div>
-
-                {/* Level display */}
-                <div className="text-center mb-6">
-                  <div className="text-5xl font-bold text-charcoal mb-1">{stats.level}</div>
-                  <div className={`text-sm font-medium ${levelInfo.textColor}`}>{levelInfo.label}</div>
-                </div>
-
-                {/* XP Progress */}
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-charcoal/60">Progress</span>
-                    <span className="font-medium text-charcoal">{stats.xp} / {stats.nextLevelXp} XP</span>
-                  </div>
-                  <div className="w-full bg-cream rounded-full h-3 overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${xpPercentage}%` }}
-                      transition={{ duration: 1, ease: 'easeOut', delay: 0.5 }}
-                      className={`h-full rounded-full ${levelInfo.color}`}
-                    />
-                  </div>
-                  <p className="text-xs text-charcoal/50 text-center">
-                    {stats.nextLevelXp - stats.xp} XP until next level
-                  </p>
-                </div>
-              </div>
+              </BrutalCard>
             )}
 
-            {/* Stats Grid */}
-            {stats && (
-              <div className="bg-white rounded-3xl border border-subtle p-6">
-                <h3 className="text-lg font-semibold text-charcoal mb-6">Activity Stats</h3>
+          </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border border-amber-100"
-                  >
-                    <Zap className="w-5 h-5 text-amber-500 mb-2" />
-                    <p className="text-2xl font-bold text-charcoal">{stats.generations}</p>
-                    <p className="text-xs text-charcoal/60">Try-Ons</p>
-                  </motion.div>
-
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl border border-blue-100"
-                  >
-                    <Target className="w-5 h-5 text-blue-500 mb-2" />
-                    <p className="text-2xl font-bold text-charcoal">{stats.collaborations}</p>
-                    <p className="text-xs text-charcoal/60">Collabs</p>
-                  </motion.div>
-
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    className="p-4 bg-gradient-to-br from-emerald-50 to-green-50 rounded-2xl border border-emerald-100"
-                  >
-                    <ImageIcon className="w-5 h-5 text-emerald-500 mb-2" />
-                    <p className="text-2xl font-bold text-charcoal">{stats.portfolioItems}</p>
-                    <p className="text-xs text-charcoal/60">Portfolio</p>
-                  </motion.div>
-
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl border border-purple-100"
-                  >
-                    <Star className="w-5 h-5 text-purple-500 mb-2" />
-                    <p className="text-2xl font-bold text-charcoal">{stats.xp}</p>
-                    <p className="text-xs text-charcoal/60">Total XP</p>
-                  </motion.div>
-                </div>
-              </div>
-            )}
-
-            {/* Quick Actions */}
-            <div className="bg-white rounded-3xl border border-subtle p-6">
-              <h3 className="text-lg font-semibold text-charcoal mb-4">Quick Actions</h3>
-              <div className="space-y-3">
-                <Link
-                  href="/influencer/try-on"
-                  className="flex items-center gap-3 p-3 bg-cream rounded-xl hover:bg-peach/10 transition-colors group"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-peach/20 flex items-center justify-center group-hover:bg-peach/30 transition-colors">
-                    <Camera className="w-5 h-5 text-peach" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-charcoal">Try-On Studio</p>
-                    <p className="text-xs text-charcoal/60">Create virtual try-ons</p>
-                  </div>
-                </Link>
-                <Link
-                  href="/marketplace"
-                  className="flex items-center gap-3 p-3 bg-cream rounded-xl hover:bg-blue-50 transition-colors group"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                    <TrendingUp className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-charcoal">Marketplace</p>
-                    <p className="text-xs text-charcoal/60">Browse products</p>
-                  </div>
-                </Link>
-              </div>
-            </div>
-          </motion.div>
         </div>
       </div>
     </div>

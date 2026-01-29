@@ -46,22 +46,18 @@ export default function ImageCarousel({ images }: ImageCarouselProps) {
         />
         {images.length > 1 && (
           <>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white/90"
+            <button
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white border-[3px] border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] z-10"
               onClick={prevImage}
             >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white/90"
+              <ChevronLeft className="h-6 w-6 stroke-[3]" />
+            </button>
+            <button
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white border-[3px] border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] z-10"
               onClick={nextImage}
             >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+              <ChevronRight className="h-6 w-6 stroke-[3]" />
+            </button>
             <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
               {currentIndex + 1}/{images.length}
             </div>
