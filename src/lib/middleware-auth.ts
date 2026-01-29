@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
-import prisma from '@/lib/prisma'
+import { fetchProfile } from '@/lib/auth-state'
 
 export interface AuthContext {
   authUser: { id: string; email: string }
-  dbUser: { id: string; role: 'INFLUENCER' | 'BRAND'; email: string }
+  dbUser: { id: string; role: 'INFLUENCER' | 'BRAND' | 'ADMIN'; email: string }
 }
 
 /**
@@ -22,16 +22,9 @@ export async function getAuthContext(request: NextRequest): Promise<AuthContext 
       return null
     }
 
-    const dbUser = await prisma.user.findUnique({
-      where: { email: authUser.email },
-      select: {
-        id: true,
-        role: true,
-        email: true,
-      },
-    })
+    const profile = await fetchProfile(authUser.id)
 
-    if (!dbUser) {
+    if (!profile) {
       return null
     }
 
@@ -41,9 +34,9 @@ export async function getAuthContext(request: NextRequest): Promise<AuthContext 
         email: authUser.email,
       },
       dbUser: {
-        id: dbUser.id,
-        role: dbUser.role as 'INFLUENCER' | 'BRAND',
-        email: dbUser.email,
+        id: profile.id,
+        role: profile.role.toUpperCase() as 'INFLUENCER' | 'BRAND' | 'ADMIN', // Normalize to existing type
+        email: profile.email,
       },
     }
   } catch (error) {
