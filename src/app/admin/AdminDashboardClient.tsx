@@ -337,7 +337,7 @@ export default function AdminDashboardClient({ initialApplications, dataSource =
         <div className="bg-[#FFFDF8] rounded-xl border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
           {dataSource === 'supabase-only' && (
             <div className="px-6 py-4 bg-amber-100 border-b-2 border-amber-400 text-amber-900 text-sm font-medium">
-              <strong>Limited data:</strong> App database (Prisma) could not connect. Check that <code className="bg-amber-200/80 px-1 rounded">DATABASE_URL</code> is set correctly in your environment.
+              <strong>Limited data:</strong> App database (Prisma) could not connect. Check that <code className="bg-amber-200/80 px-1 rounded">DATABASE_URL</code> is set in your environment. <a href="/api/health/db" target="_blank" rel="noopener noreferrer" className="underline font-medium">View connection details</a>.
             </div>
           )}
           {/* Toolbar */}
