@@ -1,19 +1,15 @@
 /**
  * REGISTRATION API
- * 
+ *
  * CRITICAL: On signup success:
- * INSERT INTO profiles (id, email, role)
- * VALUES (auth.user.id, auth.user.email, selectedRole)
- * ON CONFLICT (id) DO NOTHING;
- * 
- * ❌ STOP creating users in:
- * - public.User
- * - influencer_applications
- * 
- * profiles table is the ONLY source of truth.
+ * 1. Upsert Supabase profiles table (id, email, role, onboarding_completed, approval_status)
+ * 2. Ensure Prisma User exists (getOrCreateUser) so InfluencerProfile/BrandProfile can be created later
+ *
+ * Prisma User MUST exist before any onboarding profile creation (FK constraint).
  */
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/auth'
+import { getOrCreateUser } from '@/lib/prisma-user'
 import { z } from 'zod'
 
 const registerSchema = z
@@ -88,7 +84,26 @@ export async function POST(request: Request) {
       )
     }
 
-    // Return profile (not User)
+    // Ensure Prisma User exists so onboarding can create InfluencerProfile/BrandProfile (FK)
+    try {
+      await getOrCreateUser({
+        id,
+        email,
+        role: role as 'influencer' | 'brand',
+        name: name ?? null,
+      })
+    } catch (prismaError) {
+      console.error('Register: getOrCreateUser failed (Supabase profile already saved)', {
+        userId: id,
+        email,
+        prismaError: prismaError instanceof Error ? prismaError.message : prismaError,
+      })
+      return NextResponse.json(
+        { error: 'Profile saved but app sync failed. Please try signing in.' },
+        { status: 500 }
+      )
+    }
+
     return NextResponse.json(
       {
         profile,

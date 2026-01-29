@@ -1,14 +1,12 @@
 /**
  * GET /api/auth/me
- * 
- * MUST:
- * - Use auth.getUser()
- * - SYNC user to Prisma (Mandatory Step 1)
- * - Return { user, profile }
+ *
+ * MUST: Use auth.getUser() then getOrCreateUser (single source of truth for Prisma User).
+ * Return { user, profile }.
  */
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
-import { syncUser } from '@/lib/auth-sync'
+import { getOrCreateUser } from '@/lib/prisma-user'
 import prisma from '@/lib/prisma'
 
 export async function GET(request: Request) {
@@ -24,12 +22,11 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // MANDATORY: Sync User to Prisma (Ensure existence)
-    // This fixes "Login behaves like new user" and "FK violations"
-    const user = await syncUser({
+    // Ensure Prisma User exists (idempotent)
+    const user = await getOrCreateUser({
       id: authUser.id,
-      email: authUser.email,
-      user_metadata: authUser.user_metadata
+      email: authUser.email ?? '',
+      user_metadata: authUser.user_metadata,
     })
 
     // Fetch complete profile with relations

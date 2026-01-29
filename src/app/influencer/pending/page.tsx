@@ -23,7 +23,6 @@ import {
   Users,
   Zap
 } from 'lucide-react'
-import { createClient } from '@/lib/auth-client'
 import { DecorativeShapes } from '@/components/brutal/onboarding/DecorativeShapes'
 
 type Status = 'draft' | 'pending' | 'approved' | 'rejected'
@@ -38,61 +37,35 @@ export default function InfluencerPendingPage() {
     try {
       if (showToast) setRefreshing(true)
 
-      const supabase = createClient()
-      const {
-        data: { user: authUser },
-      } = await supabase.auth.getUser()
+      const res = await fetch('/api/auth/profile-status', { credentials: 'include' })
 
-      if (!authUser) {
+      if (res.status === 401) {
         router.replace('/login')
         return
       }
 
-      // Fetch from profiles table
-      // REMOVED .single() to debug RLS issues
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('approval_status, onboarding_completed, id')
-        .eq('id', authUser.id)
-
-      if (error) {
-        console.error('Error fetching profile:', error)
-        toast.error(`Fetch Error: ${error.message} (${error.code})`)
-
-        // Update Debug UI
-        const debugAuth = document.getElementById('debug-auth-id')
-        const debugErr = document.getElementById('debug-error')
-        if (debugAuth) debugAuth.innerText = `Auth ID: ${authUser.id}`
-        if (debugErr) debugErr.innerText = `Error: ${JSON.stringify(error, null, 2)}`
-
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        const msg = (body?.error ?? res.statusText ?? 'Failed to load status') as string
+        console.error('Error fetching profile:', msg, res.status)
+        toast.error(msg)
         setStatus('draft')
         setLoading(false)
         if (showToast) setRefreshing(false)
         return
       }
 
-      if (!profiles || profiles.length === 0) {
-        console.error('No profile found for ID:', authUser.id)
-        toast.error(`No profile found. ID: ${authUser.id}. RLS?`)
-        setStatus('draft')
-        setLoading(false)
-        if (showToast) setRefreshing(false)
-        return
-      }
+      const data = await res.json()
+      const onboardingCompleted = Boolean(data?.onboarding_completed)
+      const approvalStatus = (data?.approval_status as Status) ?? 'pending'
 
-      const profile = profiles[0]
-
-      // Use exact approval_status value
-      const approvalStatus = (profile.approval_status as Status) || 'pending'
       setStatus(approvalStatus)
 
-      // If onboarding not completed → redirect
-      if (!profile.onboarding_completed) {
+      if (!onboardingCompleted) {
         router.replace('/onboarding/influencer')
         return
       }
 
-      // If approved → redirect to dashboard
       if (approvalStatus === 'approved') {
         toast.success("🎉 You're approved! Redirecting to dashboard...", {
           style: { background: '#B4F056', border: '3px solid black', fontWeight: 'bold' }
@@ -111,7 +84,9 @@ export default function InfluencerPendingPage() {
         })
       }
     } catch (error) {
-      console.error('Error fetching status:', error)
+      const msg = error instanceof Error ? error.message : String(error)
+      console.error('Error fetching status:', msg)
+      toast.error(msg || 'Something went wrong')
       setStatus('draft')
       setLoading(false)
       if (showToast) setRefreshing(false)

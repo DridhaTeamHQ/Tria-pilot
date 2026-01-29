@@ -18,8 +18,8 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { getOrCreateUser } from '@/lib/prisma-user'
 import { z } from 'zod'
-import { nanoid } from 'nanoid'
 
 const onboardingSchema = z
   .object({
@@ -34,99 +34,41 @@ const onboardingSchema = z
   .strict()
 
 /**
- * SAFE: Ensures User and BrandProfile exist in Prisma
- * Uses smart lookup to handle edge cases where user may exist with same email
- * 
- * Strategy:
- * 1. Try to find user by authId first
- * 2. If not found, check by email (handles previous signup attempts)
- * 3. If user exists by email with different ID -> update their ID to match auth
- * 4. Create only as last resort
+ * SAFE: Ensures User and BrandProfile exist in Prisma.
+ * Uses getOrCreateUser (single source of truth); then ensure BrandProfile exists.
  */
-async function ensureBrandProfile(authId: string, email: string) {
-  // First: Try to find user by auth ID
+async function ensureBrandProfile(authId: string, email: string, userMetadata?: { role?: string; name?: string }) {
+  const user = await getOrCreateUser({
+    id: authId,
+    email,
+    role: 'BRAND',
+    user_metadata: userMetadata ?? undefined,
+  })
+  const prismaUserId = user.id
+
   let dbUser = await prisma.user.findUnique({
-    where: { id: authId },
+    where: { id: prismaUserId },
     include: { brandProfile: true },
   })
+  if (!dbUser) throw new Error('User lost after getOrCreateUser (Impossible state)')
 
-  if (dbUser) {
-    // User exists with correct ID - ensure they have a brand profile
-    if (!dbUser.brandProfile) {
-      console.log(`Creating BrandProfile for existing user ${authId}`)
-      await prisma.brandProfile.create({
-        data: {
-          userId: authId,
-          companyName: 'My Brand', // Required placeholder
-          targetAudience: [],
-          productTypes: [],
-          onboardingCompleted: false,
-        },
-      })
-      dbUser = await prisma.user.findUnique({
-        where: { id: authId },
-        include: { brandProfile: true },
-      })
-    }
-    return dbUser
-  }
-
-  // Second: Check if user exists by email (edge case - previous signup with different ID)
-  const existingByEmail = await prisma.user.findUnique({
-    where: { email },
-    include: { brandProfile: true },
-  })
-
-  if (existingByEmail) {
-    // User exists with this email but different ID
-    // Update their ID to match the current auth ID (link accounts)
-    console.log(`Linking existing user ${existingByEmail.id} to auth ID ${authId}`)
-    dbUser = await prisma.user.update({
-      where: { id: existingByEmail.id },
+  if (!dbUser.brandProfile) {
+    console.log('[ensureBrandProfile] Creating BrandProfile for userId', prismaUserId)
+    await prisma.brandProfile.create({
       data: {
-        id: authId  // Update to match Supabase auth ID
+        userId: prismaUserId,
+        companyName: 'My Brand',
+        targetAudience: [],
+        productTypes: [],
+        onboardingCompleted: false,
       },
+    })
+    dbUser = await prisma.user.findUnique({
+      where: { id: prismaUserId },
       include: { brandProfile: true },
     })
-
-    // Ensure they have a brand profile
-    if (!dbUser.brandProfile) {
-      await prisma.brandProfile.create({
-        data: {
-          userId: authId,
-          companyName: 'My Brand',
-          targetAudience: [],
-          productTypes: [],
-          onboardingCompleted: false,
-        },
-      })
-      dbUser = await prisma.user.findUnique({
-        where: { id: authId },
-        include: { brandProfile: true },
-      })
-    }
-    return dbUser
   }
-
-  // Third: No user exists at all - create new user with profile
-  console.log(`Creating new Prisma user for brand ${authId}`)
-  dbUser = await prisma.user.create({
-    data: {
-      id: authId,
-      email,
-      role: 'BRAND',
-      slug: `brand-${nanoid(8)}`,
-      brandProfile: {
-        create: {
-          companyName: 'My Brand',
-          targetAudience: [],
-          productTypes: [],
-          onboardingCompleted: false,
-        },
-      },
-    },
-    include: { brandProfile: true },
-  })
+  if (!dbUser) throw new Error('User lost after profile create')
 
   return dbUser
 }

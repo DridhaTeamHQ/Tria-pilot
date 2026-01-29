@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { getOrCreateUser } from '@/lib/prisma-user'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Camera, ExternalLink, Share2, ArrowLeft, Heart, Users } from 'lucide-react'
@@ -21,22 +22,20 @@ export default async function ProductDetailPage({ params }: any) {
     redirect('/login')
   }
 
-  // Optimized query - only select needed fields
+  // Pending and approved influencers can browse product details (no approval required)
   let dbUser
   try {
-    dbUser = await prisma.user.findUnique({
-      where: { email: authUser.email!.toLowerCase().trim() },
-      select: {
-        id: true,
-        role: true,
-      },
+    dbUser = await getOrCreateUser({
+      id: authUser.id,
+      email: authUser.email ?? '',
+      user_metadata: authUser.user_metadata,
     })
   } catch (error) {
-    console.error('Database error fetching user:', error)
+    console.error('Marketplace product: getOrCreateUser failed', error)
     redirect('/login')
   }
 
-  if (!dbUser || dbUser.role !== 'INFLUENCER') {
+  if (dbUser.role !== 'INFLUENCER') {
     redirect('/')
   }
 

@@ -1,9 +1,12 @@
 import { createClient } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { getOrCreateUser } from '@/lib/prisma-user'
 import { Prisma } from '@prisma/client'
 import { redirect } from 'next/navigation'
 import { unstable_cache } from 'next/cache'
 import MarketplaceClient from '@/components/marketplace/MarketplaceClient'
+
+// Pending (not yet approved) influencers CAN browse marketplace; no approval required.
 
 // Cache products for 30 seconds to improve performance while staying fresh
 const getProducts = unstable_cache(
@@ -65,18 +68,21 @@ export default async function MarketplacePage({
     redirect('/login')
   }
 
+  // Ensure Prisma user exists (pending + approved influencers can browse)
   let dbUser
   try {
-    dbUser = await prisma.user.findUnique({
-      where: { email: authUser.email!.toLowerCase().trim() },
-      select: { id: true, role: true },
+    dbUser = await getOrCreateUser({
+      id: authUser.id,
+      email: authUser.email ?? '',
+      user_metadata: authUser.user_metadata,
     })
   } catch (error) {
-    console.error('Database error fetching user:', error)
+    console.error('Marketplace: getOrCreateUser failed', error)
     redirect('/login')
   }
 
-  if (!dbUser || dbUser.role !== 'INFLUENCER') {
+  // Only influencers (pending or approved) can browse this marketplace; approval not required
+  if (dbUser.role !== 'INFLUENCER') {
     redirect('/')
   }
 

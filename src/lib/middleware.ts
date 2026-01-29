@@ -71,9 +71,8 @@ export async function updateSession(request: NextRequest) {
         return rateLimited
     }
 
-    // Approval gate for influencers: allow only marketplace + support pages until approved.
-    // NOTE: This is a middleware-level check. Individual pages also check approval status.
-    // This prevents unauthorized access but dashboard route handles the full flow.
+    // Approval gate for influencers: pending users can access marketplace + support pages only.
+    // /marketplace and /marketplace/* are explicitly allowed so pending influencers can browse (no approval required).
     if (user) {
         const pathname = request.nextUrl.pathname
 

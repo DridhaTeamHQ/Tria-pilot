@@ -18,7 +18,7 @@ import { createClient, createServiceClient } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { calculateBadge } from '@/lib/influencer/badge-calculator'
 import { z } from 'zod'
-import { syncUser } from '@/lib/auth-sync'
+import { getOrCreateUser } from '@/lib/prisma-user'
 
 const onboardingSchema = z
   .object({
@@ -69,46 +69,48 @@ const onboardingSchema = z
   .strict()
 
 /**
- * SAFE: Ensures User and InfluencerProfile exist in Prisma
- * Uses SYNC logic to guarantee User existence before touching Profile
+ * SAFE: Ensures User and InfluencerProfile exist in Prisma.
+ * Uses getOrCreateUser (single source of truth); never create profile without existing User.
  */
-async function ensureInfluencerProfile(authId: string, email: string) {
-  // 1. Sync User (Guarantees existence in 'profiles')
-  const user = await syncUser({ id: authId, email })
+async function ensureInfluencerProfile(authId: string, email: string, userMetadata?: { role?: string; name?: string }) {
+  // 1. Ensure Prisma User exists (by id or by email – getOrCreateUser returns same row either way)
+  const user = await getOrCreateUser({
+    id: authId,
+    email,
+    user_metadata: userMetadata ?? undefined,
+  })
+  // Use user.id (may differ from authId if user was found by email) for all Prisma lookups
+  const prismaUserId = user.id
 
   // 2. Ensure InfluencerProfile exists
-  // We check via findUnique on the profile table to be sure
   const existingProfile = await prisma.influencerProfile.findUnique({
-    where: { userId: user.id }
+    where: { userId: prismaUserId },
   })
 
   if (!existingProfile) {
-    console.log(`[ensureInfluencerProfile] Creating profile for ${user.id}`)
+    console.log('[ensureInfluencerProfile] Creating InfluencerProfile for userId', prismaUserId)
     try {
-      // Explicitly create profile linked to confirmed user
       await prisma.influencerProfile.create({
         data: {
-          userId: user.id,
+          userId: prismaUserId,
           niches: [],
           socials: {},
           audienceType: [],
           preferredCategories: [],
           onboardingCompleted: false,
-        }
+        },
       })
-    } catch (e: any) {
-      console.error("Critical: Failed to create InfluencerProfile even after User sync.", e)
+    } catch (e: unknown) {
+      console.error('[ensureInfluencerProfile] InfluencerProfile create failed', { userId: prismaUserId, error: e })
       throw e
     }
   }
 
-  // Return User with Profile (Strict Fetch for Type Safety)
   const finalUser = await prisma.user.findUnique({
-    where: { id: authId },
-    include: { influencerProfile: true }
+    where: { id: prismaUserId },
+    include: { influencerProfile: true },
   })
-
-  if (!finalUser) throw new Error("User lost after sync (Impossible state)")
+  if (!finalUser) throw new Error('User lost after sync (Impossible state)')
   return finalUser
 }
 
@@ -140,8 +142,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Not an influencer account' }, { status: 403 })
     }
 
-    // SAFE: Sync User then Ensure Profile
-    const dbUser = await ensureInfluencerProfile(authUser.id, profile.email || authUser.email || '')
+    // SAFE: Ensure Prisma User then InfluencerProfile
+    const dbUser = await ensureInfluencerProfile(
+      authUser.id,
+      profile.email || authUser.email || '',
+      authUser.user_metadata as { role?: string; name?: string } | undefined
+    )
 
     if (!dbUser || !dbUser.influencerProfile) {
       return NextResponse.json({ error: 'Failed to setup influencer profile' }, { status: 500 })
@@ -261,8 +267,12 @@ export async function GET() {
       return NextResponse.json({ onboardingCompleted: false })
     }
 
-    // SAFE: Sync User then Ensure Profile for GET (idempotent)
-    const dbUser = await ensureInfluencerProfile(authUser.id, profile.email || authUser.email || '')
+    // SAFE: Ensure Prisma User then InfluencerProfile for GET (idempotent)
+    const dbUser = await ensureInfluencerProfile(
+      authUser.id,
+      profile.email || authUser.email || '',
+      authUser.user_metadata as { role?: string; name?: string } | undefined
+    )
 
     return NextResponse.json({
       onboardingCompleted: profile.onboarding_completed || false,

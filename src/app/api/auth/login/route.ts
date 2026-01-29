@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
 import { loginSchema } from '@/lib/validation'
+import { getOrCreateUser } from '@/lib/prisma-user'
 import prisma from '@/lib/prisma'
 
 export async function POST(request: Request) {
@@ -132,35 +133,26 @@ export async function POST(request: Request) {
       )
     }
 
-    // STEP 3: Get full user data from database using normalized email
-    const user = await prisma.user.findUnique({
-      where: { email },
-      include: {
-        influencerProfile: true,
-        brandProfile: true,
-      },
+    // STEP 3: Ensure Prisma User exists (getOrCreateUser); sign-in never creates a *new* auth user, only syncs app DB
+    const user = await getOrCreateUser({
+      id: data.user.id,
+      email: data.user.email ?? email,
+      user_metadata: data.user.user_metadata,
     })
 
-    if (!user) {
-      // Backward-compat: user exists in Supabase Auth but not in app DB.
-      // This happens when a user was created in Supabase Auth but the Prisma user creation failed
-      // or they registered before the Prisma sync was implemented.
-      // Keep the Supabase session (already set via cookies) and send them to complete profile.
-      console.log(`User ${email} authenticated in Supabase but missing in Prisma - redirecting to profile completion`)
-      return NextResponse.json(
-        {
-          user: null,
-          requiresProfile: true,
-          next: '/complete-profile',
-          message: 'Please complete your profile to continue.',
-        },
-        { status: 200 } // Return 200 so the frontend can handle the redirect
-      )
+    // STEP 4: Return user data with session (include profiles for redirect logic)
+    const userWithProfiles = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: { influencerProfile: true, brandProfile: true },
+    })
+    if (!userWithProfiles) {
+      console.error('Login: getOrCreateUser returned user but findUnique failed', { userId: user.id })
+      return NextResponse.json({ error: 'Authentication failed' }, { status: 500 })
     }
 
-    // STEP 4: Return user data with session
+    // Return user data with session
     // Note: Frontend will handle redirects based on onboarding/approval status via /dashboard route
-    return NextResponse.json({ user, session: data.session }, { status: 200 })
+    return NextResponse.json({ user: userWithProfiles, session: data.session }, { status: 200 })
   } catch (error) {
     console.error('Login error:', error)
     
