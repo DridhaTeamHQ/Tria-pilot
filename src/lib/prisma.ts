@@ -76,10 +76,8 @@ function createPrismaClient() {
   return client
 }
 
+// Reuse one client per process (critical in serverless: avoids new Pool on every request)
 const prisma = globalForPrisma.prisma ?? createPrismaClient()
-
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma
-}
+globalForPrisma.prisma = prisma
 
 export default prisma

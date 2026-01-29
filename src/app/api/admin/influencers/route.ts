@@ -209,7 +209,13 @@ export async function GET(request: Request) {
         })
         .filter((x): x is NonNullable<typeof x> => x !== null)
     } catch (prismaError) {
-      console.error('Admin API: Prisma failed, using Supabase-only list', prismaError)
+      const err = prismaError as Error & { code?: string; meta?: unknown }
+      console.error('Admin API: Prisma failed, using Supabase-only list', {
+        message: err.message,
+        code: err.code,
+        name: err.name,
+        meta: err.meta,
+      })
       const minimal = buildMinimalFromProfiles(profiles)
       enriched = minimal.filter((item) => {
         if (statusFilter === 'none' && item.status !== 'none') return false

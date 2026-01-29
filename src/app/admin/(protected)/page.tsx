@@ -184,7 +184,13 @@ export default async function AdminPage() {
       })
       .filter((app: any) => app !== null)
   } catch (prismaError) {
-    console.error('Admin page: Prisma failed, using Supabase-only list', prismaError)
+    const err = prismaError as Error & { code?: string; meta?: unknown }
+    console.error('Admin page: Prisma failed, using Supabase-only list', {
+      message: err.message,
+      code: err.code,
+      name: err.name,
+      meta: err.meta,
+    })
     enrichedApplications = buildMinimalFromProfiles(profiles)
     dataSource = 'supabase-only'
   }
