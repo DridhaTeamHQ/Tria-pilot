@@ -291,8 +291,8 @@ export async function PATCH(request: Request) {
     const body = await request.json().catch(() => null)
     const { user_id, status, review_note } = updateSchema.parse(body)
 
-    // Update profiles table
-    const approvalStatus = status === 'approved' ? 'approved' : 'rejected'
+    // Update profiles table. Use UPPERCASE so Prisma AccountStatus enum matches (no "Value 'approved' not found in enum").
+    const approvalStatus = status === 'approved' ? 'APPROVED' : 'REJECTED'
 
     const { data: profileUpdated, error: profileError } = await service
       .from('profiles')

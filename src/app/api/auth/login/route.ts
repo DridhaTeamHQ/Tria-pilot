@@ -133,10 +133,26 @@ export async function POST(request: Request) {
       )
     }
 
-    // STEP 3: Ensure Prisma User exists (getOrCreateUser); sign-in never creates a *new* auth user, only syncs app DB
+    // STEP 3: Ensure Prisma User exists immediately after login (upsert so prisma.user.findUnique({ id }) returns a row)
+    const service = createServiceClient()
+    const { data: profileRow } = await service
+      .from('profiles')
+      .select('role')
+      .eq('id', data.user.id)
+      .maybeSingle()
+    const roleFromProfile = profileRow?.role?.toString().toUpperCase()
+    const roleForPrisma = (roleFromProfile ?? data.user.user_metadata?.role ?? undefined) as
+      | 'influencer'
+      | 'brand'
+      | 'INFLUENCER'
+      | 'BRAND'
+      | 'ADMIN'
+      | undefined
+
     const user = await getOrCreateUser({
       id: data.user.id,
       email: data.user.email ?? email,
+      role: roleForPrisma,
       user_metadata: data.user.user_metadata,
     })
 

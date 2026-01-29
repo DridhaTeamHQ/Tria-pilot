@@ -35,40 +35,48 @@ export async function getOrCreateUser(input: GetOrCreateUserInput): Promise<User
   }
 
   const normalizedEmail = email.trim().toLowerCase()
+  const isDev = process.env.NODE_ENV !== 'production'
 
-  // Resolve role: param > metadata > default INFLUENCER (use enum; ADMIN exists in DB but may be omitted from generated enum)
+  // Resolve role: param > metadata > default INFLUENCER
   let role: UserRole = UserRole.INFLUENCER
   const rawRole = (roleParam ?? user_metadata?.role ?? '').toString().toUpperCase()
   if (rawRole === 'BRAND') role = UserRole.BRAND
   else if (rawRole === 'ADMIN') role = 'ADMIN' as UserRole
 
-  console.log('[getOrCreateUser] Lookup', { userId: id, email: normalizedEmail, resolvedRole: role })
+  if (isDev) console.log('[getOrCreateUser] Lookup', { userId: id, email: normalizedEmail, resolvedRole: role })
 
   // 1. Find by Supabase auth id (normal case)
-  const existingById = await prisma.user.findUnique({
-    where: { id },
-  })
+  const existingById = await prisma.user.findUnique({ where: { id } })
   if (existingById) {
-    console.log('[getOrCreateUser] Found by id', { userId: id })
+    if (isDev) console.log('[getOrCreateUser] Found by id', { userId: id })
     return existingById
   }
 
-  // 2. Find by email (user exists from earlier sign-up / different auth id → avoid unique constraint on email)
+  // 2. Find by email → link row to auth id so prisma.user.findUnique({ id: session.user.id }) returns a row
   const existingByEmail = await prisma.user.findUnique({
     where: { email: normalizedEmail },
   })
   if (existingByEmail) {
-    console.log('[getOrCreateUser] Found by email (id mismatch), linking', {
-      authId: id,
-      prismaId: existingByEmail.id,
-      email: normalizedEmail,
-    })
-    // Optionally sync id so Prisma user matches auth (requires updating FKs; skip for now to avoid complexity)
+    const oldId = existingByEmail.id
+    if (oldId === id) return existingByEmail
+    if (isDev) console.log('[getOrCreateUser] Found by email, linking id', { authId: id, oldId, email: normalizedEmail })
+    try {
+      await prisma.$transaction([
+        prisma.$executeRaw`UPDATE "InfluencerProfile" SET "userId" = ${id} WHERE "userId" = ${oldId}`,
+        prisma.$executeRaw`UPDATE "BrandProfile" SET "userId" = ${id} WHERE "userId" = ${oldId}`,
+        prisma.$executeRaw`UPDATE profiles SET id = ${id} WHERE id = ${oldId}`,
+      ])
+    } catch (linkErr) {
+      console.error('[getOrCreateUser] Link by email failed', { authId: id, oldId, error: linkErr })
+      return existingByEmail
+    }
+    const linked = await prisma.user.findUnique({ where: { id } })
+    if (linked) return linked
     return existingByEmail
   }
 
   // 3. No user exists → create
-  console.log('[getOrCreateUser] Creating Prisma User', { userId: id, email: normalizedEmail, role })
+  if (isDev) console.log('[getOrCreateUser] Creating Prisma User', { userId: id, email: normalizedEmail, role })
   const name = nameParam ?? user_metadata?.name ?? null
 
   const user = await prisma.user.create({
@@ -81,6 +89,6 @@ export async function getOrCreateUser(input: GetOrCreateUserInput): Promise<User
     },
   })
 
-  console.log('[getOrCreateUser] Created', { userId: user.id, email: user.email })
+  if (isDev) console.log('[getOrCreateUser] Created', { userId: user.id, email: user.email })
   return user
 }

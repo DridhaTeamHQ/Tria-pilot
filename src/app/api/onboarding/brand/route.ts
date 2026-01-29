@@ -140,7 +140,7 @@ export async function POST(request: Request) {
         .from('profiles')
         .update({
           onboarding_completed: true,
-          approval_status: 'approved',
+          approval_status: 'APPROVED',
         })
         .eq('id', authUser.id)
     }

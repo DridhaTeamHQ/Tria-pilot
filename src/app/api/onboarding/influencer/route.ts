@@ -72,12 +72,17 @@ const onboardingSchema = z
  * SAFE: Ensures User and InfluencerProfile exist in Prisma.
  * Uses getOrCreateUser (single source of truth); never create profile without existing User.
  */
-async function ensureInfluencerProfile(authId: string, email: string, userMetadata?: { role?: string; name?: string }) {
-  // 1. Ensure Prisma User exists (by id or by email – getOrCreateUser returns same row either way)
+async function ensureInfluencerProfile(
+  authId: string,
+  email: string,
+  opts?: { role?: string; userMetadata?: { role?: string; name?: string } }
+) {
+  // 1. Ensure Prisma User exists (only create InfluencerProfile after User exists)
   const user = await getOrCreateUser({
     id: authId,
     email,
-    user_metadata: userMetadata ?? undefined,
+    role: opts?.role as 'INFLUENCER' | 'BRAND' | undefined,
+    user_metadata: opts?.userMetadata ?? undefined,
   })
   // Use user.id (may differ from authId if user was found by email) for all Prisma lookups
   const prismaUserId = user.id
@@ -142,12 +147,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Not an influencer account' }, { status: 403 })
     }
 
-    // SAFE: Ensure Prisma User then InfluencerProfile
-    const dbUser = await ensureInfluencerProfile(
-      authUser.id,
-      profile.email || authUser.email || '',
-      authUser.user_metadata as { role?: string; name?: string } | undefined
-    )
+    // SAFE: Ensure Prisma User then InfluencerProfile (role from profile so User row is correct)
+    const dbUser = await ensureInfluencerProfile(authUser.id, profile.email || authUser.email || '', {
+      role: profile.role ?? undefined,
+      userMetadata: authUser.user_metadata as { role?: string; name?: string } | undefined,
+    })
 
     if (!dbUser || !dbUser.influencerProfile) {
       return NextResponse.json({ error: 'Failed to setup influencer profile' }, { status: 500 })
@@ -207,13 +211,13 @@ export async function POST(request: Request) {
       },
     })
 
-    // CRITICAL: Update profiles table when onboarding completes
+    // CRITICAL: Update profiles table when onboarding completes. Use UPPERCASE for Prisma AccountStatus enum.
     if (isCompleted && !profile.onboarding_completed) {
       await service
         .from('profiles')
         .update({
           onboarding_completed: true,
-          approval_status: 'pending',
+          approval_status: 'PENDING',
         })
         .eq('id', authUser.id)
     }

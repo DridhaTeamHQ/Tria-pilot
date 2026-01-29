@@ -2,10 +2,10 @@
  * GET /api/auth/me
  *
  * MUST: Use auth.getUser() then getOrCreateUser (single source of truth for Prisma User).
- * Return { user, profile }.
+ * Upserts Prisma User so prisma.user.findUnique({ id: session.user.id }) returns a row.
  */
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/auth'
+import { createClient, createServiceClient } from '@/lib/auth'
 import { getOrCreateUser } from '@/lib/prisma-user'
 import prisma from '@/lib/prisma'
 
@@ -17,15 +17,29 @@ export async function GET(request: Request) {
       error: authError,
     } = await supabase.auth.getUser()
 
-    // Handle auth errors gracefully
     if (authError || !authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Ensure Prisma User exists (idempotent)
+    const service = createServiceClient()
+    const { data: profileRow } = await service
+      .from('profiles')
+      .select('role')
+      .eq('id', authUser.id)
+      .maybeSingle()
+    const roleFromProfile = profileRow?.role?.toString().toUpperCase()
+    const roleForPrisma = (roleFromProfile ?? authUser.user_metadata?.role ?? undefined) as
+      | 'influencer'
+      | 'brand'
+      | 'INFLUENCER'
+      | 'BRAND'
+      | 'ADMIN'
+      | undefined
+
     const user = await getOrCreateUser({
       id: authUser.id,
       email: authUser.email ?? '',
+      role: roleForPrisma,
       user_metadata: authUser.user_metadata,
     })
 

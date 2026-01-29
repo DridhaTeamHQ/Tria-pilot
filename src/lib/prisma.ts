@@ -14,20 +14,18 @@ function createPrismaClient() {
   const isProduction = process.env.NODE_ENV === 'production'
   let url = process.env.DATABASE_URL
   const isSupabase = url?.includes('supabase') ?? false
+  const isPooler = url?.includes('pgbouncer=true') ?? false
 
-  // Supabase: add connect_timeout and connection_limit for serverless (recommended by Supabase docs).
-  if (isSupabase && url) {
-    const sep = url.includes('?') ? '&' : '?'
-    const params: string[] = []
-    if (!url.includes('connect_timeout=')) params.push('connect_timeout=30')
-    if (isProduction && !url.includes('connection_limit=')) params.push('connection_limit=1')
-    if (params.length) url = `${url}${sep}${params.join('&')}`
+  // Supabase direct connection: add connect_timeout only. Do not add connection_limit (for pooler).
+  if (isSupabase && url && !url.includes('connect_timeout=')) {
+    url = `${url}${url.includes('?') ? '&' : '?'}connect_timeout=30`
+  }
+  if (isSupabase && isPooler && isProduction && url && !url.includes('connection_limit=')) {
+    url = `${url}${url.includes('?') ? '&' : '?'}connection_limit=1`
   }
 
   // Supabase requires SSL; pg does not enable it from connection string alone in some runtimes.
-  const ssl = isSupabase
-    ? { rejectUnauthorized: false }
-    : undefined
+  const ssl = isSupabase ? { rejectUnauthorized: false } : undefined
 
   const pool = new Pool({
     connectionString: url,
