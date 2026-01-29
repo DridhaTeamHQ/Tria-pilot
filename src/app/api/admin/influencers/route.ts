@@ -85,18 +85,30 @@ export async function GET(request: Request) {
       return NextResponse.json([])
     }
 
-    // Enrich with Prisma InfluencerProfile
+    // Enrich with Prisma InfluencerProfile – match by profile id OR email (Prisma user id may differ if linked by email)
     const userIds = profiles.map((p: { id: string }) => p.id)
+    const profileEmails = profiles
+      .map((p: { email?: string }) => (p.email || '').toString().toLowerCase().trim())
+      .filter(Boolean)
     const influencerProfiles = await prisma.influencerProfile.findMany({
-      where: { userId: { in: userIds } },
+      where: {
+        OR: [
+          { userId: { in: userIds } },
+          { user: { email: { in: profileEmails } } },
+        ],
+      },
       include: {
         user: { select: { id: true, email: true, name: true, role: true, createdAt: true } },
       },
     })
 
+    const norm = (e: string) => (e || '').toLowerCase().trim()
+
     let enriched = profiles
       .map((profile: Record<string, unknown>) => {
-        const inf = influencerProfiles.find((i) => i.userId === profile.id)
+        const inf =
+          influencerProfiles.find((i) => i.userId === profile.id) ??
+          influencerProfiles.find((i) => norm(i.user.email) === norm(String(profile.email ?? '')))
         if (!inf || inf.user.role !== 'INFLUENCER') return null
 
         const approvalStatus = (profile.approval_status as string) || 'none'

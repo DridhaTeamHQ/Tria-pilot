@@ -62,11 +62,15 @@ export default async function AdminPage() {
     )
   }
 
-  // Fetch onboarding data from Prisma for enrichment
+  // Fetch onboarding data from Prisma – match by profile id OR email (Prisma user id may differ if linked by email)
   const userIds = profiles.map((p: any) => p.id)
+  const profileEmails = profiles.map((p: any) => (p.email || '').toString().toLowerCase().trim()).filter(Boolean)
   const influencers = await prisma.influencerProfile.findMany({
     where: {
-      userId: { in: userIds },
+      OR: [
+        { userId: { in: userIds } },
+        { user: { email: { in: profileEmails } } },
+      ],
     },
     include: {
       user: {
@@ -81,10 +85,14 @@ export default async function AdminPage() {
     },
   })
 
-  // Enrich profiles with onboarding data
+  const norm = (e: string) => (e || '').toLowerCase().trim()
+
+  // Enrich profiles with onboarding data (match by id or email so linked-by-email users appear)
   const enrichedApplications = profiles
     .map((profile: any) => {
-      const influencer = influencers.find((inf) => inf.userId === profile.id)
+      const influencer =
+        influencers.find((inf) => inf.userId === profile.id) ??
+        influencers.find((inf) => norm(inf.user.email) === norm(profile.email))
 
       if (!influencer || influencer.user.role !== 'INFLUENCER') {
         return null
