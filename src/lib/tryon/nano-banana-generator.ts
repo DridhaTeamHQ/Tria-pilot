@@ -18,6 +18,13 @@
 
 import { GoogleGenAI } from '@google/genai'
 import { getGeminiKey } from '@/lib/config/api-keys'
+// GPT Image experiment toggle
+import {
+    isGPTImageEnabled,
+    generateWithGPTImage as generateWithGPTImageAPI,
+    logModelSelection,
+    getImageGenerationModelName
+} from './gpt-image-generator'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -394,6 +401,21 @@ function getNanoBananaClient(): GoogleGenAI {
 export async function generateWithNanoBanana(
     params: NanoBananaParams
 ): Promise<NanoBananaResult> {
+    // ═══════════════════════════════════════════════════════════════════════════
+    // EXPERIMENT TOGGLE: Check if GPT Image is enabled
+    // If enabled, route to GPT Image API instead of Gemini
+    // ═══════════════════════════════════════════════════════════════════════════
+    logModelSelection()
+
+    if (isGPTImageEnabled()) {
+        console.log('🧪 EXPERIMENT MODE: Routing to GPT Image API')
+        console.log('   To disable: Set IMAGE_GENERATION_MODEL=gemini in .env.local')
+        return generateWithGPTImageAPI(params)
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // DEFAULT: Gemini (Nano Banana Pro) - Production pipeline
+    // ═══════════════════════════════════════════════════════════════════════════
     const {
         personImageBase64,
         garmentImageBase64,

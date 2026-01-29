@@ -20,6 +20,7 @@ import 'server-only'
 import { detectHumanInClothingImage, logBodyDetectionStatus, type BodyDetectionResult } from './human-body-detector'
 import { extractGarmentWithFidelity, logGarmentExtractionStatus, type GarmentExtractionResult } from './garment-extractor'
 import { analyzeGarmentForensic, type GarmentAnalysis } from './face-analyzer'
+import { extractStrictGarmentProfile, logStrictGarmentStatus, type StrictGarmentProfile } from './garment-strict-schema'
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -42,6 +43,8 @@ export interface PreprocessResult {
     extractionResult?: GarmentExtractionResult
     /** Garment analysis if performed */
     garmentAnalysis?: GarmentAnalysis
+    /** Strict garment profile for pattern/color accuracy */
+    strictGarmentProfile?: StrictGarmentProfile
     /** Total processing time in ms */
     totalTimeMs: number
 }
@@ -181,6 +184,17 @@ export async function preprocessGarmentImage(
         }
 
         // ═══════════════════════════════════════════════════════════════
+        // STEP 3.5: STRICT GARMENT PROFILE EXTRACTION (for pattern/color accuracy)
+        // ═══════════════════════════════════════════════════════════════
+        let strictGarmentProfile: StrictGarmentProfile | undefined
+        try {
+            strictGarmentProfile = await extractStrictGarmentProfile(clothingImageBase64)
+            logStrictGarmentStatus(sessionId, strictGarmentProfile)
+        } catch (e) {
+            console.warn(`   ⚠️ Strict garment profile extraction failed, continuing without it`)
+        }
+
+        // ═══════════════════════════════════════════════════════════════
         // STEP 4: GARMENT EXTRACTION
         // ═══════════════════════════════════════════════════════════════
         const extractionModel = options.model === 'pro'
@@ -209,6 +223,7 @@ export async function preprocessGarmentImage(
             detectionResult,
             extractionResult,
             garmentAnalysis,
+            strictGarmentProfile,
             totalTimeMs: Date.now() - startTime
         }
 

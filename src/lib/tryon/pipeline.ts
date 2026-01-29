@@ -12,6 +12,10 @@ import {
   logPreprocessStatus,
   type PreprocessResult
 } from './garment-preprocessor'
+import {
+  buildGarmentEnforcementBlock,
+  type StrictGarmentProfile
+} from './garment-strict-schema'
 // Intelligent Scene Analyzer - Prevents Hallucination
 import {
   analyzeScene,
@@ -154,6 +158,16 @@ export async function runTryOnPipelineV3(params: {
   }
 
   // ═══════════════════════════════════════════════════════════════
+  // STRICT GARMENT ENFORCEMENT BLOCK (for pattern/color accuracy)
+  // ═══════════════════════════════════════════════════════════════
+
+  let garmentEnforcementBlock: string | undefined
+  if (garmentPreprocessResult?.strictGarmentProfile) {
+    garmentEnforcementBlock = buildGarmentEnforcementBlock(garmentPreprocessResult.strictGarmentProfile)
+    console.log(`👔 STRICT GARMENT ENFORCEMENT: Generated (pattern: ${garmentPreprocessResult.strictGarmentProfile.pattern?.exists ? garmentPreprocessResult.strictGarmentProfile.pattern.type : 'solid'})`)
+  }
+
+  // ═══════════════════════════════════════════════════════════════
   // IDENTITY CROPPING & CACHING
   // ═══════════════════════════════════════════════════════════════
 
@@ -261,6 +275,7 @@ export async function runTryOnPipelineV3(params: {
     resolution: quality.resolution,
     stylePresetId: presetId,
     userRequest: userRequest, // Pass userRequest containing all constraint prompts and preset info
+    garmentEnforcementBlock, // Strict pattern/color enforcement
   })
 
   const elapsed = Date.now() - startTime

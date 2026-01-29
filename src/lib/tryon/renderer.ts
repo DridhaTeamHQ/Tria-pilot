@@ -334,6 +334,7 @@ interface PromptContext {
   keepBackground: boolean
   garmentDescription: string // Text description from garment analysis
   lightingInstruction?: string
+  garmentEnforcementBlock?: string // Strict pattern/color enforcement from JSON schema
 }
 
 /**
@@ -610,7 +611,7 @@ Face and body are IMMUTABLE from Image 1.`
  * - No beautification, no fashion poses
  */
 function buildFlashPrompt(ctx: PromptContext): string {
-  const { scene, keepBackground, garmentDescription, lightingInstruction } = ctx
+  const { scene, keepBackground, garmentDescription, lightingInstruction, garmentEnforcementBlock } = ctx
 
   const lighting = lightingInstruction || 'natural lighting'
 
@@ -772,6 +773,7 @@ ${flashIdentityLock}
 
 GARMENT TO APPLY:
 Look at Image 2 - copy the garment exactly as shown visually.
+${garmentEnforcementBlock || ''}
 
 TASK:
 1. COPY face pixels exactly from Image 1
@@ -809,6 +811,7 @@ ${flashIdentityLock}
 
 GARMENT TO APPLY:
 Look at Image 2 - copy the garment exactly as shown visually.
+${garmentEnforcementBlock || ''}
 
 Apply the garment described above.
 KEEP EXACT same face (pixel copy from Image 1).
@@ -832,6 +835,7 @@ export interface SimpleRenderOptions {
   resolution?: string
   stylePresetId?: string
   userRequest?: string  // Contains all constraint prompts and preset scene descriptions
+  garmentEnforcementBlock?: string // Strict pattern/color enforcement from JSON schema
 }
 
 // ====================================================================================
@@ -1775,6 +1779,7 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
     resolution,
     stylePresetId,
     userRequest,
+    garmentEnforcementBlock,
   } = params
 
   const client = getClient()
@@ -1948,7 +1953,7 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
     const faceUltraLock = getFaceUltraLock()
     const garmentUltraLock = getGarmentUltraLock()
     const emergencyFaceFreeze = getFaceFreezeEmergency()
-    
+
     let comprehensivePrompt = `${faceUltraLock}\n\n${garmentUltraLock}\n\n${emergencyFaceFreeze}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1967,6 +1972,7 @@ GARMENT RULES:
 • Extract garment from Image 2
 • Apply garment to body from Image 1
 • Copy exact type, length, color, pattern
+${garmentEnforcementBlock || ''}
 
 OUTPUT: Same person (Image 1 face + Image 1 body) wearing the garment (Image 2).
 `.trim()
@@ -1991,10 +1997,10 @@ OUTPUT: Same person (Image 1 face + Image 1 body) wearing the garment (Image 2).
       // Reserve space for base prompt, images, and other content (~50K chars)
       // So we can use ~78K chars for userRequest, but be conservative: 50K chars max
       const maxUserRequestLength = 50000
-      const truncatedUserRequest = userRequest.length > maxUserRequestLength 
+      const truncatedUserRequest = userRequest.length > maxUserRequestLength
         ? userRequest.substring(0, maxUserRequestLength) + '\n\n[TRUNCATED - Token limit protection]'
         : userRequest
-      
+
       comprehensivePrompt += `\n\n${truncatedUserRequest}\n`
       console.log(`   ✅ User request/constraints included: ${truncatedUserRequest.length} chars${userRequest.length > maxUserRequestLength ? ' (truncated)' : ''}`)
     }
@@ -2002,14 +2008,14 @@ OUTPUT: Same person (Image 1 face + Image 1 body) wearing the garment (Image 2).
     // REPEAT ULTRA LOCKS AT THE END (reinforcement - zero tolerance for drift)
     comprehensivePrompt += `\n\n${faceUltraLock}\n\n${garmentUltraLock}\n\n${emergencyFaceFreeze}\n`
     console.log(`   🔒🔒🔒 Face & Garment Ultra Lock: INJECTED AT START AND END (zero tolerance for drift)`)
-    
+
     // Remove forbidden terms that could cause beautification or face drift
     // These terms can trigger AI to beautify or modify the face/body
     const forbiddenTerms = [
-      'editorial', 'fashion pose', 'portrait', 'studio', 
-      'perfect', 'enhance', 'improve', 'beautify', 
-      'sharp', 'clean', 'elegant', 'artistic', 'creative', 'aesthetic', 
-      'model', 'mannequin', 'fashion model', 
+      'editorial', 'fashion pose', 'portrait', 'studio',
+      'perfect', 'enhance', 'improve', 'beautify',
+      'sharp', 'clean', 'elegant', 'artistic', 'creative', 'aesthetic',
+      'model', 'mannequin', 'fashion model',
       'perfect symmetry', 'facial symmetry',
       'polished', 'refined', 'stylized', 'glamorous'
     ]
