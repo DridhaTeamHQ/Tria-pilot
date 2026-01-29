@@ -43,9 +43,11 @@ interface InfluencerApplication {
 
 interface AdminDashboardClientProps {
   initialApplications: InfluencerApplication[]
+  /** When 'supabase-only', Prisma failed (e.g. DATABASE_URL missing in production) – followers, engagement, gender etc. show as empty until DATABASE_URL is set */
+  dataSource?: 'full' | 'supabase-only'
 }
 
-export default function AdminDashboardClient({ initialApplications }: AdminDashboardClientProps) {
+export default function AdminDashboardClient({ initialApplications, dataSource = 'full' }: AdminDashboardClientProps) {
   const [applications, setApplications] = useState<InfluencerApplication[]>(initialApplications)
   const [loading, setLoading] = useState<string | null>(null)
   const [query, setQuery] = useState('')
@@ -333,6 +335,11 @@ export default function AdminDashboardClient({ initialApplications }: AdminDashb
 
         {/* Applications List */}
         <div className="bg-[#FFFDF8] rounded-xl border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+          {dataSource === 'supabase-only' && (
+            <div className="px-6 py-4 bg-amber-100 border-b-2 border-amber-400 text-amber-900 text-sm font-medium">
+              <strong>Limited data:</strong> App database (Prisma) could not connect. If <code className="bg-amber-200/80 px-1 rounded">DATABASE_URL</code> is set, try using Supabase&apos;s <strong>Transaction pooler</strong> URL (port 6543, <code className="bg-amber-200/80 px-1 rounded">?pgbouncer=true</code>) instead of direct 5432 for more reliable serverless connections.
+            </div>
+          )}
           {/* Toolbar */}
           <div className="p-6 border-b-[3px] border-black flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white/50">
             <div>

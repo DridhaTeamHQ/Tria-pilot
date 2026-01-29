@@ -13,18 +13,14 @@ function createPrismaClient() {
 
   const isProduction = process.env.NODE_ENV === 'production'
 
-  // Optimized connection pool configuration:
-  // - Production (serverless): minimal connections + fast cleanup
-  // - Development (local dev): allow a few concurrent connections and longer timeouts
-  //
-  // Why: Next.js dev often triggers concurrent SSR requests; a pool max=1 with a 2s timeout
-  // can cause "Connection terminated due to connection timeout" under normal navigation.
+  // Production (serverless): use longer connection timeout so direct Postgres (e.g. port 5432)
+  // has time to connect; 2s was too short and caused fallback to Supabase-only in admin.
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    max: isProduction ? 1 : 5,
+    max: isProduction ? 2 : 5,
     min: 0,
-    idleTimeoutMillis: isProduction ? 2000 : 10000,
-    connectionTimeoutMillis: isProduction ? 2000 : 10000,
+    idleTimeoutMillis: isProduction ? 5000 : 10000,
+    connectionTimeoutMillis: isProduction ? 10000 : 10000,
     allowExitOnIdle: true,
     // Keep connections alive but very short for serverless
     keepAlive: true,

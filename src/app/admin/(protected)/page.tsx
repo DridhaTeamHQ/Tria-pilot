@@ -114,14 +114,15 @@ export default async function AdminPage() {
     })
 
   let enrichedApplications: any[]
+  let dataSource: 'full' | 'supabase-only' = 'full'
 
-  try {
+  const runPrismaQuery = async () => {
     const userIds = profiles.map((p: any) => p.id)
     const profileEmails = profiles.map((p: any) => (p.email || '').toString().toLowerCase().trim()).filter(Boolean)
     const prismaWhere = profileEmails.length > 0
       ? { OR: [{ userId: { in: userIds } }, { user: { email: { in: profileEmails } } }] }
       : { userId: { in: userIds } }
-    const influencers = await prisma.influencerProfile.findMany({
+    return prisma.influencerProfile.findMany({
       where: prismaWhere,
       include: {
         user: {
@@ -135,6 +136,16 @@ export default async function AdminPage() {
         },
       },
     })
+  }
+
+  try {
+    let influencers: Awaited<ReturnType<typeof runPrismaQuery>>
+    try {
+      influencers = await runPrismaQuery()
+    } catch (firstErr) {
+      // Retry once on connection/timeout (common in serverless with port 5432)
+      influencers = await runPrismaQuery()
+    }
 
     enrichedApplications = profiles
       .map((profile: any) => {
@@ -175,6 +186,7 @@ export default async function AdminPage() {
   } catch (prismaError) {
     console.error('Admin page: Prisma failed, using Supabase-only list', prismaError)
     enrichedApplications = buildMinimalFromProfiles(profiles)
+    dataSource = 'supabase-only'
   }
 
   return (
@@ -197,7 +209,10 @@ export default async function AdminPage() {
           </div>
         </div>
 
-        <AdminDashboardClient initialApplications={enrichedApplications.filter((app): app is NonNullable<typeof app> => app !== null)} />
+        <AdminDashboardClient
+          initialApplications={enrichedApplications.filter((app): app is NonNullable<typeof app> => app !== null)}
+          dataSource={dataSource}
+        />
       </div>
     </div>
   )
