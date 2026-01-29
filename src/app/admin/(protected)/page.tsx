@@ -73,15 +73,55 @@ export default async function AdminPage() {
     )
   }
 
-  // Fetch onboarding data from Prisma – match by profile id OR email (Prisma user id may differ if linked by email)
-  const userIds = profiles.map((p: any) => p.id)
-  const profileEmails = profiles.map((p: any) => (p.email || '').toString().toLowerCase().trim()).filter(Boolean)
-  const prismaWhere = profileEmails.length > 0
-    ? { OR: [{ userId: { in: userIds } }, { user: { email: { in: profileEmails } } }] }
-    : { userId: { in: userIds } }
-  let influencers
+  // Build minimal app list from Supabase profiles (so page works even when Prisma/DB fails in production)
+  const norm = (e: string) => (e || '').toLowerCase().trim()
+  const buildMinimalFromProfiles = (profileList: any[]) =>
+    profileList.map((profile: any) => {
+      let displayStatus = (profile.approval_status || 'none').toString().toLowerCase()
+      if (!profile.onboarding_completed) displayStatus = 'none'
+      return {
+        user_id: profile.id,
+        email: profile.email,
+        full_name: profile.full_name ?? profile.name ?? profile.email ?? null,
+        status: displayStatus,
+        created_at: profile.created_at,
+        updated_at: profile.updated_at ?? profile.created_at,
+        reviewed_at: null,
+        review_note: null,
+        onboarding: {
+          gender: null,
+          niches: [],
+          audienceType: [],
+          preferredCategories: [],
+          socials: {},
+          bio: null,
+          followers: null,
+          engagementRate: null,
+          audienceRate: null,
+          retentionRate: null,
+          badgeScore: null,
+          badgeTier: null,
+          onboardingCompleted: Boolean(profile.onboarding_completed),
+        },
+        user: {
+          id: profile.id,
+          email: profile.email,
+          name: profile.full_name ?? profile.name ?? profile.email ?? null,
+          role: profile.role,
+          createdAt: profile.created_at,
+        },
+      }
+    })
+
+  let enrichedApplications: any[]
+
   try {
-    influencers = await prisma.influencerProfile.findMany({
+    const userIds = profiles.map((p: any) => p.id)
+    const profileEmails = profiles.map((p: any) => (p.email || '').toString().toLowerCase().trim()).filter(Boolean)
+    const prismaWhere = profileEmails.length > 0
+      ? { OR: [{ userId: { in: userIds } }, { user: { email: { in: profileEmails } } }] }
+      : { userId: { in: userIds } }
+    const influencers = await prisma.influencerProfile.findMany({
       where: prismaWhere,
       include: {
         user: {
@@ -95,68 +135,47 @@ export default async function AdminPage() {
         },
       },
     })
+
+    enrichedApplications = profiles
+      .map((profile: any) => {
+        const influencer =
+          influencers.find((inf) => inf.userId === profile.id) ??
+          influencers.find((inf) => norm(inf.user.email) === norm(profile.email))
+        if (!influencer || influencer.user.role !== 'INFLUENCER') return null
+        let displayStatus = (profile.approval_status || 'none').toString().toLowerCase()
+        if (!profile.onboarding_completed) displayStatus = 'none'
+        return {
+          user_id: profile.id,
+          email: profile.email,
+          full_name: influencer.user.name,
+          status: displayStatus,
+          created_at: profile.created_at,
+          updated_at: profile.updated_at ?? profile.created_at,
+          reviewed_at: null,
+          review_note: null,
+          onboarding: {
+            gender: influencer.gender,
+            niches: Array.isArray(influencer.niches) ? (influencer.niches as string[]) : [],
+            audienceType: Array.isArray(influencer.audienceType) ? (influencer.audienceType as string[]) : [],
+            preferredCategories: Array.isArray(influencer.preferredCategories) ? (influencer.preferredCategories as string[]) : [],
+            socials: typeof influencer.socials === 'object' && influencer.socials !== null ? (influencer.socials as Record<string, string>) : {},
+            bio: influencer.bio,
+            followers: influencer.followers,
+            engagementRate: influencer.engagementRate ? Number(influencer.engagementRate) : null,
+            audienceRate: influencer.audienceRate ? Number(influencer.audienceRate) : null,
+            retentionRate: influencer.retentionRate ? Number(influencer.retentionRate) : null,
+            badgeScore: influencer.badgeScore ? Number(influencer.badgeScore) : null,
+            badgeTier: influencer.badgeTier,
+            onboardingCompleted: influencer.onboardingCompleted,
+          },
+          user: influencer.user,
+        }
+      })
+      .filter((app: any) => app !== null)
   } catch (prismaError) {
-    console.error('Admin page: Prisma influencerProfile findMany failed', prismaError)
-    return (
-      <div className="min-h-screen bg-cream flex items-center justify-center p-6">
-        <div className="max-w-md text-center">
-          <h1 className="text-xl font-bold text-charcoal mb-2">Could not load applications</h1>
-          <p className="text-charcoal/70 mb-4">
-            Database connection failed. Check DATABASE_URL in production (Vercel env).
-          </p>
-          <Link href="/?from=admin" className="text-charcoal underline font-medium">Back to site</Link>
-        </div>
-      </div>
-    )
+    console.error('Admin page: Prisma failed, using Supabase-only list', prismaError)
+    enrichedApplications = buildMinimalFromProfiles(profiles)
   }
-
-  const norm = (e: string) => (e || '').toLowerCase().trim()
-
-  // Enrich profiles with onboarding data (match by id or email so linked-by-email users appear)
-  const enrichedApplications = profiles
-    .map((profile: any) => {
-      const influencer =
-        influencers.find((inf) => inf.userId === profile.id) ??
-        influencers.find((inf) => norm(inf.user.email) === norm(profile.email))
-
-      if (!influencer || influencer.user.role !== 'INFLUENCER') {
-        return null
-      }
-
-      // Determine status for display (normalize DB CAPS to lowercase for frontend)
-      let displayStatus = (profile.approval_status || 'none').toString().toLowerCase()
-      if (!profile.onboarding_completed) {
-        displayStatus = 'none' // Draft = onboarding_completed === false
-      }
-
-      return {
-        user_id: profile.id,
-        email: profile.email,
-        full_name: influencer.user.name,
-        status: displayStatus,
-        created_at: profile.created_at,
-        updated_at: profile.updated_at || profile.created_at,
-        reviewed_at: null,
-        review_note: null,
-        onboarding: {
-          gender: influencer.gender,
-          niches: Array.isArray(influencer.niches) ? (influencer.niches as string[]) : [],
-          audienceType: Array.isArray(influencer.audienceType) ? (influencer.audienceType as string[]) : [],
-          preferredCategories: Array.isArray(influencer.preferredCategories) ? (influencer.preferredCategories as string[]) : [],
-          socials: typeof influencer.socials === 'object' && influencer.socials !== null ? (influencer.socials as Record<string, string>) : {},
-          bio: influencer.bio,
-          followers: influencer.followers,
-          engagementRate: influencer.engagementRate ? Number(influencer.engagementRate) : null,
-          audienceRate: influencer.audienceRate ? Number(influencer.audienceRate) : null,
-          retentionRate: influencer.retentionRate ? Number(influencer.retentionRate) : null,
-          badgeScore: influencer.badgeScore ? Number(influencer.badgeScore) : null,
-          badgeTier: influencer.badgeTier,
-          onboardingCompleted: influencer.onboardingCompleted,
-        },
-        user: influencer.user,
-      }
-    })
-    .filter((app: any) => app !== null)
 
   return (
     <div className="min-h-screen bg-cream">

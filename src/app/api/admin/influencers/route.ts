@@ -85,96 +85,160 @@ export async function GET(request: Request) {
       return NextResponse.json([])
     }
 
-    // Enrich with Prisma InfluencerProfile – match by profile id OR email (Prisma user id may differ if linked by email)
-    const userIds = profiles.map((p: { id: string }) => p.id)
-    const profileEmails = profiles
-      .map((p: { email?: string }) => (p.email || '').toString().toLowerCase().trim())
-      .filter(Boolean)
-    const prismaWhere =
-      profileEmails.length > 0
-        ? { OR: [{ userId: { in: userIds } }, { user: { email: { in: profileEmails } } }] }
-        : { userId: { in: userIds } }
-    const influencerProfiles = await prisma.influencerProfile.findMany({
-      where: prismaWhere,
-      include: {
-        user: { select: { id: true, email: true, name: true, role: true, createdAt: true } },
-      },
-    })
-
     const norm = (e: string) => (e || '').toLowerCase().trim()
 
-    let enriched = profiles
-      .map((profile: Record<string, unknown>) => {
-        const inf =
-          influencerProfiles.find((i) => i.userId === profile.id) ??
-          influencerProfiles.find((i) => norm(i.user.email) === norm(String(profile.email ?? '')))
-        if (!inf || inf.user.role !== 'INFLUENCER') return null
-
+    // Build minimal list from Supabase only (used when Prisma fails in production)
+    const buildMinimalFromProfiles = (profileList: Record<string, unknown>[]) =>
+      profileList.map((profile: Record<string, unknown>) => {
         const approvalStatus = (profile.approval_status as string) || 'none'
         let displayStatus = approvalStatus.toString().toLowerCase()
         if (!profile.onboarding_completed) displayStatus = 'none'
-
-        // Apply status filter in code
-        if (statusFilter === 'none' && displayStatus !== 'none') return null
-        if (statusFilter === 'pending' && displayStatus !== 'pending') return null
-        if (statusFilter === 'approved' && displayStatus !== 'approved') return null
-        if (statusFilter === 'rejected' && displayStatus !== 'rejected') return null
-
         return {
           user_id: profile.id,
           email: profile.email,
-          full_name: inf.user.name,
+          full_name: (profile.full_name ?? profile.name ?? profile.email) as string | null,
           status: displayStatus,
           created_at: profile.created_at,
-          updated_at: profile.updated_at ?? profile.created_at,
+          updated_at: (profile.updated_at ?? profile.created_at) as string,
           reviewed_at: null,
           review_note: null,
           onboarding: {
-            gender: inf.gender,
-            niches: Array.isArray(inf.niches) ? inf.niches : [],
-            audienceType: Array.isArray(inf.audienceType) ? inf.audienceType : [],
-            preferredCategories: Array.isArray(inf.preferredCategories) ? inf.preferredCategories : [],
-            socials: typeof inf.socials === 'object' && inf.socials ? inf.socials : {},
-            bio: inf.bio,
-            followers: inf.followers,
-            engagementRate: inf.engagementRate ? Number(inf.engagementRate) : null,
-            audienceRate: inf.audienceRate ? Number(inf.audienceRate) : null,
-            retentionRate: inf.retentionRate ? Number(inf.retentionRate) : null,
-            badgeScore: inf.badgeScore ? Number(inf.badgeScore) : null,
-            badgeTier: inf.badgeTier,
-            onboardingCompleted: inf.onboardingCompleted,
-            portfolioVisibility: inf.portfolioVisibility,
+            gender: null,
+            niches: [],
+            audienceType: [],
+            preferredCategories: [],
+            socials: {},
+            bio: null,
+            followers: null,
+            engagementRate: null,
+            audienceRate: null,
+            retentionRate: null,
+            badgeScore: null,
+            badgeTier: null,
+            onboardingCompleted: Boolean(profile.onboarding_completed),
+            portfolioVisibility: true,
           },
           user: {
-            id: inf.user.id,
-            email: inf.user.email,
-            name: inf.user.name,
-            role: inf.user.role,
-            createdAt: inf.user.createdAt,
+            id: profile.id,
+            email: profile.email,
+            name: (profile.full_name ?? profile.name ?? profile.email) as string | null,
+            role: profile.role,
+            createdAt: profile.created_at,
           },
         }
       })
-      .filter((x): x is NonNullable<typeof x> => x !== null)
+
+    let enriched: Array<{
+      user_id: unknown
+      email: unknown
+      full_name: string | null
+      status: string
+      created_at: unknown
+      updated_at: string
+      reviewed_at: null
+      review_note: null
+      onboarding: Record<string, unknown>
+      user: Record<string, unknown>
+    }>
+
+    try {
+      const userIds = profiles.map((p: { id: string }) => p.id)
+      const profileEmails = profiles
+        .map((p: { email?: string }) => (p.email || '').toString().toLowerCase().trim())
+        .filter(Boolean)
+      const prismaWhere =
+        profileEmails.length > 0
+          ? { OR: [{ userId: { in: userIds } }, { user: { email: { in: profileEmails } } }] }
+          : { userId: { in: userIds } }
+      const influencerProfiles = await prisma.influencerProfile.findMany({
+        where: prismaWhere,
+        include: {
+          user: { select: { id: true, email: true, name: true, role: true, createdAt: true } },
+        },
+      })
+
+      enriched = profiles
+        .map((profile: Record<string, unknown>) => {
+          const inf =
+            influencerProfiles.find((i) => i.userId === profile.id) ??
+            influencerProfiles.find((i) => norm(i.user.email) === norm(String(profile.email ?? '')))
+          if (!inf || inf.user.role !== 'INFLUENCER') return null
+
+          const approvalStatus = (profile.approval_status as string) || 'none'
+          let displayStatus = approvalStatus.toString().toLowerCase()
+          if (!profile.onboarding_completed) displayStatus = 'none'
+
+          if (statusFilter === 'none' && displayStatus !== 'none') return null
+          if (statusFilter === 'pending' && displayStatus !== 'pending') return null
+          if (statusFilter === 'approved' && displayStatus !== 'approved') return null
+          if (statusFilter === 'rejected' && displayStatus !== 'rejected') return null
+
+          return {
+            user_id: profile.id,
+            email: profile.email,
+            full_name: inf.user.name,
+            status: displayStatus,
+            created_at: profile.created_at,
+            updated_at: (profile.updated_at ?? profile.created_at) as string,
+            reviewed_at: null,
+            review_note: null,
+            onboarding: {
+              gender: inf.gender,
+              niches: Array.isArray(inf.niches) ? inf.niches : [],
+              audienceType: Array.isArray(inf.audienceType) ? inf.audienceType : [],
+              preferredCategories: Array.isArray(inf.preferredCategories) ? inf.preferredCategories : [],
+              socials: typeof inf.socials === 'object' && inf.socials ? inf.socials : {},
+              bio: inf.bio,
+              followers: inf.followers,
+              engagementRate: inf.engagementRate ? Number(inf.engagementRate) : null,
+              audienceRate: inf.audienceRate ? Number(inf.audienceRate) : null,
+              retentionRate: inf.retentionRate ? Number(inf.retentionRate) : null,
+              badgeScore: inf.badgeScore ? Number(inf.badgeScore) : null,
+              badgeTier: inf.badgeTier,
+              onboardingCompleted: inf.onboardingCompleted,
+              portfolioVisibility: inf.portfolioVisibility,
+            },
+            user: {
+              id: inf.user.id,
+              email: inf.user.email,
+              name: inf.user.name,
+              role: inf.user.role,
+              createdAt: inf.user.createdAt,
+            },
+          }
+        })
+        .filter((x): x is NonNullable<typeof x> => x !== null)
+    } catch (prismaError) {
+      console.error('Admin API: Prisma failed, using Supabase-only list', prismaError)
+      const minimal = buildMinimalFromProfiles(profiles)
+      enriched = minimal.filter((item) => {
+        if (statusFilter === 'none' && item.status !== 'none') return false
+        if (statusFilter === 'pending' && item.status !== 'pending') return false
+        if (statusFilter === 'approved' && item.status !== 'approved') return false
+        if (statusFilter === 'rejected' && item.status !== 'rejected') return false
+        return true
+      })
+    }
 
     // Sort in code (profiles from Supabase may not support all sort fields)
     const sortKey = sortBy === 'created_at' ? 'created_at' : sortBy
     enriched.sort((a, b) => {
-      let aVal: number | string = 0
-      let bVal: number | string = 0
+      let aVal = 0
+      let bVal = 0
       if (sortKey === 'created_at') {
         aVal = new Date(String(a.created_at)).getTime()
         bVal = new Date(String(b.created_at)).getTime()
       } else if (sortKey === 'badgeScore') {
-        aVal = a.onboarding?.badgeScore ?? 0
-        bVal = b.onboarding?.badgeScore ?? 0
+        aVal = Number((a.onboarding as Record<string, unknown>)?.badgeScore ?? 0)
+        bVal = Number((b.onboarding as Record<string, unknown>)?.badgeScore ?? 0)
       } else if (sortKey === 'followers') {
-        aVal = a.onboarding?.followers ?? 0
-        bVal = b.onboarding?.followers ?? 0
+        aVal = Number((a.onboarding as Record<string, unknown>)?.followers ?? 0)
+        bVal = Number((b.onboarding as Record<string, unknown>)?.followers ?? 0)
       } else if (sortKey === 'engagementRate') {
-        aVal = a.onboarding?.engagementRate ?? 0
-        bVal = b.onboarding?.engagementRate ?? 0
+        aVal = Number((a.onboarding as Record<string, unknown>)?.engagementRate ?? 0)
+        bVal = Number((b.onboarding as Record<string, unknown>)?.engagementRate ?? 0)
       }
-      const diff = Number(aVal) - Number(bVal)
+      const diff = aVal - bVal
       return order === 'asc' ? diff : -diff
     })
 
