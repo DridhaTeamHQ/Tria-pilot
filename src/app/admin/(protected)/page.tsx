@@ -21,21 +21,32 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export default async function AdminPage() {
-  const service = createServiceClient()
+  let service: ReturnType<typeof createServiceClient>
+  try {
+    service = createServiceClient()
+  } catch (envError) {
+    console.error('Admin page: missing env (e.g. SUPABASE_SERVICE_ROLE_KEY)', envError)
+    return (
+      <div className="min-h-screen bg-cream flex items-center justify-center p-6">
+        <div className="max-w-md text-center">
+          <h1 className="text-xl font-bold text-charcoal mb-2">Configuration error</h1>
+          <p className="text-charcoal/70 mb-4">
+            Admin dashboard cannot load. Check that SUPABASE_SERVICE_ROLE_KEY and NEXT_PUBLIC_SUPABASE_URL are set in production.
+          </p>
+          <Link href="/admin/login" className="text-charcoal underline font-medium">Back to admin login</Link>
+        </div>
+      </div>
+    )
+  }
 
-  // CRITICAL: Query profiles table – role is stored UPPERCASE (INFLUENCER) from register
-  const { data: profiles, error } = await service
+  const { data: profiles, error: profilesError } = await service
     .from('profiles')
     .select('*')
     .or('role.eq.INFLUENCER,role.eq.influencer')
     .order('created_at', { ascending: false })
 
-  if (error) {
-    console.error('Error fetching profiles:', {
-      error: error.message,
-      code: error.code,
-      details: error.details,
-    })
+  if (profilesError) {
+    console.error('Error fetching profiles:', profilesError)
   }
 
   if (!profiles || profiles.length === 0) {
@@ -65,25 +76,39 @@ export default async function AdminPage() {
   // Fetch onboarding data from Prisma – match by profile id OR email (Prisma user id may differ if linked by email)
   const userIds = profiles.map((p: any) => p.id)
   const profileEmails = profiles.map((p: any) => (p.email || '').toString().toLowerCase().trim()).filter(Boolean)
-  const influencers = await prisma.influencerProfile.findMany({
-    where: {
-      OR: [
-        { userId: { in: userIds } },
-        { user: { email: { in: profileEmails } } },
-      ],
-    },
-    include: {
-      user: {
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          role: true,
-          createdAt: true,
+  const prismaWhere = profileEmails.length > 0
+    ? { OR: [{ userId: { in: userIds } }, { user: { email: { in: profileEmails } } }] }
+    : { userId: { in: userIds } }
+  let influencers
+  try {
+    influencers = await prisma.influencerProfile.findMany({
+      where: prismaWhere,
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            createdAt: true,
+          },
         },
       },
-    },
-  })
+    })
+  } catch (prismaError) {
+    console.error('Admin page: Prisma influencerProfile findMany failed', prismaError)
+    return (
+      <div className="min-h-screen bg-cream flex items-center justify-center p-6">
+        <div className="max-w-md text-center">
+          <h1 className="text-xl font-bold text-charcoal mb-2">Could not load applications</h1>
+          <p className="text-charcoal/70 mb-4">
+            Database connection failed. Check DATABASE_URL in production (Vercel env).
+          </p>
+          <Link href="/?from=admin" className="text-charcoal underline font-medium">Back to site</Link>
+        </div>
+      </div>
+    )
+  }
 
   const norm = (e: string) => (e || '').toLowerCase().trim()
 

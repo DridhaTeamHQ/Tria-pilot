@@ -90,13 +90,12 @@ export async function GET(request: Request) {
     const profileEmails = profiles
       .map((p: { email?: string }) => (p.email || '').toString().toLowerCase().trim())
       .filter(Boolean)
+    const prismaWhere =
+      profileEmails.length > 0
+        ? { OR: [{ userId: { in: userIds } }, { user: { email: { in: profileEmails } } }] }
+        : { userId: { in: userIds } }
     const influencerProfiles = await prisma.influencerProfile.findMany({
-      where: {
-        OR: [
-          { userId: { in: userIds } },
-          { user: { email: { in: profileEmails } } },
-        ],
-      },
+      where: prismaWhere,
       include: {
         user: { select: { id: true, email: true, name: true, role: true, createdAt: true } },
       },

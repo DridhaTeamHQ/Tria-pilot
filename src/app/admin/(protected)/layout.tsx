@@ -1,6 +1,6 @@
 /**
  * ADMIN PROTECTED LAYOUT
- * 
+ *
  * Admins are identified ONLY by: profiles.role === 'admin'
  * DO NOT check admin_users table
  */
@@ -13,21 +13,24 @@ export default async function AdminProtectedLayout({
 }: {
   children: React.ReactNode
 }) {
-  const supabase = await createClient()
-  const {
-    data: { user: authUser },
-  } = await supabase.auth.getUser()
+  try {
+    const supabase = await createClient()
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser()
 
-  if (!authUser) {
+    if (!authUser) {
+      redirect('/admin/login')
+    }
+
+    const profile = await fetchProfile(authUser.id)
+    if (!profile || profile.role !== 'admin') {
+      redirect('/admin/login?error=not_admin')
+    }
+
+    return <>{children}</>
+  } catch (e) {
+    console.error('Admin protected layout error:', e)
     redirect('/admin/login')
   }
-
-  // Check admin access - use profiles.role === 'admin' (SOURCE OF TRUTH)
-  const profile = await fetchProfile(authUser.id)
-
-  if (!profile || profile.role !== 'admin') {
-    redirect('/admin/login?error=not_admin')
-  }
-
-  return <>{children}</>
 }
