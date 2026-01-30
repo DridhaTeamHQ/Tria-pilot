@@ -76,15 +76,15 @@ export async function POST(request: Request) {
     }
 
     // Prisma manages connections automatically via pool
+    // Use getOrCreateUser to ensure new users are synced from Supabase Auth to Prisma
     let dbUser
     try {
-      dbUser = await prisma.user.findUnique({
-        where: { email: authUser.email! },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-        },
+      const { getOrCreateUser } = await import('@/lib/prisma-user')
+      dbUser = await getOrCreateUser({
+        id: authUser.id,
+        email: authUser.email ?? '',
+        role: authUser.user_metadata?.role,
+        user_metadata: authUser.user_metadata,
       })
     } catch (dbError) {
       console.error('Database query error:', dbError)
@@ -95,7 +95,7 @@ export async function POST(request: Request) {
     }
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: 'User sync failed' }, { status: 500 })
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -593,10 +593,10 @@ REQUIREMENTS:
       // Use first variant as primary
       const primaryVariant = variants[0]
 
-        await prisma.generationJob.update({
-          where: { id: job.id },
-          data: {
-            status: 'completed',
+      await prisma.generationJob.update({
+        where: { id: job.id },
+        data: {
+          status: 'completed',
           outputImagePath: primaryVariant.imageUrl || 'base64://' + primaryVariant.base64Image.substring(0, 50) + '...',
           suggestionsJSON: {
             presetId: stylePreset || null,
@@ -604,9 +604,9 @@ REQUIREMENTS:
             prompt_text: successfulVariants[0].result.debug.shootPlanText,
             timeMs: successfulVariants[0].result.debug.timeMs,
             variantCount: variants.length,
-            },
           },
-        })
+        },
+      })
 
       // ═══════════════════════════════════════════════════════════════
       // PHASE 2: Complete generation tracking (success)
