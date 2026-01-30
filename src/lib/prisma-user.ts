@@ -64,6 +64,8 @@ export async function getOrCreateUser(input: GetOrCreateUserInput): Promise<User
       await prisma.$transaction([
         prisma.$executeRaw`UPDATE "InfluencerProfile" SET "userId" = ${id} WHERE "userId" = ${oldId}`,
         prisma.$executeRaw`UPDATE "BrandProfile" SET "userId" = ${id} WHERE "userId" = ${oldId}`,
+        prisma.$executeRaw`UPDATE "GenerationJob" SET "userId" = ${id} WHERE "userId" = ${oldId}`,
+        prisma.$executeRaw`UPDATE "UserProfileImage" SET "userId" = ${id} WHERE "userId" = ${oldId}`,
         prisma.$executeRaw`UPDATE profiles SET id = ${id} WHERE id = ${oldId}`,
       ])
     } catch (linkErr) {
