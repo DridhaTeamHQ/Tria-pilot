@@ -118,29 +118,49 @@ export async function POST(request: Request) {
       userExists: !!userWithProfile,
       profileExists: !!userWithProfile?.influencerProfile,
       approvalStatus: userWithProfile?.status,
-      onboardingCompleted: userWithProfile?.influencerProfile?.onboardingCompleted
+      role: userWithProfile?.role
     })
 
-    // Check if user has an InfluencerProfile
-    if (!userWithProfile?.influencerProfile) {
-      console.log('❌ No InfluencerProfile found for user:', dbUser.id)
+    // Check approval status first (using user.status field)
+    if (userWithProfile?.status !== 'APPROVED') {
+      console.log('⏳ User not approved:', { userId: dbUser.id, status: userWithProfile?.status })
       return NextResponse.json({
-        code: 'PROFILE_INCOMPLETE',
-        message: 'Please complete your influencer profile setup first.',
+        code: 'NOT_APPROVED',
+        message: `Your account is ${userWithProfile?.status?.toLowerCase() || 'pending'}. Please wait for admin approval.`,
       }, { status: 403 })
     }
 
-    // Check approval status (using user.status field)
-    if (userWithProfile.status !== 'APPROVED') {
-      console.log('⏳ User not approved:', { userId: dbUser.id, status: userWithProfile.status })
+    // Auto-create InfluencerProfile if missing for APPROVED INFLUENCER users
+    let influencerProfile = userWithProfile?.influencerProfile
+    if (!influencerProfile && userWithProfile?.role === 'INFLUENCER') {
+      console.log('🔧 Auto-creating InfluencerProfile for approved user:', dbUser.id)
+      try {
+        influencerProfile = await prisma.influencerProfile.create({
+          data: {
+            userId: dbUser.id,
+            niches: [],
+            socials: {},
+            onboardingCompleted: false,
+          }
+        })
+        console.log('✅ InfluencerProfile created:', influencerProfile.id)
+      } catch (profileError) {
+        console.error('Failed to create InfluencerProfile:', profileError)
+        // Don't block - let them proceed
+      }
+    }
+
+    // If still no profile after auto-create attempt (non-influencer role or creation failed)
+    if (!influencerProfile && userWithProfile?.role !== 'INFLUENCER') {
+      console.log('❌ User is not an influencer:', { userId: dbUser.id, role: userWithProfile?.role })
       return NextResponse.json({
-        code: 'NOT_APPROVED',
-        message: `Your account is ${userWithProfile.status?.toLowerCase() || 'pending'}. Please wait for admin approval.`,
+        code: 'PROFILE_INCOMPLETE',
+        message: 'Influencer account required for try-on generation.',
       }, { status: 403 })
     }
 
     // Log success
-    console.log('✅ User verified:', { id: dbUser.id, email: dbUser.email, status: userWithProfile.status })
+    console.log('✅ User verified:', { id: dbUser.id, email: dbUser.email, status: userWithProfile?.status })
 
     // Extract IP from request headers
     const forwardedFor = request.headers.get('x-forwarded-for')
