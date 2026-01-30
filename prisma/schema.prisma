@@ -178,7 +178,7 @@ model Favorite {
 
 model GenerationJob {
   id              String   @id @default(cuid())
-  userId          String
+  userId          String   @db.Uuid
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   inputs          Json     // Person image, clothing image, settings
   settings        Json     // Style presets, background, pose, etc.

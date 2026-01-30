@@ -75,69 +75,97 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Use getOrCreateUser to ensure user is properly synced from Supabase Auth to Prisma
-    // This also handles ID migration for users with legacy CUIDs
-    let dbUser
+    // ═══════════════════════════════════════════════════════════════
+    // PHASE 1: FORCE USER BOOTSTRAP (UPSERT)
+    // This GUARANTEES a Prisma User row exists before any mutations
+    // ═══════════════════════════════════════════════════════════════
+
+    console.log('🔑 Auth check:', {
+      sessionUserId: authUser.id,
+      sessionEmail: authUser.email,
+    })
+
+    // UPSERT: Create user if not exists, or update if exists
+    // This is the ONLY correct way to guarantee the row exists
+    let prismaUser
     try {
-      const { getOrCreateUser } = await import('@/lib/prisma-user')
-      dbUser = await getOrCreateUser({
-        id: authUser.id,
-        email: authUser.email ?? '',
-        role: authUser.user_metadata?.role,
-        user_metadata: authUser.user_metadata,
+      prismaUser = await prisma.user.upsert({
+        where: { id: authUser.id },
+        update: {
+          // Update email in case it changed
+          email: authUser.email ?? undefined,
+        },
+        create: {
+          id: authUser.id,
+          email: authUser.email!,
+          role: 'INFLUENCER',
+          status: 'PENDING', // New users start as pending
+        },
       })
-    } catch (dbError) {
-      console.error('Database query error:', dbError)
-      return NextResponse.json(
-        { error: 'Database connection failed. Please try again.' },
-        { status: 503 }
-      )
-    }
-
-    if (!dbUser) {
-      console.error('User sync failed:', { email: authUser.email, id: authUser.id })
+      console.log('✅ Prisma User guaranteed:', {
+        prismaUserId: prismaUser.id,
+        prismaUserExists: true,
+        role: prismaUser.role,
+        status: prismaUser.status,
+      })
+    } catch (upsertError) {
+      console.error('❌ CRITICAL: User upsert failed:', upsertError)
       return NextResponse.json({
-        code: 'USER_NOT_FOUND',
-        message: 'User account not found. Please log out and register again.',
-      }, { status: 404 })
+        error: 'Failed to initialize user. Please try again.',
+      }, { status: 500 })
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // PHASE 1B: Verify InfluencerProfile exists and is approved
-    // ═══════════════════════════════════════════════════════════════
-
-    // Fetch user with InfluencerProfile
-    const userWithProfile = await prisma.user.findUnique({
-      where: { id: dbUser.id },
+    // VERIFY: Double-check the user exists with a fresh query
+    const verifiedUser = await prisma.user.findUnique({
+      where: { id: authUser.id },
       include: { influencerProfile: true }
     })
 
-    // Log detailed status for debugging
-    console.log('📋 User Status Check:', {
-      userId: dbUser.id,
-      userExists: !!userWithProfile,
-      profileExists: !!userWithProfile?.influencerProfile,
-      approvalStatus: userWithProfile?.status,
-      role: userWithProfile?.role
+    console.log('🔍 Verification query:', {
+      queryId: authUser.id,
+      userFound: !!verifiedUser,
+      userId: verifiedUser?.id,
     })
 
-    // Check approval status first (using user.status field)
-    if (userWithProfile?.status !== 'APPROVED') {
-      console.log('⏳ User not approved:', { userId: dbUser.id, status: userWithProfile?.status })
+    if (!verifiedUser) {
+      console.error('❌ CRITICAL: User not found after upsert!', {
+        sessionUserId: authUser.id,
+        upsertedId: prismaUser.id,
+      })
+      return NextResponse.json({
+        code: 'USER_NOT_FOUND',
+        message: 'User initialization failed. Please log out and log in again.',
+      }, { status: 400 })
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // PHASE 2: Check approval status
+    // ═══════════════════════════════════════════════════════════════
+
+    console.log('📋 User Status Check:', {
+      userId: verifiedUser.id,
+      role: verifiedUser.role,
+      status: verifiedUser.status,
+      hasInfluencerProfile: !!verifiedUser.influencerProfile,
+    })
+
+    // Check approval status first
+    if (verifiedUser.status !== 'APPROVED') {
+      console.log('⏳ User not approved:', { userId: verifiedUser.id, status: verifiedUser.status })
       return NextResponse.json({
         code: 'NOT_APPROVED',
-        message: `Your account is ${userWithProfile?.status?.toLowerCase() || 'pending'}. Please wait for admin approval.`,
+        message: `Your account is ${verifiedUser.status?.toLowerCase() || 'pending'}. Please wait for admin approval.`,
       }, { status: 403 })
     }
 
     // Auto-create InfluencerProfile if missing for APPROVED INFLUENCER users
-    let influencerProfile = userWithProfile?.influencerProfile
-    if (!influencerProfile && userWithProfile?.role === 'INFLUENCER') {
-      console.log('🔧 Auto-creating InfluencerProfile for approved user:', dbUser.id)
+    let influencerProfile = verifiedUser.influencerProfile
+    if (!influencerProfile && verifiedUser.role === 'INFLUENCER') {
+      console.log('🔧 Auto-creating InfluencerProfile for approved user:', verifiedUser.id)
       try {
         influencerProfile = await prisma.influencerProfile.create({
           data: {
-            userId: dbUser.id,
+            userId: verifiedUser.id,
             niches: [],
             socials: {},
             onboardingCompleted: false,
@@ -146,28 +174,28 @@ export async function POST(request: Request) {
         console.log('✅ InfluencerProfile created:', influencerProfile.id)
       } catch (profileError) {
         console.error('Failed to create InfluencerProfile:', profileError)
-        // Don't block - let them proceed
       }
     }
 
-    // If still no profile after auto-create attempt (non-influencer role or creation failed)
-    if (!influencerProfile && userWithProfile?.role !== 'INFLUENCER') {
-      console.log('❌ User is not an influencer:', { userId: dbUser.id, role: userWithProfile?.role })
+    // If not influencer role, block
+    if (verifiedUser.role !== 'INFLUENCER') {
+      console.log('❌ User is not an influencer:', { userId: verifiedUser.id, role: verifiedUser.role })
       return NextResponse.json({
         code: 'PROFILE_INCOMPLETE',
         message: 'Influencer account required for try-on generation.',
       }, { status: 403 })
     }
 
-    // Log success
-    console.log('✅ User verified:', { id: dbUser.id, email: dbUser.email, status: userWithProfile?.status })
+    // Use verifiedUser.id for all subsequent operations - this is GUARANTEED to exist
+    const userId = verifiedUser.id
+    console.log('✅ User fully verified, ready for generation:', { userId, email: verifiedUser.email })
 
     // Extract IP from request headers
     const forwardedFor = request.headers.get('x-forwarded-for')
     const realIp = request.headers.get('x-real-ip')
     const clientIp = forwardedFor?.split(',')[0]?.trim() || realIp || 'unknown'
 
-    const gateResult = checkGenerationGate(dbUser.id, clientIp)
+    const gateResult = checkGenerationGate(userId, clientIp)
 
     if (!gateResult.allowed) {
       console.log(`🚫 Generation blocked: ${gateResult.blockReason}`)
@@ -190,8 +218,8 @@ export async function POST(request: Request) {
       editType,
       clothingImage,
       backgroundImage,
-      accessoryImages, // NEW: accessory images
-      accessoryTypes,  // NEW: accessory type labels
+      accessoryImages,
+      accessoryTypes,
       model,
       stylePreset,
       userRequest,
@@ -218,10 +246,34 @@ export async function POST(request: Request) {
       }
     }
 
-    // Create generation job
+    // ═══════════════════════════════════════════════════════════════
+    // CRITICAL: Verify user exists IMMEDIATELY before GenerationJob.create
+    // This is the FK invariant check - if this fails, the mutation will fail
+    // ═══════════════════════════════════════════════════════════════
+    const userExistsCheck = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true }
+    })
+
+    console.log("🔍 USER EXISTS BEFORE GENERATION:", !!userExistsCheck, userId)
+
+    if (!userExistsCheck) {
+      console.error("❌ FATAL: User does NOT exist immediately before GenerationJob.create!", {
+        userId,
+        sessionUserId: authUser.id,
+        thisIsTheBug: true
+      })
+      return NextResponse.json({
+        code: 'USER_NOT_FOUND',
+        message: 'User record missing. Please refresh and try again.',
+      }, { status: 400 })
+    }
+
+    // Create generation job - userId is GUARANTEED to exist at this point
+    console.log('📝 Creating GenerationJob with verified userId:', userId)
     const job = await prisma.generationJob.create({
       data: {
-        userId: dbUser.id,
+        userId: userId,
         inputs: {
           personImage,
           clothingImage,
@@ -305,13 +357,7 @@ export async function POST(request: Request) {
       const useProductionPipeline = model === 'production' || body.useProductionPipeline === true
 
       if (useProductionPipeline) {
-        console.log('\n')
-        console.log('╔═══════════════════════════════════════════════════════════════════════════════╗')
-        console.log('║  🎯 PRODUCTION PIPELINE MODE ENABLED                                          ║')
-        console.log('║  Model: ChatGPT Image 1.5 + GPT-4o-mini                                      ║')
-        console.log('║  Features: 6-stage face preservation, pixel-level face copy                  ║')
-        console.log('╚═══════════════════════════════════════════════════════════════════════════════╝')
-        console.log('\n')
+        console.log('🎯 Production pipeline: ChatGPT Image 1.5 + Face Preservation')
 
         try {
           const productionResult = await runProductionTryOnPipeline({
@@ -328,7 +374,7 @@ export async function POST(request: Request) {
 
           // Save result to storage
           let imageUrl: string | null = null
-          const imagePath = `tryon/${dbUser.id}/${job.id}_production.png`
+          const imagePath = `tryon/${userId}/${job.id}_production.png`
 
           try {
             if (productionResult.image) {
@@ -343,7 +389,7 @@ export async function POST(request: Request) {
           // PHASE 2: Complete generation tracking (success)
           // ═══════════════════════════════════════════════════════════════
           completeGeneration(
-            dbUser.id,
+            userId,
             generationRequestId,
             productionResult.success ? 'success' : 'failed',
             1  // 1 Gemini call
@@ -392,7 +438,7 @@ export async function POST(request: Request) {
           // ═══════════════════════════════════════════════════════════════
           // PHASE 2: Complete generation tracking (failure)
           // ═══════════════════════════════════════════════════════════════
-          completeGeneration(dbUser.id, generationRequestId, 'failed', 0)
+          completeGeneration(userId, generationRequestId, 'failed', 0)
 
           // Update job with error
           await prisma.generationJob.update({
@@ -569,20 +615,7 @@ REQUIREMENTS:
               }
               console.log(`   📊 Prompt size: ${variantPromptAddition.length} chars (estimated ${Math.round(estimatedTokens)} tokens)`)
 
-              console.log(`🎬 Running variant ${variantSpec.id} - ${variantSpec.name} (attempt ${attempt + 1})...`)
-              console.log(`   🌡️ Temperature: ${pipelineOutput.temperature}`)
-              console.log(`   🔒 STRICT ENFORCEMENT: ACTIVE (Highest Priority - Absolute Rules)`)
-              console.log(`   🔒🔒🔒 FACE & GARMENT ULTRA LOCK: ACTIVE (Absolute zero drift tolerance)`)
-              console.log(`   🧊 Face Freeze Concise: ACTIVE (Zero drift tolerance, token-efficient)`)
-              console.log(`   🧠 Intelligent RAG: ACTIVE (Real-world data, face copy, camera, lighting, physics)`)
-              console.log(`   🎯 Identity-Garment-Realism: ACTIVE (Comprehensive Priority System)`)
-              console.log(`   📸 Photographic Compositor: ACTIVE (Core Override System)`)
-              console.log(`   ⚠️ Note: Some verbose modules removed to prevent token overflow (32K limit)`)
-              console.log(`   🔬 Body Scan: ACTIVE (Direct Body Copy from Image 1)`)
-              console.log(`   👔 Garment Scan: ACTIVE (Clothing Extraction)`)
-              console.log(`   🧵 Fabric Physics: ACTIVE (Gravity, Wrinkles, Fit)`)
-              console.log(`   🛡️ CBN-ST™: ACTIVE (Clothing Body Neutralization)`)
-              console.log(`   🔒 Identity Layers: ACTIVE`)
+              console.log(`🎬 Variant ${variantSpec.id}: ${variantSpec.name} (attempt ${attempt + 1}, temp=${pipelineOutput.temperature})`)
 
               result = await runTryOnPipelineV3({
                 subjectImageBase64: normalizedPerson,
@@ -631,7 +664,7 @@ REQUIREMENTS:
       for (const { variantIndex, result } of successfulVariants) {
         const generatedImage = result.image
         const variantSpec = getVariantSpec(variantIndex)
-        const imagePath = `tryon/${dbUser.id}/${job.id}_v${variantSpec.id}.png`
+        const imagePath = `tryon/${userId}/${job.id}_v${variantSpec.id}.png`
         let imageUrl: string | null = null
 
         try {
@@ -671,7 +704,7 @@ REQUIREMENTS:
       // PHASE 2: Complete generation tracking (success)
       // ═══════════════════════════════════════════════════════════════
       completeGeneration(
-        dbUser.id,
+        userId,
         generationRequestId,
         'success',
         successfulVariants.length
@@ -698,7 +731,7 @@ REQUIREMENTS:
       // ═══════════════════════════════════════════════════════════════
       // PHASE 2: Complete generation tracking (failure)
       // ═══════════════════════════════════════════════════════════════
-      completeGeneration(dbUser.id, generationRequestId, 'failed', 0)
+      completeGeneration(userId, generationRequestId, 'failed', 0)
 
       // Update job with error
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
