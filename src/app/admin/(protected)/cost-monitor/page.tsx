@@ -1,6 +1,9 @@
 import Link from 'next/link'
 import { getCostMonitorData } from '@/lib/generation-limiter'
 
+// Force dynamic rendering - this page uses server state
+export const dynamic = 'force-dynamic'
+
 export default async function CostMonitorPage() {
   const data = getCostMonitorData()
 

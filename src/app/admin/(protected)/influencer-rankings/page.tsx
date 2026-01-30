@@ -1,6 +1,9 @@
 import prisma from '@/lib/prisma'
 import BadgeDisplay, { type BadgeTier } from '@/components/influencer/BadgeDisplay'
 
+// Force dynamic rendering - this page uses database
+export const dynamic = 'force-dynamic'
+
 export default async function InfluencerRankingsPage() {
   const influencers = await prisma.influencerProfile.findMany({
     where: {
