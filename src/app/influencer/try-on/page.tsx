@@ -474,7 +474,28 @@ function TryOnPageContent() {
             // Show celebration for 5 seconds to let success video play fully
             setTimeout(() => setShowCelebration(false), 5000)
         } catch (error) {
-            toast.error(error instanceof Error ? error.message : 'Generation failed')
+            // Handle structured error codes from API
+            const errorMessage = error instanceof Error ? error.message : 'Generation failed'
+
+            // Check for specific error codes embedded in the error message
+            if (errorMessage.includes('PROFILE_INCOMPLETE') || errorMessage.includes('complete your influencer profile')) {
+                toast.error('Please complete your profile setup first!')
+                router.push('/influencer/setup')
+                return
+            }
+
+            if (errorMessage.includes('NOT_APPROVED') || errorMessage.includes('pending') || errorMessage.includes('approval')) {
+                toast.error('Your account is pending approval. Please wait for admin review.')
+                return
+            }
+
+            if (errorMessage.includes('USER_NOT_FOUND')) {
+                toast.error('Session expired. Please log out and log in again.')
+                router.push('/login')
+                return
+            }
+
+            toast.error(errorMessage)
         } finally {
             setLoading(false)
         }

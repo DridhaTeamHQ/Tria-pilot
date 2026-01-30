@@ -96,16 +96,51 @@ export async function POST(request: Request) {
 
     if (!dbUser) {
       console.error('User sync failed:', { email: authUser.email, id: authUser.id })
-      return NextResponse.json({ error: 'User sync failed. Please try again.' }, { status: 500 })
+      return NextResponse.json({
+        code: 'USER_NOT_FOUND',
+        message: 'User account not found. Please log out and register again.',
+      }, { status: 404 })
     }
 
-    // Log user info for debugging
-    console.log('✅ User synced:', { id: dbUser.id, email: dbUser.email })
+    // ═══════════════════════════════════════════════════════════════
+    // PHASE 1B: Verify InfluencerProfile exists and is approved
+    // ═══════════════════════════════════════════════════════════════
 
-    // ═══════════════════════════════════════════════════════════════
-    // PHASE 2: GENERATION GATE (User + Session + IP limits)
-    // This MUST happen before ANY AI calls
-    // ═══════════════════════════════════════════════════════════════
+    // Fetch user with InfluencerProfile
+    const userWithProfile = await prisma.user.findUnique({
+      where: { id: dbUser.id },
+      include: { influencerProfile: true }
+    })
+
+    // Log detailed status for debugging
+    console.log('📋 User Status Check:', {
+      userId: dbUser.id,
+      userExists: !!userWithProfile,
+      profileExists: !!userWithProfile?.influencerProfile,
+      approvalStatus: userWithProfile?.status,
+      onboardingCompleted: userWithProfile?.influencerProfile?.onboardingCompleted
+    })
+
+    // Check if user has an InfluencerProfile
+    if (!userWithProfile?.influencerProfile) {
+      console.log('❌ No InfluencerProfile found for user:', dbUser.id)
+      return NextResponse.json({
+        code: 'PROFILE_INCOMPLETE',
+        message: 'Please complete your influencer profile setup first.',
+      }, { status: 403 })
+    }
+
+    // Check approval status (using user.status field)
+    if (userWithProfile.status !== 'APPROVED') {
+      console.log('⏳ User not approved:', { userId: dbUser.id, status: userWithProfile.status })
+      return NextResponse.json({
+        code: 'NOT_APPROVED',
+        message: `Your account is ${userWithProfile.status?.toLowerCase() || 'pending'}. Please wait for admin approval.`,
+      }, { status: 403 })
+    }
+
+    // Log success
+    console.log('✅ User verified:', { id: dbUser.id, email: dbUser.email, status: userWithProfile.status })
 
     // Extract IP from request headers
     const forwardedFor = request.headers.get('x-forwarded-for')

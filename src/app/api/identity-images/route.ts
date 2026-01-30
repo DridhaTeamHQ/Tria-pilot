@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
 import prisma from '@/lib/prisma'
-import { 
-  IdentityImageType, 
+import {
+  IdentityImageType,
   IDENTITY_IMAGE_REQUIREMENTS,
   isIdentitySetupComplete,
-  getUploadProgress 
+  getUploadProgress
 } from '@/lib/identity/types'
 
 /**
@@ -21,8 +21,17 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Use getOrCreateUser to ensure user exists in Prisma
+    const { getOrCreateUser } = await import('@/lib/prisma-user')
+    const syncedUser = await getOrCreateUser({
+      id: authUser.id,
+      email: authUser.email ?? '',
+      role: authUser.user_metadata?.role,
+      user_metadata: authUser.user_metadata,
+    })
+
     const dbUser = await prisma.user.findUnique({
-      where: { email: authUser.email! },
+      where: { id: syncedUser.id },
       include: {
         influencerProfile: {
           include: {
@@ -35,13 +44,35 @@ export async function GET() {
       }
     })
 
-    if (!dbUser || dbUser.role !== 'INFLUENCER' || !dbUser.influencerProfile) {
-      return NextResponse.json({ error: 'Influencer profile required' }, { status: 403 })
+    // Log status for debugging
+    console.log('📋 Identity Images Check:', {
+      userId: syncedUser.id,
+      userExists: !!dbUser,
+      profileExists: !!dbUser?.influencerProfile,
+      role: dbUser?.role
+    })
+
+    if (!dbUser || dbUser.role !== 'INFLUENCER') {
+      return NextResponse.json({
+        code: 'PROFILE_INCOMPLETE',
+        message: 'Influencer account required. Please complete your profile setup.',
+        images: [], // Return empty array so frontend doesn't crash
+        isComplete: false
+      }, { status: 200 }) // Return 200 with empty data instead of 403
+    }
+
+    if (!dbUser.influencerProfile) {
+      return NextResponse.json({
+        code: 'PROFILE_INCOMPLETE',
+        message: 'Please complete your influencer profile setup first.',
+        images: [],
+        isComplete: false
+      }, { status: 200 }) // Return 200 with empty data instead of 403
     }
 
     const uploadedImages = dbUser.influencerProfile.identityImages
     const uploadedTypes = uploadedImages.map(img => img.imageType as IdentityImageType)
-    
+
     return NextResponse.json({
       images: uploadedImages,
       requirements: IDENTITY_IMAGE_REQUIREMENTS,
@@ -116,7 +147,7 @@ export async function POST(request: Request) {
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
     const fileName = `${dbUser.influencerProfile.id}/${imageType}-${Date.now()}.jpg`
-    
+
     const { data: uploadData, error: uploadError } = await serviceClient.storage
       .from('identity-images')
       .upload(fileName, buffer, {
@@ -127,7 +158,7 @@ export async function POST(request: Request) {
     // Fallback to uploads bucket if identity-images doesn't exist
     let actualBucket = 'identity-images'
     let actualPath = fileName
-    
+
     if (uploadError?.message?.includes('Bucket not found')) {
       const fallbackResult = await serviceClient.storage
         .from('uploads')
@@ -135,12 +166,12 @@ export async function POST(request: Request) {
           contentType: file.type || 'image/jpeg',
           upsert: true,
         })
-      
+
       if (fallbackResult.error) {
         console.error('Upload error:', fallbackResult.error)
         return NextResponse.json({ error: 'Failed to upload image' }, { status: 500 })
       }
-      
+
       actualBucket = 'uploads'
       actualPath = `identity/${fileName}`
     } else if (uploadError) {
@@ -190,7 +221,7 @@ export async function POST(request: Request) {
         isActive: true,
       }
     })
-    
+
     const uploadedTypes = allImages.map(img => img.imageType as IdentityImageType)
     const isComplete = isIdentitySetupComplete(uploadedTypes)
 
@@ -266,7 +297,7 @@ export async function DELETE(request: Request) {
         isActive: true,
       }
     })
-    
+
     const uploadedTypes = remainingImages.map(img => img.imageType as IdentityImageType)
     const isComplete = isIdentitySetupComplete(uploadedTypes)
 
