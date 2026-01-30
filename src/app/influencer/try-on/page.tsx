@@ -5,10 +5,10 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { Upload, Sparkles, Palette, Download, ArrowRight, X, PartyPopper, AlertTriangle, Loader2, Share2 } from 'lucide-react'
+import { Upload, Sparkles, Palette, Download, ArrowRight, X, PartyPopper, AlertTriangle, Loader2, Share2, RefreshCw, Check, ShoppingBag, Copy, Link as LinkIcon } from 'lucide-react'
 import { useProduct, useUser } from '@/lib/react-query/hooks'
 import { safeParseResponse } from '@/lib/api-utils'
-
+import { useProductLink } from '@/lib/hooks/useProductLink'
 import { createClient } from '@/lib/auth-client'
 
 // Try-on preset type (v3)
@@ -190,7 +190,7 @@ function TryOnPageContent() {
     }, [])
 
     const { data: productData, isLoading: productLoading } = useProduct(productId)
-
+    const { maskedLink, originalUrl, displayUrl, loading: linkLoading, copyLink, copied: linkCopied } = useProductLink(productId)
 
     const fetchSavedProfileImages = useCallback(async () => {
         setSavedProfileImagesLoading(true)
