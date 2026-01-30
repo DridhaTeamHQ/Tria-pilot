@@ -76,16 +76,28 @@ export async function POST(request: Request) {
     }
 
     // Prisma manages connections automatically via pool
-    // Use getOrCreateUser to ensure new users are synced from Supabase Auth to Prisma
     let dbUser
     try {
-      const { getOrCreateUser } = await import('@/lib/prisma-user')
-      dbUser = await getOrCreateUser({
-        id: authUser.id,
-        email: authUser.email ?? '',
-        role: authUser.user_metadata?.role,
-        user_metadata: authUser.user_metadata,
+      dbUser = await prisma.user.findUnique({
+        where: { email: authUser.email! },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+        },
       })
+
+      // If user not found by email, try by Supabase auth ID
+      if (!dbUser) {
+        dbUser = await prisma.user.findUnique({
+          where: { id: authUser.id },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        })
+      }
     } catch (dbError) {
       console.error('Database query error:', dbError)
       return NextResponse.json(
@@ -95,7 +107,8 @@ export async function POST(request: Request) {
     }
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User sync failed' }, { status: 500 })
+      console.error('User not found in database:', { email: authUser.email, id: authUser.id })
+      return NextResponse.json({ error: 'User not found. Please complete your profile setup first.' }, { status: 404 })
     }
 
     // ═══════════════════════════════════════════════════════════════
