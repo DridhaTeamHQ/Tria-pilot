@@ -359,96 +359,19 @@ export interface GenerationGateResult {
 export function checkGenerationGate(userId: string, ip: string): GenerationGateResult {
     const requestId = `req-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 
-    console.log('\n')
-    console.log('╔═══════════════════════════════════════════════════════════════════════════════╗')
-    console.log('║  🚦 GENERATION GATE CHECK                                                     ║')
-    console.log(`║  User: ${userId.padEnd(68)}║`)
-    console.log(`║  Request: ${requestId.padEnd(65)}║`)
-    console.log('╚═══════════════════════════════════════════════════════════════════════════════╝')
-
-    // Layer 1: IP backstop (first, cheapest check)
-    const ipResult = checkIpLimits(ip)
-    if (!ipResult.allowed) {
-        console.log(`❌ BLOCKED: ${ipResult.reason}`)
-        recordCost({
-            userId,
-            timestamp: Date.now(),
-            modelUsed: 'none',
-            geminiCalls: 0,
-            estimatedCostUsd: 0,
-            result: 'blocked',
-            blockReason: ipResult.reason
-        })
-        return {
-            allowed: false,
-            requestId,
-            blockReason: ipResult.reason,
-            killSwitchActive: false,
-            disableOptionalFeatures: false,
-            remainingToday: 0
-        }
-    }
-
-    // Layer 2: User limits
-    const userResult = checkUserLimits(userId)
-    if (!userResult.allowed) {
-        console.log(`❌ BLOCKED: ${userResult.reason}`)
-        recordCost({
-            userId,
-            timestamp: Date.now(),
-            modelUsed: 'none',
-            geminiCalls: 0,
-            estimatedCostUsd: 0,
-            result: 'blocked',
-            blockReason: userResult.reason
-        })
-        return {
-            allowed: false,
-            requestId,
-            blockReason: userResult.reason,
-            killSwitchActive: false,
-            disableOptionalFeatures: false,
-            remainingToday: userResult.remainingToday
-        }
-    }
-
-    // Layer 3: Session lock
-    const lockResult = acquireSessionLock(userId, requestId)
-    if (!lockResult.acquired) {
-        console.log(`❌ BLOCKED: ${lockResult.reason}`)
-        recordCost({
-            userId,
-            timestamp: Date.now(),
-            modelUsed: 'none',
-            geminiCalls: 0,
-            estimatedCostUsd: 0,
-            result: 'blocked',
-            blockReason: lockResult.reason
-        })
-        return {
-            allowed: false,
-            requestId,
-            blockReason: lockResult.reason,
-            killSwitchActive: false,
-            disableOptionalFeatures: false,
-            remainingToday: userResult.remainingToday
-        }
-    }
-
-    // Check kill switch status
-    const killSwitchStatus = checkKillSwitch()
-
-    console.log('✅ GATE: Allowed to proceed')
-    console.log(`   Remaining today: ${userResult.remainingToday}`)
-    console.log(`   Daily spend: $${dailyGeminiSpend.toFixed(2)}`)
-    console.log(`   Kill switch: ${killSwitchStatus.active ? 'ACTIVE' : 'inactive'}`)
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // RATE LIMITING DISABLED - Users can generate unlimited images
+    // ═══════════════════════════════════════════════════════════════════════════════
+    console.log(`✅ GENERATION GATE: Always allowed (rate limiting disabled)`)
+    console.log(`   User: ${userId}`)
+    console.log(`   Request: ${requestId}`)
 
     return {
         allowed: true,
         requestId,
-        killSwitchActive: killSwitchStatus.active,
-        disableOptionalFeatures: killSwitchStatus.active,
-        remainingToday: userResult.remainingToday
+        killSwitchActive: false,
+        disableOptionalFeatures: false,
+        remainingToday: 999999
     }
 }
 
