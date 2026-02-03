@@ -1,6 +1,11 @@
+/**
+ * PROFILE API - SUPABASE ONLY
+ * 
+ * GET - Fetch user profile
+ * PATCH - Update user name
+ */
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/auth'
-import prisma from '@/lib/prisma'
+import { createClient, createServiceClient } from '@/lib/auth'
 import { z } from 'zod'
 
 const updateProfileSchema = z
@@ -20,23 +25,31 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const dbUser = await prisma.user.findUnique({
-      where: { email: authUser.email! },
-    })
-
-    if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
+    const service = createServiceClient()
     const body = await request.json().catch(() => null)
     const { name } = updateProfileSchema.parse(body)
 
-    const updated = await prisma.user.update({
-      where: { id: dbUser.id },
-      data: { name: name.trim() },
-    })
+    // Update profile in Supabase
+    const { data: updated, error } = await service
+      .from('profiles')
+      .update({ full_name: name.trim(), updated_at: new Date().toISOString() })
+      .eq('id', authUser.id)
+      .select()
+      .single()
 
-    return NextResponse.json({ user: updated })
+    if (error) {
+      console.error('Profile update error:', error)
+      return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      user: {
+        id: updated.id,
+        email: updated.email,
+        name: updated.full_name,
+        role: updated.role,
+      }
+    })
   } catch (error) {
     console.error('Profile update error:', error)
     return NextResponse.json(
@@ -57,39 +70,57 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const dbUser = await prisma.user.findUnique({
-      where: { email: authUser.email! },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        createdAt: true,
-        influencerProfile: {
-          select: {
-            id: true,
-            bio: true,
-            niches: true,
-            socials: true,
-            audienceType: true,
-            preferredCategories: true,
-            followers: true,
-            engagementRate: true,
-            audienceRate: true,
-            retentionRate: true,
-            badgeTier: true,
-            badgeScore: true,
-            gender: true,
-          }
-        }
-      }
-    })
+    const service = createServiceClient()
 
-    if (!dbUser) {
+    // Fetch profile from Supabase
+    const { data: profile, error } = await service
+      .from('profiles')
+      .select('*')
+      .eq('id', authUser.id)
+      .single()
+
+    if (error || !profile) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    return NextResponse.json({ user: dbUser })
+    // Check for influencer_profiles data
+    let influencerData = null
+    if ((profile.role || '').toLowerCase() === 'influencer') {
+      const { data: infProfile } = await service
+        .from('influencer_profiles')
+        .select('*')
+        .eq('user_id', authUser.id)
+        .single()
+
+      if (infProfile) {
+        influencerData = {
+          id: infProfile.id,
+          bio: infProfile.bio,
+          niches: infProfile.niches || [],
+          socials: infProfile.socials || {},
+          audienceType: infProfile.audience_type || [],
+          preferredCategories: infProfile.preferred_categories || [],
+          followers: infProfile.followers,
+          engagementRate: infProfile.engagement_rate,
+          audienceRate: infProfile.audience_rate,
+          retentionRate: infProfile.retention_rate,
+          badgeTier: infProfile.badge_tier,
+          badgeScore: infProfile.badge_score,
+          gender: infProfile.gender,
+        }
+      }
+    }
+
+    return NextResponse.json({
+      user: {
+        id: profile.id,
+        name: profile.full_name,
+        email: profile.email,
+        role: (profile.role || 'influencer').toUpperCase(),
+        createdAt: profile.created_at,
+        influencerProfile: influencerData,
+      }
+    })
   } catch (error) {
     console.error('Profile fetch error:', error)
     return NextResponse.json(
@@ -98,4 +129,3 @@ export async function GET() {
     )
   }
 }
-

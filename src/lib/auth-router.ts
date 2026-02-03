@@ -2,48 +2,37 @@
  * AUTHORITATIVE ROUTING RULES
  * 
  * This enforces routing based on auth state.
- * Used in middleware, layouts, and route handlers.
+ * Used in layouts and route handlers.
+ * 
+ * NOTE: These are DEPRECATED. Route-level authorization should be done
+ * directly in layouts using getIdentity().
  */
 
 import { redirect } from 'next/navigation'
-import { getAuthState, getRedirectPath, type AuthState } from './auth-state'
+import { getIdentity, type AuthResult } from './auth-state'
 
 /**
+ * @deprecated Use getIdentity() directly in layouts
  * Enforce routing rules for a route
- * 
- * Call this in server components, layouts, and API routes.
  */
 export async function enforceRouting(currentPath: string): Promise<void> {
-  const state = await getAuthState()
-  const redirectPath = getRedirectPath(state, currentPath)
+  const auth = await getIdentity()
 
-  if (redirectPath) {
-    redirect(redirectPath)
-  }
-}
-
-/**
- * Require authentication
- * Returns auth state or redirects to login
- */
-export async function requireAuth() {
-  const state = await getAuthState()
-  if (state.type === 'unauthenticated') {
+  if (!auth.authenticated) {
     redirect('/login')
   }
-  return state
+
+  // Route-level authorization should be in the layout, not here
 }
 
 /**
- * Require specific state
+ * @deprecated Use getIdentity() directly
+ * Require authentication - returns auth result or redirects to login
  */
-export async function requireState(
-  requiredType: AuthState['type'],
-  redirectTo?: string
-): Promise<AuthState> {
-  const state = await getAuthState()
-  if (state.type !== requiredType) {
-    redirect(redirectTo || '/login')
+export async function requireAuth(): Promise<AuthResult & { authenticated: true }> {
+  const auth = await getIdentity()
+  if (!auth.authenticated) {
+    redirect('/login')
   }
-  return state
+  return auth as AuthResult & { authenticated: true }
 }

@@ -1,36 +1,37 @@
 /**
  * ADMIN PROTECTED LAYOUT
- *
+ * 
+ * Route-level authorization for /admin/(protected)/* routes.
+ * Uses getIdentity() which reads from profiles (SOURCE OF TRUTH).
+ * 
+ * Authorization Rules:
+ * - Must be authenticated
+ * - Must have role = 'admin'
+ * 
  * Admins are identified ONLY by: profiles.role === 'admin'
- * DO NOT check admin_users table
+ * DO NOT check admin_users table (legacy)
  */
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/auth'
-import { fetchProfile } from '@/lib/auth-state'
+import { getIdentity } from '@/lib/auth-state'
 
 export default async function AdminProtectedLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  try {
-    const supabase = await createClient()
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser()
+  const auth = await getIdentity()
 
-    if (!authUser) {
-      redirect('/admin/login')
-    }
-
-    const profile = await fetchProfile(authUser.id)
-    if (!profile || profile.role !== 'admin') {
-      redirect('/admin/login?error=not_admin')
-    }
-
-    return <>{children}</>
-  } catch (e) {
-    console.error('Admin protected layout error:', e)
+  // Must be authenticated
+  if (!auth.authenticated) {
     redirect('/admin/login')
   }
+
+  const { identity } = auth
+
+  // Must be admin
+  if (identity.role !== 'admin') {
+    redirect('/admin/login?error=not_admin')
+  }
+
+  return <>{children}</>
 }

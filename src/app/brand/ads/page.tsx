@@ -220,18 +220,24 @@ export default function AdsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-white dark:from-zinc-950 dark:to-zinc-900 pt-24 pb-12">
-      <div className="container mx-auto px-4 max-w-4xl">
+    <div className="min-h-screen bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-950 pt-24 pb-12">
+      {/* Decorative Background */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-[120px]" />
+        <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-[120px]" />
+      </div>
+
+      <div className="container mx-auto px-4 max-w-4xl relative z-10">
         {/* Header */}
         <div className="mb-10">
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-2">Ads → Create New Ad</p>
-          <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-3">
+          <p className="text-sm text-purple-400 mb-2">Ads → Create New Ad</p>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-purple-200 to-purple-400 bg-clip-text text-transparent mb-3">
             Create New Ad
           </h1>
-          <p className="text-zinc-600 dark:text-zinc-400">
-            Create high-quality ad creatives for your campaigns
+          <p className="text-zinc-400">
+            Create high-quality AI-powered ad creatives for your campaigns
           </p>
-          <p className="text-sm text-zinc-500 dark:text-zinc-500 mt-1">
+          <p className="text-sm text-zinc-500 mt-1">
             Optimized for Instagram, Facebook, Google & Influencer campaigns
           </p>
         </div>
@@ -239,9 +245,9 @@ export default function AdsPage() {
         <div className="space-y-8">
           {/* Campaign Selector */}
           <section className="space-y-3">
-            <Label className="text-base font-medium">Campaign (Optional)</Label>
+            <Label className="text-base font-medium text-white">Campaign (Optional)</Label>
             <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
-              <SelectTrigger className="w-full h-12 bg-white dark:bg-zinc-900">
+              <SelectTrigger className="w-full h-12 bg-zinc-800/50 border-zinc-700 hover:border-purple-500/50 transition-colors">
                 <SelectValue placeholder="Select a campaign or create standalone ad" />
               </SelectTrigger>
               <SelectContent>
@@ -277,16 +283,16 @@ export default function AdsPage() {
 
           {/* Ad Style Selector */}
           <section className="space-y-4">
-            <Label className="text-base font-medium">Ad Style</Label>
+            <Label className="text-base font-medium text-white">Ad Style</Label>
             <div className="grid grid-cols-2 gap-4">
               {AD_PRESETS.map(preset => (
                 <Card
                   key={preset.id}
                   className={cn(
-                    "cursor-pointer transition-all duration-200 hover:shadow-md relative overflow-hidden group",
+                    "cursor-pointer transition-all duration-300 relative overflow-hidden group border-zinc-800/50 bg-zinc-900/50 backdrop-blur-sm",
                     selectedPreset === preset.id
-                      ? "ring-2 ring-primary border-primary shadow-md"
-                      : "hover:border-zinc-300 dark:hover:border-zinc-600"
+                      ? "ring-2 ring-purple-500 border-purple-500/50 shadow-lg shadow-purple-500/10"
+                      : "hover:border-zinc-700 hover:bg-zinc-800/50"
                   )}
                   onClick={() => setSelectedPreset(preset.id as AdPresetId)}
                 >
@@ -295,13 +301,13 @@ export default function AdsPage() {
                       <div className={cn(
                         "p-3 rounded-xl transition-colors",
                         selectedPreset === preset.id
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 group-hover:bg-zinc-200 dark:group-hover:bg-zinc-700"
+                          ? "bg-purple-500 text-white"
+                          : "bg-zinc-800 text-zinc-400 group-hover:bg-zinc-700"
                       )}>
                         {PRESET_ICONS[preset.icon]}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-1">
+                        <h3 className="font-semibold text-white mb-1">
                           {preset.name}
                         </h3>
                         <p className="text-sm text-zinc-500 dark:text-zinc-400">
@@ -309,7 +315,7 @@ export default function AdsPage() {
                         </p>
                       </div>
                       {selectedPreset === preset.id && (
-                        <div className="absolute top-3 right-3 bg-primary text-primary-foreground rounded-full p-1">
+                        <div className="absolute top-3 right-3 bg-purple-500 text-white rounded-full p-1">
                           <Check className="h-3 w-3" />
                         </div>
                       )}
@@ -322,7 +328,7 @@ export default function AdsPage() {
 
           {/* Image Inputs */}
           <section className="space-y-6">
-            <Label className="text-base font-medium">Images (Optional)</Label>
+            <Label className="text-base font-medium text-white">Images (Optional)</Label>
 
             <div className="grid md:grid-cols-2 gap-6">
               {/* Product Image */}
@@ -413,7 +419,7 @@ export default function AdsPage() {
 
           {/* Text Controls */}
           <section className="space-y-6">
-            <Label className="text-base font-medium">Text Controls</Label>
+            <Label className="text-base font-medium text-white">Text Controls</Label>
 
             {/* Headline */}
             <div className="space-y-2">
@@ -431,7 +437,7 @@ export default function AdsPage() {
                 value={headline}
                 onChange={(e) => setHeadline(e.target.value)}
                 className={cn(
-                  "h-12 bg-white dark:bg-zinc-900",
+                  "h-12 bg-zinc-800/50 border-zinc-700 hover:border-purple-500/50 transition-colors text-white placeholder:text-zinc-500",
                   headlineExceeded && "border-red-500 focus:ring-red-500"
                 )}
               />
@@ -444,7 +450,7 @@ export default function AdsPage() {
             <div className="space-y-2">
               <Label className="text-sm text-zinc-600 dark:text-zinc-400">Call to Action</Label>
               <Select value={ctaType} onValueChange={(v) => setCtaType(v as CtaType)}>
-                <SelectTrigger className="w-full h-12 bg-white dark:bg-zinc-900">
+                <SelectTrigger className="w-full h-12 bg-zinc-800/50 border-zinc-700 hover:border-purple-500/50 transition-colors">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -468,8 +474,8 @@ export default function AdsPage() {
                     className={cn(
                       "px-4 py-2 rounded-full text-sm font-medium transition-colors",
                       captionTone === opt.value
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                        ? "bg-purple-500 text-white"
+                        : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
                     )}
                   >
                     {opt.label}
@@ -481,7 +487,7 @@ export default function AdsPage() {
 
           {/* Platform Selection */}
           <section className="space-y-4">
-            <Label className="text-base font-medium">Platforms</Label>
+            <Label className="text-base font-medium text-white">Platforms</Label>
             <div className="flex flex-wrap gap-3">
               {PLATFORM_OPTIONS.map(opt => (
                 <button
@@ -490,8 +496,8 @@ export default function AdsPage() {
                   className={cn(
                     "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all",
                     selectedPlatforms.includes(opt.value)
-                      ? "bg-primary text-primary-foreground shadow-md"
-                      : "bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-600"
+                      ? "bg-purple-500 text-white shadow-lg shadow-purple-500/20"
+                      : "bg-zinc-800 border border-zinc-700 text-zinc-400 hover:border-zinc-600"
                   )}
                 >
                   {PLATFORM_ICONS[opt.icon]}
@@ -513,7 +519,7 @@ export default function AdsPage() {
               onClick={handleGenerate}
               disabled={!canSubmit}
               size="lg"
-              className="w-full h-14 text-lg font-semibold"
+              className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white shadow-lg shadow-purple-500/20"
             >
               {loading ? (
                 <>

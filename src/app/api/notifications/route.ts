@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
-import prisma from '@/lib/prisma'
 
 export async function GET(request: Request) {
   try {
@@ -13,35 +12,36 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Optimized - only select id
-    const dbUser = await prisma.user.findUnique({
-      where: { email: authUser.email!.toLowerCase().trim() },
-      select: { id: true },
-    })
+    // Fetch notifications directly from Supabase
+    // RLS ensures users only see their own
+    const { data: notifications, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50)
 
-    if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
+    if (error) throw error
 
-    const notifications = await prisma.notification.findMany({
-      where: { userId: dbUser.id },
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-    })
+    // Count unread
+    // Note: This matches "isRead: false" in Prisma -> "read: false" in SQL
+    const { count, error: countError } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('read', false)
 
-    const unreadCount = await prisma.notification.count({
-      where: { userId: dbUser.id, isRead: false },
-    })
+    if (countError) throw countError
 
-    // Add caching headers - notifications update frequently but can be cached briefly
     return NextResponse.json(
       {
-        notifications,
-        unreadCount,
+        notifications: notifications.map(n => ({
+          ...n,
+          isRead: n.read // Map back to isRead if frontend expects it
+        })),
+        unreadCount: count
       },
       {
         headers: {
-          'Cache-Control': 'private, max-age=10, stale-while-revalidate=30', // 10s cache, 30s stale
+          'Cache-Control': 'private, max-age=10, stale-while-revalidate=30',
         },
       }
     )
@@ -53,4 +53,3 @@ export async function GET(request: Request) {
     )
   }
 }
-

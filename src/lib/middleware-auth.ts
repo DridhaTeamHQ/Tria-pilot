@@ -1,43 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/auth'
-import { fetchProfile } from '@/lib/auth-state'
+import { getIdentity, type UserIdentity } from '@/lib/auth-state'
 
 export interface AuthContext {
   authUser: { id: string; email: string }
-  dbUser: { id: string; role: 'INFLUENCER' | 'BRAND' | 'ADMIN'; email: string }
+  dbUser: UserIdentity
 }
 
 /**
- * Middleware to authenticate and get user context
- * Returns null if unauthorized, or AuthContext if authorized
+ * Get authentication context for API routes.
+ * Returns null if unauthorized, or AuthContext if authorized.
  */
-export async function getAuthContext(request: NextRequest): Promise<AuthContext | null> {
+export async function getAuthContext(_request: NextRequest): Promise<AuthContext | null> {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser()
+    const auth = await getIdentity()
 
-    if (!authUser || !authUser.email) {
-      return null
-    }
-
-    const profile = await fetchProfile(authUser.id)
-
-    if (!profile) {
+    if (!auth.authenticated) {
       return null
     }
 
     return {
       authUser: {
-        id: authUser.id,
-        email: authUser.email,
+        id: auth.identity.id,
+        email: auth.identity.email,
       },
-      dbUser: {
-        id: profile.id,
-        role: profile.role.toUpperCase() as 'INFLUENCER' | 'BRAND' | 'ADMIN', // Normalize to existing type
-        email: profile.email,
-      },
+      dbUser: auth.identity,
     }
   } catch (error) {
     console.error('Auth middleware error:', error)
@@ -62,7 +48,7 @@ export function requireAuth(handler: (request: NextRequest, context: AuthContext
  * Middleware helper to require specific role
  */
 export function requireRole(
-  role: 'INFLUENCER' | 'BRAND',
+  role: 'influencer' | 'brand' | 'admin',
   handler: (request: NextRequest, context: AuthContext) => Promise<NextResponse>
 ) {
   return async (request: NextRequest) => {
@@ -76,4 +62,3 @@ export function requireRole(
     return handler(request, context)
   }
 }
-

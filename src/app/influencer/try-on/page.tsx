@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense, useCallback } from 'react'
+import { useState, useEffect, Suspense, useCallback, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
@@ -210,8 +210,12 @@ function TryOnPageContent() {
         fetchSavedProfileImages()
     }, [fetchSavedProfileImages])
 
+    // Track if we've already loaded the product image to prevent infinite loops
+    const productImageLoadedRef = useRef<string | null>(null)
+
     useEffect(() => {
         if (productData && productData.id) {
+            // Legacy logic: API returns images array with isTryOnReference flag
             const tryOnImageUrl = productData.images?.find((img: any) => img.isTryOnReference)?.imagePath
 
             setProduct({
@@ -222,7 +226,9 @@ function TryOnPageContent() {
                 tryOnImage: tryOnImageUrl,
             })
 
-            if (tryOnImageUrl && !clothingImage) {
+            // Auto-load clothing image if found and not already loaded for this product
+            if (tryOnImageUrl && productImageLoadedRef.current !== productData.id) {
+                productImageLoadedRef.current = productData.id
                 setClothingImage(tryOnImageUrl)
 
                 fetch(tryOnImageUrl)
@@ -230,8 +236,7 @@ function TryOnPageContent() {
                     .then((blob) => {
                         const reader = new FileReader()
                         reader.onloadend = () => {
-                            const base64 = reader.result as string
-                            setClothingImageBase64(base64)
+                            setClothingImageBase64(reader.result as string)
                             toast.success(`Loaded try-on reference for ${productData.name}`)
                         }
                         reader.readAsDataURL(blob)
@@ -242,7 +247,7 @@ function TryOnPageContent() {
                     })
             }
         }
-    }, [productData, productId, clothingImage])
+    }, [productData])
 
     // NOTE: No image analysis in the new pipeline (strict image edit only)
 
@@ -311,6 +316,24 @@ function TryOnPageContent() {
             reader.onerror = () => reject(new Error('Failed to read image'))
             reader.readAsDataURL(blob)
         })
+    }
+
+    const handleSelectProductImage = async (imageUrl: string) => {
+        setClothingImage(imageUrl)
+        try {
+            // Fetch blob for base64 conversion (needed for generation API)
+            const res = await fetch(imageUrl)
+            const blob = await res.blob()
+            const base64 = await new Promise<string>((resolve) => {
+                const reader = new FileReader()
+                reader.onloadend = () => resolve(reader.result as string)
+                reader.readAsDataURL(blob)
+            })
+            setClothingImageBase64(base64)
+            toast.success('Selected garment style')
+        } catch (e) {
+            console.error('Failed to load image blob', e)
+        }
     }
 
     const handleSelectSavedPersonImage = async (url: string) => {
@@ -817,6 +840,45 @@ function TryOnPageContent() {
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* Product Images Carousel - Restored Feature */}
+                                    {productData && productData.images && productData.images.length > 0 && (
+                                        <div className="mt-3">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-[10px] font-bold text-charcoal/50 uppercase tracking-widest">
+                                                    Available Styles ({productData.images.length})
+                                                </span>
+                                            </div>
+                                            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin snap-x">
+                                                {productData.images.map((img: any, idx: number) => {
+                                                    const url = typeof img === 'string' ? img : img.imagePath
+                                                    const isRef = typeof img === 'object' && img.isTryOnReference
+                                                    const isSelected = clothingImage === url
+
+                                                    return (
+                                                        <button
+                                                            key={idx}
+                                                            onClick={() => handleSelectProductImage(url)}
+                                                            className={`
+                                                                relative w-14 h-14 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all snap-start
+                                                                ${isSelected
+                                                                    ? 'border-peach ring-2 ring-peach/20 shadow-md scale-105'
+                                                                    : 'border-transparent hover:border-black/10 hover:scale-105 bg-white'}
+                                                            `}
+                                                            title={isRef ? "Recommended Try-On Reference" : "Product Variant"}
+                                                        >
+                                                            <img src={url} alt={`Var ${idx}`} className="w-full h-full object-cover" />
+                                                            {isRef && (
+                                                                <div className="absolute top-0.5 right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-white shadow-sm flex items-center justify-center">
+                                                                    <Sparkles className="w-1.5 h-1.5 text-white" />
+                                                                </div>
+                                                            )}
+                                                        </button>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

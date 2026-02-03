@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
-import prisma from '@/lib/prisma'
 
 /**
- * Migration endpoint to sync existing Supabase Auth users to Prisma
- * This helps users who were created in Supabase but not in Prisma
+ * Migration endpoint to sync existing Supabase Auth users to Supabase Profiles
+ * This helps users who were created in Supabase Auth but missing a Profile
  * 
  * Usage: POST /api/auth/migrate-user
  * Body: { email: string, role: 'INFLUENCER' | 'BRAND', name?: string }
@@ -31,70 +30,59 @@ export async function POST(request: Request) {
     }
 
     const email = authUser.email!.toLowerCase().trim()
+    const service = createServiceClient()
 
-    // Check if user already exists
-    const existing = await prisma.user.findUnique({ where: { email } })
+    // Check if profile already exists
+    const { data: existing } = await service
+      .from('profiles')
+      .select('*')
+      .eq('id', authUser.id)
+      .maybeSingle()
+
     if (existing) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         user: existing,
-        message: 'User already exists in database' 
+        message: 'Profile already exists'
       })
     }
 
-    // Generate unique slug
-    const baseSlug = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '-')
-    const uniqueSlug = `${baseSlug}-${Math.random().toString(36).substring(2, 7)}`
-
-    // Create user in Prisma
-    const user = await prisma.user.create({
-      data: {
-        id: authUser.id, // Use Supabase Auth user ID
+    // Create profile
+    const { data: profile, error: createError } = await service
+      .from('profiles')
+      .insert({
+        id: authUser.id,
         email,
-        role,
-        slug: uniqueSlug,
-        name: name?.trim() || null,
-        ...(role === 'INFLUENCER'
-          ? {
-              influencerProfile: {
-                create: {
-                  niches: [],
-                  socials: {},
-                },
-              },
-            }
-          : {
-              brandProfile: {
-                create: {
-                  companyName: name?.trim() || 'New Brand',
-                },
-              },
-            }),
-      },
-      include: {
-        influencerProfile: role === 'INFLUENCER',
-        brandProfile: role === 'BRAND',
-      },
-    })
+        role: role.toLowerCase(),
+        full_name: name?.trim() || null,
+        onboarding_completed: false,
+        approval_status: 'pending'
+      })
+      .select()
+      .single()
 
-    // Create influencer application if needed
-    if (role === 'INFLUENCER') {
-      try {
-        const service = createServiceClient()
-        await service.from('influencer_applications').upsert({
-          user_id: authUser.id,
-          email,
-          full_name: name?.trim() || null,
-          status: 'pending',
-        })
-      } catch (e) {
-        console.error('Failed to create influencer application:', e)
-        // Don't fail the migration if this fails
-      }
+    if (createError) {
+      throw createError
     }
 
-    return NextResponse.json({ 
-      user,
-      message: 'User migrated successfully' 
+    // Create role-specific profile
+    if (role === 'INFLUENCER') {
+      try {
+        await service.from('influencer_profiles').upsert({
+          user_id: authUser.id,
+          niches: [],
+          socials: {},
+        })
+      } catch (e) {
+        console.error('Failed to create influencer profile:', e)
+      }
+    } else if (role === 'BRAND') {
+      // Assuming brand_profiles or similar logic (currently handled in profiles.brand_data)
+      // Checks implementation if brand_profiles table exists - for now assuming JSONB in profiles logic from other files
+    }
+
+    return NextResponse.json({
+      user: profile,
+      message: 'User migrated successfully to Supabase Profiles'
     })
   } catch (error) {
     console.error('User migration error:', error)

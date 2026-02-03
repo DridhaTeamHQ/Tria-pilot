@@ -1,69 +1,52 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
-import prisma from '@/lib/prisma'
 
 export async function GET(request: Request) {
   try {
     const supabase = await createClient()
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser()
+    const { data: { user: authUser } } = await supabase.auth.getUser()
 
-    if (!authUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const dbUser = await prisma.user.findUnique({
-      where: { email: authUser.email! },
-    })
-
-    if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
-    // Fetch stats
-    const [generations, collaborations, portfolioItems] = await Promise.all([
-      prisma.generationJob.count({ where: { userId: dbUser.id } }),
-      prisma.collaborationRequest.count({
-        where: {
-          OR: [
-            { brandId: dbUser.id },
-            { influencerId: dbUser.id },
-          ],
-          status: 'accepted',
-        },
-      }),
-      prisma.portfolio.count({ where: { userId: dbUser.id } }),
+    // Supabase count queries
+    const [
+      { count: generations },
+      { count: sentCollabs },
+      { count: receivedCollabs },
+      { count: portfolioItems }
+    ] = await Promise.all([
+      supabase.from('generation_jobs').select('*', { count: 'exact', head: true }).eq('user_id', authUser.id),
+      supabase.from('collaboration_requests').select('*', { count: 'exact', head: true }).eq('brand_id', authUser.id).eq('status', 'accepted'),
+      supabase.from('collaboration_requests').select('*', { count: 'exact', head: true }).eq('influencer_id', authUser.id).eq('status', 'accepted'),
+      supabase.from('portfolio').select('*', { count: 'exact', head: true }).eq('user_id', authUser.id)
     ])
 
-    // Calculate level and XP (gamification)
-    const totalXp = generations * 10 + collaborations * 50 + portfolioItems * 5
+    const totalCollaborations = (sentCollabs || 0) + (receivedCollabs || 0)
+    const genCount = generations || 0
+    const portCount = portfolioItems || 0
+
+    // Gamification
+    const totalXp = genCount * 10 + totalCollaborations * 50 + portCount * 5
     const level = Math.floor(totalXp / 100) + 1
     const xp = totalXp % 100
     const nextLevelXp = 100
 
-    // Profile stats can be cached briefly
     return NextResponse.json(
       {
-        generations,
-        collaborations,
-        portfolioItems,
+        generations: genCount,
+        collaborations: totalCollaborations,
+        portfolioItems: portCount,
         level,
         xp,
         nextLevelXp,
       },
       {
         headers: {
-          'Cache-Control': 'private, max-age=120, stale-while-revalidate=300', // 2 min cache, 5 min stale
+          'Cache-Control': 'private, max-age=120, stale-while-revalidate=300',
         },
       }
     )
   } catch (error) {
-    console.error('Profile stats error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Error' }, { status: 500 })
   }
 }
-

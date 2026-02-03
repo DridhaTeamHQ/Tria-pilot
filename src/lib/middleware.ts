@@ -2,16 +2,59 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { applyApiRateLimit } from '@/lib/security/rate-limit-middleware'
 
-export async function updateSession(request: NextRequest) {
-    let supabaseResponse = NextResponse.next({
-        request,
-    })
+/**
+ * MIDDLEWARE: SESSION CHECK ONLY
+ * 
+ * This middleware handles:
+ * 1. Session refresh (cookie management)
+ * 2. Rate limiting
+ * 3. Redirect to /login for protected routes (session existence only)
+ * 
+ * This middleware does NOT:
+ * - Read profiles
+ * - Check roles
+ * - Check approval_status
+ * - Perform any authorization logic
+ * 
+ * Authorization is handled at the ROUTE/LAYOUT level.
+ */
 
+// Public paths that don't require authentication
+const PUBLIC_PATHS = new Set([
+    '/',
+    '/login',
+    '/register',
+    '/forgot-password',
+    '/reset-password',
+    '/help',
+    '/contact',
+    '/about',
+    '/privacy',
+    '/terms',
+])
+
+// Public path prefixes
+const PUBLIC_PREFIXES = [
+    '/auth',
+    '/api/auth',
+    '/marketplace',
+]
+
+function isPublicPath(pathname: string): boolean {
+    if (PUBLIC_PATHS.has(pathname)) return true
+    return PUBLIC_PREFIXES.some(prefix => pathname.startsWith(prefix))
+}
+
+export async function updateSession(request: NextRequest) {
+    let supabaseResponse = NextResponse.next({ request })
+
+    // Check env vars
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
         console.warn('Supabase env vars missing, skipping session update')
         return supabaseResponse
     }
 
+    // Create Supabase client with cookie handling
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
@@ -21,12 +64,10 @@ export async function updateSession(request: NextRequest) {
                     return request.cookies.getAll()
                 },
                 setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value, options }) =>
+                    cookiesToSet.forEach(({ name, value }) =>
                         request.cookies.set(name, value)
                     )
-                    supabaseResponse = NextResponse.next({
-                        request,
-                    })
+                    supabaseResponse = NextResponse.next({ request })
                     cookiesToSet.forEach(({ name, value, options }) =>
                         supabaseResponse.cookies.set(name, value, options)
                     )
@@ -35,159 +76,49 @@ export async function updateSession(request: NextRequest) {
         }
     )
 
-    // Get user, handling refresh token errors gracefully
+    // Get user session (handles token refresh automatically)
     let user = null
     try {
-        const {
-            data: { user: authUser },
-            error,
-        } = await supabase.auth.getUser()
+        const { data: { user: authUser }, error } = await supabase.auth.getUser()
 
         if (error) {
             // Handle refresh token errors gracefully
             if (error.message?.includes('refresh_token') || error.message?.includes('Refresh Token')) {
-                // Invalid/expired refresh token - clear cookies and continue as unauthenticated
+                // Invalid/expired refresh token - continue as unauthenticated
                 console.log('⚠️  Invalid refresh token, clearing session')
-                // Don't throw - just continue as unauthenticated user
-            } else if (error.message?.includes('Auth session missing')) {
-                // This is normal for unauthenticated visitors (no session cookies yet).
-                // Avoid noisy logs in dev/prod.
-            } else {
+            } else if (!error.message?.includes('Auth session missing')) {
+                // Log non-trivial errors
                 console.warn('⚠️  Auth error:', error.message)
             }
         } else {
             user = authUser
         }
     } catch (error) {
-        // Catch any unexpected errors
         console.warn('⚠️  Auth check failed:', error instanceof Error ? error.message : String(error))
-        // Continue as unauthenticated user
     }
 
-    // Global API rate limiting (best-effort, IP + user-based)
-    // Runs after session check so we can rate-limit by user id if authenticated.
+    // Rate limiting (after session check for user-based limiting)
     const rateLimited = applyApiRateLimit(request, user?.id ?? null)
     if (rateLimited) {
         return rateLimited
     }
 
-    // Approval gate for influencers: pending users can access marketplace + support pages only.
-    // /marketplace and /marketplace/* are explicitly allowed so pending influencers can browse (no approval required).
-    if (user) {
-        const pathname = request.nextUrl.pathname
+    const pathname = request.nextUrl.pathname
 
-        // Skip API routes, auth routes, onboarding, and complete-profile (these have their own guards)
-        if (!pathname.startsWith('/api') &&
-            !pathname.startsWith('/auth') &&
-            !pathname.startsWith('/onboarding') &&
-            !pathname.startsWith('/complete-profile') &&
-            pathname !== '/dashboard') {
-
-            const allowedExact = new Set([
-                '/',
-                '/help',
-                '/contact',
-                '/about',
-                '/privacy',
-                '/terms',
-                '/influencer/pending',
-                '/login',
-                '/register',
-                '/forgot-password',
-                '/reset-password',
-            ])
-            const allowedPrefixes = ['/marketplace']
-
-            const isAllowed =
-                allowedExact.has(pathname) || allowedPrefixes.some((prefix) => pathname.startsWith(prefix))
-
-            if (!isAllowed) {
-                // Check if user is influencer and not approved
-                // CRITICAL: Use profiles table (SOURCE OF TRUTH)
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('role, onboarding_completed, approval_status')
-                    .eq('id', user.id)
-                    .maybeSingle()
-
-                if (profile) {
-                    const role = (profile.role || '').toLowerCase()
-                    const status = (profile.approval_status || '').toLowerCase()
-
-                    // Protections for /admin routes
-                    if (pathname.startsWith('/admin')) {
-                        if (role !== 'admin') {
-                            const url = request.nextUrl.clone()
-                            url.pathname = '/dashboard'
-                            return NextResponse.redirect(url)
-                        }
-                    }
-
-                    // If influencer and not approved, redirect to pending
-                    if (role === 'influencer' && status !== 'approved') {
-                        const url = request.nextUrl.clone()
-                        url.pathname = '/influencer/pending'
-                        return NextResponse.redirect(url)
-                    }
-                }
-            }
-        }
+    // SESSION CHECK ONLY: Redirect to /login if not authenticated and accessing protected route
+    if (!user && !isPublicPath(pathname)) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/login'
+        url.searchParams.set('redirect', pathname)
+        return NextResponse.redirect(url)
     }
 
-    // Authenticated users should not see the marketing homepage.
-    // NOTE: We intentionally do NOT redirect /login or /register here because
-    // users may be missing an app profile (Prisma) or be admins without a Prisma profile,
-    // and forcing /dashboard can cause redirect loops.
-    // Allow access to "/" if explicitly requested (e.g., "Back to site" from admin)
-    // ADMIN Handling: Redirect Admin to /admin/dashboard by default if hitting root or dashboard
-    if (user) {
-        const pathname = request.nextUrl.pathname
-        if (pathname === '/' || pathname === '/dashboard') {
-            // Check if user explicitly wants to see homepage (from admin or query param)
-            const fromParam = request.nextUrl.searchParams.get('from')
-            const referer = request.headers.get('referer') || ''
-
-            if (fromParam === 'admin' || referer.includes('/admin')) {
-                // Admin navigating from admin area - allow homepage access
-                return supabaseResponse
-            }
-
-            // Check role again to redirect admin to /admin/dashboard
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', user.id)
-                .maybeSingle()
-
-            const role = (profile?.role || '').toLowerCase()
-
-            if (role === 'admin') {
-                // Redirect admin to /admin/dashboard
-                const url = request.nextUrl.clone()
-                url.pathname = '/admin/dashboard'
-                return NextResponse.redirect(url)
-            }
-
-            // Non-admin users or direct navigation: redirect to dashboard
-            if (pathname === '/') {
-                const url = request.nextUrl.clone()
-                url.pathname = '/dashboard'
-                return NextResponse.redirect(url)
-            }
-        }
-    }
-
-    if (
-        !user &&
-        !request.nextUrl.pathname.startsWith('/login') &&
-        !request.nextUrl.pathname.startsWith('/register') &&
-        !request.nextUrl.pathname.startsWith('/auth') &&
-        request.nextUrl.pathname !== '/'
-    ) {
-        // no user, potentially respond by redirecting the user to the login page
-        // const url = request.nextUrl.clone()
-        // url.pathname = '/login'
-        // return NextResponse.redirect(url)
+    // Authenticated users on root → redirect to /dashboard
+    // (Let /dashboard page handle role-based routing)
+    if (user && pathname === '/') {
+        const url = request.nextUrl.clone()
+        url.pathname = '/dashboard'
+        return NextResponse.redirect(url)
     }
 
     return supabaseResponse

@@ -1,47 +1,44 @@
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/auth'
+
 /**
  * GET /api/auth/profile-status
  * 
- * Returns current user's profile status for client-side routing checks.
- * Uses new auth state system.
+ * Returns the current user's profile status for client-side checks.
+ * Uses standard createClient which respects RLS.
  */
-import { NextResponse } from 'next/server'
-import { getAuthState } from '@/lib/auth-state'
+export async function GET() {
+    try {
+        const supabase = await createClient()
+        const { data: { user: authUser } } = await supabase.auth.getUser()
 
-export const dynamic = 'force-dynamic'
+        if (!authUser) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
 
-export async function GET(request: Request) {
-  try {
-    const state = await getAuthState()
+        // Fetch profile - RLS ensures user can only read their own profile
+        const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('id, role, onboarding_completed, approval_status, full_name, avatar_url')
+            .eq('id', authUser.id)
+            .single()
 
-    if (state.type === 'unauthenticated') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        if (error || !profile) {
+            console.error('Profile status fetch error:', error)
+            return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+        }
+
+        // Normalize to lowercase for frontend consistency
+        return NextResponse.json({
+            id: profile.id,
+            role: (profile.role || 'influencer').toLowerCase(),
+            onboarding_completed: profile.onboarding_completed || false,
+            approval_status: (profile.approval_status || 'none').toLowerCase(),
+            full_name: profile.full_name,
+            avatar_url: profile.avatar_url,
+        })
+    } catch (error) {
+        console.error('Profile status error:', error)
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
     }
-
-    if (state.type === 'authenticated_no_profile') {
-      return NextResponse.json({
-        role: null,
-        onboarding_completed: false,
-        approval_status: 'draft',
-      })
-    }
-
-    // Extract profile from state
-    const profile = 'profile' in state ? state.profile : null
-
-    if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-    }
-
-    return NextResponse.json({
-      role: profile.role,
-      onboarding_completed: profile.onboarding_completed,
-      approval_status: profile.approval_status,
-    })
-  } catch (error) {
-    console.error('Profile status error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    )
-  }
 }

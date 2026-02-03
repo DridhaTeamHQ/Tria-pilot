@@ -1,20 +1,24 @@
+/**
+ * LOGIN API - SUPABASE ONLY
+ * 
+ * Handles user login with Supabase Auth.
+ * NO Prisma dependency - uses Supabase profiles table only.
+ */
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
 import { loginSchema } from '@/lib/validation'
-import { getOrCreateUser } from '@/lib/prisma-user'
-import prisma from '@/lib/prisma'
 
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => null)
-    
+
     if (!body) {
       return NextResponse.json(
         { error: 'Request body is required' },
         { status: 400 }
       )
     }
-    
+
     const { email: rawEmail, password, rememberMe = true } = loginSchema.parse(body)
 
     // Normalize email: trim whitespace and convert to lowercase
@@ -29,17 +33,15 @@ export async function POST(request: Request) {
     })
 
     // Optional: extend session duration when "Remember me" is enabled
-    // Note: actual session TTL is controlled by Supabase project settings.
-    // We keep this flag for future use and UI behavior consistency.
     void rememberMe
 
     if (error) {
       console.error('Supabase auth error:', {
         message: error.message,
         status: error.status,
-        email: email, // Log normalized email (not password)
+        email: email,
       })
-      
+
       // Check if user exists in Supabase (for better error messages)
       let userExists = false
       let emailConfirmed = false
@@ -54,18 +56,17 @@ export async function POST(request: Request) {
           emailConfirmed = !!foundUser.email_confirmed_at
         }
       } catch (checkError) {
-        // If we can't check, continue with generic error
         console.warn('Could not check user existence:', checkError)
       }
-      
-      // Provide more helpful error messages based on actual user status
+
+      // Provide more helpful error messages
       let errorMessage = error.message
       let statusCode = 401
-      
+
       if (error.message.includes('Invalid login credentials') || error.message.includes('Invalid login')) {
         if (userExists && !emailConfirmed) {
           errorMessage = 'Please verify your email address before signing in. Check your inbox for the confirmation link.'
-          statusCode = 403 // Forbidden - account exists but not confirmed
+          statusCode = 403
         } else if (userExists) {
           errorMessage = 'Invalid password. Please check your password or use "Forgot Password" to reset it.'
         } else {
@@ -80,8 +81,8 @@ export async function POST(request: Request) {
       } else if (error.message.includes('User not found')) {
         errorMessage = 'Account not found. Please make sure you have registered an account.'
       }
-      
-      return NextResponse.json({ 
+
+      return NextResponse.json({
         error: errorMessage,
         userExists,
         emailConfirmed,
@@ -94,8 +95,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Authentication failed' }, { status: 401 })
     }
 
-    // STEP 1: Check email verification (enforce for all users except admins)
-    // Admin users may not have an app profile in Prisma. If they are in admin_users, allow login.
+    const service = createServiceClient()
+
+    // Check if admin
     const { data: adminRow } = await supabase
       .from('admin_users')
       .select('user_id')
@@ -103,7 +105,6 @@ export async function POST(request: Request) {
       .maybeSingle()
 
     if (adminRow) {
-      // Admins bypass email verification and Prisma checks
       return NextResponse.json(
         {
           user: {
@@ -119,9 +120,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // STEP 2: For regular users, check email verification
-    // Note: Supabase signInWithPassword will fail if email not confirmed (if email confirmations are enabled)
-    // But we check explicitly here for clarity and to provide better error messages
+    // Check email verification
     if (!data.user.email_confirmed_at) {
       return NextResponse.json(
         {
@@ -133,45 +132,68 @@ export async function POST(request: Request) {
       )
     }
 
-    // STEP 3: Ensure Prisma User exists immediately after login (upsert so prisma.user.findUnique({ id }) returns a row)
-    const service = createServiceClient()
-    const { data: profileRow } = await service
+    // Get profile from Supabase profiles table (SOURCE OF TRUTH)
+    let { data: profile, error: profileError } = await service
       .from('profiles')
-      .select('role')
+      .select('id, email, role, onboarding_completed, approval_status, full_name, avatar_url')
       .eq('id', data.user.id)
-      .maybeSingle()
-    const roleFromProfile = profileRow?.role?.toString().toUpperCase()
-    const roleForPrisma = (roleFromProfile ?? data.user.user_metadata?.role ?? undefined) as
-      | 'influencer'
-      | 'brand'
-      | 'INFLUENCER'
-      | 'BRAND'
-      | 'ADMIN'
-      | undefined
+      .single()
 
-    const user = await getOrCreateUser({
-      id: data.user.id,
-      email: data.user.email ?? email,
-      role: roleForPrisma,
-      user_metadata: data.user.user_metadata,
-    })
+    // If profile doesn't exist, create it
+    if (profileError || !profile) {
+      const roleFromMetadata = data.user.user_metadata?.role?.toLowerCase() || 'influencer'
 
-    // STEP 4: Return user data with session (include profiles for redirect logic)
-    const userWithProfiles = await prisma.user.findUnique({
-      where: { id: user.id },
-      include: { influencerProfile: true, brandProfile: true },
-    })
-    if (!userWithProfiles) {
-      console.error('Login: getOrCreateUser returned user but findUnique failed', { userId: user.id })
-      return NextResponse.json({ error: 'Authentication failed' }, { status: 500 })
+      const { data: newProfile, error: createError } = await service
+        .from('profiles')
+        .insert({
+          id: data.user.id,
+          email: data.user.email,
+          role: roleFromMetadata,
+          full_name: data.user.user_metadata?.name || data.user.user_metadata?.full_name || null,
+          onboarding_completed: false,
+          approval_status: 'none',
+        })
+        .select()
+        .single()
+
+      if (createError) {
+        console.error('Failed to create profile:', createError)
+        return NextResponse.json({ error: 'Failed to setup user profile' }, { status: 500 })
+      }
+
+      profile = newProfile
     }
 
-    // Return user data with session
-    // Note: Frontend will handle redirects based on onboarding/approval status via /dashboard route
-    return NextResponse.json({ user: userWithProfiles, session: data.session }, { status: 200 })
+    // Normalize role for frontend
+    if (!profile) {
+      return NextResponse.json({ error: 'Profile not found' }, { status: 500 })
+    }
+
+    const normalizedRole = (profile.role || 'influencer').toLowerCase()
+
+    // Return user data compatible with frontend expectations
+    return NextResponse.json({
+      user: {
+        id: profile.id,
+        email: profile.email,
+        name: profile.full_name,
+        role: normalizedRole.toUpperCase(), // Frontend expects UPPERCASE
+        avatarUrl: profile.avatar_url,
+        onboardingCompleted: profile.onboarding_completed,
+        approvalStatus: profile.approval_status,
+        // For backwards compatibility with frontend that checks influencerProfile/brandProfile
+        influencerProfile: normalizedRole === 'influencer' ? {
+          onboardingCompleted: profile.onboarding_completed
+        } : null,
+        brandProfile: normalizedRole === 'brand' ? {
+          onboardingCompleted: profile.onboarding_completed
+        } : null,
+      },
+      session: data.session,
+    }, { status: 200 })
   } catch (error) {
     console.error('Login error:', error)
-    
+
     // Handle validation errors
     if (error instanceof Error && error.name === 'ZodError') {
       return NextResponse.json(
@@ -179,11 +201,10 @@ export async function POST(request: Request) {
         { status: 400 }
       )
     }
-    
+
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
     )
   }
 }
-

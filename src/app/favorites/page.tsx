@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/auth'
-import prisma from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,43 +14,21 @@ export default async function FavoritesPage() {
     redirect('/login')
   }
 
-  const dbUser = await prisma.user.findUnique({
-    where: { email: authUser.email! },
-  })
-
-  if (!dbUser) {
-    redirect('/login')
-  }
-
-  const favorites = await prisma.favorite.findMany({
-    where: {
-      userId: dbUser.id,
-    },
-    include: {
-      product: {
-        include: {
-          brand: {
-            include: {
-              user: {
-                select: {
-                  name: true,
-                },
-              },
-            },
-          },
-          images: {
-            where: {
-              isCoverImage: true,
-            },
-            take: 1,
-          },
-        },
-      },
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  })
+  // Fetch favorites joining products using Supabase
+  const { data: favorites } = await supabase
+    .from('favorites')
+    .select(`
+      created_at,
+      product:product_id (
+        id, name, description, category,
+        brand:brand_id (
+          id, full_name, brand_data
+        ),
+        images, cover_image, imagePath
+      )
+    `)
+    .eq('user_id', authUser.id)
+    .order('created_at', { ascending: false })
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -65,7 +42,7 @@ export default async function FavoritesPage() {
         </p>
       </div>
 
-      {favorites.length === 0 ? (
+      {!favorites || favorites.length === 0 ? (
         <div className="text-center py-12">
           <Heart className="h-16 w-16 mx-auto mb-4 text-zinc-300 dark:text-zinc-700" />
           <p className="text-zinc-600 dark:text-zinc-400">
@@ -81,7 +58,20 @@ export default async function FavoritesPage() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {favorites.map((favorite: any) => {
             const product = favorite.product
-            const coverImage = product.images[0]?.imagePath || product.imagePath
+            if (!product) return null
+
+            // Handle image logic
+            let coverImage = product.cover_image
+            if (!coverImage && product.images && product.images.length > 0) {
+              coverImage = product.images[0]
+            }
+            // Fallback for legacy data if needed (imagePath) - rarely used now but good for safety
+            if (!coverImage && product.imagePath) coverImage = product.imagePath
+
+            // Brand Name
+            const brandData = product.brand?.brand_data || {}
+            const brandName = brandData.companyName || product.brand?.full_name || 'Brand'
+
             return (
               <Link key={product.id} href={`/marketplace/${product.id}`}>
                 <Card className="h-full hover:shadow-lg transition-shadow">
@@ -110,7 +100,7 @@ export default async function FavoritesPage() {
                         {product.category || 'Uncategorized'}
                       </span>
                       <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                        by {product.brand.user?.name || 'Brand'}
+                        by {brandName}
                       </span>
                     </div>
                   </CardContent>
@@ -123,4 +113,3 @@ export default async function FavoritesPage() {
     </div>
   )
 }
-

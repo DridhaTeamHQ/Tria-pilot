@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { generateProductRecommendations } from '@/lib/openai'
-import prisma from '@/lib/prisma'
 
 export async function GET(request: Request) {
   try {
@@ -14,22 +13,18 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Optimized query - only select needed fields
-    const dbUser = await prisma.user.findUnique({
-      where: { email: authUser.email!.toLowerCase().trim() },
-      select: {
-        id: true,
-        role: true,
-        influencerProfile: {
-          select: {
-            bio: true,
-            niches: true,
-          },
-        },
-      },
-    })
+    // Get user profile for personalization
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*, influencer_profiles(*)')
+      .eq('id', authUser.id)
+      .single()
 
-    if (!dbUser || dbUser.role !== 'INFLUENCER') {
+    const role = (profile?.role || '').toLowerCase()
+
+    // Only influencers usually get recommendations, but brands might get similar products
+    // Original code restricted to INFLUENCER.
+    if (!profile || role !== 'influencer') {
       return NextResponse.json(
         { error: 'Unauthorized - Influencer access required' },
         { status: 403 }
@@ -39,204 +34,81 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const productId = searchParams.get('productId')
 
-    // Optimized - only get products we need, use select instead of include
-    // For productId-based recommendations, only fetch similar products
     if (productId) {
-      const currentProduct = await prisma.product.findUnique({
-        where: { id: productId },
-        select: {
-          id: true,
-          category: true,
-          brandId: true,
-          audience: true,
-        },
-      })
+      // Get current product details
+      const { data: currentProduct } = await supabase
+        .from('products')
+        .select('id, category, brand_id, audience')
+        .eq('id', productId)
+        .single()
 
       if (!currentProduct) {
-        return NextResponse.json([], {
-          headers: {
-            'Cache-Control': 'public, max-age=600, stale-while-revalidate=1800',
-          },
-        })
+        return NextResponse.json([], { headers: { 'Cache-Control': 'public, max-age=600' } })
       }
 
-      // Get similar products only (much faster than all products)
-      const similarProducts = await prisma.product.findMany({
-        where: {
-          OR: [
-            { category: currentProduct.category },
-            { brandId: currentProduct.brandId },
-            { audience: currentProduct.audience },
-          ],
-          id: { not: productId },
-        },
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          category: true,
-          price: true,
-          link: true,
-          audience: true,
-          brand: {
-            select: {
-              id: true,
-              companyName: true,
-              user: {
-                select: {
-                  name: true,
-                },
-              },
-            },
-          },
-          images: {
-            where: { isCoverImage: true },
-            take: 1,
-            select: {
-              id: true,
-              imagePath: true,
-            },
-          },
-        },
-        take: 8,
-      })
+      // Find similar products
+      // OR query in Supabase: category.eq.X,brand_id.eq.Y,audience.eq.Z
+      // Not straightforward to do complex OR with exclusions without raw SQL or multiple queries.
+      // But we can fetch products matching ANY filter and then sort/filter in code or use .or()
 
-      return NextResponse.json(similarProducts, {
-        headers: {
-          'Cache-Control': 'public, max-age=600, stale-while-revalidate=1800',
-        },
+      const { data: similarProducts } = await supabase
+        .from('products')
+        .select(`
+          id, name, description, category, price, link, audience,
+          brand_id,
+          brand:brand_id(id, full_name, brand_data),
+          images, cover_image
+        `)
+        .neq('id', productId)
+        .or(`category.eq.${currentProduct.category},brand_id.eq.${currentProduct.brand_id}`) // audience might be null
+        .limit(8)
+
+      return NextResponse.json(similarProducts || [], {
+        headers: { 'Cache-Control': 'public, max-age=600, stale-while-revalidate=1800' }
       })
     }
 
-    // For AI recommendations, we still need all products but optimize the query
-    const allProducts = await prisma.product.findMany({
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        category: true,
-        audience: true, // Added for similarity matching
-        brand: {
-          select: {
-            id: true,
-            companyName: true,
-            user: {
-              select: {
-                name: true,
-              },
-            },
-          },
-        },
-        images: {
-          where: {
-            isCoverImage: true,
-          },
-          take: 1,
-          select: {
-            id: true,
-            imagePath: true,
-          },
-        },
+    // AI Recommendations (User-based)
+    // Fetch a batch of products to rank
+    const { data: allProducts } = await supabase
+      .from('products')
+      .select(`
+          id, name, description, category, audience,
+          brand_id,
+          brand:brand_id(id, full_name, brand_data),
+          images, cover_image
+      `)
+      .limit(100)
+
+    if (!allProducts || allProducts.length === 0) return NextResponse.json([])
+
+    // Use OpenAI to rank
+    const recommendations = await generateProductRecommendations(
+      {
+        bio: profile.influencer_profiles?.bio || undefined,
+        niches: profile.influencer_profiles?.niches || [],
       },
-      take: 100, // Limit to 100 products for AI recommendations (much faster)
+      allProducts.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        description: p.description || undefined,
+        category: p.category || undefined,
+      }))
+    )
+
+    // Sort and return full objects
+    const sortedProducts = recommendations
+      .sort((a, b) => b.matchScore - a.matchScore)
+      .map(rec => allProducts.find(p => p.id === rec.productId))
+      .filter(Boolean)
+      .slice(0, 10)
+
+    return NextResponse.json(sortedProducts, {
+      headers: { 'Cache-Control': 'public, max-age=600, stale-while-revalidate=1800' }
     })
 
-    let recommendedProducts
-
-    if (productId) {
-      // Get similar products based on productId
-      const currentProduct = allProducts.find((p: any) => p.id === productId)
-      if (!currentProduct) {
-        return NextResponse.json([])
-      }
-
-      // Filter out current product and find similar ones
-      const similarProducts = allProducts
-        .filter((p: any) => p.id !== productId)
-        .filter((p: any) => {
-          // Same category
-          if (p.category === currentProduct.category) return true
-          // Same brand (access via brand.id since we're using select)
-          if (p.brand?.id === currentProduct.brand?.id) return true
-          // Similar audience
-          if (p.audience === currentProduct.audience) return true
-          return false
-        })
-        .slice(0, 8)
-
-      recommendedProducts = similarProducts
-    } else {
-      // Generate AI recommendations for user
-      const recommendations = await generateProductRecommendations(
-        {
-          bio: dbUser.influencerProfile?.bio || undefined,
-          niches: (dbUser.influencerProfile?.niches as string[]) || [],
-        },
-        allProducts.map((p: any) => ({
-          id: p.id,
-          name: p.name,
-          description: p.description || undefined,
-          category: p.category || undefined,
-        }))
-      )
-
-      // Sort by match score and return top 10
-      const sorted = recommendations.sort((a, b) => b.matchScore - a.matchScore).slice(0, 10)
-
-      // Get full product details
-      recommendedProducts = sorted.map((rec: any) => {
-        const product = allProducts.find((p: any) => p.id === rec.productId)
-        return product
-      }).filter(Boolean)
-    }
-
-    // Recommendations can be cached for longer
-    return NextResponse.json(recommendedProducts || [], {
-      headers: {
-        'Cache-Control': 'public, max-age=600, stale-while-revalidate=1800', // 10 min cache, 30 min stale
-      },
-    })
   } catch (error) {
     console.error('Product recommendation error:', error)
-    // Fallback to category-based recommendations
-    try {
-      const { searchParams } = new URL(request.url)
-      const productId = searchParams.get('productId')
-      
-      if (productId) {
-        const product = await prisma.product.findUnique({
-          where: { id: productId },
-        })
-        
-        if (product) {
-          const similar = await prisma.product.findMany({
-            where: {
-              category: product.category,
-              id: { not: productId },
-            },
-            include: {
-              brand: {
-                include: {
-                  user: {
-                    select: { name: true },
-                  },
-                },
-              },
-              images: {
-                where: { isCoverImage: true },
-                take: 1,
-              },
-            },
-            take: 8,
-          })
-          return NextResponse.json(similar)
-        }
-      }
-    } catch (fallbackError) {
-      console.error('Fallback recommendation error:', fallbackError)
-    }
-    
     return NextResponse.json([])
   }
 }
-

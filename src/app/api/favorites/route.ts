@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
-import prisma from '@/lib/prisma'
-import { createLinkSchema } from '@/lib/validation'
 
 export async function GET(request: Request) {
   try {
@@ -14,73 +12,35 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Optimized - only select needed fields
-    const dbUser = await prisma.user.findUnique({
-      where: { email: authUser.email! },
-      select: { id: true },
-    })
+    const { data: favorites, error } = await supabase
+      .from('favorites')
+      .select('product_id')
+      .eq('user_id', authUser.id)
 
-    if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
+    if (error) throw error
 
-    // Optimized query - use select instead of include, reduce nested queries
-    const favorites = await prisma.favorite.findMany({
-      where: {
-        userId: dbUser.id,
-      },
-      select: {
-        product: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            category: true,
-            price: true,
-            link: true,
-            audience: true,
-            createdAt: true,
-            brand: {
-              select: {
-                id: true,
-                companyName: true,
-                user: {
-                  select: {
-                    name: true,
-                    slug: true,
-                  },
-                },
-              },
-            },
-            images: {
-              where: {
-                isCoverImage: true,
-              },
-              take: 1,
-              select: {
-                id: true,
-                imagePath: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
+    // Identify favorited product IDs
+    const favoritedIds = favorites.map(f => f.product_id)
+
+    // Optionally fetch full product details if needed by hook
+    // But the hook just returns what? `useFavorites` checks if product is in list?
+    // The previous implementation returned `favorite` objects which contained `product`.
+
+    // Let's return full products for compatibility
+    if (favoritedIds.length === 0) return NextResponse.json([])
+
+    const { data: products } = await supabase
+      .from('products')
+      .select('*, brand:brand_id(*)')
+      .in('id', favoritedIds)
+
+    return NextResponse.json(products || [], {
+      headers: {
+        'Cache-Control': 'private, max-age=10',
       },
     })
-
-    // Add caching headers - favorites don't change frequently
-    return NextResponse.json(
-      favorites.map((f: any) => f.product),
-      {
-        headers: {
-          'Cache-Control': 'private, max-age=60, stale-while-revalidate=120', // 1 min cache
-        },
-      }
-    )
   } catch (error) {
-    console.error('Get favorites error:', error)
+    console.error('Favorites fetch error:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
@@ -91,102 +51,51 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser()
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    if (!authUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const body = await request.json()
+    const { productId } = body
+
+    if (!productId) return NextResponse.json({ error: 'Product ID required' }, { status: 400 })
+
+    const { error } = await supabase
+      .from('favorites')
+      .insert({ user_id: authUser.id, product_id: productId })
+
+    if (error) {
+      // Ignore duplicate error
+      if (error.code === '23505') return NextResponse.json({ success: true })
+      throw error
     }
 
-    // Optimized - only select needed fields
-    const dbUser = await prisma.user.findUnique({
-      where: { email: authUser.email! },
-      select: { id: true },
-    })
-
-    if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
-    const body = await request.json().catch(() => null)
-    const { productId } = createLinkSchema.parse(body)
-
-    // Check if already favorited
-    const existing = await prisma.favorite.findUnique({
-      where: {
-        userId_productId: {
-          userId: dbUser.id,
-          productId,
-        },
-      },
-    })
-
-    if (existing) {
-      return NextResponse.json({ message: 'Already favorited' })
-    }
-
-    const favorite = await prisma.favorite.create({
-      data: {
-        userId: dbUser.id,
-        productId,
-      },
-    })
-
-    return NextResponse.json(favorite, { status: 201 })
+    return NextResponse.json({ success: true }, { status: 201 })
   } catch (error) {
-    console.error('Add favorite error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Error' }, { status: 500 })
   }
 }
 
 export async function DELETE(request: Request) {
   try {
     const supabase = await createClient()
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser()
-
-    if (!authUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Optimized - only select needed fields
-    const dbUser = await prisma.user.findUnique({
-      where: { email: authUser.email! },
-      select: { id: true },
-    })
-
-    if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { searchParams } = new URL(request.url)
     const productId = searchParams.get('productId')
 
-    if (!productId) {
-      return NextResponse.json({ error: 'Product ID required' }, { status: 400 })
-    }
+    if (!productId) return NextResponse.json({ error: 'Product ID required' }, { status: 400 })
 
-    await prisma.favorite.delete({
-      where: {
-        userId_productId: {
-          userId: dbUser.id,
-          productId,
-        },
-      },
-    })
+    const { error } = await supabase
+      .from('favorites')
+      .delete()
+      .eq('user_id', authUser.id)
+      .eq('product_id', productId)
+
+    if (error) throw error
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Remove favorite error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Error' }, { status: 500 })
   }
 }
-

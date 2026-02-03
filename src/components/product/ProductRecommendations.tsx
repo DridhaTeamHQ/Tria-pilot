@@ -32,13 +32,36 @@ export default function ProductRecommendations({ productId }: ProductRecommendat
     <div className="mt-12">
       <h2 className="text-2xl font-semibold mb-6">You may also like</h2>
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {recommendations.map((product: any, index: number) => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            index={index}
-          />
-        ))}
+        {recommendations.map((product: any, index: number) => {
+          // Transform API data to match ProductCard expectations
+          const images = product.images || []
+          const imagePath = product.cover_image || (images.length > 0 ? images[0] : '') || ''
+
+          // Ensure brand object matches expected structure
+          const brand = product.brand ? {
+            id: product.brand.id,
+            companyName: product.brand.brand_data?.companyName || product.brand.full_name || 'Brand',
+            user: {
+              name: product.brand.full_name || 'Brand',
+              slug: null
+            }
+          } : null
+
+          const transformedProduct = {
+            ...product,
+            imagePath,
+            brand,
+            images: images.map((img: string, i: number) => ({ id: `${product.id}-img-${i}`, imagePath: img }))
+          }
+
+          return (
+            <ProductCard
+              key={product.id}
+              product={transformedProduct}
+              index={index}
+            />
+          )
+        })}
       </div>
     </div>
   )

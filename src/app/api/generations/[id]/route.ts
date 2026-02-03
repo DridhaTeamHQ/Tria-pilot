@@ -1,26 +1,13 @@
+/**
+ * GENERATION BY ID API - SUPABASE ONLY
+ * 
+ * DELETE - Delete a generation
+ */
 import { NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
-import { createClient } from '@/lib/auth'
+import { createClient, createServiceClient } from '@/lib/auth'
 import { deleteUpload } from '@/lib/storage'
 
 const BUCKET = 'try-ons'
-
-async function getDbUserId(): Promise<string | null> {
-  const supabase = await createClient()
-  const {
-    data: { user: authUser },
-  } = await supabase.auth.getUser()
-
-  if (!authUser?.email) return null
-
-  const db = prisma as any
-  const dbUser = await db.user.findUnique({
-    where: { email: authUser.email.toLowerCase().trim() },
-    select: { id: true },
-  })
-
-  return dbUser?.id ?? null
-}
 
 function inferTryOnStorageKey(params: { outputImagePath?: string | null; userId: string; jobId: string }): string {
   const fallback = `tryon/${params.userId}/${params.jobId}.png`
@@ -43,25 +30,48 @@ function inferTryOnStorageKey(params: { outputImagePath?: string | null; userId:
 
 export async function DELETE(_request: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
-    const userId = await getDbUserId()
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const supabase = await createClient()
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     const { id } = await ctx.params
-    const db = prisma as any
+    const service = createServiceClient()
 
-    const existing = await db.generationJob.findFirst({
-      where: { id, userId },
-      select: { id: true, outputImagePath: true },
-    })
+    // Find the generation
+    const { data: existing, error: findError } = await service
+      .from('generation_jobs')
+      .select('id, output_image_path')
+      .eq('id', id)
+      .eq('user_id', authUser.id)
+      .single()
 
-    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    if (findError || !existing) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
 
-    // Delete DB row first (authoritative). Storage delete is best-effort after.
-    await db.generationJob.delete({ where: { id } })
+    // Delete DB row first (authoritative)
+    const { error: deleteError } = await service
+      .from('generation_jobs')
+      .delete()
+      .eq('id', id)
+
+    if (deleteError) {
+      console.error('Failed to delete generation:', deleteError)
+      return NextResponse.json({ error: 'Failed to delete generation' }, { status: 500 })
+    }
 
     // Best-effort storage cleanup (non-fatal if missing)
     try {
-      const key = inferTryOnStorageKey({ outputImagePath: existing.outputImagePath, userId, jobId: id })
+      const key = inferTryOnStorageKey({
+        outputImagePath: existing.output_image_path,
+        userId: authUser.id,
+        jobId: id
+      })
       await deleteUpload(key, BUCKET)
     } catch (storageErr) {
       console.warn('Failed to delete try-on image from storage (non-fatal):', storageErr)
@@ -73,5 +83,3 @@ export async function DELETE(_request: Request, ctx: { params: Promise<{ id: str
     return NextResponse.json({ error: 'Failed to delete generation' }, { status: 500 })
   }
 }
-
-

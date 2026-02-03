@@ -1,101 +1,69 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { productSchema } from '@/lib/validation'
-import prisma from '@/lib/prisma'
 import { z } from 'zod'
 
 const createProductSchema = productSchema
   .extend({
     category: z.string().trim().min(1).max(80),
     audience: z.string().trim().min(1).max(40),
-    // Keep backward compatibility: allow price as string or number
     price: z.union([z.number(), z.string().trim()]).optional(),
   })
   .strict()
 
+// POST Handler
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser()
+    const { data: { user: authUser } } = await supabase.auth.getUser()
 
     if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const dbUser = await prisma.user.findUnique({
-      where: { email: authUser.email! },
-      include: {
-        brandProfile: true,
-      },
-    })
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id, role')
+      .eq('id', authUser.id)
+      .single()
 
-    if (!dbUser || dbUser.role !== 'BRAND' || !dbUser.brandProfile) {
+    const role = (profile?.role || '').toLowerCase()
+    if (!profile || role !== 'brand') {
       return NextResponse.json({ error: 'Unauthorized - Brand access required' }, { status: 403 })
     }
 
     const body = await request.json().catch(() => null)
     const parsed = createProductSchema.parse(body)
     const { name, description, category, link, tags, audience, images } = parsed
-    const priceValue =
-      typeof parsed.price === 'string'
-        ? parsed.price.trim() === ''
-          ? undefined
-          : Number(parsed.price)
-        : parsed.price
 
-    if (typeof priceValue === 'number' && Number.isNaN(priceValue)) {
-      return NextResponse.json({ error: 'Invalid price' }, { status: 400 })
+    let priceValue = parsed.price
+    if (typeof priceValue === 'string') {
+      priceValue = priceValue.trim() === '' ? 0 : Number(priceValue)
     }
 
-    // Validate images if provided
-    if (images && Array.isArray(images)) {
-      const tryOnCount = images.filter((img: any) => img.isTryOnReference).length
-      const coverCount = images.filter((img: any) => img.isCoverImage).length
+    const coverImg = images?.find((img: any) => img.isCoverImage)
+    const coverImage = coverImg?.imagePath || images?.[0]?.imagePath || ''
+    const productImages = images?.map((i: any) => i.imagePath) || []
 
-      if (tryOnCount !== 1) {
-        return NextResponse.json(
-          { error: 'Exactly one image must be marked as Try-On reference' },
-          { status: 400 }
-        )
-      }
-
-      if (coverCount !== 1) {
-        return NextResponse.json(
-          { error: 'Exactly one image must be marked as cover image' },
-          { status: 400 }
-        )
-      }
-    }
-
-    // Create product
-    const product = await prisma.product.create({
-      data: {
-        brandId: dbUser.brandProfile.id,
+    const { data: product, error } = await supabase
+      .from('products')
+      .insert({
+        brand_id: profile.id,
         name,
         description,
         category,
         price: priceValue,
         link,
-        tags,
+        tags: tags ? (Array.isArray(tags) ? tags : [tags]) : [],
         audience,
-        imagePath: images?.[0]?.imagePath || '', // Keep for backward compatibility
-        images: images
-          ? {
-              create: images.map((img: any) => ({
-                imagePath: img.imagePath,
-                order: img.order,
-                isTryOnReference: img.isTryOnReference,
-                isCoverImage: img.isCoverImage,
-              })),
-            }
-          : undefined,
-      },
-      include: {
-        images: true,
-      },
-    })
+        cover_image: coverImage,
+        images: productImages,
+        active: true
+      })
+      .select()
+      .single()
+
+    if (error) throw error
 
     return NextResponse.json(product, { status: 201 })
   } catch (error) {
@@ -107,298 +75,226 @@ export async function POST(request: Request) {
   }
 }
 
+// GET Handler - Returns LEGACY SHAPE with images array
 export async function GET(request: Request) {
   try {
     const supabase = await createClient()
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser()
+    const { data: { user: authUser } } = await supabase.auth.getUser()
 
     const { searchParams } = new URL(request.url)
     const productId = searchParams.get('id')
-    
-    // If fetching a single product by ID
-    if (productId) {
-      const product = await prisma.product.findUnique({
-        where: { id: productId },
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          category: true,
-          price: true,
-          link: true,
-          tags: true,
-          audience: true,
-          imagePath: true,
-          createdAt: true,
-          updatedAt: true,
-          brand: {
-            select: {
-              id: true,
-              companyName: true,
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  slug: true,
-                },
-              },
-            },
-          },
-          images: {
-            select: {
-              id: true,
-              imagePath: true,
-              order: true,
-              isTryOnReference: true,
-              isCoverImage: true,
-            },
-            orderBy: {
-              order: 'asc',
-            },
-          },
-        },
-      })
 
-      if (!product) {
-        return NextResponse.json({ error: 'Product not found' }, { status: 404 })
+    // Single Product
+    if (productId) {
+      const { data: product, error } = await supabase
+        .from('products')
+        .select(`
+            *,
+            brand:brand_id (
+                id, full_name, brand_data, email
+            )
+        `)
+        .eq('id', productId)
+        .single()
+
+      if (error || !product) {
+        // Fallback: Check Legacy 'Product' Table
+        const { data: legacyProduct, error: legacyError } = await supabase
+          .from('Product')
+          .select(`
+            id, name, description, category, link, audience, price, active, tags, "brandId", "createdAt", "updatedAt"
+          `)
+          .eq('id', productId)
+          .single()
+
+        if (legacyError || !legacyProduct) {
+          return NextResponse.json({ error: 'Product not found' }, { status: 404 })
+        }
+
+        // Fetch Legacy ProductImage data
+        const { data: legacyImages } = await supabase
+          .from('ProductImage')
+          .select('id, imagePath, order, isTryOnReference, isCoverImage')
+          .eq('productId', productId)
+          .order('order', { ascending: true })
+
+        return NextResponse.json({
+          ...legacyProduct,
+          brand: { id: legacyProduct.brandId },
+          images: legacyImages || []
+        })
       }
 
-      // Single product can be cached longer
-      return NextResponse.json(product, {
-        headers: {
-          'Cache-Control': 'public, max-age=300, stale-while-revalidate=600', // 5 min cache, 10 min stale
+      // Found in NEW table - try to find legacy images
+      // 1. First try direct ID match (for non-migrated or correctly migrated items)
+      let { data: legacyImages } = await supabase
+        .from('ProductImage')
+        .select('id, imagePath, order, isTryOnReference, isCoverImage')
+        .eq('productId', productId)
+        .order('order', { ascending: true })
+
+      // 2. If no images found, it might be a migrated product with a mismatched ID (UUID vs CUID)
+      // Try to find the legacy product by NAME to get its Legacy ID
+      if (!legacyImages || legacyImages.length === 0) {
+        const { data: legacyMatch } = await supabase
+          .from('Product')
+          .select('id')
+          .eq('name', product.name) // Match by Name
+          .single()
+
+        if (legacyMatch) {
+          const { data: foundImages } = await supabase
+            .from('ProductImage')
+            .select('id, imagePath, order, isTryOnReference, isCoverImage')
+            .eq('productId', legacyMatch.id) // Use Legacy ID
+            .order('order', { ascending: true })
+
+          if (foundImages && foundImages.length > 0) {
+            legacyImages = foundImages
+          }
+        }
+      }
+
+      let finalImages = []
+      if (legacyImages && legacyImages.length > 0) {
+        finalImages = legacyImages
+      } else {
+        // 3. Fallback: Synthesize from array if no legacy images found anywhere
+        finalImages = (product.images || []).map((url: string, idx: number) => ({
+          id: `img-${idx}`,
+          imagePath: url,
+          order: idx,
+          isTryOnReference: idx === 0,
+          isCoverImage: url === product.cover_image
+        }))
+      }
+
+      return NextResponse.json({
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        category: product.category,
+        price: product.price,
+        link: product.link,
+        tags: product.tags,
+        audience: product.audience,
+        imagePath: product.cover_image,
+        createdAt: product.created_at,
+        updatedAt: product.updated_at,
+        brand: {
+          id: product.brand?.id,
+          companyName: product.brand?.full_name || product.brand?.brand_data?.companyName || 'Unknown Brand'
         },
+        images: finalImages
+      }, {
+        headers: { 'Cache-Control': 'public, max-age=300, stale-while-revalidate=600' }
       })
     }
 
+    // List Products
     const search = searchParams.get('search')
     const category = searchParams.get('category')
     const brandId = searchParams.get('brandId')
     const page = parseInt(searchParams.get('page') || '1')
-    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100) // Max 100 per page
-    const skip = (page - 1) * limit
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100)
+    const from = (page - 1) * limit
+    const to = from + limit - 1
 
-    const where: any = {}
-    if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-      ]
-    }
-    if (category) {
-      where.category = category
-    }
-    if (brandId === 'current' && authUser) {
-      // Get current user's brand products
-      const dbUser = await prisma.user.findUnique({
-        where: { email: authUser.email! },
-        select: { brandProfile: { select: { id: true } } },
-      })
-      if (dbUser?.brandProfile) {
-        where.brandId = dbUser.brandProfile.id
+    let query = supabase
+      .from('products')
+      .select(`*, brand:brand_id (id, full_name, brand_data)`, { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(from, to)
+
+    if (search) query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`)
+    if (category) query = query.eq('category', category)
+    if (brandId && brandId !== 'current') query = query.eq('brand_id', brandId)
+    if (brandId === 'current' && authUser) query = query.eq('brand_id', authUser.id)
+
+    const { data: products, count, error } = await query
+    if (error) throw error
+
+    return NextResponse.json({
+      data: products,
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit),
       }
-    } else if (brandId && brandId !== 'current') {
-      where.brandId = brandId
-    }
-
-    // Fetch products with pagination and optimized select
-    const [products, totalCount] = await Promise.all([
-      prisma.product.findMany({
-        where,
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          category: true,
-          price: true,
-          link: true,
-          tags: true,
-          audience: true,
-          imagePath: true,
-          createdAt: true,
-          updatedAt: true,
-          brand: {
-            select: {
-              id: true,
-              companyName: true,
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  slug: true,
-                },
-              },
-            },
-          },
-          images: {
-            select: {
-              id: true,
-              imagePath: true,
-              order: true,
-              isTryOnReference: true,
-              isCoverImage: true,
-            },
-            orderBy: {
-              order: 'asc',
-            },
-          },
-        },
-        skip,
-        take: limit,
-        orderBy: {
-          createdAt: 'desc',
-        },
-      }),
-      prisma.product.count({ where }),
-    ])
-
-    // Add caching headers - product listings can be cached
-    return NextResponse.json(
-      {
-        data: products,
-        pagination: {
-          page,
-          limit,
-          total: totalCount,
-          totalPages: Math.ceil(totalCount / limit),
-        },
-      },
-      {
-        headers: {
-          'Cache-Control': 'public, max-age=60, stale-while-revalidate=300', // 1 min cache, 5 min stale
-        },
-      }
-    )
+    })
   } catch (error) {
     console.error('Product fetch error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
+// PATCH Handler
 export async function PATCH(request: Request) {
   try {
     const supabase = await createClient()
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser()
+    const { data: { user: authUser } } = await supabase.auth.getUser()
 
-    if (!authUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const dbUser = await prisma.user.findUnique({
-      where: { email: authUser.email! },
-      include: {
-        brandProfile: true,
-      },
-    })
-
-    if (!dbUser || dbUser.role !== 'BRAND') {
-      return NextResponse.json({ error: 'Unauthorized - Brand access required' }, { status: 403 })
-    }
+    if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await request.json().catch(() => null)
-    const { id, ...updateData } = z
-      .object({
-        id: z.string().min(1).max(100),
-        name: z.string().trim().min(1).max(120).optional(),
-        description: z.string().trim().max(5000).optional(),
-        category: z.string().trim().max(80).optional(),
-        price: z.union([z.number(), z.string().trim()]).optional(),
-        link: z.string().trim().url().max(2048).optional(),
-        imagePath: z.string().trim().max(1024).optional(),
-      })
-      .strict()
-      .parse(body)
+    const { id, ...updateData } = body
 
-    // Normalize price for prisma update (accept string or number without breaking clients)
-    if (typeof (updateData as any).price === 'string') {
-      const n = Number((updateData as any).price)
-      if (Number.isNaN(n)) {
-        return NextResponse.json({ error: 'Invalid price' }, { status: 400 })
-      }
-      ;(updateData as any).price = n
+    if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
+
+    const { data: existing } = await supabase
+      .from('products')
+      .select('brand_id')
+      .eq('id', id)
+      .single()
+
+    if (!existing || existing.brand_id !== authUser.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
-    const product = await prisma.product.findUnique({
-      where: { id },
-      include: {
-        brand: true,
-      },
-    })
+    const { data: updated, error } = await supabase
+      .from('products')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single()
 
-    if (!product || product.brand.userId !== dbUser.id) {
-      return NextResponse.json({ error: 'Product not found or unauthorized' }, { status: 404 })
-    }
-
-    const updated = await prisma.product.update({
-      where: { id },
-      data: updateData,
-    })
+    if (error) throw error
 
     return NextResponse.json(updated)
   } catch (error) {
-    console.error('Product update error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Error' }, { status: 500 })
   }
 }
 
+// DELETE Handler
 export async function DELETE(request: Request) {
   try {
     const supabase = await createClient()
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser()
+    const { data: { user: authUser } } = await supabase.auth.getUser()
 
-    if (!authUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const dbUser = await prisma.user.findUnique({
-      where: { email: authUser.email! },
-    })
-
-    if (!dbUser || dbUser.role !== 'BRAND') {
-      return NextResponse.json({ error: 'Unauthorized - Brand access required' }, { status: 403 })
-    }
+    if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
 
-    if (!id) {
-      return NextResponse.json({ error: 'Product ID required' }, { status: 400 })
+    if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
+
+    const { data, error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', id)
+      .eq('brand_id', authUser.id)
+      .select('id')
+
+    if (error) throw error
+
+    if (!data || data.length === 0) {
+      return NextResponse.json({ error: 'Not found or unauthorized' }, { status: 404 })
     }
-
-    const product = await prisma.product.findUnique({
-      where: { id },
-      include: {
-        brand: true,
-      },
-    })
-
-    if (!product || product.brand.userId !== dbUser.id) {
-      return NextResponse.json({ error: 'Product not found or unauthorized' }, { status: 404 })
-    }
-
-    await prisma.product.delete({
-      where: { id },
-    })
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Product deletion error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Error' }, { status: 500 })
   }
 }
-

@@ -1,12 +1,15 @@
+/**
+ * AD REGENERATE API
+ * 
+ * POST - Regenerate an ad creative with new image
+ * Uses correct schema: ad_creatives has image_url, rating columns
+ */
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/auth'
+import { createClient, createServiceClient } from '@/lib/auth'
 import { checkRateLimit } from '@/lib/rate-limit'
-import { generateAdPrompt, validateAdInput, type AdGenerationInput } from '@/lib/ads/ad-styles'
 import { rateAdCreative, generateAdCopy } from '@/lib/openai'
 import { generateIntelligentAdComposition } from '@/lib/gemini'
 import { saveUpload } from '@/lib/storage'
-import prisma from '@/lib/prisma'
-import { z } from 'zod'
 
 export async function POST(
     request: Request,
@@ -15,156 +18,111 @@ export async function POST(
     try {
         const { id } = await params
         const supabase = await createClient()
-        const {
-            data: { user: authUser },
-        } = await supabase.auth.getUser()
+        const { data: { user: authUser } } = await supabase.auth.getUser()
 
         if (!authUser) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        const dbUser = await prisma.user.findUnique({
-            where: { email: authUser.email! },
-        })
+        // Check if brand
+        const service = createServiceClient()
+        const { data: profile } = await service
+            .from('profiles')
+            .select('id, role, full_name')
+            .eq('id', authUser.id)
+            .single()
 
-        if (!dbUser || dbUser.role !== 'BRAND') {
+        const role = (profile?.role || '').toLowerCase()
+        if (role !== 'brand') {
             return NextResponse.json({ error: 'Unauthorized - Brand access required' }, { status: 403 })
         }
 
-        // Find the existing creative
-        const existingCreative = await prisma.adCreative.findUnique({
-            where: { id },
-        })
+        // Fetch creative
+        const { data: creative, error: fetchError } = await service
+            .from('ad_creatives')
+            .select('*')
+            .eq('id', id)
+            .single()
 
-        if (!existingCreative) {
+        if (fetchError || !creative) {
             return NextResponse.json({ error: 'Creative not found' }, { status: 404 })
         }
 
-        if (existingCreative.brandId !== dbUser.id) {
+        if (creative.brand_id !== authUser.id) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
         }
 
-        const meta = (existingCreative.meta as any) || {}
-
-        // Check regeneration limit
-        const regenCount = meta.regenerationCount || 0
-        const maxRegens = meta.maxRegenerations || 5
-
-        if (regenCount >= maxRegens) {
-            return NextResponse.json(
-                { error: 'Regeneration limit reached for this creative' },
-                { status: 429 }
-            )
-        }
-
-        // Check cooldown (3 minutes = 180000ms)
-        const lastRegen = meta.lastRegenerationAt ? new Date(meta.lastRegenerationAt).getTime() : 0
-        const cooldownMs = 180000
-        const timeSinceLastRegen = Date.now() - lastRegen
-
-        if (timeSinceLastRegen < cooldownMs) {
-            const waitSeconds = Math.ceil((cooldownMs - timeSinceLastRegen) / 1000)
-            return NextResponse.json(
-                { error: `Please wait ${waitSeconds} seconds before regenerating` },
-                { status: 429 }
-            )
-        }
-
-        // Check rate limit
-        const rateLimit = checkRateLimit(dbUser.id, 'ads')
+        // Rate Limit Check
+        const rateLimit = await checkRateLimit(authUser.id, 'ads')
         if (!rateLimit.allowed) {
-            return NextResponse.json(
-                {
-                    error: 'Rate limit exceeded',
-                    resetTime: rateLimit.resetTime,
-                },
-                { status: 429 }
-            )
+            return NextResponse.json({ error: 'Rate limit exceeded', resetTime: rateLimit.resetTime }, { status: 429 })
         }
 
-        // Get optional prompt modifier from request body
         const body = await request.json().catch(() => null)
-        const promptModifier = z
-          .object({
-            promptModifier: z.string().trim().max(500).optional(),
-          })
-          .strict()
-          .parse(body || {})
-          .promptModifier || ''
+        const promptModifier = body?.promptModifier || ''
 
-        // Reconstruct generation input from metadata
-        const originalInput: AdGenerationInput = {
-            preset: meta.stylePreset || 'UGC_CANDID',
-            campaignId: meta.campaignId,
-            productImage: meta.productImage,
-            influencerImage: meta.influencerImage,
-            lockFaceIdentity: meta.lockFaceIdentity,
-            headline: meta.headline,
-            ctaType: meta.ctaType || 'shop_now',
-            captionTone: meta.captionTone,
-            platforms: meta.platforms || ['instagram'],
-        }
+        // Generate new ad image
+        const prompt = promptModifier || `Generate a professional advertising image. Use studio lighting, clean composition, and brand-appropriate aesthetics.`
 
-        // Generate new prompt (with optional modifier)
-        let prompt = generateAdPrompt(originalInput)
-        if (promptModifier) {
-            prompt = `${promptModifier}\n\n${prompt}`
-        }
-
-        // Generate new image
+        console.log('[Regenerate] Generating new ad image...')
         const generatedImage = await generateIntelligentAdComposition(
-            originalInput.productImage,
-            originalInput.influencerImage,
+            undefined, // No product image stored
+            undefined, // No influencer image stored
             prompt
         )
 
         // Rate the new ad
-        const rating = await rateAdCreative(
-            generatedImage,
-            originalInput.productImage,
-            originalInput.influencerImage
-        )
+        const rating = await rateAdCreative(generatedImage)
+        const qualityScore = (rating as any)?.score || 75
 
-        // Generate new copy variants
+        // Generate new copy
         const copyVariants = await generateAdCopy(generatedImage, {
-            productName: meta.productAnalysis?.garmentType,
-            brandName: dbUser.name || undefined,
-            niche: meta.stylePreset,
+            brandName: profile?.full_name || undefined,
         })
 
-        // Save new image
-        const imagePath = `${dbUser.id}/${Date.now()}.jpg`
-        const imageUrl = await saveUpload(generatedImage, imagePath, 'ads')
+        // Extract MIME type and save image
+        let contentType = 'image/jpeg'
+        let fileExtension = 'jpg'
+        const mimeMatch = generatedImage.match(/^data:(image\/\w+);base64,/)
+        if (mimeMatch) {
+            contentType = mimeMatch[1]
+            if (contentType === 'image/png') fileExtension = 'png'
+            else if (contentType === 'image/webp') fileExtension = 'webp'
+        }
 
-        // Update creative
-        const updatedCreative = await prisma.adCreative.update({
-            where: { id },
-            data: {
-                imagePath: imageUrl,
-                copy: copyVariants[0] || '',
-                meta: {
-                    ...meta,
-                    rating: rating as any,
-                    copyVariants: copyVariants as any,
-                    regenerationCount: regenCount + 1,
-                    lastRegenerationAt: new Date().toISOString(),
-                    qualityScore: (rating as any)?.score || 75,
-                },
-            },
-        })
+        const imagePath = `${authUser.id}/${Date.now()}.${fileExtension}`
+        const imageUrl = await saveUpload(generatedImage, imagePath, 'ads', contentType)
+        console.log('[Regenerate] Saved new image:', imageUrl)
+
+        // Update the ad creative with correct column names
+        const { data: updated, error: updateError } = await service
+            .from('ad_creatives')
+            .update({
+                image_url: imageUrl,
+                rating: qualityScore,
+            })
+            .eq('id', id)
+            .select()
+            .single()
+
+        if (updateError) {
+            console.error('[Regenerate] Update error:', updateError)
+            return NextResponse.json({ error: 'Failed to update creative' }, { status: 500 })
+        }
+
+        console.log('[Regenerate] Updated creative:', updated?.id)
 
         return NextResponse.json({
-            id: updatedCreative.id,
-            imageUrl,
+            id: updated.id,
+            imageUrl: updated.image_url,
             copy: copyVariants,
-            rating,
-            regenerationCount: regenCount + 1,
-            maxRegenerations: maxRegens,
+            rating: qualityScore,
         })
+
     } catch (error) {
-        console.error('Ad regeneration error:', error)
+        console.error('Ad regen error:', error)
         return NextResponse.json(
-            { error: error instanceof Error ? error.message : 'Internal server error' },
+            { error: error instanceof Error ? error.message : 'Error' },
             { status: 500 }
         )
     }

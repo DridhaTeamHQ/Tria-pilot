@@ -20,14 +20,14 @@ interface ProductCardProps {
         category: string | null
         price: any
         imagePath: string
-        brand: {
+        brand?: {
             id: string
             companyName: string | null
-            user: {
+            user?: {
                 name: string | null
                 slug: string | null
             } | null
-        }
+        } | null
         images: ProductImage[]
     }
     index: number
@@ -105,7 +105,7 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
     const handleMouseEnter = useCallback(() => setIsHovered(true), [])
     const handleMouseLeave = useCallback(() => setIsHovered(false), [])
 
-    const brandName = product.brand.companyName || product.brand.user?.name || 'Brand'
+    const brandName = product.brand?.companyName || product.brand?.user?.name || 'Brand'
     const priceDisplay = formatPrice(product.price)
 
     return (

@@ -1,6 +1,11 @@
+/**
+ * CAMPAIGNS CHAT API
+ * 
+ * AI assistant for campaign strategy
+ * Uses Supabase only - NO Prisma
+ */
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/auth'
-import prisma from '@/lib/prisma'
+import { createClient, createServiceClient } from '@/lib/auth'
 import { getOpenAI } from '@/lib/openai'
 import { z } from 'zod'
 
@@ -27,79 +32,83 @@ export async function POST(request: Request) {
   try {
     const supabase = await createClient()
     const {
-      data: { user: authUser },
+      data: { user },
+      error: authError,
     } = await supabase.auth.getUser()
 
-    if (!authUser) {
+    if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const dbUser = await prisma.user.findUnique({
-      where: { email: authUser.email! },
-      include: {
-        brandProfile: true,
-        campaigns: {
-          take: 5,
-          orderBy: { createdAt: 'desc' },
-        },
-      },
-    })
+    const service = createServiceClient()
 
-    if (!dbUser || dbUser.role !== 'BRAND' || !dbUser.brandProfile) {
+    // Get brand profile
+    const { data: profile } = await service
+      .from('profiles')
+      .select('role, brand_data')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile || profile.role !== 'brand') {
       return NextResponse.json({ error: 'Unauthorized - Brand access required' }, { status: 403 })
     }
 
     const body = await request.json().catch(() => null)
-    const parsed = chatSchema.parse(body)
-    const message = parsed.message
-    const conversationHistory = parsed.conversationHistory ?? []
-
-    // Get brand context
-    const brandContext = {
-      companyName: dbUser.brandProfile.companyName,
-      brandType: dbUser.brandProfile.brandType,
-      targetAudience: dbUser.brandProfile.targetAudience,
-      productTypes: dbUser.brandProfile.productTypes,
-      vertical: dbUser.brandProfile.vertical,
-      budgetRange: dbUser.brandProfile.budgetRange,
-      recentCampaigns: dbUser.campaigns.map((c: any) => ({
-        title: c.title,
-        brief: c.brief,
-        status: c.status,
-      })),
+    if (!body) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
     }
 
-    // Get available influencers count for suggestions
-    const influencerCount = await prisma.influencerProfile.count({
-      where: {
-        portfolioVisibility: true,
-        onboardingCompleted: true,
-      },
-    })
+    const parsed = chatSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid message format' }, { status: 400 })
+    }
+
+    const message = parsed.data.message
+    const conversationHistory = parsed.data.conversationHistory ?? []
+
+    // Get brand context from brand_data
+    const brandData = profile.brand_data as any || {}
+    const brandContext = {
+      companyName: brandData.companyName || 'Brand',
+      brandType: brandData.brandType || 'Not specified',
+      targetAudience: brandData.targetAudience || 'Not specified',
+      vertical: brandData.vertical || 'Not specified',
+    }
+
+    // Get recent campaigns count
+    const { count: campaignCount } = await service
+      .from('campaigns')
+      .select('*', { count: 'exact', head: true })
+      .eq('brand_id', user.id)
+
+    // Get available influencers count
+    const { count: influencerCount } = await service
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .eq('role', 'influencer')
+      .eq('approval_status', 'approved')
 
     // Build system prompt
     const systemPrompt = `You are an intelligent campaign assistant for brands on Kiwikoo, an AI fashion try-on marketplace. Your role is to help brands create effective marketing campaigns, suggest influencers, plan budgets, and provide strategic advice.
 
 Brand Context:
 - Company: ${brandContext.companyName}
-- Brand Type: ${brandContext.brandType || 'Not specified'}
-- Target Audience: ${Array.isArray(brandContext.targetAudience) ? brandContext.targetAudience.join(', ') : 'Not specified'}
-- Product Types: ${Array.isArray(brandContext.productTypes) ? brandContext.productTypes.join(', ') : 'Not specified'}
-- Industry: ${brandContext.vertical || 'Not specified'}
-- Budget Range: ${brandContext.budgetRange || 'Not specified'}
-- Recent Campaigns: ${brandContext.recentCampaigns.length} campaigns
+- Brand Type: ${brandContext.brandType}
+- Target Audience: ${brandContext.targetAudience}
+- Industry: ${brandContext.vertical}
+- Previous Campaigns: ${campaignCount || 0}
 
-Available Influencers: ${influencerCount} influencers available on the platform
+Available Influencers: ${influencerCount || 0} influencers available on the platform
 
 Your capabilities:
 1. Generate campaign ideas and briefs
 2. Suggest content strategies
-3. Recommend influencers based on brand needs
+3. Recommend influencer types based on brand needs
 4. Help with budget planning and ROI estimates
 5. Provide timeline and scheduling suggestions
 6. Answer questions about campaign strategy
 
-Be concise, actionable, and specific. When suggesting influencers, mention criteria like niche, audience, follower count, or engagement rate. When discussing budgets, provide realistic estimates based on the brand's budget range.`
+Be concise, actionable, and specific. When suggesting influencers, mention criteria like niche, audience, follower count, or engagement rate. When discussing budgets, provide realistic estimates in INR.`
 
     // Build conversation messages
     const messages: any[] = [
@@ -127,4 +136,3 @@ Be concise, actionable, and specific. When suggesting influencers, mention crite
     )
   }
 }
-

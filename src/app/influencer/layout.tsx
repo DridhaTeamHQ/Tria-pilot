@@ -1,14 +1,19 @@
 /**
  * INFLUENCER LAYOUT GUARD
  * 
- * Enforces routing based on auth state.
- * Only approved influencers can access influencer routes.
+ * Route-level authorization for /influencer/* routes.
+ * Uses getIdentity() which reads from profiles (SOURCE OF TRUTH).
  * 
- * NOTE: /influencer/pending has its own layout guard that ensures
- * only influencer_pending users can access it.
+ * Authorization Rules:
+ * - Must be authenticated
+ * - Must have role = 'influencer'
+ * - Must have completed onboarding
+ * - Pending users: allowed to access /influencer/pending only (handled below)
+ * - Approved users: full access
  */
-import { getAuthState } from '@/lib/auth-state'
+import { getIdentity } from '@/lib/auth-state'
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,29 +22,37 @@ export default async function InfluencerLayout({
 }: {
   children: React.ReactNode
 }) {
-  const state = await getAuthState()
+  const auth = await getIdentity()
 
   // Must be authenticated
-  if (state.type === 'unauthenticated') {
+  if (!auth.authenticated) {
     redirect('/login')
   }
 
+  const { identity } = auth
+
   // Must be influencer
-  if (
-    state.type !== 'influencer_draft' &&
-    state.type !== 'influencer_pending' &&
-    state.type !== 'influencer_approved'
-  ) {
+  if (identity.role !== 'influencer') {
     redirect('/dashboard')
   }
 
-  // Drafts must complete onboarding
-  if (state.type === 'influencer_draft') {
+  // Must complete onboarding
+  if (!identity.onboarding_completed) {
     redirect('/onboarding/influencer')
   }
 
-  // Pending and approved users can proceed
-  // - Pending users: child layouts will handle /pending vs other routes
-  // - Approved users: full access to all influencer routes
+  // Pending influencers: allow /influencer/pending only
+  // Note: /marketplace is handled at root level (public path in middleware)
+  if (identity.approval_status !== 'approved') {
+    // Get current path to check if we're on /influencer/pending
+    const headersList = await headers()
+    const pathname = headersList.get('x-pathname') || ''
+
+    // If not on pending page and not approved, redirect to pending
+    if (!pathname.includes('/influencer/pending')) {
+      redirect('/influencer/pending')
+    }
+  }
+
   return <>{children}</>
 }

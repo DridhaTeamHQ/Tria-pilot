@@ -1,64 +1,96 @@
+/**
+ * CAMPAIGNS API
+ * 
+ * GET - List campaigns for authenticated brand
+ * POST - Create new campaign
+ * 
+ * Uses Supabase only - NO Prisma
+ */
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/auth'
-import { campaignSchema } from '@/lib/validation'
-import { checkRateLimit } from '@/lib/rate-limit'
+import { createClient, createServiceClient } from '@/lib/auth'
 import { z } from 'zod'
-import prisma from '@/lib/prisma'
+
+const campaignSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  goals: z.array(z.string()).optional(),
+  targetAudience: z.string().optional(),
+  budget: z.number().optional(),
+  timeline: z.string().optional(),
+})
 
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
     const {
-      data: { user: authUser },
+      data: { user },
+      error: authError,
     } = await supabase.auth.getUser()
 
-    if (!authUser) {
+    if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const dbUser = await prisma.user.findUnique({
-      where: { email: authUser.email! },
-    })
+    const service = createServiceClient()
 
-    if (!dbUser || dbUser.role !== 'BRAND') {
-      return NextResponse.json({ error: 'Unauthorized - Brand access required' }, { status: 403 })
-    }
+    // Verify brand role
+    const { data: profile } = await service
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
 
-    // Check rate limit
-    const rateLimit = checkRateLimit(dbUser.id, 'campaigns')
-    if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          error: 'Rate limit exceeded',
-          resetTime: rateLimit.resetTime,
-        },
-        { status: 429 }
-      )
+    if (!profile || profile.role !== 'brand') {
+      return NextResponse.json({ error: 'Only brands can create campaigns' }, { status: 403 })
     }
 
     const body = await request.json().catch(() => null)
-    const { title, goals, targetAudience, budget, timeline } = campaignSchema.parse(body)
+    if (!body) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+    }
 
-    // Generate campaign brief (simplified - in production, use OpenAI)
-    const brief = `Campaign: ${title}\n\nGoals: ${goals?.join(', ') || 'Brand awareness'}\nTarget Audience: ${targetAudience || 'General'}\nBudget: ${budget ? `$${budget}` : 'TBD'}\nTimeline: ${timeline || 'Flexible'}`
+    const parsed = campaignSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid campaign data', details: parsed.error.flatten() },
+        { status: 400 }
+      )
+    }
 
-    const campaign = await prisma.campaign.create({
-      data: {
-        brandId: dbUser.id,
+    const { title, goals, targetAudience, budget, timeline } = parsed.data
+
+    // Generate campaign brief
+    const brief = `Campaign: ${title}\n\nGoals: ${goals?.join(', ') || 'Brand awareness'}\nTarget Audience: ${targetAudience || 'General'}\nBudget: ${budget ? `₹${budget}` : 'TBD'}\nTimeline: ${timeline || 'Flexible'}`
+
+    const { data: campaign, error: insertError } = await service
+      .from('campaigns')
+      .insert({
+        brand_id: user.id,
         title,
         brief,
-        assets: [],
-        metadata: {
+        strategy: {
           goals,
           targetAudience,
           budget,
           timeline,
         },
         status: 'draft',
-      },
-    })
+      })
+      .select()
+      .single()
 
-    return NextResponse.json(campaign)
+    if (insertError) {
+      console.error('Campaign insert error:', insertError)
+      return NextResponse.json({ error: 'Failed to create campaign' }, { status: 500 })
+    }
+
+    // Transform to match expected format
+    return NextResponse.json({
+      id: campaign.id,
+      title: campaign.title,
+      brief: campaign.brief,
+      status: campaign.status,
+      createdAt: campaign.created_at,
+    })
   } catch (error) {
     console.error('Campaign creation error:', error)
     return NextResponse.json(
@@ -68,35 +100,53 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const supabase = await createClient()
     const {
-      data: { user: authUser },
+      data: { user },
+      error: authError,
     } = await supabase.auth.getUser()
 
-    if (!authUser) {
+    if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const dbUser = await prisma.user.findUnique({
-      where: { email: authUser.email! },
-    })
+    const service = createServiceClient()
 
-    if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    // Verify brand role
+    const { data: profile } = await service
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile || profile.role !== 'brand') {
+      return NextResponse.json([]) // Return empty for non-brands
     }
 
-    const campaigns = await prisma.campaign.findMany({
-      where: {
-        brandId: dbUser.id,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
+    const { data: campaigns, error } = await service
+      .from('campaigns')
+      .select('*')
+      .eq('brand_id', user.id)
+      .order('created_at', { ascending: false })
 
-    return NextResponse.json(campaigns)
+    if (error) {
+      console.error('Campaign fetch error:', error)
+      return NextResponse.json({ error: 'Failed to fetch campaigns' }, { status: 500 })
+    }
+
+    // Transform to match expected format for frontend
+    const transformed = (campaigns || []).map(c => ({
+      id: c.id,
+      title: c.title,
+      brief: c.brief,
+      status: c.status,
+      mode: 'SELF',
+      createdAt: c.created_at,
+    }))
+
+    return NextResponse.json(transformed)
   } catch (error) {
     console.error('Campaign fetch error:', error)
     return NextResponse.json(
@@ -105,4 +155,3 @@ export async function GET(request: Request) {
     )
   }
 }
-

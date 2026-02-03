@@ -1,14 +1,19 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
-import { Camera, Box } from 'lucide-react'
-import { useProducts } from '@/lib/react-query/hooks'
-import { useQueryClient } from '@tanstack/react-query'
+import {
+  Plus,
+  Package,
+  Loader2,
+  Trash2,
+  Edit2,
+  X,
+  Camera,
+  Save,
+  ExternalLink,
+  Shirt
+} from 'lucide-react'
 
 interface Product {
   id: string
@@ -17,441 +22,599 @@ interface Product {
   category?: string
   price?: number
   link?: string
-  tags?: string
+  tags?: string[]
   audience?: string
-  imagePath?: string // Legacy field, deprecated in favor of images array
-  images?: Array<{
-    id: string
-    imagePath: string
-    isCoverImage: boolean
-    isTryOnReference: boolean
-  }>
+  cover_image?: string
+  tryon_image?: string
+  images?: string[]
+  active: boolean
+  created_at: string
 }
 
-const CATEGORIES = ['Clothing', 'Accessories', 'Footwear', 'Beauty', 'Lifestyle']
+const CATEGORIES = ['Clothing', 'Accessories', 'Footwear', 'Beauty', 'Lifestyle', 'Electronics', 'Home', 'Other']
 const AUDIENCES = ['Men', 'Women', 'Unisex', 'Kids']
 
 export default function BrandProductsPage() {
-  const queryClient = useQueryClient()
-  const { data: productsData, isLoading: loading } = useProducts({ brandId: 'current' })
-  const [submitting, setSubmitting] = useState(false)
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    category: '',
-    audience: '',
-    price: '',
-    link: '',
-    tags: '',
-  })
-  const [images, setImages] = useState<Array<{ file: File; preview: string }>>([])
-  const [tryOnImageIndex, setTryOnImageIndex] = useState<number | null>(null)
-  const [coverImageIndex, setCoverImageIndex] = useState<number | null>(null)
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [showForm, setShowForm] = useState(false)
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
 
-  // Extract products from data (handle both array and paginated response)
-  const products: Product[] = Array.isArray(productsData) 
-    ? productsData 
-    : productsData?.data || []
+  // Form state
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+  const [category, setCategory] = useState('')
+  const [price, setPrice] = useState('')
+  const [link, setLink] = useState('')
+  const [tags, setTags] = useState('')
+  const [audience, setAudience] = useState('')
+  const [images, setImages] = useState<string[]>([])
+  const [coverIndex, setCoverIndex] = useState(0)
+  const [tryonIndex, setTryonIndex] = useState<number | null>(null)
 
-  const handleImageUpload = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size must be less than 5MB')
-      return
+  useEffect(() => {
+    fetchProducts()
+  }, [])
+
+  const fetchProducts = async () => {
+    try {
+      const res = await fetch('/api/brand/products')
+      const data = await res.json()
+
+      if (!res.ok) throw new Error(data.error)
+
+      setProducts(data.products || [])
+    } catch (error) {
+      console.error('Failed to fetch products:', error)
+      toast.error('Failed to load products')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const resetForm = () => {
+    setName('')
+    setDescription('')
+    setCategory('')
+    setPrice('')
+    setLink('')
+    setTags('')
+    setAudience('')
+    setImages([])
+    setCoverIndex(0)
+    setTryonIndex(null)
+    setEditingProduct(null)
+    setShowForm(false)
+  }
+
+  const openEditForm = (product: Product) => {
+    setEditingProduct(product)
+    setName(product.name)
+    setDescription(product.description || '')
+    setCategory(product.category || '')
+    setPrice(product.price?.toString() || '')
+    setLink(product.link || '')
+    setTags(product.tags?.join(', ') || '')
+    setAudience(product.audience || '')
+    setImages(product.images || [])
+
+    // Find cover and tryon indices
+    if (product.images && product.images.length > 0) {
+      const coverIdx = product.cover_image
+        ? product.images.findIndex(img => img === product.cover_image)
+        : 0
+      setCoverIndex(coverIdx >= 0 ? coverIdx : 0)
+
+      const tryonIdx = product.tryon_image
+        ? product.images.findIndex(img => img === product.tryon_image)
+        : null
+      setTryonIndex(tryonIdx !== null && tryonIdx >= 0 ? tryonIdx : null)
+    } else {
+      setCoverIndex(0)
+      setTryonIndex(null)
     }
 
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const preview = event.target?.result as string
-      const newImages = [...images]
-      newImages[index] = { file, preview }
-      setImages(newImages.filter((img: any) => img !== undefined))
-    }
-    reader.readAsDataURL(file)
+    setShowForm(true)
+  }
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files) return
+
+    Array.from(files).forEach(file => {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string
+        setImages(prev => [...prev, base64])
+      }
+      reader.readAsDataURL(file)
+    })
   }
 
   const removeImage = (index: number) => {
-    const newImages = images.filter((_, i) => i !== index)
-    setImages(newImages)
-    if (tryOnImageIndex === index) setTryOnImageIndex(null)
-    if (coverImageIndex === index) setCoverImageIndex(null)
-    if (tryOnImageIndex !== null && tryOnImageIndex > index) setTryOnImageIndex(tryOnImageIndex - 1)
-    if (coverImageIndex !== null && coverImageIndex > index) setCoverImageIndex(coverImageIndex - 1)
+    setImages(prev => prev.filter((_, i) => i !== index))
+
+    // Adjust cover/tryon indices
+    if (coverIndex === index) {
+      setCoverIndex(0)
+    } else if (coverIndex > index) {
+      setCoverIndex(prev => prev - 1)
+    }
+
+    if (tryonIndex === index) {
+      setTryonIndex(null)
+    } else if (tryonIndex !== null && tryonIndex > index) {
+      setTryonIndex(prev => prev !== null ? prev - 1 : null)
+    }
+  }
+
+  const setCover = (index: number) => {
+    setCoverIndex(index)
+    toast.success('Cover image set!')
+  }
+
+  const setTryon = (index: number) => {
+    if (tryonIndex === index) {
+      // Toggle off if clicking same image
+      setTryonIndex(null)
+      toast.info('Try-on image removed')
+    } else {
+      setTryonIndex(index)
+      toast.success('Try-on image set!')
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSubmitting(true)
+    if (!name.trim()) {
+      toast.error('Product name is required')
+      return
+    }
+
+    setSaving(true)
 
     try {
-      // Validate
-      if (!formData.name || !formData.category || !formData.audience) {
-        toast.error('Please fill in all required fields')
-        setSubmitting(false)
-        return
+      const productData = {
+        name: name.trim(),
+        description: description.trim() || undefined,
+        category: category || undefined,
+        price: price ? parseFloat(price) : undefined,
+        link: link.trim() || undefined,
+        tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+        audience: audience || undefined,
+        cover_image: images[coverIndex] || images[0] || undefined,
+        tryon_image: tryonIndex !== null ? images[tryonIndex] : undefined,
+        images: images,
       }
 
-      if (images.length === 0) {
-        toast.error('Please upload at least one image')
-        setSubmitting(false)
-        return
-      }
+      const method = editingProduct ? 'PUT' : 'POST'
+      const url = editingProduct
+        ? `/api/brand/products/${editingProduct.id}`
+        : '/api/brand/products'
 
-      if (tryOnImageIndex === null) {
-        toast.error('Please select an image for Try-On reference')
-        setSubmitting(false)
-        return
-      }
-
-      if (coverImageIndex === null) {
-        toast.error('Please select a cover image for marketplace')
-        setSubmitting(false)
-        return
-      }
-
-      // Upload images to Supabase Storage
-      const uploadedImages: Array<{
-        imagePath: string
-        order: number
-        isTryOnReference: boolean
-        isCoverImage: boolean
-      }> = []
-
-      for (let i = 0; i < images.length; i++) {
-        const image = images[i]
-        const formDataUpload = new FormData()
-        formDataUpload.append('file', image.file)
-        formDataUpload.append('bucket', 'products')
-
-        const uploadResponse = await fetch('/api/storage/upload', {
-          method: 'POST',
-          body: formDataUpload,
-        })
-
-        if (!uploadResponse.ok) {
-          const errorData = await uploadResponse.json().catch(() => ({ error: 'Unknown error' }))
-          console.error('Upload error details:', errorData)
-          throw new Error(errorData.error || `Failed to upload image ${i + 1}`)
-        }
-
-        const uploadData = await uploadResponse.json()
-        
-        if (!uploadData.path) {
-          throw new Error(`Upload succeeded but no path returned for image ${i + 1}`)
-        }
-
-        uploadedImages.push({
-          imagePath: uploadData.path,
-          order: i + 1,
-          isTryOnReference: i === tryOnImageIndex,
-          isCoverImage: i === coverImageIndex,
-        })
-      }
-
-      // Create product
-      const response = await fetch('/api/products', {
-        method: 'POST',
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          price: formData.price ? parseFloat(formData.price) : undefined,
-          images: uploadedImages,
-        }),
+        body: JSON.stringify(productData),
       })
 
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to create product')
-      }
+      const data = await res.json()
 
-      toast.success('Product created successfully!')
-      
-      // Reset form
-      setFormData({
-        name: '',
-        description: '',
-        category: '',
-        audience: '',
-        price: '',
-        link: '',
-        tags: '',
-      })
-      setImages([])
-      setTryOnImageIndex(null)
-      setCoverImageIndex(null)
-      
-      // Invalidate products query to refetch
-      queryClient.invalidateQueries({ queryKey: ['products'] })
+      if (!res.ok) throw new Error(data.error)
+
+      toast.success(editingProduct ? 'Product updated!' : 'Product created!')
+      resetForm()
+      fetchProducts()
     } catch (error) {
-      console.error('Product creation error:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create product'
-      toast.error(errorMessage)
-      
-      // If upload failed, show more specific error
-      if (errorMessage.includes('upload')) {
-        toast.error('Please check that the "products" bucket exists in Supabase Storage and has proper permissions')
-      }
+      console.error('Failed to save product:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to save product')
     } finally {
-      setSubmitting(false)
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async (productId: string) => {
+    if (!confirm('Are you sure you want to delete this product?')) return
+
+    try {
+      const res = await fetch(`/api/brand/products/${productId}`, {
+        method: 'DELETE',
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error)
+      }
+
+      toast.success('Product deleted!')
+      fetchProducts()
+    } catch (error) {
+      console.error('Failed to delete product:', error)
+      toast.error('Failed to delete product')
     }
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-cream pt-24 pb-8">
-        <div className="container mx-auto px-4 max-w-7xl">
-          <div className="text-center py-12">Loading...</div>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-black" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-cream pt-24 pb-8">
-      <div className="container mx-auto px-4 max-w-7xl">
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <Box className="h-7 w-7 text-zinc-900 dark:text-zinc-100" />
-            <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100">Manage Products</h1>
-          </div>
-          <p className="text-zinc-600 dark:text-zinc-400 text-base ml-10">
-            Add products that influencers can discover instantly in the marketplace
+    <div className="container mx-auto px-6 py-8">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-black text-black mb-1">Products</h1>
+          <p className="text-black/60 font-medium">
+            Manage your product catalog • {products.length} products
           </p>
         </div>
-
-        <div className="grid lg:grid-cols-2 gap-6 lg:gap-8">
-          {/* Left: Add New Product Form */}
-          <Card>
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Box className="h-5 w-5 text-zinc-700 dark:text-zinc-300" />
-                <CardTitle className="text-lg font-semibold">Add New Product</CardTitle>
-              </div>
-              <CardDescription>Upload up to 5 images and fill the details.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Product name</Label>
-                <Input
-                  id="name"
-                  placeholder="e.g., Sunset Satin Dress"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                  className="w-full"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="category" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Category</Label>
-                <select
-                  id="category"
-                  className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-600"
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  required
-                >
-                  <option value="">Select category</option>
-                  {CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="audience" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Audience</Label>
-                <select
-                  id="audience"
-                  className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-600"
-                  value={formData.audience}
-                  onChange={(e) => setFormData({ ...formData, audience: e.target.value })}
-                  required
-                >
-                  <option value="">Select audience</option>
-                  {AUDIENCES.map((aud) => (
-                    <option key={aud} value={aud}>
-                      {aud}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="price" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Price (INR)</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  placeholder="2500"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  className="w-full"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="link" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Product URL</Label>
-                <Input
-                  id="link"
-                  type="url"
-                  placeholder="https://yourbrand.com/product"
-                  value={formData.link}
-                  onChange={(e) => setFormData({ ...formData, link: e.target.value })}
-                  className="w-full"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Description</Label>
-                <textarea
-                  id="description"
-                  className="w-full min-h-[100px] rounded-md border border-zinc-300 dark:border-zinc-700 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-600 resize-y"
-                  placeholder="Describe fabric, fit, and highlights..."
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="tags" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Tags (comma separated)</Label>
-                <Input
-                  id="tags"
-                  placeholder="evening, satin, trending"
-                  value={formData.tags}
-                  onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                  className="w-full"
-                />
-              </div>
-
-              {/* Image Upload Section */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Images (up to 5)</Label>
-                <div className="grid grid-cols-3 gap-3">
-                  {[0, 1, 2, 3, 4].map((index) => (
-                    <div key={index} className="relative">
-                      <label
-                        className={`flex flex-col items-center justify-center h-32 border-2 border-dashed rounded-lg cursor-pointer ${
-                          images[index] ? 'border-primary' : 'border-zinc-300 dark:border-zinc-700'
-                        }`}
-                      >
-                        {images[index] ? (
-                          <div className="relative w-full h-full">
-                            <img
-                              src={images[index].preview}
-                              alt={`Upload ${index + 1}`}
-                              className="w-full h-full object-cover rounded-lg"
-                            />
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                removeImage(index)
-                              }}
-                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        ) : (
-                          <>
-                            <Camera className="h-8 w-8 text-zinc-400 mb-2" />
-                            <span className="text-sm text-zinc-400">Upload</span>
-                          </>
-                        )}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => handleImageUpload(index, e)}
-                          disabled={images.length >= 5 && !images[index]}
-                        />
-                      </label>
-                      {images[index] && (
-                        <div className="mt-2 space-y-1">
-                          <label className="flex items-center gap-2 text-xs">
-                            <input
-                              type="radio"
-                              name="tryOn"
-                              checked={tryOnImageIndex === index}
-                              onChange={() => setTryOnImageIndex(index)}
-                            />
-                            Try-On
-                          </label>
-                          <label className="flex items-center gap-2 text-xs">
-                            <input
-                              type="radio"
-                              name="cover"
-                              checked={coverImageIndex === index}
-                              onChange={() => setCoverImageIndex(index)}
-                            />
-                            Cover
-                          </label>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-2">
-                  Select which uploaded image becomes the clothing reference for Try-On.
-                </p>
-              </div>
-
-              <Button type="submit" className="w-full mt-4" disabled={submitting}>
-                {submitting ? 'Saving...' : 'Save Product'}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Right: Your Products */}
-        <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg font-semibold">Your Products</CardTitle>
-            <CardDescription>All products appear in influencer marketplace.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {products.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-4xl mb-4">⭐</div>
-                <p className="text-zinc-600 dark:text-zinc-400">
-                  No products yet. Add your first product to appear in the marketplace!
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {products.map((product) => {
-                  const coverImage = product.images?.find((img: any) => img.isCoverImage)?.imagePath || product.imagePath
-                  return (
-                    <div key={product.id} className="border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 hover:shadow-md transition-shadow">
-                      {coverImage && (
-                        <img
-                          src={coverImage}
-                          alt={product.name}
-                          className="w-full h-48 object-cover rounded-lg mb-3"
-                          loading="lazy"
-                        />
-                      )}
-                      <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-1">{product.name}</h3>
-                      <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">
-                        {product.category || 'Uncategorized'}
-                      </p>
-                      {product.price && (
-                        <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">₹{product.price.toLocaleString()}</p>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        </div>
+        <button
+          onClick={() => setShowForm(true)}
+          className="flex items-center gap-2 px-4 py-3 bg-[#B4F056] border-[3px] border-black font-black uppercase text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all"
+        >
+          <Plus className="w-5 h-5" strokeWidth={2.5} />
+          Add Product
+        </button>
       </div>
+
+      {/* Product Form Modal */}
+      {showForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b-[3px] border-black">
+              <h2 className="text-xl font-black">
+                {editingProduct ? 'Edit Product' : 'Add New Product'}
+              </h2>
+              <button onClick={resetForm} className="p-2 hover:bg-gray-100">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              {/* Name */}
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider mb-2">
+                  Product Name *
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-black font-bold focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
+                  placeholder="e.g., Summer Collection T-Shirt"
+                  required
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                  className="w-full px-4 py-3 border-2 border-black font-medium focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none resize-none"
+                  placeholder="Describe your product..."
+                />
+              </div>
+
+              {/* Category & Audience */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-wider mb-2">
+                    Category
+                  </label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-black font-bold bg-white focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
+                  >
+                    <option value="">Select category</option>
+                    {CATEGORIES.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-wider mb-2">
+                    Target Audience
+                  </label>
+                  <select
+                    value={audience}
+                    onChange={(e) => setAudience(e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-black font-bold bg-white focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
+                  >
+                    <option value="">Select audience</option>
+                    {AUDIENCES.map(aud => (
+                      <option key={aud} value={aud}>{aud}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Price & Link */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-wider mb-2">
+                    Price (₹)
+                  </label>
+                  <input
+                    type="number"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-black font-bold focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
+                    placeholder="999"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-wider mb-2">
+                    Product Link
+                  </label>
+                  <input
+                    type="url"
+                    value={link}
+                    onChange={(e) => setLink(e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-black font-medium focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
+                    placeholder="https://..."
+                  />
+                </div>
+              </div>
+
+              {/* Tags */}
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider mb-2">
+                  Tags (comma separated)
+                </label>
+                <input
+                  type="text"
+                  value={tags}
+                  onChange={(e) => setTags(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-black font-medium focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
+                  placeholder="summer, casual, cotton"
+                />
+              </div>
+
+              {/* Images with Cover/Try-On Selection */}
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider mb-2">
+                  Product Images
+                </label>
+                <p className="text-xs text-black/60 mb-3">
+                  Click image to set as <span className="text-[#B4F056] font-bold">COVER</span> (display) or <span className="text-[#FF6B35] font-bold">TRY-ON</span> (virtual try-on)
+                </p>
+                <div className="flex flex-wrap gap-3 mb-3">
+                  {images.map((img, index) => (
+                    <div
+                      key={index}
+                      className={`relative w-24 h-24 border-2 ${coverIndex === index ? 'border-[#B4F056] ring-2 ring-[#B4F056]' :
+                        tryonIndex === index ? 'border-[#FF6B35] ring-2 ring-[#FF6B35]' :
+                          'border-black'
+                        }`}
+                    >
+                      <img
+                        src={img}
+                        alt={`Product ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+
+                      {/* Remove button */}
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 border-2 border-black flex items-center justify-center z-10"
+                      >
+                        <X className="w-3 h-3 text-white" />
+                      </button>
+
+                      {/* Labels */}
+                      <div className="absolute bottom-0 left-0 right-0 flex">
+                        {coverIndex === index && (
+                          <span className="flex-1 text-[10px] font-black bg-[#B4F056] text-center py-0.5 border-t-2 border-black">
+                            COVER
+                          </span>
+                        )}
+                        {tryonIndex === index && (
+                          <span className="flex-1 text-[10px] font-black bg-[#FF6B35] text-white text-center py-0.5 border-t-2 border-black">
+                            TRY-ON
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Selection buttons on hover */}
+                      <div className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 transition-opacity flex flex-col gap-1 items-center justify-center">
+                        <button
+                          type="button"
+                          onClick={() => setCover(index)}
+                          className={`text-[9px] font-black px-2 py-1 ${coverIndex === index
+                            ? 'bg-[#B4F056] text-black'
+                            : 'bg-white/90 text-black hover:bg-[#B4F056]'
+                            }`}
+                        >
+                          SET COVER
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setTryon(index)}
+                          className={`text-[9px] font-black px-2 py-1 ${tryonIndex === index
+                            ? 'bg-[#FF6B35] text-white'
+                            : 'bg-white/90 text-black hover:bg-[#FF6B35] hover:text-white'
+                            }`}
+                        >
+                          {tryonIndex === index ? 'REMOVE TRY-ON' : 'SET TRY-ON'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-24 h-24 border-2 border-dashed border-black flex flex-col items-center justify-center gap-1 hover:bg-gray-50"
+                  >
+                    <Camera className="w-6 h-6" />
+                    <span className="text-[10px] font-black uppercase">Add</span>
+                  </button>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+
+                {/* Legend */}
+                {images.length > 0 && (
+                  <div className="flex gap-4 text-xs mt-2">
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 bg-[#B4F056] border border-black" />
+                      <span>Cover: Main display image</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 bg-[#FF6B35] border border-black" />
+                      <span>Try-On: Sent to virtual try-on</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-4 border-t-2 border-black">
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="flex-1 py-3 font-black uppercase border-2 border-black hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1 py-3 font-black uppercase bg-[#B4F056] border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {saving ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <Save className="w-5 h-5" />
+                      {editingProduct ? 'Update' : 'Create'}
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Products Grid */}
+      {products.length === 0 ? (
+        <div className="text-center py-20 border-2 border-dashed border-black/20">
+          <Package className="w-16 h-16 mx-auto mb-4 text-black/30" />
+          <h3 className="text-xl font-black text-black/60 mb-2">No Products Yet</h3>
+          <p className="text-black/40 font-medium mb-6">
+            Add your first product to get started
+          </p>
+          <button
+            onClick={() => setShowForm(true)}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-[#B4F056] border-[3px] border-black font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+          >
+            <Plus className="w-5 h-5" />
+            Add Product
+          </button>
+        </div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {products.map((product) => (
+            <div
+              key={product.id}
+              className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden group"
+            >
+              {/* Image */}
+              <div className="aspect-square bg-gray-100 relative">
+                {product.cover_image || product.images?.[0] ? (
+                  <img
+                    src={product.cover_image || product.images?.[0]}
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Package className="w-12 h-12 text-black/20" />
+                  </div>
+                )}
+                {!product.active && (
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                    <span className="bg-red-500 text-white px-3 py-1 font-black text-sm uppercase">
+                      Inactive
+                    </span>
+                  </div>
+                )}
+                {/* Try-On indicator */}
+                {product.tryon_image && (
+                  <div className="absolute top-2 right-2 bg-[#FF6B35] text-white px-2 py-1 text-[10px] font-black flex items-center gap-1 border border-black">
+                    <Shirt className="w-3 h-3" />
+                    TRY-ON
+                  </div>
+                )}
+              </div>
+
+              {/* Content */}
+              <div className="p-4">
+                <h3 className="font-black text-lg mb-1 truncate">{product.name}</h3>
+                <div className="flex items-center gap-2 text-sm text-black/60 mb-3">
+                  {product.category && (
+                    <span className="bg-gray-100 px-2 py-0.5 font-bold">
+                      {product.category}
+                    </span>
+                  )}
+                  {product.price && (
+                    <span className="font-black">₹{product.price}</span>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => openEditForm(product)}
+                    className="flex-1 py-2 border-2 border-black font-bold text-sm uppercase hover:bg-gray-100 flex items-center justify-center gap-1"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    Edit
+                  </button>
+                  {product.link && (
+                    <a
+                      href={product.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 border-2 border-black hover:bg-gray-100"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  )}
+                  <button
+                    onClick={() => handleDelete(product.id)}
+                    className="p-2 border-2 border-black hover:bg-red-100"
+                  >
+                    <Trash2 className="w-4 h-4 text-red-600" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
-

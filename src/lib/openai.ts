@@ -218,9 +218,9 @@ This person's face and body MUST remain 100% identical in the output.
 Analyze their facial features in extreme detail for preservation.
 
 **IMAGE 2: ${editType === 'background_change' ? 'BACKGROUND REFERENCE' : 'GARMENT REFERENCE'}**
-${editType === 'background_change' 
-  ? 'Extract only the environment/scene details. Do not change the subject identity.'
-  : 'Extract ONLY the clothing details (color, pattern, fabric, style). If there is a person wearing the garment, COMPLETELY IGNORE their face - we only want the garment.'}
+${editType === 'background_change'
+      ? 'Extract only the environment/scene details. Do not change the subject identity.'
+      : 'Extract ONLY the clothing details (color, pattern, fabric, style). If there is a person wearing the garment, COMPLETELY IGNORE their face - we only want the garment.'}
 
 ${userRequest ? `**USER REQUEST:** ${userRequest}` : ''}
 
@@ -337,6 +337,14 @@ export interface AdRating {
   improvements: string[]
 }
 
+// Helper to safely format image URL
+const formatImageUrl = (base64: string) => {
+  if (base64.startsWith('data:image/')) {
+    return base64
+  }
+  return `data:image/jpeg;base64,${base64}`
+}
+
 export async function analyzeFaceFeatures(imageBase64: string): Promise<FaceFeatures> {
   try {
     const response = await openai.chat.completions.create({
@@ -375,7 +383,7 @@ Be hyper-specific and detailed. These features will be used to preserve identity
             {
               type: 'image_url',
               image_url: {
-                url: `data:image/jpeg;base64,${imageBase64}`,
+                url: formatImageUrl(imageBase64),
               },
             },
           ],
@@ -540,7 +548,7 @@ Be hyper-specific about every visible detail. These attributes will be used to m
             {
               type: 'image_url',
               image_url: {
-                url: `data:image/jpeg;base64,${imageBase64}`,
+                url: formatImageUrl(imageBase64),
               },
             },
           ],
@@ -642,7 +650,7 @@ export async function generateIntelligentTryOnPrompt(
     // FALLBACK: STRICT IDENTITY LOCK PROMPT (When GPT-4o Mini fails)
     // ==============================================================
     console.warn('⚠️  Using fallback STRICT IDENTITY LOCK prompt')
-    
+
     // Determine edit mode for fallback
     const fallbackEditMode = options?.editMode || (options?.stylePreset ? 'full' : 'simple')
 
@@ -663,11 +671,11 @@ Replace the current clothing with the reference ${clothingAnalysis.garmentType}.
 Avoid hallucination of new textures or colors.
 
 BACKGROUND
-${fallbackEditMode === 'simple' 
-  ? 'Keep the original background exactly as shown in the person\'s photo. Do not change background, lighting, or environment.' 
-  : options?.background 
-    ? `Background: ${options.background}` 
-    : 'Keep the original background unless preset specifies otherwise.'}
+${fallbackEditMode === 'simple'
+        ? 'Keep the original background exactly as shown in the person\'s photo. Do not change background, lighting, or environment.'
+        : options?.background
+          ? `Background: ${options.background}`
+          : 'Keep the original background unless preset specifies otherwise.'}
 
 CAMERA SETTINGS
 Match angle, lighting direction, shadow direction, and depth-of-field from the original photo. Preserve perspective of the torso.
@@ -843,7 +851,7 @@ Return JSON with: score (0-100), breakdown (object with each dimension score), r
       {
         type: 'image_url',
         image_url: {
-          url: `data:image/jpeg;base64,${adImageBase64}`,
+          url: formatImageUrl(adImageBase64),
         },
       },
     ]
@@ -852,7 +860,7 @@ Return JSON with: score (0-100), breakdown (object with each dimension score), r
       content.push({
         type: 'image_url',
         image_url: {
-          url: `data:image/jpeg;base64,${productImageBase64}`,
+          url: formatImageUrl(productImageBase64),
         },
       })
     }
@@ -861,7 +869,7 @@ Return JSON with: score (0-100), breakdown (object with each dimension score), r
       content.push({
         type: 'image_url',
         image_url: {
-          url: `data:image/jpeg;base64,${influencerImageBase64}`,
+          url: formatImageUrl(influencerImageBase64),
         },
       })
     }
@@ -1039,7 +1047,7 @@ Generate multiple copy variants.`,
             {
               type: 'image_url',
               image_url: {
-                url: `data:image/jpeg;base64,${adImageBase64}`,
+                url: formatImageUrl(adImageBase64),
               },
             },
           ],

@@ -13,7 +13,13 @@ function getClientIp(request: NextRequest): string {
 }
 
 function pickBucket(pathname: string): 'auth' | 'tryon' | 'ai' | 'write' | 'read' {
-  if (pathname.startsWith('/api/auth/')) return 'auth'
+  if (pathname.startsWith('/api/auth/')) {
+    // Exclude session checks from strict auth throttling
+    if (pathname.includes('/me') || pathname.includes('/profile-status')) {
+      return 'read'
+    }
+    return 'auth'
+  }
   if (pathname.startsWith('/api/tryon')) return 'tryon'
   if (
     pathname.startsWith('/api/ads/') ||

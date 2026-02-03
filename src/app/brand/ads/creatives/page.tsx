@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import {
     Select,
     SelectContent,
@@ -12,13 +11,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-} from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import {
     Plus,
@@ -34,8 +26,7 @@ import {
     Loader2,
     ImageIcon,
     ZoomIn,
-    ChevronDown,
-    AlertTriangle,
+    AlertCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Platform } from '@/lib/ads/ad-styles'
@@ -65,13 +56,6 @@ interface Campaign {
     status: string
 }
 
-interface ImproveSuggestion {
-    category: 'lighting' | 'composition' | 'product_clarity' | 'background'
-    suggestion: string
-    priority: 'high' | 'medium' | 'low'
-    promptModifier: string
-}
-
 type QualityTier = 'all' | 'high' | 'medium' | 'low'
 
 // ═══════════════════════════════════════════════════════════════
@@ -92,43 +76,24 @@ const QUALITY_CONFIG: Record<QualityTier, { min: number; max: number; label: str
     low: { min: 0, max: 59, label: 'Low (<60)' },
 }
 
-const PRIORITY_COLORS = {
-    high: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-    medium: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-    low: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400',
-}
-
-const CATEGORY_LABELS: Record<string, string> = {
-    lighting: 'Lighting',
-    composition: 'Composition',
-    product_clarity: 'Product Clarity',
-    background: 'Background',
-}
-
 // ═══════════════════════════════════════════════════════════════
 // QUALITY BADGE COMPONENT
 // ═══════════════════════════════════════════════════════════════
 
 function QualityBadge({ score }: { score: number }) {
-    let color = 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800'
+    let color = 'bg-red-500/20 text-red-400 border-red-500/30'
     let label = 'Needs Work'
 
     if (score >= 80) {
-        color = 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800'
+        color = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
         label = 'High Quality'
     } else if (score >= 60) {
-        color = 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800'
+        color = 'bg-amber-500/20 text-amber-400 border-amber-500/30'
         label = 'Medium Quality'
     }
 
     return (
-        <div
-            className={cn(
-                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border",
-                color
-            )}
-            title="AI quality score based on composition, clarity, and brand safety"
-        >
+        <div className={cn("inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border", color)}>
             <span className="font-bold">{score}</span>
             <span>{label}</span>
         </div>
@@ -142,53 +107,97 @@ function QualityBadge({ score }: { score: number }) {
 function CreativeCard({
     creative,
     onRegenerate,
-    onImprove,
     onDownload,
-    onAssign,
     onImageClick,
     regenerating,
 }: {
     creative: AdCreative
     onRegenerate: () => void
-    onImprove: () => void
     onDownload: () => void
-    onAssign: () => void
     onImageClick: () => void
     regenerating: boolean
 }) {
-    const [showAllCopy, setShowAllCopy] = useState(false)
+    const [imageError, setImageError] = useState(false)
+    const [imageLoading, setImageLoading] = useState(true)
 
-    const canRegenerate = creative.regenerationCount < creative.maxRegenerations
     const relativeDate = getRelativeDate(creative.createdAt)
 
+    // Use server-side proxy for Supabase images
+    const getImageSrc = (url: string) => {
+        if (!url) return ''
+        if (url.includes('supabase.co/storage')) {
+            return `/api/images/proxy?url=${encodeURIComponent(url)}`
+        }
+        return url
+    }
+
     return (
-        <Card className="overflow-hidden group">
-            {/* Image */}
+        <Card className="overflow-hidden group bg-gradient-to-br from-zinc-900 to-zinc-950 border-zinc-800/50 hover:border-zinc-700/70 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/5">
+            {/* Image Container */}
             <div
-                className="relative aspect-[4/5] cursor-pointer overflow-hidden"
+                className="relative aspect-[4/5] cursor-pointer overflow-hidden bg-zinc-800/50"
                 onClick={onImageClick}
             >
-                <img
-                    src={creative.imageUrl}
-                    alt="Ad creative"
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                    <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                {imageLoading && !imageError && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/80 backdrop-blur-sm">
+                        <Loader2 className="h-8 w-8 animate-spin text-purple-400" />
+                    </div>
+                )}
+
+                {imageError ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-zinc-500 bg-zinc-900/50 p-4">
+                        <AlertCircle className="h-12 w-12 mb-3 text-red-400/60" />
+                        <p className="text-sm font-medium">Image failed to load</p>
+                        <p className="text-xs text-zinc-600 mt-2 text-center max-w-[200px] break-all">
+                            {creative.imageUrl.substring(0, 60)}...
+                        </p>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            className="mt-4"
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                setImageError(false)
+                                setImageLoading(true)
+                            }}
+                        >
+                            Retry
+                        </Button>
+                    </div>
+                ) : (
+                    <img
+                        src={getImageSrc(creative.imageUrl)}
+                        alt="Ad creative"
+                        className={cn(
+                            "w-full h-full object-cover transition-all duration-500",
+                            imageLoading ? "opacity-0 scale-105" : "opacity-100 scale-100 group-hover:scale-105"
+                        )}
+                        onError={() => {
+                            console.error('[CreativeCard] Image load failed:', creative.imageUrl)
+                            setImageError(true)
+                            setImageLoading(false)
+                        }}
+                        onLoad={() => setImageLoading(false)}
+                    />
+                )}
+
+                {/* Hover Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-6">
+                    <ZoomIn className="h-8 w-8 text-white drop-shadow-lg" />
                 </div>
             </div>
 
-            <CardContent className="p-4 space-y-3">
+            <CardContent className="p-5 space-y-4">
                 {/* Metadata Row */}
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
-                        <span>{creative.campaign?.title || 'Unassigned'}</span>
-                        <span>•</span>
+                    <div className="flex items-center gap-2 text-sm text-zinc-400">
+                        <span className="font-medium">{creative.campaign?.title || 'Unassigned'}</span>
+                        <span className="text-zinc-600">•</span>
                         <span>{relativeDate}</span>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                         {creative.platforms.map(p => (
-                            <span key={p} className="text-zinc-400">
+                            <span key={p} className="text-zinc-500 hover:text-purple-400 transition-colors">
                                 {PLATFORM_ICONS[p]}
                             </span>
                         ))}
@@ -198,217 +207,35 @@ function CreativeCard({
                 {/* Quality Badge */}
                 <QualityBadge score={creative.qualityScore} />
 
-                {/* Copy Preview */}
-                {creative.copyVariants.length > 0 && (
-                    <div className="space-y-2">
-                        <p className="text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2">
-                            {creative.copyVariants[0]}
-                        </p>
-                        {creative.copyVariants.length > 1 && (
-                            <button
-                                onClick={() => setShowAllCopy(!showAllCopy)}
-                                className="text-xs text-primary hover:underline flex items-center gap-1"
-                            >
-                                {showAllCopy ? 'Show less' : `View all ${creative.copyVariants.length} variants`}
-                                <ChevronDown className={cn("h-3 w-3 transition-transform", showAllCopy && "rotate-180")} />
-                            </button>
-                        )}
-                        {showAllCopy && (
-                            <div className="space-y-2 pt-1">
-                                {creative.copyVariants.slice(1).map((copy, i) => (
-                                    <p key={i} className="text-sm text-zinc-500 dark:text-zinc-500">
-                                        {copy}
-                                    </p>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
-
                 {/* Actions */}
                 <div className="flex items-center gap-2 pt-2">
                     <Button
                         size="sm"
                         variant="outline"
                         onClick={onRegenerate}
-                        disabled={!canRegenerate || regenerating}
-                        className="flex-1"
-                        title={!canRegenerate ? 'Regeneration limit reached' : undefined}
+                        disabled={regenerating}
+                        className="flex-1 bg-transparent border-zinc-700 hover:bg-purple-500/10 hover:border-purple-500/50 hover:text-purple-300"
                     >
                         {regenerating ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                             <>
-                                <RefreshCw className="h-4 w-4 mr-1" />
-                                Regen
+                                <RefreshCw className="h-4 w-4 mr-2" />
+                                Regenerate
                             </>
                         )}
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={onImprove}
-                        className="flex-1"
-                    >
-                        <Sparkles className="h-4 w-4 mr-1" />
-                        Improve
                     </Button>
                     <Button
                         size="icon"
                         variant="ghost"
                         onClick={onDownload}
-                        className="shrink-0"
+                        className="shrink-0 text-zinc-400 hover:text-white hover:bg-zinc-800"
                     >
                         <Download className="h-4 w-4" />
                     </Button>
-                    {!creative.campaign && (
-                        <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={onAssign}
-                            className="shrink-0"
-                        >
-                            <Tag className="h-4 w-4" />
-                        </Button>
-                    )}
                 </div>
-
-                {!canRegenerate && (
-                    <p className="text-xs text-zinc-500 text-center">
-                        Regeneration limit reached
-                    </p>
-                )}
             </CardContent>
         </Card>
-    )
-}
-
-// ═══════════════════════════════════════════════════════════════
-// IMPROVE MODAL COMPONENT
-// ═══════════════════════════════════════════════════════════════
-
-function ImproveModal({
-    open,
-    onClose,
-    creative,
-    onApply,
-}: {
-    open: boolean
-    onClose: () => void
-    creative: AdCreative | null
-    onApply: (suggestion: ImproveSuggestion) => void
-}) {
-    const [suggestions, setSuggestions] = useState<ImproveSuggestion[]>([])
-    const [loading, setLoading] = useState(false)
-    const [applying, setApplying] = useState<string | null>(null)
-
-    const fetchSuggestions = useCallback(async () => {
-        if (!creative) return
-
-        setLoading(true)
-        try {
-            const res = await fetch('/api/ads/improve', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ adImage: creative.imageUrl }),
-            })
-
-            if (res.ok) {
-                const data = await res.json()
-                setSuggestions(data.suggestions || [])
-            }
-        } catch (error) {
-            console.error('Failed to fetch suggestions:', error)
-        } finally {
-            setLoading(false)
-        }
-    }, [creative])
-
-    useEffect(() => {
-        if (open && creative) {
-            fetchSuggestions()
-        }
-    }, [open, creative, fetchSuggestions])
-
-    const handleApply = async (suggestion: ImproveSuggestion) => {
-        setApplying(suggestion.suggestion)
-        await onApply(suggestion)
-        setApplying(null)
-        onClose()
-    }
-
-    // Group suggestions by category
-    const groupedSuggestions = suggestions.reduce((acc, s) => {
-        if (!acc[s.category]) acc[s.category] = []
-        acc[s.category].push(s)
-        return acc
-    }, {} as Record<string, ImproveSuggestion[]>)
-
-    return (
-        <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle>Improve This Creative</DialogTitle>
-                    <DialogDescription>
-                        AI-generated suggestions to enhance your ad
-                    </DialogDescription>
-                </DialogHeader>
-
-                {loading ? (
-                    <div className="flex items-center justify-center py-12">
-                        <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
-                    </div>
-                ) : suggestions.length === 0 ? (
-                    <div className="text-center py-12 text-zinc-500">
-                        <Sparkles className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                        <p>No suggestions available for this creative</p>
-                    </div>
-                ) : (
-                    <div className="space-y-6">
-                        {Object.entries(groupedSuggestions).map(([category, items]) => (
-                            <div key={category} className="space-y-3">
-                                <h3 className="font-medium text-zinc-900 dark:text-zinc-100">
-                                    {CATEGORY_LABELS[category] || category}
-                                </h3>
-                                <div className="space-y-2">
-                                    {items.map((suggestion, i) => (
-                                        <div
-                                            key={i}
-                                            className="flex items-start gap-3 p-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900"
-                                        >
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className={cn(
-                                                        "text-xs font-medium px-2 py-0.5 rounded-full",
-                                                        PRIORITY_COLORS[suggestion.priority]
-                                                    )}>
-                                                        {suggestion.priority.charAt(0).toUpperCase() + suggestion.priority.slice(1)}
-                                                    </span>
-                                                </div>
-                                                <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                                                    {suggestion.suggestion}
-                                                </p>
-                                            </div>
-                                            <Button
-                                                size="sm"
-                                                onClick={() => handleApply(suggestion)}
-                                                disabled={applying !== null}
-                                            >
-                                                {applying === suggestion.suggestion ? (
-                                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                                ) : (
-                                                    'Apply'
-                                                )}
-                                            </Button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </DialogContent>
-        </Dialog>
     )
 }
 
@@ -427,21 +254,26 @@ function Lightbox({
 }) {
     if (!open) return null
 
+    // Proxy the URL for lightbox too
+    const src = imageUrl.includes('supabase.co/storage')
+        ? `/api/images/proxy?url=${encodeURIComponent(imageUrl)}`
+        : imageUrl
+
     return (
         <div
-            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex items-center justify-center p-4"
             onClick={onClose}
         >
             <button
-                className="absolute top-4 right-4 text-white hover:text-zinc-300 transition-colors"
+                className="absolute top-6 right-6 text-white/70 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10"
                 onClick={onClose}
             >
                 <X className="h-8 w-8" />
             </button>
             <img
-                src={imageUrl}
+                src={src}
                 alt="Creative preview"
-                className="max-w-full max-h-full object-contain"
+                className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
                 onClick={(e) => e.stopPropagation()}
             />
         </div>
@@ -489,7 +321,6 @@ export default function CreativesPage() {
     // UI state
     const [loading, setLoading] = useState(true)
     const [regenerating, setRegenerating] = useState<string | null>(null)
-    const [improveModal, setImproveModal] = useState<AdCreative | null>(null)
     const [lightboxImage, setLightboxImage] = useState<string | null>(null)
 
     // Fetch data
@@ -559,42 +390,23 @@ export default function CreativesPage() {
         }
     }
 
-    const handleImprove = async (suggestion: ImproveSuggestion) => {
-        if (!improveModal) return
-
-        try {
-            const res = await fetch(`/api/ads/${improveModal.id}/regenerate`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ promptModifier: suggestion.promptModifier }),
-            })
-
-            if (!res.ok) {
-                throw new Error('Improvement failed')
-            }
-
-            toast.success('Creative improved!')
-            // Refresh
-            const refreshRes = await fetch('/api/ads/creatives')
-            const refreshData = await refreshRes.json()
-            setCreatives(refreshData.creatives || [])
-        } catch (error) {
-            toast.error('Improvement failed')
-        }
-    }
-
     const handleDownload = async (creative: AdCreative) => {
         try {
-            const res = await fetch(creative.imageUrl)
+            // Use proxy for download too
+            const url = creative.imageUrl.includes('supabase.co/storage')
+                ? `/api/images/proxy?url=${encodeURIComponent(creative.imageUrl)}`
+                : creative.imageUrl
+
+            const res = await fetch(url)
             const blob = await res.blob()
-            const url = URL.createObjectURL(blob)
+            const blobUrl = URL.createObjectURL(blob)
             const a = document.createElement('a')
-            a.href = url
+            a.href = blobUrl
             a.download = `creative-${creative.id}.jpg`
             document.body.appendChild(a)
             a.click()
             document.body.removeChild(a)
-            URL.revokeObjectURL(url)
+            URL.revokeObjectURL(blobUrl)
             toast.success('Download started')
         } catch (error) {
             toast.error('Download failed')
@@ -604,31 +416,41 @@ export default function CreativesPage() {
     const hasActiveFilters = campaignFilter !== 'all' || platformFilter !== 'all' || qualityFilter !== 'all'
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-white dark:from-zinc-950 dark:to-zinc-900 pt-24 pb-12">
-            <div className="container mx-auto px-4 max-w-7xl">
+        <div className="min-h-screen bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-950 pt-24 pb-12">
+            {/* Decorative Background */}
+            <div className="fixed inset-0 pointer-events-none overflow-hidden">
+                <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-[120px]" />
+                <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-[120px]" />
+            </div>
+
+            <div className="container mx-auto px-4 max-w-7xl relative z-10">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
                     <div>
-                        <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
+                        <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-purple-200 to-purple-400 bg-clip-text text-transparent mb-2">
                             Ad Creatives
                         </h1>
-                        <p className="text-zinc-600 dark:text-zinc-400">
+                        <p className="text-zinc-400">
                             All generated ad creatives across your campaigns
                         </p>
                     </div>
-                    <Button onClick={() => router.push('/brand/ads')} size="lg">
+                    <Button
+                        onClick={() => router.push('/brand/ads')}
+                        size="lg"
+                        className="bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white shadow-lg shadow-purple-500/20"
+                    >
                         <Plus className="h-5 w-5 mr-2" />
                         Generate New Ad
                     </Button>
                 </div>
 
                 {/* Filter Bar */}
-                <div className="flex flex-wrap items-center gap-3 mb-8 p-4 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                <div className="flex flex-wrap items-center gap-3 mb-10 p-5 bg-zinc-900/50 backdrop-blur-sm rounded-2xl border border-zinc-800/50">
                     <Select value={campaignFilter} onValueChange={setCampaignFilter}>
-                        <SelectTrigger className="w-48">
+                        <SelectTrigger className="w-48 bg-zinc-800/50 border-zinc-700 hover:border-purple-500/50 transition-colors">
                             <SelectValue placeholder="Campaign" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-zinc-900 border-zinc-800">
                             <SelectItem value="all">All Campaigns</SelectItem>
                             <SelectItem value="unassigned">Unassigned</SelectItem>
                             {campaigns.map(c => (
@@ -638,10 +460,10 @@ export default function CreativesPage() {
                     </Select>
 
                     <Select value={platformFilter} onValueChange={(v) => setPlatformFilter(v as Platform | 'all')}>
-                        <SelectTrigger className="w-40">
+                        <SelectTrigger className="w-40 bg-zinc-800/50 border-zinc-700 hover:border-purple-500/50 transition-colors">
                             <SelectValue placeholder="Platform" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-zinc-900 border-zinc-800">
                             <SelectItem value="all">All Platforms</SelectItem>
                             <SelectItem value="instagram">Instagram</SelectItem>
                             <SelectItem value="facebook">Facebook</SelectItem>
@@ -651,10 +473,10 @@ export default function CreativesPage() {
                     </Select>
 
                     <Select value={qualityFilter} onValueChange={(v) => setQualityFilter(v as QualityTier)}>
-                        <SelectTrigger className="w-44">
+                        <SelectTrigger className="w-44 bg-zinc-800/50 border-zinc-700 hover:border-purple-500/50 transition-colors">
                             <SelectValue placeholder="Quality" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-zinc-900 border-zinc-800">
                             {Object.entries(QUALITY_CONFIG).map(([key, config]) => (
                                 <SelectItem key={key} value={key}>{config.label}</SelectItem>
                             ))}
@@ -662,10 +484,10 @@ export default function CreativesPage() {
                     </Select>
 
                     <Select value={sortOrder} onValueChange={(v) => setSortOrder(v as 'newest' | 'oldest')}>
-                        <SelectTrigger className="w-36">
+                        <SelectTrigger className="w-36 bg-zinc-800/50 border-zinc-700 hover:border-purple-500/50 transition-colors">
                             <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-zinc-900 border-zinc-800">
                             <SelectItem value="newest">Newest first</SelectItem>
                             <SelectItem value="oldest">Oldest first</SelectItem>
                         </SelectContent>
@@ -678,7 +500,7 @@ export default function CreativesPage() {
                                 setPlatformFilter('all')
                                 setQualityFilter('all')
                             }}
-                            className="text-sm text-primary hover:underline ml-auto"
+                            className="text-sm text-purple-400 hover:text-purple-300 transition-colors ml-auto"
                         >
                             Clear filters
                         </button>
@@ -687,23 +509,29 @@ export default function CreativesPage() {
 
                 {/* Content */}
                 {loading ? (
-                    <div className="flex items-center justify-center py-24">
-                        <Loader2 className="h-10 w-10 animate-spin text-zinc-400" />
+                    <div className="flex items-center justify-center py-32">
+                        <Loader2 className="h-10 w-10 animate-spin text-purple-400" />
                     </div>
                 ) : filteredCreatives.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-24 text-center">
-                        <ImageIcon className="h-16 w-16 text-zinc-300 dark:text-zinc-600 mb-4" />
-                        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
-                            {creatives.length === 0 ? 'No ad creatives yet' : 'No creatives match your filters'}
+                    <div className="flex flex-col items-center justify-center py-32 text-center">
+                        <div className="w-20 h-20 rounded-full bg-zinc-800/50 flex items-center justify-center mb-6">
+                            <ImageIcon className="h-10 w-10 text-zinc-600" />
+                        </div>
+                        <h2 className="text-2xl font-semibold text-white mb-3">
+                            {creatives.length === 0 ? 'No ad creatives yet' : 'No creatives match filters'}
                         </h2>
-                        <p className="text-zinc-500 dark:text-zinc-400 mb-6 max-w-md">
+                        <p className="text-zinc-500 mb-8 max-w-md">
                             {creatives.length === 0
-                                ? 'Generate your first ad to get started.'
+                                ? 'Generate your first AI-powered ad creative to get started.'
                                 : 'Try adjusting your filters to see more creatives.'}
                         </p>
                         {creatives.length === 0 && (
-                            <Button onClick={() => router.push('/brand/ads')}>
-                                Generate Ad
+                            <Button
+                                onClick={() => router.push('/brand/ads')}
+                                className="bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400"
+                            >
+                                <Sparkles className="h-4 w-4 mr-2" />
+                                Generate Your First Ad
                             </Button>
                         )}
                     </div>
@@ -714,9 +542,7 @@ export default function CreativesPage() {
                                 key={creative.id}
                                 creative={creative}
                                 onRegenerate={() => handleRegenerate(creative)}
-                                onImprove={() => setImproveModal(creative)}
                                 onDownload={() => handleDownload(creative)}
-                                onAssign={() => toast.info('Campaign assignment coming soon')}
                                 onImageClick={() => setLightboxImage(creative.imageUrl)}
                                 regenerating={regenerating === creative.id}
                             />
@@ -725,14 +551,7 @@ export default function CreativesPage() {
                 )}
             </div>
 
-            {/* Modals */}
-            <ImproveModal
-                open={improveModal !== null}
-                onClose={() => setImproveModal(null)}
-                creative={improveModal}
-                onApply={handleImprove}
-            />
-
+            {/* Lightbox */}
             <Lightbox
                 open={lightboxImage !== null}
                 onClose={() => setLightboxImage(null)}

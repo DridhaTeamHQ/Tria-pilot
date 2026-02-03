@@ -1,9 +1,8 @@
 import { createClient } from '@/lib/auth'
-import prisma from '@/lib/prisma'
-import { getOrCreateUser } from '@/lib/prisma-user'
+import { getIdentity } from '@/lib/auth-state'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
-import { Camera, ExternalLink, Share2, ArrowLeft, Heart, Users } from 'lucide-react'
+import { Camera, ExternalLink, Share2, ArrowLeft } from 'lucide-react'
 import ImageCarousel from '@/components/product/ImageCarousel'
 import ProductRecommendations from '@/components/product/ProductRecommendations'
 import RequestCollaborationButton from '@/components/collaborations/RequestCollaborationButton'
@@ -13,85 +12,101 @@ export const dynamic = 'force-dynamic'
 
 export default async function ProductDetailPage({ params }: any) {
   const { productId } = await params
-  const supabase = await createClient()
-  const {
-    data: { user: authUser },
-  } = await supabase.auth.getUser()
 
-  if (!authUser) {
+  // Use getIdentity for auth and role check
+  const auth = await getIdentity()
+
+  if (!auth.authenticated) {
     redirect('/login')
   }
 
-  // Pending and approved influencers can browse product details (no approval required)
-  let dbUser
-  try {
-    dbUser = await getOrCreateUser({
-      id: authUser.id,
-      email: authUser.email ?? '',
-      user_metadata: authUser.user_metadata,
-    })
-  } catch (error) {
-    console.error('Marketplace product: getOrCreateUser failed', error)
-    redirect('/login')
-  }
+  const { identity } = auth
 
-  if (dbUser.role !== 'INFLUENCER') {
+  // Only influencers can view product details
+  if (identity.role !== 'influencer') {
     redirect('/')
   }
 
-  // Optimized query - use select instead of include
-  let product
-  try {
-    product = await prisma.product.findUnique({
-      where: { id: productId },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        category: true,
-        price: true,
-        link: true,
-        audience: true,
-        tags: true,
-        imagePath: true, // For backward compatibility
-        brand: {
-          select: {
-            id: true,
-            companyName: true,
-            user: {
-              select: {
-                name: true,
-                slug: true,
-              },
-            },
-          },
-        },
-        images: {
-          select: {
-            id: true,
-            imagePath: true,
-            order: true,
-          },
-          orderBy: {
-            order: 'asc',
-          },
-        },
-      },
-    })
-  } catch (error) {
+  // Fetch product using regular client - RLS allows reading active products
+  const supabase = await createClient()
+  const { data: product, error } = await supabase
+    .from('products')
+    .select(`
+      id,
+      name,
+      description,
+      category,
+      price,
+      link,
+      audience,
+      tags,
+      cover_image,
+      images,
+      brand_id,
+      brand:brand_id (
+        id,
+        full_name,
+        brand_data
+      )
+    `)
+    .eq('id', productId)
+    .single()
+
+  if (error || !product) {
     console.error('Database error fetching product:', error)
     notFound()
   }
 
-  if (!product) {
-    notFound()
+  // Normalize images
+  // Supabase images is text[]
+  let images: string[] = product.images || []
+
+  // FALLBACK: If no images in new table, check Legacy tables
+  if (images.length <= 1) {
+    // 1. Try Legacy Table with current ID
+    const { data: legacyImgs } = await supabase
+      .from('ProductImage')
+      .select('imagePath')
+      .eq('productId', productId)
+      .order('order', { ascending: true })
+
+    if (legacyImgs && legacyImgs.length > 0) {
+      images = legacyImgs.map(i => i.imagePath)
+    } else {
+      // 2. Try Name Match Fallback (for migration mismatch)
+      const { data: legacyMatch } = await supabase
+        .from('Product')
+        .select('id')
+        .eq('name', product.name)
+        .single()
+
+      if (legacyMatch) {
+        const { data: nameMatchImages } = await supabase
+          .from('ProductImage')
+          .select('imagePath')
+          .eq('productId', legacyMatch.id)
+          .order('order', { ascending: true })
+
+        if (nameMatchImages && nameMatchImages.length > 0) {
+          images = nameMatchImages.map(i => i.imagePath)
+        }
+      }
+    }
   }
 
-  const productImages = product.images.length > 0
-    ? product.images.map((img: { imagePath: string }) => img.imagePath)
-    : product.imagePath
-      ? [product.imagePath]
-      : []
+  if (product.cover_image && !images.includes(product.cover_image)) {
+    images.unshift(product.cover_image)
+  }
+
+  // Brand Name
+
+  const brandFn = product.brand
+  const brandObj = Array.isArray(brandFn) ? brandFn[0] : brandFn
+  const brandData = (brandObj?.brand_data || {}) as Record<string, any>
+  const brandName = brandData.companyName || brandObj?.full_name || 'Brand'
+
+  // Normalize tags (Supabase returns array, code might expect string if not updated)
+  const tagsArray = Array.isArray(product.tags) ? product.tags : []
 
   return (
     <div className="min-h-screen bg-cream pt-24">
@@ -108,7 +123,7 @@ export default async function ProductDetailPage({ params }: any) {
         <div className="grid lg:grid-cols-2 gap-12 mb-16">
           {/* Left: Image Carousel */}
           <div className="bg-white rounded-xl border-[3px] border-black overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-            <ImageCarousel images={productImages} />
+            <ImageCarousel images={images} />
           </div>
 
           {/* Right: Product Information */}
@@ -119,14 +134,14 @@ export default async function ProductDetailPage({ params }: any) {
                 {product.category?.toUpperCase() || 'CLOTHING'}
               </span>
               <p className="text-sm text-charcoal/60 mb-2">
-                by {product.brand.user?.name || 'Brand'}
+                by {brandName}
               </p>
             </div>
 
             {/* Title & Price Box */}
             <div className="bg-white border-[3px] border-black p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] mb-8 relative">
               <div className="absolute -top-3 -left-3 bg-[#FFD93D] px-4 py-1 border-[3px] border-black text-xs font-bold uppercase tracking-widest shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                {product.brand.user?.name || 'Brand'}
+                {brandName}
               </div>
               <h1 className="text-4xl md:text-5xl font-black text-charcoal mb-4 uppercase leading-[0.9] mt-2">{product.name}</h1>
               {product.price && (
@@ -149,7 +164,7 @@ export default async function ProductDetailPage({ params }: any) {
               <RequestCollaborationButton
                 productId={product.id}
                 productName={product.name}
-                brandName={product.brand.user?.name || 'Brand'}
+                brandName={brandName}
               />
 
               <div className="flex flex-wrap gap-3">
@@ -185,11 +200,11 @@ export default async function ProductDetailPage({ params }: any) {
               </p>
 
               {/* Tags */}
-              {product.tags && (
+              {tagsArray.length > 0 && (
                 <div className="mt-8 pt-8 border-t-[3px] border-black/10">
                   <h2 className="text-sm font-bold uppercase mb-4 text-charcoal/50 tracking-wider">Tags</h2>
                   <div className="flex flex-wrap gap-2">
-                    {product.tags.split(',').map((tag: string, index: number) => (
+                    {tagsArray.map((tag: string, index: number) => (
                       <span
                         key={index}
                         className="px-3 py-1 text-xs font-bold bg-white border-[2px] border-black text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all cursor-default"

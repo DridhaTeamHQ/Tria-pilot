@@ -1,24 +1,15 @@
 /**
- * INFLUENCER ONBOARDING API
+ * INFLUENCER ONBOARDING API - SUPABASE ONLY
  * 
- * CRITICAL: Users are created at SIGNUP, not during onboarding.
- * Onboarding ONLY UPDATES existing user data.
+ * POST - Submit/update onboarding data
+ * GET - Check onboarding status
  * 
- * On submission MUST:
- * 1. Find or link existing User/InfluencerProfile
- * 2. UPDATE (never create) user data with onboarding fields
- * 3. Update profiles table:
- *    UPDATE profiles
- *    SET onboarding_completed = true,
- *        approval_status = 'pending'
- *    WHERE id = user.id;
+ * Uses Supabase profiles and influencer_profiles tables only.
+ * NO Prisma dependency.
  */
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
-import prisma from '@/lib/prisma'
-import { calculateBadge } from '@/lib/influencer/badge-calculator'
 import { z } from 'zod'
-import { getOrCreateUser } from '@/lib/prisma-user'
 
 const onboardingSchema = z
   .object({
@@ -52,7 +43,6 @@ const onboardingSchema = z
       .transform((val) => {
         if (val === '' || val === null) return undefined
         const num = typeof val === 'string' ? parseInt(val, 10) : val
-        // Reject absurdly large values
         if (isNaN(num) || num < 0 || num > 500000000) return undefined
         return num
       })
@@ -63,62 +53,54 @@ const onboardingSchema = z
         if (val === '' || val === null) return undefined
         const num = typeof val === 'string' ? parseFloat(val) : val
         if (isNaN(num)) return undefined
-        // Convert percentage to decimal for storage (5.5% -> 0.055)
         return num > 1 ? num / 100 : num
       })
       .optional(),
   })
   .strict()
 
-/**
- * SAFE: Ensures User and InfluencerProfile exist in Prisma.
- * Uses getOrCreateUser (single source of truth); never create profile without existing User.
- */
-async function ensureInfluencerProfile(
-  authId: string,
-  email: string,
-  opts?: { role?: string; userMetadata?: { role?: string; name?: string } }
-) {
-  // 1. Ensure Prisma User exists (only create InfluencerProfile after User exists)
-  const user = await getOrCreateUser({
-    id: authId,
-    email,
-    role: opts?.role as 'INFLUENCER' | 'BRAND' | undefined,
-    user_metadata: opts?.userMetadata ?? undefined,
-  })
-  // Use user.id (may differ from authId if user was found by email) for all Prisma lookups
-  const prismaUserId = user.id
+// Simple badge calculation
+function calculateBadge(metrics: {
+  followers: number
+  engagementRate: number
+  audienceRate: number
+  retentionRate: number
+}): { tier: string; score: number } {
+  const { followers, engagementRate, audienceRate, retentionRate } = metrics
 
-  // 2. Ensure InfluencerProfile exists
-  const existingProfile = await prisma.influencerProfile.findUnique({
-    where: { userId: prismaUserId },
-  })
+  // Calculate score based on metrics
+  let score = 0
 
-  if (!existingProfile) {
-    console.log('[ensureInfluencerProfile] Creating InfluencerProfile for userId', prismaUserId)
-    try {
-      await prisma.influencerProfile.create({
-        data: {
-          userId: prismaUserId,
-          niches: [],
-          socials: {},
-          audienceType: [],
-          preferredCategories: [],
-          onboardingCompleted: false,
-        },
-      })
-    } catch (e: unknown) {
-      console.error('[ensureInfluencerProfile] InfluencerProfile create failed', { userId: prismaUserId, error: e })
-      throw e
-    }
-  }
+  // Followers scoring (0-40 points)
+  if (followers >= 1000000) score += 40
+  else if (followers >= 500000) score += 35
+  else if (followers >= 100000) score += 30
+  else if (followers >= 50000) score += 25
+  else if (followers >= 10000) score += 20
+  else if (followers >= 1000) score += 10
+  else score += 5
 
-  const finalUser = await prisma.user.findUnique({
-    where: { id: prismaUserId },
-    include: { influencerProfile: true },
-  })
-  if (!finalUser) throw new Error('User lost after sync (Impossible state)')
-  return finalUser
+  // Engagement rate scoring (0-30 points)
+  const engRate = typeof engagementRate === 'number' ? engagementRate : 0
+  if (engRate >= 0.1) score += 30 // 10%+
+  else if (engRate >= 0.05) score += 25
+  else if (engRate >= 0.03) score += 20
+  else if (engRate >= 0.01) score += 15
+  else score += 5
+
+  // Audience/retention rate scoring (0-30 points)
+  const audRate = typeof audienceRate === 'number' ? audienceRate : 0
+  const retRate = typeof retentionRate === 'number' ? retentionRate : 0
+  score += Math.min(15, Math.floor(audRate / 10) * 3)
+  score += Math.min(15, Math.floor(retRate / 10) * 3)
+
+  // Determine tier
+  let tier = 'bronze'
+  if (score >= 80) tier = 'diamond'
+  else if (score >= 60) tier = 'gold'
+  else if (score >= 40) tier = 'silver'
+
+  return { tier, score }
 }
 
 export async function POST(request: Request) {
@@ -132,8 +114,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get profile from profiles table (SOURCE OF TRUTH)
     const service = createServiceClient()
+
+    // Get profile from profiles table
     const { data: profile, error: profileError } = await service
       .from('profiles')
       .select('id, email, role, onboarding_completed')
@@ -142,84 +125,117 @@ export async function POST(request: Request) {
 
     if (profileError || !profile) {
       console.error('Profile fetch error:', profileError)
-      return NextResponse.json({ error: 'Profile not found in database' }, { status: 404 })
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
     if ((profile.role || '').toLowerCase() !== 'influencer') {
       return NextResponse.json({ error: 'Not an influencer account' }, { status: 403 })
     }
 
-    // SAFE: Ensure Prisma User then InfluencerProfile (role from profile so User row is correct)
-    const dbUser = await ensureInfluencerProfile(authUser.id, profile.email || authUser.email || '', {
-      role: profile.role ?? undefined,
-      userMetadata: authUser.user_metadata as { role?: string; name?: string } | undefined,
-    })
-
-    if (!dbUser || !dbUser.influencerProfile) {
-      return NextResponse.json({ error: 'Failed to setup influencer profile' }, { status: 500 })
-    }
-
     const body = await request.json().catch(() => null)
     const data = onboardingSchema.parse(body)
 
-    // Calculate badge
-    const finalFollowers = data.followers ?? dbUser.influencerProfile.followers ?? 0
-    const finalEngagementRate =
-      data.engagementRate !== undefined
-        ? Number(data.engagementRate)
-        : Number(dbUser.influencerProfile.engagementRate ?? 0)
-    const finalAudienceRate = data.audienceRate ?? dbUser.influencerProfile.audienceRate?.toNumber?.() ?? 0
-    const finalRetentionRate = data.retentionRate ?? dbUser.influencerProfile.retentionRate?.toNumber?.() ?? 0
+    // Get or create influencer profile
+    let { data: infProfile, error: infError } = await service
+      .from('influencer_profiles')
+      .select('*')
+      .eq('user_id', authUser.id)
+      .single()
 
+    if (infError || !infProfile) {
+      // Create new influencer profile
+      const { data: newProfile, error: createError } = await service
+        .from('influencer_profiles')
+        .insert({
+          user_id: authUser.id,
+          gender: data.gender,
+          niches: data.niches || [],
+          audience_type: data.audienceType || [],
+          preferred_categories: data.preferredCategories || [],
+          socials: data.socials || {},
+          bio: data.bio,
+          followers: data.followers,
+          engagement_rate: data.engagementRate,
+          audience_rate: data.audienceRate,
+          retention_rate: data.retentionRate,
+        })
+        .select()
+        .single()
+
+      if (createError) {
+        console.error('Failed to create influencer profile:', createError)
+        return NextResponse.json({ error: 'Failed to create profile' }, { status: 500 })
+      }
+
+      infProfile = newProfile
+    } else {
+      // Update existing influencer profile
+      const updateData: Record<string, any> = {}
+      if (data.gender) updateData.gender = data.gender
+      if (data.niches) updateData.niches = data.niches
+      if (data.audienceType) updateData.audience_type = data.audienceType
+      if (data.preferredCategories) updateData.preferred_categories = data.preferredCategories
+      if (data.socials) updateData.socials = data.socials
+      if (data.bio) updateData.bio = data.bio
+      if (data.audienceRate !== undefined) updateData.audience_rate = data.audienceRate
+      if (data.retentionRate !== undefined) updateData.retention_rate = data.retentionRate
+      if (data.followers !== undefined) updateData.followers = data.followers
+      if (data.engagementRate !== undefined) updateData.engagement_rate = data.engagementRate
+
+      if (Object.keys(updateData).length > 0) {
+        const { data: updated, error: updateError } = await service
+          .from('influencer_profiles')
+          .update(updateData)
+          .eq('user_id', authUser.id)
+          .select()
+          .single()
+
+        if (updateError) {
+          console.error('Failed to update influencer profile:', updateError)
+          return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })
+        }
+
+        infProfile = updated
+      }
+    }
+
+    // Calculate badge
     const badge = calculateBadge({
-      followers: finalFollowers,
-      engagementRate: finalEngagementRate,
-      audienceRate: finalAudienceRate,
-      retentionRate: finalRetentionRate,
+      followers: data.followers ?? infProfile?.followers ?? 0,
+      engagementRate: data.engagementRate ?? infProfile?.engagement_rate ?? 0,
+      audienceRate: data.audienceRate ?? infProfile?.audience_rate ?? 0,
+      retentionRate: data.retentionRate ?? infProfile?.retention_rate ?? 0,
     })
 
-    // Determine if onboarding is completed
-    const existingProfile = dbUser.influencerProfile
+    // Update badge
+    await service
+      .from('influencer_profiles')
+      .update({
+        badge_tier: badge.tier,
+        badge_score: badge.score,
+      })
+      .eq('user_id', authUser.id)
 
-    const hasGender = data.gender || existingProfile.gender
+    // Check if onboarding is complete
+    const hasGender = data.gender || infProfile?.gender
     const hasNiches = (data.niches && data.niches.length > 0) ||
-      (Array.isArray(existingProfile.niches) && (existingProfile.niches as string[]).length > 0)
+      (Array.isArray(infProfile?.niches) && infProfile.niches.length > 0)
     const hasAudienceType = (data.audienceType && data.audienceType.length > 0) ||
-      (Array.isArray(existingProfile.audienceType) && (existingProfile.audienceType as string[]).length > 0)
+      (Array.isArray(infProfile?.audience_type) && infProfile.audience_type.length > 0)
     const hasCategories = (data.preferredCategories && data.preferredCategories.length > 0) ||
-      (Array.isArray(existingProfile.preferredCategories) && (existingProfile.preferredCategories as string[]).length > 0)
-    const hasMetrics = (data.audienceRate !== undefined || existingProfile.audienceRate !== null) &&
-      (data.retentionRate !== undefined || existingProfile.retentionRate !== null)
+      (Array.isArray(infProfile?.preferred_categories) && infProfile.preferred_categories.length > 0)
+    const hasMetrics = (data.audienceRate !== undefined || infProfile?.audience_rate !== null) &&
+      (data.retentionRate !== undefined || infProfile?.retention_rate !== null)
 
     const isCompleted = Boolean(hasGender && hasNiches && hasAudienceType && hasCategories && hasMetrics)
 
-    // UPDATE (never create) influencer data
-    await prisma.influencerProfile.update({
-      where: { id: dbUser.influencerProfile.id },
-      data: {
-        ...(data.gender && { gender: data.gender }),
-        ...(data.niches && { niches: data.niches }),
-        ...(data.audienceType && { audienceType: data.audienceType }),
-        ...(data.preferredCategories && { preferredCategories: data.preferredCategories }),
-        ...(data.socials && { socials: data.socials }),
-        ...(data.bio && { bio: data.bio }),
-        ...(data.audienceRate !== undefined && { audienceRate: data.audienceRate }),
-        ...(data.retentionRate !== undefined && { retentionRate: data.retentionRate }),
-        ...(data.followers !== undefined && { followers: data.followers }),
-        ...(data.engagementRate !== undefined && { engagementRate: data.engagementRate }),
-        badgeScore: badge.score,
-        badgeTier: badge.tier,
-        onboardingCompleted: isCompleted,
-      },
-    })
-
-    // CRITICAL: Update profiles table when onboarding completes. Use UPPERCASE for Prisma AccountStatus enum.
+    // Update profiles table when onboarding completes
     if (isCompleted && !profile.onboarding_completed) {
       await service
         .from('profiles')
         .update({
           onboarding_completed: true,
-          approval_status: 'PENDING',
+          approval_status: 'pending',
         })
         .eq('id', authUser.id)
     }
@@ -261,11 +277,12 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get from profiles table (SOURCE OF TRUTH)
     const service = createServiceClient()
+
+    // Get profile status
     const { data: profile } = await service
       .from('profiles')
-      .select('email, onboarding_completed')
+      .select('onboarding_completed')
       .eq('id', authUser.id)
       .single()
 
@@ -273,16 +290,29 @@ export async function GET() {
       return NextResponse.json({ onboardingCompleted: false })
     }
 
-    // SAFE: Ensure Prisma User then InfluencerProfile for GET (idempotent)
-    const dbUser = await ensureInfluencerProfile(
-      authUser.id,
-      profile.email || authUser.email || '',
-      authUser.user_metadata as { role?: string; name?: string } | undefined
-    )
+    // Get influencer profile data
+    const { data: infProfile } = await service
+      .from('influencer_profiles')
+      .select('*')
+      .eq('user_id', authUser.id)
+      .single()
 
     return NextResponse.json({
       onboardingCompleted: profile.onboarding_completed || false,
-      profile: dbUser?.influencerProfile || null,
+      profile: infProfile ? {
+        gender: infProfile.gender,
+        niches: infProfile.niches,
+        audienceType: infProfile.audience_type,
+        preferredCategories: infProfile.preferred_categories,
+        socials: infProfile.socials,
+        bio: infProfile.bio,
+        followers: infProfile.followers,
+        engagementRate: infProfile.engagement_rate,
+        audienceRate: infProfile.audience_rate,
+        retentionRate: infProfile.retention_rate,
+        badgeTier: infProfile.badge_tier,
+        badgeScore: infProfile.badge_score,
+      } : null,
     })
   } catch (error) {
     console.error('Onboarding check error:', error)

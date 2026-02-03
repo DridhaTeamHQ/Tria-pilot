@@ -1,5 +1,9 @@
-import { createClient } from '@/lib/auth'
-import prisma from '@/lib/prisma'
+/**
+ * GENERATIONS API - SUPABASE ONLY
+ * 
+ * GET - Fetch user's try-on generations
+ */
+import { createClient, createServiceClient } from '@/lib/auth'
 import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
@@ -11,39 +15,39 @@ export async function GET() {
             data: { user: authUser },
         } = await supabase.auth.getUser()
 
-        if (!authUser || !authUser.email) {
+        if (!authUser) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        const user = await prisma.user.findUnique({
-            where: { email: authUser.email.toLowerCase().trim() },
-            select: { id: true },
-        })
+        const service = createServiceClient()
 
-        if (!user) {
-            return NextResponse.json({ error: 'User not found' }, { status: 404 })
+        // Fetch generations from Supabase
+        const { data: generations, error } = await service
+            .from('generation_jobs')
+            .select('id, status, output_image_path, settings, created_at, updated_at')
+            .eq('user_id', authUser.id)
+            .order('created_at', { ascending: false })
+            .limit(20)
+
+        if (error) {
+            console.error('Error fetching generations:', error)
+            return NextResponse.json(
+                { error: 'Failed to fetch generations' },
+                { status: 500 }
+            )
         }
 
-        const generations = await prisma.generationJob.findMany({
-            where: {
-                userId: user.id,
-            },
-            select: {
-                id: true,
-                status: true,
-                outputImagePath: true,
-                settings: true,  // Contains variant data
-                // inputs is excluded implicitly by not being in select
-                createdAt: true,
-                updatedAt: true,
-            },
-            orderBy: {
-                createdAt: 'desc',
-            },
-            take: 20, // Limit to 20 items for performance
-        })
+        // Transform to match frontend expectations (camelCase)
+        const transformedGenerations = (generations || []).map(g => ({
+            id: g.id,
+            status: g.status,
+            outputImagePath: g.output_image_path,
+            settings: g.settings,
+            createdAt: g.created_at,
+            updatedAt: g.updated_at,
+        }))
 
-        return NextResponse.json({ generations })
+        return NextResponse.json({ generations: transformedGenerations })
     } catch (error) {
         console.error('Error fetching generations:', error)
         return NextResponse.json(

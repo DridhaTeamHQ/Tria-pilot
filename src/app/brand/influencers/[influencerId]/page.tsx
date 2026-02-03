@@ -1,366 +1,198 @@
-import { createClient } from '@/lib/auth'
-import prisma from '@/lib/prisma'
-import { redirect, notFound } from 'next/navigation'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowLeft, Mail, Instagram, Youtube, Twitter } from 'lucide-react'
-import RequestCollaborationButton from '@/components/collaborations/RequestCollaborationButton'
-import BadgeDisplay, { type BadgeTier } from '@/components/influencer/BadgeDisplay'
+/**
+ * INFLUENCER DETAIL PAGE
+ * 
+ * View detailed influencer profile from brand perspective
+ * Uses Supabase only - NO Prisma
+ */
+'use client'
 
-export default async function InfluencerDetailPage({
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { ArrowLeft, Mail, Instagram, Loader2, MessageCircle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
+
+interface InfluencerData {
+  id: string
+  fullName: string
+  email: string
+  bio?: string
+  niche?: string
+  followers?: number
+  engagementRate?: number
+  profileImage?: string
+  socials?: {
+    instagram?: string
+    youtube?: string
+    tiktok?: string
+  }
+}
+
+export default function InfluencerDetailPage({
   params,
 }: {
   params: Promise<{ influencerId: string }>
 }) {
-  const { influencerId } = await params
-  const supabase = await createClient()
-  const {
-    data: { user: authUser },
-  } = await supabase.auth.getUser()
+  const router = useRouter()
+  const [influencer, setInfluencer] = useState<InfluencerData | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  if (!authUser) {
-    redirect('/login')
+  useEffect(() => {
+    async function loadData() {
+      const { influencerId } = await params
+
+      try {
+        // Fetch influencer from our API
+        const res = await fetch(`/api/brand/influencers?id=${influencerId}`)
+        if (!res.ok) {
+          throw new Error('Failed to load influencer')
+        }
+        const data = await res.json()
+
+        // Find the specific influencer
+        const found = data.influencers?.find((i: any) => i.id === influencerId)
+        if (found) {
+          setInfluencer(found)
+        }
+      } catch (error) {
+        console.error('Failed to load influencer:', error)
+        toast.error('Failed to load influencer details')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [params])
+
+  const handleMessage = () => {
+    if (influencer) {
+      router.push(`/brand/inbox?newConversation=${influencer.id}`)
+    }
   }
 
-  const dbUser = await prisma.user.findUnique({
-    where: { email: authUser.email! },
-  })
-
-  // Only brands can view influencer details
-  if (!dbUser || dbUser.role !== 'BRAND') {
-    redirect('/')
-  }
-
-  // Try to find influencer by userId first (route param is User.id)
-  let influencer = await prisma.influencerProfile.findUnique({
-    where: { userId: influencerId },
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          slug: true,
-        },
-      },
-    },
-  })
-
-  // If not found, try by id (in case route param is InfluencerProfile.id)
-  if (!influencer) {
-    influencer = await prisma.influencerProfile.findUnique({
-      where: { id: influencerId },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            slug: true,
-          },
-        },
-      },
-    })
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#FFFCF5] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-black" />
+      </div>
+    )
   }
 
   if (!influencer) {
-    notFound()
+    return (
+      <div className="min-h-screen bg-[#FFFCF5] pt-24 px-6">
+        <div className="max-w-4xl mx-auto text-center py-20">
+          <h1 className="text-2xl font-black mb-4">Influencer Not Found</h1>
+          <p className="text-black/60 mb-6">This influencer profile doesn't exist or has been removed.</p>
+          <Link
+            href="/brand/influencers"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-[#B4F056] border-[3px] border-black font-bold"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Influencers
+          </Link>
+        </div>
+      </div>
+    )
   }
-
-  // Get portfolio
-  const portfolio = await prisma.portfolio.findMany({
-    where: {
-      userId: influencer.userId,
-      visibility: true,
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  })
-
-  // Get collaboration history - influencerId must be User.id, not InfluencerProfile.id
-  // Ensure we have a valid userId before querying
-  const influencerUserId = influencer.userId || influencer.user?.id
-  if (!influencerUserId) {
-    throw new Error('Invalid influencer: missing userId')
-  }
-
-  const collaborations = await prisma.collaborationRequest.findMany({
-    where: {
-      influencerId: influencerUserId, // This is the User.id
-      status: 'accepted',
-    },
-    select: {
-      id: true,
-      message: true,
-      createdAt: true,
-      brand: {
-        select: {
-          id: true,
-          name: true,
-          brandProfile: {
-            select: {
-              companyName: true,
-            },
-          },
-        },
-      },
-    },
-    take: 5,
-    orderBy: {
-      createdAt: 'desc',
-    },
-  })
-
-  const socials = influencer.socials as Record<string, string> || {}
 
   return (
-    <div className="min-h-screen bg-cream pt-24 pb-8">
-      <div className="container mx-auto px-4 max-w-7xl">
+    <div className="min-h-screen bg-[#FFFCF5] pt-24 pb-12 px-6">
+      <div className="max-w-4xl mx-auto">
+        {/* Back link */}
         <Link
-          href="/brand/marketplace"
-          className="inline-flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 mb-8 transition-colors group"
+          href="/brand/influencers"
+          className="inline-flex items-center gap-2 text-sm font-bold text-black/60 hover:text-black mb-8 transition-colors"
         >
-          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-          <span>Back to Marketplace</span>
+          <ArrowLeft className="w-4 h-4" />
+          Back to Influencers
         </Link>
 
-        <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
-        {/* Left: Profile Info */}
-        <div className="lg:col-span-1">
-          <Card className="sticky top-8">
-            <CardHeader className="pb-4">
-              <div className="flex items-start gap-4">
-                <div className="w-20 h-20 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-2xl font-semibold text-zinc-700 dark:text-zinc-300 flex-shrink-0">
-                  {influencer.user?.name?.charAt(0).toUpperCase() || 'I'}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <CardTitle className="text-xl break-words">{influencer.user?.name || 'Influencer'}</CardTitle>
-                    <BadgeDisplay tier={(influencer.badgeTier as BadgeTier) ?? null} />
-                  </div>
-                  <CardDescription className="text-xs break-all">{influencer.user?.email}</CardDescription>
-                </div>
+        {/* Profile Card */}
+        <div className="bg-white border-[3px] border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] p-8">
+          <div className="flex flex-col md:flex-row gap-8">
+            {/* Avatar */}
+            <div className="flex-shrink-0">
+              <div className="w-32 h-32 bg-gradient-to-br from-[#B4F056] to-[#FFD93D] border-[3px] border-black flex items-center justify-center text-4xl font-black">
+                {influencer.fullName?.charAt(0)?.toUpperCase() || '?'}
               </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Bio */}
+            </div>
+
+            {/* Info */}
+            <div className="flex-1">
+              <h1 className="text-3xl font-black mb-2">{influencer.fullName}</h1>
+              {influencer.niche && (
+                <span className="inline-block px-3 py-1 bg-[#B4F056] border-2 border-black text-sm font-bold mb-4">
+                  {influencer.niche}
+                </span>
+              )}
+
               {influencer.bio && (
-                <div>
-                  <h3 className="font-semibold mb-2 text-sm">Bio</h3>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">{influencer.bio}</p>
-                </div>
+                <p className="text-black/70 mb-6">{influencer.bio}</p>
               )}
 
               {/* Stats */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <p className="text-xs text-zinc-500 dark:text-zinc-500 uppercase tracking-wide">Followers</p>
-                  <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                <div className="bg-gray-50 border-2 border-black p-4">
+                  <div className="text-2xl font-black">
                     {influencer.followers
-                      ? `${(influencer.followers / 1000).toFixed(1)}k`
+                      ? influencer.followers >= 1000000
+                        ? `${(influencer.followers / 1000000).toFixed(1)}M`
+                        : influencer.followers >= 1000
+                          ? `${(influencer.followers / 1000).toFixed(1)}K`
+                          : influencer.followers
                       : 'N/A'}
-                  </p>
+                  </div>
+                  <div className="text-xs font-bold text-black/60 uppercase">Followers</div>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-xs text-zinc-500 dark:text-zinc-500 uppercase tracking-wide">Price/Post</p>
-                  <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                    {influencer.pricePerPost
-                      ? `₹${influencer.pricePerPost.toLocaleString()}`
+                <div className="bg-gray-50 border-2 border-black p-4">
+                  <div className="text-2xl font-black">
+                    {influencer.engagementRate
+                      ? `${(influencer.engagementRate * 100).toFixed(1)}%`
                       : 'N/A'}
-                  </p>
+                  </div>
+                  <div className="text-xs font-bold text-black/60 uppercase">Engagement</div>
                 </div>
-                {influencer.engagementRate && (
-                  <div className="space-y-1">
-                    <p className="text-xs text-zinc-500 dark:text-zinc-500 uppercase tracking-wide">Engagement</p>
-                    <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                      {(Number(influencer.engagementRate) * 100).toFixed(1)}%
-                    </p>
-                  </div>
-                )}
-                <div className="space-y-1">
-                  <p className="text-xs text-zinc-500 dark:text-zinc-500 uppercase tracking-wide">Collabs</p>
-                  <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{collaborations.length}</p>
-                </div>
-                {influencer.audienceRate && (
-                  <div className="space-y-1">
-                    <p className="text-xs text-zinc-500 dark:text-zinc-500 uppercase tracking-wide">Growth</p>
-                    <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                      {Number(influencer.audienceRate).toFixed(1)}%
-                    </p>
-                  </div>
-                )}
-                {influencer.retentionRate && (
-                  <div className="space-y-1">
-                    <p className="text-xs text-zinc-500 dark:text-zinc-500 uppercase tracking-wide">Retention</p>
-                    <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                      {Number(influencer.retentionRate).toFixed(1)}%
-                    </p>
-                  </div>
-                )}
               </div>
-
-              {influencer.badgeScore !== null && influencer.badgeScore !== undefined && (
-                <div className="rounded-2xl bg-cream/60 border border-charcoal/5 p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-zinc-500 uppercase tracking-wide">Badge Score</p>
-                      <p className="text-lg font-semibold text-zinc-900">{Number(influencer.badgeScore).toFixed(2)}</p>
-                    </div>
-                    <BadgeDisplay tier={(influencer.badgeTier as BadgeTier) ?? null} />
-                  </div>
-                </div>
-              )}
-
-              {/* Niches */}
-              {influencer.niches && Array.isArray(influencer.niches) && influencer.niches.length > 0 && (
-                <div>
-                  <h3 className="font-semibold mb-3 text-sm">Niches</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {(influencer.niches as string[]).map((niche: string, index: number) => (
-                      <span
-                        key={index}
-                        className="text-xs px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full text-zinc-700 dark:text-zinc-300 font-medium"
-                      >
-                        {niche}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* Social Links */}
-              {(socials.instagram || socials.tiktok || socials.youtube || socials.twitter) && (
-                <div>
-                  <h3 className="font-semibold mb-3 text-sm">Social Media</h3>
-                  <div className="space-y-2.5">
-                    {socials.instagram && (
-                      <a
-                        href={`https://instagram.com/${socials.instagram.replace('@', '')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2.5 text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-                      >
-                        <Instagram className="h-4 w-4 flex-shrink-0" />
-                        <span className="truncate">{socials.instagram}</span>
-                      </a>
-                    )}
-                    {socials.tiktok && (
-                      <a
-                        href={`https://tiktok.com/@${socials.tiktok.replace('@', '')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2.5 text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-                      >
-                        <Youtube className="h-4 w-4 flex-shrink-0" />
-                        <span className="truncate">{socials.tiktok}</span>
-                      </a>
-                    )}
-                    {socials.youtube && (
-                      <a
-                        href={socials.youtube.startsWith('http') ? socials.youtube : `https://youtube.com/${socials.youtube}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2.5 text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-                      >
-                        <Youtube className="h-4 w-4 flex-shrink-0" />
-                        <span className="truncate">{socials.youtube}</span>
-                      </a>
-                    )}
-                    {socials.twitter && (
-                      <a
-                        href={`https://twitter.com/${socials.twitter.replace('@', '')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2.5 text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-                      >
-                        <Twitter className="h-4 w-4 flex-shrink-0" />
-                        <span className="truncate">{socials.twitter}</span>
-                      </a>
-                    )}
-                  </div>
-                </div>
+              {influencer.socials?.instagram && (
+                <a
+                  href={`https://instagram.com/${influencer.socials.instagram.replace('@', '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm font-medium text-black/70 hover:text-black mb-4"
+                >
+                  <Instagram className="w-4 h-4" />
+                  {influencer.socials.instagram}
+                </a>
               )}
 
-              <div className="pt-2">
-                <RequestCollaborationButton
-                  influencerId={influencerUserId} // Use validated User.id
-                  brandName={dbUser.name || 'Brand'}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right: Portfolio & History */}
-        <div className="lg:col-span-2 space-y-8">
-          {/* Portfolio */}
-          <div>
-            <h2 className="text-2xl font-semibold mb-6 text-zinc-900 dark:text-zinc-100">Portfolio</h2>
-            {portfolio.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 px-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800">
-                <div className="w-16 h-16 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center mb-4">
-                  <Mail className="h-8 w-8 text-zinc-400 dark:text-zinc-600" />
-                </div>
-                <p className="text-zinc-600 dark:text-zinc-400 text-center">No portfolio items yet.</p>
-              </div>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {portfolio.map((item: any) => (
-                  <div 
-                    key={item.id} 
-                    className="relative aspect-square rounded-lg overflow-hidden group cursor-pointer hover:opacity-90 transition-opacity bg-zinc-100 dark:bg-zinc-800"
+              {/* Actions */}
+              <div className="flex gap-3 mt-6">
+                <Button
+                  onClick={handleMessage}
+                  className="px-6 py-3 bg-[#B4F056] border-[3px] border-black font-bold hover:bg-[#a3e04a] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Send Message
+                </Button>
+                {influencer.email && (
+                  <a
+                    href={`mailto:${influencer.email}`}
+                    className="px-6 py-3 bg-white border-[3px] border-black font-bold hover:bg-gray-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2"
                   >
-                    <img
-                      src={item.imagePath}
-                      alt={item.title || 'Portfolio item'}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Previous Collaborations */}
-          {collaborations.length > 0 && (
-            <div>
-              <h2 className="text-2xl font-semibold mb-6 text-zinc-900 dark:text-zinc-100">Previous Collaborations</h2>
-              <div className="space-y-4">
-                {collaborations.map((collab: any) => (
-                  <Card key={collab.id} className="hover:shadow-md transition-shadow">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle className="text-lg mb-1">
-                            {collab.brand.brandProfile?.companyName || collab.brand.name || 'Brand'}
-                          </CardTitle>
-                          <CardDescription className="text-xs">
-                            {new Date(collab.createdAt).toLocaleDateString('en-US', { 
-                              year: 'numeric', 
-                              month: 'long', 
-                              day: 'numeric' 
-                            })}
-                          </CardDescription>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-zinc-600 dark:text-zinc-400 line-clamp-3 leading-relaxed">
-                        {collab.message}
-                      </p>
-                    </CardContent>
-                  </Card>
-                ))}
+                    <Mail className="w-4 h-4" />
+                    Email
+                  </a>
+                )}
               </div>
             </div>
-          )}
-        </div>
+          </div>
         </div>
       </div>
     </div>
   )
 }
-

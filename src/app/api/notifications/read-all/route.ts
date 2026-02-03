@@ -1,30 +1,22 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
-import prisma from '@/lib/prisma'
 
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser()
+    const { data: { user: authUser } } = await supabase.auth.getUser()
 
     if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const dbUser = await prisma.user.findUnique({
-      where: { email: authUser.email! },
-    })
+    const { error } = await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('user_id', authUser.id)
+      .eq('read', false)
 
-    if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
-    await prisma.notification.updateMany({
-      where: { userId: dbUser.id, isRead: false },
-      data: { isRead: true },
-    })
+    if (error) throw error
 
     return NextResponse.json({ success: true })
   } catch (error) {
@@ -35,4 +27,3 @@ export async function POST(request: Request) {
     )
   }
 }
-

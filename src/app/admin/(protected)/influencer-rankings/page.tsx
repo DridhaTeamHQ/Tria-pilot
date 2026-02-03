@@ -1,29 +1,20 @@
-import prisma from '@/lib/prisma'
+import { createClient } from '@/lib/auth'
 import BadgeDisplay, { type BadgeTier } from '@/components/influencer/BadgeDisplay'
 
-// Force dynamic rendering - this page uses database
 export const dynamic = 'force-dynamic'
 
 export default async function InfluencerRankingsPage() {
-  const influencers = await prisma.influencerProfile.findMany({
-    where: {
-      onboardingCompleted: true,
-    },
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
-    },
-    orderBy: [
-      { badgeScore: 'desc' },
-      { followers: 'desc' },
-      { createdAt: 'desc' },
-    ],
-  })
+  const supabase = await createClient()
+
+  const { data: influencers } = await supabase
+    .from('influencer_profiles')
+    .select(`
+       *,
+       user:id ( id, full_name, email )
+    `)
+    .order('badge_score', { ascending: false })
+    .order('followers', { ascending: false })
+    .limit(100)
 
   return (
     <div className="min-h-screen bg-cream pt-24 pb-10">
@@ -47,34 +38,22 @@ export default async function InfluencerRankingsPage() {
                 </tr>
               </thead>
               <tbody>
-                {influencers.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="px-5 py-8 text-center text-charcoal/60">
-                      No influencers ranked yet.
-                    </td>
-                  </tr>
+                {(!influencers || influencers.length === 0) ? (
+                  <tr><td colSpan={8} className="px-5 py-8 text-center text-charcoal/60">No influencers ranked yet.</td></tr>
                 ) : (
-                  influencers.map((inf, index) => (
-                    <tr key={inf.id} className="border-t border-subtle/60">
+                  influencers.map((inf: any, index: number) => (
+                    <tr key={index} className="border-t border-subtle/60">
                       <td className="px-5 py-3 font-medium">{index + 1}</td>
                       <td className="px-5 py-3">
-                        <div className="font-medium text-charcoal">{inf.user?.name || 'Influencer'}</div>
+                        <div className="font-medium text-charcoal">{inf.user?.full_name || 'Influencer'}</div>
                         <div className="text-xs text-charcoal/60">{inf.user?.email}</div>
                       </td>
-                      <td className="px-5 py-3">
-                        <BadgeDisplay tier={(inf.badgeTier as BadgeTier) ?? null} />
-                      </td>
-                      <td className="px-5 py-3">{inf.badgeScore ? Number(inf.badgeScore).toFixed(2) : '—'}</td>
-                      <td className="px-5 py-3">{inf.followers ?? '—'}</td>
-                      <td className="px-5 py-3">
-                        {inf.engagementRate ? `${(Number(inf.engagementRate) * 100).toFixed(2)}%` : '—'}
-                      </td>
-                      <td className="px-5 py-3">
-                        {inf.audienceRate ? `${Number(inf.audienceRate).toFixed(1)}%` : '—'}
-                      </td>
-                      <td className="px-5 py-3">
-                        {inf.retentionRate ? `${Number(inf.retentionRate).toFixed(1)}%` : '—'}
-                      </td>
+                      <td className="px-5 py-3"><BadgeDisplay tier={inf.badge_tier as BadgeTier} /></td>
+                      <td className="px-5 py-3">{inf.badge_score ? Number(inf.badge_score).toFixed(2) : '—'}</td>
+                      <td className="px-5 py-3">{inf.followers || '—'}</td>
+                      <td className="px-5 py-3">{inf.engagement_rate ? `${(Number(inf.engagement_rate) * 100).toFixed(2)}%` : '—'}</td>
+                      <td className="px-5 py-3">{inf.audience_rate ? `${Number(inf.audience_rate).toFixed(1)}%` : '—'}</td>
+                      <td className="px-5 py-3">{inf.retention_rate ? `${Number(inf.retention_rate).toFixed(1)}%` : '—'}</td>
                     </tr>
                   ))
                 )}

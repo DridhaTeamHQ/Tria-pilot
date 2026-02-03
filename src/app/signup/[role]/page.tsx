@@ -65,6 +65,7 @@ export default function SignupPage() {
             const siteUrl = getPublicSiteUrlClient()
             const redirectUrl = buildAuthConfirmUrl(siteUrl, '/login?confirmed=true')
 
+            // 1. Create Auth User
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email: formData.email.trim().toLowerCase(),
                 password: formData.password,
@@ -80,21 +81,29 @@ export default function SignupPage() {
             if (authError) throw new Error(authError.message)
             if (!authData.user) throw new Error('Failed to create account')
 
+            // 2. Insert Profile (Same Client = No Foreign Key Error)
             const roleLowercase = role as 'influencer' | 'brand'
-            const response = await fetch('/api/auth/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+            const approvalStatus = roleLowercase === 'influencer' ? 'none' : 'approved'
+
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .insert({
                     id: authData.user.id,
                     email: formData.email.trim().toLowerCase(),
                     role: roleLowercase,
-                    name: formData.name?.trim() || null,
-                }),
-            })
+                    onboarding_completed: false,
+                    approval_status: approvalStatus,
+                })
 
-            if (!response.ok && response.status !== 500 && response.status !== 503) {
-                const data = await response.json().catch(() => ({}))
-                throw new Error(data.error || 'Registration failed')
+            if (profileError) {
+                // If trigger already created it, ignore duplicate error
+                if (profileError.code === '23505') {
+                    console.log('Profile created by trigger, continuing...')
+                } else {
+                    console.error('Profile creation error:', profileError)
+                    // Don't block success, user exists. 
+                    toast.warning('Account created, but profile sync failed. Please contact support if issues persist.')
+                }
             }
 
             toast.success('Account created! Please check your email.')

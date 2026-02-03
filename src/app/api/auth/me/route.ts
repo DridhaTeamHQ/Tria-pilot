@@ -1,15 +1,18 @@
 /**
  * GET /api/auth/me
- *
- * MUST: Use auth.getUser() then getOrCreateUser (single source of truth for Prisma User).
- * Upserts Prisma User so prisma.user.findUnique({ id: session.user.id }) returns a row.
+ * 
+ * READ-ONLY ENDPOINT:
+ * - Fetches authenticated user from Supabase Auth
+ * - Fetches profile from profiles table
+ * - Returns { user, profile }
+ * 
+ * NEVER writes to profiles.
+ * NEVER auto-creates missing profiles.
  */
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
-import { getOrCreateUser } from '@/lib/prisma-user'
-import prisma from '@/lib/prisma'
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const supabase = await createClient()
     const {
@@ -17,65 +20,60 @@ export async function GET(request: Request) {
       error: authError,
     } = await supabase.auth.getUser()
 
-    if (authError || !authUser) {
+    // Handle auth errors
+    if (authError) {
+      console.error('Auth error in /api/auth/me:', authError.message)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Fetch profile from profiles table (SOURCE OF TRUTH)
     const service = createServiceClient()
-    const { data: profileRow } = await service
+    const { data: profile, error: profileError } = await service
       .from('profiles')
-      .select('role')
+      .select('id, email, role, onboarding_completed, approval_status, brand_data')
       .eq('id', authUser.id)
-      .maybeSingle()
-    const roleFromProfile = profileRow?.role?.toString().toUpperCase()
-    const roleForPrisma = (roleFromProfile ?? authUser.user_metadata?.role ?? undefined) as
-      | 'influencer'
-      | 'brand'
-      | 'INFLUENCER'
-      | 'BRAND'
-      | 'ADMIN'
-      | undefined
+      .single()
 
-    const user = await getOrCreateUser({
-      id: authUser.id,
-      email: authUser.email ?? '',
-      role: roleForPrisma,
-      user_metadata: authUser.user_metadata,
-    })
+    if (profileError) {
+      console.error(`Profile error for ${authUser.id}:`, profileError)
+      return NextResponse.json(
+        { error: 'Profile not found', message: profileError.message },
+        { status: 404 }
+      )
+    }
 
-    // Fetch complete profile with relations
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.id },
-      include: {
-        influencerProfile: true,
-        brandProfile: true
-      }
-    })
+    if (!profile) {
+      return NextResponse.json(
+        { error: 'Profile not found' },
+        { status: 404 }
+      )
+    }
 
-    if (!dbUser) throw new Error("Sync failed")
+    // Normalize values to lowercase
+    const role = (profile.role || 'influencer').toLowerCase()
+    const approvalStatus = (profile.approval_status || 'none').toLowerCase()
 
-    // Construct response matching frontend expectation
-    return NextResponse.json(
-      {
-        user: {
-          id: dbUser.id,
-          email: dbUser.email,
-          name: dbUser.name,
-          role: dbUser.role,
-          slug: dbUser.slug,
-          status: dbUser.status, // mapped to approval_status in schema
-        },
-        profile: dbUser.influencerProfile || dbUser.brandProfile || null,
-        // Helper flags
-        requiresProfile: !dbUser.influencerProfile && !dbUser.brandProfile && dbUser.role !== 'ADMIN',
-        onboardingCompleted: dbUser.influencerProfile?.onboardingCompleted ?? false
+    return NextResponse.json({
+      user: {
+        id: profile.id,
+        email: profile.email,
+        name: (profile.brand_data as any)?.companyName || null,
+        role: role.toUpperCase(), // Backward compatibility
+        slug: profile.email?.split('@')[0] || '',
       },
-      {
-        headers: {
-          'Cache-Control': 'private, max-age=10, stale-while-revalidate=60',
-        },
-      }
-    )
+      profile: {
+        id: profile.id,
+        email: profile.email,
+        role: role,
+        onboarding_completed: Boolean(profile.onboarding_completed),
+        approval_status: approvalStatus,
+        brand_data: profile.brand_data || null,
+      },
+    })
   } catch (error) {
     console.error('Get user error:', error)
     return NextResponse.json(

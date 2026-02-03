@@ -1,27 +1,29 @@
 /**
- * SINGLE SOURCE AUTH STATE SYSTEM
+ * PURE STATE RESOLVER
  * 
- * This is the ONLY place where auth state is determined.
- * All components and routes use this system.
+ * This module provides identity state ONLY.
+ * It does NOT redirect, infer routes, or enforce permissions.
  * 
  * Database Truth (Supabase):
  * - auth.users → authentication ONLY
  * - profiles → role, onboarding, approval (SOURCE OF TRUTH)
- * - InfluencerProfile → influencer details ONLY
- * - BrandProfile → brand details ONLY
  * 
- * profiles table is the ONLY source of truth:
- * - role: 'influencer' | 'brand' | 'admin'
- * - onboarding_completed: boolean
- * - approval_status: 'none' | 'pending' | 'approved' | 'rejected'
+ * Usage:
+ *   const auth = await getIdentity()
+ *   if (!auth.authenticated) redirect('/login')
+ *   if (auth.identity.role !== 'brand') redirect('/dashboard')
  */
 
-import { createClient, createServiceClient } from '@/lib/auth'
+import { createClient } from '@/lib/auth'
 
-export type UserRole = 'influencer' | 'brand' | 'admin'
+// ═══════════════════════════════════════════════════════════════════════════
+// TYPES
+// ═══════════════════════════════════════════════════════════════════════════
+
+export type UserRole = 'admin' | 'brand' | 'influencer'
 export type ApprovalStatus = 'none' | 'pending' | 'approved' | 'rejected'
 
-export interface Profile {
+export interface UserIdentity {
   id: string
   email: string
   role: UserRole
@@ -29,219 +31,140 @@ export interface Profile {
   approval_status: ApprovalStatus
 }
 
-/**
- * CANONICAL USER STATE MACHINE
- * 
- * Influencer:
- * - Just signed up: onboarding_completed=false, approval_status='none' → influencer_draft
- * - Onboarding submitted: onboarding_completed=true, approval_status='pending' → influencer_pending
- * - Approved: onboarding_completed=true, approval_status='approved' → influencer_approved
- * - Rejected: onboarding_completed=true, approval_status='rejected' → influencer_pending (blocked)
- * 
- * Brand:
- * - Signed up: onboarding_completed=false, approval_status='none' → brand_draft
- * - Onboarding done: onboarding_completed=true, approval_status='approved' → brand_active
- * 
- * Admin:
- * - role='admin' → admin (onboarding/approval ignored)
- */
-export type AuthState =
-  | { type: 'unauthenticated' }
-  | { type: 'authenticated_no_profile'; userId: string; email: string }
-  | { type: 'influencer_draft'; profile: Profile }
-  | { type: 'influencer_pending'; profile: Profile }
-  | { type: 'influencer_approved'; profile: Profile }
-  | { type: 'brand_draft'; profile: Profile }
-  | { type: 'brand_active'; profile: Profile }
-  | { type: 'admin'; profile: Profile }
+export type AuthResult =
+  | { authenticated: false }
+  | { authenticated: true; identity: UserIdentity }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CORE FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * SINGLE SOURCE: Fetch profile from Supabase profiles table
- * 
- * This is the ONLY function that reads profiles.
- * NO component should query profile directly.
+ * Fetch profile from Supabase profiles table.
+ * Returns null if not found.
  */
-export async function fetchProfile(userId: string): Promise<Profile | null> {
-  try {
-    const service = createServiceClient()
-    const { data, error } = await service
-      .from('profiles')
-      .select('id, email, role, onboarding_completed, approval_status')
-      .eq('id', userId)
-      .single()
+async function fetchProfile(supabase: Awaited<ReturnType<typeof createClient>>, userId: string): Promise<UserIdentity | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, email, role, onboarding_completed, approval_status')
+    .eq('id', userId)
+    .single()
 
-    if (error) {
-      console.error('fetchProfile Supabase error:', error)
-      return null
-    }
-
-    if (!data) {
-      console.warn('fetchProfile: No profile found for userId:', userId)
-      return null
-    }
-
-    // Normalize: ensure exact types (no nulls) and convert from DB CAPS to lowercase
-    const roleStr = (data.role || 'influencer').toLowerCase()
-    const role = (roleStr as UserRole)
-
-    // Normalize approval_status: null/missing → 'none', DB CAPS → lowercase
-    const statusStr = (data.approval_status || 'none').toLowerCase()
-    const approval_status: ApprovalStatus = (statusStr as ApprovalStatus)
-
-    // Map PENDING -> pending, APPROVED -> approved if needed (already handled by toLowerCase if names match)
-
-    const onboarding_completed = Boolean(data.onboarding_completed)
-
-    return {
-      id: data.id,
-      email: data.email,
-      role,
-      onboarding_completed,
-      approval_status,
-    }
-  } catch (error) {
-    console.error('Error fetching profile:', error)
+  if (error || !data) {
+    console.error('fetchProfile error:', error?.message || 'No profile found')
     return null
+  }
+
+  // Normalize to lowercase (defensive, DB should already be lowercase)
+  const role = ((data.role || 'influencer') as string).toLowerCase() as UserRole
+  const approval_status = ((data.approval_status || 'none') as string).toLowerCase() as ApprovalStatus
+
+  return {
+    id: data.id,
+    email: data.email || '',
+    role,
+    onboarding_completed: Boolean(data.onboarding_completed),
+    approval_status,
   }
 }
 
 /**
- * SINGLE SOURCE: Get auth state from session + profile
+ * SINGLE SOURCE: Get user identity.
  * 
- * This is the ONLY function that determines auth state.
- * Used everywhere: routes, components, API handlers.
+ * Returns authenticated: false if not logged in.
+ * Returns authenticated: true with identity if logged in.
  * 
- * CRITICAL: Admin is determined by profiles.role === 'admin'
- * DO NOT check admin_users table.
+ * This function does NOT redirect or do any authorization logic.
+ * Authorization is the caller's responsibility.
  */
-export async function getAuthState(): Promise<AuthState> {
+export async function getIdentity(): Promise<AuthResult> {
   try {
     const supabase = await createClient()
+
     // SECURITY: Use getUser() NOT getSession()
     // getSession() reads from cookies (can be tampered)
     // getUser() validates with Supabase Auth server (secure)
     const { data: { user }, error } = await supabase.auth.getUser()
 
-    // No user or auth error → unauthenticated
     if (error || !user) {
-      return { type: 'unauthenticated' }
+      return { authenticated: false }
     }
 
-    const userId = user.id
-    const email = user.email || ''
+    const identity = await fetchProfile(supabase, user.id)
 
-    // Fetch profile from profiles table (SOURCE OF TRUTH)
-    const profile = await fetchProfile(userId)
-
-    if (!profile) {
+    if (!identity) {
       // User exists in auth but no profile → edge case
-      return { type: 'authenticated_no_profile', userId, email }
+      // This should not happen if trigger is set up correctly
+      console.warn('getIdentity: User has auth but no profile:', user.id)
+      return { authenticated: false }
     }
 
-    // CRITICAL: Admin is determined by profiles.role === 'admin'
-    // DO NOT check admin_users table
-    if (profile.role === 'admin') {
-      return { type: 'admin', profile }
-    }
-
-    // Map profile to exact state based on role + onboarding + approval
-    if (profile.role === 'influencer') {
-      if (!profile.onboarding_completed) {
-        // Just signed up: onboarding_completed=false, approval_status='none'
-        return { type: 'influencer_draft', profile }
-      }
-      if (profile.approval_status === 'pending') {
-        // Onboarding submitted: onboarding_completed=true, approval_status='pending'
-        return { type: 'influencer_pending', profile }
-      }
-      if (profile.approval_status === 'approved') {
-        // Approved: onboarding_completed=true, approval_status='approved'
-        return { type: 'influencer_approved', profile }
-      }
-      // rejected or none → show pending screen (blocked)
-      return { type: 'influencer_pending', profile }
-    }
-
-    if (profile.role === 'brand') {
-      if (!profile.onboarding_completed) {
-        // Signed up: onboarding_completed=false
-        return { type: 'brand_draft', profile }
-      }
-      // Onboarding done: onboarding_completed=true, approval_status='approved'
-      return { type: 'brand_active', profile }
-    }
-
-    // Unknown role → treat as unauthenticated
-    return { type: 'unauthenticated' }
+    return { authenticated: true, identity }
   } catch (error) {
-    console.error('Error getting auth state:', error)
-    return { type: 'unauthenticated' }
+    console.error('getIdentity error:', error)
+    return { authenticated: false }
   }
 }
 
-/**
- * Get redirect path based on auth state
- * Returns null if user should stay on current route
- */
-export function getRedirectPath(state: AuthState, currentPath: string): string | null {
+// ═══════════════════════════════════════════════════════════════════════════
+// LEGACY EXPORTS (for backward compatibility during migration)
+// These will be removed after route guards are fully implemented.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** @deprecated Use getIdentity() instead */
+export async function getAuthState() {
+  const result = await getIdentity()
+
+  if (!result.authenticated) {
+    return { type: 'unauthenticated' as const }
+  }
+
+  const { identity } = result
+
+  // Map to legacy state types for backward compatibility
+  if (identity.role === 'admin') {
+    return { type: 'admin' as const, profile: identity }
+  }
+
+  if (identity.role === 'brand') {
+    if (!identity.onboarding_completed) {
+      return { type: 'brand_draft' as const, profile: identity }
+    }
+    return { type: 'brand_active' as const, profile: identity }
+  }
+
+  if (identity.role === 'influencer') {
+    if (!identity.onboarding_completed) {
+      return { type: 'influencer_draft' as const, profile: identity }
+    }
+    if (identity.approval_status !== 'approved') {
+      return { type: 'influencer_pending' as const, profile: identity }
+    }
+    return { type: 'influencer_approved' as const, profile: identity }
+  }
+
+  return { type: 'unauthenticated' as const }
+}
+
+/** @deprecated Authorization should be done at route level */
+export function getRedirectPath(state: { type: string }, currentPath: string): string | null {
+  // Minimal legacy support - routes should handle their own authorization
   switch (state.type) {
     case 'unauthenticated':
-      // Can access: /login, /register, public pages
-      const publicPaths = ['/login', '/register', '/', '/marketplace', '/help', '/contact', '/about', '/privacy', '/terms']
-      if (publicPaths.includes(currentPath) || currentPath.startsWith('/marketplace/')) {
-        return null
-      }
       return '/login'
-
-    case 'authenticated_no_profile':
-      return '/complete-profile'
-
     case 'influencer_draft':
-      // FORCED to onboarding
-      if (currentPath === '/onboarding/influencer') {
-        return null
-      }
-      return '/onboarding/influencer'
-
+      return currentPath === '/onboarding/influencer' ? null : '/onboarding/influencer'
     case 'influencer_pending':
-      // FORCED to pending page
-      if (currentPath === '/influencer/pending') {
-        return null
-      }
-      // Allow marketplace (read-only)
-      if (currentPath.startsWith('/marketplace')) {
-        return null
-      }
+      if (currentPath === '/influencer/pending' || currentPath.startsWith('/marketplace')) return null
       return '/influencer/pending'
-
-    case 'influencer_approved':
-      // Full access - no redirect
-      return null
-
     case 'brand_draft':
-      // FORCED to onboarding
-      if (currentPath === '/onboarding/brand') {
-        return null
-      }
-      return '/onboarding/brand'
-
-    case 'brand_active':
-      // Full access - no redirect
+      return currentPath === '/onboarding/brand' ? null : '/onboarding/brand'
+    default:
       return null
-
-    case 'admin':
-      // Admin can only access /admin routes
-      if (currentPath.startsWith('/admin')) {
-        return null
-      }
-      return '/admin'
   }
 }
 
-/**
- * Check if user can access a route
- */
-export function canAccessRoute(state: AuthState, route: string): boolean {
-  const redirectPath = getRedirectPath(state, route)
-  return redirectPath === null
+/** @deprecated Use route-level checks */
+export function canAccessRoute(state: { type: string }, route: string): boolean {
+  return getRedirectPath(state, route) === null
 }

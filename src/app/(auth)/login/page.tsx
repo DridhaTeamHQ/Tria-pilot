@@ -1,12 +1,11 @@
 'use client'
 
 import { Suspense, useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { motion, LayoutGroup } from 'framer-motion'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { ArrowRight, Loader2, Mail, Lock, Eye, EyeOff, Check } from 'lucide-react'
-import { useQueryClient } from '@tanstack/react-query'
+import { ArrowRight, Loader2, Mail, Lock, Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/auth-client'
 
 export default function LoginPage() {
@@ -27,13 +26,10 @@ export default function LoginPage() {
 }
 
 function LoginContent() {
-  const router = useRouter()
   const searchParams = useSearchParams()
-  const queryClient = useQueryClient()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [rememberMe, setRememberMe] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
   const [userType, setUserType] = useState<'influencer' | 'brand'>('influencer')
 
@@ -44,14 +40,10 @@ function LoginContent() {
     }
   }, [searchParams])
 
-  // Mapping: Influencer -> Influencer Image, Brand -> Brand Image
   const bgImage = userType === 'influencer'
     ? '/assets/auth-bg-influencer.png'
     : '/assets/auth-bg-brand.png'
 
-  // Layout Direction: 
-  // Influencer: Form Right (Image Left)
-  // Brand: Form Left (Image Right)
   const isLayoutFlipped = userType === 'brand'
 
   useEffect(() => {
@@ -70,23 +62,23 @@ function LoginContent() {
 
     try {
       const supabase = createClient()
-      const { data, error } = await supabase.auth.signInWithPassword({
+
+      // Sign in with Supabase
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
       })
 
-      if (error) throw error
-
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user?.user_metadata?.role && user.user_metadata.role !== userType) {
-        toast.warning(`Note: You are signing in as a ${user.user_metadata.role} account.`)
-      }
+      if (signInError) throw signInError
 
       toast.success('Signed in successfully!')
-      queryClient.invalidateQueries()
-      window.location.href = userType === 'influencer' ? '/influencer' : '/admin'
+
+      // CRITICAL: Always redirect to /dashboard
+      // Dashboard will handle role-based routing
+      window.location.href = '/dashboard'
 
     } catch (error: any) {
+      console.error('Login error:', error)
       toast.error(error.message || 'Failed to sign in')
       setLoading(false)
     }
@@ -107,7 +99,7 @@ function LoginContent() {
         <motion.div
           layout
           className={`hidden lg:flex w-full relative z-0 h-screen ${isLayoutFlipped ? 'flex-row-reverse' : 'flex-row'}`}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }} // Smooth ease-out
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
 
           {/* IMAGE SIDE */}
@@ -116,7 +108,7 @@ function LoginContent() {
             className="flex-1 relative overflow-hidden h-full"
           >
             <motion.div
-              key={userType} // Re-render image on change to trigger crossfade if needed, or just standard bg
+              key={userType}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5 }}
@@ -133,7 +125,6 @@ function LoginContent() {
             layout
             className="w-full lg:w-[45%] xl:w-[40%] flex items-center justify-center p-6 lg:p-12 relative z-10 bg-transparent"
           >
-            {/* No Box Shadow / Border / White BG - Clean Form */}
             <motion.div
               layout
               className="w-full max-w-[400px]"
@@ -150,7 +141,7 @@ function LoginContent() {
                 </p>
               </div>
 
-              {/* Role Switcher - Minimal */}
+              {/* Role Switcher */}
               <div className="flex p-1 bg-white border-2 border-black mb-10 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                 <button
                   onClick={() => setUserType('influencer')}
@@ -170,7 +161,6 @@ function LoginContent() {
                 <div className="space-y-2">
                   <label className="text-xs font-black uppercase tracking-widest text-black">Email Address</label>
                   <div className="relative group">
-                    {/* Input with minimal style - white bg for readability but no outer container */}
                     <div className={`absolute left-0 top-0 bottom-0 w-12 border-r-2 border-black flex items-center justify-center bg-white border-2 border-r-2 border-black z-10`}>
                       <Mail className="w-5 h-5 text-black" strokeWidth={2.5} />
                     </div>

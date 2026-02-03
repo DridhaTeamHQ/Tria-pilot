@@ -2,56 +2,50 @@
  * Server-side route guard for /influencer/pending
  * 
  * This page MUST require:
- * - onboardingCompleted === true
- * - approvalStatus === 'pending' (or null, which means not yet set)
+ * - onboarding_completed === true in profiles table
+ * - approval_status === 'pending' (or 'PENDING')
  * 
- * If onboarding is not completed, redirect to onboarding.
- * This prevents impossible states where user sees pending screen before completing onboarding.
+ * Uses Supabase only - NO Prisma
  */
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/auth'
-import prisma from '@/lib/prisma'
+import { createClient, createServiceClient } from '@/lib/auth'
 
 export async function checkPendingPageAccess(userId: string): Promise<{ allowed: boolean; redirectTo?: string }> {
   try {
-    // Check onboarding completion status
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        influencerProfile: {
-          select: {
-            onboardingCompleted: true,
-          },
-        },
-      },
-    })
+    const service = createServiceClient()
 
-    if (!user || user.role !== 'INFLUENCER' || !user.influencerProfile) {
+    // Check profile in Supabase profiles table (SOURCE OF TRUTH)
+    const { data: profile, error } = await service
+      .from('profiles')
+      .select('role, onboarding_completed, approval_status')
+      .eq('id', userId)
+      .single()
+
+    if (error || !profile) {
+      console.error('Profile fetch error:', error)
+      return { allowed: false, redirectTo: '/dashboard' }
+    }
+
+    // Must be influencer
+    const role = (profile.role || '').toLowerCase()
+    if (role !== 'influencer') {
       return { allowed: false, redirectTo: '/dashboard' }
     }
 
     // CRITICAL: Pending page requires onboarding to be completed
-    if (!user.influencerProfile.onboardingCompleted) {
+    if (!profile.onboarding_completed) {
       // User hasn't completed onboarding - redirect to onboarding
       return { allowed: false, redirectTo: '/onboarding/influencer' }
     }
 
-    // Check approval status
-    const supabase = await createClient()
-    const { data: application } = await supabase
-      .from('influencer_applications')
-      .select('status')
-      .eq('user_id', userId)
-      .maybeSingle()
+    // Check approval status (normalize to lowercase for comparison)
+    const status = (profile.approval_status || 'pending').toLowerCase()
 
     // If approved, redirect to dashboard (will route to influencer dashboard)
-    if (application?.status === 'approved') {
-      return { allowed: false, redirectTo: '/dashboard' }
+    if (status === 'approved') {
+      return { allowed: false, redirectTo: '/influencer/dashboard' }
     }
 
-    // Allow access if:
-    // - onboardingCompleted === true
-    // - approvalStatus === 'pending' OR null (not yet set)
+    // Allow access if onboarding completed and status is pending/none
     return { allowed: true }
   } catch (error) {
     console.error('Error checking pending page access:', error)
