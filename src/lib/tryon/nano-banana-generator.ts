@@ -38,6 +38,8 @@ export interface NanoBananaParams {
     prompt: string                 // Strict try-on prompt from Stage 2
     qualityTier?: QualityTier      // Cost tier (default: low)
     isRetry?: boolean              // True if this is a retry after drift detection
+    /** DO NOT TOUCH: hard-fail on forbidden prompt terms (no silent auto-repair). */
+    strictPromptValidation?: boolean
 }
 
 export interface NanoBananaResult {
@@ -59,19 +61,18 @@ const FORBIDDEN_TERMS = [
     'perfect',
     'enhance',
     'improve',
-    'editorial',
-    'fashion',
+    // 'editorial', // ALLOWED for presets
+    // 'fashion', // ALLOWED for presets
     'model',
-    'studio',
+    // 'studio', // ALLOWED for presets
     'portrait',
     'artistic',
     'aesthetic',
     'creative',
-    'clean',
+    // 'clean', // ALLOWED for presets
     'sharp',
     'elegant',
     'symmetry',
-    'proportions',
     'ideal',
     // Extended forbidden
     'beautif',       // Catches beautify, beautiful, beautification
@@ -79,7 +80,7 @@ const FORBIDDEN_TERMS = [
     'stunning',
     'gorgeous',
     'glamour',
-    'professional',
+    // 'professional', // ALLOWED for presets
     'high fashion',
     'vogue',
     'magazine',
@@ -93,10 +94,10 @@ const FORBIDDEN_TERMS = [
     'sleek',
     'crisp',
     'HDR',
-    'dramatic',
-    'cinematic',
-    'photoshoot',
-    'catalog',
+    // 'dramatic', // ALLOWED for lighting style
+    // 'cinematic', // ALLOWED for lighting style
+    // 'photoshoot', // ALLOWED for presets
+    // 'catalog', // ALLOWED for presets
     'lookbook',
     'flattering',
     'slimming',
@@ -117,19 +118,19 @@ const QUALITY_CONFIG: Record<QualityTier, {
     canRetry: boolean
 }> = {
     low: {
-        model: 'gemini-2.0-flash-exp',
+        model: 'gemini-3-pro-image-preview',
         temperature: 0.01,                // MINIMUM — most identity-safe
         maxTokens: 4096,
         canRetry: true
     },
     medium: {
-        model: 'gemini-2.0-flash-exp',
+        model: 'gemini-3-pro-image-preview',
         temperature: 0.03,                // Still very low
         maxTokens: 8192,
         canRetry: true
     },
     high: {
-        model: 'gemini-2.0-flash-exp',
+        model: 'gemini-3-pro-image-preview',
         temperature: 0.05,                // Maximum allowed — NO retries
         maxTokens: 8192,
         canRetry: false
@@ -302,42 +303,40 @@ function buildEnforcementPrompt(userPrompt: string, isRetry: boolean = false): s
         camera: {
             type: "phone_camera",
             style: "candid_single_photo",
-            lighting: "match_existing_scene",
-            studio_lighting: false,
-            dramatic_contrast: false,
+            lighting: "follow_instruction_scene_description",
+            studio_lighting: true,  // Allow if instruction says so
+            dramatic_contrast: true, // Allow if instruction says so
             pose_correction: false
         },
 
-        // SCENE AUTHORITY - INHERIT FROM INPUT IMAGE ONLY
+        // SCENE AUTHORITY - ALLOW PRESET-DRIVEN SCENE CHANGES
+        // Face and body safety remain highest priority, but environment CAN change
         SCENE_AUTHORITY: {
-            rule: "INHERIT SCENE FROM INPUT IMAGE ONLY",
-            explanation: "The environment and background must be inherited ONLY from Image 1. Do not switch between indoor and outdoor. Do not introduce a new location.",
+            rule: "SCENE CAN BE MODIFIED BY USER INSTRUCTIONS",
+            explanation: "The environment and background should follow the scene description in the user instruction. Face and body identity remain locked, but lighting and background can adapt to the requested scene.",
 
             background: {
-                source: "Image 1 ONLY",
-                preserve: true,
-                switching: "ABSOLUTELY_FORBIDDEN"
+                source: "Follow user instruction for scene",
+                preserve: false,
+                switching: "ALLOWED_IF_INSTRUCTED"
             },
 
             lighting: {
-                source: "Image 1 ONLY",
-                match_type: true,
-                match_temperature: true,
-                switching: "ABSOLUTELY_FORBIDDEN"
+                source: "Follow scene description in instruction",
+                match_type: false,
+                match_temperature: false,
+                switching: "ALLOWED_IF_INSTRUCTED"
             },
 
-            forbidden_actions: [
-                "SWITCHING_SCENE",
-                "INDOOR_TO_OUTDOOR",
-                "OUTDOOR_TO_INDOOR",
-                "INTRODUCING_NEW_LOCATION",
-                "CHANGING_BACKGROUND",
-                "ALTERING_LIGHTING_TYPE",
-                "ADDING_STUDIO_LIGHTING",
-                "CHANGING_TIME_OF_DAY"
+            allowed_actions: [
+                "SWITCHING_SCENE_PER_INSTRUCTION",
+                "CHANGING_BACKGROUND_PER_INSTRUCTION",
+                "ADAPTING_LIGHTING_TO_SCENE",
+                "FOLLOWING_PRESET_ENVIRONMENT"
             ],
 
-            all_variants_rule: "All generated variants must share the EXACT same scene as Image 1"
+            face_body_protection: "Face and body identity MUST remain locked regardless of scene changes",
+            all_variants_rule: "Apply the scene described in the instruction while keeping face/body identical to Image 1"
         },
 
         instruction: userPrompt,
@@ -421,7 +420,8 @@ export async function generateWithNanoBanana(
         garmentImageBase64,
         prompt,
         qualityTier = 'low',
-        isRetry = false
+        isRetry = false,
+        strictPromptValidation = false
     } = params
 
     const config = QUALITY_CONFIG[qualityTier]
@@ -440,6 +440,10 @@ export async function generateWithNanoBanana(
     // Clean forbidden terms from prompt
     const { cleaned: cleanedPrompt, wasModified, termsRemoved } = cleanPromptForNanoBanana(prompt)
 
+    if (strictPromptValidation && wasModified) {
+        throw new Error(`FINAL_PROMPT_BLOCKED_FORBIDDEN_TERMS: ${termsRemoved.join(', ')}`)
+    }
+
     if (wasModified) {
         console.log('⚠️ PROMPT CLEANING: Removed forbidden terms:')
         for (const term of termsRemoved) {
@@ -447,8 +451,12 @@ export async function generateWithNanoBanana(
         }
     }
 
-    // Build enforcement prompt (with retry notice if applicable)
-    const enforcementPrompt = buildEnforcementPrompt(cleanedPrompt, isRetry)
+    // IDENTITY-CRITICAL — DO NOT MODIFY
+    // identity-safe final render must use the pre-sanitized prompt as-is.
+    // No additional face/body authority text is allowed in strict mode.
+    const enforcementPrompt = strictPromptValidation
+        ? cleanedPrompt
+        : buildEnforcementPrompt(cleanedPrompt, isRetry)
 
     if (isRetry) {
         console.log('🔄 RETRY MODE: Appending retry notice to prompt')
@@ -517,7 +525,7 @@ export async function generateWithNanoBanana(
         }
 
         console.log(`\n✓ Image generated in ${(generationTimeMs / 1000).toFixed(1)}s`)
-        console.log('⚠️ Note: Face may have drifted — Stage 4 will reintegrate original face')
+        console.log('⚠️ Note: Verify identity fidelity from IMAGE 1 anchor in final output')
 
         return {
             image: imageBase64,
@@ -556,7 +564,7 @@ export function logNanoBananaStatus(
     }
     console.log(`╠═══════════════════════════════════════════════════════════════════════════════╣`)
     console.log(`║  🔒 NANO BANANA OUTPUT IS UNTRUSTED                                           ║`)
-    console.log(`║  → Stage 4 will overwrite face with original pixels                          ║`)
-    console.log(`║  → Stage 5 will validate body proportions                                     ║`)
+    console.log(`║  → Identity authority is IMAGE 1 input anchor                                ║`)
+    console.log(`║  → Body pose/composition are allowed to adapt naturally to scene intent      ║`)
     console.log(`╚═══════════════════════════════════════════════════════════════════════════════╝\n`)
 }
