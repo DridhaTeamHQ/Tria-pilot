@@ -140,6 +140,16 @@ export interface ProductionPipelineInput {
     userRequest?: string
     enableRefinement?: boolean    // Enable Phase-2 lighting refinement
     skipQualityGate?: boolean     // Skip Stage 0 for faster generation
+    renderEngine?: 'flash' | 'nano-banana-pro'
+    promptOverride?: string
+    scenePlan?: {
+        environment?: string
+        location?: string
+        lighting?: string
+        camera?: string
+        poseIntent?: string
+    }
+    identitySafe?: boolean
 }
 
 export interface StageResult {
@@ -176,6 +186,22 @@ function bufferToBase64(buffer: Buffer): string {
     return `data:image/png;base64,${buffer.toString('base64')}`
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// EYE SAFETY DIRECTIVE (DO NOT TOUCH)
+// Applied to ALL generations to prevent eye/face drift
+// ═══════════════════════════════════════════════════════════════════════════════
+const EYE_SAFETY_DIRECTIVE = `
+CRITICAL PROHIBITIONS (will cause rejection):
+- Do NOT alter, enhance, or reinterpret eyes
+- Do NOT change gaze direction
+- Do NOT add eye highlights or reflections
+- Do NOT apply dramatic facial lighting
+- Do NOT modify facial symmetry
+- Do NOT apply beauty enhancement
+- Do NOT reshape face structure
+- Eyes must remain EXACTLY as in Image 1
+`
+
 /**
  * Run the production try-on pipeline
  * 
@@ -189,14 +215,22 @@ export async function runProductionTryOnPipeline(
 ): Promise<ProductionPipelineResult> {
     const startTime = Date.now()
     const sessionId = `prod-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+    const finalRenderEngine = input.renderEngine || 'flash'
+    const skipPixelOverwrite = finalRenderEngine === 'nano-banana-pro'
 
     console.log('\n')
     console.log('╔═══════════════════════════════════════════════════════════════════════════════╗')
     console.log('║                                                                               ║')
     console.log('║   🎯 PRODUCTION PIPELINE — ZERO FACE DRIFT ARCHITECTURE                      ║')
-    console.log('║   Generator: Gemini 2.0 Flash Exp (UNTRUSTED for face)                       ║')
-    console.log('║   Face Authority: SHARP PIXEL OVERWRITE (deterministic)                      ║')
-    console.log('║   Validation: NONE (face is overwritten, not validated)                      ║')
+    console.log(`║   Generator: ${finalRenderEngine.toUpperCase().padEnd(61)}║`)
+
+    if (skipPixelOverwrite) {
+        console.log('║   Face Authority: NANO BANANA PRO (Native Identity Preservation)             ║')
+        console.log('║   Validation: NATIVE (No pixel overwrite)                                    ║')
+    } else {
+        console.log('║   Face Authority: SHARP PIXEL OVERWRITE (deterministic)                      ║')
+        console.log('║   Validation: NONE (face is overwritten, not validated)                      ║')
+    }
     console.log('║                                                                               ║')
     console.log(`║   Session: ${sessionId.padEnd(63)}║`)
     console.log('║                                                                               ║')
@@ -216,7 +250,7 @@ export async function runProductionTryOnPipeline(
         // ═══════════════════════════════════════════════════════════════
         // STAGE 0: INPUT QUALITY GATE (OPTIONAL — skippable for speed)
         // ═══════════════════════════════════════════════════════════════
-        if (!input.skipQualityGate) {
+        if (!input.skipQualityGate && !skipPixelOverwrite) {
             const stage0Start = Date.now()
             console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
             console.log('  STAGE 0: INPUT QUALITY GATE (Optional)')
@@ -270,49 +304,62 @@ export async function runProductionTryOnPipeline(
         // ═══════════════════════════════════════════════════════════════
         // STAGE 1: FACE PIXEL EXTRACTION — CRITICAL (NO FALLBACK)
         // ═══════════════════════════════════════════════════════════════
-        const stage1Start = Date.now()
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-        console.log('  STAGE 1: FACE PIXEL EXTRACTION (Sharp)')
-        console.log('  🔴 CRITICAL: If this fails, pipeline ABORTS')
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-
         const originalImageBuffer = base64ToBuffer(input.personImageBase64)
 
-        // Extract face pixels — this is our ONLY source of truth for face
-        facePixelData = await extractFacePixels(originalImageBuffer)
+        if (!skipPixelOverwrite) {
+            const stage1Start = Date.now()
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+            console.log('  STAGE 1: FACE PIXEL EXTRACTION (Sharp)')
+            console.log('  🔴 CRITICAL: If this fails, pipeline ABORTS')
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
 
-        if (!facePixelData) {
-            console.error('❌ CRITICAL FAILURE: Cannot extract face pixels')
-            console.error('   Pipeline CANNOT proceed without face data')
+            // Extract face pixels — this is our ONLY source of truth for face
+            facePixelData = await extractFacePixels(originalImageBuffer)
+
+            if (!facePixelData) {
+                console.error('❌ CRITICAL FAILURE: Cannot extract face pixels')
+                console.error('   Pipeline CANNOT proceed without face data')
+
+                stages.push({
+                    stage: 1,
+                    name: 'Face Pixel Extraction',
+                    status: 'FAIL',
+                    timeMs: Date.now() - stage1Start,
+                    data: { error: 'Face extraction failed' }
+                })
+
+                return {
+                    success: false,
+                    image: '',
+                    status: 'FAIL',
+                    warnings: ['Failed to extract face from input image. Ensure the face is clearly visible.'],
+                    debug: { stages, totalTimeMs: Date.now() - startTime, faceOverwritten: false }
+                }
+            }
+
+            console.log(`   ✅ Face pixels extracted: ${facePixelData.box.width}x${facePixelData.box.height}`)
+            console.log(`   📍 Position: (${facePixelData.box.x}, ${facePixelData.box.y})`)
+            console.log(`   🔒 These pixels will be composited onto final output`)
 
             stages.push({
                 stage: 1,
                 name: 'Face Pixel Extraction',
-                status: 'FAIL',
+                status: 'PASS',
                 timeMs: Date.now() - stage1Start,
-                data: { error: 'Face extraction failed' }
+                data: { box: facePixelData.box }
             })
 
-            return {
-                success: false,
-                image: '',
-                status: 'FAIL',
-                warnings: ['Failed to extract face from input image. Ensure the face is clearly visible.'],
-                debug: { stages, totalTimeMs: Date.now() - startTime, faceOverwritten: false }
-            }
+        } else {
+            console.log('  STAGE 1: FACE PIXEL EXTRACTION (Sharp)')
+            console.log('  ⚠️ Nano Banana Pro identity mode — skipping pixel extraction/composite')
+            stages.push({
+                stage: 1,
+                name: 'Face Pixel Extraction',
+                status: 'SKIP',
+                timeMs: 0,
+                data: { reason: 'Nano Banana Pro handles identity by image anchoring' }
+            })
         }
-
-        console.log(`   ✅ Face pixels extracted: ${facePixelData.box.width}x${facePixelData.box.height}`)
-        console.log(`   📍 Position: (${facePixelData.box.x}, ${facePixelData.box.y})`)
-        console.log(`   🔒 These pixels will be composited onto final output`)
-
-        stages.push({
-            stage: 1,
-            name: 'Face Pixel Extraction',
-            status: 'PASS',
-            timeMs: Date.now() - stage1Start,
-            data: { box: facePixelData.box }
-        })
 
         // ═══════════════════════════════════════════════════════════════
         // STAGE 1.5: SCENE AUTHORITY DETECTION (Prevents scene switching)
@@ -472,16 +519,33 @@ export async function runProductionTryOnPipeline(
         const sceneAuthorityText = buildSceneAuthorityTextBlock(sceneAuthority)
 
         try {
-            const promptData = await generateStrictTryOnPrompt({
-                personImageBase64: input.personImageBase64,
-                garmentImageBase64: input.garmentImageBase64,
-                sceneDescription: input.sceneDescription
-            })
-            logPromptGeneratorStatus(sessionId, promptData)
-            finalPrompt = buildFinalGenerationPrompt(promptData, input.userRequest)
+            let promptData: GeneratedPrompt | undefined
 
-            // INJECT SCENE AUTHORITY RULES INTO PROMPT
-            finalPrompt = finalPrompt + '\n\n' + sceneAuthorityText
+            if (input.promptOverride) {
+                console.log('   ✨ Using HYBRID PROMPT OVERRIDE (skipping strict generator)')
+                finalPrompt = input.promptOverride
+
+                // Mock data for logging
+                promptData = {
+                    prompt: finalPrompt,
+                    garmentDescription: 'Hybrid Override',
+                    preservationRules: ['Handled by Nano Banana Pro'],
+                    forbiddenOperations: []
+                }
+            } else {
+                promptData = await generateStrictTryOnPrompt({
+                    personImageBase64: input.personImageBase64,
+                    garmentImageBase64: input.garmentImageBase64,
+                    sceneDescription: input.sceneDescription
+                })
+                logPromptGeneratorStatus(sessionId, promptData)
+                finalPrompt = buildFinalGenerationPrompt(promptData, input.userRequest)
+            }
+
+            // INJECT SCENE AUTHORITY RULES INTO PROMPT (Legacy only)
+            if (!skipPixelOverwrite) {
+                finalPrompt = finalPrompt + '\n\n' + sceneAuthorityText
+            }
 
             // INJECT GARMENT TOPOLOGY CONSTRAINTS (Prevent top→dress conversion)
             const topologyPrompt = buildTopologyPromptInjection(topologyResult)
@@ -503,9 +567,12 @@ export async function runProductionTryOnPipeline(
             }
 
             // INJECT NANO BANANA CONTROL LAYER (Final enforcement)
-            const nanoBananaPrompt = buildNanoBananaInjection(sceneAuthority)
-            finalPrompt = finalPrompt + '\n\n' + nanoBananaPrompt
-            logNanoBananaInjection(sceneAuthority)
+            // Skip for Nano Banana Pro (handled by Hybrid Prompt Contract)
+            if (!skipPixelOverwrite) {
+                const nanoBananaPrompt = buildNanoBananaInjection(sceneAuthority)
+                finalPrompt = finalPrompt + '\n\n' + nanoBananaPrompt
+                logNanoBananaInjection(sceneAuthority)
+            }
 
             stages.push({
                 stage: 2,
@@ -557,10 +624,15 @@ ${coveragePrompt}`
         console.log('  ⚠️ GEMINI OUTPUT IS UNTRUSTED — Face will be OVERWRITTEN in Stage 4')
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
 
+        // INJECT EYE SAFETY DIRECTIVE (DO NOT TOUCH)
+        const safePrompt = skipPixelOverwrite
+            ? `${finalPrompt}\n\n${EYE_SAFETY_DIRECTIVE}`
+            : finalPrompt
+
         generatedImage = await generateWithNanoBanana({
             personImageBase64: input.personImageBase64,
             garmentImageBase64: input.garmentImageBase64,
-            prompt: finalPrompt,
+            prompt: safePrompt,
             qualityTier: 'low',    // Always low temp for minimal hallucination
             isRetry: false
         })
@@ -583,63 +655,77 @@ ${coveragePrompt}`
         // STAGE 4: FACE PIXEL OVERWRITE — MANDATORY (NO FALLBACK)
         // This is where face drift is IMPOSSIBLE by construction.
         // ═══════════════════════════════════════════════════════════════
-        const stage4Start = Date.now()
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-        console.log('  STAGE 4: FACE PIXEL OVERWRITE (Sharp Composite)')
-        console.log('  🔴 MANDATORY: Original face pixels will replace Gemini\'s face')
-        console.log('  🔴 NO FALLBACK: If this fails, entire generation fails')
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+        if (!skipPixelOverwrite) {
+            const stage4Start = Date.now()
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+            console.log('  STAGE 4: FACE PIXEL OVERWRITE (Sharp Composite)')
+            console.log('  🔴 MANDATORY: Original face pixels will replace Gemini\'s face')
+            console.log('  🔴 NO FALLBACK: If this fails, entire generation fails')
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
 
-        const generatedImageBuffer = base64ToBuffer(generatedImage.image)
+            const generatedImageBuffer = base64ToBuffer(generatedImage.image)
 
-        compositeResult = await compositeFacePixels(generatedImageBuffer, facePixelData)
+            compositeResult = await compositeFacePixels(generatedImageBuffer, facePixelData!)
 
-        if (!compositeResult.success || !compositeResult.faceSourcedFromOriginal) {
-            console.error('❌ CRITICAL FAILURE: Face pixel composite failed')
-            console.error('   CANNOT return raw Gemini output — would cause face drift')
-            console.error('   Error:', compositeResult.error)
+            if (!compositeResult.success || !compositeResult.faceSourcedFromOriginal) {
+                console.error('❌ CRITICAL FAILURE: Face pixel composite failed')
+                console.error('   CANNOT return raw Gemini output — would cause face drift')
+                console.error('   Error:', compositeResult.error)
+
+                stages.push({
+                    stage: 4,
+                    name: 'Face Pixel Overwrite',
+                    status: 'FAIL',
+                    timeMs: Date.now() - stage4Start,
+                    data: { error: compositeResult.error }
+                })
+
+                return {
+                    success: false,
+                    image: '',  // DO NOT return generatedImage.image — that would expose drifted face
+                    status: 'FAIL',
+                    warnings: ['Face composite failed. Please try again.'],
+                    debug: { stages, totalTimeMs: Date.now() - startTime, faceOverwritten: false }
+                }
+            }
+
+            // Convert composited buffer back to base64
+            finalImage = bufferToBase64(compositeResult.outputBuffer)
+
+            console.log('   ✅ FACE PIXEL OVERWRITE COMPLETE')
+            console.log('   🔒 Face pixels are IDENTICAL to original input')
+            console.log('   🔒 Face drift is IMPOSSIBLE by construction')
 
             stages.push({
                 stage: 4,
                 name: 'Face Pixel Overwrite',
-                status: 'FAIL',
+                status: 'PASS',
                 timeMs: Date.now() - stage4Start,
-                data: { error: compositeResult.error }
+                data: {
+                    faceOverwritten: true,
+                    faceSourcedFromOriginal: true,
+                    faceBox: facePixelData!.box
+                }
             })
 
-            return {
-                success: false,
-                image: '',  // DO NOT return generatedImage.image — that would expose drifted face
-                status: 'FAIL',
-                warnings: ['Face composite failed. Please try again.'],
-                debug: { stages, totalTimeMs: Date.now() - startTime, faceOverwritten: false }
-            }
+        } else {
+            console.log('  STAGE 4: FACE PIXEL OVERWRITE (Sharp Composite)')
+            console.log('  ⚠️ Nano Banana Pro identity mode — skipping face overwrite')
+            finalImage = generatedImage.image
+            stages.push({
+                stage: 4,
+                name: 'Face Pixel Overwrite',
+                status: 'SKIP',
+                timeMs: 0,
+                data: { reason: 'Nano Banana Pro handles identity by image anchoring' }
+            })
         }
-
-        // Convert composited buffer back to base64
-        finalImage = bufferToBase64(compositeResult.outputBuffer)
-
-        console.log('   ✅ FACE PIXEL OVERWRITE COMPLETE')
-        console.log('   🔒 Face pixels are IDENTICAL to original input')
-        console.log('   🔒 Face drift is IMPOSSIBLE by construction')
-
-        stages.push({
-            stage: 4,
-            name: 'Face Pixel Overwrite',
-            status: 'PASS',
-            timeMs: Date.now() - stage4Start,
-            data: {
-                faceOverwritten: true,
-                faceSourcedFromOriginal: true,
-                faceBox: facePixelData.box
-            }
-        })
 
         // ═══════════════════════════════════════════════════════════════
         // STAGE 5: PHASE-2 ENVIRONMENT REFINEMENT (OPTIONAL)
         // Only runs if enabled and main generation succeeded
         // ═══════════════════════════════════════════════════════════════
-        if (input.enableRefinement) {
+        if (input.enableRefinement && !skipPixelOverwrite) {
             try {
                 const stage5Start = Date.now()
                 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
@@ -656,15 +742,17 @@ ${coveragePrompt}`
 
                 // IMPORTANT: Re-apply face overwrite after refinement
                 // Refinement might have altered face region
-                const refinedBuffer = base64ToBuffer(refinedResult.image)
-                const reoverwriteResult = await compositeFacePixels(refinedBuffer, facePixelData)
+                if (!skipPixelOverwrite && facePixelData) {
+                    const refinedBuffer = base64ToBuffer(refinedResult.image)
+                    const reoverwriteResult = await compositeFacePixels(refinedBuffer, facePixelData)
 
-                if (reoverwriteResult.success) {
-                    finalImage = bufferToBase64(reoverwriteResult.outputBuffer)
-                    console.log('   ✅ Face pixels re-applied after refinement')
-                } else {
-                    // Keep pre-refinement image (already has face overwritten)
-                    console.warn('   ⚠️ Face re-overwrite failed, using pre-refinement image')
+                    if (reoverwriteResult.success) {
+                        finalImage = bufferToBase64(reoverwriteResult.outputBuffer)
+                        console.log('   ✅ Face pixels re-applied after refinement')
+                    } else {
+                        // Keep pre-refinement image (already has face overwritten)
+                        console.warn('   ⚠️ Face re-overwrite failed, using pre-refinement image')
+                    }
                 }
 
                 stages.push({
