@@ -58,6 +58,9 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json().catch(() => null)
+    if (!body) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+    }
     const { user_id, email, password, code } = schema.parse(body)
 
     if (!safeEqual(code, signupCode)) {

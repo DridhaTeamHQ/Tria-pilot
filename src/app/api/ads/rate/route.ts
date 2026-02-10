@@ -23,6 +23,9 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json().catch(() => null)
+    if (!body) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+    }
     const { adImage, productImage, influencerImage } = rateSchema.parse(body)
 
     const rating = await rateAdCreative(adImage, productImage, influencerImage)

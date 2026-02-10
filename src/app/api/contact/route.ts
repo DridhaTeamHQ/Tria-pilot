@@ -15,6 +15,9 @@ const schema = z
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => null)
+    if (!body) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+    }
     const data = schema.parse(body)
 
     const supportEmail = process.env.SUPPORT_EMAIL || 'team@dridhatechnologies.com'

@@ -46,6 +46,9 @@ export const tryOnSchema = z
     .array(z.enum(['purse', 'shoes', 'hat', 'jewelry', 'bag', 'watch', 'sunglasses', 'scarf', 'other']))
     .max(10)
     .optional(),
+  // Hybrid try-on (explicit opt-in only)
+  useHybridPipeline: z.boolean().optional(),
+  brandDna: z.string().trim().max(4000).optional(),
   model: z.enum(['flash', 'production']).optional().default('production'),
   stylePreset: z.string().trim().max(80).optional(),
   userRequest: z.string().trim().max(2000).optional(),

@@ -60,7 +60,7 @@ export default async function BrandLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#F9F8F4]">
+    <div className="min-h-screen bg-[#FDF6EC]">
       <BrandNavbar brandName={brandName} />
       <main className="pt-20 md:pt-16">
         {children}

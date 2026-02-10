@@ -52,7 +52,7 @@ ABSOLUTE RULES:
 • Do NOT generate dresses, skirts, or pants
 • ONLY render upper-body garment preview
 • Crop or softly fade output below chest level
-• Maintain realism over completeness
+• Prioritize natural composition
 
 ALLOWED:
 • Face (preserved exactly)

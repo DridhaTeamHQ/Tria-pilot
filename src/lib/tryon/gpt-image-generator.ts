@@ -43,7 +43,7 @@ export function isGPTImageEnabled(): boolean {
  * Get current image generation model name (for logging)
  */
 export function getImageGenerationModelName(): string {
-    return isGPTImageEnabled() ? 'gpt-image-1.5-2025-12-16 (EXPERIMENT)' : 'gemini-2.0-flash-exp'
+    return isGPTImageEnabled() ? 'gpt-image-1.5-2025-12-16 (EXPERIMENT)' : 'gemini-3-pro-image-preview'
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -173,7 +173,7 @@ ${isRetry ? 'RETRY NOTICE: Previous attempt altered identity. This is NOT allowe
         }
 
         console.log(`\n✅ GPT Image generated in ${(generationTimeMs / 1000).toFixed(1)}s`)
-        console.log('⚠️ Note: Face may have drifted — Stage 4 will reintegrate original face')
+        console.log('⚠️ Note: Verify identity fidelity from IMAGE 1 anchor in final output')
         console.log(`💰 Actual cost will appear in OpenAI dashboard`)
 
         // Log success

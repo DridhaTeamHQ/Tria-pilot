@@ -177,188 +177,98 @@ export function cleanPromptForNanoBanana(prompt: string): {
  * Uses structured JSON for stricter constraint parsing and face fidelity.
  */
 function buildEnforcementPrompt(userPrompt: string, isRetry: boolean = false): string {
-    const prompt = {
-        // CRITICAL PRIORITY - THIS IS THE MOST IMPORTANT RULE
-        CRITICAL_PRIORITY: {
-            rule: "FACE MUST BE EXACTLY THE SAME AS INPUT IMAGE",
-            explanation: "The person in the output MUST be recognizable as the EXACT same person from Image 1. NOT similar. NOT a lookalike. THE SAME PERSON.",
-            warning: "If friend looks at output and says 'that doesn't look like you', YOU HAVE FAILED.",
-            enforcement: "Face will be pixel-overwritten after generation. Your face output is TEMPORARY and will be DISCARDED."
+    // ═══════════════════════════════════════════════════════════════════════════
+    // EXTRACT SCENE + LIGHTING FROM USER PROMPT
+    // The hybrid pipeline injects these as "SCENE: ..." and "LIGHTING: ..."
+    // We extract them to place at TOP LEVEL of the enforcement JSON
+    // ═══════════════════════════════════════════════════════════════════════════
+    let sceneText = ''
+    let lightingText = ''
+    let cleanedInstruction = userPrompt
+
+    // Extract SCENE: line
+    const sceneMatch = userPrompt.match(/SCENE:\s*(.+?)(?:\n|$)/i)
+    if (sceneMatch) {
+        sceneText = sceneMatch[1].trim()
+        cleanedInstruction = cleanedInstruction.replace(sceneMatch[0], '').trim()
+    }
+
+    // Extract LIGHTING: line
+    const lightingMatch = userPrompt.match(/LIGHTING:\s*(.+?)(?:\n|$)/i)
+    if (lightingMatch) {
+        lightingText = lightingMatch[1].trim()
+        cleanedInstruction = cleanedInstruction.replace(lightingMatch[0], '').trim()
+    }
+
+    const hasSceneOverride = sceneText.length > 0 || lightingText.length > 0
+
+    console.log('ENFORCEMENT PROMPT BUILDER:')
+    console.log(`  Scene extracted: ${sceneText || 'NONE'}`)
+    console.log(`  Lighting extracted: ${lightingText || 'NONE'}`)
+    console.log(`  Has scene override: ${hasSceneOverride}`)
+
+    const prompt: Record<string, unknown> = {
+        // ═══════════════════════════════════════════════════════════════════════
+        // TASK DEFINITION — WHAT TO DO
+        // ═══════════════════════════════════════════════════════════════════════
+        TASK: {
+            action: "Apply clothing from Image 2 onto the person in Image 1",
+            mode: "VIRTUAL_TRY_ON",
+            clothing_only: !hasSceneOverride,
         },
 
-        task: {
-            type: "VIRTUAL_TRY_ON",
-            action: "Apply clothing from Image 2 onto person in Image 1",
-            mode: "IDENTITY_LOCKED",
-            clothing_only: true,
-            face_change: "ABSOLUTELY_FORBIDDEN"
-        },
-
-        face_rules: {
-            priority: "HIGHEST - ABOVE ALL OTHER RULES",
-            status: "IMMUTABLE - READ ONLY - DO NOT MODIFY",
-            reconstruction_allowed: false,
-            generation_allowed: false,
-
-            same_person_guarantee: {
-                required: true,
-                description: "This is the SAME PERSON as Image 1. NOT a model. NOT a lookalike. NOT a similar person. The EXACT SAME INDIVIDUAL.",
-                verification: "If you cannot tell it is the same person, you have FAILED."
-            },
-
-            face_source: "Image 1 is the ONLY source of face pixels - COPY IT EXACTLY",
-            face_destination: "Your generated face will be DISCARDED and replaced by pixel copy from original",
-
-            preserve_exactly_from_image_1: [
-                "EXACT eye shape, spacing, and size",
-                "EXACT nose shape, bridge, nostrils",
-                "EXACT mouth width and lip shape",
-                "EXACT jawline contour and chin shape - NO ROUNDING",
-                "EXACT cheek volume and cheekbone position",
-                "EXACT skin tone, texture, and any blemishes",
-                "ALL facial asymmetries - DO NOT CORRECT",
-                "Glasses if present - KEEP THEM"
-            ],
-
-            jawline: {
-                sharp_input: "SHARP_OUTPUT - DO NOT ROUND",
-                angular_input: "ANGULAR_OUTPUT - DO NOT SOFTEN",
-                rounding: "ABSOLUTELY_FORBIDDEN",
-                softening: "ABSOLUTELY_FORBIDDEN"
-            },
-
-            cheeks: {
-                defined_input: "DEFINED_OUTPUT",
-                fuller: "ABSOLUTELY_FORBIDDEN",
-                slimmer: "ABSOLUTELY_FORBIDDEN"
-            },
-
-            forbidden_operations: [
-                "FACE RECONSTRUCTION - FORBIDDEN",
-                "FACE GENERATION - FORBIDDEN",
-                "JAWLINE ROUNDING - FORBIDDEN",
-                "FACE SHAPE ALTERATION - FORBIDDEN",
-                "FACIAL ENHANCEMENT - FORBIDDEN",
-                "SKIN SMOOTHING - FORBIDDEN",
-                "SYMMETRY CORRECTION - FORBIDDEN",
-                "BEAUTIFICATION - FORBIDDEN",
-                "CHANGING ANY FACIAL FEATURE - FORBIDDEN"
-            ]
-        },
-
-        body_rules: {
-            status: "IMMUTABLE",
-            same_body_rule: {
-                enabled: true,
-                description: "This is the SAME BODY as Image 1. Same weight, same proportions, same shape."
-            },
-
-            proportions: {
-                shoulder_width: "PRESERVE_EXACTLY",
-                torso_shape: "PRESERVE_EXACTLY",
-                hip_width: "PRESERVE_EXACTLY",
-                arm_length: "PRESERVE_EXACTLY",
-                body_type: "PRESERVE_EXACTLY",
-                weight: "PRESERVE_EXACTLY"
-            },
-
-            forbidden_operations: [
-                "slimming_body",
-                "widening_body",
-                "reshaping_torso",
-                "altering_proportions",
-                "changing_posture",
-                "beautifying_figure",
-                "model_like_transformation",
-                "any_body_modification"
-            ],
-
-            body_check: {
-                if_body_looks_slimmer: "WRONG",
-                if_body_looks_fuller: "WRONG",
-                if_proportions_changed: "WRONG",
-                if_posture_improved: "WRONG",
-                if_looks_like_model: "WRONG"
+        // ═══════════════════════════════════════════════════════════════════════
+        // SCENE OVERRIDE — TOP PRIORITY FOR ENVIRONMENT
+        // This section MUST be followed for background and lighting.
+        // If a scene is specified, the output MUST show that environment.
+        // ═══════════════════════════════════════════════════════════════════════
+        ...(hasSceneOverride ? {
+            SCENE_OVERRIDE: {
+                priority: "MANDATORY — Output MUST match this scene description",
+                background: sceneText || "Keep original background",
+                lighting: lightingText || "Match scene lighting",
+                enforcement: "The generated image background and lighting MUST reflect this scene. DO NOT ignore this. DO NOT keep the original background if a scene is specified.",
             }
-        },
+        } : {}),
 
-        garment_fit: {
-            rule: "GARMENT_ADAPTS_TO_BODY",
-            body_adapts_to_garment: false,
-
-            expectations: {
-                tight_garment: "Shows actual body curves underneath",
-                loose_garment: "Drapes over actual body shape",
-                structured_garment: "Follows actual shoulder and hip lines"
-            },
-
-            forbidden_fit: [
-                "idealized_fit",
-                "flattering_drape",
-                "slimming_effect",
-                "body_shaping"
+        // ═══════════════════════════════════════════════════════════════════════
+        // IDENTITY LOCK — Face + body from Image 1
+        // ═══════════════════════════════════════════════════════════════════════
+        IDENTITY: {
+            face: "COPY face from Image 1 EXACTLY. Same person, same features.",
+            body: "KEEP body shape, weight, proportions from Image 1 EXACTLY.",
+            forbidden: [
+                "face_alteration", "beautification", "slimming",
+                "symmetry_correction", "skin_smoothing", "jawline_rounding"
             ]
         },
 
-        camera: {
+        // ═══════════════════════════════════════════════════════════════════════
+        // GARMENT — From Image 2
+        // ═══════════════════════════════════════════════════════════════════════
+        GARMENT: {
+            source: "Image 2",
+            rule: "Garment adapts to body, body does NOT adapt to garment",
+            forbidden: ["idealized_fit", "flattering_drape", "body_shaping"]
+        },
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // CAMERA — Realistic
+        // ═══════════════════════════════════════════════════════════════════════
+        CAMERA: {
             type: "phone_camera",
             style: "candid_single_photo",
-            lighting: "follow_instruction_scene_description",
-            studio_lighting: true,  // Allow if instruction says so
-            dramatic_contrast: true, // Allow if instruction says so
-            pose_correction: false
+            pose_correction: false,
+            lighting: hasSceneOverride ? "FOLLOW_SCENE_OVERRIDE" : "match_input"
         },
 
-        // SCENE AUTHORITY - ALLOW PRESET-DRIVEN SCENE CHANGES
-        // Face and body safety remain highest priority, but environment CAN change
-        SCENE_AUTHORITY: {
-            rule: "SCENE CAN BE MODIFIED BY USER INSTRUCTIONS",
-            explanation: "The environment and background should follow the scene description in the user instruction. Face and body identity remain locked, but lighting and background can adapt to the requested scene.",
+        // User instruction (clothing swap + any extra text)
+        instruction: cleanedInstruction,
 
-            background: {
-                source: "Follow user instruction for scene",
-                preserve: false,
-                switching: "ALLOWED_IF_INSTRUCTED"
-            },
-
-            lighting: {
-                source: "Follow scene description in instruction",
-                match_type: false,
-                match_temperature: false,
-                switching: "ALLOWED_IF_INSTRUCTED"
-            },
-
-            allowed_actions: [
-                "SWITCHING_SCENE_PER_INSTRUCTION",
-                "CHANGING_BACKGROUND_PER_INSTRUCTION",
-                "ADAPTING_LIGHTING_TO_SCENE",
-                "FOLLOWING_PRESET_ENVIRONMENT"
-            ],
-
-            face_body_protection: "Face and body identity MUST remain locked regardless of scene changes",
-            all_variants_rule: "Apply the scene described in the instruction while keeping face/body identical to Image 1"
-        },
-
-        instruction: userPrompt,
-
-        identity_check: {
-            if_face_looks_better: "WRONG",
-            if_jawline_rounder: "WRONG",
-            if_cheeks_fuller: "WRONG",
-            if_skin_smoother: "WRONG"
-        },
-
-        forbidden_styles: [
-            "fashion_editorial",
-            "model_like_appearance",
-            "artistic_styling",
-            "perfection"
-        ],
-
-        retry_notice: isRetry ? {
-            message: "Previous attempt altered human appearance. This is not allowed.",
-            action: "Preserve original face and body exactly. Only apply clothing."
-        } : null
+        // Retry notice
+        ...(isRetry ? {
+            retry_notice: "Previous attempt altered human appearance. Preserve original face and body exactly."
+        } : {})
     }
 
     return JSON.stringify(prompt, null, 2)

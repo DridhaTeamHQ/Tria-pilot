@@ -25,6 +25,7 @@ export interface PipelineV4Input {
     presetId: string
     userRequest?: string
     variant: Variant
+    identitySafe?: boolean
 }
 
 export interface PipelineV4Output {
@@ -37,6 +38,61 @@ export interface PipelineV4Output {
 
 export interface MultiVariantOutput {
     variants: PipelineV4Output[]
+}
+
+const IDENTITY_SAFE_FORBIDDEN_TERMS = [
+    'jawline',
+    'cheeks',
+    'face shape',
+    'expression',
+    'handsome',
+    'sharp',
+    'perfect',
+    'symmetry'
+]
+
+const IDENTITY_SAFE_FACIAL_DESCRIPTOR_PATTERN =
+    /\b(face|facial|jaw|jawline|cheek|cheeks|chin|nose|lips?|eyes?|eyebrow|forehead|temple|expression)\b/gi
+
+function sanitizeIdentitySafePrompt(input?: string): string {
+    let cleaned = input || ''
+    for (const term of IDENTITY_SAFE_FORBIDDEN_TERMS) {
+        const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        cleaned = cleaned.replace(new RegExp(`\\b${escaped}\\b`, 'gi'), '')
+    }
+    cleaned = cleaned.replace(IDENTITY_SAFE_FACIAL_DESCRIPTOR_PATTERN, '')
+    return cleaned.replace(/\s+/g, ' ').trim()
+}
+
+function assertIdentitySafePrompt(prompt: string): void {
+    for (const term of IDENTITY_SAFE_FORBIDDEN_TERMS) {
+        const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        if (new RegExp(`\\b${escaped}\\b`, 'i').test(prompt)) {
+            throw new Error(`IDENTITY_SAFE_PROMPT_BLOCKED: forbidden term "${term}"`)
+        }
+    }
+    if (IDENTITY_SAFE_FACIAL_DESCRIPTOR_PATTERN.test(prompt)) {
+        throw new Error('IDENTITY_SAFE_PROMPT_BLOCKED: facial descriptor detected')
+    }
+}
+
+function buildIdentitySafePrompt(userRequest?: string): string {
+    const base = [
+        'Virtual try-on edit.',
+        'Image 1 is immutable person source.',
+        'Image 2 is garment source.',
+        'Replace clothing only.',
+        'Preserve pose, body proportions, background, and lighting from Image 1.'
+    ].join(' ')
+
+    const safeUser = sanitizeIdentitySafePrompt(userRequest)
+    const prompt = `${base}${safeUser ? ` User context: ${safeUser}.` : ''}`.trim()
+    const tokenEstimate = Math.ceil(prompt.split(/\s+/).filter(Boolean).length * 1.33)
+    if (tokenEstimate >= 1000) {
+        throw new Error(`IDENTITY_SAFE_PROMPT_TOO_LONG: estimated ${tokenEstimate} tokens`)
+    }
+    assertIdentitySafePrompt(prompt)
+    return prompt
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -54,7 +110,7 @@ const VARIANT_LABELS: Record<Variant, string> = {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function buildPipelineV4(input: PipelineV4Input): PipelineV4Output {
-    const { sessionId, modelMode, presetId, userRequest, variant } = input
+    const { sessionId, modelMode, presetId, userRequest, variant, identitySafe = false } = input
 
     console.log(`\n${'═'.repeat(80)}`)
     console.log(`🚀 PIPELINE V4 STARTING [${sessionId}]`)
@@ -77,6 +133,26 @@ export function buildPipelineV4(input: PipelineV4Input): PipelineV4Output {
         // Fallback to simple preset string
         presetPrompt = `Scene: ${presetId}\n(No structural specification available)`
         console.log(`⚠️ No SceneSpec for preset: ${presetId}, using fallback`)
+    }
+
+    if (identitySafe) {
+        console.log('INFLUENCER TRY-ON IDENTITY SAFE MODE: ACTIVE')
+        if (modelMode === 'flash') {
+            throw new Error('FINAL_RENDER_FORBIDDEN: flash final render is not allowed for influencer try-on')
+        }
+
+        // IDENTITY-SAFE MODE: DISABLED TO PREVENT FACE DRIFT
+        const prompt = buildIdentitySafePrompt(userRequest)
+        const temperature = PRO_CONFIG.temperature
+        const model = PRO_CONFIG.model
+
+        return {
+            prompt,
+            temperature,
+            model,
+            variant,
+            variantLabel: VARIANT_LABELS[variant]
+        }
     }
 
     // Build model-specific prompt
@@ -126,13 +202,14 @@ export function buildMultiVariantPipeline(
     sessionId: string,
     modelMode: ModelMode,
     presetId: string,
-    userRequest?: string
+    userRequest?: string,
+    identitySafe: boolean = false
 ): MultiVariantOutput {
-    const variants: Variant[] = ['A', 'B', 'C']
+    const variants: Variant[] = identitySafe ? ['A'] : ['A', 'B', 'C']
 
     console.log(`\n${'═'.repeat(80)}`)
     console.log(`🎯 MULTI-VARIANT PIPELINE [${sessionId}]`)
-    console.log(`   Generating 3 variants: A (Warm), B (Cool), C (Dramatic)`)
+    console.log(`   Generating ${variants.length} variant(s)`)
     console.log(`${'═'.repeat(80)}`)
 
     const outputs = variants.map(variant =>
@@ -141,7 +218,8 @@ export function buildMultiVariantPipeline(
             modelMode,
             presetId,
             userRequest,
-            variant
+            variant,
+            identitySafe
         })
     )
 

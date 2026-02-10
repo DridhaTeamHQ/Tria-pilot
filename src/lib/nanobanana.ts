@@ -107,7 +107,7 @@ export async function generateTryOn(options: TryOnOptions): Promise<string> {
     // Generate unique identity anchor for this session
     const identityAnchor = `SUBJECT-${Date.now().toString(36).toUpperCase()}`
 
-    let simplePrompt: string
+    let simplePrompt = ''
 
     if (isPro) {
       // PRO MODEL: "Context Lock" technique
@@ -174,52 +174,49 @@ Before outputting, verify:
 
 QUALITY: Shot on 85mm lens, visible skin pores, natural lighting, no AI smoothing.
 `
-    } else {
-      // FLASH MODEL: "The Reminders" technique - repeat face check in every section
-      simplePrompt = `VIRTUAL TRY-ON PIPELINE - FLASH MODE
-
+      // FLASH MODEL: "Action-First" technique - Prioritize the CHANGE, then the CONSTRAINT
+      simplePrompt = `GENERATE A NEW IMAGE: VIRTUAL TRY-ON
+      
 ═══════════════════════════════════════════════════════════════════════════════
-🔒 LOCKED ELEMENTS (COPY EXACTLY FROM FIRST IMAGE):
-═══════════════════════════════════════════════════════════════════════════════
-FACE - LOCKED: EXACT same face from first image
-• Same eyes, nose, lips, jawline, skin tone
-• Same hair color and style
-POSE - LOCKED: EXACT same body position
-• Same arm positions, head angle, orientation
-
-═══════════════════════════════════════════════════════════════════════════════
-✏️ EDITABLE ELEMENTS:
+👇 MANDATORY EDITS - CHANGE THESE ELEMENTS:
 ═══════════════════════════════════════════════════════════════════════════════
 `
       if (hasClothingChange) {
-        simplePrompt += `CLOTHING (EDIT): Replace with garment from reference: ${garmentDesc}
-⚠️ REMINDER: Face LOCKED - use EXACT face from first image
+        simplePrompt += `1. CLOTHING: REPLACE the person's outfit with the garment from the reference image.
+   - Match the reference garment EXACTLY (color, pattern, logo).
+   - Draping must look natural on the person's body.
+   - Garment Description: ${garmentDesc}
 
 `
       }
+
       if (hasSceneChange) {
-        simplePrompt += `BACKGROUND (EDIT): ${sceneDescription}
-⚠️ REMINDER: Face LOCKED, Pose LOCKED - only change background
+        simplePrompt += `2. BACKGROUND: TRANSPORT the subject to a new location.
+   - New Scene: ${sceneDescription}
+   - Integrate the person naturally into this new environment.
+   - Lighting must match the new scene.
 
 `
       }
+
       if (hasLightingChange) {
-        simplePrompt += `LIGHTING (EDIT): ${lightingDescription}
-⚠️ REMINDER: Face LOCKED - same person as first image
+        simplePrompt += `3. LIGHTING: APPLY new lighting style.
+   - Style: ${lightingDescription}
+   - Ensure shadows match the new light source.
 
 `
       }
 
       simplePrompt += `
 ═══════════════════════════════════════════════════════════════════════════════
-FINAL CHECK:
+🔒 IDENTITY PRESERVATION (KEEP FACE):
 ═══════════════════════════════════════════════════════════════════════════════
-🔒 Face = EXACT match to first image (locked)
-🔒 Pose = EXACT same position (locked)
-✏️ Clothing = from reference (edited)
-✏️ Background = as specified (edited)
+While changing the clothes and background, you MUST PRESERVE the person's identity:
+- The face must match the FIRST image.
+- Skin tone and features must remain consistent.
+- Do NOT change the person's pose.
 
-QUALITY: Realistic photograph, visible skin texture, natural lighting.
+OUTPUT: A photorealistic image of the person from Image 1, wearing the new clothes, in the new background.
 `
     }
 
