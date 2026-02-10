@@ -1,13 +1,13 @@
 /**
  * PRODUCTS API
  * 
- * GET - List products for authenticated brand
  * POST - Create new product
  * 
- * Uses Supabase only - no Prisma
+ * DEPRECATED: GET (Use Server Components instead)
  */
 import { NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/lib/auth'
+import { revalidatePath } from 'next/cache'
+import { createClient } from '@/lib/auth'
 import { z } from 'zod'
 
 const productSchema = z.object({
@@ -23,53 +23,6 @@ const productSchema = z.object({
     images: z.array(z.string()).optional(),
 })
 
-
-export async function GET() {
-    try {
-        const supabase = await createClient()
-        const {
-            data: { user },
-            error: authError,
-        } = await supabase.auth.getUser()
-
-        if (authError || !user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
-
-        // Get brand profile
-        const service = createServiceClient()
-        const { data: profile } = await service
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single()
-
-        if (!profile || profile.role !== 'brand') {
-            return NextResponse.json({ error: 'Only brands can access products' }, { status: 403 })
-        }
-
-        // Fetch products for this brand
-        const { data: products, error: productsError } = await service
-            .from('products')
-            .select('*')
-            .eq('brand_id', user.id)
-            .order('created_at', { ascending: false })
-
-        if (productsError) {
-            console.error('Products fetch error:', productsError)
-            return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 })
-        }
-
-        return NextResponse.json({ products: products || [] })
-    } catch (error) {
-        console.error('Products API error:', error)
-        return NextResponse.json(
-            { error: error instanceof Error ? error.message : 'Internal server error' },
-            { status: 500 }
-        )
-    }
-}
-
 export async function POST(request: Request) {
     try {
         const supabase = await createClient()
@@ -82,15 +35,15 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        // Get brand profile
-        const service = createServiceClient()
-        const { data: profile } = await service
+        // Get brand profile using Standard Client (RLS)
+        // If RLS prevents reading own profile, this will fail (as it should if not owner)
+        const { data: profile } = await supabase
             .from('profiles')
             .select('role')
             .eq('id', user.id)
             .single()
 
-        if (!profile || profile.role !== 'brand') {
+        if (!profile || (profile.role || '').toLowerCase() !== 'brand') {
             return NextResponse.json({ error: 'Only brands can create products' }, { status: 403 })
         }
 
@@ -119,8 +72,8 @@ export async function POST(request: Request) {
             active: true,
         }
 
-
-        const { data: product, error: insertError } = await service
+        // Insert using Standard Client (RLS Enforced)
+        const { data: product, error: insertError } = await supabase
             .from('products')
             .insert(productData)
             .select()
@@ -130,6 +83,10 @@ export async function POST(request: Request) {
             console.error('Product insert error:', insertError)
             return NextResponse.json({ error: 'Failed to create product' }, { status: 500 })
         }
+
+        // Clear Server Component Cache
+        revalidatePath('/brand/products')
+        revalidatePath('/brand/dashboard')
 
         return NextResponse.json({ product }, { status: 201 })
     } catch (error) {

@@ -1,8 +1,6 @@
-'use client'
-
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { createClient } from '@/lib/auth'
 import {
   Package,
   Users,
@@ -10,91 +8,75 @@ import {
   Target,
   Inbox,
   User,
-  Loader2,
   ArrowRight,
   TrendingUp
 } from 'lucide-react'
 
-interface DashboardStats {
-  products: number
-  campaigns: number
-  conversations: number
-}
+// Server Component - No 'use client'
+export const dynamic = 'force-dynamic' // Ensure real-time data
 
-interface ProfileData {
-  companyName?: string
-  brandType?: string
-  vertical?: string
-}
+export default async function BrandDashboard() {
+  const supabase = await createClient()
 
-export default function BrandDashboard() {
-  const router = useRouter()
-  const [loading, setLoading] = useState(true)
-  const [profile, setProfile] = useState<ProfileData | null>(null)
-  const [stats, setStats] = useState<DashboardStats>({
-    products: 0,
-    campaigns: 0,
-    conversations: 0,
-  })
+  // 1. Auth Check (Parallelizable with data if needed, but safer to block)
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-  useEffect(() => {
-    fetchData()
-  }, [router])
-
-  const fetchData = async () => {
-    try {
-      // Fetch profile
-      const profileRes = await fetch('/api/auth/me')
-      const profileData = await profileRes.json()
-
-      if (!profileRes.ok || !profileData.user) {
-        router.replace('/login?from=brand')
-        return
-      }
-
-      const role = (profileData.profile?.role || '').toLowerCase()
-      if (role !== 'brand') {
-        router.replace('/dashboard')
-        return
-      }
-
-      const brandData = profileData.profile?.brand_data || {}
-      setProfile({
-        companyName: brandData.companyName || profileData.user?.name || 'Brand',
-        brandType: brandData.brandType || '',
-        vertical: brandData.vertical || '',
-      })
-
-      // Fetch stats in parallel
-      const [productsRes, conversationsRes] = await Promise.all([
-        fetch('/api/brand/products').catch(() => ({ ok: false, json: async () => ({}) })),
-        fetch('/api/conversations').catch(() => ({ ok: false, json: async () => ({}) })),
-      ])
-
-      const [productsData, conversationsData] = await Promise.all([
-        productsRes.ok ? productsRes.json() : { products: [] },
-        conversationsRes.ok ? conversationsRes.json() : { conversations: [] },
-      ])
-
-      setStats({
-        products: productsData.products?.length || 0,
-        campaigns: 0, // Will be updated when campaigns are implemented
-        conversations: conversationsData.conversations?.length || 0,
-      })
-
-      setLoading(false)
-    } catch (err) {
-      console.error('Failed to fetch dashboard data:', err)
-      setLoading(false)
-    }
+  if (authError || !user) {
+    redirect('/login?from=brand')
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-black" />
-      </div>
-    )
+  // 2. Fetch Profile & Stats in Parallel
+  // We use Promise.all to avoid waterfalls
+  const [
+    profileReq,
+    productsCountReq,
+    conversationsCountReq,
+    campaignsCountReq
+  ] = await Promise.all([
+    // A. Profile
+    supabase
+      .from('profiles')
+      .select('role, brand_data, name')
+      .eq('id', user.id)
+      .single(),
+
+    // B. Products Count
+    supabase
+      .from('products')
+      .select('*', { count: 'exact', head: true })
+      .eq('brand_id', user.id),
+
+    // C. Conversations Count (Secure RLS check: my ID matches brand OR influencer)
+    supabase
+      .from('conversations')
+      .select('*', { count: 'exact', head: true })
+      .or(`brand_id.eq.${user.id},influencer_id.eq.${user.id}`),
+
+    // D. Campaigns Count
+    supabase
+      .from('Campaign')
+      .select('*', { count: 'exact', head: true })
+      .eq('brandId', user.id)
+  ])
+
+  const profile = profileReq.data
+
+  // 3. Role Guardrail
+  // If not a brand, kick them out.
+  if (!profile || (profile.role || '').toLowerCase() !== 'brand') {
+    redirect('/dashboard')
+  }
+
+  // 4. Transform Data
+  const brandData = (profile.brand_data as any) || {}
+  const companyName = brandData.companyName || profile.name || 'Brand'
+  const brandType = brandData.brandType || ''
+  const vertical = brandData.vertical || ''
+
+  const stats = {
+    products: productsCountReq.count || 0,
+    conversations: conversationsCountReq.count || 0,
+    campaigns: campaignsCountReq.count || 0
   }
 
   const quickActions = [
@@ -154,17 +136,18 @@ export default function BrandDashboard() {
     },
   ]
 
+  // Render UI directly (Server Side Rendered)
   return (
     <div className="container mx-auto px-6 py-8">
       {/* Welcome Header */}
       <div className="mb-10">
         <h1 className="text-4xl font-black text-black mb-2">
-          Welcome back, {profile?.companyName}!
+          Welcome back, {companyName}!
         </h1>
         <p className="text-black/60 font-medium text-lg">
-          {profile?.brandType && `${profile.brandType}`}
-          {profile?.vertical && ` • ${profile.vertical}`}
-          {!profile?.brandType && !profile?.vertical && 'Your brand command center'}
+          {brandType && `${brandType}`}
+          {vertical && ` • ${vertical}`}
+          {!brandType && !vertical && 'Your brand command center'}
         </p>
       </div>
 

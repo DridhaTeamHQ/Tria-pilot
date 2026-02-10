@@ -1,12 +1,14 @@
 /**
  * PRODUCT BY ID API
  * 
- * GET - Get single product
  * PUT - Update product
  * DELETE - Delete product
+ * 
+ * DEPRECATED: GET (Use Server Components)
  */
 import { NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/lib/auth'
+import { revalidatePath } from 'next/cache'
+import { createClient } from '@/lib/auth'
 import { z } from 'zod'
 
 const updateSchema = z.object({
@@ -26,38 +28,6 @@ const updateSchema = z.object({
 
 interface Params {
     params: Promise<{ id: string }>
-}
-
-export async function GET(request: Request, { params }: Params) {
-    try {
-        const { id } = await params
-        const supabase = await createClient()
-        const {
-            data: { user },
-            error: authError,
-        } = await supabase.auth.getUser()
-
-        if (authError || !user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
-
-        const service = createServiceClient()
-        const { data: product, error } = await service
-            .from('products')
-            .select('*')
-            .eq('id', id)
-            .eq('brand_id', user.id)
-            .single()
-
-        if (error || !product) {
-            return NextResponse.json({ error: 'Product not found' }, { status: 404 })
-        }
-
-        return NextResponse.json({ product })
-    } catch (error) {
-        console.error('Product GET error:', error)
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-    }
 }
 
 export async function PUT(request: Request, { params }: Params) {
@@ -83,27 +53,15 @@ export async function PUT(request: Request, { params }: Params) {
             )
         }
 
-        const service = createServiceClient()
-
-        // Verify ownership
-        const { data: existing } = await service
-            .from('products')
-            .select('id')
-            .eq('id', id)
-            .eq('brand_id', user.id)
-            .single()
-
-        if (!existing) {
-            return NextResponse.json({ error: 'Product not found' }, { status: 404 })
-        }
-
-        const { data: product, error } = await service
+        // Update using Standard Client (RLS Enforced)
+        const { data: product, error } = await supabase
             .from('products')
             .update({
                 ...parsed.data,
                 updated_at: new Date().toISOString(),
             })
             .eq('id', id)
+            .eq('brand_id', user.id) // RLS should enforce this, but explicit check is good
             .select()
             .single()
 
@@ -111,6 +69,10 @@ export async function PUT(request: Request, { params }: Params) {
             console.error('Product update error:', error)
             return NextResponse.json({ error: 'Failed to update product' }, { status: 500 })
         }
+
+        // Clear Cache
+        revalidatePath('/brand/products')
+        revalidatePath('/brand/dashboard')
 
         return NextResponse.json({ product })
     } catch (error) {
@@ -132,9 +94,8 @@ export async function DELETE(request: Request, { params }: Params) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        const service = createServiceClient()
-
-        const { error } = await service
+        // Delete using Standard Client (RLS Enforced)
+        const { error } = await supabase
             .from('products')
             .delete()
             .eq('id', id)
@@ -144,6 +105,10 @@ export async function DELETE(request: Request, { params }: Params) {
             console.error('Product delete error:', error)
             return NextResponse.json({ error: 'Failed to delete product' }, { status: 500 })
         }
+
+        // Clear Cache
+        revalidatePath('/brand/products')
+        revalidatePath('/brand/dashboard')
 
         return NextResponse.json({ success: true })
     } catch (error) {

@@ -38,6 +38,7 @@ const PUBLIC_PREFIXES = [
     '/auth',
     '/api/auth',
     '/marketplace',
+    '/signup',
 ]
 
 function isPublicPath(pathname: string): boolean {

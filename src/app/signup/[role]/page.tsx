@@ -81,29 +81,26 @@ export default function SignupPage() {
             if (authError) throw new Error(authError.message)
             if (!authData.user) throw new Error('Failed to create account')
 
-            // 2. Insert Profile (Same Client = No Foreign Key Error)
+            // 2. Create/Update Profile (Handle Trigger Race Condition)
             const roleLowercase = role as 'influencer' | 'brand'
             const approvalStatus = roleLowercase === 'influencer' ? 'none' : 'approved'
 
+            // Use UPSERT to handle race condition with handle_new_user trigger
             const { error: profileError } = await supabase
                 .from('profiles')
-                .insert({
+                .upsert({
                     id: authData.user.id,
                     email: formData.email.trim().toLowerCase(),
                     role: roleLowercase,
                     onboarding_completed: false,
                     approval_status: approvalStatus,
+                }, {
+                    onConflict: 'id'
                 })
 
             if (profileError) {
-                // If trigger already created it, ignore duplicate error
-                if (profileError.code === '23505') {
-                    console.log('Profile created by trigger, continuing...')
-                } else {
-                    console.error('Profile creation error:', profileError)
-                    // Don't block success, user exists. 
-                    toast.warning('Account created, but profile sync failed. Please contact support if issues persist.')
-                }
+                console.error('Profile creation/update error:', profileError)
+                toast.warning('Account created, but profile sync failed. Please contact support.')
             }
 
             toast.success('Account created! Please check your email.')
