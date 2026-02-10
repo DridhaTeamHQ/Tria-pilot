@@ -34,7 +34,10 @@ export default async function MarketplacePage({
 
   const supabase = await createClient()
 
-  // Build products query
+  // Build products query — only fetch lightweight columns.
+  // IMPORTANT: Do NOT fetch `images` here. That column contains base64 data
+  // (multi-MB per product) and is only needed on the product detail page.
+  // `cover_image` is kept because most products store a short Supabase URL there.
   let query = supabase
     .from('products')
     .select(`
@@ -44,7 +47,6 @@ export default async function MarketplacePage({
       category,
       price,
       cover_image,
-      images,
       brand_id,
       brand:brand_id (
         id,
@@ -66,8 +68,6 @@ export default async function MarketplacePage({
 
   // Just fetch products — NO auth check needed here.
   // /marketplace is already in PUBLIC_PREFIXES (middleware.ts line 40)
-  // The page should be accessible to all users, logged in or not.
-  // Auth-aware features (like try-on) are handled by child components.
   const { data: products, error: productsError } = await query
 
   if (productsError) {
@@ -82,12 +82,14 @@ export default async function MarketplacePage({
     const brandData = p.brand?.brand_data as Record<string, any> || {}
     const companyName = brandData.companyName || 'Unknown Brand'
 
-    const productImages: ProductImage[] = (p.images || []).map((url: string, index: number) => ({
-      id: `${p.id}-img-${index}`,
-      imagePath: url
-    }))
-
-    const mainImage = p.cover_image || (productImages.length > 0 ? productImages[0].imagePath : '')
+    // Use cover_image directly — it's usually a Supabase storage URL.
+    // Skip base64 images that are over 1KB (they bloat SSR HTML).
+    let mainImage = p.cover_image || ''
+    if (mainImage.startsWith('data:') && mainImage.length > 1024) {
+      // This is an inline base64 image — too large for SSR.
+      // Use empty string to trigger the skeleton/fallback in ProductCard.
+      mainImage = ''
+    }
 
     return {
       id: p.id,
@@ -104,7 +106,8 @@ export default async function MarketplacePage({
           slug: null
         }
       },
-      images: productImages
+      // Don't pass images on listing — they're only needed on detail page
+      images: []
     }
   })
 
