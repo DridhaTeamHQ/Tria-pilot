@@ -27,9 +27,6 @@ export async function PATCH(request: Request) {
 
     const service = createServiceClient()
     const body = await request.json().catch(() => null)
-    if (!body) {
-      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
-    }
     const { name } = updateProfileSchema.parse(body)
 
     // Update profile in Supabase

@@ -43,9 +43,6 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json().catch(() => null)
-    if (!body) {
-      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
-    }
     const parsed = requestSchema.parse(body)
     const { influencerId, brandId, productId, budget, timeline, goals, notes } = parsed
 
@@ -329,9 +326,6 @@ export async function PATCH(request: Request) {
     if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await request.json().catch(() => null)
-    if (!body) {
-      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
-    }
     const { id, status } = z.object({
       id: z.string(),
       status: z.enum(['accepted', 'declined'])

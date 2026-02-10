@@ -23,9 +23,6 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json().catch(() => null)
-    if (!body) {
-      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
-    }
     const { newEmail, password } = schema.parse(body)
 
     // Re-authenticate by password to confirm identity (security)

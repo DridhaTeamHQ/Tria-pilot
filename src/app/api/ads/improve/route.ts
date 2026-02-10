@@ -31,9 +31,6 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json().catch(() => null)
-    if (!body) {
-      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
-    }
     const { adImage, productType, niche, audience } = improveSchema.parse(body)
 
     // Generate structured improvement suggestions using GPT-4 Vision

@@ -16,9 +16,6 @@ export async function POST(request: Request) {
     const supabase = await createClient()
 
     const body = await request.json().catch(() => null)
-    if (!body) {
-      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
-    }
     const { password, token_hash, type } = schema.parse(body)
 
     // If token is provided, verify it (supports direct /reset-password?token_hash=... links).

@@ -33,9 +33,6 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json().catch(() => null)
-    if (!body) {
-      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
-    }
     const parsed = createProductSchema.parse(body)
     const { name, description, category, link, tags, audience, images } = parsed
 
@@ -241,9 +238,6 @@ export async function PATCH(request: Request) {
     if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await request.json().catch(() => null)
-    if (!body || typeof body !== 'object') {
-      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
-    }
     const { id, ...updateData } = body
 
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })

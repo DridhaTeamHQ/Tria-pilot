@@ -98,42 +98,6 @@ export interface TryOnPipelineResult {
   }
 }
 
-const IDENTITY_SAFE_FORBIDDEN_TERMS = [
-  'jawline',
-  'cheeks',
-  'face shape',
-  'expression',
-  'handsome',
-  'sharp',
-  'perfect',
-  'symmetry'
-]
-
-const IDENTITY_SAFE_FACIAL_DESCRIPTOR_PATTERN =
-  /\b(face|facial|jaw|jawline|cheek|cheeks|chin|nose|lips?|eyes?|eyebrow|forehead|temple|expression)\b/gi
-
-function sanitizeIdentitySafePrompt(input?: string): string {
-  let cleaned = input || ''
-  for (const term of IDENTITY_SAFE_FORBIDDEN_TERMS) {
-    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    cleaned = cleaned.replace(new RegExp(`\\b${escaped}\\b`, 'gi'), '')
-  }
-  cleaned = cleaned.replace(IDENTITY_SAFE_FACIAL_DESCRIPTOR_PATTERN, '')
-  return cleaned.replace(/\s+/g, ' ').trim()
-}
-
-function assertIdentitySafePrompt(prompt: string): void {
-  for (const term of IDENTITY_SAFE_FORBIDDEN_TERMS) {
-    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    if (new RegExp(`\\b${escaped}\\b`, 'i').test(prompt)) {
-      throw new Error(`IDENTITY_SAFE_PROMPT_BLOCKED: forbidden term "${term}"`)
-    }
-  }
-  if (IDENTITY_SAFE_FACIAL_DESCRIPTOR_PATTERN.test(prompt)) {
-    throw new Error('IDENTITY_SAFE_PROMPT_BLOCKED: facial descriptor detected')
-  }
-}
-
 /**
  * FAST TRY-ON PIPELINE (PHASE 4 ARCHITECTURE)
  * 
@@ -158,10 +122,6 @@ export async function runTryOnPipelineV3(params: {
   userId?: string
   /** Skip garment preprocessing (escape hatch, not recommended) */
   skipGarmentPreprocessing?: boolean
-  /** Final render guard: Flash must never be used for final influencer output. */
-  finalRender?: boolean
-  /** Influencer identity-safe mode: disable face analysis and facial prompt authority. */
-  identitySafe?: boolean
 }): Promise<TryOnPipelineResult> {
   const startTime = Date.now()
 
@@ -173,20 +133,8 @@ export async function runTryOnPipelineV3(params: {
     quality,
     useIdentityCropping = true,  // Default ON for identity preservation
     userId = 'anonymous',
-    skipGarmentPreprocessing = false,  // Default: preprocessing enabled
-    finalRender = false,
-    identitySafe = false
+    skipGarmentPreprocessing = false  // Default: preprocessing enabled
   } = params
-
-  if (identitySafe) {
-    console.log('INFLUENCER TRY-ON IDENTITY SAFE MODE: ACTIVE')
-  }
-
-  // HARD STOP: Flash pipeline must never be used for final render
-  // FLASH MUST NEVER RENDER FINAL IMAGE
-  if (finalRender) {
-    throw new Error('FINAL_RENDER_FORBIDDEN: flash pipeline cannot be used for final render')
-  }
 
   // ═══════════════════════════════════════════════════════════════
   // GARMENT PREPROCESSING LAYER (NEW)
@@ -227,10 +175,7 @@ export async function runTryOnPipelineV3(params: {
   let identityHash: string | undefined
   let identityCached = false
 
-  if (identitySafe) {
-    // IDENTITY-SAFE MODE: DISABLED TO PREVENT FACE DRIFT
-    console.log('IDENTITY-SAFE MODE: using original person image only (no identity cropping)')
-  } else if (useIdentityCropping) {
+  if (useIdentityCropping) {
     try {
       // Try full cropping with Sharp
       const cropped = await cropIdentityRegion(subjectImageBase64)
@@ -264,38 +209,33 @@ export async function runTryOnPipelineV3(params: {
   let faceAnalysis: FaceAnalysisResult | null = null
   let complexityAnalysis: ComplexityAnalysisResult | null = null
 
-  if (identitySafe) {
-    // IDENTITY-SAFE MODE: DISABLED TO PREVENT FACE DRIFT
-    console.log('IDENTITY-SAFE MODE: skipped scene/face/complexity analysis')
-  } else {
-    try {
-      console.log(`\n🎬 INTELLIGENT SCENE ANALYSIS: Starting...`)
+  try {
+    console.log(`\n🎬 INTELLIGENT SCENE ANALYSIS: Starting...`)
 
-      // Analyze the ENTIRE input image to understand context
-      sceneAnalysis = await analyzeScene(
-        subjectImageBase64,
-        `pipeline-${startTime}`
-      )
-      logSceneAnalysis(sceneAnalysis, `pipeline-${startTime}`)
+    // Analyze the ENTIRE input image to understand context
+    sceneAnalysis = await analyzeScene(
+      subjectImageBase64,
+      `pipeline-${startTime}`
+    )
+    logSceneAnalysis(sceneAnalysis, `pipeline-${startTime}`)
 
-      // Also do body-aware face analysis
-      faceAnalysis = await analyzeUserFace(
-        subjectImageBase64,
-        `pipeline-${startTime}`
-      )
-      logFaceAnalysis(faceAnalysis, `pipeline-${startTime}`)
+    // Also do body-aware face analysis
+    faceAnalysis = await analyzeUserFace(
+      subjectImageBase64,
+      `pipeline-${startTime}`
+    )
+    logFaceAnalysis(faceAnalysis, `pipeline-${startTime}`)
 
-      // Analyze image complexity for alerts
-      complexityAnalysis = await analyzeImageComplexity(
-        subjectImageBase64,
-        `pipeline-${startTime}`
-      )
-      logComplexityAnalysis(complexityAnalysis, `pipeline-${startTime}`)
+    // Analyze image complexity for alerts
+    complexityAnalysis = await analyzeImageComplexity(
+      subjectImageBase64,
+      `pipeline-${startTime}`
+    )
+    logComplexityAnalysis(complexityAnalysis, `pipeline-${startTime}`)
 
-      console.log(`   ✅ Scene + Face + Complexity analysis complete`)
-    } catch (analysisError) {
-      console.warn(`   ⚠️ Analysis failed, using fallback:`, analysisError)
-    }
+    console.log(`   ✅ Scene + Face + Complexity analysis complete`)
+  } catch (analysisError) {
+    console.warn(`   ⚠️ Analysis failed, using fallback:`, analysisError)
   }
 
   // Extract preset values - ID is critical for scene lookup in renderer
@@ -324,13 +264,6 @@ export async function runTryOnPipelineV3(params: {
   console.log(`📊 Cache stats: ${JSON.stringify(getCacheStats())}`)
   console.log(`=====================================\n`)
 
-  const safeUserRequest = identitySafe
-    ? sanitizeIdentitySafePrompt(userRequest)
-    : userRequest
-  if (identitySafe && safeUserRequest) {
-    assertIdentitySafePrompt(safeUserRequest)
-  }
-
   // Single render call - PHASE 5: Cropped identity + Preprocessed Garment
   const image = await renderTryOnFast({
     subjectImageBase64: processedIdentityImage, // Image 1: Cropped identity
@@ -341,7 +274,7 @@ export async function runTryOnPipelineV3(params: {
     aspectRatio: quality.aspectRatio,
     resolution: quality.resolution,
     stylePresetId: presetId,
-    userRequest: safeUserRequest, // Pass sanitized request in identity-safe mode
+    userRequest: userRequest, // Pass userRequest containing all constraint prompts and preset info
     garmentEnforcementBlock, // Strict pattern/color enforcement
   })
 

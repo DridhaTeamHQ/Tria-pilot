@@ -36,14 +36,9 @@ interface Product {
 function TryOnPageContent() {
     const router = useRouter()
     const { data: user } = useUser()
-    const [clientReady, setClientReady] = useState(false)
     const searchParams = useSearchParams()
     const productId = searchParams.get('productId')
     const [approvalChecked, setApprovalChecked] = useState(false)
-
-    useEffect(() => {
-        setClientReady(true)
-    }, [])
 
     // Check influencer approval status
     // Check influencer approval status
@@ -570,7 +565,7 @@ function TryOnPageContent() {
     }
 
     // Show loading while checking approval (must be after all hooks are declared)
-    if (clientReady && !approvalChecked && user?.role === 'INFLUENCER') {
+    if (!approvalChecked && user?.role === 'INFLUENCER') {
         return (
             <div className="min-h-screen flex items-center justify-center bg-[#FDFBF7]">
                 <div className="text-center">

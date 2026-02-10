@@ -13,11 +13,8 @@ import { getTryOnPresetV3 } from '@/lib/tryon/presets'
 import { normalizeBase64 } from '@/lib/image-processing'
 import { runTryOnPipelineV3 } from '@/lib/tryon/pipeline'
 import { saveUpload } from '@/lib/storage'
-import { hashImageForGarment, getGarmentByHash, fetchImageAsBase64 } from '@/lib/garments'
 // NEW: Production pipeline with ChatGPT Image 1.5 and face preservation
 import { runProductionTryOnPipeline } from '@/lib/tryon/production-tryon-pipeline'
-// NEW: Hybrid pipeline (Flash garment extraction + Nano Banana Pro)
-import { runHybridTryOnPipeline } from '@/lib/tryon/hybrid-tryon-pipeline'
 import { getVariantSpec, buildVariantPromptModifier, VARIANT_IDENTITY_LOCK, logVariantGeneration } from '@/lib/tryon/variant-specs'
 // IPCR-X Architecture imports
 import { buildPipelineV4, enforceTemperature, IDENTITY_VERIFICATION_SUFFIX, type Variant } from '@/lib/tryon/pipeline-v4'
@@ -198,9 +195,6 @@ export async function POST(request: Request) {
     const generationRequestId = gateResult.requestId
 
     const body = await request.json().catch(() => null)
-    if (!body) {
-      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
-    }
     const {
       personImage,
       personImages,
@@ -209,8 +203,6 @@ export async function POST(request: Request) {
       backgroundImage,
       accessoryImages,
       accessoryTypes,
-      useHybridPipeline,
-      brandDna,
       model,
       stylePreset,
       userRequest,
@@ -228,16 +220,6 @@ export async function POST(request: Request) {
     const geminiModel = 'gemini-2.5-flash-image'
     const effectiveModel = model === 'production' ? 'production' : 'flash'
     console.log(`📊 Selected model: ${effectiveModel} (${geminiModel})`)
-    const identitySafe = true
-    console.log('INFLUENCER TRY-ON IDENTITY SAFE MODE: ACTIVE')
-    // IDENTITY-CRITICAL — DO NOT MODIFY
-    // Exactly one identity anchor is allowed for influencer try-on.
-    if (identitySafe && Array.isArray(personImages) && personImages.length > 0) {
-      throw new Error('MULTIPLE_IDENTITY_ANCHORS_FORBIDDEN: additional person reference images are not allowed')
-    }
-    if (identitySafe && typeof expression === 'string' && expression.trim().length > 0) {
-      throw new Error('FACE_SEMANTIC_FIELD_FORBIDDEN: expression is not allowed in influencer identity-safe mode')
-    }
 
     const presetV3 = stylePreset ? getTryOnPresetV3(stylePreset) : undefined
     if (stylePreset) {
@@ -304,20 +286,6 @@ export async function POST(request: Request) {
         throw new Error(`Invalid clothing image: ${error instanceof Error ? error.message : 'Invalid image data'}`)
       }
 
-      // Garment deduplication: reuse cached clean garment when same image hash exists (cost control).
-      if (normalizedClothing) {
-        const clothingHash = hashImageForGarment(normalizedClothing)
-        const cachedGarment = await getGarmentByHash(clothingHash)
-        if (cachedGarment?.clean_garment_image_url) {
-          try {
-            normalizedClothing = await fetchImageAsBase64(cachedGarment.clean_garment_image_url)
-            console.log(`✓ Garment cache hit (hash ${clothingHash.slice(0, 12)}…), using stored asset`)
-          } catch {
-            // Keep normalizedClothing as-is if fetch fails (e.g. URL expired)
-          }
-        }
-      }
-
       try {
         normalizedBackground = backgroundImage ? normalizeBase64(backgroundImage) : undefined
       } catch (error) {
@@ -347,132 +315,7 @@ export async function POST(request: Request) {
           background_focus: 'moderate_bokeh',
         }
 
-      // DO NOT TOUCH: Influencer identity-safe flow requires dual-stage pipeline
-      // (Flash extraction + Nano Banana Pro final render).
-      const useHybridPipelineEnabled = identitySafe ? true : useHybridPipeline === true
-      const forceProductionForIdentity = effectiveModel === 'flash' && !useHybridPipelineEnabled
-      const useProductionPipeline = model === 'production' || body.useProductionPipeline === true || forceProductionForIdentity
-      const finalRenderEngine: string = 'nano-banana-pro'
-      console.log(`FINAL RENDER ENGINE: ${finalRenderEngine}`)
-      if (identitySafe && finalRenderEngine === 'flash') {
-        console.error('FINAL RENDER ENGINE ASSERTION FAILED: flash is forbidden for influencer final render')
-        throw new Error('FINAL_RENDER_FORBIDDEN: flash final render is not allowed for influencer try-on')
-      }
-      if (identitySafe && finalRenderEngine !== 'nano-banana-pro') {
-        console.error(`FINAL RENDER ENGINE ASSERTION FAILED: expected nano-banana-pro, got ${finalRenderEngine}`)
-        throw new Error(`FATAL_IDENTITY_SAFE_ENGINE_MISMATCH: ${finalRenderEngine}`)
-      }
-      if (forceProductionForIdentity) {
-        console.log('FLASH_FINAL_RENDER_DISABLED: routing to nano-banana-pro')
-      }
-
-      if (useHybridPipelineEnabled) {
-        // FINAL RENDER ENGINE (MUST NOT BE FLASH)
-        // FLASH MUST NEVER RENDER FINAL IMAGE
-        console.log('FINAL_RENDER_ENGINE: nano-banana-pro')
-        if (effectiveModel === 'flash') {
-          console.log('FLASH_FINAL_RENDER_DISABLED: routing to nano-banana-pro')
-        }
-        console.log('Hybrid pipeline: Flash garment extraction + Nano Banana Pro')
-
-        try {
-          const hybridResult = await runHybridTryOnPipeline({
-            personImageBase64: normalizedPerson,
-            clothingImageBase64: normalizedClothing,
-            brandDna,
-            preset: preset ? {
-              id: preset.id,
-              background_name: preset.background_name,
-              lighting_name: preset.lighting_name,
-              style_pack: preset.style_pack,
-              background_focus: preset.background_focus,
-            } : undefined,
-            userRequest,
-            identitySafe
-          })
-
-          let imageUrl: string | null = null
-          const imagePath = `tryon/${userId}/${job.id}_hybrid.png`
-
-          try {
-            if (hybridResult.image) {
-              imageUrl = await saveUpload(hybridResult.image, imagePath, 'try-ons')
-              console.log(`✓ Hybrid result saved to storage`)
-            }
-          } catch (saveErr) {
-            console.warn('⚠️ Failed to save hybrid image to storage, using base64')
-          }
-
-          completeGeneration(
-            userId,
-            generationRequestId,
-            hybridResult.success ? 'success' : 'failed',
-            1
-          )
-
-          await service
-            .from('generation_jobs')
-            .update({
-              status: hybridResult.success ? 'completed' : 'completed_with_warnings',
-              output_image_path: imageUrl || 'base64://hybrid',
-              settings: {
-                ...(job.settings as object),
-                outcome: {
-                  pipeline: 'hybrid-v1',
-                  status: hybridResult.status,
-                  faceOverwritten: hybridResult.debug.faceOverwritten,
-                  totalTimeMs: hybridResult.debug.totalTimeMs,
-                  garmentHash: hybridResult.debug.garmentHash,
-                  garmentCacheHit: hybridResult.debug.garmentCacheHit,
-                  warnings: hybridResult.warnings
-                }
-              }
-            })
-            .eq('id', job.id)
-
-          return NextResponse.json({
-            success: hybridResult.success,
-            jobId: job.id,
-            imageUrl: imageUrl || undefined,
-            base64Image: hybridResult.image,
-            status: hybridResult.status,
-            warnings: hybridResult.warnings,
-            remainingToday: gateResult.remainingToday - 1,
-            variants: [{
-              imageUrl: imageUrl || undefined,
-              base64Image: hybridResult.image,
-              variantId: 0,
-              label: 'Hybrid (Nano Banana Pro)'
-            }],
-            debug: {
-              pipeline: 'hybrid-v1',
-              faceOverwritten: hybridResult.debug.faceOverwritten,
-              totalTimeMs: hybridResult.debug.totalTimeMs,
-              garmentHash: hybridResult.debug.garmentHash,
-              garmentCacheHit: hybridResult.debug.garmentCacheHit,
-              stages: hybridResult.debug.stages.length
-            }
-          })
-        } catch (hybridError) {
-          console.error('❌ Hybrid pipeline failed:', hybridError)
-
-          completeGeneration(userId, generationRequestId, 'failed', 0)
-
-          await service
-            .from('generation_jobs')
-            .update({
-              status: 'failed',
-              error_message: hybridError instanceof Error ? hybridError.message : 'Hybrid pipeline failed'
-            })
-            .eq('id', job.id)
-
-          return NextResponse.json({
-            success: false,
-            error: 'Hybrid pipeline failed. Try again or use standard mode.',
-            details: hybridError instanceof Error ? hybridError.message : undefined
-          }, { status: 500 })
-        }
-      }
+      const useProductionPipeline = model === 'production' || body.useProductionPipeline === true
 
       if (useProductionPipeline) {
         console.log('🎯 Production pipeline: ChatGPT Image 1.5 + Face Preservation')
@@ -487,8 +330,7 @@ export async function POST(request: Request) {
               background_name: preset.background_name,
               lighting_name: preset.lighting_name
             } : undefined,
-            userRequest,
-            identitySafe
+            userRequest
           })
 
           let imageUrl: string | null = null
@@ -541,7 +383,7 @@ export async function POST(request: Request) {
               imageUrl: imageUrl || undefined,
               base64Image: productionResult.image,
               variantId: 0,
-              label: 'Production (Nano Banana Pro)'
+              label: 'Production (Face Overwritten)'
             }],
             debug: {
               pipeline: 'production-v2',
@@ -569,23 +411,6 @@ export async function POST(request: Request) {
             details: productionError instanceof Error ? productionError.message : undefined
           }, { status: 500 })
         }
-      }
-
-      // HARD STOP: Hybrid must never fall through to Flash-based final render
-      // FLASH MUST NEVER RENDER FINAL IMAGE
-      if (useHybridPipelineEnabled) {
-        throw new Error('FINAL_RENDER_FORBIDDEN: hybrid must not fall through to flash pipeline')
-      }
-
-      // HARD STOP: Flash must never be used for final influencer render
-      // FLASH MUST NEVER RENDER FINAL IMAGE
-      if (effectiveModel === 'flash') {
-        throw new Error('FINAL_RENDER_FORBIDDEN: flash final render is not allowed for influencer try-on')
-      }
-
-      if (identitySafe) {
-        // IDENTITY-SAFE MODE: DISABLED TO PREVENT FACE DRIFT
-        throw new Error('IDENTITY_SAFE_MODE_FORBIDS_FLASH_PIPELINE: influencer try-on must use nano-banana-pro final render only')
       }
 
       // STANDARD GEMINI PIPELINE
@@ -618,8 +443,7 @@ export async function POST(request: Request) {
                 modelMode: 'flash',
                 presetId: stylePreset || 'keep_original',
                 userRequest: userRequest,
-                variant: variantLetter,
-                identitySafe
+                variant: variantLetter
               })
 
               let ragContext = ''
@@ -676,9 +500,6 @@ export async function POST(request: Request) {
                   aspectRatio: (reqAspectRatio || '4:5') as any,
                   resolution: (reqResolution || '2K') as any,
                 },
-                // FLASH MUST NEVER RENDER FINAL IMAGE
-                finalRender: true,
-                identitySafe,
               })
               break
             } catch (err) {
@@ -802,5 +623,3 @@ export async function POST(request: Request) {
     )
   }
 }
-
-

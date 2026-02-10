@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { Loader2 } from 'lucide-react'
 import CampaignChatbot from '@/components/campaigns/CampaignChatbot'
 
 interface Campaign {
@@ -79,26 +78,25 @@ export default function CampaignsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#FDF6EC] pt-24 pb-8 flex items-center justify-center">
-        <Loader2 className="w-12 h-12 animate-spin text-black" />
+      <div className="min-h-screen bg-cream pt-24 pb-8">
+        <div className="container mx-auto px-4 max-w-7xl">
+          <div className="text-center py-12">Loading...</div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#FDF6EC] pt-24 pb-12">
+    <div className="min-h-screen bg-cream pt-24 pb-8">
       <div className="container mx-auto px-4 max-w-7xl">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 border-b-[3px] border-black pb-8">
+        <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-4xl md:text-5xl font-black text-black mb-3 tracking-tight">Campaigns</h1>
-            <p className="text-lg font-medium text-black/80">
-              Manage your marketing campaigns with AI assistance.
+            <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">Campaigns</h1>
+            <p className="text-zinc-600 dark:text-zinc-400 text-sm">
+              Manage your marketing campaigns with AI assistance
             </p>
           </div>
-          <Button
-            onClick={() => setShowForm(!showForm)}
-            className="bg-black text-white border-[3px] border-black hover:bg-[#B4F056] hover:text-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all font-bold text-lg h-14 px-8 shrink-0"
-          >
+          <Button onClick={() => setShowForm(!showForm)} className="shrink-0">
             {showForm ? 'Cancel' : 'Create Campaign'}
           </Button>
         </div>
@@ -108,112 +106,97 @@ export default function CampaignsPage() {
           <div className="lg:col-span-2 space-y-6">
 
             {showForm && (
-              <Card className="border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white overflow-hidden mb-8">
-                <CardHeader className="pb-4 bg-black text-white border-b-[3px] border-black">
-                  <CardTitle className="text-xl font-black uppercase tracking-wide">Create New Campaign</CardTitle>
+              <Card>
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-lg font-semibold">Create New Campaign</CardTitle>
                 </CardHeader>
-                <CardContent className="p-6">
-                  <form onSubmit={handleSubmit} className="space-y-6">
+                <CardContent>
+                  <form onSubmit={handleSubmit} className="space-y-5">
                     <div className="space-y-2">
-                      <Label htmlFor="title" className="text-sm font-bold text-black uppercase tracking-wide">Campaign Title</Label>
+                      <Label htmlFor="title" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Campaign Title</Label>
                       <Input
                         id="title"
                         value={formData.title}
                         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                         required
-                        className="w-full h-12 border-2 border-black font-medium focus-visible:ring-0 focus-visible:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+                        className="w-full"
                         placeholder="e.g., Summer Collection Launch"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="goals" className="text-sm font-bold text-black uppercase tracking-wide">Goals (comma-separated)</Label>
+                      <Label htmlFor="goals" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Goals (comma-separated)</Label>
                       <Input
                         id="goals"
                         value={formData.goals}
                         onChange={(e) => setFormData({ ...formData, goals: e.target.value })}
-                        className="w-full h-12 border-2 border-black font-medium focus-visible:ring-0 focus-visible:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+                        className="w-full"
                         placeholder="e.g., Brand awareness, Sales increase"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="targetAudience" className="text-sm font-bold text-black uppercase tracking-wide">Target Audience</Label>
+                      <Label htmlFor="targetAudience" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Target Audience</Label>
                       <Input
                         id="targetAudience"
                         value={formData.targetAudience}
                         onChange={(e) => setFormData({ ...formData, targetAudience: e.target.value })}
-                        className="w-full h-12 border-2 border-black font-medium focus-visible:ring-0 focus-visible:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+                        className="w-full"
                         placeholder="e.g., Women 25-35, Fashion enthusiasts"
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="budget" className="text-sm font-bold text-black uppercase tracking-wide">Budget (INR)</Label>
-                        <Input
-                          id="budget"
-                          type="number"
-                          value={formData.budget}
-                          onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
-                          className="w-full h-12 border-2 border-black font-medium focus-visible:ring-0 focus-visible:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
-                          placeholder="50000"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="timeline" className="text-sm font-bold text-black uppercase tracking-wide">Timeline</Label>
-                        <Input
-                          id="timeline"
-                          value={formData.timeline}
-                          onChange={(e) => setFormData({ ...formData, timeline: e.target.value })}
-                          className="w-full h-12 border-2 border-black font-medium focus-visible:ring-0 focus-visible:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
-                          placeholder="e.g., 2 months, Q2 2024"
-                        />
-                      </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="budget" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Budget (INR)</Label>
+                      <Input
+                        id="budget"
+                        type="number"
+                        value={formData.budget}
+                        onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+                        className="w-full"
+                        placeholder="50000"
+                      />
                     </div>
-                    <Button type="submit" className="w-full h-14 mt-4 bg-[#FF8C69] hover:bg-[#FFD93D] text-black border-[3px] border-black font-black text-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all">
-                      Create Campaign
-                    </Button>
+                    <div className="space-y-2">
+                      <Label htmlFor="timeline" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Timeline</Label>
+                      <Input
+                        id="timeline"
+                        value={formData.timeline}
+                        onChange={(e) => setFormData({ ...formData, timeline: e.target.value })}
+                        className="w-full"
+                        placeholder="e.g., 2 months, Q2 2024"
+                      />
+                    </div>
+                    <Button type="submit" className="w-full mt-4">Create Campaign</Button>
                   </form>
                 </CardContent>
               </Card>
             )}
 
             {campaigns.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 px-4 bg-white rounded-xl border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-center">
-                <div className="w-20 h-20 bg-[#6EC1E4] rounded-full border-[3px] border-black flex items-center justify-center mb-6">
-                  <span className="text-4xl">📊</span>
-                </div>
-                <h3 className="text-2xl font-black text-black mb-3">No campaigns yet</h3>
-                <p className="text-black/60 font-medium max-w-md mb-8">
+              <div className="flex flex-col items-center justify-center py-16 px-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                <div className="text-4xl mb-4">📊</div>
+                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-2">No campaigns yet</h3>
+                <p className="text-zinc-600 dark:text-zinc-400 text-center max-w-md">
                   Create your first campaign to start working with influencers and track your marketing goals.
                 </p>
-                <Button
-                  onClick={() => setShowForm(true)}
-                  className="bg-[#B4F056] text-black border-[3px] border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all font-bold px-8 py-6 text-lg"
-                >
-                  Start First Campaign
-                </Button>
               </div>
             ) : (
-              <div className="grid gap-6 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-2">
                 {campaigns.map((campaign) => (
-                  <Card key={campaign.id} className="border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all bg-white group cursor-pointer">
-                    <CardHeader className="pb-3 border-b-2 border-black/10">
-                      <div className="flex justify-between items-start gap-4">
-                        <CardTitle className="text-xl font-black">{campaign.title}</CardTitle>
-                        <span className="bg-[#B4F056] px-3 py-1 text-xs font-black border-2 border-black uppercase tracking-wider rounded-md shrink-0">
-                          {campaign.status}
-                        </span>
-                      </div>
+                  <Card key={campaign.id} className="hover:shadow-md transition-shadow">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg mb-1">{campaign.title}</CardTitle>
+                      <CardDescription className="text-xs">
+                        Status: <span className="font-medium capitalize">{campaign.status}</span>
+                      </CardDescription>
                     </CardHeader>
-                    <CardContent className="pt-4">
-                      <p className="text-sm font-medium text-black/70 mb-6 line-clamp-3">{campaign.brief || "No brief available."}</p>
-                      <div className="flex items-center justify-between text-xs font-bold text-black/50 uppercase tracking-wide">
-                        <span>Created: {new Date(campaign.createdAt).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric'
-                        })}</span>
-                        <span className="group-hover:translate-x-1 transition-transform text-black flex items-center gap-1">View Details →</span>
-                      </div>
+                    <CardContent>
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4 line-clamp-3">{campaign.brief}</p>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-500">
+                        Created: {new Date(campaign.createdAt).toLocaleDateString('en-US', { 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })}
+                      </p>
                     </CardContent>
                   </Card>
                 ))}

@@ -81,20 +81,20 @@ const QUALITY_CONFIG: Record<QualityTier, { min: number; max: number; label: str
 // ═══════════════════════════════════════════════════════════════
 
 function QualityBadge({ score }: { score: number }) {
-    let color = 'bg-[#FF8C69] text-black border-black'
+    let color = 'bg-red-500/20 text-red-400 border-red-500/30'
     let label = 'Needs Work'
 
     if (score >= 80) {
-        color = 'bg-[#B4F056] text-black border-black'
+        color = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
         label = 'High Quality'
     } else if (score >= 60) {
-        color = 'bg-[#FFD93D] text-black border-black'
+        color = 'bg-amber-500/20 text-amber-400 border-amber-500/30'
         label = 'Medium Quality'
     }
 
     return (
-        <div className={cn("inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black uppercase border-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]", color)}>
-            <span className="font-black">{score}</span>
+        <div className={cn("inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border", color)}>
+            <span className="font-bold">{score}</span>
             <span>{label}</span>
         </div>
     )
@@ -132,23 +132,23 @@ function CreativeCard({
     }
 
     return (
-        <Card className="overflow-hidden group bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all duration-300">
+        <Card className="overflow-hidden group bg-gradient-to-br from-zinc-900 to-zinc-950 border-zinc-800/50 hover:border-zinc-700/70 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/5">
             {/* Image Container */}
             <div
-                className="relative aspect-[4/5] cursor-pointer overflow-hidden bg-gray-100 border-b-[3px] border-black"
+                className="relative aspect-[4/5] cursor-pointer overflow-hidden bg-zinc-800/50"
                 onClick={onImageClick}
             >
                 {imageLoading && !imageError && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-                        <Loader2 className="h-8 w-8 animate-spin text-black" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/80 backdrop-blur-sm">
+                        <Loader2 className="h-8 w-8 animate-spin text-purple-400" />
                     </div>
                 )}
 
                 {imageError ? (
-                    <div className="w-full h-full flex flex-col items-center justify-center text-black/50 bg-gray-50 p-4">
-                        <AlertCircle className="h-12 w-12 mb-3 text-red-500" />
-                        <p className="text-sm font-bold text-black">Image failed to load</p>
-                        <p className="text-xs text-black/60 mt-2 text-center max-w-[200px] break-all font-mono">
+                    <div className="w-full h-full flex flex-col items-center justify-center text-zinc-500 bg-zinc-900/50 p-4">
+                        <AlertCircle className="h-12 w-12 mb-3 text-red-400/60" />
+                        <p className="text-sm font-medium">Image failed to load</p>
+                        <p className="text-xs text-zinc-600 mt-2 text-center max-w-[200px] break-all">
                             {creative.imageUrl.substring(0, 60)}...
                         </p>
                         <Button
@@ -182,25 +182,22 @@ function CreativeCard({
                 )}
 
                 {/* Hover Overlay */}
-                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <div className="bg-white text-black font-bold px-4 py-2 rounded-lg border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-transform">
-                        <ZoomIn className="h-5 w-5" strokeWidth={2.5} />
-                        View
-                    </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-6">
+                    <ZoomIn className="h-8 w-8 text-white drop-shadow-lg" />
                 </div>
             </div>
 
             <CardContent className="p-5 space-y-4">
                 {/* Metadata Row */}
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm text-black/60 font-bold">
-                        <span className="uppercase tracking-wide">{creative.campaign?.title || 'Unassigned'}</span>
-                        <span className="text-black/30">•</span>
+                    <div className="flex items-center gap-2 text-sm text-zinc-400">
+                        <span className="font-medium">{creative.campaign?.title || 'Unassigned'}</span>
+                        <span className="text-zinc-600">•</span>
                         <span>{relativeDate}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                         {creative.platforms.map(p => (
-                            <span key={p} className="text-black/60 hover:text-black transition-colors bg-gray-100 p-1 rounded border border-black/10">
+                            <span key={p} className="text-zinc-500 hover:text-purple-400 transition-colors">
                                 {PLATFORM_ICONS[p]}
                             </span>
                         ))}
@@ -217,13 +214,13 @@ function CreativeCard({
                         variant="outline"
                         onClick={onRegenerate}
                         disabled={regenerating}
-                        className="flex-1 bg-white border-2 border-black text-black font-bold hover:bg-[#FFD93D] hover:text-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+                        className="flex-1 bg-transparent border-zinc-700 hover:bg-purple-500/10 hover:border-purple-500/50 hover:text-purple-300"
                     >
                         {regenerating ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                             <>
-                                <RefreshCw className="h-4 w-4 mr-2" strokeWidth={2.5} />
+                                <RefreshCw className="h-4 w-4 mr-2" />
                                 Regenerate
                             </>
                         )}
@@ -232,9 +229,9 @@ function CreativeCard({
                         size="icon"
                         variant="ghost"
                         onClick={onDownload}
-                        className="shrink-0 bg-white border-2 border-black text-black hover:bg-[#6EC1E4] hover:text-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all h-9 w-9"
+                        className="shrink-0 text-zinc-400 hover:text-white hover:bg-zinc-800"
                     >
-                        <Download className="h-4 w-4" strokeWidth={2.5} />
+                        <Download className="h-4 w-4" />
                     </Button>
                 </div>
             </CardContent>
@@ -264,19 +261,19 @@ function Lightbox({
 
     return (
         <div
-            className="fixed inset-0 z-50 bg-[#FDF6EC]/90 backdrop-blur-sm flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex items-center justify-center p-4"
             onClick={onClose}
         >
             <button
-                className="absolute top-6 right-6 bg-white text-black border-2 border-black p-2 rounded-full hover:bg-red-500 hover:text-white transition-colors shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                className="absolute top-6 right-6 text-white/70 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10"
                 onClick={onClose}
             >
-                <X className="h-8 w-8" strokeWidth={2.5} />
+                <X className="h-8 w-8" />
             </button>
             <img
                 src={src}
                 alt="Creative preview"
-                className="max-w-full max-h-[85vh] object-contain rounded-xl border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white"
+                className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
                 onClick={(e) => e.stopPropagation()}
             />
         </div>
@@ -419,48 +416,54 @@ export default function CreativesPage() {
     const hasActiveFilters = campaignFilter !== 'all' || platformFilter !== 'all' || qualityFilter !== 'all'
 
     return (
-        <div className="min-h-screen bg-[#FDF6EC] pt-24 pb-12">
+        <div className="min-h-screen bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-950 pt-24 pb-12">
+            {/* Decorative Background */}
+            <div className="fixed inset-0 pointer-events-none overflow-hidden">
+                <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-[120px]" />
+                <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-[120px]" />
+            </div>
+
             <div className="container mx-auto px-4 max-w-7xl relative z-10">
                 {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 border-b-[3px] border-black pb-8">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
                     <div>
-                        <h1 className="text-4xl md:text-5xl font-black text-black mb-3 tracking-tight">
+                        <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-purple-200 to-purple-400 bg-clip-text text-transparent mb-2">
                             Ad Creatives
                         </h1>
-                        <p className="text-lg font-medium text-black/70">
-                            Manage and regenerate your AI-generated assets.
+                        <p className="text-zinc-400">
+                            All generated ad creatives across your campaigns
                         </p>
                     </div>
                     <Button
                         onClick={() => router.push('/brand/ads')}
                         size="lg"
-                        className="bg-black text-white border-[3px] border-black hover:bg-[#B4F056] hover:text-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all font-bold text-lg h-14 px-8"
+                        className="bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white shadow-lg shadow-purple-500/20"
                     >
-                        <Plus className="h-6 w-6 mr-2" strokeWidth={3} />
-                        New Ad
+                        <Plus className="h-5 w-5 mr-2" />
+                        Generate New Ad
                     </Button>
                 </div>
 
                 {/* Filter Bar */}
-                <div className="flex flex-wrap items-center gap-4 mb-10 p-6 bg-white rounded-xl border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <div className="flex flex-wrap items-center gap-3 mb-10 p-5 bg-zinc-900/50 backdrop-blur-sm rounded-2xl border border-zinc-800/50">
                     <Select value={campaignFilter} onValueChange={setCampaignFilter}>
-                        <SelectTrigger className="w-56 bg-white border-2 border-black font-bold shadow-sm focus:ring-0">
+                        <SelectTrigger className="w-48 bg-zinc-800/50 border-zinc-700 hover:border-purple-500/50 transition-colors">
                             <SelectValue placeholder="Campaign" />
                         </SelectTrigger>
-                        <SelectContent className="bg-white border-2 border-black font-medium">
-                            <SelectItem value="all" className="cursor-pointer hover:bg-gray-100">All Campaigns</SelectItem>
-                            <SelectItem value="unassigned" className="cursor-pointer hover:bg-gray-100">Unassigned</SelectItem>
+                        <SelectContent className="bg-zinc-900 border-zinc-800">
+                            <SelectItem value="all">All Campaigns</SelectItem>
+                            <SelectItem value="unassigned">Unassigned</SelectItem>
                             {campaigns.map(c => (
-                                <SelectItem key={c.id} value={c.id} className="cursor-pointer hover:bg-gray-100">{c.title}</SelectItem>
+                                <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
 
                     <Select value={platformFilter} onValueChange={(v) => setPlatformFilter(v as Platform | 'all')}>
-                        <SelectTrigger className="w-44 bg-white border-2 border-black font-bold shadow-sm focus:ring-0">
+                        <SelectTrigger className="w-40 bg-zinc-800/50 border-zinc-700 hover:border-purple-500/50 transition-colors">
                             <SelectValue placeholder="Platform" />
                         </SelectTrigger>
-                        <SelectContent className="bg-white border-2 border-black font-medium">
+                        <SelectContent className="bg-zinc-900 border-zinc-800">
                             <SelectItem value="all">All Platforms</SelectItem>
                             <SelectItem value="instagram">Instagram</SelectItem>
                             <SelectItem value="facebook">Facebook</SelectItem>
@@ -470,10 +473,10 @@ export default function CreativesPage() {
                     </Select>
 
                     <Select value={qualityFilter} onValueChange={(v) => setQualityFilter(v as QualityTier)}>
-                        <SelectTrigger className="w-44 bg-white border-2 border-black font-bold shadow-sm focus:ring-0">
+                        <SelectTrigger className="w-44 bg-zinc-800/50 border-zinc-700 hover:border-purple-500/50 transition-colors">
                             <SelectValue placeholder="Quality" />
                         </SelectTrigger>
-                        <SelectContent className="bg-white border-2 border-black font-medium">
+                        <SelectContent className="bg-zinc-900 border-zinc-800">
                             {Object.entries(QUALITY_CONFIG).map(([key, config]) => (
                                 <SelectItem key={key} value={key}>{config.label}</SelectItem>
                             ))}
@@ -481,10 +484,10 @@ export default function CreativesPage() {
                     </Select>
 
                     <Select value={sortOrder} onValueChange={(v) => setSortOrder(v as 'newest' | 'oldest')}>
-                        <SelectTrigger className="w-40 bg-white border-2 border-black font-bold shadow-sm focus:ring-0">
+                        <SelectTrigger className="w-36 bg-zinc-800/50 border-zinc-700 hover:border-purple-500/50 transition-colors">
                             <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="bg-white border-2 border-black font-medium">
+                        <SelectContent className="bg-zinc-900 border-zinc-800">
                             <SelectItem value="newest">Newest first</SelectItem>
                             <SelectItem value="oldest">Oldest first</SelectItem>
                         </SelectContent>
@@ -497,7 +500,7 @@ export default function CreativesPage() {
                                 setPlatformFilter('all')
                                 setQualityFilter('all')
                             }}
-                            className="text-sm font-bold text-red-500 hover:text-black underline hover:no-underline transition-colors ml-auto"
+                            className="text-sm text-purple-400 hover:text-purple-300 transition-colors ml-auto"
                         >
                             Clear filters
                         </button>
@@ -514,10 +517,10 @@ export default function CreativesPage() {
                         <div className="w-20 h-20 rounded-full bg-zinc-800/50 flex items-center justify-center mb-6">
                             <ImageIcon className="h-10 w-10 text-zinc-600" />
                         </div>
-                        <h2 className="text-2xl font-black text-black mb-3 text-center">
+                        <h2 className="text-2xl font-semibold text-white mb-3">
                             {creatives.length === 0 ? 'No ad creatives yet' : 'No creatives match filters'}
                         </h2>
-                        <p className="text-black/60 mb-8 max-w-md font-medium text-center">
+                        <p className="text-zinc-500 mb-8 max-w-md">
                             {creatives.length === 0
                                 ? 'Generate your first AI-powered ad creative to get started.'
                                 : 'Try adjusting your filters to see more creatives.'}
@@ -525,9 +528,9 @@ export default function CreativesPage() {
                         {creatives.length === 0 && (
                             <Button
                                 onClick={() => router.push('/brand/ads')}
-                                className="bg-[#B4F056] text-black border-[3px] border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all font-bold px-8 py-6 text-lg"
+                                className="bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400"
                             >
-                                <Sparkles className="h-5 w-5 mr-2" strokeWidth={2.5} />
+                                <Sparkles className="h-4 w-4 mr-2" />
                                 Generate Your First Ad
                             </Button>
                         )}

@@ -1,90 +1,48 @@
 /**
- * AD GENERATION API - CREATIVE ORCHESTRATOR VERSION
+ * AD GENERATION API
  * 
- * Generates brand-grade AI ad creatives using the Creative Decision Engine.
- * 
- * Flow:
- * 1. Validate inputs
- * 2. Call Creative Orchestrator (analyze → build contract → render)
- * 3. Rate the ad
- * 4. Generate copy variants
- * 5. Save to storage and database
- * 
- * "We are not building a prompt generator.
- * We are building a creative decision engine that compiles brand intent,
- * presets, and image analysis into a strict JSON contract for NanoBanana Pro."
+ * Generates AI-powered ad creatives
+ * Uses Supabase only - NO Prisma
  */
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
 import { checkRateLimit } from '@/lib/rate-limit'
-import { rateAdCreative, generateAdCopy } from '@/lib/openai'
+import { analyzeClothingImage, rateAdCreative, generateAdCopy } from '@/lib/openai'
+import { generateIntelligentAdComposition } from '@/lib/gemini'
 import { saveUpload } from '@/lib/storage'
+import {
+  generateAdPrompt,
+  type AdGenerationInput,
+  type AdPresetId,
+  type Platform,
+  type CtaType,
+  type CaptionTone,
+} from '@/lib/ads/ad-styles'
 import { z } from 'zod'
 
-// Import Creative Orchestrator
-import {
-  orchestrateAdCreation,
-  mapLegacyPreset,
-  type OrchestratorInput,
-  type PresetId,
-  ContractValidationError,
-  LowConfidenceError,
-} from '@/lib/creative_orchestrator'
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// INPUT SCHEMA
-// ═══════════════════════════════════════════════════════════════════════════════
-
-// Updated schema with new preset IDs (supports both legacy and new)
+// Schema for the new preset-based generation
 const adGenerationSchema = z
   .object({
-    // Preset selection (required) - supports both legacy and new IDs
-    preset: z.string().min(1),
-
-    // Campaign association (optional)
+    preset: z.enum(['UGC_CANDID', 'PRODUCT_LIFESTYLE', 'STUDIO_POSTER', 'PREMIUM_EDITORIAL']),
     campaignId: z.string().max(100).optional(),
-
-    // Image inputs (product required, influencer optional)
-    productImage: z.string().min(1).max(15_000_000),
+    productImage: z.string().min(1).max(15_000_000).optional(),
     influencerImage: z.string().min(1).max(15_000_000).optional(),
-    aiInfluencerId: z.string().optional(),  // NEW: AI influencer selection
-
-    // Legacy field - backward compatibility
     lockFaceIdentity: z.boolean().optional().default(false),
-
-    // Text controls
     headline: z.string().trim().max(60).optional(),
     ctaType: z.enum(['shop_now', 'learn_more', 'explore', 'buy_now']).default('shop_now'),
     captionTone: z.enum(['casual', 'premium', 'confident']).optional(),
-
-    // Platform selection
-    platforms: z.array(z.enum(['instagram', 'facebook', 'google', 'tiktok', 'influencer'])).min(1),
-
-    // Legacy subject field - backward compatibility
+    platforms: z.array(z.enum(['instagram', 'facebook', 'google', 'influencer'])).min(1),
     subject: z.object({
       gender: z.enum(['male', 'female', 'unisex']).optional(),
       ageRange: z.string().trim().max(40).optional(),
       pose: z.string().trim().max(120).optional(),
       expression: z.string().trim().max(120).optional(),
-    }).optional(),
-
-    // User constraints (optional)
-    constraints: z.object({
-      mood: z.string().optional(),
-      targetAudience: z.string().optional(),
-      productVisibility: z.enum(['dominant', 'balanced', 'lifestyle']).optional(),
-    }).optional(),
+    }).strict().optional(),
   })
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// API HANDLER
-// ═══════════════════════════════════════════════════════════════════════════════
+  .strict()
 
 export async function POST(request: Request) {
   try {
-    // ═══════════════════════════════════════════════════════════════════════════
-    // STEP 1: Authentication & Authorization
-    // ═══════════════════════════════════════════════════════════════════════════
     const supabase = await createClient()
     const {
       data: { user },
@@ -120,14 +78,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // STEP 2: Parse and Validate Input
-    // ═══════════════════════════════════════════════════════════════════════════
     const body = await request.json().catch(() => null)
-    if (!body) {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
-    }
-
     const input = adGenerationSchema.parse(body)
 
     // Validate campaign if provided
@@ -162,79 +113,63 @@ export async function POST(request: Request) {
       }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // STEP 3: Map preset (legacy compatibility)
-    // ═══════════════════════════════════════════════════════════════════════════
-    const presetId = mapLegacyPreset(input.preset)
-    console.log(`[AdGenerate] Preset: ${input.preset} → ${presetId}`)
+    // Analyze images if provided
+    let productAnalysis = null
+    let influencerAnalysis = null
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // STEP 4: Run Creative Orchestrator
-    // ═══════════════════════════════════════════════════════════════════════════
-    console.log('[AdGenerate] Starting Creative Orchestrator...')
+    if (input.productImage) {
+      productAnalysis = await analyzeClothingImage(input.productImage)
+    }
 
-    const orchestratorInput: OrchestratorInput = {
+    if (input.influencerImage) {
+      influencerAnalysis = await analyzeClothingImage(input.influencerImage)
+    }
+
+    // Generate prompt using preset system (NO free-form prompts from brands)
+    const generationInput: AdGenerationInput = {
+      preset: input.preset as AdPresetId,
+      campaignId: input.campaignId,
       productImage: input.productImage,
       influencerImage: input.influencerImage,
-      aiInfluencerId: input.aiInfluencerId,
-      presetId: presetId as PresetId,
-      constraints: {
-        platform: input.platforms[0] as any,
-        mood: input.constraints?.mood,
-        targetAudience: input.constraints?.targetAudience,
-        productVisibility: input.constraints?.productVisibility,
-        headline: input.headline,
-        cta: input.ctaType,
-      },
+      lockFaceIdentity: input.lockFaceIdentity,
+      headline: input.headline,
+      ctaType: input.ctaType as CtaType,
+      captionTone: input.captionTone as CaptionTone,
+      platforms: input.platforms as Platform[],
+      subject: input.subject,
     }
 
-    let result
-    try {
-      result = await orchestrateAdCreation(orchestratorInput)
-    } catch (error) {
-      if (error instanceof ContractValidationError) {
-        console.error('[AdGenerate] Contract validation failed:', error.details)
-        return NextResponse.json(
-          { error: 'Creative contract validation failed', details: error.details },
-          { status: 400 }
-        )
-      }
-      if (error instanceof LowConfidenceError) {
-        console.warn('[AdGenerate] Low confidence, used safe preset')
-        // Continue with result from fallback
-      }
-      throw error
-    }
+    const compositionPrompt = generateAdPrompt(generationInput)
 
-    const { image: generatedImage, contract, metadata } = result
+    // Generate ad composition
+    const generatedImage = await generateIntelligentAdComposition(
+      input.productImage,
+      input.influencerImage,
+      compositionPrompt
+    )
 
-    console.log(`[AdGenerate] Generation complete. Confidence: ${metadata.confidenceScore}`)
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // STEP 5: Rate the Ad
-    // ═══════════════════════════════════════════════════════════════════════════
+    // Rate the ad
     const rating = await rateAdCreative(generatedImage, input.productImage, input.influencerImage)
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // STEP 6: Generate Ad Copy
-    // ═══════════════════════════════════════════════════════════════════════════
+    // Get brand name from profile
     const brandData = profile.brand_data as any || {}
     const brandName = brandData.companyName || profile.full_name || undefined
 
+    // Generate ad copy
     const copyVariants = await generateAdCopy(generatedImage, {
-      productName: contract.product.category,
+      productName: productAnalysis?.garmentType,
       brandName,
-      niche: contract.ad_type,
+      niche: input.preset,
     })
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // STEP 7: Save Image to Storage
-    // ═══════════════════════════════════════════════════════════════════════════
+    // Save image to storage
+    // Extract MIME type from data URI if present
     let contentType = 'image/jpeg'
     let fileExtension = 'jpg'
     const mimeMatch = generatedImage.match(/^data:(image\/\w+);base64,/)
     if (mimeMatch) {
       contentType = mimeMatch[1]
+      // Map content type to extension
       if (contentType === 'image/png') fileExtension = 'png'
       else if (contentType === 'image/webp') fileExtension = 'webp'
       else if (contentType === 'image/gif') fileExtension = 'gif'
@@ -243,54 +178,36 @@ export async function POST(request: Request) {
     const imagePath = `${user.id}/${Date.now()}.${fileExtension}`
     const imageUrl = await saveUpload(generatedImage, imagePath, 'ads', contentType)
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // STEP 8: Save to Database
-    // ═══════════════════════════════════════════════════════════════════════════
+    // Create ad creative record in Supabase
     const { data: adCreative, error: insertError } = await service
       .from('ad_creatives')
       .insert({
         brand_id: user.id,
         image_url: imageUrl,
-        title: input.headline || `${contract.ad_type} Ad`,
-        prompt: JSON.stringify(contract),  // Store the contract as JSON
+        title: input.headline || `${input.preset} Ad`,
+        prompt: compositionPrompt,
         campaign_id: campaignData?.id || null,
         platform: input.platforms[0] || 'instagram',
         status: 'generated',
-        rating: (rating as any)?.score || metadata.confidenceScore,
+        rating: (rating as any)?.score || 75,
       })
       .select()
       .single()
 
     if (insertError) {
-      console.error('[AdGenerate] Database insert error:', insertError)
+      console.error('Ad creative insert error:', insertError)
       // Still return success since ad was generated
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // STEP 9: Return Response
-    // ═══════════════════════════════════════════════════════════════════════════
     return NextResponse.json({
       id: adCreative?.id || crypto.randomUUID(),
       imageUrl,
       copy: copyVariants,
       rating,
-      qualityScore: (rating as any)?.score || metadata.confidenceScore,
-
-      // New fields from Creative Orchestrator
-      contract: {
-        ad_type: contract.ad_type,
-        brand_tier: contract.brand_tier,
-        confidence_score: contract.confidence_score,
-        negative_constraints: contract.negative_constraints,
-      },
-      metadata: {
-        presetUsed: metadata.presetUsed,
-        modelUsed: metadata.modelUsed,
-        warnings: metadata.warnings,
-      },
+      qualityScore: (rating as any)?.score || 75,
     })
   } catch (error) {
-    console.error('[AdGenerate] Error:', error)
+    console.error('Ad generation error:', error)
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

@@ -60,9 +60,6 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json().catch(() => null)
-    if (!body) {
-      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
-    }
     const data = onboardingSchema.parse(body)
 
     // Determine if onboarding is completed (RELAXED RULES)
