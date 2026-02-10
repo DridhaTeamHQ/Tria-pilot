@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/auth'
-import { redirect } from 'next/navigation'
 import MarketplaceClient from '@/components/marketplace/MarketplaceClient'
 
 // Define types that match MarketplaceClient expectations
@@ -33,7 +32,6 @@ export default async function MarketplacePage({
 }) {
   const resolvedSearchParams = await searchParams
 
-  // Create Supabase client ONCE and run auth + data fetch in PARALLEL
   const supabase = await createClient()
 
   // Build products query
@@ -66,31 +64,11 @@ export default async function MarketplacePage({
     query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`)
   }
 
-  // PARALLEL: Fetch auth AND products at the same time
-  // This is the key optimization — previously these were sequential
-  const [authResult, productsResult] = await Promise.all([
-    supabase.auth.getUser(),
-    query,
-  ])
-
-  const { data: { user }, error: authError } = authResult
-  const { data: products, error: productsError } = productsResult
-
-  // Auth check — redirect if not logged in
-  if (authError || !user) {
-    redirect('/login')
-  }
-
-  // Quick role check — only need to read profile for role
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  if (profile?.role !== 'influencer') {
-    redirect('/')
-  }
+  // Just fetch products — NO auth check needed here.
+  // /marketplace is already in PUBLIC_PREFIXES (middleware.ts line 40)
+  // The page should be accessible to all users, logged in or not.
+  // Auth-aware features (like try-on) are handled by child components.
+  const { data: products, error: productsError } = await query
 
   if (productsError) {
     console.error('Marketplace fetch error:', productsError)
