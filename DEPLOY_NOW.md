@@ -20,7 +20,7 @@
    - Select your repository: `DridhaTeamHQ/Tria-pilot`
    - Configure:
      - **Framework Preset**: Next.js (auto-detected)
-     - **Build Command**: `prisma generate && next build`
+     - **Build Command**: `next build`
      - **Output Directory**: `.next` (default)
      - **Install Command**: `npm install`
 
