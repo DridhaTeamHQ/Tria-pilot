@@ -1,7 +1,5 @@
 import { createClient } from '@/lib/auth'
-import { getIdentity } from '@/lib/auth-state'
 import { redirect } from 'next/navigation'
-// import { unstable_cache } from 'next/cache' // Supabase has its own caching or we can use fetch cache
 import MarketplaceClient from '@/components/marketplace/MarketplaceClient'
 
 // Define types that match MarketplaceClient expectations
@@ -35,23 +33,10 @@ export default async function MarketplacePage({
 }) {
   const resolvedSearchParams = await searchParams
 
-  // Use getIdentity for auth and role check
-  const auth = await getIdentity()
-
-  if (!auth.authenticated) {
-    redirect('/login')
-  }
-
-  const { identity } = auth
-
-  // Only influencers (pending or approved) can browse
-  if (identity.role !== 'influencer') {
-    // Redirect brands or others back to home or dashboard
-    redirect('/')
-  }
-
-  // Build query using regular client - RLS allows reading active products
+  // Create Supabase client ONCE and run auth + data fetch in PARALLEL
   const supabase = await createClient()
+
+  // Build products query
   let query = supabase
     .from('products')
     .select(`
@@ -78,15 +63,37 @@ export default async function MarketplacePage({
 
   if (resolvedSearchParams.search) {
     const search = resolvedSearchParams.search
-    // Simple search on name/description using ilike
     query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`)
   }
 
-  const { data: products, error } = await query
+  // PARALLEL: Fetch auth AND products at the same time
+  // This is the key optimization — previously these were sequential
+  const [authResult, productsResult] = await Promise.all([
+    supabase.auth.getUser(),
+    query,
+  ])
 
-  if (error) {
-    console.error('Marketplace fetch error:', error)
-    // Return empty list or error state
+  const { data: { user }, error: authError } = authResult
+  const { data: products, error: productsError } = productsResult
+
+  // Auth check — redirect if not logged in
+  if (authError || !user) {
+    redirect('/login')
+  }
+
+  // Quick role check — only need to read profile for role
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (profile?.role !== 'influencer') {
+    redirect('/')
+  }
+
+  if (productsError) {
+    console.error('Marketplace fetch error:', productsError)
   }
 
   const categories = ['All Products', 'Clothing', 'Accessories', 'Footwear', 'Beauty', 'Lifestyle']
@@ -94,18 +101,14 @@ export default async function MarketplacePage({
 
   // Transform to match Client Component interface
   const transformedProducts: ClientProduct[] = (products || []).map((p: any) => {
-    // Extract company name from brand_data jsonb or fallback to full_name
     const brandData = p.brand?.brand_data as Record<string, any> || {}
     const companyName = brandData.companyName || 'Unknown Brand'
 
-    // Convert text[] images to object array
     const productImages: ProductImage[] = (p.images || []).map((url: string, index: number) => ({
       id: `${p.id}-img-${index}`,
       imagePath: url
     }))
 
-    // Ensure cover image is in the list or use first image
-    // If cover_image exists, use it as main imagePath
     const mainImage = p.cover_image || (productImages.length > 0 ? productImages[0].imagePath : '')
 
     return {
@@ -120,7 +123,7 @@ export default async function MarketplacePage({
         companyName: companyName,
         user: {
           name: companyName,
-          slug: null // Slugs logic removed or not available in simple profile
+          slug: null
         }
       },
       images: productImages
