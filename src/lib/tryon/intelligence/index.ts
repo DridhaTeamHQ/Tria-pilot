@@ -33,11 +33,18 @@ export {
 } from './retry-orchestrator'
 export type { RetryContext, FailureType, OrchestratorResult } from './retry-orchestrator'
 
-// Main pipeline
+// Orchestration
 export {
     runIntelligentPreAnalysis,
-    validateAndDecideRetry,
-    buildIntelligentPrompt,
     extractGroundedData
 } from './intelligent-pipeline'
-export type { IntelligentPipelineInput, IntelligentPipelineContext, GenerationResult } from './intelligent-pipeline'
+export type { IntelligentPipelineContext } from './intelligent-pipeline'
+
+// New Modules (Nano Banana Pro)
+export { runSceneIntelligence } from './scene-intelligence-engine'
+export type { SceneIntelligenceInput, SceneIntelligenceOutput } from './scene-intelligence-engine'
+
+export { resolveAnchorZone, PRESET_ANCHOR_MAP } from './anchor-zone-resolver'
+export type { AnchorZoneResolution } from './anchor-zone-resolver'
+
+// Removed: sanitized-prompt-builder (replaced by forensic-prompt.ts in the strict pipeline)

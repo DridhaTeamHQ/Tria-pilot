@@ -2,6 +2,83 @@ import { createServiceClient } from '@/lib/auth'
 
 // Cache for buckets that have been verified/created
 const verifiedBuckets = new Set<string>()
+const MAX_UPLOAD_ATTEMPTS = 3
+const BASE_RETRY_DELAY_MS = 450
+
+function sanitizeSupabaseUrl(rawUrl: string): string {
+  return rawUrl.trim().replace(/\/+$/, '')
+}
+
+function toErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message
+  return String(error)
+}
+
+function isRetryableStorageError(error: unknown): boolean {
+  const msg = toErrorMessage(error).toLowerCase()
+  if (!msg) return false
+
+  return (
+    msg.includes('unexpected token') ||
+    msg.includes('<!doctype') ||
+    msg.includes('<html') ||
+    msg.includes('storageunknownerror') ||
+    msg.includes('fetch failed') ||
+    msg.includes('network') ||
+    msg.includes('socket') ||
+    msg.includes('timeout') ||
+    msg.includes('502') ||
+    msg.includes('503') ||
+    msg.includes('504')
+  )
+}
+
+function getUploadErrorMessage(error: unknown, bucket: string, supabaseUrl: string): string {
+  const msg = toErrorMessage(error)
+  const urlHost = safeHost(supabaseUrl)
+
+  if (msg.includes('Bucket not found') || msg.includes('does not exist')) {
+    return `Storage bucket "${bucket}" does not exist. Please create it in Supabase Storage settings.`
+  }
+  if (msg.includes('new row violates row-level security') || msg.includes('row-level security')) {
+    return 'Permission denied. Please check bucket policies in Supabase Storage. Make sure the bucket is public or has proper RLS policies.'
+  }
+  if (msg.includes('Invalid API key') || msg.includes('JWT') || msg.includes('401') || msg.includes('403')) {
+    return 'Invalid Supabase service role key. Please check your SUPABASE_SERVICE_ROLE_KEY environment variable.'
+  }
+  if (
+    msg.includes('Unexpected token') ||
+    msg.includes('<!DOCTYPE') ||
+    msg.includes('<html') ||
+    msg.includes('StorageUnknownError')
+  ) {
+    return `Storage service returned invalid JSON (often an HTML error page). Verify NEXT_PUBLIC_SUPABASE_URL points to your project API host and service key is valid. Current host: ${urlHost}.`
+  }
+
+  return msg || 'Storage upload failed'
+}
+
+function safeHost(url: string): string {
+  try {
+    return new URL(url).host
+  } catch {
+    return 'invalid_url'
+  }
+}
+
+function hasLikelyMisconfiguredSupabaseUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url)
+    const path = parsed.pathname.replace(/\/+$/, '')
+    return path.length > 0 && path !== '' && path !== '/'
+  } catch {
+    return true
+  }
+}
+
+async function delay(ms: number): Promise<void> {
+  await new Promise(resolve => setTimeout(resolve, ms))
+}
 
 /**
  * Ensure a bucket exists, create it if it doesn't
@@ -64,8 +141,14 @@ export async function saveUpload(
 ): Promise<string> {
   try {
     // Validate environment variables
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    const supabaseUrl = sanitizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL || '')
+    if (!supabaseUrl) {
       throw new Error('NEXT_PUBLIC_SUPABASE_URL is not configured')
+    }
+    if (hasLikelyMisconfiguredSupabaseUrl(supabaseUrl)) {
+      console.warn(
+        `⚠️ NEXT_PUBLIC_SUPABASE_URL may be misconfigured (${supabaseUrl}). Use the project root URL, not a path like /storage/v1.`
+      )
     }
     
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -123,49 +206,60 @@ export async function saveUpload(
 
     console.log(`Uploading to bucket "${bucket}" at path: ${path} (${fileBuffer.length} bytes)`)
 
-    const { data, error } = await supabase.storage.from(bucket).upload(path, fileBuffer, {
-      contentType,
-      upsert: true,
-    })
+    let uploadedPath: string | null = null
+    let lastUploadError: unknown = null
+    let successAttempt = 0
 
-    if (error) {
-      // Handle different error types
-      let errorMessage = error.message || 'Storage upload failed'
-      
-      // Check if error is an HTML response (common when Supabase returns error page)
-      if (typeof error === 'object' && 'originalError' in error) {
-        const originalError = (error as any).originalError
-        if (originalError && originalError.message && originalError.message.includes('Unexpected token')) {
-          errorMessage = 'Storage service returned an invalid response. Please check your Supabase configuration and service role key.'
-        }
-      }
-
-      // Provide specific error messages for common issues
-      if (errorMessage.includes('Bucket not found') || errorMessage.includes('does not exist')) {
-        errorMessage = `Storage bucket "${bucket}" does not exist. Please create it in Supabase Storage settings.`
-      } else if (errorMessage.includes('new row violates row-level security') || errorMessage.includes('row-level security')) {
-        errorMessage = `Permission denied. Please check bucket policies in Supabase Storage. Make sure the bucket is public or has proper RLS policies.`
-      } else if (errorMessage.includes('Invalid API key') || errorMessage.includes('JWT')) {
-        errorMessage = 'Invalid Supabase service role key. Please check your SUPABASE_SERVICE_ROLE_KEY environment variable.'
-      }
-
-      console.error('Supabase storage upload error:', {
-        message: error.message,
-        statusCode: (error as any).statusCode,
-        error: error,
+    for (let attempt = 1; attempt <= MAX_UPLOAD_ATTEMPTS; attempt++) {
+      const { data, error } = await supabase.storage.from(bucket).upload(path, fileBuffer, {
+        contentType,
+        upsert: true,
       })
 
+      if (!error && data?.path) {
+        uploadedPath = data.path
+        successAttempt = attempt
+        break
+      }
+
+      lastUploadError = error || new Error('Upload succeeded but no data returned from storage')
+      const retryable = isRetryableStorageError(lastUploadError)
+      const canRetry = retryable && attempt < MAX_UPLOAD_ATTEMPTS
+
+      const failureDetails = {
+        attempt,
+        maxAttempts: MAX_UPLOAD_ATTEMPTS,
+        retryable,
+        message: toErrorMessage(lastUploadError),
+        statusCode: (error as any)?.statusCode,
+      }
+
+      if (canRetry) {
+        console.warn('Supabase storage upload attempt failed (transient, retrying):', failureDetails)
+      } else {
+        console.error('Supabase storage upload attempt failed:', failureDetails)
+      }
+
+      if (!canRetry) break
+
+      const backoff = BASE_RETRY_DELAY_MS * Math.pow(2, attempt - 1)
+      const jitter = Math.floor(Math.random() * 120)
+      await delay(backoff + jitter)
+    }
+
+    if (!uploadedPath) {
+      const errorMessage = getUploadErrorMessage(lastUploadError, bucket, supabaseUrl)
       throw new Error(errorMessage)
     }
 
-    if (!data || !data.path) {
-      throw new Error('Upload succeeded but no data returned from storage')
+    if (successAttempt > 1) {
+      console.log(`✓ Storage upload recovered after ${successAttempt} attempts`)
     }
 
     // Get public URL
     const {
       data: { publicUrl },
-    } = supabase.storage.from(bucket).getPublicUrl(data.path)
+    } = supabase.storage.from(bucket).getPublicUrl(uploadedPath)
 
     if (!publicUrl) {
       throw new Error('Failed to generate public URL for uploaded file')

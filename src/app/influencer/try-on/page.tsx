@@ -97,6 +97,7 @@ function TryOnPageContent() {
     const [accessoryImages, setAccessoryImages] = useState<string[]>([])
     const [accessoryTypes, setAccessoryTypes] = useState<('purse' | 'shoes' | 'hat' | 'jewelry' | 'bag' | 'watch' | 'sunglasses' | 'scarf' | 'other')[]>([])
     const [loading, setLoading] = useState(false)
+    const [retryAfterSeconds, setRetryAfterSeconds] = useState(0)
     const [uploadingImage, setUploadingImage] = useState<'person' | 'clothing' | 'background' | 'accessory' | null>(null)
     // Multi-variant support: generate 3 variants, user selects one
     const [result, setResult] = useState<{ jobId: string; imageUrl: string; base64Image?: string } | null>(null)
@@ -105,12 +106,14 @@ function TryOnPageContent() {
     const [product, setProduct] = useState<Product | null>(null)
     const [selectedPreset, setSelectedPreset] = useState<string>('')
     const [presetCategory, setPresetCategory] = useState<string>('all')
-    const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '3:4' | '9:16'>('4:5')
+    const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '3:4' | '9:16'>('1:1')
     const [quality, setQuality] = useState<'1K' | '2K'>('2K')
     const [dragOver, setDragOver] = useState<'person' | 'clothing' | null>(null)
     const [showCelebration, setShowCelebration] = useState(false)
     const [showShareModal, setShowShareModal] = useState(false)
     const [elapsedSeconds, setElapsedSeconds] = useState(0)
+    const generateInFlightRef = useRef(false)
+    const lastGenerateAttemptAtRef = useRef(0)
 
     // Presets
     const [presets, setPresets] = useState<TryOnPreset[]>([])
@@ -146,6 +149,15 @@ function TryOnPageContent() {
             return () => clearInterval(interval)
         }
     }, [loading])
+
+    // Retry cooldown timer (for 429 responses)
+    useEffect(() => {
+        if (retryAfterSeconds <= 0) return
+        const t = setInterval(() => {
+            setRetryAfterSeconds(prev => Math.max(0, prev - 1))
+        }, 1000)
+        return () => clearInterval(t)
+    }, [retryAfterSeconds])
 
     // Fetch identity images for better face consistency
     useEffect(() => {
@@ -414,6 +426,20 @@ function TryOnPageContent() {
     }
 
     const handleGenerate = async () => {
+        if (generateInFlightRef.current) {
+            return
+        }
+        const now = Date.now()
+        if (now - lastGenerateAttemptAtRef.current < 1200) {
+            toast.error('Please wait a moment before trying again.')
+            return
+        }
+        lastGenerateAttemptAtRef.current = now
+
+        if (retryAfterSeconds > 0) {
+            toast.error(`Rate limited. Try again in ${retryAfterSeconds}s.`)
+            return
+        }
         if (!personImage) {
             toast.error('Please upload a person image')
             return
@@ -428,6 +454,7 @@ function TryOnPageContent() {
         }
 
         setLoading(true)
+        generateInFlightRef.current = true
         try {
             // Collect identity references (Flash: 1-2 strong face refs)
             const allAdditionalImages: string[] = []
@@ -498,7 +525,15 @@ function TryOnPageContent() {
             setTimeout(() => setShowCelebration(false), 5000)
         } catch (error) {
             // Handle structured error codes from API
+            const structured = error as (Error & { status?: number; retryAfterSeconds?: number; code?: string })
             const errorMessage = error instanceof Error ? error.message : 'Generation failed'
+
+            if (structured?.status === 429) {
+                const retry = Math.max(1, Number(structured.retryAfterSeconds || 60))
+                setRetryAfterSeconds(retry)
+                toast.error(`Rate limit reached. Please wait ${retry}s before trying again.`)
+                return
+            }
 
             // Check for specific error codes embedded in the error message
             if (errorMessage.includes('PROFILE_INCOMPLETE') || errorMessage.includes('complete your influencer profile')) {
@@ -521,6 +556,7 @@ function TryOnPageContent() {
             toast.error(errorMessage)
         } finally {
             setLoading(false)
+            generateInFlightRef.current = false
         }
     }
 
@@ -984,16 +1020,18 @@ function TryOnPageContent() {
                         <div className="pt-2">
                             <button
                                 onClick={handleGenerate}
-                                disabled={loading || !personImageBase64 || !clothingImageBase64}
+                                disabled={loading || retryAfterSeconds > 0 || !personImageBase64 || !clothingImageBase64}
                                 className={`
                     w-full py-4 font-black uppercase tracking-wider flex items-center justify-center gap-3 transition-all duration-200 border-[3px] border-black
-                    ${loading || !personImageBase64 || !clothingImageBase64
+                    ${loading || retryAfterSeconds > 0 || !personImageBase64 || !clothingImageBase64
                                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
                                         : 'bg-[#FFD93D] text-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-[6px] active:shadow-none'}
                   `}
                             >
                                 {loading ? (
                                     'Creating Magic...'
+                                ) : retryAfterSeconds > 0 ? (
+                                    `Rate limited (${retryAfterSeconds}s)`
                                 ) : (
                                     <>
                                         <Sparkles className="w-6 h-6" />

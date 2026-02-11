@@ -83,12 +83,14 @@ export default async function MarketplacePage({
     const companyName = brandData.companyName || 'Unknown Brand'
 
     // Use cover_image directly — it's usually a Supabase storage URL.
-    // Skip base64 images that are over 1KB (they bloat SSR HTML).
+    // Use cover_image directly — it's usually a Supabase storage URL.
+    // Allow base64 images even if they are large, as a fallback for failed storage uploads.
+    // We check for very large payloads (>5MB) to avoid complete page failure, but standard gens are ~1-3MB.
     let mainImage = p.cover_image || ''
-    if (mainImage.startsWith('data:') && mainImage.length > 1024) {
-      // This is an inline base64 image — too large for SSR.
-      // Use empty string to trigger the skeleton/fallback in ProductCard.
-      mainImage = ''
+    if (mainImage.startsWith('data:') && mainImage.length > 5 * 1024 * 1024) {
+      // If > 5MB, it might be too heavy for initial load, but better than nothing?
+      // For now, let's allow it but warn.
+      console.warn(`[Marketplace] Large base64 image encountered for product ${p.id}`)
     }
 
     return {

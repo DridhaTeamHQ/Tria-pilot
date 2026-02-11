@@ -1,774 +1,414 @@
 /**
- * PHOTOSHOOT PRESETS - PRODUCTION GRADE
+ * CURATED SCENE PRESETS — PRODUCTION GRADE
  * 
- * These are CLEAN, PROFESSIONAL presets designed for:
- * - Brand campaigns
- * - Fashion editorials
- * - Premium lifestyle content
+ * 25 presets, each designed for:
+ * 1. SCENE INTELLIGENCE — Multiple valid placements per preset
+ *    (e.g., hotel lobby → standing by reception, near elevator, by window)
+ * 2. DIRECTORIAL NARRATIVE — Rich enough for the narrative prompt builder
+ * 3. INDIA-PREMIUM FOCUS — Modern Indian settings, NOT stereotypical
  * 
- * NO messy stereotypes. NO clutter by default.
- * Each preset looks like a real photoshoot.
+ * Each preset describes an EMPTY ENVIRONMENT.
+ * Scene Intelligence decides WHERE the person goes.
+ * Nano Banana Pro builds the scene around them.
  */
 
 import type { ScenePreset } from './india'
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// STUDIO / CAMPAIGN (10 presets)
+// STUDIO / CAMPAIGN (5 presets)
+// Clean backdrops for e-commerce and brand campaigns
+// Scene Intelligence scenarios: center, slight-left, slight-right, close crop
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const STUDIO_PRESETS: ScenePreset[] = [
     {
-        id: 'studio_seamless_white',
+        id: 'studio_white',
         label: 'Seamless White Studio',
         category: 'lifestyle',
         region: 'global',
-        scene: 'Professional studio with seamless white backdrop, clean infinity curve floor, no visible edges or corners',
-        lighting: 'Softbox lighting from 45° front-left, fill light from right, even illumination, minimal shadows',
-        camera: '85mm portrait lens, chest-up framing, shallow depth with backdrop in focus',
+        scene: 'Professional photography studio with seamless white backdrop curving into the floor, clean infinity curve with no visible edges, polished white floor reflecting soft light',
+        lighting: 'Two softboxes at 45° from front-left and front-right, large overhead diffusion panel, even illumination wrapping around the subject with minimal shadows on backdrop',
+        camera: '85mm portrait lens, chest-up to full body framing, shallow depth of field softening the backdrop edges',
         motion: 'static',
         mood: 'candid',
         style: 'realism',
-        negative_bias: 'No colored gels, no dramatic shadows, no harsh contrast'
+        negative_bias: 'No colored gels, no dramatic shadows, no visible equipment'
     },
     {
-        id: 'studio_grey_cyc',
+        id: 'studio_grey',
         label: 'Grey Cyclorama',
         category: 'lifestyle',
         region: 'global',
-        scene: 'Neutral grey cyclorama wall, seamless floor-to-wall curve, professional studio environment',
-        lighting: 'Large softbox overhead, subtle fill from below, even gradient on backdrop',
-        camera: '50mm standard lens, full body or 3/4 shot, deep depth of field',
+        scene: 'Neutral mid-grey cyclorama wall curving into matching grey floor, professional studio environment with clean seamless backdrop, subtle gradient from light grey at top to slightly darker at floor',
+        lighting: 'Large octabox overhead creating soft even light, fill card from below, gentle shadow gradient on backdrop behind subject',
+        camera: '50mm standard lens, full body or three-quarter framing, deep depth of field keeping the entire backdrop in focus',
         motion: 'static',
         mood: 'candid',
         style: 'realism',
-        negative_bias: 'No colored backgrounds, no props, no distractions'
+        negative_bias: 'No colored backgrounds, no props, no distracting patterns'
     },
     {
-        id: 'studio_black_matte',
-        label: 'Matte Black Backdrop',
+        id: 'studio_black',
+        label: 'Matte Black Studio',
         category: 'lifestyle',
         region: 'global',
-        scene: 'Deep matte black studio backdrop, non-reflective surface, minimal setup',
-        lighting: 'Single key light from side, subtle rim light for separation, dark background',
-        camera: '85mm lens, chest-up portrait framing, subject isolated from background',
+        scene: 'Deep matte black velvet backdrop absorbing all light, non-reflective surface creating total darkness behind the subject, clean dark floor',
+        lighting: 'Single key light from camera-left at 60° creating dramatic modeling on face, subtle rim light from behind for separation from dark background, no fill light',
+        camera: '85mm lens, chest-up portrait framing, subject cleanly isolated from the dark void behind',
         motion: 'static',
         mood: 'candid',
         style: 'realism',
-        negative_bias: 'No colored lights, no smoke, no theatrical effects'
+        negative_bias: 'No colored accent lights, no smoke, no theatrical haze'
     },
     {
-        id: 'studio_fashion_editorial',
+        id: 'studio_cream',
+        label: 'Warm Cream Backdrop',
+        category: 'lifestyle',
+        region: 'global',
+        scene: 'Warm cream-colored seamless paper backdrop with subtle natural texture, soft off-white tone that flatters warm skin tones, clean studio floor',
+        lighting: 'Soft diffused daylight-balanced lighting from large window-style modifier, gentle warm shadows, golden undertone to overall illumination',
+        camera: '85mm portrait lens, three-quarter body shot, warm tones throughout, subtle background texture visible',
+        motion: 'static',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No cold blue tones, no harsh shadows, no stark contrast'
+    },
+    {
+        id: 'studio_editorial',
         label: 'Fashion Editorial Studio',
         category: 'lifestyle',
         region: 'global',
-        scene: 'High-end fashion studio, large windows with diffusion panels, clean concrete floor',
-        lighting: 'Natural window light mixed with studio strobes, soft wraparound quality',
-        camera: '70-200mm zoom at 100mm, full body fashion shot, clean background',
+        scene: 'High-end fashion studio with floor-to-ceiling windows covered by large diffusion panels, polished concrete floor, clean white walls with architectural detail',
+        lighting: 'Natural window light streaming through diffusion panels mixed with subtle studio strobes, soft wraparound quality creating fashion-grade illumination',
+        camera: '100mm telephoto lens, full body fashion editorial framing, slight compression of background, sharp subject against soft environment',
         motion: 'static',
         mood: 'candid',
         style: 'realism',
-        negative_bias: 'No cluttered props, no busy backgrounds'
+        negative_bias: 'No cluttered props, no visible studio equipment, no harsh direct flash'
     },
-    {
-        id: 'studio_hardlight_editorial',
-        label: 'Hard Light Editorial',
-        category: 'lifestyle',
-        region: 'global',
-        scene: 'Minimalist studio with clean white or grey wall, hard shadows visible',
-        lighting: 'Single hard light source (bare bulb or focused strobe), defined shadows',
-        camera: '50mm lens, fashion editorial framing, crisp focus',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No soft romantic lighting, no fill light'
-    },
-    {
-        id: 'studio_catalog',
-        label: 'E-commerce Catalog',
-        category: 'lifestyle',
-        region: 'global',
-        scene: 'Clean e-commerce photography setup, pure white background, product-focused',
-        lighting: 'Even, flat lighting from multiple softboxes, no shadows',
-        camera: '50mm lens, full body shot, garment clearly visible, sharp focus throughout',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No creative lighting, no artistic blur, no props'
-    },
-    {
-        id: 'studio_cream_backdrop',
-        label: 'Cream Paper Backdrop',
-        category: 'lifestyle',
-        region: 'global',
-        scene: 'Warm cream/beige seamless paper backdrop, subtle texture visible, studio floor',
-        lighting: 'Soft diffused daylight-balanced lighting, gentle shadows',
-        camera: '85mm portrait lens, 3/4 body shot, warm tones',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No cold tones, no harsh shadows'
-    },
-    {
-        id: 'studio_pastel_mint',
-        label: 'Pastel Mint Studio',
-        category: 'lifestyle',
-        region: 'global',
-        scene: 'Soft pastel mint green backdrop, smooth gradient, clean studio',
-        lighting: 'Beauty lighting setup, large softbox above, fill from below',
-        camera: '85mm lens, chest-up framing, shallow depth of field',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No saturated colors, no neon'
-    },
-    {
-        id: 'studio_terracotta',
-        label: 'Terracotta Studio',
-        category: 'lifestyle',
-        region: 'global',
-        scene: 'Warm terracotta/rust colored backdrop, earthy tones, clean setup',
-        lighting: 'Warm-toned lighting, soft shadows, golden hour simulation',
-        camera: '50mm lens, lifestyle positioning, natural stance',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No cool tones, no blue cast'
-    },
-    {
-        id: 'studio_textured_wall',
-        label: 'Textured Plaster Wall',
-        category: 'lifestyle',
-        region: 'global',
-        scene: 'Studio with textured plaster wall in neutral tone, visible texture adds depth',
-        lighting: 'Side lighting to emphasize wall texture, soft key light on subject',
-        camera: '50mm lens, environmental portrait, wall texture visible',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No flat backgrounds, but no distracting patterns'
-    }
 ]
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// LIFESTYLE PREMIUM (10 presets)
+// LIFESTYLE INDOOR (5 presets)
+// Premium Indian interiors — modern, aspirational, NOT stereotypical
+// Scene Intelligence scenarios: standing by window, seated, near counter, 
+//   by entrance, walking through, leaning against wall
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const LIFESTYLE_PRESETS: ScenePreset[] = [
     {
-        id: 'lifestyle_cafe_modern',
+        id: 'lifestyle_cafe',
         label: 'Modern Café',
         category: 'lifestyle',
-        region: 'global',
-        scene: 'Contemporary café interior, marble table, clean minimalist decor, large windows',
-        lighting: 'Natural daylight from large windows, soft shadows, warm ambient',
-        camera: '35mm lens, seated perspective, background softly blurred',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No cluttered tables, no visible trash'
-    },
-    {
-        id: 'lifestyle_balcony_golden',
-        label: 'Balcony Golden Hour',
-        category: 'home',
-        region: 'global',
-        scene: 'Clean apartment balcony, glass railing, city skyline, golden hour light',
-        lighting: 'Golden hour sunlight from side, warm glow, soft long shadows',
-        camera: '50mm lens, standing pose, city bokeh in background',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No drying clothes, no clutter, no water tanks'
-    },
-    {
-        id: 'lifestyle_minimal_living',
-        label: 'Minimal Living Room',
-        category: 'home',
-        region: 'global',
-        scene: 'Contemporary minimal living room, neutral sofa, clean lines, tasteful decor',
-        lighting: 'Large window natural light, soft shadows, bright and airy',
-        camera: '35mm lens, lifestyle shot, room context visible',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No messy furniture, no cluttered surfaces'
-    },
-    {
-        id: 'lifestyle_hotel_corridor',
-        label: 'Hotel Corridor',
-        category: 'lifestyle',
-        region: 'global',
-        scene: 'Upscale hotel hallway, warm lighting, tasteful carpet, clean walls',
-        lighting: 'Warm tungsten wall sconces, soft ambient, no harsh spots',
-        camera: '35mm lens, walking pose, corridor depth visible',
+        region: 'india',
+        scene: 'Contemporary Indian coffee shop with exposed brick accent wall, light wood tables with marble tops, hanging pendant lights, indoor plants by large glass windows, clean minimal decor with warm earthy tones',
+        lighting: 'Natural daylight streaming through large street-facing windows from one side, soft warm ambient from pendant lights above, gentle shadow play on tables and walls',
+        camera: '48mm iPhone main lens, seated or standing perspective, background elements softly blurred through natural depth',
         motion: 'subtle motion',
         mood: 'candid',
         style: 'realism',
-        negative_bias: 'No institutional look, no fluorescent lighting'
+        negative_bias: 'No cluttered tables, no visible mess, no harsh fluorescent overhead'
     },
     {
-        id: 'lifestyle_window_daylight',
-        label: 'Window Daylight',
+        id: 'lifestyle_living_room',
+        label: 'Modern Living Room',
         category: 'home',
-        region: 'global',
-        scene: 'Standing near large window, sheer curtains, clean interior, daylight streaming in',
-        lighting: 'Bright natural window light, soft diffusion through curtains',
-        camera: '50mm lens, 3/4 body shot, window light wrapping around subject',
+        region: 'india',
+        scene: 'Well-designed contemporary Indian living room with a neutral-toned sofa, clean side table with a lamp, sheer curtains on large windows, tasteful wall art, warm wooden flooring, indoor plant in the corner',
+        lighting: 'Large window providing bright natural daylight from one side, warm ambient glow from table lamp, airy and welcoming atmosphere with soft shadows',
+        camera: '35mm lens, lifestyle framing showing room context, subject naturally placed within the space',
         motion: 'static',
         mood: 'candid',
         style: 'realism',
-        negative_bias: 'No dark shadows, no underexposed areas'
+        negative_bias: 'No messy furniture, no scattered items, no cluttered surfaces'
     },
     {
-        id: 'lifestyle_restaurant_evening',
-        label: 'Restaurant Evening',
+        id: 'lifestyle_hotel_lobby',
+        label: 'Premium Hotel Lobby',
         category: 'lifestyle',
-        region: 'global',
-        scene: 'Upscale restaurant interior, warm ambient lighting, elegant decor, table setting',
-        lighting: 'Warm candlelight and ambient restaurant lighting, soft glow',
-        camera: '50mm lens, seated perspective, shallow depth of field',
+        region: 'india',
+        scene: 'Upscale Indian hotel lobby with polished marble floor, contemporary reception desk in background, tasteful brass and wood accents, large statement chandelier, fresh flower arrangement, clean architectural lines',
+        lighting: 'Mixed ambient lighting from chandelier and concealed ceiling fixtures, warm inviting tone, soft reflections on marble floor, no harsh spots',
+        camera: '35mm lens, standing full body, architectural context visible with lobby depth behind, shot from slightly below eye level for grandeur',
         motion: 'static',
         mood: 'candid',
         style: 'realism',
-        negative_bias: 'No harsh flash, no busy background'
+        negative_bias: 'No busy crowds, no luggage, no institutional fluorescent lighting'
     },
     {
-        id: 'lifestyle_lobby_modern',
-        label: 'Modern Lobby',
+        id: 'lifestyle_coworking',
+        label: 'Co-working Space',
+        category: 'office',
+        region: 'india',
+        scene: 'Modern Indian coworking space with clean desks, ergonomic chairs, glass partition walls, indoor greenery, warm hanging lights, whiteboard in background, minimal contemporary decor',
+        lighting: 'Warm pendant lights overhead combined with natural side light from windows, comfortable work-friendly illumination, soft shadows',
+        camera: '48mm iPhone main lens, casual eye-level framing, desk or workspace elements providing context',
+        motion: 'static',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No tangled wires, no messy desks, no startup-brochure generic look'
+    },
+    {
+        id: 'lifestyle_restaurant',
+        label: 'Fine Dining Evening',
         category: 'lifestyle',
-        region: 'global',
-        scene: 'Contemporary hotel or office lobby, clean design, marble or wood floors',
-        lighting: 'Mixed natural and artificial, bright and welcoming',
-        camera: '35mm lens, standing full body, architectural context',
+        region: 'india',
+        scene: 'Upscale Indian restaurant interior with warm ambient atmosphere, elegant table settings with white linen, soft candlelight on tables, dark wood accents, tasteful art on walls, intimate dining environment',
+        lighting: 'Warm candlelight and subtle amber ambient from concealed ceiling fixtures, golden glow creating intimate atmosphere, soft shadows adding depth',
+        camera: '50mm lens, seated perspective with table setting visible, shallow depth of field blurring restaurant interior behind',
         motion: 'static',
         mood: 'candid',
         style: 'realism',
-        negative_bias: 'No busy crowds, no cluttered space'
+        negative_bias: 'No harsh overhead flash, no busy crowded background, no plastic decor'
     },
-    {
-        id: 'lifestyle_bookstore',
-        label: 'Bookstore',
-        category: 'lifestyle',
-        region: 'global',
-        scene: 'Cozy bookstore interior, wooden shelves, warm lighting, books in background',
-        lighting: 'Warm tungsten lighting, cozy atmosphere, soft shadows',
-        camera: '50mm lens, browsing pose, shelves creating depth',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No harsh lighting, no messy shelves'
-    },
-    {
-        id: 'lifestyle_rooftop_day',
-        label: 'Rooftop Daytime',
-        category: 'outdoor',
-        region: 'global',
-        scene: 'Clean rooftop terrace, modern furniture, city view, blue sky',
-        lighting: 'Bright daylight, open shade or soft cloud cover',
-        camera: '35mm lens, lifestyle standing, skyline in background',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No industrial equipment, no messy rooftop'
-    },
-    {
-        id: 'lifestyle_art_gallery',
-        label: 'Art Gallery',
-        category: 'lifestyle',
-        region: 'global',
-        scene: 'Minimalist art gallery, white walls, polished floor, sparse artwork',
-        lighting: 'Gallery track lighting, even illumination, clean shadows',
-        camera: '35mm lens, standing contemplative, gallery space visible',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No crowded gallery, no busy artwork'
-    }
 ]
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CELEBRATION / OCCASION (10 presets)
-// ═══════════════════════════════════════════════════════════════════════════════
-
-const CELEBRATION_PRESETS: ScenePreset[] = [
-    {
-        id: 'celebration_festive_lights',
-        label: 'Festive Evening Lights',
-        category: 'lifestyle',
-        region: 'india',
-        scene: 'Tasteful festive setting, warm string lights, elegant decor, evening ambiance',
-        lighting: 'Warm fairy lights and candles, soft golden glow, low ambient',
-        camera: '50mm lens, chest-up, bokeh lights in background',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No harsh flash, no overcrowded space'
-    },
-    {
-        id: 'celebration_wedding_guest',
-        label: 'Wedding Guest',
-        category: 'lifestyle',
-        region: 'india',
-        scene: 'Elegant wedding venue, tasteful floral decor, warm lighting, sophisticated atmosphere',
-        lighting: 'Warm venue lighting, chandeliers, soft ambient glow',
-        camera: '85mm lens, portrait framing, venue bokeh',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No chaotic crowds, no harsh event lighting'
-    },
-    {
-        id: 'celebration_birthday_dinner',
-        label: 'Birthday Dinner',
-        category: 'lifestyle',
-        region: 'global',
-        scene: 'Restaurant private dining, birthday setup, candles, elegant table',
-        lighting: 'Warm candlelight, ambient restaurant lighting',
-        camera: '50mm lens, seated perspective, table setting visible',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No balloons everywhere, no childish decor'
-    },
-    {
-        id: 'celebration_rooftop_night',
-        label: 'Rooftop Night City',
-        category: 'lifestyle',
-        region: 'global',
-        scene: 'Upscale rooftop lounge, city lights bokeh, evening sky, sophisticated setting',
-        lighting: 'Ambient city lights, subtle venue lighting, blue hour sky',
-        camera: '35mm lens, standing lifestyle, city bokeh behind',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No harsh club lighting, no neon'
-    },
-    {
-        id: 'celebration_diwali_home',
-        label: 'Diwali Home',
-        category: 'home',
-        region: 'india',
-        scene: 'Home decorated for Diwali, diyas and candles, rangoli visible, warm festive glow',
-        lighting: 'Warm diya light, golden ambient, soft shadows',
-        camera: '50mm lens, 3/4 body, festive decor in background',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No overcrowded decorations, no harsh flash'
-    },
-    {
-        id: 'celebration_sangeet',
-        label: 'Sangeet Night',
-        category: 'lifestyle',
-        region: 'india',
-        scene: 'Sangeet event venue, colorful drapes, stage lights, dance floor visible',
-        lighting: 'Colorful but tasteful event lighting, warm tones dominant',
-        camera: '50mm lens, party atmosphere, movement suggested',
-        motion: 'candid motion',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No harsh spotlights on subject'
-    },
-    {
-        id: 'celebration_haldi',
-        label: 'Haldi Ceremony',
-        category: 'lifestyle',
-        region: 'india',
-        scene: 'Haldi ceremony outdoors, yellow florals, marigold decor, sunny day',
-        lighting: 'Bright natural daylight, warm yellow tones from decor',
-        camera: '35mm lens, candid celebration shot, outdoor venue',
-        motion: 'candid motion',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No muddy chaos, no messy ground'
-    },
-    {
-        id: 'celebration_cocktail_party',
-        label: 'Cocktail Party',
-        category: 'lifestyle',
-        region: 'global',
-        scene: 'Upscale cocktail party venue, bar in background, sophisticated guests',
-        lighting: 'Ambient bar lighting, warm and inviting',
-        camera: '50mm lens, standing socializing, shallow depth',
-        motion: 'subtle motion',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No harsh flash, no red-eye lighting'
-    },
-    {
-        id: 'celebration_mehendi',
-        label: 'Mehendi Day',
-        category: 'lifestyle',
-        region: 'india',
-        scene: 'Mehendi ceremony setup, cushions, floral decor, afternoon light',
-        lighting: 'Soft afternoon daylight, filtered through shamiana',
-        camera: '35mm lens, seated traditional, decor visible',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No mess, no scattered items'
-    },
-    {
-        id: 'celebration_new_year',
-        label: 'New Year Party',
-        category: 'lifestyle',
-        region: 'global',
-        scene: 'New Year celebration, elegant venue, subtle sparkle, champagne setting',
-        lighting: 'Warm party lighting, fairy lights, festive but elegant',
-        camera: '50mm lens, party portrait, sparkle bokeh',
-        motion: 'subtle motion',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No loud decorations, no plastic party items'
-    }
-]
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// OUTDOOR CLEAN (10 presets)
+// OUTDOOR NATURE (5 presets)
+// Beautiful natural environments — universally appealing
+// Scene Intelligence scenarios: standing on path, seated on bench, near railing,
+//   walking, leaning near tree, at water's edge
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const OUTDOOR_PRESETS: ScenePreset[] = [
     {
-        id: 'outdoor_heritage_wall',
-        label: 'Heritage Wall (Clean)',
+        id: 'outdoor_golden_hour',
+        label: 'Golden Hour Walkway',
         category: 'outdoor',
-        region: 'india',
-        scene: 'Clean heritage stone wall, well-maintained, warm sandstone texture',
-        lighting: 'Golden hour side light, warm tones, long soft shadows',
-        camera: '50mm lens, 3/4 body, wall texture visible',
-        motion: 'static',
+        region: 'global',
+        scene: 'Clean promenade walkway during golden hour, warm-toned paving stones, low railing on one side, open sky with soft clouds catching sunset color, trees casting long shadows',
+        lighting: 'Golden hour sunlight from camera-left at 15° above horizon, warm backlight creating rim glow on hair and shoulders, long soft shadows stretching across the walkway',
+        camera: '85mm portrait lens, three-quarter body shot with sunset bokeh behind, warm tones dominating the entire frame',
+        motion: 'subtle motion',
         mood: 'candid',
         style: 'realism',
-        negative_bias: 'No peeling paint, no graffiti, no trash'
+        negative_bias: 'No crowds, no street vendors, no harsh midday light'
     },
     {
-        id: 'outdoor_courtyard',
-        label: 'Courtyard Garden',
+        id: 'outdoor_beach',
+        label: 'Beach Evening',
         category: 'outdoor',
         region: 'india',
-        scene: 'Well-maintained courtyard, potted plants, terracotta pots, clean tiles',
-        lighting: 'Dappled light through trees, soft shadows, natural light',
-        camera: '35mm lens, environmental portrait, greenery visible',
-        motion: 'static',
+        scene: 'Clean Indian beach at golden hour, warm golden sand stretching out, calm waves in background, soft sunset sky with warm gradient from orange to blue, sparse footprints on sand',
+        lighting: 'Sunset golden light from behind and to the side, ocean reflecting warm tones, soft wrap-around glow on skin, sky providing fill from above',
+        camera: '50mm lens, three-quarter body with ocean horizon in background, warm color palette throughout',
+        motion: 'subtle motion',
         mood: 'candid',
         style: 'realism',
-        negative_bias: 'No overgrown plants, no dirt, no clutter'
+        negative_bias: 'No beach umbrellas, no tourist crowds, no harsh bright sun'
     },
-    // REMOVED: outdoor_urban_quiet - complex scene
     {
-        id: 'outdoor_park_morning',
+        id: 'outdoor_park',
         label: 'Morning Park',
         category: 'outdoor',
-        region: 'global',
-        scene: 'Early morning park, dewy grass, clean pathways, trees in background',
-        lighting: 'Early morning golden light, slight mist, long shadows',
-        camera: '50mm lens, lifestyle shot, park depth visible',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No joggers, no crowded paths'
-    },
-    {
-        id: 'outdoor_sunset_walk',
-        label: 'Sunset Walkway',
-        category: 'outdoor',
-        region: 'global',
-        scene: 'Clean promenade or walkway, sunset sky, open space',
-        lighting: 'Sunset golden hour, warm backlight, rim light on subject',
-        camera: '85mm lens, portrait with sunset bokeh, warm tones',
+        region: 'india',
+        scene: 'Well-maintained Indian park in early morning, manicured green lawns, clean walking pathway, mature trees with dappled light filtering through, wooden benches along the path, fresh dewy atmosphere',
+        lighting: 'Early morning golden light at low angle, soft mist catching light rays through tree canopy, long gentle shadows, warm green tones',
+        camera: '50mm lens, environmental lifestyle shot with park depth visible, trees creating natural framing',
         motion: 'subtle motion',
         mood: 'candid',
         style: 'realism',
-        negative_bias: 'No crowds, no street vendors'
+        negative_bias: 'No joggers, no crowded paths, no harsh midday light'
     },
     {
-        id: 'outdoor_beach_golden',
-        label: 'Beach Golden Hour',
+        id: 'outdoor_garden',
+        label: 'Botanical Garden',
         category: 'outdoor',
-        region: 'global',
-        scene: 'Clean beach, golden sand, calm waves, sunset sky',
-        lighting: 'Golden hour warm light, ocean reflecting light',
-        camera: '50mm lens, 3/4 body, ocean in background',
-        motion: 'subtle motion',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No beach umbrellas, no crowds, no trash'
-    },
-    {
-        id: 'outdoor_garden_flowers',
-        label: 'Flower Garden',
-        category: 'outdoor',
-        region: 'global',
-        scene: 'Well-maintained flower garden, colorful blooms, trimmed hedges',
-        lighting: 'Soft overcast or open shade, even natural light',
-        camera: '85mm lens, portrait with flower bokeh, shallow depth',
+        region: 'india',
+        scene: 'Beautiful Mughal-style garden with trimmed hedges, colorful flower beds in bloom, clean stone pathways, ornamental fountain or water feature in background, well-maintained grounds',
+        lighting: 'Soft overcast or open shade from trees, even natural light with no harsh shadows, colors appearing rich and saturated in diffused light',
+        camera: '85mm portrait lens, three-quarter body shot with flower bokeh behind, shallow depth of field isolating subject from garden background',
         motion: 'static',
         mood: 'candid',
         style: 'realism',
-        negative_bias: 'No wilted flowers, no messy patches'
+        negative_bias: 'No wilted flowers, no messy patches, no harsh direct sunlight'
     },
     {
-        id: 'outdoor_lake_peaceful',
-        label: 'Peaceful Lake',
+        id: 'outdoor_lake',
+        label: 'Peaceful Lakeside',
         category: 'outdoor',
-        region: 'global',
-        scene: 'Calm lake or pond, trees reflected, serene atmosphere',
-        lighting: 'Soft morning or evening light, water reflections',
-        camera: '50mm lens, environmental portrait, water visible',
+        region: 'india',
+        scene: 'Serene Indian lake or reservoir at calm hour, still water reflecting the sky, trees lining the far shore, clean stone or wooden dock edge, mountains or hills visible in the distance',
+        lighting: 'Soft morning or evening light, gentle reflections on water surface, atmospheric haze in distance softening the background naturally',
+        camera: '35mm lens, environmental portrait with water and distant landscape visible, natural depth separation from atmospheric perspective',
         motion: 'static',
         mood: 'candid',
         style: 'realism',
-        negative_bias: 'No boats, no fishermen, no crowds'
+        negative_bias: 'No boats, no fishermen, no tourist groups, no harsh midday glare'
     },
-    {
-        id: 'outdoor_mountain_vista',
-        label: 'Mountain Vista',
-        category: 'outdoor',
-        region: 'global',
-        scene: 'Mountain viewpoint, clear sky, dramatic landscape behind',
-        lighting: 'Bright daylight, blue sky, natural outdoor',
-        camera: '35mm lens, traveler pose, landscape context',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No tourist groups, no signboards'
-    },
-    {
-        id: 'outdoor_forest_path',
-        label: 'Forest Path',
-        category: 'outdoor',
-        region: 'global',
-        scene: 'Quiet forest trail, dappled light through trees, natural path',
-        lighting: 'Filtered forest light, green tones, soft shadows',
-        camera: '35mm lens, walking shot, forest depth',
-        motion: 'subtle motion',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No crowds, no signs, no trash bins'
-    }
 ]
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// URBAN CINEMATIC (10 presets)
+// URBAN (5 presets)
+// Modern city environments — premium Indian urban settings
+// Scene Intelligence scenarios: standing at railing, near wall, on walkway,
+//   by entrance, at viewpoint, leaning on structure
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const URBAN_CINEMATIC_PRESETS: ScenePreset[] = [
+const URBAN_PRESETS: ScenePreset[] = [
     {
-        id: 'urban_quiet_dusk',
-        label: 'Quiet Street Dusk',
+        id: 'urban_rooftop_day',
+        label: 'Rooftop Terrace Day',
+        category: 'outdoor',
+        region: 'india',
+        scene: 'Modern rooftop terrace with glass railing, clean concrete floor, contemporary outdoor furniture, city skyline visible beyond with modern buildings, clear blue sky, potted plants along the perimeter',
+        lighting: 'Bright daylight from open sky with slight cloud diffusion, rooftop structures providing partial shade, clean even illumination with soft shadows from furniture and railing',
+        camera: '48mm iPhone main lens, lifestyle standing shot with cityscape behind, natural perspective and depth',
+        motion: 'static',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No water tanks, no industrial equipment, no messy rooftop clutter, no drying clothes'
+    },
+    {
+        id: 'urban_rooftop_night',
+        label: 'Rooftop City Lights',
+        category: 'outdoor',
+        region: 'india',
+        scene: 'Upscale rooftop lounge at night, sleek railing with city lights bokeh behind, ambient string lights overhead, clean modern seating, evening sky transitioning from deep blue to violet at horizon',
+        lighting: 'Warm ambient string lights and subtle venue lighting from above, city lights providing backdrop bokeh, blue-hour sky still holding some color, gentle warm illumination on subject from venue lights',
+        camera: '35mm lens, standing lifestyle shot with city bokeh behind, slightly wide to capture the rooftop ambiance, natural night mode grain',
+        motion: 'static',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No harsh neon, no club lighting, no strobe effects'
+    },
+    {
+        id: 'urban_street_dusk',
+        label: 'City Street at Dusk',
         category: 'street',
-        region: 'global',
-        scene: 'Quiet city street at dusk, warm street lights starting, blue hour sky',
-        lighting: 'Blue hour ambient with warm street lights, mixed color temperature',
-        camera: '35mm lens, full body, street perspective',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No busy traffic, no harsh lighting'
-    },
-    {
-        id: 'urban_concrete_brutalist',
-        label: 'Concrete Brutalist',
-        category: 'outdoor',
-        region: 'global',
-        scene: 'Brutalist architecture, raw concrete walls, geometric shapes',
-        lighting: 'Dramatic side light, architectural shadows, overcast sky',
-        camera: '35mm lens, architectural framing, subject against concrete',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No graffiti, no construction debris'
-    },
-    {
-        id: 'urban_staircase_geometry',
-        label: 'Staircase Geometry',
-        category: 'lifestyle',
-        region: 'global',
-        scene: 'Modern staircase, clean lines, geometric railings, well-lit',
-        lighting: 'Ambient building light, soft shadows on steps',
-        camera: '28mm wide lens, emphasize geometry, subject on stairs',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No institutional fluorescent, no clutter'
-    },
-    {
-        id: 'urban_parking_shadow',
-        label: 'Parking Structure Soft Shadow',
-        category: 'outdoor',
-        region: 'global',
-        scene: 'Modern parking structure, clean concrete, repeating columns',
-        lighting: 'Soft ambient light, open shade from structure, even shadows',
-        camera: '50mm lens, portrait with structural background',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No cars, no harsh direct sun'
-    },
-    {
-        id: 'urban_metro_platform',
-        label: 'Metro Platform Clean',
-        category: 'street',
-        region: 'global',
-        scene: 'Clean metro station platform, modern design, minimal people',
-        lighting: 'Even overhead lighting, no harsh spots',
-        camera: '35mm lens, waiting pose, platform depth visible',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No crowded platform, no dirty floors'
-    },
-    {
-        id: 'urban_bridge_evening',
-        label: 'Bridge Evening Light',
-        category: 'outdoor',
-        region: 'global',
-        scene: 'Pedestrian bridge, city lights in distance, evening sky',
-        lighting: 'Blue hour with city lights reflected, warm streetlamps',
-        camera: '50mm lens, standing on bridge, city bokeh behind',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No busy traffic, no harsh lights'
-    },
-    {
-        id: 'urban_museum_exterior',
-        label: 'Museum Exterior',
-        category: 'outdoor',
-        region: 'global',
-        scene: 'Modern museum exterior, clean architectural lines, plaza',
-        lighting: 'Bright daylight, architectural shadows, blue sky',
-        camera: '35mm lens, architectural context, subject in plaza',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No tourist crowds, no signs'
-    },
-    // REMOVED: urban_alley_sunlight - complex scene
-    {
-        id: 'urban_glass_reflection',
-        label: 'Glass Building Reflection',
-        category: 'outdoor',
-        region: 'global',
-        scene: 'Modern glass-facade building, reflective surface, city reflected',
-        lighting: 'Overcast sky, soft reflections in glass',
-        camera: '35mm lens, subject with glass building behind',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No direct sun glare, no busy reflections'
-    },
-    {
-        id: 'urban_underpass_tunnel',
-        label: 'Underpass Tunnel',
-        category: 'street',
-        region: 'global',
-        scene: 'Clean urban underpass or tunnel, even lighting, concrete walls',
-        lighting: 'Even artificial tunnel lighting, no harsh shadows',
-        camera: '35mm lens, subject walking through, tunnel depth',
+        region: 'india',
+        scene: 'Quiet upscale Indian city street at blue hour, clean modern buildings on both sides, warm street lights beginning to glow, smooth pavement, a few distant blurred pedestrians, evening sky transitioning to deep blue',
+        lighting: 'Blue hour ambient mixing with warm golden street lights, creating a cinematic dual-tone atmosphere with cool sky above and warm fixtures below, soft shadows',
+        camera: '35mm lens, full body shot with street perspective receding behind, mixed cool-warm color temperature creating visual interest',
         motion: 'subtle motion',
         mood: 'candid',
         style: 'realism',
-        negative_bias: 'No graffiti, no homeless camps, no debris'
-    }
+        negative_bias: 'No busy traffic, no rickshaws, no cluttered signage, no harsh lighting'
+    },
+    {
+        id: 'urban_heritage_wall',
+        label: 'Heritage Sandstone Wall',
+        category: 'outdoor',
+        region: 'india',
+        scene: 'Beautiful clean heritage sandstone wall with carved architectural detail, warm golden stone texture, arched doorway or window frame creating depth, well-maintained historical surface',
+        lighting: 'Golden hour side light hitting the textured wall at an angle, warm sandstone glowing with amber tones, long soft shadows emphasizing carved reliefs, warm enveloping atmosphere',
+        camera: '50mm lens, three-quarter body with wall texture visible, warm color palette, subject against the golden stone',
+        motion: 'static',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No peeling paint, no graffiti, no trash, no damaged stonework'
+    },
+    {
+        id: 'urban_skyline_bridge',
+        label: 'Bridge with City View',
+        category: 'outdoor',
+        region: 'india',
+        scene: 'Modern pedestrian bridge or overpass with clean railing, city skyline stretching out behind, evening sky with city lights beginning to twinkle, smooth bridge surface, uncluttered path',
+        lighting: 'Blue hour with warm city lights reflected, bridge fixtures providing subtle illumination, mixed color temperature from sky and city creating depth and atmosphere',
+        camera: '50mm lens, standing on bridge with city bokeh behind, street and building lights creating beautiful circular bokeh in background',
+        motion: 'static',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No heavy traffic, no harsh direct lights, no cluttered signage'
+    },
 ]
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// REAL-WORLD CASUAL (6 presets) - PHOTOGRAPHIC BELIEVABILITY
+// CELEBRATION (3 presets)
+// Premium Indian festive settings
+// Scene Intelligence scenarios: standing with decor, near entrance, 
+//   by table, at bar area, on dance floor edge
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const REAL_WORLD_CASUAL: ScenePreset[] = [
+const CELEBRATION_PRESETS: ScenePreset[] = [
     {
-        id: 'mirror_casual_selfie',
-        label: '📱 Mirror Selfie',
+        id: 'celebration_festive',
+        label: 'Festive Evening',
         category: 'lifestyle',
-        region: 'global',
-        scene: 'Wardrobe mirror corner with hanging clothes visible, phone partially in frame, natural home setting with soft wall in background',
-        lighting: 'Soft indoor side light from nearby window, warm color temperature (3200K), subtle shadows, diffused quality',
-        camera: '26mm phone camera (wide angle), arm-length distance, slightly tilted angle for candid feel, f/1.8 aperture',
+        region: 'india',
+        scene: 'Tasteful Indian festive setting with warm string lights draped elegantly, brass diyas and candles in the background, rich floral arrangement with marigolds and roses, elegant silk drapes, warm ambient evening glow',
+        lighting: 'Warm fairy lights and candle glow creating soft golden ambient, diyas providing warm pinpoint highlights, overall low-light atmosphere with rich warm tones, gentle shadows',
+        camera: '50mm lens, chest-up framing with festive bokeh lights creating circles of warmth behind, shallow depth focused on subject',
         motion: 'static',
         mood: 'candid',
         style: 'realism',
-        negative_bias: 'No studio perfection, no perfect posture, embrace natural imperfections, casual phone photo aesthetic'
+        negative_bias: 'No harsh camera flash, no overcrowded space, no garish decorations, no plastic decor'
     },
     {
-        id: 'bathroom_mirror_selfie',
-        label: '🪞 Bathroom Mirror',
+        id: 'celebration_wedding',
+        label: 'Wedding Venue',
         category: 'lifestyle',
-        region: 'global',
-        scene: 'Full-length bathroom mirror with tiles and soft lighting visible in reflection, mirror edge in frame, authentic home bathroom environment',
-        lighting: 'Diffused indoor front light from bathroom fixtures, neutral color temperature (4500K), even illumination, minimal shadows',
-        camera: '26mm phone camera, 1.2 meter distance, straight-on angle, f/2.0 aperture, full body reflection visible',
+        region: 'india',
+        scene: 'Elegant Indian wedding venue with tasteful floral mandap or archway in background, sophisticated draping in rich fabrics, crystal chandeliers, well-decorated stage area, polished marble floor',
+        lighting: 'Warm venue lighting from concealed fixtures and chandeliers, soft amber glow creating an intimate atmosphere, golden wash from decorative elements, gentle fill from floral arrangements reflecting light',
+        camera: '85mm lens, portrait framing with venue bokeh, warm golden tones, elegant shallow depth separating subject from ornate background',
         motion: 'static',
         mood: 'candid',
         style: 'realism',
-        negative_bias: 'No professional lighting, no polished look, authentic selfie aesthetic with natural imperfections'
+        negative_bias: 'No chaotic crowds, no harsh stage spotlights, no messy catering areas'
     },
     {
-        id: 'street_relaxed_standing',
-        label: '🏙️ Street Standing',
+        id: 'celebration_party',
+        label: 'Cocktail Evening',
         category: 'lifestyle',
-        region: 'global',
-        scene: 'Sidewalk against textured building wall, soft city blur in background, empty pavement in foreground, urban environment',
-        lighting: 'Natural diffused side light from overcast sky or building shade, neutral color temperature (5500K), soft shadows',
-        camera: '35mm mirrorless camera, 2.5 meters distance, eye-level angle, f/2.8 aperture showing slight background blur',
+        region: 'india',
+        scene: 'Upscale cocktail party or lounge setting, elegant bar with backlit bottles in background, sophisticated guests as soft blurs, contemporary Indian decor, clean dark-toned interior with brass accents',
+        lighting: 'Ambient warm bar lighting, subtle accent lights highlighting architectural features, low intimate atmosphere with warm golden undertones',
+        camera: '50mm lens, standing socializing framing, shallow depth of field with bar and ambient lights creating warm bokeh behind',
         motion: 'subtle motion',
         mood: 'candid',
         style: 'realism',
-        negative_bias: 'No fashion model posing, no perfect symmetry, embrace natural off-guard candid moment'
+        negative_bias: 'No harsh flash, no neon bar signs, no garish party decorations'
     },
-    {
-        id: 'casual_walk_moment',
-        label: '🚶 Walking Candid',
-        category: 'lifestyle',
-        region: 'global',
-        scene: 'Park pathway with trees and natural greenery, path texture visible in foreground, natural bokeh blur of foliage in background',
-        lighting: 'Soft natural side light filtering through trees, warm color temperature (4800K), gentle shadows, organic quality',
-        camera: '50mm mirrorless camera, 3 meters distance, slightly below eye level, f/2.0 aperture with shallow depth',
-        motion: 'candid motion',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No staged walking pose, no model strut, capture genuine natural movement and momentum'
-    },
-    {
-        id: 'cafe_window_lifestyle',
-        label: '☕ Cafe Window Seat',
-        category: 'lifestyle',
-        region: 'global',
-        scene: 'Cafe window seating with wooden table edge in foreground, coffee cup visible on table, soft people blur and cafe interior in background, window light streaming in',
-        lighting: 'Mixed window side light (natural) with indoor warm lighting, creating soft contrast, warm color temperature (4200K)',
-        camera: '50mm DSLR, 1.8 meters distance, slightly below eye level, f/2.0 aperture for natural background blur',
-        motion: 'subtle motion',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No posed sitting, no direct eye contact, capture off-guard everyday cafe moment'
-    },
-    {
-        id: 'balcony_reading_moment',
-        label: '📖 Balcony Reading',
-        category: 'lifestyle',
-        region: 'global',
-        scene: 'Home balcony with railing and potted plants visible, balcony floor in foreground, city or nature view softly blurred in background',
-        lighting: 'Soft natural front light from open sky, neutral color temperature (5200K), even illumination, minimal harsh shadows',
-        camera: '35mm mirrorless camera, 2 meters distance, eye level angle, f/2.8 aperture for depth separation',
-        motion: 'static',
-        mood: 'candid',
-        style: 'realism',
-        negative_bias: 'No staged reading pose, no looking at camera, capture genuine absorbed moment in personal space'
-    }
 ]
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// EXPORT ALL PHOTOSHOOT PRESETS
+// CASUAL REAL (2 presets)
+// Authentic iPhone-shot feel — most relatable
+// Scene Intelligence scenarios: mirror angle, standing casual, 
+//   phone in frame, relaxed body language
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const CASUAL_PRESETS: ScenePreset[] = [
+    {
+        id: 'casual_mirror_selfie',
+        label: 'Mirror Selfie',
+        category: 'lifestyle',
+        region: 'india',
+        scene: 'Full-length bedroom or wardrobe mirror in a clean modern Indian home, soft neutral wall behind, edge of mirror frame visible, clean floor, natural home setting with warm tones',
+        lighting: 'Soft indoor side light from nearby window, warm natural color temperature, subtle shadows, diffused quality typical of home interiors',
+        camera: '26mm iPhone wide angle lens, arm-length distance, phone partially in frame for authenticity, slightly tilted angle for candid feel, natural iPhone processing',
+        motion: 'static',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No studio lighting, no perfect symmetry, no professional posing — authentic phone selfie aesthetic'
+    },
+    {
+        id: 'casual_street_candid',
+        label: 'Street Candid',
+        category: 'street',
+        region: 'india',
+        scene: 'Clean modern Indian sidewalk with a textured building wall behind, soft city blur in background, smooth pavement, clean urban environment with muted colors',
+        lighting: 'Natural diffused side light from overcast sky or building shade, neutral color temperature, soft shadows from ambient daylight, no harsh direct sun',
+        camera: '48mm iPhone main camera, eye-level casual framing, natural portrait mode depth separating subject from street background, authentic iPhone color science',
+        motion: 'subtle motion',
+        mood: 'candid',
+        style: 'realism',
+        negative_bias: 'No fashion model posing, no perfect symmetry, no dramatic lighting — capture natural off-guard moment'
+    },
+]
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EXPORT ALL PRESETS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const PHOTOSHOOT_PRESETS: ScenePreset[] = [
     ...STUDIO_PRESETS,
     ...LIFESTYLE_PRESETS,
-    ...CELEBRATION_PRESETS,
     ...OUTDOOR_PRESETS,
-    ...URBAN_CINEMATIC_PRESETS,
-    ...REAL_WORLD_CASUAL  // NEW: 6 casual believable presets
+    ...URBAN_PRESETS,
+    ...CELEBRATION_PRESETS,
+    ...CASUAL_PRESETS,
 ]
 
 export function getPhotoshootPreset(id: string): ScenePreset | undefined {
@@ -786,5 +426,4 @@ export function getPhotoshootPresetIds(): string[] {
     return PHOTOSHOOT_PRESETS.map(p => p.id)
 }
 
-// Log count for verification
-console.log(`📸 Loaded ${PHOTOSHOOT_PRESETS.length} photoshoot-grade presets (including ${REAL_WORLD_CASUAL.length} real-world casual)`)
+console.log(`📸 Loaded ${PHOTOSHOOT_PRESETS.length} curated presets`)

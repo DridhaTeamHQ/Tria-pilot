@@ -2,7 +2,8 @@
  * SCENE DATASET INDEX
  * 
  * Central export for all scene presets.
- * Combines Indian + Global presets into one searchable dataset.
+ * All presets now live in photoshoot.ts (25 curated presets).
+ * india.ts and global.ts provide backward-compatible filtered views.
  */
 
 import { INDIAN_PRESETS, getIndianPreset, getIndianPresets, DEFAULT_INDIAN_PRESET, type ScenePreset } from './india'
@@ -17,20 +18,20 @@ export type { ScenePreset }
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * All available scene presets (Indian + Global + Photoshoot)
- * Photoshoot presets are prioritized for cleaner, more professional outputs
+ * All available scene presets (25 curated presets from photoshoot.ts)
+ * INDIAN_PRESETS and GLOBAL_PRESETS are filtered views of the same set
  */
-export const ALL_PRESETS: ScenePreset[] = [...PHOTOSHOOT_PRESETS, ...INDIAN_PRESETS, ...GLOBAL_PRESETS]
+export const ALL_PRESETS: ScenePreset[] = PHOTOSHOOT_PRESETS
 
 /**
- * Get any preset by ID (searches all regions)
+ * Get any preset by ID
  */
 export function getPresetById(id: string): ScenePreset | undefined {
     return ALL_PRESETS.find(p => p.id === id)
 }
 
 /**
- * Get presets by category (all regions)
+ * Get presets by category
  */
 export function getPresetsByCategory(category: ScenePreset['category']): ScenePreset[] {
     return ALL_PRESETS.filter(p => p.category === category)
@@ -63,26 +64,18 @@ export function searchPresets(keyword: string): ScenePreset[] {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// DATASET SUMMARY (for GPT-4o mini selection)
+// DATASET SUMMARY (for Scene Intelligence selection)
 // ═══════════════════════════════════════════════════════════════
 
 /**
  * Generate a condensed dataset summary for GPT-4o mini to select from
- * This is used for prompt composition - GPT picks ONE preset ID
+ * Scene Intelligence uses this to pick the right preset
  */
 export function getPresetSummaryForSelection(): string {
-    const lines: string[] = []
+    const lines: string[] = ['AVAILABLE PRESETS:']
 
-    // Group by region
-    lines.push('INDIAN PRESETS:')
-    for (const p of INDIAN_PRESETS) {
-        lines.push(`  - ${p.id}: ${p.label} (${p.category}, ${p.mood})`)
-    }
-
-    lines.push('')
-    lines.push('GLOBAL PRESETS:')
-    for (const p of GLOBAL_PRESETS) {
-        lines.push(`  - ${p.id}: ${p.label} (${p.category}, ${p.mood})`)
+    for (const p of ALL_PRESETS) {
+        lines.push(`  - ${p.id}: ${p.label} [${p.region}] (${p.category})`)
     }
 
     return lines.join('\n')
@@ -100,7 +93,7 @@ export function getAllPresetIds(): string[] {
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Default fallback preset (Indian Home Lifestyle)
+ * Default fallback preset (Studio White)
  */
 export const DEFAULT_PRESET = DEFAULT_INDIAN_PRESET
 
@@ -111,7 +104,7 @@ export function getDefaultPreset(region: 'india' | 'global' = 'india'): ScenePre
     return region === 'india' ? DEFAULT_INDIAN_PRESET : DEFAULT_GLOBAL_PRESET
 }
 
-// Re-export region-specific functions
+// Re-export region-specific functions for backward compatibility
 export {
     INDIAN_PRESETS,
     GLOBAL_PRESETS,

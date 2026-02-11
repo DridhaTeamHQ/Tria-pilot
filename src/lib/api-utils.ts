@@ -23,10 +23,18 @@ export async function safeParseResponse<T = any>(res: Response, context?: string
     // Handle non-OK responses
     if (!res.ok) {
         let errorBody = ""
+        const retryAfterHeader = res.headers.get('Retry-After')
+        const retryAfterFromHeader = Number(retryAfterHeader ?? 0) || undefined
         try {
             errorBody = await res.text()
             // Log first 200 chars of error response (avoid logging huge HTML pages)
-            console.error(`${prefix}API Error ${res.status}: ${errorBody.slice(0, 200)}${errorBody.length > 200 ? '...' : ''}`)
+            const snippet = `${errorBody.slice(0, 200)}${errorBody.length > 200 ? '...' : ''}`
+            if (res.status === 429 || (res.status >= 400 && res.status < 500)) {
+                // 4xx is usually user/actionable state, not an app crash.
+                console.warn(`${prefix}API ${res.status}: ${snippet}`)
+            } else {
+                console.error(`${prefix}API Error ${res.status}: ${snippet}`)
+            }
         } catch {
             errorBody = "Unable to read error response"
         }
@@ -52,15 +60,32 @@ export async function safeParseResponse<T = any>(res: Response, context?: string
             try {
                 const errorJson = JSON.parse(errorBody)
                 const serverMessage = errorJson.error || errorJson.message || errorJson.details
-                if (serverMessage) {
-                    throw new Error(`${prefix}${serverMessage}`)
+                const retryAfterSeconds =
+                    Number(errorJson.retryAfterSeconds ?? retryAfterHeader ?? 0) || undefined
+
+                const message = serverMessage || friendlyMessage
+                const err = new Error(`${prefix}${message}`) as Error & {
+                    status?: number
+                    retryAfterSeconds?: number
+                    code?: string
                 }
+                err.status = res.status
+                err.retryAfterSeconds = retryAfterSeconds
+                err.code = errorJson.code
+                throw err
             } catch (parseError) {
-                // JSON parse failed, use friendly message
+                // Re-throw structured errors we created above.
+                if (parseError instanceof Error && `${parseError.message}`.startsWith(prefix)) {
+                    throw parseError
+                }
+                // JSON parse failed, use friendly message below.
             }
         }
 
-        throw new Error(`${prefix}${friendlyMessage}`)
+        const fallbackErr = new Error(`${prefix}${friendlyMessage}`) as Error & { status?: number; retryAfterSeconds?: number }
+        fallbackErr.status = res.status
+        fallbackErr.retryAfterSeconds = retryAfterFromHeader
+        throw fallbackErr
     }
 
     // Handle successful responses

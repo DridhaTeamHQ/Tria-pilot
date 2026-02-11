@@ -44,7 +44,8 @@ function getLimits(
     return { windowMs, maxIp: 10, maxUser: 20 }
   }
   if (bucket === 'tryon') {
-    const maxPerMinute = parseInt(process.env.MAX_TRYON_PER_MINUTE || '2')
+    // Slightly less aggressive default to reduce false-friction on normal usage.
+    const maxPerMinute = parseInt(process.env.MAX_TRYON_PER_MINUTE || '3')
     return { windowMs, maxIp: maxPerMinute, maxUser: maxPerMinute }
   }
   if (bucket === 'ai') {
@@ -111,8 +112,8 @@ export function applyApiRateLimit(
   // Extra hourly limits for try-on (protects against steady abuse)
   if (allowed && bucket === 'tryon') {
     const hourWindowMs = 60 * 60 * 1000
-    const maxPerHourUser = parseInt(process.env.MAX_TRYON_PER_HOUR || '10')
-    const maxPerHourIp = parseInt(process.env.MAX_TRYON_PER_HOUR_PER_IP || '15')
+    const maxPerHourUser = parseInt(process.env.MAX_TRYON_PER_HOUR || '18')
+    const maxPerHourIp = parseInt(process.env.MAX_TRYON_PER_HOUR_PER_IP || '24')
 
     const ipHourKey = `ip:${ip}:${bucket}:hour`
     const ipHourResult = consume(ipHourKey, maxPerHourIp, hourWindowMs)

@@ -41,6 +41,13 @@ export interface PixelCopyResult {
     error?: string
 }
 
+export interface FaceCompositeTarget {
+    x: number
+    y: number
+    width: number
+    height: number
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -50,13 +57,13 @@ export interface PixelCopyResult {
  * Captures forehead, ears, jawline, and some neck/hair for complete face coverage
  * INCREASED: Previous 1.25 was not capturing enough face area
  */
-export const FACE_BOX_EXPANSION = 1.4
+export const FACE_BOX_EXPANSION = 1.24
 
 /**
  * Feather radius for smooth edge blending (pixels)
  * INCREASED: Larger feather for more natural blending into body
  */
-export const BLEND_FEATHER_RADIUS = 25
+export const BLEND_FEATHER_RADIUS = 10
 
 /**
  * Default face estimation when no detection available
@@ -163,27 +170,36 @@ export async function extractFacePixels(
 }
 
 /**
- * Create a feathered (soft edge) elliptical mask for blending
+ * Create a face mask with opaque core and soft edges.
+ * This avoids translucent "double-face" ghosting from overly transparent masks.
  */
 async function createFeatheredMask(
     width: number,
     height: number,
     featherRadius: number
 ): Promise<Buffer> {
-    const cx = width / 2
-    const cy = height / 2
-    const rx = (width / 2) - featherRadius
-    const ry = (height / 2) - featherRadius
+    const inset = Math.max(2, featherRadius * 2)
+    const innerW = Math.max(4, width - inset * 2)
+    const innerH = Math.max(4, height - inset * 2)
+    const rx = Math.max(8, Math.floor(innerW * 0.18))
 
     const svg = `
         <svg width="${width}" height="${height}">
             <defs>
-                <filter id="blur">
-                    <feGaussianBlur stdDeviation="${featherRadius}" />
+                <filter id="soft-edge">
+                    <feGaussianBlur stdDeviation="${Math.max(1, featherRadius * 0.65)}" />
                 </filter>
             </defs>
-            <ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" 
-                     fill="white" filter="url(#blur)" />
+            <rect
+                x="${inset}"
+                y="${inset}"
+                width="${innerW}"
+                height="${innerH}"
+                rx="${rx}"
+                ry="${rx}"
+                fill="white"
+                filter="url(#soft-edge)"
+            />
         </svg>
     `
 
@@ -203,7 +219,9 @@ async function createFeatheredMask(
  */
 export async function compositeFacePixels(
     generatedImageBuffer: Buffer,
-    faceData: FacePixelData
+    faceData: FacePixelData,
+    targetBox?: FaceCompositeTarget,
+    strictFaceMode: boolean = false
 ): Promise<PixelCopyResult> {
     try {
         const generatedMeta = await sharp(generatedImageBuffer).metadata()
@@ -213,29 +231,43 @@ export async function compositeFacePixels(
         }
 
         // Calculate face position in generated image
-        // For now, assume same relative position (can be improved with face detection)
-        let targetX = faceData.box.x
-        let targetY = faceData.box.y
+        const targetWidth = targetBox?.width ?? faceData.box.width
+        const targetHeight = targetBox?.height ?? faceData.box.height
+        let targetX = targetBox?.x ?? faceData.box.x
+        let targetY = targetBox?.y ?? faceData.box.y
 
         // Clamp to image bounds
-        targetX = Math.max(0, Math.min(targetX, generatedMeta.width - faceData.box.width))
-        targetY = Math.max(0, Math.min(targetY, generatedMeta.height - faceData.box.height))
+        targetX = Math.max(0, Math.min(targetX, generatedMeta.width - targetWidth))
+        targetY = Math.max(0, Math.min(targetY, generatedMeta.height - targetHeight))
 
         // If we have a mask, apply it to the face for feathered edges
         let faceWithMask = faceData.buffer
 
         if (faceData.maskBuffer) {
+            const effectiveMask = strictFaceMode
+                ? await createFeatheredMask(faceData.box.width, faceData.box.height, 5)
+                : faceData.maskBuffer
+
             // Create face with alpha channel from mask
             faceWithMask = await sharp(faceData.buffer)
                 .ensureAlpha()
                 .composite([{
-                    input: faceData.maskBuffer,
+                    input: effectiveMask,
                     blend: 'dest-in'  // Use mask as alpha
                 }])
                 .png()
                 .toBuffer()
 
-            console.log('   🎭 Applied feathered mask to face')
+            console.log(`   🎭 Applied ${strictFaceMode ? 'strict' : 'standard'} feather mask to face`)
+        }
+
+        // If target box differs from source extraction, resize for geometric alignment.
+        if (targetWidth !== faceData.box.width || targetHeight !== faceData.box.height) {
+            faceWithMask = await sharp(faceWithMask)
+                .resize(targetWidth, targetHeight)
+                .png()
+                .toBuffer()
+            console.log(`   📏 Resized face patch to ${targetWidth}x${targetHeight}`)
         }
 
         // Composite original face onto generated image
@@ -250,7 +282,7 @@ export async function compositeFacePixels(
             .toBuffer()
 
         console.log(`✅ Face pixels composited at (${targetX}, ${targetY}) with feathered edges`)
-        console.log(`   📐 Face size: ${faceData.box.width}x${faceData.box.height}`)
+        console.log(`   📐 Face size: ${targetWidth}x${targetHeight}`)
 
         return {
             success: true,
