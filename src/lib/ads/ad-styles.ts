@@ -1,17 +1,53 @@
 /**
- * AD STYLE PRESETS
- * 
- * Locked preset system for ad generation.
- * Brands select from these presets only — no custom prompts allowed.
- * 
- * Flow: JSON input → prompt template → image model
+ * AD STYLE PRESETS — PRODUCTION GRADE
+ *
+ * Categorized preset system for ad generation.
+ * Brands select from these presets — GPT-4o crafts the final prompt.
+ *
+ * Categories: UGC | Editorial | Commercial | Creative | Standalone | Indian Fashion
  */
 
 // ═══════════════════════════════════════════════════════════════
 // TYPE DEFINITIONS
 // ═══════════════════════════════════════════════════════════════
 
-export type AdPresetId = 'UGC_CANDID' | 'PRODUCT_LIFESTYLE' | 'STUDIO_POSTER' | 'PREMIUM_EDITORIAL'
+export const AD_PRESET_IDS = [
+  // UGC
+  'UGC_CANDID',
+  'UGC_STORY',
+  'UGC_REEL',
+  'UGC_TESTIMONIAL',
+  // Editorial
+  'EDITORIAL_PREMIUM',
+  'EDITORIAL_FASHION',
+  'EDITORIAL_BEAUTY',
+  'EDITORIAL_STREET',
+  // Commercial
+  'PRODUCT_LIFESTYLE',
+  'STUDIO_POSTER',
+  'PRODUCT_HERO',
+  // Creative
+  'CREATIVE_SURREAL',
+  'CREATIVE_CINEMATIC',
+  'CREATIVE_TEXT_DYNAMIC',
+  'CREATIVE_BOLD_COLOR',
+  // Standalone Product
+  'STANDALONE_CLEAN',
+  'STANDALONE_SURREAL',
+  // Indian Fashion
+  'INDIAN_FESTIVE',
+  'INDIAN_ETHNIC',
+] as const
+
+export type AdPresetId = (typeof AD_PRESET_IDS)[number]
+
+export type AdPresetCategory =
+  | 'ugc'
+  | 'editorial'
+  | 'commercial'
+  | 'creative'
+  | 'standalone'
+  | 'indian'
 
 export type Platform = 'instagram' | 'facebook' | 'google' | 'influencer'
 
@@ -19,39 +55,76 @@ export type CaptionTone = 'casual' | 'premium' | 'confident'
 
 export type CtaType = 'shop_now' | 'learn_more' | 'explore' | 'buy_now'
 
+export type CharacterType = 'human_female' | 'human_male' | 'animal' | 'none'
+
+export type FontStyle = 'serif' | 'sans-serif' | 'handwritten' | 'bold-display'
+
+export type TextPlacement =
+  | 'top-left'
+  | 'top-right'
+  | 'bottom-left'
+  | 'bottom-right'
+  | 'center'
+
+export interface TextOverlayConfig {
+  headline?: string
+  subline?: string
+  tagline?: string
+  placement?: TextPlacement
+  fontStyle?: FontStyle
+}
+
 export interface AdPreset {
-    id: AdPresetId
-    name: string
-    description: string
-    icon: string // Lucide icon name
-    whenToUse: string[]
-    platforms: Platform[]
+  id: AdPresetId
+  name: string
+  description: string
+  category: AdPresetCategory
+  icon: string
+  whenToUse: string[]
+  platforms: Platform[]
+  /** Scene, lighting, and composition guidance for the prompt builder */
+  sceneGuide: string
+  /** Lighting description for consistency */
+  lightingGuide: string
+  /** Camera/lens guidance */
+  cameraGuide: string
+  /** Negative terms to avoid */
+  avoid: string[]
 }
 
 export interface AdGenerationInput {
-    preset: AdPresetId
-    campaignId?: string
+  preset: AdPresetId
+  campaignId?: string
 
-    // Image inputs
-    productImage?: string // base64
-    influencerImage?: string // base64
-    lockFaceIdentity?: boolean
+  // Image inputs
+  productImage?: string
+  influencerImage?: string
+  lockFaceIdentity?: boolean
 
-    // Text controls
-    headline?: string // max 6 words
-    ctaType: CtaType
-    captionTone?: CaptionTone
+  // Character
+  characterType?: CharacterType
+  animalType?: string
+  characterStyle?: string
+  characterAge?: string
 
-    // Platform selection
-    platforms: Platform[]
+  // Text overlay
+  textOverlay?: TextOverlayConfig
 
-    // Subject overrides (optional)
-    subject?: {
-        gender?: 'male' | 'female' | 'unisex'
-        ageRange?: string
-        pose?: string
-        expression?: string
-    }
+  // Text controls
+  headline?: string
+  ctaType: CtaType
+  captionTone?: CaptionTone
+
+  // Platform selection
+  platforms: Platform[]
+
+  // Subject overrides (legacy, still supported)
+  subject?: {
+    gender?: 'male' | 'female' | 'unisex'
+    ageRange?: string
+    pose?: string
+    expression?: string
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -59,119 +132,401 @@ export interface AdGenerationInput {
 // ═══════════════════════════════════════════════════════════════
 
 export const AD_PRESETS: AdPreset[] = [
-    {
-        id: 'UGC_CANDID',
-        name: 'UGC Candid',
-        description: 'Authentic user-generated content feel',
-        icon: 'Camera',
-        whenToUse: ['Instagram ads', 'Influencer-style content', 'Casual brands'],
-        platforms: ['instagram', 'facebook'],
-    },
-    {
-        id: 'PRODUCT_LIFESTYLE',
-        name: 'Product Lifestyle',
-        description: 'Product in a natural real-world setting',
-        icon: 'ShoppingBag',
-        whenToUse: ['D2C brands', 'Catalog ads', 'Product clarity matters'],
-        platforms: ['instagram', 'google'],
-    },
-    {
-        id: 'STUDIO_POSTER',
-        name: 'Studio Poster',
-        description: 'Clean, focused studio aesthetic',
-        icon: 'Image',
-        whenToUse: ['Sales', 'Announcements', 'Brand drops'],
-        platforms: ['instagram', 'facebook', 'google'],
-    },
-    {
-        id: 'PREMIUM_EDITORIAL',
-        name: 'Premium Editorial',
-        description: 'Magazine-quality editorial look',
-        icon: 'Sparkles',
-        whenToUse: ['Brand campaigns', 'High-end brands', 'Storytelling'],
-        platforms: ['instagram'],
-    },
+  // ─── UGC ───
+  {
+    id: 'UGC_CANDID',
+    name: 'UGC Candid',
+    description: 'Authentic, relatable social media feel',
+    category: 'ugc',
+    icon: 'Camera',
+    whenToUse: ['Instagram ads', 'Influencer content', 'Casual brands'],
+    platforms: ['instagram', 'facebook'],
+    sceneGuide:
+      'Real urban environment: sidewalk, café, simple indoor room. Authentic textures (concrete, walls, furniture) subtly present. Natural, unstaged, spontaneous moment.',
+    lightingGuide:
+      'Soft natural daylight, even illumination, gentle shadows matching environment. Skin texture and fabric clearly visible without smoothing.',
+    cameraGuide:
+      '35mm smartphone-style perspective, slightly off-center framing, shallow depth of field, natural social media look.',
+    avoid: ['studio lighting', 'perfect symmetry', 'professional posing', 'dramatic shadows'],
+  },
+  {
+    id: 'UGC_STORY',
+    name: 'Story Style',
+    description: 'Vertical, intimate, story-ready format',
+    category: 'ugc',
+    icon: 'Smartphone',
+    whenToUse: ['Instagram Stories', 'Vertical ads', 'Direct-to-camera'],
+    platforms: ['instagram', 'facebook'],
+    sceneGuide:
+      'Close-up or selfie-style framing, direct eye contact with camera, intimate personal space. Home, bathroom mirror, bedroom, or close indoor setting.',
+    lightingGuide:
+      'Soft indoor side light from window, warm natural colour temperature, ring light or phone flash acceptable for authenticity.',
+    cameraGuide:
+      '26mm wide-angle (phone front camera), arm-length distance, slightly tilted for candid feel, 9:16 vertical composition.',
+    avoid: ['studio backdrop', 'professional equipment visible', 'perfect framing'],
+  },
+  {
+    id: 'UGC_REEL',
+    name: 'Reel Energy',
+    description: 'Dynamic, trend-ready, high-energy still',
+    category: 'ugc',
+    icon: 'Zap',
+    whenToUse: ['Reels thumbnails', 'Trend-driven ads', 'Youth brands'],
+    platforms: ['instagram', 'facebook'],
+    sceneGuide:
+      'Dynamic angle implying motion or energy: walking, dancing, mid-gesture. Urban street, rooftop, or colourful backdrop. Action frozen in a moment.',
+    lightingGuide:
+      'Natural outdoor light or neon/ambient urban light. Slight motion blur acceptable for energy. Vibrant, saturated tones.',
+    cameraGuide:
+      '24-35mm wide angle, low or tilted perspective, slight barrel distortion for dynamism, 9:16 or 1:1.',
+    avoid: ['static pose', 'studio setting', 'muted tones', 'slow feeling'],
+  },
+  {
+    id: 'UGC_TESTIMONIAL',
+    name: 'Testimonial',
+    description: 'Trust-building, talking-to-camera feel',
+    category: 'ugc',
+    icon: 'MessageCircle',
+    whenToUse: ['Review ads', 'Trust building', 'Testimonial content'],
+    platforms: ['instagram', 'facebook', 'google'],
+    sceneGuide:
+      'Subject looking directly at camera, mid-shot (chest up), relaxed home or office background. Natural, honest, conversational. Product visible in hand or on body.',
+    lightingGuide:
+      'Soft natural light from side, no harsh shadows, warm inviting tone. Ring light glow acceptable.',
+    cameraGuide:
+      '35-50mm at eye level, subject centered, shallow depth of field softening background, webcam/phone quality feel.',
+    avoid: ['dramatic poses', 'editorial styling', 'dark moody lighting'],
+  },
+
+  // ─── Editorial ───
+  {
+    id: 'EDITORIAL_PREMIUM',
+    name: 'Premium Editorial',
+    description: 'Magazine-quality, refined, luxury',
+    category: 'editorial',
+    icon: 'Sparkles',
+    whenToUse: ['Brand campaigns', 'High-end brands', 'Storytelling'],
+    platforms: ['instagram'],
+    sceneGuide:
+      'Carefully chosen real-world environment: architectural interior, minimal outdoor, gallery. Depth and narrative without overwhelming. Refined, composed posture.',
+    lightingGuide:
+      'Cinematic yet realistic: directional key light creating soft highlights and natural shadows that sculpt the subject. Premium tonal quality.',
+    cameraGuide:
+      '50-85mm portrait lens, shallow depth of field, refined composition, premium fashion editorial framing.',
+    avoid: ['casual feel', 'smartphone aesthetic', 'cluttered backgrounds', 'flat lighting'],
+  },
+  {
+    id: 'EDITORIAL_FASHION',
+    name: 'Fashion Editorial',
+    description: 'Runway-inspired, strong styling, high fashion',
+    category: 'editorial',
+    icon: 'Shirt',
+    whenToUse: ['Fashion launches', 'Lookbook', 'Designer brands'],
+    platforms: ['instagram'],
+    sceneGuide:
+      'Studio or minimal architectural setting. Strong styling, fashion-forward pose, confident attitude. Product is the star of the composition.',
+    lightingGuide:
+      'Controlled studio lighting: key light from 45 degrees, rim light for separation, beauty dish or large softbox. Sharp detail on fabric and accessories.',
+    cameraGuide:
+      '85-100mm telephoto, full body or three-quarter, fashion editorial framing, tack sharp on subject.',
+    avoid: ['casual/candid', 'smartphone look', 'natural/UGC feel'],
+  },
+  {
+    id: 'EDITORIAL_BEAUTY',
+    name: 'Beauty Close-up',
+    description: 'Skin-first, beauty lighting, product application',
+    category: 'editorial',
+    icon: 'Heart',
+    whenToUse: ['Beauty brands', 'Skincare', 'Makeup', 'Close-up product'],
+    platforms: ['instagram', 'facebook'],
+    sceneGuide:
+      'Tight close-up: face or detail shot. Product in application or held near face. Dewy skin, natural pores visible, minimal makeup. Clean backdrop.',
+    lightingGuide:
+      'High-key soft studio lighting, warm off-white background, shallow depth of field on skin and product texture. Beauty dish or ring light.',
+    cameraGuide:
+      '85mm macro-portrait, f/2.8, focus on cheek/eye area and product, creamy background bokeh.',
+    avoid: ['full body', 'busy environment', 'harsh shadows', 'over-smoothed skin'],
+  },
+  {
+    id: 'EDITORIAL_STREET',
+    name: 'Street Editorial',
+    description: 'Urban edge, candid editorial, fashion-forward',
+    category: 'editorial',
+    icon: 'MapPin',
+    whenToUse: ['Streetwear', 'Urban brands', 'Youth editorial'],
+    platforms: ['instagram'],
+    sceneGuide:
+      'Urban street: graffiti wall, concrete, metal textures, city grit. Subject with attitude, leaning or walking. Raw, not polished.',
+    lightingGuide:
+      'Natural harsh daylight with strong shadows, or overcast diffused. Film grain and slight desaturation for edge. No studio look.',
+    cameraGuide:
+      '35mm wide or 50mm standard, street photography framing, slight tilt, film grain, analog feel.',
+    avoid: ['studio', 'perfect lighting', 'clean backgrounds', 'posed perfection'],
+  },
+
+  // ─── Commercial ───
+  {
+    id: 'PRODUCT_LIFESTYLE',
+    name: 'Product Lifestyle',
+    description: 'Product in a natural real-world setting',
+    category: 'commercial',
+    icon: 'ShoppingBag',
+    whenToUse: ['D2C brands', 'Catalog ads', 'Product clarity matters'],
+    platforms: ['instagram', 'google'],
+    sceneGuide:
+      'Simple modern lifestyle setting: minimal room, neutral interior, table surface. Product is primary focus; model secondary if present.',
+    lightingGuide:
+      'Soft studio or diffused natural light, even distribution, no harsh shadows. Subtle shadows beneath product for grounding.',
+    cameraGuide:
+      '50mm standard lens, clean framing, product centred, professional ecommerce clarity.',
+    avoid: ['cluttered', 'dramatic lighting', 'artistic distortion', 'heavy stylisation'],
+  },
+  {
+    id: 'STUDIO_POSTER',
+    name: 'Studio Poster',
+    description: 'Clean studio, text-friendly, campaign-ready',
+    category: 'commercial',
+    icon: 'Image',
+    whenToUse: ['Sales', 'Announcements', 'Brand drops', 'Banner ads'],
+    platforms: ['instagram', 'facebook', 'google'],
+    sceneGuide:
+      'Solid or soft gradient studio backdrop, no texture or distractions. Space for text overlay. Subject centred for impact.',
+    lightingGuide:
+      'Controlled softbox studio lighting, even illumination, gentle shadows, strong clarity on subject and product.',
+    cameraGuide:
+      '50mm straight-on, symmetrical, poster-style framing, deep depth of field.',
+    avoid: ['busy backgrounds', 'environmental context', 'candid feel', 'dramatic angles'],
+  },
+  {
+    id: 'PRODUCT_HERO',
+    name: 'Product Hero',
+    description: 'Floating product, premium beauty/luxury shot',
+    category: 'commercial',
+    icon: 'Star',
+    whenToUse: ['Product launches', 'Beauty/luxury ads', 'Hero shots'],
+    platforms: ['instagram', 'facebook', 'google'],
+    sceneGuide:
+      'Product floating or prominently placed, surrounded by abstract shapes, glossy spheres, or gradient background. No model; product is the hero. Premium, futuristic.',
+    lightingGuide:
+      'High-contrast cinematic studio lighting, crisp reflections, shiny surfaces. 3D-render quality, 8K detail.',
+    cameraGuide:
+      'Macro or medium, shallow depth of field, sharp focus on product, bokeh on background elements.',
+    avoid: ['model/person', 'casual setting', 'flat lighting', 'low resolution feel'],
+  },
+
+  // ─── Creative ───
+  {
+    id: 'CREATIVE_SURREAL',
+    name: 'Surreal Conceptual',
+    description: 'One uncanny element in a realistic scene',
+    category: 'creative',
+    icon: 'Wand2',
+    whenToUse: ['Brand storytelling', 'Campaign hero', 'Art direction'],
+    platforms: ['instagram'],
+    sceneGuide:
+      'Realistic photo with ONE surreal twist: melting fabric, floating objects, impossible landscape. Subject is unaffected, calm. Subtle strangeness, not chaotic.',
+    lightingGuide:
+      'Soft natural or studio light matching the realistic base. Surreal element lit consistently with the scene.',
+    cameraGuide:
+      '35-50mm, clean composition, shallow depth of field. The surreal element is central.',
+    avoid: ['multiple surreal elements', 'fantasy', 'horror', 'digital glitch', 'chaos'],
+  },
+  {
+    id: 'CREATIVE_CINEMATIC',
+    name: 'Cinematic Motion',
+    description: 'Dynamic action, motion blur, dramatic angles',
+    category: 'creative',
+    icon: 'Film',
+    whenToUse: ['Sports', 'Athletic brands', 'Energy/action'],
+    platforms: ['instagram', 'facebook'],
+    sceneGuide:
+      'Dynamic action: running, jumping, kicking, dancing. Motion blur on limbs or background. Dramatic panning or low angle. Energy and movement.',
+    lightingGuide:
+      'Natural dramatic light or stadium/urban light. Motion blur streaks. Muted or high-contrast tones, 35mm film grain.',
+    cameraGuide:
+      '24-35mm wide angle, low perspective, panning shot feel, 1/30-1/60 shutter for motion blur.',
+    avoid: ['static pose', 'studio setting', 'clean/still composition'],
+  },
+  {
+    id: 'CREATIVE_TEXT_DYNAMIC',
+    name: 'Text-based Dynamic',
+    description: 'Model + product + bold typography + gradient',
+    category: 'creative',
+    icon: 'Type',
+    whenToUse: ['Campaign launches', 'Nike/Adidas style', 'Bold branding'],
+    platforms: ['instagram', 'facebook'],
+    sceneGuide:
+      'Model in dramatic pose against fluorescent gradient background with flowing neon organic shapes. Bold sans-serif brand typography integrated with composition.',
+    lightingGuide:
+      'Studio key light from above-front, gradient background glowing, neon shapes reflecting on subject. High-fashion commercial light.',
+    cameraGuide:
+      'Full body, slightly low angle, subject fills frame with typography around them.',
+    avoid: ['natural backgrounds', 'muted colours', 'candid feel', 'small text'],
+  },
+  {
+    id: 'CREATIVE_BOLD_COLOR',
+    name: 'Bold Color Studio',
+    description: 'Strong colour contrast, retro-modern editorial',
+    category: 'creative',
+    icon: 'Palette',
+    whenToUse: ['Fashion brands', 'Colour-led campaigns', 'Statement pieces'],
+    platforms: ['instagram'],
+    sceneGuide:
+      'Solid deep colour backdrop (red, blue, emerald). Subject in contrasting outfit. Strong graphic colour blocking. Retro-modern aesthetic.',
+    lightingGuide:
+      'Directional studio lighting, soft but defined shadows, cinematic colour grading. Saturated, intentional palette.',
+    cameraGuide:
+      '50-85mm, three-quarter or full body, magazine editorial framing, sharp focus.',
+    avoid: ['neutral tones', 'natural backgrounds', 'low saturation', 'casual/candid'],
+  },
+
+  // ─── Standalone Product ───
+  {
+    id: 'STANDALONE_CLEAN',
+    name: 'Clean Product Shot',
+    description: 'Studio product-only, e-commerce ready',
+    category: 'standalone',
+    icon: 'Box',
+    whenToUse: ['Catalog', 'E-commerce', 'Product page'],
+    platforms: ['instagram', 'google'],
+    sceneGuide:
+      'Neutral grey or white studio background, product centred, even lighting, no distractions. Professional product photography.',
+    lightingGuide:
+      'Even studio light from multiple angles, no harsh shadows, clean highlights on product surface.',
+    cameraGuide:
+      '50mm macro, straight-on or slight angle, deep depth of field, high resolution 4K.',
+    avoid: ['models', 'environments', 'artistic styling', 'coloured backgrounds'],
+  },
+  {
+    id: 'STANDALONE_SURREAL',
+    name: 'Surreal Product Scene',
+    description: 'Product in dreamlike, installation-art setting',
+    category: 'standalone',
+    icon: 'CloudLightning',
+    whenToUse: ['Product launches', 'Premium positioning', 'Social buzz'],
+    platforms: ['instagram'],
+    sceneGuide:
+      'Product floating or placed in surreal scene: stone beads, ribbons, gradient sky, water, abstract landscape. Installation art feel, wide angle, poster-worthy.',
+    lightingGuide:
+      'Warm cinematic light, gradient background, soft ambient fill. Product surface sharply lit with clean highlights.',
+    cameraGuide:
+      'Wide angle for drama, product in foreground sharp, surreal elements in mid/background, shallow DoF.',
+    avoid: ['models', 'text', 'busy/cluttered', 'low-quality render'],
+  },
+
+  // ─── Indian Fashion ───
+  {
+    id: 'INDIAN_FESTIVE',
+    name: 'Festive Vertical',
+    description: '9:16 celebratory, lehenga/saree, text overlay ready',
+    category: 'indian',
+    icon: 'PartyPopper',
+    whenToUse: ['Festive campaigns', 'Wedding brands', 'Ethnic wear'],
+    platforms: ['instagram', 'facebook'],
+    sceneGuide:
+      '9:16 vertical. Model in ethnic Indian wear (lehenga, saree, sharara) in joyful motion: twirl, dupatta wings, laughter. Soft textured wall (lilac, pink, terracotta). Fabric movement fills lower frame.',
+    lightingGuide:
+      'Natural window light from side creating warm glow, or golden-hour outdoor. Rose gold/warm highlights, dewy skin, fresh makeup.',
+    cameraGuide:
+      '1/250-1/500 to freeze fabric motion, 50mm portrait, model centred, fabric creates visual interest.',
+    avoid: ['dark moody', 'western styling', 'heavy retouching', 'studio backdrop'],
+  },
+  {
+    id: 'INDIAN_ETHNIC',
+    name: 'Ethnic Elegance',
+    description: 'Elegant Indian wear, heritage backdrop, editorial',
+    category: 'indian',
+    icon: 'Crown',
+    whenToUse: ['Luxury Indian brands', 'Heritage campaigns', 'Bridal'],
+    platforms: ['instagram'],
+    sceneGuide:
+      'Heritage architectural backdrop: haveli, palace corridor, carved stone. Model in traditional Indian outfit with jewelry. Composed, elegant pose. Rich textures and depth.',
+    lightingGuide:
+      'Golden hour side light on sandstone/marble, warm ambient fill. Subject lit by same directional light. Consistent warm colour temperature.',
+    cameraGuide:
+      '85mm portrait, three-quarter body, heritage architecture as framing element, shallow depth of field.',
+    avoid: ['modern urban', 'casual styling', 'flat lighting', 'busy crowds'],
+  },
 ]
 
 // ═══════════════════════════════════════════════════════════════
-// PROMPT TEMPLATES
+// PRESET CATEGORIES
+// ═══════════════════════════════════════════════════════════════
+
+export const AD_PRESET_CATEGORIES: {
+  id: AdPresetCategory
+  label: string
+  icon: string
+}[] = [
+  { id: 'ugc', label: 'UGC', icon: 'Camera' },
+  { id: 'editorial', label: 'Editorial', icon: 'BookOpen' },
+  { id: 'commercial', label: 'Commercial', icon: 'ShoppingBag' },
+  { id: 'creative', label: 'Creative', icon: 'Wand2' },
+  { id: 'standalone', label: 'Standalone', icon: 'Box' },
+  { id: 'indian', label: 'Indian Fashion', icon: 'Crown' },
+]
+
+export function getPresetsByCategory(category: AdPresetCategory): AdPreset[] {
+  return AD_PRESETS.filter((p) => p.category === category)
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LEGACY PROMPT TEMPLATES (fallback if GPT-4o times out)
 // ═══════════════════════════════════════════════════════════════
 
 const SAFETY_SUFFIX = `
-No surreal elements, no fantasy effects, no glitch art, no collage, no duplicated features, no floating objects, no exaggerated anatomy, no body distortion, no extra text, no logos, no watermarks, no unrealistic lighting, no painterly or illustrated style. Photorealistic commercial photography only.`
+No surreal elements (unless preset requires it), no fantasy effects, no glitch art, no collage, no duplicated features, no floating objects (unless preset requires it), no exaggerated anatomy, no body distortion, no extra unplanned text, no unplanned logos, no watermarks, no unrealistic lighting (unless preset requires it), no painterly or illustrated style (unless preset requires it). Photorealistic commercial photography unless preset explicitly specifies otherwise.`
 
-const PROMPT_TEMPLATES: Record<AdPresetId, (input: AdGenerationInput) => string> = {
-    UGC_CANDID: (input) => {
-        const gender = input.subject?.gender === 'male' ? 'man' : 'woman'
-        const age = input.subject?.ageRange || '22-30'
-        const pose = input.subject?.pose || 'relaxed standing'
-        const expression = input.subject?.expression || 'natural, confident'
+/**
+ * Build a basic fallback prompt from preset + input (no GPT).
+ * Used when GPT-4o prompt builder times out.
+ */
+export function buildFallbackPrompt(input: AdGenerationInput): string {
+  const preset = AD_PRESETS.find((p) => p.id === input.preset)
+  if (!preset) throw new Error(`Unknown preset: ${input.preset}`)
 
-        return `A naturally posed young ${gender} captured in a casual, candid moment, ${pose} with relaxed posture and a ${expression} expression. Their body proportions, facial structure, and pose remain fully realistic and anatomically correct.
+  const character = resolveCharacterDescription(input)
+  const textOverlay = resolveTextOverlay(input.textOverlay)
 
-They are wearing the featured apparel clearly and naturally as part of their outfit, with accurate fabric drape, natural wrinkles, and true-to-life texture. The product remains the visual focus without appearing staged or exaggerated.
+  return [
+    `${preset.sceneGuide}`,
+    character ? `Character: ${character}` : '',
+    `Lighting: ${preset.lightingGuide}`,
+    `Camera: ${preset.cameraGuide}`,
+    textOverlay,
+    `Avoid: ${preset.avoid.join(', ')}.`,
+    SAFETY_SUFFIX,
+  ]
+    .filter(Boolean)
+    .join('\n\n')
+}
 
-The scene takes place in a real urban environment, such as a sidewalk or simple indoor room, with authentic textures like concrete, walls, or furniture subtly present in the background. The environment supports the subject without drawing attention away from them.
+function resolveCharacterDescription(input: AdGenerationInput): string {
+  const ct = input.characterType || (input.subject?.gender ? (input.subject.gender === 'male' ? 'human_male' : 'human_female') : 'none')
 
-Lighting is soft natural daylight, evenly illuminating the subject with gentle shadows that match the environment. Skin texture, fabric fibers, and material details are clearly visible without smoothing or artificial enhancement.
+  if (ct === 'none') return ''
+  if (ct === 'animal') {
+    return `A photorealistic ${input.animalType || 'animal'} wearing the featured product. ${input.characterStyle ? `Style: ${input.characterStyle}.` : ''}`
+  }
 
-Captured using a realistic smartphone-style camera perspective, equivalent to a 35mm lens, with slightly off-center framing and shallow depth of field typical of real social media photos.
+  const gender = ct === 'human_male' ? 'man' : 'woman'
+  const age = input.characterAge || input.subject?.ageRange || '22-30'
+  const style = input.characterStyle || 'natural, confident'
+  const pose = input.subject?.pose || 'relaxed, natural'
+  const expression = input.subject?.expression || 'confident'
 
-The overall mood is casual, relatable, and authentic, resembling a real user-generated photo taken spontaneously for social media.
-${SAFETY_SUFFIX}`
-    },
+  return `A young ${gender} (${age}), ${style} style, ${pose} pose, ${expression} expression. Body proportions and facial features are realistic and anatomically correct.`
+}
 
-    PRODUCT_LIFESTYLE: (input) => {
-        const hasModel = !!input.influencerImage
-        const modelText = hasModel
-            ? 'If a model is present, they are posed naturally and proportionally, without dramatic gestures or exaggerated expressions.'
-            : ''
-
-        return `A clean, professional lifestyle product photograph featuring the product as the primary visual focus. ${modelText}
-
-The product is displayed clearly with accurate color, scale, and texture, showing realistic fabric weave, stitching, and material behavior. No distortion or stylization is applied to the product.
-
-The environment is a simple, modern lifestyle setting such as a minimal room or neutral interior, carefully composed to complement the product without clutter or distraction.
-
-Lighting is soft studio or diffused natural light, evenly distributed to avoid harsh shadows while preserving depth and realism. Subtle shadows fall naturally beneath the subject and product.
-
-Captured with a professional camera perspective equivalent to a 50mm lens, framed cleanly to prioritize product visibility and commercial clarity.
-
-The overall aesthetic is polished, trustworthy, and suitable for ecommerce and paid advertising.
-${SAFETY_SUFFIX}`
-    },
-
-    STUDIO_POSTER: (input) => {
-        const pose = input.subject?.pose || 'simple confident stance'
-
-        return `A clean studio-style advertising image featuring a single subject posed confidently with ${pose} and natural posture and balanced proportions. The subject is centered clearly within the frame for strong visual impact.
-
-The background is a simple solid or soft gradient studio backdrop with no texture or distractions, designed to leave clear space for text placement.
-
-Lighting is controlled studio lighting using softboxes, producing even illumination with gentle shadows and strong clarity on the subject and product.
-
-Captured with a straight-on camera angle equivalent to a 50mm lens, maintaining symmetry and clarity suitable for poster-style advertising.
-
-The overall style is bold, minimal, and commercial, optimized for high readability and visual clarity in paid advertisements.
-${SAFETY_SUFFIX}`
-    },
-
-    PREMIUM_EDITORIAL: (input) => {
-        const expression = input.subject?.expression || 'composed, confident'
-
-        return `A high-end editorial fashion photograph featuring a subject with composed posture and a ${expression} expression. Facial features, body proportions, and pose remain fully realistic and natural.
-
-The subject is placed within a carefully chosen real-world environment, such as an architectural interior or minimal outdoor setting, adding depth and narrative without overwhelming the composition.
-
-Lighting is cinematic yet realistic, using directional light to create soft highlights and natural shadows that sculpt the subject while preserving realism.
-
-Captured with a professional camera perspective equivalent to a 50mm or 85mm lens, offering shallow depth of field and refined composition typical of premium fashion editorials.
-
-Textures such as skin, fabric, leather, and environmental materials are clearly visible, with subtle grain allowed only to enhance realism.
-
-The overall mood is refined, premium, and brand-forward, suitable for luxury advertising campaigns.
-${SAFETY_SUFFIX}`
-    },
+function resolveTextOverlay(overlay?: TextOverlayConfig): string {
+  if (!overlay) return ''
+  const parts: string[] = []
+  if (overlay.headline) parts.push(`Main text: "${overlay.headline}"`)
+  if (overlay.subline) parts.push(`Secondary text: "${overlay.subline}"`)
+  if (overlay.tagline) parts.push(`Tagline: "${overlay.tagline}"`)
+  if (overlay.placement) parts.push(`Text placement: ${overlay.placement} of the image`)
+  if (overlay.fontStyle) parts.push(`Font style: ${overlay.fontStyle}`)
+  return parts.length > 0 ? `TEXT OVERLAY: ${parts.join('. ')}.` : ''
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -179,69 +534,117 @@ ${SAFETY_SUFFIX}`
 // ═══════════════════════════════════════════════════════════════
 
 export function getAdPreset(id: AdPresetId): AdPreset | undefined {
-    return AD_PRESETS.find(p => p.id === id)
+  return AD_PRESETS.find((p) => p.id === id)
 }
 
 export function getAdPresetList(): AdPreset[] {
-    return AD_PRESETS
+  return AD_PRESETS
 }
 
-export function generateAdPrompt(input: AdGenerationInput): string {
-    const template = PROMPT_TEMPLATES[input.preset]
-    if (!template) {
-        throw new Error(`Unknown preset: ${input.preset}`)
-    }
-    return template(input)
-}
+export function validateAdInput(
+  input: AdGenerationInput
+): { valid: boolean; error?: string } {
+  if (!AD_PRESETS.find((p) => p.id === input.preset)) {
+    return { valid: false, error: 'Invalid preset selected' }
+  }
 
-export function validateAdInput(input: AdGenerationInput): { valid: boolean; error?: string } {
-    // Validate preset
-    if (!AD_PRESETS.find(p => p.id === input.preset)) {
-        return { valid: false, error: 'Invalid preset selected' }
+  if (input.textOverlay?.headline) {
+    const wordCount = input.textOverlay.headline.trim().split(/\s+/).length
+    if (wordCount > 12) {
+      return { valid: false, error: 'Headline cannot exceed 12 words' }
     }
+  }
 
-    // Validate headline (max 6 words)
-    if (input.headline) {
-        const wordCount = input.headline.trim().split(/\s+/).length
-        if (wordCount > 6) {
-            return { valid: false, error: 'Headline cannot exceed 6 words' }
-        }
-    }
+  if (!input.platforms || input.platforms.length === 0) {
+    return { valid: false, error: 'At least one platform must be selected' }
+  }
 
-    // Validate platforms
-    if (!input.platforms || input.platforms.length === 0) {
-        return { valid: false, error: 'At least one platform must be selected' }
-    }
+  const validCtas: CtaType[] = ['shop_now', 'learn_more', 'explore', 'buy_now']
+  if (!validCtas.includes(input.ctaType)) {
+    return { valid: false, error: 'Invalid CTA type' }
+  }
 
-    // Validate CTA
-    const validCtas: CtaType[] = ['shop_now', 'learn_more', 'explore', 'buy_now']
-    if (!validCtas.includes(input.ctaType)) {
-        return { valid: false, error: 'Invalid CTA type' }
-    }
+  if (input.characterType === 'animal' && !input.animalType) {
+    return { valid: false, error: 'Please select an animal type' }
+  }
 
-    return { valid: true }
+  return { valid: true }
 }
 
 // ═══════════════════════════════════════════════════════════════
-// CTA & TONE DISPLAY HELPERS
+// CTA, TONE, PLATFORM, CHARACTER DISPLAY HELPERS
 // ═══════════════════════════════════════════════════════════════
 
 export const CTA_OPTIONS: { value: CtaType; label: string }[] = [
-    { value: 'shop_now', label: 'Shop Now' },
-    { value: 'learn_more', label: 'Learn More' },
-    { value: 'explore', label: 'Explore' },
-    { value: 'buy_now', label: 'Buy Now' },
+  { value: 'shop_now', label: 'Shop Now' },
+  { value: 'learn_more', label: 'Learn More' },
+  { value: 'explore', label: 'Explore' },
+  { value: 'buy_now', label: 'Buy Now' },
 ]
 
 export const TONE_OPTIONS: { value: CaptionTone; label: string }[] = [
-    { value: 'casual', label: 'Casual' },
-    { value: 'premium', label: 'Premium' },
-    { value: 'confident', label: 'Confident' },
+  { value: 'casual', label: 'Casual' },
+  { value: 'premium', label: 'Premium' },
+  { value: 'confident', label: 'Confident' },
 ]
 
-export const PLATFORM_OPTIONS: { value: Platform; label: string; icon: string }[] = [
-    { value: 'instagram', label: 'Instagram', icon: 'Instagram' },
-    { value: 'facebook', label: 'Facebook', icon: 'Facebook' },
-    { value: 'google', label: 'Google Ads', icon: 'Globe' },
-    { value: 'influencer', label: 'Influencer', icon: 'Users' },
+export const PLATFORM_OPTIONS: {
+  value: Platform
+  label: string
+  icon: string
+}[] = [
+  { value: 'instagram', label: 'Instagram', icon: 'Instagram' },
+  { value: 'facebook', label: 'Facebook', icon: 'Facebook' },
+  { value: 'google', label: 'Google Ads', icon: 'Globe' },
+  { value: 'influencer', label: 'Influencer', icon: 'Users' },
+]
+
+export const CHARACTER_OPTIONS: {
+  value: CharacterType
+  label: string
+  icon: string
+}[] = [
+  { value: 'human_female', label: 'Woman', icon: 'User' },
+  { value: 'human_male', label: 'Man', icon: 'User' },
+  { value: 'animal', label: 'Animal', icon: 'Cat' },
+  { value: 'none', label: 'No Character', icon: 'Ban' },
+]
+
+export const ANIMAL_OPTIONS: string[] = [
+  'Polar Bear',
+  'Cat',
+  'Dog',
+  'Fox',
+  'Owl',
+  'Rabbit',
+  'Raccoon',
+  'Lion',
+  'Tiger',
+  'Monkey',
+]
+
+export const CHARACTER_STYLE_OPTIONS: string[] = [
+  'Gen Z Casual',
+  'High Fashion',
+  'Athletic / Sporty',
+  'Streetwear',
+  'Elegant / Refined',
+  'Bohemian',
+  'Minimalist',
+  'Bold / Statement',
+]
+
+export const FONT_STYLE_OPTIONS: { value: FontStyle; label: string }[] = [
+  { value: 'serif', label: 'Serif (Classic)' },
+  { value: 'sans-serif', label: 'Sans-serif (Modern)' },
+  { value: 'handwritten', label: 'Handwritten' },
+  { value: 'bold-display', label: 'Bold Display' },
+]
+
+export const TEXT_PLACEMENT_OPTIONS: { value: TextPlacement; label: string }[] = [
+  { value: 'top-left', label: 'Top Left' },
+  { value: 'top-right', label: 'Top Right' },
+  { value: 'bottom-left', label: 'Bottom Left' },
+  { value: 'bottom-right', label: 'Bottom Right' },
+  { value: 'center', label: 'Center' },
 ]

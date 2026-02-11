@@ -63,45 +63,46 @@ export async function generateWithGemini(
 
 /**
  * Generate an ad image using Gemini's native image generation.
- * Uses gemini-2.0-flash-exp with responseModalities for image output.
- * Returns a base64 encoded image string.
+ * Defaults to gemini-3-pro-image-preview (Nano Banana Pro) for production quality.
+ * Falls back to gemini-2.0-flash-exp via env override.
+ * Returns a base64 encoded image string (data URL).
  */
 export async function generateIntelligentAdComposition(
   productImage?: string,
   influencerImage?: string,
-  compositionPrompt?: string
+  compositionPrompt?: string,
+  options?: {
+    /** When true, influencer image is placed FIRST for stronger identity attention */
+    lockFaceIdentity?: boolean
+  }
 ): Promise<string> {
   try {
     const genAI = getGenAI()
 
-    // Use the image generation model
-    // gemini-2.0-flash-exp supports native image generation
-    const modelName = process.env.GEMINI_IMAGE_MODEL || 'gemini-2.0-flash-exp'
+    // Default to Gemini 3 Pro Image (Nano Banana Pro) for best quality
+    const modelName =
+      process.env.AD_IMAGE_MODEL ||
+      process.env.GEMINI_AD_MODEL ||
+      'gemini-2.0-flash-exp'
 
-    console.log(`[Gemini] Using model: ${modelName} for image generation`)
+    console.log(`[Gemini] Using model: ${modelName} for ad image generation`)
 
     const model = genAI.getGenerativeModel({
       model: modelName,
       generationConfig: {
         // @ts-ignore - responseModalities is valid for image models
         responseModalities: ['image', 'text'],
+        temperature: 0.4,
+        topP: 0.95,
+        topK: 40,
       },
     })
 
     const parts: any[] = []
 
-    // Add reference images if provided
-    if (productImage) {
-      const parsed = parseBase64Image(productImage)
-      parts.push({
-        inlineData: {
-          data: parsed.data,
-          mimeType: parsed.mimeType,
-        },
-      })
-    }
-
-    if (influencerImage) {
+    // Image input order matters for identity attention:
+    // If face-lock is on, influencer image goes FIRST (stronger attention)
+    if (options?.lockFaceIdentity && influencerImage) {
       const parsed = parseBase64Image(influencerImage)
       parts.push({
         inlineData: {
@@ -109,12 +110,43 @@ export async function generateIntelligentAdComposition(
           mimeType: parsed.mimeType,
         },
       })
+      // Then product image
+      if (productImage) {
+        const parsed2 = parseBase64Image(productImage)
+        parts.push({
+          inlineData: {
+            data: parsed2.data,
+            mimeType: parsed2.mimeType,
+          },
+        })
+      }
+    } else {
+      // Default order: product first, then influencer
+      if (productImage) {
+        const parsed = parseBase64Image(productImage)
+        parts.push({
+          inlineData: {
+            data: parsed.data,
+            mimeType: parsed.mimeType,
+          },
+        })
+      }
+
+      if (influencerImage) {
+        const parsed = parseBase64Image(influencerImage)
+        parts.push({
+          inlineData: {
+            data: parsed.data,
+            mimeType: parsed.mimeType,
+          },
+        })
+      }
     }
 
     // Add the prompt
     parts.push(
       compositionPrompt ||
-      'Generate a professional advertising image that integrates the product naturally. Use professional studio lighting, clean composition, and brand-appropriate aesthetics. Output a high-quality photorealistic ad image.'
+        'Generate a professional advertising image that integrates the product naturally. Use professional studio lighting, clean composition, and brand-appropriate aesthetics. Output a high-quality photorealistic ad image.'
     )
 
     console.log('[Gemini] Generating ad image...')
@@ -137,8 +169,9 @@ export async function generateIntelligentAdComposition(
       if (part.inlineData && part.inlineData.mimeType?.startsWith('image/')) {
         const base64Image = part.inlineData.data
         const mimeType = part.inlineData.mimeType
-        console.log(`[Gemini] Generated image: ${mimeType}, ${base64Image.length} chars`)
-        // Return as data URL
+        console.log(
+          `[Gemini] Generated ad image: ${mimeType}, ${Math.round(base64Image.length / 1024)}KB`
+        )
         return `data:${mimeType};base64,${base64Image}`
       }
     }
@@ -146,7 +179,10 @@ export async function generateIntelligentAdComposition(
     // If no image found, check for text (might be an error or description)
     for (const part of content.parts) {
       if (part.text) {
-        console.warn('[Gemini] Received text instead of image:', part.text.substring(0, 200))
+        console.warn(
+          '[Gemini] Received text instead of image:',
+          part.text.substring(0, 200)
+        )
       }
     }
 

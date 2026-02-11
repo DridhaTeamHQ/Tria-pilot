@@ -1,9 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { useState, useEffect, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
@@ -23,25 +21,68 @@ import {
   Upload,
   X,
   Check,
-  Loader2,
   Lock,
   Instagram,
   Facebook,
   Globe,
   Users,
+  Smartphone,
+  Zap,
+  MessageCircle,
+  Shirt,
+  Heart,
+  MapPin,
+  Star,
+  Wand2,
+  Film,
+  Type,
+  Palette,
+  Box,
+  CloudLightning,
+  PartyPopper,
+  Crown,
+  Cat,
+  User,
+  Ban,
+  Download,
+  RefreshCw,
+  Share2,
+  ChevronDown,
+  ChevronUp,
+  BookOpen,
 } from 'lucide-react'
 import {
   AD_PRESETS,
+  AD_PRESET_CATEGORIES,
   CTA_OPTIONS,
   TONE_OPTIONS,
   PLATFORM_OPTIONS,
+  CHARACTER_OPTIONS,
+  ANIMAL_OPTIONS,
+  CHARACTER_STYLE_OPTIONS,
+  FONT_STYLE_OPTIONS,
+  TEXT_PLACEMENT_OPTIONS,
+  getPresetsByCategory,
+  validateAdInput,
   type AdPresetId,
+  type AdPresetCategory,
   type Platform,
   type CtaType,
   type CaptionTone,
-  validateAdInput,
+  type CharacterType,
+  type FontStyle,
+  type TextPlacement,
 } from '@/lib/ads/ad-styles'
 import { cn } from '@/lib/utils'
+import {
+  staggerContainer,
+  staggerItem,
+  cardHover,
+  pageVariants,
+  imageRevealVariants,
+} from '@/lib/animations'
+import BrutalCard from '@/components/brutal/BrutalCard'
+import { BrutalLoader } from '@/components/ui/BrutalLoader'
 
 // ═══════════════════════════════════════════════════════════════
 // TYPES
@@ -54,15 +95,45 @@ interface Campaign {
   mode?: 'SELF' | 'ASSISTED'
 }
 
+interface GenerationResult {
+  id: string
+  imageUrl: string
+  imageBase64?: string
+  copy: any[]
+  rating: any
+  qualityScore: number
+  preset: string
+  promptUsed: string
+}
+
 // ═══════════════════════════════════════════════════════════════
-// ICON MAP
+// ICON MAPPING
 // ═══════════════════════════════════════════════════════════════
 
-const PRESET_ICONS: Record<string, React.ReactNode> = {
-  Camera: <Camera className="h-6 w-6" />,
-  ShoppingBag: <ShoppingBag className="h-6 w-6" />,
-  Image: <ImageIcon className="h-6 w-6" />,
-  Sparkles: <Sparkles className="h-6 w-6" />,
+const ICON_MAP: Record<string, React.ReactNode> = {
+  Camera: <Camera className="h-5 w-5" />,
+  ShoppingBag: <ShoppingBag className="h-5 w-5" />,
+  Image: <ImageIcon className="h-5 w-5" />,
+  Sparkles: <Sparkles className="h-5 w-5" />,
+  Smartphone: <Smartphone className="h-5 w-5" />,
+  Zap: <Zap className="h-5 w-5" />,
+  MessageCircle: <MessageCircle className="h-5 w-5" />,
+  Shirt: <Shirt className="h-5 w-5" />,
+  Heart: <Heart className="h-5 w-5" />,
+  MapPin: <MapPin className="h-5 w-5" />,
+  Star: <Star className="h-5 w-5" />,
+  Wand2: <Wand2 className="h-5 w-5" />,
+  Film: <Film className="h-5 w-5" />,
+  Type: <Type className="h-5 w-5" />,
+  Palette: <Palette className="h-5 w-5" />,
+  Box: <Box className="h-5 w-5" />,
+  CloudLightning: <CloudLightning className="h-5 w-5" />,
+  PartyPopper: <PartyPopper className="h-5 w-5" />,
+  Crown: <Crown className="h-5 w-5" />,
+  BookOpen: <BookOpen className="h-5 w-5" />,
+  User: <User className="h-5 w-5" />,
+  Cat: <Cat className="h-5 w-5" />,
+  Ban: <Ban className="h-5 w-5" />,
 }
 
 const PLATFORM_ICONS: Record<string, React.ReactNode> = {
@@ -77,15 +148,29 @@ const PLATFORM_ICONS: Record<string, React.ReactNode> = {
 // ═══════════════════════════════════════════════════════════════
 
 export default function AdsPage() {
-  const router = useRouter()
-
-  // Form state
+  // ── Form state ──
   const [selectedCampaign, setSelectedCampaign] = useState<string>('standalone')
   const [selectedPreset, setSelectedPreset] = useState<AdPresetId | null>(null)
+  const [activeCategory, setActiveCategory] = useState<AdPresetCategory>('ugc')
   const [productImage, setProductImage] = useState<string>('')
   const [influencerImage, setInfluencerImage] = useState<string>('')
   const [lockFaceIdentity, setLockFaceIdentity] = useState(false)
-  const [headline, setHeadline] = useState('')
+
+  // Character
+  const [characterType, setCharacterType] = useState<CharacterType>('none')
+  const [animalType, setAnimalType] = useState<string>('')
+  const [characterStyle, setCharacterStyle] = useState<string>('')
+  const [characterAge, setCharacterAge] = useState<string>('')
+
+  // Text overlay
+  const [textOverlayOpen, setTextOverlayOpen] = useState(false)
+  const [textHeadline, setTextHeadline] = useState('')
+  const [textSubline, setTextSubline] = useState('')
+  const [textTagline, setTextTagline] = useState('')
+  const [textPlacement, setTextPlacement] = useState<TextPlacement>('bottom-right')
+  const [textFontStyle, setTextFontStyle] = useState<FontStyle>('sans-serif')
+
+  // Legacy controls
   const [ctaType, setCtaType] = useState<CtaType>('shop_now')
   const [captionTone, setCaptionTone] = useState<CaptionTone | ''>('')
   const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>(['instagram'])
@@ -94,8 +179,9 @@ export default function AdsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [loading, setLoading] = useState(false)
   const [campaignsLoading, setCampaignsLoading] = useState(true)
+  const [result, setResult] = useState<GenerationResult | null>(null)
 
-  // Fetch campaigns on mount
+  // ── Fetch campaigns ──
   useEffect(() => {
     const fetchCampaigns = async () => {
       try {
@@ -113,84 +199,86 @@ export default function AdsPage() {
     fetchCampaigns()
   }, [])
 
-  // Get selected campaign details
-  const selectedCampaignData = campaigns.find(c => c.id === selectedCampaign)
+  const selectedCampaignData = campaigns.find((c) => c.id === selectedCampaign)
   const isCampaignCompleted = selectedCampaignData?.status === 'completed'
 
-  // Headline word count
-  const headlineWords = headline.trim() ? headline.trim().split(/\s+/).length : 0
-  const headlineExceeded = headlineWords > 6
+  const hasTextOverlay = !!(textHeadline || textSubline || textTagline)
 
-  // Form validation
   const canSubmit =
     selectedPreset &&
     selectedPlatforms.length > 0 &&
     !isCampaignCompleted &&
-    !headlineExceeded &&
     !loading
 
-  // Image upload handler
-  const handleImageUpload = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    type: 'product' | 'influencer'
-  ) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // Validate size (10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('Image exceeds 10MB limit')
-      return
-    }
-
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string
-      if (type === 'product') {
-        setProductImage(base64)
-      } else {
-        setInfluencerImage(base64)
-        if (!base64) setLockFaceIdentity(false)
+  // ── Handlers ──
+  const handleImageUpload = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>, type: 'product' | 'influencer') => {
+      const file = e.target.files?.[0]
+      if (!file) return
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error('Image exceeds 10MB limit')
+        return
       }
-    }
-    reader.readAsDataURL(file)
-  }
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string
+        if (type === 'product') {
+          setProductImage(base64)
+        } else {
+          setInfluencerImage(base64)
+          if (!base64) setLockFaceIdentity(false)
+        }
+      }
+      reader.readAsDataURL(file)
+    },
+    []
+  )
 
-  // Platform toggle
   const togglePlatform = (platform: Platform) => {
-    setSelectedPlatforms(prev =>
-      prev.includes(platform)
-        ? prev.filter(p => p !== platform)
-        : [...prev, platform]
+    setSelectedPlatforms((prev) =>
+      prev.includes(platform) ? prev.filter((p) => p !== platform) : [...prev, platform]
     )
   }
 
-  // Generate handler
   const handleGenerate = async () => {
     if (!selectedPreset) {
       toast.error('Please select an ad style')
       return
     }
 
-    const input = {
+    const input: any = {
       preset: selectedPreset,
-      campaignId: selectedCampaign && selectedCampaign !== 'standalone' ? selectedCampaign : undefined,
+      campaignId:
+        selectedCampaign && selectedCampaign !== 'standalone' ? selectedCampaign : undefined,
       productImage: productImage || undefined,
       influencerImage: influencerImage || undefined,
       lockFaceIdentity,
-      headline: headline || undefined,
+      characterType,
+      animalType: characterType === 'animal' ? animalType : undefined,
+      characterStyle: characterStyle || undefined,
+      characterAge: characterAge || undefined,
+      textOverlay: hasTextOverlay
+        ? {
+            headline: textHeadline || undefined,
+            subline: textSubline || undefined,
+            tagline: textTagline || undefined,
+            placement: textPlacement,
+            fontStyle: textFontStyle,
+          }
+        : undefined,
       ctaType,
       captionTone: captionTone || undefined,
       platforms: selectedPlatforms,
     }
 
-    const validation = validateAdInput(input as any)
+    const validation = validateAdInput(input)
     if (!validation.valid) {
       toast.error(validation.error)
       return
     }
 
     setLoading(true)
+    setResult(null)
 
     try {
       const res = await fetch('/api/ads/generate', {
@@ -203,341 +291,711 @@ export default function AdsPage() {
 
       if (!res.ok) {
         if (res.status === 429) {
-          toast.error(`Rate limit exceeded. ${data.resetTime ? `Try again in ${Math.ceil((data.resetTime - Date.now()) / 60000)} minutes.` : 'Try again later.'}`)
+          toast.error(
+            `Rate limit exceeded. ${data.resetTime ? `Try again in ${Math.ceil((data.resetTime - Date.now()) / 60000)} minutes.` : 'Try again later.'}`
+          )
         } else {
           toast.error(data.error || 'Generation failed')
         }
         return
       }
 
+      setResult(data as GenerationResult)
       toast.success('Ad generated successfully!')
-      router.push('/brand/ads/creatives')
-    } catch (error) {
+    } catch {
       toast.error('Something went wrong. Please try again.')
     } finally {
       setLoading(false)
     }
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-950 pt-24 pb-12">
-      {/* Decorative Background */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-[120px]" />
-      </div>
+  const handleDownload = () => {
+    if (!result?.imageUrl) return
+    const link = document.createElement('a')
+    link.href = result.imageBase64 || result.imageUrl
+    link.download = `ad-${result.id}.png`
+    link.click()
+  }
 
-      <div className="container mx-auto px-4 max-w-4xl relative z-10">
-        {/* Header */}
+  // ── Filtered presets ──
+  const filteredPresets = getPresetsByCategory(activeCategory)
+
+  return (
+    <motion.div
+      variants={pageVariants}
+      initial="initial"
+      animate="animate"
+      className="min-h-screen bg-[#FFFDF5] pt-24 pb-16"
+    >
+      <div className="container mx-auto px-4 max-w-5xl">
+        {/* ── HEADER ── */}
         <div className="mb-10">
-          <p className="text-sm text-purple-400 mb-2">Ads → Create New Ad</p>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-purple-200 to-purple-400 bg-clip-text text-transparent mb-3">
-            Create New Ad
-          </h1>
-          <p className="text-zinc-400">
-            Create high-quality AI-powered ad creatives for your campaigns
+          <p className="text-sm font-bold uppercase tracking-widest text-black/50 mb-2">
+            Ads / Create
           </p>
-          <p className="text-sm text-zinc-500 mt-1">
-            Optimized for Instagram, Facebook, Google & Influencer campaigns
+          <h1
+            className="text-4xl md:text-5xl font-black text-black leading-tight"
+            style={{ fontFamily: 'Playfair Display, serif' }}
+          >
+            Create Ad
+          </h1>
+          <p className="text-black/60 mt-2 text-lg">
+            AI-powered ad creatives — select a style, upload your product, and generate.
           </p>
         </div>
 
-        <div className="space-y-8">
-          {/* Campaign Selector */}
-          <section className="space-y-3">
-            <Label className="text-base font-medium text-white">Campaign (Optional)</Label>
-            <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
-              <SelectTrigger className="w-full h-12 bg-zinc-800/50 border-zinc-700 hover:border-purple-500/50 transition-colors">
-                <SelectValue placeholder="Select a campaign or create standalone ad" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="standalone">Standalone Ad</SelectItem>
-                {campaigns.map(campaign => (
-                  <SelectItem
-                    key={campaign.id}
-                    value={campaign.id}
-                    disabled={campaign.status === 'completed'}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span>{campaign.title}</span>
-                      <Badge
-                        variant={
-                          campaign.status === 'active' ? 'default' :
-                            campaign.status === 'draft' ? 'secondary' : 'outline'
-                        }
-                        className="text-xs capitalize"
-                      >
-                        {campaign.status}
-                      </Badge>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {isCampaignCompleted && (
-              <p className="text-sm text-red-500">
-                This campaign is completed. Select an active campaign to generate ads.
-              </p>
-            )}
-          </section>
-
-          {/* Ad Style Selector */}
-          <section className="space-y-4">
-            <Label className="text-base font-medium text-white">Ad Style</Label>
-            <div className="grid grid-cols-2 gap-4">
-              {AD_PRESETS.map(preset => (
-                <Card
-                  key={preset.id}
-                  className={cn(
-                    "cursor-pointer transition-all duration-300 relative overflow-hidden group border-zinc-800/50 bg-zinc-900/50 backdrop-blur-sm",
-                    selectedPreset === preset.id
-                      ? "ring-2 ring-purple-500 border-purple-500/50 shadow-lg shadow-purple-500/10"
-                      : "hover:border-zinc-700 hover:bg-zinc-800/50"
-                  )}
-                  onClick={() => setSelectedPreset(preset.id as AdPresetId)}
-                >
-                  <CardContent className="p-5">
-                    <div className="flex items-start gap-4">
-                      <div className={cn(
-                        "p-3 rounded-xl transition-colors",
-                        selectedPreset === preset.id
-                          ? "bg-purple-500 text-white"
-                          : "bg-zinc-800 text-zinc-400 group-hover:bg-zinc-700"
-                      )}>
-                        {PRESET_ICONS[preset.icon]}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-white mb-1">
-                          {preset.name}
-                        </h3>
-                        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                          {preset.description}
-                        </p>
-                      </div>
-                      {selectedPreset === preset.id && (
-                        <div className="absolute top-3 right-3 bg-purple-500 text-white rounded-full p-1">
-                          <Check className="h-3 w-3" />
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </section>
-
-          {/* Image Inputs */}
-          <section className="space-y-6">
-            <Label className="text-base font-medium text-white">Images (Optional)</Label>
-
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Product Image */}
-              <div className="space-y-3">
-                <Label className="text-sm text-zinc-600 dark:text-zinc-400">Product Image</Label>
-                {productImage ? (
-                  <div className="relative aspect-square rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700">
-                    <img
-                      src={productImage}
-                      alt="Product"
-                      className="w-full h-full object-cover"
-                    />
-                    <button
-                      onClick={() => setProductImage('')}
-                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <label className="flex flex-col items-center justify-center aspect-square rounded-xl border-2 border-dashed border-zinc-300 dark:border-zinc-600 cursor-pointer hover:border-zinc-400 dark:hover:border-zinc-500 transition-colors bg-zinc-50 dark:bg-zinc-900/50">
-                    <Upload className="h-8 w-8 text-zinc-400 mb-2" />
-                    <span className="text-sm text-zinc-500">Upload product</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => handleImageUpload(e, 'product')}
-                    />
-                  </label>
-                )}
-                <p className="text-xs text-zinc-500">Used to ensure product accuracy</p>
-              </div>
-
-              {/* Influencer Image */}
-              <div className="space-y-3">
-                <Label className="text-sm text-zinc-600 dark:text-zinc-400">Model Reference</Label>
-                {influencerImage ? (
-                  <div className="relative aspect-square rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700">
-                    <img
-                      src={influencerImage}
-                      alt="Model"
-                      className="w-full h-full object-cover"
-                    />
-                    <button
-                      onClick={() => {
-                        setInfluencerImage('')
-                        setLockFaceIdentity(false)
-                      }}
-                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <label className="flex flex-col items-center justify-center aspect-square rounded-xl border-2 border-dashed border-zinc-300 dark:border-zinc-600 cursor-pointer hover:border-zinc-400 dark:hover:border-zinc-500 transition-colors bg-zinc-50 dark:bg-zinc-900/50">
-                    <Upload className="h-8 w-8 text-zinc-400 mb-2" />
-                    <span className="text-sm text-zinc-500">Upload model</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => handleImageUpload(e, 'influencer')}
-                    />
-                  </label>
-                )}
-
-                {/* Lock Face Toggle */}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => influencerImage && setLockFaceIdentity(!lockFaceIdentity)}
-                    disabled={!influencerImage}
-                    className={cn(
-                      "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors",
-                      lockFaceIdentity
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400",
-                      !influencerImage && "opacity-50 cursor-not-allowed"
-                    )}
-                  >
-                    <Lock className="h-3 w-3" />
-                    Lock face identity
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Text Controls */}
-          <section className="space-y-6">
-            <Label className="text-base font-medium text-white">Text Controls</Label>
-
-            {/* Headline */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm text-zinc-600 dark:text-zinc-400">Headline</Label>
-                <span className={cn(
-                  "text-xs",
-                  headlineExceeded ? "text-red-500" : "text-zinc-500"
-                )}>
-                  {headlineWords}/6 words
-                </span>
-              </div>
-              <Input
-                placeholder="e.g. New Season Drop"
-                value={headline}
-                onChange={(e) => setHeadline(e.target.value)}
-                className={cn(
-                  "h-12 bg-zinc-800/50 border-zinc-700 hover:border-purple-500/50 transition-colors text-white placeholder:text-zinc-500",
-                  headlineExceeded && "border-red-500 focus:ring-red-500"
-                )}
-              />
-              {headlineExceeded && (
-                <p className="text-xs text-red-500">Headline cannot exceed 6 words</p>
-              )}
-            </div>
-
-            {/* CTA */}
-            <div className="space-y-2">
-              <Label className="text-sm text-zinc-600 dark:text-zinc-400">Call to Action</Label>
-              <Select value={ctaType} onValueChange={(v) => setCtaType(v as CtaType)}>
-                <SelectTrigger className="w-full h-12 bg-zinc-800/50 border-zinc-700 hover:border-purple-500/50 transition-colors">
-                  <SelectValue />
+        <div className="grid lg:grid-cols-[1fr_380px] gap-8">
+          {/* ── LEFT COLUMN: CONTROLS ── */}
+          <div className="space-y-8">
+            {/* Campaign Selector */}
+            <BrutalCard className="p-6" hoverEffect>
+              <Label className="text-sm font-bold uppercase tracking-wide text-black/70 mb-3 block">
+                Campaign (Optional)
+              </Label>
+              <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
+                <SelectTrigger className="w-full h-12 bg-white border-[2px] border-black text-black font-medium shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-shadow">
+                  <SelectValue placeholder="Select campaign or standalone" />
                 </SelectTrigger>
                 <SelectContent>
-                  {CTA_OPTIONS.map(opt => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
+                  <SelectItem value="standalone">Standalone Ad</SelectItem>
+                  {campaigns.map((campaign) => (
+                    <SelectItem
+                      key={campaign.id}
+                      value={campaign.id}
+                      disabled={campaign.status === 'completed'}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>{campaign.title}</span>
+                        <Badge variant="secondary" className="text-xs capitalize">
+                          {campaign.status}
+                        </Badge>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+              {isCampaignCompleted && (
+                <p className="text-sm text-red-600 font-medium mt-2">
+                  Campaign is completed. Select an active one.
+                </p>
+              )}
+            </BrutalCard>
 
-            {/* Caption Tone */}
-            <div className="space-y-3">
-              <Label className="text-sm text-zinc-600 dark:text-zinc-400">Caption Tone (Optional)</Label>
-              <div className="flex flex-wrap gap-2">
-                {TONE_OPTIONS.map(opt => (
+            {/* ── PRESET PICKER ── */}
+            <BrutalCard className="p-6" hoverEffect={false}>
+              <Label className="text-sm font-bold uppercase tracking-wide text-black/70 mb-4 block">
+                Ad Style
+              </Label>
+
+              {/* Category Tabs */}
+              <div className="flex flex-wrap gap-2 mb-5">
+                {AD_PRESET_CATEGORIES.map((cat) => (
                   <button
-                    key={opt.value}
-                    onClick={() => setCaptionTone(captionTone === opt.value ? '' : opt.value)}
+                    key={cat.id}
+                    onClick={() => setActiveCategory(cat.id)}
                     className={cn(
-                      "px-4 py-2 rounded-full text-sm font-medium transition-colors",
-                      captionTone === opt.value
-                        ? "bg-purple-500 text-white"
-                        : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                      'flex items-center gap-1.5 px-4 py-2 text-sm font-bold border-[2px] border-black transition-all',
+                      activeCategory === cat.id
+                        ? 'bg-[#FFD93D] text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] -translate-y-0.5'
+                        : 'bg-white text-black/70 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-[#FFD93D]/30 hover:-translate-y-0.5'
                     )}
                   >
+                    {ICON_MAP[cat.icon]}
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Preset Grid */}
+              <motion.div
+                variants={staggerContainer}
+                initial="initial"
+                animate="animate"
+                key={activeCategory}
+                className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+              >
+                {filteredPresets.map((preset) => (
+                  <motion.div key={preset.id} variants={staggerItem}>
+                    <motion.button
+                      variants={cardHover}
+                      initial="initial"
+                      whileHover="hover"
+                      whileTap="tap"
+                      onClick={() => setSelectedPreset(preset.id)}
+                      className={cn(
+                        'w-full text-left p-4 border-[2px] border-black transition-all relative',
+                        selectedPreset === preset.id
+                          ? 'bg-[#FFD93D] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+                          : 'bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                      )}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={cn(
+                            'p-2 border-[2px] border-black',
+                            selectedPreset === preset.id ? 'bg-black text-[#FFD93D]' : 'bg-[#FFFDF5] text-black'
+                          )}
+                        >
+                          {ICON_MAP[preset.icon]}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-sm text-black">{preset.name}</h3>
+                          <p className="text-xs text-black/60 mt-0.5 line-clamp-2">
+                            {preset.description}
+                          </p>
+                        </div>
+                        {selectedPreset === preset.id && (
+                          <div className="absolute top-2 right-2 bg-black text-[#FFD93D] rounded-full p-0.5">
+                            <Check className="h-3 w-3" />
+                          </div>
+                        )}
+                      </div>
+                    </motion.button>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </BrutalCard>
+
+            {/* ── CHARACTER BUILDER ── */}
+            <BrutalCard className="p-6" hoverEffect>
+              <Label className="text-sm font-bold uppercase tracking-wide text-black/70 mb-4 block">
+                AI Character
+              </Label>
+
+              {/* Character type chips */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                {CHARACTER_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => {
+                      setCharacterType(opt.value as CharacterType)
+                      if (opt.value !== 'animal') setAnimalType('')
+                    }}
+                    className={cn(
+                      'flex items-center gap-1.5 px-4 py-2 text-sm font-bold border-[2px] border-black transition-all',
+                      characterType === opt.value
+                        ? 'bg-[#FF8C69] text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] -translate-y-0.5'
+                        : 'bg-white text-black/70 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-[#FF8C69]/20'
+                    )}
+                  >
+                    {ICON_MAP[opt.icon]}
                     {opt.label}
                   </button>
                 ))}
               </div>
-            </div>
-          </section>
 
-          {/* Platform Selection */}
-          <section className="space-y-4">
-            <Label className="text-base font-medium text-white">Platforms</Label>
-            <div className="flex flex-wrap gap-3">
-              {PLATFORM_OPTIONS.map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={() => togglePlatform(opt.value)}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all",
-                    selectedPlatforms.includes(opt.value)
-                      ? "bg-purple-500 text-white shadow-lg shadow-purple-500/20"
-                      : "bg-zinc-800 border border-zinc-700 text-zinc-400 hover:border-zinc-600"
-                  )}
-                >
-                  {PLATFORM_ICONS[opt.icon]}
-                  {opt.label}
-                  {selectedPlatforms.includes(opt.value) && (
-                    <Check className="h-3 w-3 ml-1" />
-                  )}
-                </button>
-              ))}
-            </div>
-            {selectedPlatforms.length === 0 && (
-              <p className="text-sm text-red-500">Select at least one platform</p>
-            )}
-          </section>
+              {/* Conditional fields */}
+              <AnimatePresence mode="wait">
+                {characterType === 'animal' && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="space-y-3 overflow-hidden"
+                  >
+                    <Label className="text-xs font-bold text-black/50 uppercase">
+                      Animal Type
+                    </Label>
+                    <div className="flex flex-wrap gap-2">
+                      {ANIMAL_OPTIONS.map((animal) => (
+                        <button
+                          key={animal}
+                          onClick={() => setAnimalType(animal)}
+                          className={cn(
+                            'px-3 py-1.5 text-xs font-bold border-[2px] border-black transition-all',
+                            animalType === animal
+                              ? 'bg-[#FFD93D] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                              : 'bg-white shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]'
+                          )}
+                        >
+                          {animal}
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
 
-          {/* Generate Button */}
-          <section className="pt-4">
-            <Button
+                {(characterType === 'human_female' || characterType === 'human_male') && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="space-y-4 overflow-hidden"
+                  >
+                    {/* Style */}
+                    <div>
+                      <Label className="text-xs font-bold text-black/50 uppercase mb-2 block">
+                        Style
+                      </Label>
+                      <div className="flex flex-wrap gap-2">
+                        {CHARACTER_STYLE_OPTIONS.map((style) => (
+                          <button
+                            key={style}
+                            onClick={() =>
+                              setCharacterStyle(characterStyle === style ? '' : style)
+                            }
+                            className={cn(
+                              'px-3 py-1.5 text-xs font-bold border-[2px] border-black transition-all',
+                              characterStyle === style
+                                ? 'bg-[#FFD93D] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                                : 'bg-white shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]'
+                            )}
+                          >
+                            {style}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Age */}
+                    <div>
+                      <Label className="text-xs font-bold text-black/50 uppercase mb-2 block">
+                        Age Range
+                      </Label>
+                      <div className="flex flex-wrap gap-2">
+                        {['18-24', '25-34', '35-44', '45+'].map((age) => (
+                          <button
+                            key={age}
+                            onClick={() => setCharacterAge(characterAge === age ? '' : age)}
+                            className={cn(
+                              'px-3 py-1.5 text-xs font-bold border-[2px] border-black transition-all',
+                              characterAge === age
+                                ? 'bg-[#FFD93D] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                                : 'bg-white shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]'
+                            )}
+                          >
+                            {age}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </BrutalCard>
+
+            {/* ── IMAGE UPLOADS ── */}
+            <BrutalCard className="p-6" hoverEffect>
+              <Label className="text-sm font-bold uppercase tracking-wide text-black/70 mb-4 block">
+                Images
+              </Label>
+              <div className="grid grid-cols-2 gap-4">
+                {/* Product Image */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-black/50 uppercase">
+                    Product
+                  </Label>
+                  {productImage ? (
+                    <div className="relative aspect-square border-[2px] border-black overflow-hidden shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                      <img
+                        src={productImage}
+                        alt="Product"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        onClick={() => setProductImage('')}
+                        className="absolute top-1 right-1 bg-red-500 text-white border-[2px] border-black p-1 hover:bg-red-600 transition-colors"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center aspect-square border-[2px] border-dashed border-black/40 cursor-pointer hover:border-black hover:bg-[#FFD93D]/10 transition-all">
+                      <Upload className="h-6 w-6 text-black/40 mb-1" />
+                      <span className="text-xs font-bold text-black/40">
+                        Upload
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => handleImageUpload(e, 'product')}
+                      />
+                    </label>
+                  )}
+                </div>
+
+                {/* Model Reference */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-black/50 uppercase">
+                    Model Ref
+                  </Label>
+                  {influencerImage ? (
+                    <div className="relative aspect-square border-[2px] border-black overflow-hidden shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                      <img
+                        src={influencerImage}
+                        alt="Model"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        onClick={() => {
+                          setInfluencerImage('')
+                          setLockFaceIdentity(false)
+                        }}
+                        className="absolute top-1 right-1 bg-red-500 text-white border-[2px] border-black p-1 hover:bg-red-600 transition-colors"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center aspect-square border-[2px] border-dashed border-black/40 cursor-pointer hover:border-black hover:bg-[#FF8C69]/10 transition-all">
+                      <Upload className="h-6 w-6 text-black/40 mb-1" />
+                      <span className="text-xs font-bold text-black/40">
+                        Upload
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => handleImageUpload(e, 'influencer')}
+                      />
+                    </label>
+                  )}
+
+                  {/* Lock Face Toggle */}
+                  <button
+                    onClick={() => influencerImage && setLockFaceIdentity(!lockFaceIdentity)}
+                    disabled={!influencerImage}
+                    className={cn(
+                      'flex items-center gap-1.5 w-full px-3 py-1.5 text-xs font-bold border-[2px] border-black transition-all',
+                      lockFaceIdentity
+                        ? 'bg-[#FFD93D] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                        : 'bg-white shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]',
+                      !influencerImage && 'opacity-40 cursor-not-allowed'
+                    )}
+                  >
+                    <Lock className="h-3 w-3" />
+                    Lock Face Identity
+                  </button>
+                </div>
+              </div>
+            </BrutalCard>
+
+            {/* ── TEXT OVERLAY ── */}
+            <BrutalCard className="p-6" hoverEffect>
+              <button
+                onClick={() => setTextOverlayOpen(!textOverlayOpen)}
+                className="w-full flex items-center justify-between"
+              >
+                <Label className="text-sm font-bold uppercase tracking-wide text-black/70 cursor-pointer">
+                  Text in Image {hasTextOverlay && '(Active)'}
+                </Label>
+                {textOverlayOpen ? (
+                  <ChevronUp className="h-4 w-4 text-black/50" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-black/50" />
+                )}
+              </button>
+
+              <AnimatePresence>
+                {textOverlayOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="space-y-4 mt-4 overflow-hidden"
+                  >
+                    {/* Headline */}
+                    <div>
+                      <Label className="text-xs font-bold text-black/50 uppercase mb-1 block">
+                        Headline
+                      </Label>
+                      <Input
+                        placeholder="e.g. JUST DO IT"
+                        value={textHeadline}
+                        onChange={(e) => setTextHeadline(e.target.value)}
+                        className="h-10 bg-white border-[2px] border-black text-black font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] placeholder:text-black/30"
+                      />
+                    </div>
+
+                    {/* Subline */}
+                    <div>
+                      <Label className="text-xs font-bold text-black/50 uppercase mb-1 block">
+                        Subline
+                      </Label>
+                      <Input
+                        placeholder="e.g. New Season Collection"
+                        value={textSubline}
+                        onChange={(e) => setTextSubline(e.target.value)}
+                        className="h-10 bg-white border-[2px] border-black text-black font-medium shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] placeholder:text-black/30"
+                      />
+                    </div>
+
+                    {/* Tagline */}
+                    <div>
+                      <Label className="text-xs font-bold text-black/50 uppercase mb-1 block">
+                        Tagline / CTA
+                      </Label>
+                      <Input
+                        placeholder="e.g. Shop Now"
+                        value={textTagline}
+                        onChange={(e) => setTextTagline(e.target.value)}
+                        className="h-10 bg-white border-[2px] border-black text-black font-medium shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] placeholder:text-black/30"
+                      />
+                    </div>
+
+                    {/* Placement */}
+                    <div>
+                      <Label className="text-xs font-bold text-black/50 uppercase mb-2 block">
+                        Placement
+                      </Label>
+                      <div className="flex flex-wrap gap-2">
+                        {TEXT_PLACEMENT_OPTIONS.map((opt) => (
+                          <button
+                            key={opt.value}
+                            onClick={() => setTextPlacement(opt.value as TextPlacement)}
+                            className={cn(
+                              'px-3 py-1.5 text-xs font-bold border-[2px] border-black transition-all',
+                              textPlacement === opt.value
+                                ? 'bg-[#FFD93D] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                                : 'bg-white shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]'
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Font Style */}
+                    <div>
+                      <Label className="text-xs font-bold text-black/50 uppercase mb-2 block">
+                        Font Style
+                      </Label>
+                      <div className="flex flex-wrap gap-2">
+                        {FONT_STYLE_OPTIONS.map((opt) => (
+                          <button
+                            key={opt.value}
+                            onClick={() => setTextFontStyle(opt.value as FontStyle)}
+                            className={cn(
+                              'px-3 py-1.5 text-xs font-bold border-[2px] border-black transition-all',
+                              textFontStyle === opt.value
+                                ? 'bg-[#FFD93D] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                                : 'bg-white shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]'
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </BrutalCard>
+
+            {/* ── PLATFORM + CTA ── */}
+            <BrutalCard className="p-6" hoverEffect>
+              <div className="space-y-5">
+                {/* CTA */}
+                <div>
+                  <Label className="text-xs font-bold text-black/50 uppercase mb-2 block">
+                    Call to Action
+                  </Label>
+                  <Select value={ctaType} onValueChange={(v) => setCtaType(v as CtaType)}>
+                    <SelectTrigger className="w-full h-10 bg-white border-[2px] border-black text-black font-medium shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CTA_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Caption Tone */}
+                <div>
+                  <Label className="text-xs font-bold text-black/50 uppercase mb-2 block">
+                    Caption Tone
+                  </Label>
+                  <div className="flex flex-wrap gap-2">
+                    {TONE_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() =>
+                          setCaptionTone(captionTone === opt.value ? '' : opt.value)
+                        }
+                        className={cn(
+                          'px-4 py-2 text-xs font-bold border-[2px] border-black transition-all',
+                          captionTone === opt.value
+                            ? 'bg-[#FF8C69] text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                            : 'bg-white text-black/70 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]'
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Platforms */}
+                <div>
+                  <Label className="text-xs font-bold text-black/50 uppercase mb-2 block">
+                    Platforms
+                  </Label>
+                  <div className="flex flex-wrap gap-2">
+                    {PLATFORM_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => togglePlatform(opt.value)}
+                        className={cn(
+                          'flex items-center gap-1.5 px-4 py-2 text-xs font-bold border-[2px] border-black transition-all',
+                          selectedPlatforms.includes(opt.value)
+                            ? 'bg-[#FFD93D] text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                            : 'bg-white text-black/70 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]'
+                        )}
+                      >
+                        {PLATFORM_ICONS[opt.icon]}
+                        {opt.label}
+                        {selectedPlatforms.includes(opt.value) && (
+                          <Check className="h-3 w-3" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                  {selectedPlatforms.length === 0 && (
+                    <p className="text-xs text-red-600 font-bold mt-1">
+                      Select at least one platform
+                    </p>
+                  )}
+                </div>
+              </div>
+            </BrutalCard>
+
+            {/* ── GENERATE BUTTON ── */}
+            <motion.button
+              whileHover={{ scale: 1.01, y: -2 }}
+              whileTap={{ scale: 0.99 }}
               onClick={handleGenerate}
               disabled={!canSubmit}
-              size="lg"
-              className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white shadow-lg shadow-purple-500/20"
+              className={cn(
+                'w-full h-16 text-lg font-black uppercase tracking-wide border-[3px] border-black transition-all',
+                canSubmit
+                  ? 'bg-[#FFD93D] text-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                  : 'bg-gray-200 text-gray-400 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)] cursor-not-allowed'
+              )}
             >
               {loading ? (
-                <>
-                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                  Generating (15-30 sec)
-                </>
+                <span className="flex items-center justify-center gap-3">
+                  <BrutalLoader size="sm" />
+                  Generating (15-30s)...
+                </span>
               ) : (
                 'Generate Ad'
               )}
-            </Button>
-            {isCampaignCompleted && (
-              <p className="text-sm text-center text-zinc-500 mt-2">
-                Cannot generate ads for completed campaigns
-              </p>
-            )}
-          </section>
+            </motion.button>
+          </div>
+
+          {/* ── RIGHT COLUMN: RESULT PANEL ── */}
+          <div className="lg:sticky lg:top-28 lg:self-start">
+            <AnimatePresence mode="wait">
+              {loading ? (
+                <motion.div
+                  key="loading"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                >
+                  <BrutalCard className="p-8 flex flex-col items-center justify-center min-h-[400px]">
+                    <BrutalLoader size="lg" />
+                    <p className="mt-16 text-sm font-bold text-black/50 uppercase tracking-widest">
+                      Creating your ad...
+                    </p>
+                    <p className="text-xs text-black/30 mt-1">
+                      GPT-4o is crafting the prompt
+                    </p>
+                  </BrutalCard>
+                </motion.div>
+              ) : result ? (
+                <motion.div
+                  key="result"
+                  variants={imageRevealVariants}
+                  initial="initial"
+                  animate="animate"
+                >
+                  <BrutalCard className="overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                    {/* Generated Image */}
+                    <div className="relative aspect-square border-b-[3px] border-black">
+                      <img
+                        src={result.imageBase64 || result.imageUrl}
+                        alt="Generated Ad"
+                        className="w-full h-full object-cover"
+                      />
+                      {/* Quality Badge */}
+                      <div className="absolute top-3 left-3 bg-[#FFD93D] border-[2px] border-black px-2 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                        <span className="text-xs font-black">
+                          {result.qualityScore}/100
+                        </span>
+                      </div>
+                      <div className="absolute top-3 right-3 bg-white border-[2px] border-black px-2 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                        <span className="text-xs font-bold uppercase">
+                          {result.promptUsed}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="p-4 flex gap-2">
+                      <button
+                        onClick={handleDownload}
+                        className="flex-1 flex items-center justify-center gap-2 py-3 bg-black text-white border-[2px] border-black font-bold text-sm hover:bg-black/80 transition-colors"
+                      >
+                        <Download className="h-4 w-4" />
+                        Download
+                      </button>
+                      <button
+                        onClick={handleGenerate}
+                        disabled={loading}
+                        className="flex items-center justify-center gap-2 py-3 px-4 bg-[#FF8C69] text-black border-[2px] border-black font-bold text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all"
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    {/* Copy variants */}
+                    {result.copy && result.copy.length > 0 && (
+                      <div className="p-4 pt-0 space-y-2">
+                        <p className="text-xs font-bold text-black/50 uppercase">
+                          Ad Copy
+                        </p>
+                        {result.copy.slice(0, 2).map((copy: any, i: number) => (
+                          <div
+                            key={i}
+                            className="p-3 bg-[#FFFDF5] border-[2px] border-black/20 text-xs text-black/70"
+                          >
+                            {typeof copy === 'string' ? copy : copy?.text || JSON.stringify(copy)}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </BrutalCard>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="empty"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                >
+                  <BrutalCard className="p-8 flex flex-col items-center justify-center min-h-[400px] bg-[#FFFDF5]">
+                    <div className="w-16 h-16 bg-[#FFD93D] border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center mb-4">
+                      <ImageIcon className="h-8 w-8 text-black" />
+                    </div>
+                    <p className="text-sm font-bold text-black/50 text-center">
+                      Your generated ad will appear here
+                    </p>
+                    <p className="text-xs text-black/30 mt-1 text-center">
+                      Select a style and click Generate
+                    </p>
+                  </BrutalCard>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }
