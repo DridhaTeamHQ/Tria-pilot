@@ -10,6 +10,7 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { tryAcquireInFlight } from '@/lib/traffic-guard'
 import { rateAdCreative, generateAdCopy } from '@/lib/openai'
 import { generateIntelligentAdComposition } from '@/lib/gemini'
 import { saveUpload } from '@/lib/storage'
@@ -95,6 +96,7 @@ const adGenerationSchema = z
   .strict()
 
 export async function POST(request: Request) {
+  let inFlight: { allowed: boolean; retryAfterSeconds?: number; release?: () => void } | null = null
   try {
     const supabase = await createClient()
     const {
@@ -122,12 +124,36 @@ export async function POST(request: Request) {
       )
     }
 
-    // Check rate limit
+    // In-flight guard: one ad generation per user at a time (regulates traffic at scale)
+    inFlight = tryAcquireInFlight(user.id, 'ads')
+    if (!inFlight.allowed) {
+      const retry = inFlight.retryAfterSeconds ?? 15
+      return NextResponse.json(
+        {
+          error: 'An ad is already being generated. Please wait for it to finish.',
+          retryAfterSeconds: retry,
+        },
+        {
+          status: 429,
+          headers: { 'Retry-After': String(retry), 'Cache-Control': 'no-store' },
+        }
+      )
+    }
+
+    // Check rate limit (per-minute; middleware also enforces for /api/ads/generate)
     const rateLimit = checkRateLimit(user.id, 'ads')
     if (!rateLimit.allowed) {
+      const retry = rateLimit.retryAfterSeconds ?? 60
       return NextResponse.json(
-        { error: 'Rate limit exceeded', resetTime: rateLimit.resetTime },
-        { status: 429 }
+        {
+          error: 'Rate limit exceeded. Please wait a moment and try again.',
+          retryAfterSeconds: retry,
+          resetTime: rateLimit.resetTime,
+        },
+        {
+          status: 429,
+          headers: { 'Retry-After': String(retry), 'Cache-Control': 'no-store' },
+        }
       )
     }
 
@@ -346,5 +372,7 @@ export async function POST(request: Request) {
       },
       { status: 500 }
     )
+  } finally {
+    inFlight?.release?.()
   }
 }

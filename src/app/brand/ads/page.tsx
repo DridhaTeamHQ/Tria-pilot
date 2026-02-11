@@ -139,9 +139,17 @@ export default function AdsPage() {
   // UI
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<GenerationResult | null>(null)
+  const [retryAfterSeconds, setRetryAfterSeconds] = useState(0)
 
   const hasText = !!(textHeadline || textSubline || textTagline)
-  const canSubmit = selectedPreset && selectedPlatforms.length > 0 && !loading
+  const canSubmit = selectedPreset && selectedPlatforms.length > 0 && !loading && retryAfterSeconds <= 0
+
+  // Countdown for rate limit / in-flight wait
+  useEffect(() => {
+    if (retryAfterSeconds <= 0) return
+    const t = setInterval(() => setRetryAfterSeconds((prev) => Math.max(0, prev - 1)), 1000)
+    return () => clearInterval(t)
+  }, [retryAfterSeconds])
 
   const handleImageUpload = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>, type: 'product' | 'influencer') => {
@@ -201,7 +209,16 @@ export default function AdsPage() {
         body: JSON.stringify(input),
       })
       const data = await res.json()
-      if (!res.ok) { toast.error(data.error || 'Generation failed'); return }
+      if (!res.ok) {
+        if (res.status === 429) {
+          const retry = Math.max(1, Number(data.retryAfterSeconds ?? 60))
+          setRetryAfterSeconds(retry)
+          toast.error(data.error || `Rate limit. Try again in ${retry}s.`)
+        } else {
+          toast.error(data.error || 'Generation failed')
+        }
+        return
+      }
       setResult(data as GenerationResult)
       toast.success('Ad generated!')
     } catch { toast.error('Something went wrong.') }
@@ -468,18 +485,22 @@ export default function AdsPage() {
 
             {/* 5. GENERATE */}
             <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.99 }}
-              onClick={handleGenerate} disabled={!canSubmit}
+              onClick={handleGenerate} disabled={!canSubmit || retryAfterSeconds > 0}
               className={cn(
                 'w-full h-14 text-base font-black uppercase tracking-wide border-[3px] border-black transition-all',
                 canSubmit
                   ? 'bg-[#FFD93D] text-black shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] hover:shadow-[7px_7px_0px_0px_rgba(0,0,0,1)]'
                   : 'bg-gray-200 text-gray-400 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)] cursor-not-allowed'
               )}>
-              {loading ? (
-                <span className="flex items-center justify-center gap-3">
-                  <BrutalLoader size="sm" /> Generating...
-                </span>
-              ) : 'Generate Ad'}
+              {retryAfterSeconds > 0
+                ? `Wait ${retryAfterSeconds}s`
+                : loading
+                  ? (
+                      <span className="flex items-center justify-center gap-3">
+                        <BrutalLoader size="sm" /> Generating...
+                      </span>
+                    )
+                  : 'Generate Ad'}
             </motion.button>
           </div>
 

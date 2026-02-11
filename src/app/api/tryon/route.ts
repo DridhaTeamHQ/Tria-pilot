@@ -10,11 +10,13 @@ import { getTryOnPresetV3 } from '@/lib/tryon/presets'
 import { normalizeBase64 } from '@/lib/image-processing'
 import { saveUpload } from '@/lib/storage'
 import { runHybridTryOnPipeline } from '@/lib/tryon/hybrid-tryon-pipeline'
+import { tryAcquireInFlight } from '@/lib/traffic-guard'
 
 // Allow up to 60s for the full try-on pipeline (scene intel + generation + retry)
 export const maxDuration = 60
 
 export async function POST(request: Request) {
+  let inFlight: { allowed: boolean; retryAfterSeconds?: number; release?: () => void } | null = null
   try {
     // Validate API keys
     try {
@@ -127,7 +129,26 @@ export async function POST(request: Request) {
     const userId = authUser.id
     console.log('✅ User verified, starting generation:', { userId })
 
-    // Rate limiting
+    // In-flight guard: only one try-on per user at a time (regulates traffic when many click at once)
+    inFlight = tryAcquireInFlight(userId, 'tryon')
+    if (!inFlight.allowed) {
+      const retry = inFlight.retryAfterSeconds ?? 15
+      return NextResponse.json(
+        {
+          error: 'A try-on is already in progress. Please wait for it to finish.',
+          retryAfterSeconds: retry,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(retry),
+            'Cache-Control': 'no-store',
+          },
+        }
+      )
+    }
+
+    // Rate limiting (middleware also applies; gate is per-request)
     const forwardedFor = request.headers.get('x-forwarded-for')
     const realIp = request.headers.get('x-real-ip')
     const clientIp = forwardedFor?.split(',')[0]?.trim() || realIp || 'unknown'
@@ -375,5 +396,7 @@ export async function POST(request: Request) {
       )
     }
     return NextResponse.json({ error: msg }, { status: 500 })
+  } finally {
+    inFlight?.release?.()
   }
 }

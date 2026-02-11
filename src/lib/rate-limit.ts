@@ -24,17 +24,15 @@ const defaultConfigs: Record<string, RateLimitConfig> = {
 export function checkRateLimit(
   userId: string,
   endpoint: 'tryon' | 'ads' | 'campaigns'
-): { allowed: boolean; remaining: number; resetTime: number } {
+): { allowed: boolean; remaining: number; resetTime: number; retryAfterSeconds?: number } {
   const config = defaultConfigs[endpoint]
   const key = `${userId}:${endpoint}`
   const now = Date.now()
 
-  // Clean up expired entries
   if (store[key] && store[key].resetTime < now) {
     delete store[key]
   }
 
-  // Initialize or get current state
   if (!store[key]) {
     store[key] = {
       count: 0,
@@ -44,16 +42,16 @@ export function checkRateLimit(
 
   const current = store[key]
 
-  // Check if limit exceeded
   if (current.count >= config.maxRequests) {
+    const retryAfterSeconds = Math.max(1, Math.ceil((current.resetTime - now) / 1000))
     return {
       allowed: false,
       remaining: 0,
       resetTime: current.resetTime,
+      retryAfterSeconds,
     }
   }
 
-  // Increment count
   current.count++
 
   return {

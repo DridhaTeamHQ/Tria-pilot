@@ -7,6 +7,7 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { tryAcquireInFlight } from '@/lib/traffic-guard'
 import { rateAdCreative, generateAdCopy } from '@/lib/openai'
 import { generateIntelligentAdComposition } from '@/lib/gemini'
 import { saveUpload } from '@/lib/storage'
@@ -15,6 +16,7 @@ export async function POST(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    let inFlight: { allowed: boolean; retryAfterSeconds?: number; release?: () => void } | null = null
     try {
         const { id } = await params
         const supabase = await createClient()
@@ -52,10 +54,22 @@ export async function POST(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
         }
 
-        // Rate Limit Check
-        const rateLimit = await checkRateLimit(authUser.id, 'ads')
+        inFlight = tryAcquireInFlight(authUser.id, 'ads')
+        if (!inFlight.allowed) {
+            const retry = inFlight.retryAfterSeconds ?? 15
+            return NextResponse.json(
+                { error: 'An ad is already being generated. Please wait for it to finish.', retryAfterSeconds: retry },
+                { status: 429, headers: { 'Retry-After': String(retry), 'Cache-Control': 'no-store' } }
+            )
+        }
+
+        const rateLimit = checkRateLimit(authUser.id, 'ads')
         if (!rateLimit.allowed) {
-            return NextResponse.json({ error: 'Rate limit exceeded', resetTime: rateLimit.resetTime }, { status: 429 })
+            const retry = rateLimit.retryAfterSeconds ?? 60
+            return NextResponse.json(
+                { error: 'Rate limit exceeded. Please wait a moment and try again.', retryAfterSeconds: retry, resetTime: rateLimit.resetTime },
+                { status: 429, headers: { 'Retry-After': String(retry), 'Cache-Control': 'no-store' } }
+            )
         }
 
         const body = await request.json().catch(() => null)
@@ -125,5 +139,7 @@ export async function POST(
             { error: error instanceof Error ? error.message : 'Error' },
             { status: 500 }
         )
+    } finally {
+        inFlight?.release?.()
     }
 }

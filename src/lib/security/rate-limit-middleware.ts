@@ -12,15 +12,18 @@ function getClientIp(request: NextRequest): string {
   return request.headers.get('x-real-ip') || 'unknown'
 }
 
-function pickBucket(pathname: string): 'auth' | 'tryon' | 'ai' | 'write' | 'read' {
+function pickBucket(pathname: string): 'auth' | 'tryon' | 'ads' | 'ai' | 'write' | 'read' {
   if (pathname.startsWith('/api/auth/')) {
-    // Exclude session checks from strict auth throttling
     if (pathname.includes('/me') || pathname.includes('/profile-status')) {
       return 'read'
     }
     return 'auth'
   }
   if (pathname.startsWith('/api/tryon')) return 'tryon'
+  // Ads generate/regenerate — same traffic regulation as try-on
+  if (pathname.startsWith('/api/ads/') && (pathname.includes('generate') || pathname.includes('regenerate'))) {
+    return 'ads'
+  }
   if (
     pathname.startsWith('/api/ads/') ||
     pathname.startsWith('/api/campaigns/chat') ||
@@ -44,12 +47,16 @@ function getLimits(
     return { windowMs, maxIp: 10, maxUser: 20 }
   }
   if (bucket === 'tryon') {
-    // Slightly less aggressive default to reduce false-friction on normal usage.
-    const maxPerMinute = parseInt(process.env.MAX_TRYON_PER_MINUTE || '3')
+    // Per-minute: allow bursts (e.g. 6/min) so quick retries don't hit limit; hourly cap still applies.
+    const maxPerMinute = parseInt(process.env.MAX_TRYON_PER_MINUTE || '6')
+    return { windowMs, maxIp: maxPerMinute, maxUser: maxPerMinute }
+  }
+  if (bucket === 'ads') {
+    // Align with route-level check: 10/min per user so ads and try-on scale similarly.
+    const maxPerMinute = parseInt(process.env.MAX_ADS_PER_MINUTE || '10')
     return { windowMs, maxIp: maxPerMinute, maxUser: maxPerMinute }
   }
   if (bucket === 'ai') {
-    // Expensive endpoints (plus they may have additional internal gating)
     return { windowMs, maxIp: 20, maxUser: 30 }
   }
   if (isWrite) {
