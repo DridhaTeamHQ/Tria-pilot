@@ -369,6 +369,47 @@ export const AD_STYLE_EXAMPLES: AdStyleExample[] = [
       'Lifestyle product mockup: same model/pose/lighting/background; only change is shirt—fully blank, no graphics or text residue. For print-ready apparel mockups (e.g. custom tee). Outdoor, rustic BG, natural light.',
     imagePath: 'assets/ad-examples/lifestyle-blank-tee-mockup.png',
   },
+  // ─── User-provided reference-quality prompts (ultra-detailed narrative style) ───
+  {
+    id: 'mediterranean-swim-editorial',
+    name: 'Mediterranean Swim – Editorial leisure (wide iPhone candid)',
+    prompt: `Wide shot taken from about 10 meters away showing a stylish Latina man sitting on sun-warmed, smooth whitewashed stones at the edge of the crystalline Mediterranean sea. He wears tailored swim shorts in a striking dusty lavender with a subtle abstract wavy stripe motif in muted coral and pale peach, crafted from lightweight swim fabric. A loosely draped, unbuttoned blush pink linen shirt adds softness and texture, sleeves rolled casually above the elbow. His sun-kissed skin glows naturally under the soft, clear daylight, complemented by a wide-brimmed boater hat made of woven straw and vintage minimalist gold-rim sunglasses perched slightly down on his nose. He reclines with legs partly submerged in the gently lapping turquoise water, one hand resting on a textured, handwoven canvas tote bag featuring delicate terracotta and sky-blue geometric embroidery. Nearby, a striped pastel towel lies draped over the rocks, while the shimmering sea dominates the foreground and background, reflecting scattered olive tree shadows above. The candid, three-quarter iPhone angle captures tactile textures—wet stone, linen, bronzed skin—and the serene, quietly stylish atmosphere of Mediterranean luxury summer leisure. —hyper-real texture fidelity, natural skin`,
+    styleNotes:
+      'Mediterranean editorial: wide candid iPhone shot, lavender swim shorts, pink linen shirt, straw boater hat. Turquoise sea, whitewashed rocks, olive tree shadows. Tactile textures: wet stone, linen, bronzed skin. Quiet luxury, serene leisure. Strong for swim/resort wear, accessories, lifestyle brands.',
+    imagePath: 'assets/ad-examples/mediterranean-swim-editorial.png',
+  },
+  {
+    id: 'deconstructed-face-collage',
+    name: 'Deconstructed Face – Punk collage editorial (torn paper, halftone)',
+    prompt: `Her face is dissected into overlapping layers—icy blue eyes are repeated thrice, one set inverted and shifted toward the temple, another floating near the jawline. Her mouth is split diagonally, the upper lip displaced upward and doubled in translucent print. The nose bridge fractures into two separate strips, one pasted askew beneath her cheek, creating an unsettling, disjointed symmetry. Jagged torn paper edges and masking tape fragments hold each facial element in place, building a tactile construction reminiscent of punk-era photocopy collage. Her skin bears matte whiteness with visible pores and faint freckles, echoing the soft texture of a worn newsprint. The matte white fabric of her dress blends into a grainy xerox background peppered with halftone spirals, mirroring the coiled leather belt motif. Scratched ink marks and ripped paper seams frame the composition, emphasizing the handmade analog aesthetic.`,
+    styleNotes:
+      'Deconstructed collage: face dissected into overlapping layers, torn paper edges, masking tape, halftone spirals. Punk-era photocopy aesthetic. Matte white skin, visible pores, freckles, xerox grain. Handmade analog. Strong for avant-garde fashion, editorial, conceptual campaigns.',
+    imagePath: 'assets/ad-examples/deconstructed-face-collage.png',
+  },
+  {
+    id: 'italian-cafe-candid',
+    name: 'Italian Café – Candid elegance (warm terracotta, green shutters)',
+    prompt: `A candid photo of a woman sitting at a tiny outdoor table of a rustic Italian bar, sipping a small espresso cup with relaxed elegance. She wears a wide-brimmed straw hat, casual loose blouse in soft cream tones, and minimal gold hoop earrings, her hair styled in loose waves falling naturally around her face. The background features warm terracotta walls with textured, weathered surfaces and vibrant green wooden shutters, slightly open to reveal soft interior shadows. Natural late morning sunlight gently bathes the scene, casting warm, nuanced highlights and subtle shadows that accentuate the textures of the stone pavement, fabric folds, and ceramic cup. The composition is casually framed with a slight tilt, capturing the spontaneous intimacy and effortless elegance typical of authentic iPhone photography in a charming Italian village.`,
+    styleNotes:
+      'Italian café candid: terracotta + green shutters, straw hat, cream blouse, espresso. Late morning natural light, warm tones, weathered textures. iPhone-style casual framing with slight tilt. Effortless elegance. Strong for lifestyle, travel, café, fashion brands.',
+    imagePath: 'assets/ad-examples/italian-cafe-candid.png',
+  },
+  {
+    id: 'golden-hour-glamour-cafe',
+    name: 'Golden Hour Glamour – Outdoor café (camel coat, red lips)',
+    prompt: `A glamorous shot of a woman in an outdoor café, wearing a camel coat and oversized sunglasses. Her red lipstick pops against her fair skin. She's holding a cappuccino, natural golden hour lighting. Her blonde hair catches the warm sunlight, falling in loose waves. The background shows a bustling Parisian café with classic rattan chairs and distant pedestrians softly blurred. She leans forward slightly with both hands wrapped around the cup, a gold signet ring catching the light. The mood is confident, polished, and editorial-meets-candid.`,
+    styleNotes:
+      'Glamour candid: camel coat, oversized sunglasses, bold red lipstick, cappuccino. Golden hour natural light, Parisian café backdrop. Fair skin, blonde hair, gold jewelry accents. Confident editorial-meets-UGC. Strong for beauty, fashion, lifestyle, coffee brands.',
+    imagePath: 'assets/ad-examples/golden-hour-glamour-cafe.png',
+  },
+  {
+    id: 'y2k-varsity-studio',
+    name: 'Y2K Varsity – Electric blue studio (cherry red hair, crossed arms)',
+    prompt: `He's framed in a medium close-up against a matte electric blue studio backdrop, standing with squared shoulders and arms crossed like he's guarding some unspoken secret. He's wearing an oversized black varsity jacket with silver leather sleeves and white block lettering stitched across the back, unzipped to flash a bubblegum pink mesh tank clinging tight to his torso. His low-rise wide-leg jeans are distressed denim with bleach splashes and a neon green grommet belt slung low, revealing a thick black waistband stamped with bold white text. His hair is dyed a blazing cherry red, spiked high with visible dark roots and styled to look like flames licking the edges of his head. On his face, plastic white wraparound sunglasses are pushed halfway down his nose, while layered silver chains clink softly at his collarbone. His gaze is apathetic, and his lips press flat—he owns the shot with a cool, confrontational stance. The grainy softness of the digital capture lends a tactile authenticity to the Y2K vibe. —casual candid early-2000s Y2K snapshot, grainy softness`,
+    styleNotes:
+      'Y2K studio: electric blue backdrop, varsity jacket, silver sleeves, bubblegum pink mesh, cherry red spiked hair. Low-rise wide jeans, neon green belt, silver chains. Apathetic gaze, confrontational stance. Grainy digital capture, early-2000s snapshot aesthetic. Strong for streetwear, Y2K, Gen-Z, creative campaigns.',
+    imagePath: 'assets/ad-examples/y2k-varsity-studio.png',
+  },
 ]
 
 /** Look up an example by id */

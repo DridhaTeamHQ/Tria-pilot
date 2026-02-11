@@ -334,13 +334,46 @@ export async function POST(request: Request) {
         userMessage = 'Image generation service is experiencing issues. Please try again in a moment.'
       }
 
+      // Timeout / quota / rate limit → return 503 with Retry-After so client shows "wait and retry" instead of generic error
+      const isTimeoutOrLimit =
+        /timed out|timeout|quota|rate limit|too many requests/i.test(errorMessage)
+      if (isTimeoutOrLimit) {
+        const retrySec = 60
+        return NextResponse.json(
+          {
+            error:
+              'Request timed out or rate limit reached. Please wait a minute and try again.',
+            retryAfterSeconds: retrySec,
+          },
+          {
+            status: 503,
+            headers: {
+              'Retry-After': String(retrySec),
+              'Cache-Control': 'no-store',
+            },
+          }
+        )
+      }
+
       throw new Error(userMessage)
     }
   } catch (error) {
     console.error('Try-on generation error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    )
+    const msg = error instanceof Error ? error.message : 'Internal server error'
+    // If outer catch sees a timeout-like message, return 503 so client can show retry UI
+    if (/timed out|timeout/i.test(msg)) {
+      const retrySec = 60
+      return NextResponse.json(
+        {
+          error: 'Request timed out. Please wait a minute and try again.',
+          retryAfterSeconds: retrySec,
+        },
+        {
+          status: 503,
+          headers: { 'Retry-After': String(retrySec), 'Cache-Control': 'no-store' },
+        }
+      )
+    }
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

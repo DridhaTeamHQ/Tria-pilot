@@ -528,10 +528,20 @@ function TryOnPageContent() {
             const structured = error as (Error & { status?: number; retryAfterSeconds?: number; code?: string })
             const errorMessage = error instanceof Error ? error.message : 'Generation failed'
 
-            if (structured?.status === 429) {
-                const retry = Math.max(1, Number(structured.retryAfterSeconds || 60))
+            // 429 = rate limit; 503/504 or "timed out" = overload or limit — show wait and retry
+            const isRateLimit = structured?.status === 429
+            const isTimeoutOrBusy =
+                structured?.status === 503 ||
+                structured?.status === 504 ||
+                /timed out|timeout|rate limit|wait a minute/i.test(errorMessage)
+            if (isRateLimit || isTimeoutOrBusy) {
+                const retry = Math.max(1, Number(structured?.retryAfterSeconds ?? 60))
                 setRetryAfterSeconds(retry)
-                toast.error(`Rate limit reached. Please wait ${retry}s before trying again.`)
+                const msg =
+                    isRateLimit
+                        ? `Rate limit reached. Please wait ${retry}s before trying again.`
+                        : `Request timed out or service busy. Please wait ${retry}s and try again.`
+                toast.error(msg)
                 return
             }
 

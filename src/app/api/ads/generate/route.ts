@@ -10,7 +10,7 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
 import { checkRateLimit } from '@/lib/rate-limit'
-import { analyzeClothingImage, rateAdCreative, generateAdCopy } from '@/lib/openai'
+import { rateAdCreative, generateAdCopy } from '@/lib/openai'
 import { generateIntelligentAdComposition } from '@/lib/gemini'
 import { saveUpload } from '@/lib/storage'
 import {
@@ -23,6 +23,7 @@ import {
   type CharacterType,
   type FontStyle,
   type TextPlacement,
+  type AspectRatio,
   validateAdInput,
 } from '@/lib/ads/ad-styles'
 import { buildAdPrompt } from '@/lib/ads/ad-prompt-builder'
@@ -51,6 +52,9 @@ const adGenerationSchema = z
     animalType: z.string().trim().max(50).optional(),
     characterStyle: z.string().trim().max(100).optional(),
     characterAge: z.string().trim().max(20).optional(),
+
+    // Aspect ratio
+    aspectRatio: z.enum(['1:1', '9:16', '16:9', '4:5']).optional().default('1:1'),
 
     // Text overlay
     textOverlay: z
@@ -171,6 +175,7 @@ export async function POST(request: Request) {
       animalType: input.animalType,
       characterStyle: input.characterStyle,
       characterAge: input.characterAge,
+      aspectRatio: input.aspectRatio as AspectRatio | undefined,
       textOverlay: input.textOverlay
         ? {
             headline: input.textOverlay.headline,
@@ -193,45 +198,38 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: validation.error }, { status: 400 })
     }
 
-    // ── Parallel stage: product analysis + face forensics ──
-    console.log('[AdsAPI] Starting parallel analysis...')
+    // ── Face forensics (only when face-lock enabled) ──
+    let forensicResult = null
+    if (input.lockFaceIdentity && input.influencerImage) {
+      console.log('[AdsAPI] Running face forensics...')
+      forensicResult = await buildForensicFaceAnchor({
+        personImageBase64: input.influencerImage,
+        garmentDescription: 'product from ad image',
+      }).catch((err) => {
+        console.warn('[AdsAPI] Face forensics failed:', err)
+        return null
+      })
+    }
 
-    const analysisPromises: Promise<any>[] = []
-
-    // Product analysis
-    const productAnalysisPromise = input.productImage
-      ? analyzeClothingImage(input.productImage).catch((err) => {
-          console.warn('[AdsAPI] Product analysis failed:', err)
-          return null
-        })
-      : Promise.resolve(null)
-    analysisPromises.push(productAnalysisPromise)
-
-    // Face forensics (only when face-lock is enabled with influencer image)
-    const faceAnchorPromise =
-      input.lockFaceIdentity && input.influencerImage
-        ? buildForensicFaceAnchor({
-            personImageBase64: input.influencerImage,
-            garmentDescription: 'product from ad image',
-          }).catch((err) => {
-            console.warn('[AdsAPI] Face forensics failed:', err)
-            return null
-          })
-        : Promise.resolve(null)
-    analysisPromises.push(faceAnchorPromise)
-
-    const [productAnalysis, forensicResult] = await Promise.all(analysisPromises)
-
-    // ── Build intelligent prompt with GPT-4o ──
-    console.log('[AdsAPI] Building prompt with GPT-4o...')
+    // ── Build intelligent prompt with GPT-4o VISION ──
+    // GPT-4o sees the product image directly — no separate analysis needed
+    console.log('[AdsAPI] Building prompt with GPT-4o vision...')
 
     const faceAnchorText = forensicResult?.faceAnchor || null
 
-    const { prompt: compositionPrompt, fallback } = await buildAdPrompt(
+    const { prompt: rawCompositionPrompt, fallback } = await buildAdPrompt(
       generationInput,
-      productAnalysis,
+      input.productImage || null,
       faceAnchorText
     )
+
+    // Prepend a hard quality-enforcement preamble optimized for Gemini 3 Pro (Nano Banana Pro).
+    // Uses narrative description style that Gemini responds best to.
+    const hasTextContent = !!(input.textOverlay && (input.textOverlay.headline || input.textOverlay.subline || input.textOverlay.tagline))
+    const noTextRule = hasTextContent ? '' : ' CRITICAL: Do NOT include ANY text, words, letters, numbers, brand names, slogans, or typography anywhere in the image. This is a photography-only image with ZERO written content.'
+    const QUALITY_PREAMBLE = `Generate a stunning, photorealistic advertising photograph that could appear in Vogue, GQ, or a Nike global campaign. The image must look like it was captured by a professional photographer with high-end equipment — not AI-generated, not illustrated, not a digital render. Every surface has realistic texture: skin has visible pores, fabric has weave, metal has accurate reflections. Anatomy is correct, hands are natural, proportions are human. Lighting is physically accurate with proper shadow falloff. Resolution is 8K with tack-sharp focus on the subject. No watermarks, no artifacts, no distortion, no extra limbs.${noTextRule}\n\n`
+
+    const compositionPrompt = QUALITY_PREAMBLE + rawCompositionPrompt
 
     console.log(
       `[AdsAPI] Prompt built (${fallback ? 'fallback' : 'GPT-4o'}): ${compositionPrompt.length} chars`
@@ -244,7 +242,10 @@ export async function POST(request: Request) {
       input.productImage,
       input.influencerImage,
       compositionPrompt,
-      { lockFaceIdentity: input.lockFaceIdentity }
+      {
+        lockFaceIdentity: input.lockFaceIdentity,
+        aspectRatio: input.aspectRatio as AspectRatio | undefined,
+      }
     )
 
     // ── Post-generation: rate + copy (parallel) ──
@@ -259,59 +260,69 @@ export async function POST(request: Request) {
         () => ({ score: 75 })
       ),
       generateAdCopy(generatedImage, {
-        productName: productAnalysis?.garmentType,
+        productName: input.textOverlay?.headline || input.headline || 'fashion product',
         brandName,
         niche: input.preset,
       }).catch(() => []),
     ])
 
-    // ── Save to storage ──
-    let contentType = 'image/jpeg'
-    let fileExtension = 'jpg'
-    const mimeMatch = generatedImage.match(/^data:(image\/\w+);base64,/)
-    if (mimeMatch) {
-      contentType = mimeMatch[1]
-      if (contentType === 'image/png') fileExtension = 'png'
-      else if (contentType === 'image/webp') fileExtension = 'webp'
-      else if (contentType === 'image/gif') fileExtension = 'gif'
+    // ── Save to storage (non-fatal — image is already generated) ──
+    let imageUrl: string | null = null
+    try {
+      let contentType = 'image/jpeg'
+      let fileExtension = 'jpg'
+      const mimeMatch = generatedImage.match(/^data:(image\/\w+);base64,/)
+      if (mimeMatch) {
+        contentType = mimeMatch[1]
+        if (contentType === 'image/png') fileExtension = 'png'
+        else if (contentType === 'image/webp') fileExtension = 'webp'
+        else if (contentType === 'image/gif') fileExtension = 'gif'
+      }
+
+      const imagePath = `${user.id}/${Date.now()}.${fileExtension}`
+      imageUrl = await saveUpload(
+        generatedImage,
+        imagePath,
+        'ads',
+        contentType
+      )
+    } catch (uploadErr) {
+      // Upload failed but we still have the image — log and continue
+      console.warn('[AdsAPI] Storage upload failed (non-fatal, returning inline image):', uploadErr)
     }
 
-    const imagePath = `${user.id}/${Date.now()}.${fileExtension}`
-    const imageUrl = await saveUpload(
-      generatedImage,
-      imagePath,
-      'ads',
-      contentType
-    )
+    // ── Save to DB (only if we have a URL) ──
+    let adCreativeId: string | null = null
+    if (imageUrl) {
+      const { data: adCreative, error: insertError } = await service
+        .from('ad_creatives')
+        .insert({
+          brand_id: user.id,
+          image_url: imageUrl,
+          title:
+            input.textOverlay?.headline ||
+            input.headline ||
+            `${input.preset} Ad`,
+          prompt: compositionPrompt,
+          campaign_id: campaignData?.id || null,
+          platform: input.platforms[0] || 'instagram',
+          status: 'generated',
+          rating: (rating as any)?.score || 75,
+        })
+        .select()
+        .single()
 
-    // ── Save to DB ──
-    const { data: adCreative, error: insertError } = await service
-      .from('ad_creatives')
-      .insert({
-        brand_id: user.id,
-        image_url: imageUrl,
-        title:
-          input.textOverlay?.headline ||
-          input.headline ||
-          `${input.preset} Ad`,
-        prompt: compositionPrompt,
-        campaign_id: campaignData?.id || null,
-        platform: input.platforms[0] || 'instagram',
-        status: 'generated',
-        rating: (rating as any)?.score || 75,
-      })
-      .select()
-      .single()
-
-    if (insertError) {
-      console.error('Ad creative insert error:', insertError)
+      if (insertError) {
+        console.error('Ad creative insert error:', insertError)
+      }
+      adCreativeId = adCreative?.id || null
     }
 
-    // Return image data inline for immediate display
+    // Return image data inline for immediate display — works even if upload failed
     return NextResponse.json({
-      id: adCreative?.id || crypto.randomUUID(),
-      imageUrl,
-      imageBase64: generatedImage, // inline for immediate rendering
+      id: adCreativeId || crypto.randomUUID(),
+      imageUrl: imageUrl || null,
+      imageBase64: generatedImage, // inline for immediate rendering — ALWAYS available
       copy: copyVariants,
       rating,
       qualityScore: (rating as any)?.score || 75,

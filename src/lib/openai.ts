@@ -558,20 +558,24 @@ Be hyper-specific about every visible detail. These attributes will be used to m
       max_tokens: 1000,
     })
 
-    // Log full API response for debugging
-    console.log('=== CLOTHING ANALYSIS API RESPONSE ===')
-    console.log('Response ID:', response.id)
-    console.log('Model:', response.model)
-    console.log('Choices length:', response.choices?.length)
-    console.log('First choice:', JSON.stringify(response.choices?.[0], null, 2))
-    console.log('Content:', response.choices?.[0]?.message?.content)
-    console.log('Content type:', typeof response.choices?.[0]?.message?.content)
+    const choice = response.choices?.[0]
+    const content = choice?.message?.content
+    const refusal = (choice?.message as any)?.refusal
 
-    const content = response.choices[0]?.message?.content
-    if (!content) {
-      console.error('Clothing analysis: No content returned from OpenAI')
-      console.error('Full response structure:', JSON.stringify(response, null, 2))
-      throw new Error('No response from clothing analysis')
+    // Handle GPT refusal gracefully (e.g. content policy)
+    if (refusal || !content) {
+      console.warn('[ClothingAnalysis] GPT refused or returned empty:', refusal || 'no content')
+      // Return a safe default instead of crashing
+      return {
+        garmentType: 'fashion product',
+        fabric: 'standard fabric, medium weight',
+        pattern: 'as visible in product image',
+        color: 'as visible in product image',
+        fitType: 'standard fit',
+        neckline: 'standard',
+        sleeveLength: 'standard',
+        designElements: [],
+      } as ClothingAnalysis
     }
 
     const analysis = JSON.parse(content) as ClothingAnalysis

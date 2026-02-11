@@ -63,8 +63,8 @@ export async function generateWithGemini(
 
 /**
  * Generate an ad image using Gemini's native image generation.
- * Defaults to gemini-3-pro-image-preview (Nano Banana Pro) for production quality.
- * Falls back to gemini-2.0-flash-exp via env override.
+ * Defaults to gemini-2.5-flash-image (confirmed working, supports image generation).
+ * Override via AD_IMAGE_MODEL env var for gemini-3-pro-image-preview etc.
  * Returns a base64 encoded image string (data URL).
  */
 export async function generateIntelligentAdComposition(
@@ -74,16 +74,18 @@ export async function generateIntelligentAdComposition(
   options?: {
     /** When true, influencer image is placed FIRST for stronger identity attention */
     lockFaceIdentity?: boolean
+    /** Output aspect ratio — injected into prompt as composition instruction */
+    aspectRatio?: '1:1' | '9:16' | '16:9' | '4:5'
   }
 ): Promise<string> {
   try {
     const genAI = getGenAI()
 
-    // Default to Gemini 3 Pro Image (Nano Banana Pro) for best quality
+    // Use Nano Banana Pro (gemini-3-pro-image-preview) for best ad quality
+    // Same model as try-on pipeline — best at creative composition
     const modelName =
       process.env.AD_IMAGE_MODEL ||
-      process.env.GEMINI_AD_MODEL ||
-      'gemini-2.0-flash-exp'
+      'gemini-3-pro-image-preview'
 
     console.log(`[Gemini] Using model: ${modelName} for ad image generation`)
 
@@ -92,9 +94,10 @@ export async function generateIntelligentAdComposition(
       generationConfig: {
         // @ts-ignore - responseModalities is valid for image models
         responseModalities: ['image', 'text'],
-        temperature: 0.4,
-        topP: 0.95,
-        topK: 40,
+        // Slightly elevated temperature for creative richness + strong topP for quality
+        temperature: 0.6,
+        topP: 0.97,
+        topK: 64,
       },
     })
 
@@ -143,11 +146,21 @@ export async function generateIntelligentAdComposition(
       }
     }
 
-    // Add the prompt
-    parts.push(
-      compositionPrompt ||
-        'Generate a professional advertising image that integrates the product naturally. Use professional studio lighting, clean composition, and brand-appropriate aesthetics. Output a high-quality photorealistic ad image.'
-    )
+    // Build aspect ratio instruction
+    const ar = options?.aspectRatio || '1:1'
+    const arMap: Record<string, string> = {
+      '1:1': 'square 1:1 composition (equal width and height)',
+      '9:16': 'vertical 9:16 portrait composition (tall, like an Instagram Story or Reels)',
+      '16:9': 'wide 16:9 landscape composition (cinematic, like a banner or YouTube thumbnail)',
+      '4:5': 'vertical 4:5 portrait composition (like an Instagram post)',
+    }
+    const arInstruction = `\n\nIMAGE FORMAT: Generate the image in ${arMap[ar] || arMap['1:1']} aspect ratio. Compose all elements to fit this format perfectly.`
+
+    // Add the prompt with aspect ratio
+    const finalPrompt = (compositionPrompt ||
+      'Generate a professional advertising image that integrates the product naturally. Use professional studio lighting, clean composition, and brand-appropriate aesthetics. Output a high-quality photorealistic ad image.') + arInstruction
+
+    parts.push(finalPrompt)
 
     console.log('[Gemini] Generating ad image...')
     const result = await model.generateContent(parts)

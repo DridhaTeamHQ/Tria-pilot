@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/auth'
 const verifiedBuckets = new Set<string>()
 const MAX_UPLOAD_ATTEMPTS = 3
 const BASE_RETRY_DELAY_MS = 450
+const UPLOAD_TIMEOUT_MS = 60_000 // 60s max per upload attempt
 
 function sanitizeSupabaseUrl(rawUrl: string): string {
   return rawUrl.trim().replace(/\/+$/, '')
@@ -26,6 +27,7 @@ function isRetryableStorageError(error: unknown): boolean {
     msg.includes('fetch failed') ||
     msg.includes('network') ||
     msg.includes('socket') ||
+    msg.includes('timed out') ||
     msg.includes('timeout') ||
     msg.includes('502') ||
     msg.includes('503') ||
@@ -156,31 +158,7 @@ export async function saveUpload(
     }
 
     // Use service client to bypass RLS policies for server-side uploads
-    let supabase
-    try {
-      supabase = createServiceClient()
-      
-      // Quick validation: try to access storage API
-      // This will fail early if credentials are wrong
-      const { error: testError } = await supabase.storage.listBuckets()
-      if (testError) {
-        // If we get an error listing buckets, credentials might be wrong
-        if (testError.message.includes('Invalid API key') || 
-            testError.message.includes('JWT') ||
-            testError.message.includes('401') ||
-            testError.message.includes('403')) {
-          throw new Error('Invalid Supabase service role key. Please verify your SUPABASE_SERVICE_ROLE_KEY environment variable is correct.')
-        }
-        // Other errors (like network issues) we'll handle during actual upload
-        console.warn('Warning: Could not list buckets (non-fatal):', testError.message)
-      }
-    } catch (clientError) {
-      console.error('Failed to create or validate Supabase service client:', clientError)
-      if (clientError instanceof Error) {
-        throw clientError
-      }
-      throw new Error('Storage service is not properly configured. Please check your Supabase credentials.')
-    }
+    const supabase = createServiceClient()
 
     // Ensure bucket exists
     await ensureBucketExists(supabase, bucket)
@@ -211,10 +189,28 @@ export async function saveUpload(
     let successAttempt = 0
 
     for (let attempt = 1; attempt <= MAX_UPLOAD_ATTEMPTS; attempt++) {
-      const { data, error } = await supabase.storage.from(bucket).upload(path, fileBuffer, {
-        contentType,
-        upsert: true,
-      })
+      let data: any = null
+      let error: any = null
+
+      try {
+        const uploadPromise = supabase.storage.from(bucket).upload(path, fileBuffer, {
+          contentType,
+          upsert: true,
+        })
+
+        // Race against timeout to prevent indefinite hangs
+        const result = await Promise.race([
+          uploadPromise,
+          delay(UPLOAD_TIMEOUT_MS).then(() => {
+            throw new Error(`Upload timed out after ${UPLOAD_TIMEOUT_MS / 1000}s`)
+          }),
+        ]) as any
+
+        data = result?.data
+        error = result?.error
+      } catch (timeoutOrNetworkErr) {
+        error = timeoutOrNetworkErr
+      }
 
       if (!error && data?.path) {
         uploadedPath = data.path

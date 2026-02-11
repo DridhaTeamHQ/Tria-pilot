@@ -50,10 +50,12 @@ export async function safeParseResponse<T = any>(res: Response, context?: string
             500: "Server error. Please try again later.",
             502: "Server temporarily unavailable. Please try again.",
             503: "Service unavailable. Please try again later.",
-            504: "Request timed out. Please try again.",
+            504: "Request timed out. This often happens when the service is busy or you've hit the limit. Please wait a minute and try again.",
         }
 
         const friendlyMessage = friendlyMessages[res.status] || `Server error (${res.status})`
+        // For 504 (gateway timeout), suggest retry after 60s so client can show wait UI
+        const defaultRetryFor504 = res.status === 504 ? 60 : undefined
 
         // Try to extract error message from JSON response if available
         if (contentType.includes("application/json")) {
@@ -61,7 +63,8 @@ export async function safeParseResponse<T = any>(res: Response, context?: string
                 const errorJson = JSON.parse(errorBody)
                 const serverMessage = errorJson.error || errorJson.message || errorJson.details
                 const retryAfterSeconds =
-                    Number(errorJson.retryAfterSeconds ?? retryAfterHeader ?? 0) || undefined
+                    Number(errorJson.retryAfterSeconds ?? retryAfterHeader ?? 0) ||
+                    (res.status === 504 ? 60 : undefined)
 
                 const message = serverMessage || friendlyMessage
                 const err = new Error(`${prefix}${message}`) as Error & {
@@ -84,7 +87,7 @@ export async function safeParseResponse<T = any>(res: Response, context?: string
 
         const fallbackErr = new Error(`${prefix}${friendlyMessage}`) as Error & { status?: number; retryAfterSeconds?: number }
         fallbackErr.status = res.status
-        fallbackErr.retryAfterSeconds = retryAfterFromHeader
+        fallbackErr.retryAfterSeconds = retryAfterFromHeader ?? defaultRetryFor504
         throw fallbackErr
     }
 
