@@ -11,6 +11,9 @@ import { normalizeBase64 } from '@/lib/image-processing'
 import { saveUpload } from '@/lib/storage'
 import { runHybridTryOnPipeline } from '@/lib/tryon/hybrid-tryon-pipeline'
 
+// Allow up to 60s for the full try-on pipeline (scene intel + generation + retry)
+export const maxDuration = 60
+
 export async function POST(request: Request) {
   try {
     // Validate API keys

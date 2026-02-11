@@ -101,65 +101,65 @@ const LIFESTYLE_PRESETS: ScenePreset[] = [
         label: 'Modern Café',
         category: 'lifestyle',
         region: 'india',
-        scene: 'Contemporary Indian coffee shop with exposed brick accent wall, light wood tables with marble tops, hanging pendant lights, indoor plants by large glass windows, clean minimal decor with warm earthy tones',
-        lighting: 'Natural daylight streaming through large street-facing windows from one side, soft warm ambient from pendant lights above, gentle shadow play on tables and walls',
-        camera: '48mm iPhone main lens, seated or standing perspective, background elements softly blurred through natural depth',
+        scene: 'Contemporary Indian coffee shop with exposed brick accent wall on the right, light wood tables receding into background, warm pendant lights overhead, indoor plant near large glass storefront window on the left, clean minimal decor with warm earthy palette',
+        lighting: 'Natural daylight streaming through large left-side glass windows casting directional warm light on the subject, soft warm glow from pendant lights adding fill from above, the subject is lit by the window light with gentle warm shadows on the brick-wall side, consistent warm color temperature blending window daylight with café ambience',
+        camera: '50mm lens at eye level, standing or seated three-quarter framing, shallow depth of field blurring café background naturally, subject sharply in focus with café depth visible behind',
         motion: 'subtle motion',
         mood: 'candid',
         style: 'realism',
-        negative_bias: 'No cluttered tables, no visible mess, no harsh fluorescent overhead'
+        negative_bias: 'No cluttered tables, no visible mess, no harsh fluorescent overhead, no flat lighting, no pasted or sticker look'
     },
     {
         id: 'lifestyle_living_room',
         label: 'Modern Living Room',
         category: 'home',
         region: 'india',
-        scene: 'Well-designed contemporary Indian living room with a neutral-toned sofa, clean side table with a lamp, sheer curtains on large windows, tasteful wall art, warm wooden flooring, indoor plant in the corner',
-        lighting: 'Large window providing bright natural daylight from one side, warm ambient glow from table lamp, airy and welcoming atmosphere with soft shadows',
-        camera: '35mm lens, lifestyle framing showing room context, subject naturally placed within the space',
+        scene: 'Spacious contemporary living room with large floor-to-ceiling windows on the left wall, neutral-toned sofa and warm wooden floor receding into background, soft sheer curtains diffusing daylight, one accent plant, clean minimal décor with warm earthy tones and visible depth from foreground to far wall',
+        lighting: 'Strong natural daylight streaming through left-side windows casting directional light on the subject with soft window-shadow patterns on the floor, warm ambient fill bouncing off light walls and ceiling, subject illuminated by the same window light with gentle shadow on the far side of the face and body, consistent warm color temperature throughout the room',
+        camera: '50mm lens at eye level, three-quarter body framing, shallow depth of field softening the room behind while keeping the subject tack-sharp, living room receding naturally behind the subject',
         motion: 'static',
         mood: 'candid',
         style: 'realism',
-        negative_bias: 'No messy furniture, no scattered items, no cluttered surfaces'
+        negative_bias: 'No flat lighting, no overhead fluorescent, no cluttered surfaces, no multiple competing light sources, no pasted or sticker look'
     },
     {
         id: 'lifestyle_hotel_lobby',
         label: 'Premium Hotel Lobby',
         category: 'lifestyle',
         region: 'india',
-        scene: 'Upscale Indian hotel lobby with polished marble floor, contemporary reception desk in background, tasteful brass and wood accents, large statement chandelier, fresh flower arrangement, clean architectural lines',
-        lighting: 'Mixed ambient lighting from chandelier and concealed ceiling fixtures, warm inviting tone, soft reflections on marble floor, no harsh spots',
-        camera: '35mm lens, standing full body, architectural context visible with lobby depth behind, shot from slightly below eye level for grandeur',
+        scene: 'Upscale Indian hotel lobby with polished marble floor reflecting ambient light, contemporary reception desk receding into background, tasteful brass and wood accents framing the space, large chandelier overhead providing the main light source, clean architectural lines creating visible depth',
+        lighting: 'Warm chandelier light from directly above casting soft downward illumination on the subject, concealed ceiling fixtures adding even warm fill, marble floor reflecting light upward as subtle fill on the subject, warm golden color temperature throughout, soft shadows falling directly below the subject consistent with overhead lighting',
+        camera: '35mm lens at slightly below eye level, standing full body with lobby architecture and depth receding behind, subject naturally grounded on the reflective marble surface',
         motion: 'static',
         mood: 'candid',
         style: 'realism',
-        negative_bias: 'No busy crowds, no luggage, no institutional fluorescent lighting'
+        negative_bias: 'No busy crowds, no luggage, no institutional fluorescent, no flat lighting, no pasted or sticker look'
     },
     {
         id: 'lifestyle_coworking',
         label: 'Co-working Space',
         category: 'office',
         region: 'india',
-        scene: 'Modern Indian coworking space with clean desks, ergonomic chairs, glass partition walls, indoor greenery, warm hanging lights, whiteboard in background, minimal contemporary decor',
-        lighting: 'Warm pendant lights overhead combined with natural side light from windows, comfortable work-friendly illumination, soft shadows',
-        camera: '48mm iPhone main lens, casual eye-level framing, desk or workspace elements providing context',
+        scene: 'Modern Indian coworking space with clean desks receding into background, glass partition walls creating depth, indoor greenery as accents, warm pendant lights overhead, large side windows providing natural light from the left, minimal contemporary décor with visible spatial depth',
+        lighting: 'Natural daylight from left-side windows providing directional key light on the subject, warm pendant lights overhead adding fill, the subject is lit primarily by the window with a soft shadow falling to the right side, consistent warm-neutral color temperature blending daylight and interior fixtures',
+        camera: '50mm lens at eye level, standing or seated three-quarter framing, workspace elements providing contextual depth behind the subject, shallow depth of field keeping the subject sharp against a naturally blurred office background',
         motion: 'static',
         mood: 'candid',
         style: 'realism',
-        negative_bias: 'No tangled wires, no messy desks, no startup-brochure generic look'
+        negative_bias: 'No tangled wires, no messy desks, no startup-brochure generic look, no flat lighting, no pasted or sticker look'
     },
     {
         id: 'lifestyle_restaurant',
         label: 'Fine Dining Evening',
         category: 'lifestyle',
         region: 'india',
-        scene: 'Upscale Indian restaurant interior with warm ambient atmosphere, elegant table settings with white linen, soft candlelight on tables, dark wood accents, tasteful art on walls, intimate dining environment',
-        lighting: 'Warm candlelight and subtle amber ambient from concealed ceiling fixtures, golden glow creating intimate atmosphere, soft shadows adding depth',
-        camera: '50mm lens, seated perspective with table setting visible, shallow depth of field blurring restaurant interior behind',
+        scene: 'Upscale Indian restaurant interior with warm low-light atmosphere, elegant table settings with white linen receding into background, soft candles on tables providing warm point lights, dark wood accents and tasteful art on walls, depth visible through rows of tables leading to the back of the restaurant',
+        lighting: 'Warm candlelight from table level casting soft upward glow on the subject face, subtle amber overhead from concealed ceiling fixtures providing even fill, the subject is illuminated by the warm ambient light with golden skin tones, soft shadows adding three-dimensional depth, consistent warm golden color temperature throughout',
+        camera: '50mm lens at seated eye level, three-quarter framing with restaurant depth softly blurred behind, shallow depth of field separating the sharp subject from the warm bokeh of candles and ambient lights in the background',
         motion: 'static',
         mood: 'candid',
         style: 'realism',
-        negative_bias: 'No harsh overhead flash, no busy crowded background, no plastic decor'
+        negative_bias: 'No harsh overhead flash, no busy crowded background, no plastic decor, no flat lighting, no pasted or sticker look'
     },
 ]
 
@@ -326,13 +326,13 @@ const CELEBRATION_PRESETS: ScenePreset[] = [
         label: 'Festive Evening',
         category: 'lifestyle',
         region: 'india',
-        scene: 'Tasteful Indian festive setting with warm string lights draped elegantly, brass diyas and candles in the background, rich floral arrangement with marigolds and roses, elegant silk drapes, warm ambient evening glow',
-        lighting: 'Warm fairy lights and candle glow creating soft golden ambient, diyas providing warm pinpoint highlights, overall low-light atmosphere with rich warm tones, gentle shadows',
-        camera: '50mm lens, chest-up framing with festive bokeh lights creating circles of warmth behind, shallow depth focused on subject',
+        scene: 'Tasteful Indian festive setting at evening with warm string lights draped across the background, brass diyas and candles providing point lights at various depths, rich floral arrangement with marigolds visible in soft focus behind, elegant silk drapes framing the scene, warm ambient glow filling the space',
+        lighting: 'Warm fairy lights and diya glow casting soft golden light on the subject from multiple directions, the subject is bathed in warm amber light with subtle golden rim highlights from string lights behind, overall low-light atmosphere with rich warm tones and gentle three-dimensional shadows on the subject, consistent warm golden color temperature',
+        camera: '50mm lens at eye level, chest-up to three-quarter framing with festive bokeh lights creating circles of warmth behind, shallow depth of field keeping the subject sharp against the soft warm background glow',
         motion: 'static',
         mood: 'candid',
         style: 'realism',
-        negative_bias: 'No harsh camera flash, no overcrowded space, no garish decorations, no plastic decor'
+        negative_bias: 'No harsh camera flash, no overcrowded space, no garish decorations, no plastic decor, no flat lighting, no pasted or sticker look'
     },
     {
         id: 'celebration_wedding',
