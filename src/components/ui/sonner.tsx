@@ -15,12 +15,14 @@ const Toaster = ({ ...props }: ToasterProps) => {
 
   return (
     <Sonner
-      position="top-right"
+      position="top-center"
       theme={theme as ToasterProps["theme"]}
-      className="toaster group"
+      className="toaster group !z-[100000]"
+      offset={16}
+      mobileOffset={16}
       toastOptions={{
         classNames: {
-          toast: "border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-xl",
+          toast: "border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-xl backdrop-blur-sm",
           title: "font-bold",
           description: "text-sm",
           success: "bg-[#B4F056] text-black border-black",

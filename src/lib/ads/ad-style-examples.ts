@@ -410,6 +410,191 @@ export const AD_STYLE_EXAMPLES: AdStyleExample[] = [
       'Y2K studio: electric blue backdrop, varsity jacket, silver sleeves, bubblegum pink mesh, cherry red spiked hair. Low-rise wide jeans, neon green belt, silver chains. Apathetic gaze, confrontational stance. Grainy digital capture, early-2000s snapshot aesthetic. Strong for streetwear, Y2K, Gen-Z, creative campaigns.',
     imagePath: 'assets/ad-examples/y2k-varsity-studio.png',
   },
+
+  // ─── Angle-focused references (down, side, low, high — pro composition) ───
+  {
+    id: 'angle-down-hero-product',
+    name: 'Down angle – Hero product (overhead, flat-lay premium)',
+    prompt: `Shot from a direct down angle, camera directly above the subject. A single premium sneaker sits centered on a sheet of brushed concrete, surrounded by minimal negative space and soft shadows. The product is lit with a soft key from upper left and a subtle fill from the right; every stitch, texture, and sole detail is tack-sharp in 8K. Colour palette: product colours true to life, neutral grey concrete #6B7280, no clutter. Professional product hero shot for a global campaign — Vogue or Nike-level quality. AVOID: blurry, watermark, extra objects, text, low resolution, AI artifacts.`,
+    styleNotes:
+      'Down angle: camera directly above, product centered, brushed concrete surface. 8K tack-sharp, minimal shadows. Use for product hero, flat-lay premium, clean e‑commerce. State "down angle" or "overhead" explicitly.',
+    imagePath: 'assets/ad-examples/angle-down-hero-product.png',
+  },
+  {
+    id: 'angle-side-profile-editorial',
+    name: 'Side angle – Profile editorial (silhouette, strong line)',
+    prompt: `Side profile view of a model in an oversized camel coat walking away from camera along a minimal grey studio floor. The camera is positioned at a strict 90° side angle, capturing the full silhouette — coat shape, shoulder line, hair flow. One rim light from behind creates a sharp edge along the coat and hair; key light from the same side fills the face in profile. 85mm f/1.4, shallow depth of field, 8K resolution. Fashion editorial, luxury campaign. AVOID: front-facing, blurry, watermark, text, extra limbs, distorted anatomy.`,
+    styleNotes:
+      'Side angle: strict profile or near-profile, silhouette emphasis, rim light. 85mm, shallow DoF. Use for editorial, fashion, strong graphic line. State "side profile" or "shot from the side" in prompt.',
+    imagePath: 'assets/ad-examples/angle-side-profile-editorial.png',
+  },
+  {
+    id: 'angle-low-hero-dramatic',
+    name: 'Low angle – Hero dramatic (worm’s-eye, power)',
+    prompt: `Low-angle shot, camera at ground level looking up at a model standing in crisp white sneakers and tailored black trousers. The sky or studio ceiling fills the upper frame; the model dominates the lower two-thirds, creating a heroic, powerful stance. Key light from above and slightly front, rim light separating subject from background. 24mm wide lens for slight perspective drama without distortion. 8K, tack-sharp on sneakers and face. Campaign-grade athletic or fashion hero. AVOID: eye-level, flat lighting, watermark, text, extra limbs.`,
+    styleNotes:
+      'Low angle: camera at ground level, looking up. Heroic, powerful. 24mm or 35mm for drama. Use for athletic, hero product, dramatic campaign. State "low angle" or "camera looking up" in prompt.',
+    imagePath: 'assets/ad-examples/angle-low-hero-dramatic.png',
+  },
+  {
+    id: 'angle-high-soft-flattering',
+    name: 'High angle – Soft flattering (slightly above, product + face)',
+    prompt: `Shot from a high angle, camera positioned slightly above eye level and looking down at a model holding a beauty product toward the lens. Soft diffused key light from above creates gentle shadows under the chin and highlights on the product; skin shows natural texture and dewy finish. 50mm f/2, shallow depth of field, 8K. Flattering for both face and product — premium beauty or lifestyle campaign. AVOID: low angle, harsh shadows, watermark, text, plastic skin.`,
+    styleNotes:
+      'High angle: slightly above eye level, looking down. Flattering for face and product. Soft diffused key. Use for beauty, lifestyle, product-in-hand. State "high angle" or "camera slightly above" in prompt.',
+    imagePath: 'assets/ad-examples/angle-high-soft-flattering.png',
+  },
+
+  // ─── User reference set: Y2K mirror, beach sunset, meadow, B&W low-angle, Tokyo street, barbershop Kodachrome, ice-block beauty ───
+  {
+    id: 'y2k-mirror-lip-gloss',
+    name: 'Y2K Mirror – Lip gloss in cracked reflection (freckled redhead, velour, rhinestones)',
+    prompt: `Caught in the cracked reflection of an old bedroom mirror, the freckled redhead girl leans in close, carefully applying a glossy lip gloss that gleams under the soft direct flash. Her velour pink tracksuit top is sprinkled with subtle rhinestone details, and layered tank tops peek out from underneath, adding to the playful Y2K vibe. Chunky gold hoop earrings catch the light perfectly, with a few rhinestone barrettes clipping strands of her bright hair back casually. She rocks a rhinestone-studded belt visible at the edge of the frame, paired with loose low-rise jeans. The photo quality suggests a slightly grainy or low-resolution digital look, capturing a candid moment, with the flash bounce adding a warm tungsten glow and that signature soft CCD camera grain. The cropped frame and slightly tilted angle make it feel like an authentic early-2000s snapshot. —casual candid early-2000s Y2K snapshot, grainy low-res softness`,
+    styleNotes:
+      'Y2K/GRWM: mirror selfie, cracked reflection, direct flash, CCD grain, warm tungsten glow. Velour + rhinestones, lip gloss application. Slightly tilted, cropped frame. Use for beauty, UGC GRWM, candid Y2K campaigns.',
+  },
+  {
+    id: 'beach-sunset-satin-twirl',
+    name: 'Beach Sunset – Two women, satin tie-dye dresses, golden hour, hands clasped',
+    prompt: `They twirl barefoot on the warm sand, their satin dresses catching the soft ocean breeze—the pale pink fabric smooth and gleaming, the tie-dye red-and-white swirling in playful folds around knee-length hems. The golden sunset spills across the horizon in deep orange and fading pink hues, melted into lavender above calm, rippling sea waves. Their hands clasp gently, faces turned toward each other with serene, mysterious calmness beneath joyous laughter, eyes locked in quiet connection rather than outward gaze. A subtle iPhone pop-flash caresses their glowing skin and the satin's shifting textures, capturing every rippling fold and the gentle movement of their slightly tousled hair. The vast sky and tranquil water frame their suspended moment of spirited elegance and intimate grace.`,
+    styleNotes:
+      'Dual model, golden hour beach, satin tie-dye, intimate connection. Eye-level, hands clasped, sunset orange/pink/lavender. iPhone pop-flash, soft textures. Use for fashion, resort, bridal, lifestyle, friendship campaigns.',
+  },
+  {
+    id: 'meadow-white-dress-contemplative',
+    name: 'Meadow – White dress, contemplative, down angle, Jenny Fax whimsy',
+    prompt: `A gently contemplative moment captured as if on an iPhone, presenting a young woman reclining softly in tall grass beneath a cloudy sky. She wears a minimalist Jenny Fax-inspired white dress crafted from light cotton, subtly detailed with sheer puff sleeves and delicate scalloped lace trimming at the hem. Her straight dark hair is parted naturally, framing a serene, introspective expression enhanced by fresh, minimal makeup. The soft, diffused overcast light filters uniformly, accentuating the tender fabric textures and the gentle rustle of grasses. Surrounding her, the vintage-evocative meadow blends into a muted palette of soft greens and creams, while the natural layering of her dress offers an intimate tactile contrast. Framed slightly tilted and elevated, the composition balances elegant simplicity and wistful, casual charm, embodying Jenny Fax's whimsical femininity and quiet vintage romance.`,
+    styleNotes:
+      'Slightly elevated/down angle, overcast diffused light. White puff-sleeve dress, meadow, contemplative pose. Jenny Fax / vintage romance. Use for editorial, bridal, feminine fashion, lifestyle.',
+  },
+  {
+    id: 'editorial-bw-low-angle-latex',
+    name: 'Editorial B&W – Extreme low-angle, latex on acrylic chair, platform heels',
+    prompt: `A high-fashion black-and-white editorial image featuring a woman seated on a transparent acrylic chair, captured from an extreme low-angle perspective that dramatically elongates her legs and towering platform heels into bold, graphic lines dominating the composition. Her shiny black latex pants reflect light with photorealistic gloss, contrasting sharply with the minimalist smooth white background. Her torso leans back slightly with hands naturally resting on the armrests of the chair, arms maintaining natural proportions unaffected by distortion. Her face carries a sharply composed, subtly confident expression with finely detailed, realistically textured skin and precisely articulated facial features. Professional studio lighting creates strong highlights and soft shadows, enhancing the reflective surfaces of her latex apparel and footwear and emphasizing the surreal yet believable sculptural silhouette characteristic of avant-garde fashion photography.`,
+    styleNotes:
+      'Extreme low angle: legs and heels elongated, graphic lines. B&W, latex, transparent acrylic chair, white studio. Use for fashion editorial, avant-garde, hero product (footwear/apparel) campaigns.',
+  },
+  {
+    id: 'tokyo-street-matcha-jersey',
+    name: 'Tokyo Backstreet – Matcha ice cream, retro Coca-Cola jersey, golden hour street',
+    prompt: `In a quiet Tokyo backstreet where narrow sidewalks hug worn concrete walls and tangled overhead wires crisscross above, a young woman stands mid-bite of a vibrant green matcha ice cream cone. She rocks an oversized retro yellow Coca-Cola football jersey with striking red accents and a bold emblem, loosely tucked into low-slung olive cargo pants that reveal sturdy waistband details. Her long brown hair drifts softly with a natural flow as she smirks defiantly into the lens, embodying playful, carefree energy. Behind her, a classic sushi bar sports a weathered wooden door framed by a fabric noren curtain, while clusters of parked bicycles lean against textured walls. The soft evening sun casts a warm, cinematic glow that mingles effortlessly with subtle street shadows. The handheld, slightly tilted iPhone POV captures fractured light and spontaneous urban grit—worn pavements, cracked paint, and subtle lens flare from fading neon kanji, all converging in this candid moment where vintage sportswear meets Tokyo's authentic street pulse. —Tokyo street snap, shot on iPhone`,
+    styleNotes:
+      'Tokyo street: noren, bicycles, wires, kanji. Golden hour, handheld tilted POV. Retro jersey, matcha cone, candid expression. Use for streetwear, F&B, travel, urban candid, sportswear campaigns.',
+  },
+  {
+    id: 'barbershop-kodachrome-trench',
+    name: 'Barbershop Kodachrome – Korean man, leather trench, cigarette smoke, 50mm',
+    prompt: `Captured in the deep, saturated warmth of golden-hour Kodachrome, this image features a Korean man standing with unwavering confidence inside a meticulously preserved retro barbershop. He wears a smooth, tan leather trench coat whose supple grain catches the soft amber light spilling through a frosted window, layered over a muted beige turtleneck that clings gently to his neck. His neatly combed black hair contrasts sharply with his taut jaw and serious gaze, piercing directly into the camera lens like a silent dare. He holds a slender cigarette between two fingers with deliberate nonchalance—the smoke wisps curling upward, blurring softly against the checkerboard black-and-white flooring glittering faintly under vintage fluorescent tubes. Surrounding him, the dark wood-paneled walls bring a rich mahogany depth to the scene, their varnish glow faintly weathered yet inviting, cracked mirrors catching splintered reflections of worn barber chairs and brass clippers. The film grain of classic 35 mm Kodak Tri-X adds tactile grit to the image, emphasizing pores on the subject's face and the slight matte sheen of leather against the soft cloth of his turtleneck. Shot at eye-level through a 50 mm lens, the composition centers on his intense presence—tight framing crops just below his waist to elevate his stance as a subtle but commanding figure. Every detail leans into a cinematic narrative evocative of the era's stylish grit and poised rebellion. Late-70s / early-80s cinematic photograph, authentic film grain.`,
+    styleNotes:
+      'Eye-level 50mm, tight crop. Kodachrome warmth, Tri-X grain. Barbershop: checkerboard floor, wood panels, frosted window, cigarette smoke. Use for menswear, fragrance, editorial, cinematic brand campaigns.',
+  },
+  {
+    id: 'beauty-ice-block-lipbalm',
+    name: 'Beauty Editorial – Ice block lip balm, platinum model on wet floor, glacial light',
+    prompt: `A cinematic wash of cool, glacial light diffuses across a polished wet surface, ripples echoing softly like liquid glass beneath a towering sculptural ice block. Suspended within, a minimalist pale yellow lip balm tube stands crisp and unbranded, its smooth contours glowing with patent sheen against the translucent frost. The background melts seamlessly from deep ebony at the base to a whisper of silvery gray overhead, cloaking the scene in a liminal twilight. Reclined below this frozen monolith, she frames the stillness with languid precision. Dressed in an ivory-fitted tank and loose, low-rise jeans that pool naturally around her splayed legs, her sharp features catch reflections from the ice and the balm's subtle gloss. Her torso twists ever so slightly toward the viewer, elbow rooted on the slick floor while one hand drapes delicately over her midsection. Sleek platinum strands cascade across the surface, catching fragmented highlights that shimmer like frost on skin. Captured at mid-body with a low, long lens perspective, the composition amplifies the surreal scale of the lip balm to her repose, fusing glassy textures and moist reflections with the softness of pale fabric and bare skin. Futuristic purity poised in reflective stillness. —high-fashion editorial, hyper-real texture fidelity`,
+    styleNotes:
+      'Low long lens, product hero + model. Glacial cool light, wet reflective floor, ice block, lip balm. Beauty/fashion editorial, hyper-real texture. Use for beauty product hero, high-fashion editorial campaigns.',
+  },
+
+  // ─── User reference set 2: red studio Y2K male, high-angle crosswalk, 70s staircase, 360 tunnel, surreal cubes, Y2K duo, fisheye bomber ───
+  {
+    id: 'y2k-red-studio-helmet',
+    name: 'Y2K Red Studio – Male, bleach blonde, white tank, distressed jeans, football helmet',
+    prompt: `He's framed in a medium close-up beneath a stark red studio backdrop lit with harsh directional lighting that sculpts stylized shadows across the scene. His bleach-blonde hair is spiked with visible dark roots, tousled and rebellious. He wears a crisp white tank top snugly tucked into oversized, heavily distressed denim jeans that sag just enough to reveal the waistband of his boxer briefs, detailed with a bold logo. One hand grips a glossy black football helmet, held low and casual but purposeful. His face tells a story—slight bruising creeps beneath a sharp jawline and past intense eyes locked deadpan at the camera, embodying a rebellious 2000s teen drama vibe. The overall feel is gritty yet styled, raw but controlled—a perfect capture of early-2000s youth culture posing for a fashion editorial that fuses street cred with high attitude. —casual candid early-2000s Y2K snapshot, grainy softness`,
+    styleNotes:
+      'Y2K male editorial: red studio, harsh directional light, eye-level or slightly low. White tank, distressed jeans, prop (helmet). Deadpan, rebellious teen drama. Use for streetwear, sportswear, Y2K, editorial.',
+  },
+  {
+    id: 'street-high-angle-crosswalk',
+    name: 'Street – High-angle zebra crossing, documentary surveillance feel',
+    prompt: `A fashionable young woman walks naturally across a wide pedestrian crosswalk wearing baggy denim cargo pants with visible seams and a khaki tank top tucked in. She sports black cat-eye sunglasses and minimal silver jewelry. Her relaxed, casual pose shows one hand in her pocket and the other holding a takeaway coffee cup. The setting is just road and pedestrian crosswalk with clear white zebra crossing lines on a textured asphalt surface; no urban or city elements are visible. Lighting is neutral, natural daylight with soft overcast shadows and realistic exposure, mimicking genuine street surveillance footage. Textural details include visible skin pores, textured denim fabric with visible seams, subtle wrinkles on the tank top, slight scuff marks on her shoes, and the gritty, slightly uneven asphalt below. The wide, high-angle framing is candid and slightly impersonal, capturing minor motion blur on one arm and partial cropping of her legs for authenticity. The scene has muted, natural colors and documentary-style realism without enhancements. Candid street camera photo, high-angle traffic camera shot, documentary-style realism. —high-angle shot, wide shot, hyper-real texture fidelity`,
+    styleNotes:
+      'High angle looking down, full body on zebra crossing. Documentary/surveillance realism, overcast daylight. Use for streetwear, UGC candid, editorial street, hyper-real texture.',
+  },
+  {
+    id: 'editorial-70s-staircase-jumpsuit',
+    name: 'Editorial 70s/80s – Metallic jumpsuit on modernist staircase, golden hour',
+    prompt: `A striking portrait unfolds on a sleek, mid-century modern staircase, where a white woman with icy blue eyes commands attention. Her feathered blonde hair, expertly tousled in the era's signature style, catches the late afternoon sun, each strand revealing a subtle sheen reminiscent of glossy vinyl. Draped in a metallic jumpsuit that clings with shimmering, reflective texture, her silhouette asserts dominance, paired with towering platform heels rooted firmly on the steps. The fabric's complex interplay of light reflects a palette of muted silvers and soft blues, melding with the environment's cool color temperature. Her expression is a defiant smirk, lips lightly pursed and eyes alight with steely confidence. The angular geometry of a large paneled window stretches sharp, angular shadows across the adjacent wall, lending a graphic rhythm evocative of a Richard Avedon shoot from the era. Warm sunlight filters through textured glass panes, suffusing the staircase with deep amber and golden-hour saffron hues, contrasting the silver costume with life's organic warmth. The camera's eye-level 50mm lens captures this moment with measured intimacy. A fine 35 mm grain layer, interlaced with subtle gate weave, adds palpable depth. —late-70s / early-80s cinematic photograph, authentic film grain.`,
+    styleNotes:
+      'Eye-level 50mm, modernist staircase, orange wall, angular shadows. Metallic jumpsuit, feathered blonde, platform heels. Kodachrome/golden-hour warmth, film grain. Use for editorial premium, retro film, fashion campaigns.',
+  },
+  {
+    id: 'tunnel-360-pastel-tracksuit',
+    name: '360° White Tunnel – Pastel tracksuit, ground-level spherical perspective',
+    prompt: `A spontaneous stylish 360-degree candid image from ground-level upward-facing spherical camera perspective inside a curved, pristine all-white contemporary hallway featuring subtle skylights gently diffusing soft natural daylight. A solitary man in an effortlessly stylish pastel-colored tracksuit—light pink sweatshirt with relaxed, textured knit fabric and matching tapered tracksuit pants in a soft buttery pastel tone—walks casually with ease. His comfortable white minimalist sneakers show slight natural wear, and his light tousled hair exhibits realistic strand details. The seamless white walls curve fluidly overhead, their smooth plaster surfaces reflecting the soft skylight illumination with natural gradations of shade and shadow. The man's subtle reflection appears organically warped and bent within glossy floor tiles beneath, highlighting spontaneous, genuine motion and relaxed posture. The gentle ambient daylight casts authentic delicate shadows on the textured floor, subtly emphasizing the tactile softness of the tracksuit fabric and natural creases. The distinctive spherical circular upward-facing framing generates immersive tunnel-like visual distortions enveloping the viewer within this stylish modern environment, perfectly evoking the casual elegance, visual imperfection, tactile realism, and natural intimacy characteristic of spontaneous 360-degree candid photography captured at ground level.`,
+    styleNotes:
+      'Extreme low angle, spherical/fisheye, white curved tunnel, skylights. Pastel tracksuit, reflection on glossy floor. Use for creative cinematic, sportswear, minimalist fashion, unique POV campaigns.',
+  },
+  {
+    id: 'surreal-red-dress-cubes',
+    name: 'Surreal – Same woman 5x, sculptural red dress, white stripe face, silver cubes',
+    prompt: `An imaginative, casually surreal snapshot capturing a woman duplicated multiple times, always wearing the same sculptural red dress with a distinctive white painted stripe down her face, within a stark white minimalist room scattered with glossy reflective cubes. One version stands still in the center, another peers intently into a cube, a third kneels thoughtfully beside one, and a fourth is partially hidden behind a cube, their varied poses creating a dynamic interaction among themselves. Soft natural daylight filters in, softly illuminating the textured fabric of her dress, the detailed skin with painted stripe, and the reflective surfaces of the cubes, casting authentic shadows and subtle highlights. The composition includes creative angles and casual cropping as if spontaneously captured on an iPhone, blending close-up detail views with wider shots of the scene for surreal scale contrast, conveying spontaneous, candid authenticity with a visually intriguing repetition and surreal perspective.`,
+    styleNotes:
+      'Surreal multi-figure: same subject repeated, sculptural red dress, white face stripe, glossy silver cubes. Slightly elevated POV, white studio. Use for creative surreal, conceptual fashion, editorial.',
+  },
+  {
+    id: 'y2k-duo-white-studio-dynamic',
+    name: 'Y2K Duo – White studio, crawling + crouching poses, mesh top, toy prop',
+    prompt: `The image features two models posing against a white backdrop, giving a clean and minimalist setting. The upper model, a woman, is positioned in a dynamic crawling pose, wearing a black mesh top, black shorts, and white leggings, with a visible small patch on her lower back. She holds a colorful futuristic remote control or toy in her hands, adding a cyber or tech element. She has stylish, messy short hair and wears thick bracelets and accessories. The lower model, a man, is crouching with one hand on the ground, dressed all in black with yellow stripe accents around his waist, and white sneakers with orange details. The photo has a high-definition quality with sharp focus and bright, even lighting. The camera angle is an eye-level shot capturing both models clearly with no distortion. The overall composition uses minimalistic placement with modern, slightly futuristic fashion, and suggests a fashion or style editorial context.`,
+    styleNotes:
+      'Dual model, white studio, dynamic poses (crawl + crouch). Y2K sporty styling, mesh, yellow stripes, toy prop. Eye-level, sharp, even light. Use for editorial fashion, UGC reel, sports/streetwear campaigns.',
+  },
+  {
+    id: 'y2k-fisheye-bomber-street',
+    name: 'Y2K Street – Fisheye low-angle, blue satin bomber, brick graffiti',
+    prompt: `A wide shot of a woman with warm caramel skin tone, natural skin texture evident with visible pores, fine lines, and soft shine across her nose, cheeks, and forehead, captured in a middle close-up from a top-down wide-angle perspective. She wears a bold electric blue satin bomber jacket zipped halfway, revealing a chrome yellow tank top underneath, paired with oversized silver hoop earrings and a thick silver nameplate chain prominently displayed toward the lens. Her face is positioned slightly off-center, lips curved in a confident smirk, eyes casting a bold upward gaze through oversized tinted sunglasses that gleam with reflected light. The fisheye lens pushes her facial features and jewelry forward, intensifying their scale and street swagger. She stands against weathered brick walls with subtle graffiti and cracked pavement underfoot, lit by direct streetlight casting sharp shadows that enhance the curves of her jacket and jewelry. The background subtly curves inward, accentuating the subject's dominance and attitude while a delicate grain overlays the image for textural authenticity, preserving the tactile details of skin, fabric sheen, and metal reflections. Early-2000s Y2K snapshot.`,
+    styleNotes:
+      'Fisheye/low wide-angle, low angle looking up. Blue satin bomber, chrome yellow tank, silver jewelry. Brick + graffiti, sharp shadows. Use for streetwear, Y2K, editorial street, bold portrait campaigns.',
+  },
+
+  // ─── User reference set 3: digicam neon crosswalk, Japandi overpass, amber hoodie headphones, tennis court spotlight ───
+  {
+    id: 'digicam-neon-crosswalk',
+    name: 'Digicam Night – Leather jacket at crosswalk, neon blur, Dutch tilt, timestamp',
+    prompt: `A sudden pop from the built-in flash cuts through the dim city street as a woman in a leather jacket and heels stands stiff at the pedestrian crossing, neon shop signs swirling behind her in a blur of pastel pink and blue glows. The CCD sensor struggles in the low light, speckling the shadows with grain and pixel fringing while the soft focus edges smear the glow into a hazy haze. The camera's shaky Dutch tilt adds to the restless tension in the frame, a jagged timestamp reading "04 MAR 2003 23:18" stamped in the corner next to a flickering battery icon. She blinks against the flash; the low-res capture feels like a stolen fragment from a late-night wander. The photo quality suggests a slightly grainy or low-resolution digital look, capturing a candid moment. —early-2000s digicam snapshot, grainy low-res quality`,
+    styleNotes:
+      'Early-2000s digicam: direct flash on subject, neon blur background, CCD grain, Dutch tilt. Optional timestamp/battery in corner. Use for Y2K, streetwear, nightlife, candid editorial campaigns.',
+  },
+  {
+    id: 'japandi-overpass-candid',
+    name: 'Japandi Street – Overpass, black hoodie + architectural skirt, soft daylight',
+    prompt: `A spontaneously candid iPhone photo showing a young woman standing beside a minimalist concrete overpass under soft natural daylight. She wears a black oversized hoodie layered effortlessly over an architectural full skirt made of matte cotton fabric, its folded layers softly textured and flowing naturally. On her feet, she sports heavy, laced sneakers that add practical, grounded contrast to her elegant yet relaxed outfit. Above her, the overpass casts geometric shadow patterns onto the rough concrete wall, creating a visually compelling interplay of light and shadow. The scene is framed with a slight casual tilt, emphasizing the genuine spontaneous snapshot aesthetic, capturing realistic skin textures, natural hair strands loosely framing her face, and authentic environmental textures of concrete and fabric. The composition highlights Japandi-inspired minimalism with functional urban surroundings and thoughtful layering of minimalist garments.`,
+    styleNotes:
+      'Japandi/minimal: concrete overpass, geometric shadows, black hoodie + architectural skirt, sneakers. Soft daylight, casual tilt. Use for minimalist fashion, lifestyle, street style, editorial candid.',
+  },
+  {
+    id: 'editorial-amber-hoodie-headphones',
+    name: 'Editorial – Honey seamless, brown hoodie, headphones, MP3, amber key light',
+    prompt: `Sun-washed amber leaks through a honey-hued seamless, casting long, dust-moted shafts that skitter across the copper threads of a sculptural adidas hoodie reworked in heavyweight terrycloth with matte-finished zippers. A lithe blonde model slouches in a poised inertia, her head tilted sideways onto a scratched lacquered desk, the large, matte-black headphones cocooning her ears like a monolith—and nestled in her palm, a sculptural miniature MP3 player cradled as a treasured talisman. Her hair, tousled and damp with subtle oils, spills with soft waves that frame a face luminous under soft-focus key light with hints of warm sepia. Skin pores and fine vellus hairs are rendered in unflinching close-up, the weave of the fabric swelling against the curve of her shoulder, capturing tactile intimacy. A tilted handheld vantage point at eye height compresses the frame vertically; selective grain overlays the digital base, recalling a weathered surveillance capture freed from its anonymity through poised editorial grace. The chiaroscuro blend of gentle fill and a muted rim throw shadows that dance across the desk's subtle scars, while the overall palette suffuses nostalgia with a cinematic amber glow, enhanced by a subtle analog film emulation that exalts the essential textures without sacrifice. —high-fashion editorial, hyper-real texture fidelity`,
+    styleNotes:
+      'Editorial: honey/amber seamless, brown hoodie, matte headphones, vintage MP3. Eye-level, tilted frame, film grain. Hyper-real skin and fabric. Use for fashion editorial, beauty, tech/audio campaigns.',
+  },
+  {
+    id: 'editorial-tennis-court-spotlight',
+    name: 'Editorial Noir – Abandoned tennis court, spotlight, platinum hair, pigeon',
+    prompt: `An ivory spotlight slices through the dusk, casting a crisp circular pool of pale light directly onto the center of an abandoned tennis court, where cracked concrete veins run wild beneath creeping moss and stubborn weeds. Within this illuminated ring stands a tall woman, her short, platinum hair gleaming like polished silver, an ethereal glow trailing the sculptural angles of her face. She is draped in a high-neck, sleeveless dress, its rough linen fibers coarse beneath the spotlight's unwavering gaze, cinched at the waist by a cracked leather belt, textures raw and tactile against skin untouched by footwear. Her barefoot stance, grounded and statuesque, anchors her in this forgotten arena, fingers grazed by shadow as her expression holds a distant, meditative stillness. Nearby, a lone pigeon perches quietly atop the weathered net post, its feathers murmuring soft gray whispers beneath the cold, neutral light that flares softly around the edges, patting the mossy undergrowth and fractured court with demi-matte clarity. From a camera height just below eye level, the lens frames her solitary presence with a soft depth of field, capturing the intimate interplay of light and shadow within a vast stage of emptiness. The chilly focus and noir grandeur mood render the scene with hyper-real texture fidelity—sharp linen threads, rugged leather grain, and the damp grit of forsaken stone—all woven into this high-fashion editorial.`,
+    styleNotes:
+      'Noir editorial: single spotlight on abandoned tennis court, moss, cracked pavement. Platinum blonde, linen dress, leather belt. Pigeon on net post. Just-below-eye-level, soft DoF. Use for fashion editorial, film noir, conceptual campaigns.',
+  },
+  {
+    id: 'editorial-escalator-fit-check',
+    name: 'Editorial – Overhead escalator fit check (white shirt, burgundy shawl, lilies, leopard bag)',
+    prompt: `A high-resolution, vertically framed photo taken directly from above a wide escalator, capturing a tall woman standing slightly leaning as she rides down the escalator. The frame is tightly composed and symmetrical, with the escalator steps filling nearly the entire image — their graphic metallic ridges and distinctive yellow safety lines forming a clean, rhythmic horizontal backdrop. Shot with an 85mm lens, the natural compression minimizes side panel distortion and emphasizes the flat, orderly lines of the escalator.
+
+The woman wears a crisp white oversized button-down shirt layered under a rich burgundy knit shawl, lending textured depth to her relaxed yet elegant ensemble. She holds a large bouquet of white lilies in one hand and a bold leopard-print bag in the other, standing out vividly against the graphic metallic steps. Her hair is slicked back smoothly, complemented by sleek sunglasses, adding a polished, fashion-forward edge. Soft, ambient indoor lighting bathes the scene evenly, enhancing the tactile knit texture, the crisp cotton folds of the shirt, and subtle gleam of metal, creating an effortlessly stylish and candid escalator fit check with a clean, minimalistic editorial feel.`,
+    styleNotes:
+      'Overhead/down-angle: symmetrical escalator, metallic steps + yellow safety lines, 85mm compression. White shirt + burgundy shawl, lilies, leopard bag, slicked hair, sunglasses. Soft ambient indoor light, minimal editorial fit check. Use for fashion editorial, UGC fit check, product lifestyle.',
+  },
+
+  // ═══ USER-PROVIDED PROMPTS (add your own examples below — they will be used as references for GPT-4o) ═══
+  // Copy the block above and paste your prompt + name + styleNotes. Example:
+  // {
+  //   id: 'my-custom-campaign',
+  //   name: 'My Campaign Name',
+  //   prompt: `Your full narrative prompt here...`,
+  //   styleNotes: 'Short note: angle, lighting, mood, when to use.',
+  //   imagePath: 'assets/ad-examples/my-campaign.png', // optional
+  // },
 ]
 
 /** Look up an example by id */

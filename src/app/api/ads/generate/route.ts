@@ -57,6 +57,12 @@ const adGenerationSchema = z
     // Aspect ratio
     aspectRatio: z.enum(['1:1', '9:16', '16:9', '4:5']).optional().default('1:1'),
 
+    // Camera angle (down, side, low, high, three-quarter, eye-level, dutch, auto)
+    cameraAngle: z
+      .enum(['auto', 'eye-level', 'low', 'high', 'down', 'side', 'three-quarter', 'dutch'])
+      .optional()
+      .default('auto'),
+
     // Text overlay
     textOverlay: z
       .object({
@@ -253,7 +259,7 @@ export async function POST(request: Request) {
     // Uses narrative description style that Gemini responds best to.
     const hasTextContent = !!(input.textOverlay && (input.textOverlay.headline || input.textOverlay.subline || input.textOverlay.tagline))
     const noTextRule = hasTextContent ? '' : ' CRITICAL: Do NOT include ANY text, words, letters, numbers, brand names, slogans, or typography anywhere in the image. This is a photography-only image with ZERO written content.'
-    const QUALITY_PREAMBLE = `Generate a stunning, photorealistic advertising photograph that could appear in Vogue, GQ, or a Nike global campaign. The image must look like it was captured by a professional photographer with high-end equipment — not AI-generated, not illustrated, not a digital render. Every surface has realistic texture: skin has visible pores, fabric has weave, metal has accurate reflections. Anatomy is correct, hands are natural, proportions are human. Lighting is physically accurate with proper shadow falloff. Resolution is 8K with tack-sharp focus on the subject. No watermarks, no artifacts, no distortion, no extra limbs.${noTextRule}\n\n`
+    const QUALITY_PREAMBLE = `Generate a stunning, campaign-grade photorealistic advertising photograph that could appear in Vogue, GQ, or a Nike global campaign. The image must look like it was captured by a professional photographer with high-end equipment — not AI-generated, not illustrated, not a digital render. Use a precise, intentional camera angle (down, side, low, high, or three-quarter as appropriate) for maximum impact. Every surface has realistic texture: skin has visible pores, fabric has weave, metal has accurate reflections. Anatomy is correct, hands are natural, proportions are human. Lighting is physically accurate with proper shadow falloff. Resolution 8K, tack-sharp focus on subject and product. No watermarks, no artifacts, no distortion, no extra limbs.${noTextRule}\n\n`
 
     const compositionPrompt = QUALITY_PREAMBLE + rawCompositionPrompt
 

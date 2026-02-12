@@ -43,7 +43,7 @@ interface InfluencerApplication {
 
 interface AdminDashboardClientProps {
   initialApplications: InfluencerApplication[]
-  /** When 'supabase-only', Prisma failed (e.g. DATABASE_URL missing in production) – followers, engagement, gender etc. show as empty until DATABASE_URL is set */
+  /** Optional legacy fallback mode; full mode is the default data path */
   dataSource?: 'full' | 'supabase-only'
 }
 
@@ -89,8 +89,8 @@ export default function AdminDashboardClient({ initialApplications, dataSource =
 
     // DEFENSIVE: Filter out invalid states first
     const validApps = applications.filter((app) => {
-      // Skip if onboarding data exists but onboardingCompleted is false
-      if (app.onboarding && !app.onboarding.onboardingCompleted) {
+      // Keep legacy rows that already have a review status, even if onboarding flag is missing/false.
+      if (app.onboarding && !app.onboarding.onboardingCompleted && app.status === 'none') {
         return false
       }
       return true
@@ -246,7 +246,7 @@ export default function AdminDashboardClient({ initialApplications, dataSource =
   // - Same dataset powers counters, table list, and filters
   const validApplications = applications.filter((app) => {
     // DEFENSIVE: Assert valid state - skip invalid entries
-    if (app.onboarding && !app.onboarding.onboardingCompleted) {
+    if (app.onboarding && !app.onboarding.onboardingCompleted && app.status === 'none') {
       console.warn(`INVALID STATE: Application ${app.user_id} has approvalStatus but onboardingCompleted = false`)
       return false
     }
@@ -337,7 +337,7 @@ export default function AdminDashboardClient({ initialApplications, dataSource =
         <div className="bg-[#FFFDF8] rounded-xl border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
           {dataSource === 'supabase-only' && (
             <div className="px-6 py-4 bg-amber-100 border-b-2 border-amber-400 text-amber-900 text-sm font-medium">
-              <strong>Limited data:</strong> App database (Prisma) could not connect. Check that <code className="bg-amber-200/80 px-1 rounded">DATABASE_URL</code> is set in your environment. <a href="/api/health/db" target="_blank" rel="noopener noreferrer" className="underline font-medium">View connection details</a>.
+              <strong>Limited data mode:</strong> Some enrichment fields may be unavailable in this environment.
             </div>
           )}
           {/* Toolbar */}

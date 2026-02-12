@@ -24,6 +24,8 @@ const PUBLIC_PATHS = new Set([
     '/',
     '/login',
     '/register',
+    '/admin/login',
+    '/admin/register',
     '/forgot-password',
     '/reset-password',
     '/help',
@@ -47,7 +49,18 @@ function isPublicPath(pathname: string): boolean {
 }
 
 export async function updateSession(request: NextRequest) {
-    let supabaseResponse = NextResponse.next({ request })
+    const pathname = request.nextUrl.pathname
+    const requestHeaders = new Headers(request.headers)
+    requestHeaders.set('x-pathname', pathname)
+
+    const createNextResponse = () =>
+        NextResponse.next({
+            request: {
+                headers: requestHeaders,
+            },
+        })
+
+    let supabaseResponse = createNextResponse()
 
     // Check env vars
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
@@ -68,7 +81,7 @@ export async function updateSession(request: NextRequest) {
                     cookiesToSet.forEach(({ name, value }) =>
                         request.cookies.set(name, value)
                     )
-                    supabaseResponse = NextResponse.next({ request })
+                    supabaseResponse = createNextResponse()
                     cookiesToSet.forEach(({ name, value, options }) =>
                         supabaseResponse.cookies.set(name, value, options)
                     )
@@ -103,8 +116,6 @@ export async function updateSession(request: NextRequest) {
     if (rateLimited) {
         return rateLimited
     }
-
-    const pathname = request.nextUrl.pathname
 
     // SESSION CHECK ONLY: Redirect to /login if not authenticated and accessing protected route
     if (!user && !isPublicPath(pathname)) {

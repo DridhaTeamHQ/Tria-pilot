@@ -50,6 +50,7 @@ import {
   TEXT_PLACEMENT_OPTIONS,
   PLATFORM_OPTIONS,
   ASPECT_RATIO_OPTIONS,
+  CAMERA_ANGLE_OPTIONS,
   getPresetsByCategory,
   validateAdInput,
   type AdPresetId,
@@ -60,6 +61,7 @@ import {
   type FontStyle,
   type TextPlacement,
   type AspectRatio,
+  type CameraAngle,
 } from '@/lib/ads/ad-styles'
 import { cn } from '@/lib/utils'
 import {
@@ -133,6 +135,7 @@ export default function AdsPage() {
   const [textFontStyle, setTextFontStyle] = useState<FontStyle>('bold-display')
   const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>(['instagram'])
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('1:1')
+  const [cameraAngle, setCameraAngle] = useState<CameraAngle>('auto')
   const [textOpen, setTextOpen] = useState(false)
   const [optionsOpen, setOptionsOpen] = useState(false)
 
@@ -185,6 +188,7 @@ export default function AdsPage() {
       characterStyle: isHuman ? (characterStyle || undefined) : undefined,
       characterAge: isHuman ? (characterAge || undefined) : undefined,
       aspectRatio,
+      cameraAngle,
       textOverlay: hasText ? {
         headline: textHeadline || undefined,
         subline: textSubline || undefined,
@@ -446,7 +450,7 @@ export default function AdsPage() {
               </AnimatePresence>
             </BrutalCard>
 
-            {/* 4. ASPECT RATIO + PLATFORMS */}
+            {/* 4. ASPECT RATIO + PLATFORMS + CAMERA ANGLE */}
             <div className="grid grid-cols-2 gap-4">
               {/* Aspect Ratio */}
               <BrutalCard className="p-4">
@@ -477,6 +481,23 @@ export default function AdsPage() {
                           : 'bg-white text-black/50 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:bg-[#FFD93D]/20'
                       )}>
                       {opt.label} {selectedPlatforms.includes(opt.value) && <Check className="h-3 w-3 inline" />}
+                    </button>
+                  ))}
+                </div>
+              </BrutalCard>
+
+              {/* Camera Angle — down, side, low, high for pro composition */}
+              <BrutalCard className="p-4 col-span-2">
+                <p className="text-[10px] font-black uppercase text-black/40 mb-2">Camera Angle</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {CAMERA_ANGLE_OPTIONS.map((opt) => (
+                    <button key={opt.value} onClick={() => setCameraAngle(opt.value)}
+                      className={cn('px-3 py-1.5 text-[10px] font-bold border-[2px] border-black transition-all',
+                        cameraAngle === opt.value
+                          ? 'bg-black text-[#FFD93D] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                          : 'bg-white text-black/70 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:bg-black/5'
+                      )}>
+                      {opt.label}
                     </button>
                   ))}
                 </div>

@@ -5,6 +5,12 @@ import Link from 'next/link'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
+function normalizeStatus(value: unknown): 'none' | 'pending' | 'approved' | 'rejected' {
+  const normalized = typeof value === 'string' ? value.toLowerCase() : 'none'
+  if (normalized === 'pending' || normalized === 'approved' || normalized === 'rejected') return normalized
+  return 'none'
+}
+
 export default async function AdminPage() {
   const service = createServiceClient()
 
@@ -24,8 +30,14 @@ export default async function AdminPage() {
 
   const enrichedApplications = profiles.map((p: any) => {
     const inf = p.influencer_profiles || {}
-    let displayStatus = (p.approval_status || 'none').toLowerCase()
-    if (!p.onboarding_completed) displayStatus = 'none'
+    const displayStatus = normalizeStatus(p.approval_status)
+    const hasReviewStatus = displayStatus !== 'none'
+    const onboardingCompleted = Boolean(
+      p.onboarding_completed ??
+      inf.onboarding_completed ??
+      inf.onboardingCompleted ??
+      hasReviewStatus
+    )
 
     return {
       user_id: p.id,
@@ -45,7 +57,7 @@ export default async function AdminPage() {
         audienceRate: inf.audience_rate,
         badgeScore: inf.badge_score,
         badgeTier: inf.badge_tier,
-        onboardingCompleted: p.onboarding_completed
+        onboardingCompleted: onboardingCompleted
       },
       user: {
         id: p.id,
@@ -69,7 +81,7 @@ export default async function AdminPage() {
             <Link href="/?from=admin" className="px-5 py-2.5 rounded-full border border-charcoal/15 text-charcoal text-sm">Back to site</Link>
           </div>
         </div>
-        <AdminDashboardClient initialApplications={enrichedApplications} dataSource="supabase-only" />
+        <AdminDashboardClient initialApplications={enrichedApplications} dataSource="full" />
       </div>
     </div>
   )

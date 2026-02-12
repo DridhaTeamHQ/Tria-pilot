@@ -17,9 +17,17 @@ const styles: Record<Exclude<BadgeTier, null>, { label: string; className: strin
   },
 }
 
-export default function BadgeDisplay({ tier }: { tier: BadgeTier }) {
-  if (!tier) return null
-  const style = styles[tier]
+function normalizeTier(tier: unknown): Exclude<BadgeTier, null> | null {
+  if (typeof tier !== 'string') return null
+  const normalized = tier.toLowerCase().trim()
+  return normalized in styles ? (normalized as Exclude<BadgeTier, null>) : null
+}
+
+export default function BadgeDisplay({ tier }: { tier: BadgeTier | string | undefined }) {
+  const normalizedTier = normalizeTier(tier)
+  if (!normalizedTier) return null
+
+  const style = styles[normalizedTier]
 
   return (
     <span

@@ -7,7 +7,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
@@ -24,14 +24,17 @@ import {
   Zap
 } from 'lucide-react'
 import { DecorativeShapes } from '@/components/brutal/onboarding/DecorativeShapes'
+import { createClient } from '@/lib/auth-client'
 
 type Status = 'draft' | 'pending' | 'approved' | 'rejected'
 
 export default function InfluencerPendingPage() {
   const router = useRouter()
   const [status, setStatus] = useState<Status>('pending')
+  const [profileId, setProfileId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const approvedToastShownRef = useRef(false)
 
   const fetchStatus = async (showToast = false) => {
     try {
@@ -58,6 +61,7 @@ export default function InfluencerPendingPage() {
       const data = await res.json()
       const onboardingCompleted = Boolean(data?.onboarding_completed)
       const approvalStatus = (data?.approval_status as Status) ?? 'pending'
+      setProfileId(typeof data?.id === 'string' ? data.id : null)
 
       setStatus(approvalStatus)
 
@@ -67,9 +71,12 @@ export default function InfluencerPendingPage() {
       }
 
       if (approvalStatus === 'approved') {
-        toast.success("🎉 You're approved! Redirecting to dashboard...", {
-          style: { background: '#B4F056', border: '3px solid black', fontWeight: 'bold' }
-        })
+        if (!approvedToastShownRef.current) {
+          approvedToastShownRef.current = true
+          toast.success("🎉 You're approved! Redirecting to dashboard...", {
+            style: { background: '#B4F056', border: '3px solid black', fontWeight: 'bold' }
+          })
+        }
         setTimeout(() => {
           router.replace('/dashboard')
         }, 1500)
@@ -95,6 +102,56 @@ export default function InfluencerPendingPage() {
 
   useEffect(() => {
     fetchStatus()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    if (!profileId) return
+
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`influencer-pending-${profileId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${profileId}`,
+        },
+        (payload: any) => {
+          const nextStatus = (payload?.new?.approval_status || '').toLowerCase() as Status | ''
+          if (!nextStatus) return
+
+          setStatus(nextStatus as Status)
+
+          if (nextStatus === 'approved' && !approvedToastShownRef.current) {
+            approvedToastShownRef.current = true
+            toast.success("🎉 You're approved! Redirecting to dashboard...")
+            setTimeout(() => {
+              router.replace('/dashboard')
+            }, 1200)
+            return
+          }
+
+          if (nextStatus === 'rejected') {
+            toast.error('Your application has been reviewed. Please check your status details.')
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [profileId, router])
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      fetchStatus(false)
+    }, 30000)
+
+    return () => clearInterval(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

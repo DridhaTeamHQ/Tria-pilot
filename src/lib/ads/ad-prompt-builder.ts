@@ -32,56 +32,56 @@ const PROMPT_MODEL = process.env.AD_PROMPT_MODEL?.trim() || 'gpt-4o'
 
 const PRESET_EXAMPLE_MAP: Record<string, string[]> = {
   // UGC presets → UGC + lifestyle examples
-  UGC_CANDID: ['italian-cafe-candid', 'mediterranean-swim-editorial', 'creative-martin-parr-domestic'],
+  UGC_CANDID: ['editorial-escalator-fit-check', 'digicam-neon-crosswalk', 'japandi-overpass-candid', 'street-high-angle-crosswalk', 'y2k-fisheye-bomber-street', 'italian-cafe-candid', 'tokyo-street-matcha-jersey', 'mediterranean-swim-editorial', 'creative-martin-parr-domestic'],
   UGC_STORY: ['ugc-phone-sky', 'golden-hour-glamour-cafe', 'italian-cafe-candid'],
-  UGC_REEL: ['cinematic-motion-runners', 'creative-raw-analog-tennis', 'creative-follow-cam-snowboard'],
-  UGC_TESTIMONIAL: ['golden-hour-glamour-cafe', 'italian-cafe-candid', 'creative-beauty-close-up-cream'],
-  UGC_FLAT_LAY: ['standalone-clean-4k', 'food-office-product-in-hand', 'lifestyle-blank-tee-mockup'],
-  UGC_GRWM: ['italian-cafe-candid', 'golden-hour-glamour-cafe', 'creative-cyclorama-juice-portrait'],
+  UGC_REEL: ['y2k-duo-white-studio-dynamic', 'y2k-red-studio-helmet', 'cinematic-motion-runners', 'creative-raw-analog-tennis', 'creative-follow-cam-snowboard'],
+  UGC_TESTIMONIAL: ['angle-high-soft-flattering', 'golden-hour-glamour-cafe', 'italian-cafe-candid', 'creative-beauty-close-up-cream'],
+  UGC_FLAT_LAY: ['editorial-escalator-fit-check', 'angle-down-hero-product', 'standalone-clean-4k', 'food-office-product-in-hand', 'lifestyle-blank-tee-mockup'],
+  UGC_GRWM: ['y2k-mirror-lip-gloss', 'italian-cafe-candid', 'golden-hour-glamour-cafe', 'creative-cyclorama-juice-portrait'],
   // Editorial presets
-  EDITORIAL_PREMIUM: ['editorial-kerala-bed', 'creative-surreal-horse-shadow', 'editorial-glow-blur-portrait'],
-  EDITORIAL_FASHION: ['creative-bold-color-studio', 'creative-reeded-glass-portrait', 'creative-raw-analog-tennis'],
-  EDITORIAL_BEAUTY: ['creative-beauty-close-up-cream', 'editorial-glow-blur-portrait', 'creative-product-hands-motion-blur'],
-  EDITORIAL_STREET: ['y2k-varsity-studio', 'cinematic-motion-runners', 'creative-raw-analog-tennis'],
-  EDITORIAL_FILM_NOIR: ['creative-surreal-horse-shadow', 'sports-monochrome-typography', 'deconstructed-face-collage'],
-  EDITORIAL_ETHEREAL: ['editorial-glow-blur-portrait', 'creative-beauty-close-up-cream', 'italian-cafe-candid'],
+  EDITORIAL_PREMIUM: ['editorial-escalator-fit-check', 'editorial-amber-hoodie-headphones', 'editorial-tennis-court-spotlight', 'editorial-70s-staircase-jumpsuit', 'japandi-overpass-candid', 'editorial-kerala-bed', 'barbershop-kodachrome-trench', 'meadow-white-dress-contemplative', 'creative-surreal-horse-shadow', 'editorial-glow-blur-portrait'],
+  EDITORIAL_FASHION: ['editorial-escalator-fit-check', 'editorial-tennis-court-spotlight', 'y2k-duo-white-studio-dynamic', 'editorial-bw-low-angle-latex', 'editorial-70s-staircase-jumpsuit', 'angle-side-profile-editorial', 'creative-bold-color-studio', 'creative-reeded-glass-portrait', 'creative-raw-analog-tennis'],
+  EDITORIAL_BEAUTY: ['editorial-amber-hoodie-headphones', 'beauty-ice-block-lipbalm', 'creative-beauty-close-up-cream', 'y2k-mirror-lip-gloss', 'editorial-glow-blur-portrait', 'creative-product-hands-motion-blur'],
+  EDITORIAL_STREET: ['digicam-neon-crosswalk', 'y2k-fisheye-bomber-street', 'y2k-red-studio-helmet', 'street-high-angle-crosswalk', 'tokyo-street-matcha-jersey', 'y2k-varsity-studio', 'cinematic-motion-runners', 'creative-raw-analog-tennis'],
+  EDITORIAL_FILM_NOIR: ['editorial-tennis-court-spotlight', 'barbershop-kodachrome-trench', 'creative-surreal-horse-shadow', 'sports-monochrome-typography', 'deconstructed-face-collage'],
+  EDITORIAL_ETHEREAL: ['beach-sunset-satin-twirl', 'meadow-white-dress-contemplative', 'editorial-glow-blur-portrait', 'creative-beauty-close-up-cream', 'italian-cafe-candid'],
   // Commercial presets
-  PRODUCT_LIFESTYLE: ['lifestyle-blank-tee-mockup', 'food-office-product-in-hand', 'ugc-phone-sky'],
+  PRODUCT_LIFESTYLE: ['editorial-escalator-fit-check', 'japandi-overpass-candid', 'angle-high-soft-flattering', 'lifestyle-blank-tee-mockup', 'food-office-product-in-hand', 'ugc-phone-sky'],
   STUDIO_POSTER: ['studio-chrome-floral', 'sports-monochrome-typography', 'creative-bw-neon-cta'],
-  PRODUCT_HERO: ['product-hero-beauty-lipstick', 'standalone-surreal-installation', 'text-based-air-jordan-explosion'],
+  PRODUCT_HERO: ['beauty-ice-block-lipbalm', 'product-hero-beauty-lipstick', 'standalone-surreal-installation', 'text-based-air-jordan-explosion'],
   COMMERCIAL_CAROUSEL: ['standalone-clean-4k', 'lifestyle-blank-tee-mockup', 'standalone-high-fashion-path'],
   COMMERCIAL_FLAT_POSTER: ['studio-chrome-floral', 'creative-bold-color-studio', 'text-based-dynamic-magenta'],
   // Creative presets
-  CREATIVE_SURREAL: ['surreal-magritte-picnic', 'standalone-surreal-installation', 'creative-surreal-horse-shadow'],
-  CREATIVE_CINEMATIC: ['cinematic-motion-runners', 'cinematic-low-angle-flying', 'creative-follow-cam-snowboard'],
+  CREATIVE_SURREAL: ['editorial-tennis-court-spotlight', 'surreal-red-dress-cubes', 'beauty-ice-block-lipbalm', 'surreal-magritte-picnic', 'standalone-surreal-installation', 'creative-surreal-horse-shadow'],
+  CREATIVE_CINEMATIC: ['tunnel-360-pastel-tracksuit', 'cinematic-motion-runners', 'cinematic-low-angle-flying', 'barbershop-kodachrome-trench', 'creative-follow-cam-snowboard'],
   CREATIVE_TEXT_DYNAMIC: ['text-based-dynamic-magenta', 'text-based-dynamic-green', 'text-based-dynamic-blue-white', 'text-based-air-jordan-explosion'],
   CREATIVE_BOLD_COLOR: ['creative-bold-color-studio', 'creative-reeded-glass-portrait', 'text-based-pop-art'],
   CREATIVE_NEON_GRADIENT: ['text-based-dynamic-magenta', 'text-based-dynamic-green', 'text-based-dynamic-blue-white'],
-  CREATIVE_RETRO_FILM: ['cinematic-motion-runners', 'creative-raw-analog-tennis', 'creative-martin-parr-domestic'],
+  CREATIVE_RETRO_FILM: ['editorial-amber-hoodie-headphones', 'digicam-neon-crosswalk', 'editorial-70s-staircase-jumpsuit', 'barbershop-kodachrome-trench', 'tokyo-street-matcha-jersey', 'cinematic-motion-runners', 'creative-raw-analog-tennis', 'creative-martin-parr-domestic'],
   CREATIVE_3D_RENDER: ['product-hero-beauty-lipstick', 'standalone-surreal-installation', 'studio-chrome-floral'],
-  CREATIVE_VAPORWAVE: ['y2k-varsity-studio', 'text-based-dynamic-magenta', 'text-based-pop-art'],
+  CREATIVE_VAPORWAVE: ['digicam-neon-crosswalk', 'y2k-red-studio-helmet', 'y2k-fisheye-bomber-street', 'y2k-varsity-studio', 'text-based-dynamic-magenta', 'text-based-pop-art'],
   CREATIVE_DOUBLE_EXPOSURE: ['creative-surreal-horse-shadow', 'editorial-glow-blur-portrait', 'deconstructed-face-collage'],
   CREATIVE_GLASSMORPHISM: ['standalone-surreal-installation', 'product-hero-beauty-lipstick', 'creative-reeded-glass-portrait'],
   CREATIVE_WES_ANDERSON: ['italian-cafe-candid', 'creative-martin-parr-domestic', 'creative-cyclorama-juice-portrait'],
-  CREATIVE_DECONSTRUCTED: ['deconstructed-face-collage', 'text-based-air-jordan-explosion', 'standalone-surreal-installation'],
+  CREATIVE_DECONSTRUCTED: ['surreal-red-dress-cubes', 'deconstructed-face-collage', 'text-based-air-jordan-explosion', 'standalone-surreal-installation'],
   // Standalone product
   STANDALONE_CLEAN: ['standalone-clean-4k', 'standalone-high-fashion-path'],
   STANDALONE_SURREAL: ['standalone-surreal-installation', 'standalone-high-fashion-path', 'product-hero-beauty-lipstick'],
-  STANDALONE_LUXURY_MACRO: ['studio-chrome-floral', 'product-hero-beauty-lipstick', 'creative-product-hands-motion-blur'],
+  STANDALONE_LUXURY_MACRO: ['beauty-ice-block-lipbalm', 'studio-chrome-floral', 'product-hero-beauty-lipstick', 'creative-product-hands-motion-blur'],
   STANDALONE_LEVITATION: ['text-based-air-jordan-explosion', 'product-hero-beauty-lipstick', 'standalone-surreal-installation'],
   // Performance / Conversion
   PERF_MINIMAL_CLEAN: ['standalone-clean-4k', 'standalone-high-fashion-path'],
   PERF_SPLIT_COMPARE: ['creative-bold-color-studio', 'lifestyle-blank-tee-mockup'],
   PERF_OOH_BILLBOARD: ['placement-subway-billboard', 'ooh-billboard-dual-panel'],
-  PERF_SOCIAL_PROOF: ['italian-cafe-candid', 'golden-hour-glamour-cafe', 'mediterranean-swim-editorial'],
+  PERF_SOCIAL_PROOF: ['beach-sunset-satin-twirl', 'italian-cafe-candid', 'golden-hour-glamour-cafe', 'mediterranean-swim-editorial'],
   // Sports / Athletic
-  SPORTS_DYNAMIC: ['cinematic-motion-runners', 'creative-follow-cam-snowboard', 'creative-fashion-kick-identity'],
+  SPORTS_DYNAMIC: ['y2k-duo-white-studio-dynamic', 'tunnel-360-pastel-tracksuit', 'editorial-bw-low-angle-latex', 'angle-low-hero-dramatic', 'cinematic-motion-runners', 'creative-follow-cam-snowboard', 'creative-fashion-kick-identity'],
   SPORTS_MONOCHROME: ['sports-monochrome-typography', 'text-based-air-jordan-explosion'],
   SPORTS_TUNNEL_HERO: ['cinematic-motion-runners', 'cinematic-low-angle-flying', 'sports-monochrome-typography'],
   // Indian fashion
   INDIAN_FESTIVE: ['vertical-lehenga-celebrate', 'vertical-sharara-twirl'],
   INDIAN_ETHNIC: ['vertical-lehenga-celebrate', 'vertical-sharara-twirl', 'editorial-kerala-bed'],
-  INDIAN_STREET_FUSION: ['y2k-varsity-studio', 'cinematic-motion-runners', 'creative-raw-analog-tennis'],
+  INDIAN_STREET_FUSION: ['y2k-fisheye-bomber-street', 'y2k-varsity-studio', 'cinematic-motion-runners', 'creative-raw-analog-tennis'],
 }
 
 /** Presets that default to "no model" but should respect user's explicit character choice */
@@ -197,7 +197,22 @@ function buildSystemMessage(hasText: boolean): string {
 
 You receive: a product image, a creative brief, and REFERENCE PROMPTS from real campaigns. Study the references — absorb their density and quality. Your output must match or exceed them.
 
-YOUR JOB: Write ONE narrative-style prompt (NOT keyword stuffing) that generates a STUNNING ad image.
+YOUR JOB: Write ONE narrative-style prompt (NOT keyword stuffing) that generates a STUNNING, campaign-grade ad image.
+
+═══ CRAZY GOOD QUALITY (NON-NEGOTIABLE) ═══
+Every image must feel like a Vogue/GQ/Nike campaign shot: 8K resolution, tack-sharp focus on subject and product, professional lighting rig (key/fill/rim), realistic skin and fabric texture (visible pores, weave, reflections). No AI mush, no plastic skin, no flat lighting. Specify lens (e.g. 85mm f/1.4), f-stop, and lighting setup in your prompt when it helps. Anatomy correct, hands natural, proportions human.
+
+═══ CAMERA ANGLES ═══
+Use precise camera angle vocabulary so the image has impact:
+- DOWN ANGLE: camera above, looking down at subject/product (flat lay, overhead, top-down).
+- HIGH ANGLE: slightly above eye level, looking down — flattering for product and face.
+- LOW ANGLE: camera low or at ground level, looking up — heroic, powerful, dramatic.
+- SIDE: profile or near-profile view — strong silhouette, editorial.
+- THREE-QUARTER: classic 45° to subject — versatile, flattering.
+- EYE LEVEL: camera at subject's eye height — natural, direct.
+- DUTCH: tilted horizon — tension, energy, fashion.
+
+When the brief specifies a camera angle, use it explicitly in your prompt (e.g. "Shot from a low angle, camera near ground level looking up at the model..."). When "Auto", choose the most impactful angle for the preset and product.
 
 ═══ GEMINI 3 PRO OPTIMIZATION ═══
 
@@ -317,11 +332,33 @@ ${exampleBlocks}
     )
   }
 
+  // Camera angle: explicit instruction when user selected one
+  const cameraAngle = input.cameraAngle || 'auto'
+  const angleInstruction =
+    cameraAngle === 'auto'
+      ? 'Camera angle: Choose the most impactful angle (down, high, low, side, or three-quarter) for this preset and product. State it explicitly in your prompt (e.g. "Shot from a low angle...", "Overhead down-angle flat lay...").'
+      : cameraAngle === 'down'
+        ? 'Camera angle: DOWN ANGLE (mandatory). Camera above, looking down at subject or product. Describe it in the prompt: e.g. "Shot from directly above", "Overhead down-angle view", "Camera looking down at...".'
+        : cameraAngle === 'high'
+          ? 'Camera angle: HIGH ANGLE (mandatory). Slightly above eye level, looking down. Flattering for product and face. Use in prompt: "Shot from a high angle, camera slightly above..."'
+          : cameraAngle === 'low'
+            ? 'Camera angle: LOW ANGLE (mandatory). Camera low or at ground level, looking up. Heroic, dramatic. Use in prompt: "Low-angle shot, camera near ground level looking up at...", "Worm\'s-eye view..."'
+            : cameraAngle === 'side'
+              ? 'Camera angle: SIDE PROFILE (mandatory). Profile or near-profile view. Strong silhouette, editorial. Use in prompt: "Side profile view", "Shot from the side...".'
+              : cameraAngle === 'three-quarter'
+                ? 'Camera angle: THREE-QUARTER (mandatory). Classic 45° to subject. Use in prompt: "Three-quarter view", "Shot at 45 degrees to the subject...".'
+                : cameraAngle === 'eye-level'
+                  ? 'Camera angle: EYE LEVEL (mandatory). Camera at subject\'s eye height. Use in prompt: "Eye-level shot", "Camera at subject height...".'
+                  : cameraAngle === 'dutch'
+                    ? 'Camera angle: DUTCH / TILTED (mandatory). Tilted horizon for tension and energy. Use in prompt: "Dutch angle", "Tilted camera", "Canted horizon...".'
+                    : 'Camera angle: Choose the most impactful angle and state it explicitly in your prompt.'
+
   sections.push(`CREATIVE BRIEF:
 Preset: ${preset.name} (${preset.category})
 Scene direction: ${sceneGuide}
 Lighting direction: ${preset.lightingGuide}
 Camera direction: ${preset.cameraGuide}
+${angleInstruction}
 Must avoid: ${avoidTerms.join(', ')}`)
 
   // ═══ 3. Product instruction ═══
@@ -427,8 +464,9 @@ Compose every element (subject, product, text, background) to fill this format n
 
   // ═══ 8. Quality enforcement ═══
   const noTextAvoid = hasTextOverlay ? '' : ', NO text/words/letters/numbers/brand names in the image'
-  sections.push(`QUALITY MANDATE:
-Your prompt must produce an image that looks like it was shot by a top creative agency (Wieden+Kennedy, TBWA, Ogilvy) for a premium brand. Specify:
+  sections.push(`QUALITY MANDATE (CRAZY GOOD — campaign-grade only):
+Your prompt must produce an image that looks like it was shot by a top creative agency (Wieden+Kennedy, TBWA, Ogilvy) for a premium brand. You MUST specify in the prompt:
+- Camera angle: state it explicitly (e.g. "Shot from a low angle, camera near ground level...", "Overhead down-angle view...", "Three-quarter profile...")
 - Exact lighting rig (key light angle, fill ratio, rim/edge light, bounce)
 - Camera: lens mm, f-stop, shutter if motion, depth of field
 - Colour grading: cinematic LUT name or tone description

@@ -28,7 +28,7 @@ export default function AdminError({
         <ul className="text-sm text-charcoal/70 text-left mb-6 list-disc list-inside">
           <li>SUPABASE_SERVICE_ROLE_KEY</li>
           <li>NEXT_PUBLIC_SUPABASE_URL</li>
-          <li>DATABASE_URL</li>
+          <li>NEXT_PUBLIC_SUPABASE_ANON_KEY</li>
         </ul>
         <div className="flex gap-4 justify-center flex-wrap">
           <button

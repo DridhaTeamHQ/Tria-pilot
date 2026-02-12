@@ -47,9 +47,10 @@ export default async function InfluencerLayout({
     // Get current path to check if we're on /influencer/pending
     const headersList = await headers()
     const pathname = headersList.get('x-pathname') || ''
+    const onPendingPage = pathname === '/influencer/pending' || pathname.startsWith('/influencer/pending/')
 
     // If not on pending page and not approved, redirect to pending
-    if (!pathname.includes('/influencer/pending')) {
+    if (!onPendingPage) {
       redirect('/influencer/pending')
     }
   }

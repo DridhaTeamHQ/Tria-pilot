@@ -8,7 +8,7 @@
  * 1. Check auth session
  * 2. Fetch profile from Supabase profiles table
  * 3. Route based on role:
- *    - admin → /admin/dashboard
+ *    - admin → /admin
  *    - brand (onboarding incomplete) → /onboarding/brand
  *    - brand (active) → /brand/dashboard
  *    - influencer (onboarding incomplete) → /onboarding/influencer
@@ -54,7 +54,7 @@ export default async function Dashboard() {
 
   // ADMIN - goes to admin dashboard
   if (role === 'admin') {
-    redirect('/admin/dashboard')
+    redirect('/admin')
   }
 
   // BRAND - check onboarding

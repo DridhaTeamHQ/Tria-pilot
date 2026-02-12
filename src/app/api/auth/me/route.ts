@@ -22,7 +22,9 @@ export async function GET() {
 
     // Handle auth errors
     if (authError) {
-      console.error('Auth error in /api/auth/me:', authError.message)
+      if (!authError.message?.includes('Auth session missing')) {
+        console.error('Auth error in /api/auth/me:', authError.message)
+      }
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

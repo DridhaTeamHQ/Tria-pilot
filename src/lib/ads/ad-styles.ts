@@ -96,6 +96,17 @@ export type TextPlacement =
 
 export type AspectRatio = '1:1' | '9:16' | '16:9' | '4:5'
 
+/** Camera angle for ad composition — down, side, low, high, etc. */
+export type CameraAngle =
+  | 'auto'
+  | 'eye-level'
+  | 'low'
+  | 'high'
+  | 'down'
+  | 'side'
+  | 'three-quarter'
+  | 'dutch'
+
 export interface TextOverlayConfig {
   headline?: string
   subline?: string
@@ -142,6 +153,9 @@ export interface AdGenerationInput {
 
   // Aspect ratio
   aspectRatio?: AspectRatio
+
+  // Camera angle (down, side, low, high, etc.) for pro composition
+  cameraAngle?: CameraAngle
 
   // Text controls
   headline?: string
@@ -1113,4 +1127,16 @@ export const TEXT_PLACEMENT_OPTIONS: { value: TextPlacement; label: string }[] =
   { value: 'bottom-left', label: 'Bottom Left' },
   { value: 'bottom-right', label: 'Bottom Right' },
   { value: 'center', label: 'Center' },
+]
+
+/** Camera angle options for pro ad composition (down, side, low, high, etc.) */
+export const CAMERA_ANGLE_OPTIONS: { value: CameraAngle; label: string }[] = [
+  { value: 'auto', label: 'Auto (best for style)' },
+  { value: 'down', label: 'Down angle (looking down)' },
+  { value: 'high', label: 'High angle' },
+  { value: 'low', label: 'Low angle (hero / dramatic)' },
+  { value: 'side', label: 'Side profile' },
+  { value: 'three-quarter', label: 'Three-quarter' },
+  { value: 'eye-level', label: 'Eye level' },
+  { value: 'dutch', label: 'Dutch / tilted' },
 ]

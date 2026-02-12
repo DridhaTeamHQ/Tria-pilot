@@ -13,6 +13,12 @@ const updateSchema = z
   })
   .strict()
 
+function normalizeStatus(value: unknown): 'none' | 'pending' | 'approved' | 'rejected' {
+  const normalized = typeof value === 'string' ? value.toLowerCase() : 'none'
+  if (normalized === 'pending' || normalized === 'approved' || normalized === 'rejected') return normalized
+  return 'none'
+}
+
 export async function GET(request: Request) {
   try {
     const supabase = await createClient()
@@ -42,8 +48,14 @@ export async function GET(request: Request) {
     // Transform to match legacy format
     const enriched = (profiles || []).map((p: any) => {
       const inf = p.influencer_profiles || {}
-      let displayStatus = (p.approval_status || 'none').toLowerCase()
-      if (!p.onboarding_completed) displayStatus = 'none'
+      const displayStatus = normalizeStatus(p.approval_status)
+      const hasReviewStatus = displayStatus !== 'none'
+      const onboardingCompleted = Boolean(
+        p.onboarding_completed ??
+        inf.onboarding_completed ??
+        inf.onboardingCompleted ??
+        hasReviewStatus
+      )
 
       if (statusFilter && statusFilter !== 'none') {
         if (statusFilter !== displayStatus) return null
@@ -65,7 +77,7 @@ export async function GET(request: Request) {
           audienceRate: inf.audience_rate,
           badgeScore: inf.badge_score,
           badgeTier: inf.badge_tier,
-          onboardingCompleted: p.onboarding_completed,
+          onboardingCompleted: onboardingCompleted,
           portfolioVisibility: inf.portfolio_visibility
         },
         user: {
