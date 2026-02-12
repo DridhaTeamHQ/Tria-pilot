@@ -23,6 +23,10 @@ import {
 import { AD_STYLE_EXAMPLES, type AdStyleExample } from './ad-style-examples'
 
 const PROMPT_MODEL = process.env.AD_PROMPT_MODEL?.trim() || 'gpt-4o'
+/** Timeout for GPT prompt build (ms). On timeout we fall back to template prompt. */
+const PROMPT_BUILD_TIMEOUT_MS = 45_000
+/** Max prompt length we pass to image model (Gemini). Longer prompts are truncated with warning. */
+const MAX_PROMPT_LENGTH = 4000
 
 // ═══════════════════════════════════════════════════════════════
 // PRESET → STYLE EXAMPLE MAPPING
@@ -143,13 +147,39 @@ export async function buildAdPrompt(
   }
 
   try {
-    const prompt = await buildPromptWithGPT(preset, input, productImageBase64, faceAnchor)
+    const raw = await withTimeout(
+      buildPromptWithGPT(preset, input, productImageBase64, faceAnchor),
+      PROMPT_BUILD_TIMEOUT_MS,
+      'Ad prompt build'
+    )
+    const prompt = sanitizeAndCapPrompt(raw)
     return { prompt, model: PROMPT_MODEL, fallback: false }
   } catch (err) {
     console.warn('[AdPromptBuilder] GPT prompt build failed, using fallback:', err)
     const prompt = buildFallbackPrompt(input)
     return { prompt, model: 'fallback', fallback: true }
   }
+}
+
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+    ),
+  ])
+}
+
+/** Strip markdown/code fences, trim, and cap length for image model. */
+function sanitizeAndCapPrompt(raw: string): string {
+  let s = raw.trim()
+  if (s.startsWith('```')) s = s.replace(/^```\w*\n?/, '').replace(/\n?```$/, '')
+  s = s.trim()
+  if (s.length > MAX_PROMPT_LENGTH) {
+    console.warn(`[AdPromptBuilder] Prompt length ${s.length} exceeds ${MAX_PROMPT_LENGTH}, truncating`)
+    s = s.slice(0, MAX_PROMPT_LENGTH - 20) + '…'
+  }
+  return s
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -187,20 +217,22 @@ async function buildPromptWithGPT(
   if (!text || text.length < 50) {
     throw new Error('GPT returned empty or too-short prompt')
   }
-
+  if (text.length > MAX_PROMPT_LENGTH) {
+    console.warn(`[AdPromptBuilder] Raw prompt ${text.length} chars (will be capped to ${MAX_PROMPT_LENGTH})`)
+  }
   console.log(`[AdPromptBuilder] GPT-4o prompt built (${text.length} chars)`)
   return text
 }
 
 function buildSystemMessage(hasText: boolean): string {
-  return `You are an elite advertising art director who writes image generation prompts for Gemini Nano Banana Pro (gemini-3-pro-image-preview).
+  return `You are a PHOTOSHOOT AD DIRECTOR and elite advertising creative director. You write image-generation prompts for Gemini 3 Pro. You think in full productions: lighting design, set mood, lens choice, colour grade, and one killer visual idea. Your prompts read like a director's brief to a DP and stylist — specific, obsessive, production-quality.
 
-You receive: a product image, a creative brief, and REFERENCE PROMPTS from real campaigns. Study the references — absorb their density and quality. Your output must match or exceed them.
+You receive: a product image, a creative brief, and REFERENCE PROMPTS from real campaigns. Study the references — absorb their density and quality. Your output must match or exceed them. GO CRAZY on style: every frame should look like it belongs in a Vogue spread, a Nike hero spot, or a luxury lookbook. No safe, generic descriptions.
 
-YOUR JOB: Write ONE narrative-style prompt (NOT keyword stuffing) that generates a STUNNING, campaign-grade ad image.
+YOUR JOB: Write ONE narrative-style prompt (NOT keyword stuffing) that generates a STUNNING, campaign-grade ad image. Think like a director calling the shot: "Key from 45° left, half-stop under; rim from behind right to separate from the drop; fill at 2:1 so we keep shape but don't flatten." Name the mood, the light quality, the palette, the lens.
 
-═══ CRAZY GOOD QUALITY (NON-NEGOTIABLE) ═══
-Every image must feel like a Vogue/GQ/Nike campaign shot: 8K resolution, tack-sharp focus on subject and product, professional lighting rig (key/fill/rim), realistic skin and fabric texture (visible pores, weave, reflections). No AI mush, no plastic skin, no flat lighting. Specify lens (e.g. 85mm f/1.4), f-stop, and lighting setup in your prompt when it helps. Anatomy correct, hands natural, proportions human.
+═══ PRODUCTION-QUALITY LIGHTING (NON-NEGOTIABLE) ═══
+Every image must feel like a real photoshoot with a real lighting rig. Be specific: key light angle (e.g. 45° front-left), fill ratio (e.g. 2:1, 3:1), rim or backlight for separation, beauty dish vs softbox vs hard light, colour temperature (warm 3200K, cool 5600K, golden hour). Describe how light hits skin (sculpted cheekbones, catchlights in eyes, subtle rim on hair) and product (specular highlights, fabric weave, material truth). 8K resolution, tack-sharp where it matters, shallow DoF where it serves the story. No AI mush, no plastic skin, no flat single-source lighting. Specify lens (e.g. 85mm f/1.4), f-stop, and a clear lighting setup in your prompt. Anatomy correct, hands natural, proportions human.
 
 ═══ CAMERA ANGLES ═══
 Use precise camera angle vocabulary so the image has impact:
@@ -232,9 +264,9 @@ Example of BAD keyword structure:
 2. PRODUCT ACCURACY (NON-NEGOTIABLE).
    LOOK AT the product image. Describe EXACTLY: brand, colourway (#hex if possible), material (mesh/leather/suede/canvas/satin), shape, distinctive features (logo placement, sole colour, stitching pattern, hardware). Be forensically specific.
 
-3. NARRATIVE DENSITY: 300–700 words of flowing visual description.
-   Include: lighting rig (key at 45°, fill ratio, rim angle), camera (24/35/50/85mm, f/stop, shutter speed if motion), colour palette (use hex codes: "deep crimson #8B0000", "electric cyan #00E5FF"), texture (8K, film grain weight, dewy/matte), composition (rule of thirds, leading lines, negative space percentage).
-   Name photographers when relevant: Guy Bourdin, Tim Walker, Annie Leibovitz, Martin Parr, Peter Lindbergh.
+3. NARRATIVE DENSITY: 300–700 words of flowing visual description. Think like a director: what does the set smell like? Where does the light come from in the room? What's the one thing that makes this frame iconic?
+   Include: lighting rig (key at 45°, fill ratio, rim angle, quality of light — soft/hard/feathered), camera (24/35/50/85mm, f/stop, shutter speed if motion), colour palette (use hex codes: "deep crimson #8B0000", "electric cyan #00E5FF"), texture (8K, film grain weight, dewy/matte skin, fabric weave), composition (rule of thirds, leading lines, negative space). Aim for the most amazing, memorable look possible — production-quality lighting and styling in every sentence.
+   Name photographers when relevant: Guy Bourdin, Tim Walker, Annie Leibovitz, Martin Parr, Peter Lindbergh, Mario Testino, Inez & Vinoodh.
 
 ${hasText ? `4. TYPOGRAPHY = COMPOSITIONAL BLEND (text has been requested by the user).
    Text is DESIGNED INTO the scene — not added on top. Use 2+ blending techniques:

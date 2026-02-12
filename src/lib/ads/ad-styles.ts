@@ -189,12 +189,12 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Instagram ads', 'Influencer content', 'Casual brands'],
     platforms: ['instagram', 'facebook'],
     sceneGuide:
-      'Real urban environment: sidewalk, café, simple indoor room. Authentic textures (concrete, walls, furniture) subtly present. Natural, unstaged, spontaneous moment.',
+      'Director brief: Real urban environment — sidewalk, café terrace, or lived-in room with concrete, brick, or warm wood. Authentic textures; nothing staged or sterile. Capture a spontaneous moment: mid-laugh, mid-step, or candid glance. Feels like a frame pulled from a documentary or a friend’s best iPhone shot, but lit and composed like a brand campaign.',
     lightingGuide:
-      'Soft natural daylight, even illumination, gentle shadows matching environment. Skin texture and fabric clearly visible without smoothing.',
+      'Production-quality natural light: soft directional window light or overcast daylight as key (45° to subject), minimal fill so shadows stay soft but shape the face. Skin texture and fabric weave visible — no plastic smoothing. Subtle rim from a practical (window, open door) to separate subject from background. Colour temperature warm (5500K daylight or 4500K overcast).',
     cameraGuide:
-      '35mm smartphone-style perspective, slightly off-center framing, shallow depth of field, natural social media look.',
-    avoid: ['studio lighting', 'perfect symmetry', 'professional posing', 'dramatic shadows'],
+      '35mm equivalent, f/2–2.8, slightly off-center framing, shallow depth of field with creamy bokeh behind. Eye-level or just above. Feels like premium smartphone or mirrorless — sharp where it matters, natural falloff.',
+    avoid: ['studio lighting', 'perfect symmetry', 'professional posing', 'dramatic shadows', 'flat on-camera flash'],
   },
   {
     id: 'UGC_STORY',
@@ -205,12 +205,12 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Instagram Stories', 'Vertical ads', 'Direct-to-camera'],
     platforms: ['instagram', 'facebook'],
     sceneGuide:
-      'Close-up or selfie-style framing, direct eye contact with camera, intimate personal space. Home, bathroom mirror, bedroom, or close indoor setting.',
+      'Director brief: Intimate, direct-to-camera moment. Subject in personal space — bedroom, bathroom mirror, vanity, or cozy corner. Eye contact with lens; feels like they’re talking to one person. Product in hand or on display. Set dressing minimal but real: rumpled linen, plant, soft fabric. 9:16 vertical hero.',
     lightingGuide:
-      'Soft indoor side light from window, warm natural colour temperature, ring light or phone flash acceptable for authenticity.',
+      'Single dominant source: soft window light from frame left/right (large, diffused) or warm ring-light style catchlights in eyes. Skin dewy, natural; no harsh nose shadow. Fill from environment (white wall, mirror) to keep 2:1 or softer ratio. Warm colour temp 4000–5000K. Production-quality “natural” — flattering but believable.',
     cameraGuide:
-      '26mm wide-angle (phone front camera), arm-length distance, slightly tilted for candid feel, 9:16 vertical composition.',
-    avoid: ['studio backdrop', 'professional equipment visible', 'perfect framing'],
+      '26mm wide (phone front-cam feel), arm’s length, slight Dutch tilt or headroom for Stories. 9:16 vertical. Shallow DoF so background melts; subject tack-sharp. Subtle lens character okay (soft corners) for authenticity.',
+    avoid: ['studio backdrop', 'professional equipment visible', 'perfect symmetry', 'cold clinical light'],
   },
   {
     id: 'UGC_REEL',
@@ -221,12 +221,12 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Reels thumbnails', 'Trend-driven ads', 'Youth brands'],
     platforms: ['instagram', 'facebook'],
     sceneGuide:
-      'Dynamic angle implying motion or energy: walking, dancing, mid-gesture. Urban street, rooftop, or colourful backdrop. Action frozen in a moment.',
+      'Director brief: Freeze a moment of motion or attitude — mid-stride, mid-dance, hair or fabric in motion. Urban street, rooftop, or bold colour-block backdrop. Energy and youth; one strong gesture or look. Product visible and part of the action. Feels like the best frame from a Reel: dynamic, thumb-stopping.',
     lightingGuide:
-      'Natural outdoor light or neon/ambient urban light. Slight motion blur acceptable for energy. Vibrant, saturated tones.',
+      'Dramatic but natural: golden hour rim from behind, or neon/ambient urban glow (magenta/cyan) from one side. Key light sculpts face and product; fill keeps shadows from going black. Slight motion blur or wind in fabric acceptable. High saturation, punchy contrast. Think music-video meets campaign.',
     cameraGuide:
-      '24-35mm wide angle, low or tilted perspective, slight barrel distortion for dynamism, 9:16 or 1:1.',
-    avoid: ['static pose', 'studio setting', 'muted tones', 'slow feeling'],
+      '24–35mm wide, low or Dutch angle for power. f/2.8, shallow DoF. Slight barrel distortion for energy. 9:16 or 1:1. Frozen motion where needed; sharp on subject, background can streak or bokeh.',
+    avoid: ['static pose', 'studio setting', 'muted tones', 'flat lighting', 'slow feeling'],
   },
   {
     id: 'UGC_TESTIMONIAL',
@@ -237,12 +237,12 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Review ads', 'Trust building', 'Testimonial content'],
     platforms: ['instagram', 'facebook', 'google'],
     sceneGuide:
-      'Subject looking directly at camera, mid-shot (chest up), relaxed home or office background. Natural, honest, conversational. Product visible in hand or on body.',
+      'Director brief: Mid-shot (chest up), subject looking straight at camera — honest, conversational. Home office, living room, or soft-focus indoor background. Product in hand or worn. Feels like a premium testimonial: authentic but beautifully lit. Trust and warmth in one frame.',
     lightingGuide:
-      'Soft natural light from side, no harsh shadows, warm inviting tone. Ring light glow acceptable.',
+      'Soft key from 30–45° (window or large softbox), fill at 2:1 so face has shape but no harsh shadows. Warm tone (4500–5000K). Optional subtle ring-light reflection in eyes for that “creator” feel. Skin real — pores, texture — not over-smoothed.',
     cameraGuide:
-      '35-50mm at eye level, subject centered, shallow depth of field softening background, webcam/phone quality feel.',
-    avoid: ['dramatic poses', 'editorial styling', 'dark moody lighting'],
+      '35–50mm at eye level, f/2.8–4, subject centered or rule-of-thirds. Shallow DoF to soften background; product and face pin-sharp. Clean, flattering, conversion-ready.',
+    avoid: ['dramatic poses', 'editorial styling', 'dark moody lighting', 'cold light'],
   },
 
   {
@@ -254,12 +254,12 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Product showcase', 'Outfit of the day', 'Unboxing', 'Gift guides'],
     platforms: ['instagram', 'facebook'],
     sceneGuide:
-      'Top-down overhead flat lay on a clean surface (white marble, linen, wood). Product arranged centrally with complementary accessories: sunglasses, watch, coffee cup, plant, notebook. Aesthetic grid composition. No person visible, just curated items.',
+      'Director brief: Perfect overhead flat lay. Surface: white marble, linen, or warm wood. Product hero central; supporting props (sunglasses, watch, coffee cup, plant, magazine) arranged with negative space and rhythm. No person — curated still life. Feels like a premium OOTD or unboxing frame: clean, aspirational, scroll-stopping.',
     lightingGuide:
-      'Soft natural window light from one side, gentle shadows for depth. Even, bright, clean. No harsh shadows. Instagram-aesthetic warmth.',
+      'Single soft key from one side (window or large softbox) so objects cast gentle, directional shadows for depth. No flat overhead bounce — we want shape. Bright, clean, 5500K. Subtle specular on reflective props. Production-quality “natural” flat lay.',
     cameraGuide:
-      'Directly overhead, 90-degree top-down, 35-50mm, deep depth of field, everything in focus. Slightly warm white balance.',
-    avoid: ['people', 'messy arrangement', 'dark lighting', 'tilted angle', 'studio backdrop'],
+      'True 90° top-down, 35–50mm, f/5.6–8 for sharpness across frame. Everything in focus. Slightly warm white balance. Composition: rule of thirds or central hero with orbiting props.',
+    avoid: ['people', 'messy arrangement', 'dark lighting', 'tilted angle', 'harsh shadows', 'studio backdrop'],
   },
   {
     id: 'UGC_GRWM',
@@ -270,12 +270,12 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Fashion brands', 'Beauty routine', 'Lifestyle content', 'Intimacy'],
     platforms: ['instagram', 'facebook'],
     sceneGuide:
-      'Subject captured mid-getting-ready: fixing hair, adjusting outfit, applying lipstick, or looking in a mirror. Bedroom or bathroom setting with soft lived-in feel. Product visible being worn or held. Intimate, relatable, aspirational-yet-attainable moment.',
+      'Director brief: Intimate GRWM moment — fixing hair, adjusting outfit, applying product, or catching reflection in mirror. Bedroom or bathroom with soft lived-in details. Product on body or in hand. Feels like a best friend’s mirror selfie but lit like a brand campaign: aspirational yet relatable.',
     lightingGuide:
-      'Warm golden morning light through window, or soft vanity lighting. Gentle highlights on skin, natural warmth. No flash.',
+      'Warm key from window or vanity (3200–4000K). Soft, flattering; no harsh nose shadow. Optional rim from mirror or second source. Skin dewy, natural texture. Golden morning or soft evening vibe.',
     cameraGuide:
-      '35mm phone-style or mirror reflection, slightly imperfect framing for authenticity, shallow depth of field, warm tones.',
-    avoid: ['studio setting', 'perfect posing', 'professional lighting', 'editorial stiffness'],
+      '35mm or mirror POV, slightly imperfect framing for authenticity. f/2–2.8, shallow DoF. Warm tones. Eye-level or mirror reflection. Production-quality intimate.',
+    avoid: ['studio setting', 'perfect posing', 'cold light', 'editorial stiffness'],
   },
 
   // ─── Editorial ───
@@ -288,11 +288,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Brand campaigns', 'High-end brands', 'Storytelling'],
     platforms: ['instagram'],
     sceneGuide:
-      'Carefully chosen real-world environment: architectural interior, minimal outdoor, gallery. Depth and narrative without overwhelming. Refined, composed posture.',
+      'Director brief: One frame that could open a Vogue spread. Real-world environment — architectural interior, minimal outdoor, or gallery — with depth and narrative. Refined, composed posture; every element intentional. Think Peter Lindbergh, Annie Leibovitz: storytelling in a single image.',
     lightingGuide:
-      'Cinematic yet realistic: directional key light creating soft highlights and natural shadows that sculpt the subject. Premium tonal quality.',
+      'Production-quality cinematic: key at 45° front-left or front-right, soft but directional (large softbox or window). Fill at 2:1 so face and fabric are sculpted, not flat. Optional rim for hair and shoulder separation. 5500–5600K. Skin and fabric texture visible. Premium tonal quality, 8K where it matters.',
     cameraGuide:
-      '50-85mm portrait lens, shallow depth of field, refined composition, premium fashion editorial framing.',
+      '50–85mm portrait, f/2–2.8, shallow depth of field, refined composition. Rule-of-thirds or centered. Premium fashion editorial framing. Tack-sharp on subject.',
     avoid: ['casual feel', 'smartphone aesthetic', 'cluttered backgrounds', 'flat lighting'],
   },
   {
@@ -304,11 +304,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Fashion launches', 'Lookbook', 'Designer brands'],
     platforms: ['instagram'],
     sceneGuide:
-      'Studio or minimal architectural setting. Strong styling, fashion-forward pose, confident attitude. Product is the star of the composition.',
+      'Director brief: Model as sculpture. Studio or minimal architectural set; strong styling, fashion-forward pose, confident attitude. Product is the star — fabric, silhouette, accessory must read. One frame that could lead a lookbook or campaign. Guy Bourdin, Tim Walker energy.',
     lightingGuide:
-      'Controlled studio lighting: key light from 45 degrees, rim light for separation, beauty dish or large softbox. Sharp detail on fabric and accessories.',
+      'Controlled studio rig: key at 45° (beauty dish or large softbox), fill to taste (2:1 or 3:1). Rim or backlight for hair and shoulder separation. Sharp detail on fabric weave and accessories. 5600K. Production fashion lighting — no flat single-source.',
     cameraGuide:
-      '85-100mm telephoto, full body or three-quarter, fashion editorial framing, tack sharp on subject.',
+      '85–100mm telephoto, f/2.8–4, full body or three-quarter. Fashion editorial framing. Tack-sharp on subject, creamy falloff. 8K.',
     avoid: ['casual/candid', 'smartphone look', 'natural/UGC feel'],
   },
   {
@@ -320,11 +320,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Beauty brands', 'Skincare', 'Makeup', 'Close-up product'],
     platforms: ['instagram', 'facebook'],
     sceneGuide:
-      'Tight close-up: face or detail shot. Product in application or held near face. Dewy skin, natural pores visible, minimal makeup. Clean backdrop.',
+      'Director brief: Tight beauty hero — face or detail shot. Product in application or held near face. Dewy skin, natural pores visible, minimal makeup. Clean backdrop. Every lash and highlight intentional. Magazine beauty spread quality.',
     lightingGuide:
-      'High-key soft studio lighting, warm off-white background, shallow depth of field on skin and product texture. Beauty dish or ring light.',
+      'Beauty dish or large softbox at 45°; fill at 2:1. Rim for hair separation. Skin luminous, texture visible but flattering. Catchlights in eyes. 5600K. High-key soft, no harsh nose shadow. Production beauty lighting.',
     cameraGuide:
-      '85mm macro-portrait, f/2.8, focus on cheek/eye area and product, creamy background bokeh.',
+      '85mm macro-portrait, f/2.8–4, focus on cheek/eye and product. Creamy background bokeh. 8K detail on skin and product.',
     avoid: ['full body', 'busy environment', 'harsh shadows', 'over-smoothed skin'],
   },
   {
@@ -336,11 +336,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Streetwear', 'Urban brands', 'Youth editorial'],
     platforms: ['instagram'],
     sceneGuide:
-      'Urban street: graffiti wall, concrete, metal textures, city grit. Subject with attitude, leaning or walking. Raw, not polished.',
+      'Director brief: Urban fashion in context — graffiti wall, concrete, metal, city grit. Subject with attitude: leaning, walking, or strong stance. Raw but lit like a campaign. One frame that could lead a street-style feature. Martin Parr meets high fashion.',
     lightingGuide:
-      'Natural harsh daylight with strong shadows, or overcast diffused. Film grain and slight desaturation for edge. No studio look.',
+      'Natural urban light: harsh daylight with strong directional shadows, or overcast soft key. Film grain and slight desaturation for edge. Optional neon or street lamp accent. No studio look — environment-driven shadows. Production-quality “street” lighting.',
     cameraGuide:
-      '35mm wide or 50mm standard, street photography framing, slight tilt, film grain, analog feel.',
+      '35mm wide or 50mm standard, street framing, slight tilt. Film grain, analog feel. f/2.8–4. Documentary-meets-campaign.',
     avoid: ['studio', 'perfect lighting', 'clean backgrounds', 'posed perfection'],
   },
   {
@@ -352,11 +352,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Luxury', 'Fragrance', 'Dark aesthetic brands', 'Mystery campaigns'],
     platforms: ['instagram'],
     sceneGuide:
-      'Dramatic film noir scene: subject partially in shadow, venetian blind light stripes across face, cigarette smoke or fog. Urban night, rain-slicked streets reflecting streetlights. Predominantly black and white with one subtle warm accent. Mysterious, seductive, dangerous elegance.',
+      'Director brief: Chiaroscuro hero. Subject partially in shadow; venetian blind stripes across face; smoke or fog. Urban night, rain-slicked streets, one subtle warm accent in B&W. Mysterious, seductive, dangerous elegance. One frame that could sell fragrance or luxury.',
     lightingGuide:
-      'Single hard key light creating deep shadows. Chiaroscuro. Strong contrast between light and dark. Venetian blind patterns, window light slashes. Rim light on hair/shoulders for separation from black background.',
+      'Single hard key from side or 45°, deep shadows. Rim on hair/shoulders for separation from black. Venetian blind patterns or window slashes. Strong contrast; no fill in shadow. 3200K or cool 4500K for mood. Film noir cinematography — production-grade.',
     cameraGuide:
-      '50-85mm, low or Dutch angle, shallow depth of field. Film grain, high contrast black and white processing. Noir cinematography feel.',
+      '50–85mm, low or Dutch angle, f/1.4–2. Shallow depth. Film grain, high-contrast B&W. Noir cinematography feel.',
     avoid: ['bright colours', 'soft/flat lighting', 'casual feel', 'outdoor daylight', 'digital clarity'],
   },
   {
@@ -368,11 +368,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Bridal', 'Perfume', 'Luxury skincare', 'Fantasy campaigns'],
     platforms: ['instagram'],
     sceneGuide:
-      'Otherworldly dreamscape: subject floating or standing in soft fog, floral elements, flowing fabric caught mid-air, petals or particles drifting. Ethereal, painterly quality. Soft focus everywhere except eyes. Colours: pale lavender, rose gold, pearl white, soft blue. Pre-Raphaelite painting meets fashion photography.',
+      'Director brief: Otherworldly dreamscape. Subject in soft fog, floral elements, flowing fabric mid-air, petals or particles drifting. Soft focus except eyes. Palette: pale lavender, rose gold, pearl white, soft blue. Pre-Raphaelite meets fashion — one frame that could lead a bridal or perfume campaign.',
     lightingGuide:
-      'Soft diffused backlight creating a glowing halo. Lens flare acceptable. No harsh shadows. Everything bathed in warm golden or cool pearl light. Dreamy, overexposed highlights.',
+      'Soft diffused backlight creating halo; lens flare acceptable. No harsh shadows. Bathed in warm golden or cool pearl light. Dreamy overexposed highlights. Fill from front so face is readable. Production-quality ethereal — not flat, still dimensional.',
     cameraGuide:
-      '85-135mm, wide open f/1.4-2.0, extreme shallow depth of field. Soft diffusion filter or prism effect. Painterly, not clinical.',
+      '85–135mm, f/1.4–2, extreme shallow DoF. Soft diffusion or prism effect. Painterly, not clinical. 8K where sharp.',
     avoid: ['harsh light', 'urban settings', 'sharp digital clarity', 'dark/moody', 'gritty textures'],
   },
 
@@ -386,11 +386,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['D2C brands', 'Catalog ads', 'Product clarity matters'],
     platforms: ['instagram', 'google'],
     sceneGuide:
-      'Simple modern lifestyle setting: minimal room, neutral interior, table surface. Product is primary focus; model secondary if present.',
+      'Director brief: Product in use or in context — minimal room, neutral interior, table surface. Product primary; model secondary if present. One frame that sells the lifestyle. Authentic, aspirational, campaign-ready.',
     lightingGuide:
-      'Soft studio or diffused natural light, even distribution, no harsh shadows. Subtle shadows beneath product for grounding.',
+      'Soft key from 30–45° (window or large softbox), fill at 2:1. Directional but soft; subtle shadow beneath product for grounding. 5500K. Skin and product both lit to premium standard. No flat bounce.',
     cameraGuide:
-      '50mm standard lens, clean framing, product centred, professional ecommerce clarity.',
+      '50mm standard, f/2.8–4, clean framing, product centred. Shallow DoF optional. Professional e‑commerce clarity, 8K.',
     avoid: ['cluttered', 'dramatic lighting', 'artistic distortion', 'heavy stylisation'],
   },
   {
@@ -402,11 +402,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Sales', 'Announcements', 'Brand drops', 'Banner ads'],
     platforms: ['instagram', 'facebook', 'google'],
     sceneGuide:
-      'Solid or soft gradient studio backdrop, no texture or distractions. Space for text overlay. Subject centred for impact.',
+      'Director brief: Solid or soft gradient studio backdrop; no texture or distractions. Space reserved for text overlay. Subject centred for maximum impact. One frame that could run as a poster or banner — iconic, clean, campaign-ready.',
     lightingGuide:
-      'Controlled softbox studio lighting, even illumination, gentle shadows, strong clarity on subject and product.',
+      'Controlled key at 45°, fill for even illumination, gentle shadows. Rim optional for separation. 5600K. Strong clarity on subject and product. Production studio lighting — flattering, defined.',
     cameraGuide:
-      '50mm straight-on, symmetrical, poster-style framing, deep depth of field.',
+      '50mm straight-on, symmetrical, poster-style framing. f/5.6–8 for deep DoF. Tack-sharp. 8K.',
     avoid: ['busy backgrounds', 'environmental context', 'candid feel', 'dramatic angles'],
   },
   {
@@ -418,11 +418,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Product launches', 'Beauty/luxury ads', 'Hero shots'],
     platforms: ['instagram', 'facebook', 'google'],
     sceneGuide:
-      'Product floating or prominently placed, surrounded by abstract shapes, glossy spheres, or gradient background. No model; product is the hero. Premium, futuristic.',
+      'Director brief: Product as sole star — floating or prominently placed amid abstract shapes, glossy spheres, or gradient. No model. Premium, futuristic. One frame that could open a global launch.',
     lightingGuide:
-      'High-contrast cinematic studio lighting, crisp reflections, shiny surfaces. 3D-render quality, 8K detail.',
+      'Key from front-left or front-right (45°), fill 2:1, rim for edge separation. Crisp reflections and speculars on glass/metal. 5600K. 3D-render quality, 8K detail. Production pack-shot level.',
     cameraGuide:
-      'Macro or medium, shallow depth of field, sharp focus on product, bokeh on background elements.',
+      'Macro or medium, f/5.6–8, sharp on product, bokeh on background. Slight tilt optional. 8K.',
     avoid: ['model/person', 'casual setting', 'flat lighting', 'low resolution feel'],
   },
   {
@@ -434,11 +434,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Carousel ads', 'Multi-product showcase', 'Swipeable content'],
     platforms: ['instagram', 'facebook', 'google'],
     sceneGuide:
-      'Single clean frame designed for a carousel series. Product centred with solid colour or soft gradient background. Space on one side for implied next slide. Bold, graphic, swipe-worthy. Each frame feels complete but invites continuation.',
+      'Director brief: Single hero frame for a carousel. Product centred on solid or soft gradient. Space on one side for implied next slide. Bold, graphic, swipe-worthy. Each frame complete but invites continuation. Campaign-quality clarity.',
     lightingGuide:
-      'Clean studio lighting, even and bright, product colours accurate. Soft shadow beneath for grounding.',
+      'Clean key and fill, even and bright. Product colours accurate. Soft shadow beneath for grounding. 5600K. Production studio lighting.',
     cameraGuide:
-      '50mm, straight-on, 1:1 square, deep DoF, product sharp against clean background.',
+      '50mm straight-on, 1:1 square, f/5.6–8, product sharp. Deep DoF. 8K.',
     avoid: ['busy backgrounds', 'multiple products per frame', 'text clutter', 'environmental context'],
   },
   {
@@ -450,11 +450,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Campaign launches', 'Print ads', 'Window displays', 'Brand drops'],
     platforms: ['instagram', 'facebook', 'google'],
     sceneGuide:
-      'Bold graphic campaign poster. Subject or product as hero with strong graphic elements: bold colour blocks, geometric shapes, striking negative space. Print-quality composition. Feels like a Zara or H&M seasonal campaign poster.',
+      'Director brief: Bold graphic campaign poster. Subject or product as hero; strong graphic elements — colour blocks, geometric shapes, striking negative space. Print-quality composition. Zara/H&M seasonal poster energy. One frame that stops scroll and works in-store.',
     lightingGuide:
-      'Controlled studio lighting: high-key for bright campaigns, or dramatic low-key for luxury. Sharp, defined, intentional.',
+      'Controlled studio: high-key for bright campaigns (soft key + fill, 5600K), or low-key for luxury (single key, rim, deep shadows). Sharp, defined, intentional. Production-grade.',
     cameraGuide:
-      '50-85mm, clean composition, subject/product centred or rule-of-thirds, poster-style framing.',
+      '50–85mm, clean composition, centred or rule-of-thirds. Poster-style framing. f/4–5.6. 8K.',
     avoid: ['casual/candid', 'environmental context', 'low contrast', 'busy clutter'],
   },
 
@@ -468,11 +468,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Brand storytelling', 'Campaign hero', 'Art direction'],
     platforms: ['instagram'],
     sceneGuide:
-      'Realistic photo with ONE surreal twist: melting fabric, floating objects, impossible landscape. Subject is unaffected, calm. Subtle strangeness, not chaotic.',
+      'Director brief: Photorealistic scene with ONE surreal twist — melting fabric, floating objects, impossible landscape. Subject calm, unaffected. Subtle strangeness; one frame that could lead a campaign. Not chaotic — controlled, iconic.',
     lightingGuide:
-      'Soft natural or studio light matching the realistic base. Surreal element lit consistently with the scene.',
+      'Production lighting matching the realistic base: key at 45°, fill 2:1, rim for separation. Surreal element lit consistently with scene (same shadows, same colour temp). No “CG” mismatch. 5600K or environment-appropriate.',
     cameraGuide:
-      '35-50mm, clean composition, shallow depth of field. The surreal element is central.',
+      '35–50mm, f/2.8–4, clean composition, shallow DoF. Surreal element central. 8K where sharp.',
     avoid: ['multiple surreal elements', 'fantasy', 'horror', 'digital glitch', 'chaos'],
   },
   {
@@ -484,11 +484,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Sports', 'Athletic brands', 'Energy/action'],
     platforms: ['instagram', 'facebook'],
     sceneGuide:
-      'Dynamic action: running, jumping, kicking, dancing. Motion blur on limbs or background. Dramatic panning or low angle. Energy and movement.',
+      'Director brief: Peak action frozen or streaked — running, jumping, kicking, dancing. Motion blur on limbs or background. Dramatic low angle or panning feel. One frame that could open a Nike or sports campaign. Energy and power.',
     lightingGuide:
-      'Natural dramatic light or stadium/urban light. Motion blur streaks. Muted or high-contrast tones, 35mm film grain.',
+      'Dramatic key from 45° or back rim; stadium or urban practicals. Motion blur streaks lit by same sources. Warm-cool contrast (orange rim, blue fill) or golden hour. 35mm film grain. Production cinematic.',
     cameraGuide:
-      '24-35mm wide angle, low perspective, panning shot feel, 1/30-1/60 shutter for motion blur.',
+      '24–35mm wide, low perspective. 1/30–1/60 shutter feel for motion blur, or 1/500 freeze. f/2.8. Panning shot energy.',
     avoid: ['static pose', 'studio setting', 'clean/still composition'],
   },
   {
@@ -500,11 +500,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Campaign launches', 'Nike/Adidas style', 'Bold branding'],
     platforms: ['instagram', 'facebook'],
     sceneGuide:
-      'Model in dramatic pose against fluorescent gradient background with flowing neon organic shapes. Bold sans-serif brand typography integrated with composition.',
+      'Director brief: Model in dramatic pose against fluorescent gradient with flowing neon organic shapes. Bold sans-serif typography integrated into composition. Full body, hero moment. One frame that could lead a global drop. Nike/Adidas campaign energy.',
     lightingGuide:
-      'Studio key light from above-front, gradient background glowing, neon shapes reflecting on subject. High-fashion commercial light.',
+      'Studio key from above-front (45°), gradient background glowing; neon shapes casting colour on subject. Rim for separation. High-fashion commercial light — sculpted, not flat. 5600K on skin, gradient drives palette.',
     cameraGuide:
-      'Full body, slightly low angle, subject fills frame with typography around them.',
+      'Full body, slightly low angle, f/4–5.6. Subject and typography both sharp. 8K. Poster-ready.',
     avoid: ['natural backgrounds', 'muted colours', 'candid feel', 'small text'],
   },
   {
@@ -516,11 +516,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Fashion brands', 'Colour-led campaigns', 'Statement pieces'],
     platforms: ['instagram'],
     sceneGuide:
-      'Solid deep colour backdrop (red, blue, emerald). Subject in contrasting outfit. Strong graphic colour blocking. Retro-modern aesthetic.',
+      'Director brief: Solid deep backdrop (crimson #8B0000, electric blue, emerald). Subject in contrasting outfit. Strong graphic colour blocking. Retro-modern editorial — one frame that could be a magazine cover. Intentional, bold.',
     lightingGuide:
-      'Directional studio lighting, soft but defined shadows, cinematic colour grading. Saturated, intentional palette.',
+      'Directional key at 45°, fill 2:1, rim for separation. Soft but defined shadows. Cinematic colour grade; saturated, intentional palette. 5600K key. Production studio.',
     cameraGuide:
-      '50-85mm, three-quarter or full body, magazine editorial framing, sharp focus.',
+      '50–85mm, f/2.8–4, three-quarter or full body. Magazine editorial framing. Tack-sharp. 8K.',
     avoid: ['neutral tones', 'natural backgrounds', 'low saturation', 'casual/candid'],
   },
 
@@ -534,11 +534,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Tech brands', 'Streetwear', 'Nightlife', 'Music'],
     platforms: ['instagram', 'facebook'],
     sceneGuide:
-      'Subject against a fluorescent gradient background (magenta-to-cyan, orange-to-violet, or electric blue-to-pink). Flowing neon organic shapes and light trails surround the subject. Futuristic, Gen-Z energy, high saturation.',
+      'Director brief: Subject against fluorescent gradient (magenta-to-cyan, orange-to-violet, electric blue-to-pink). Flowing neon organic shapes and light trails. Futuristic, Gen-Z energy. One frame that could lead a drop or festival campaign.',
     lightingGuide:
-      'Neon rim lighting from behind, soft fill from front, gradient background glowing. Neon reflections on skin and product. High contrast, saturated colour.',
+      'Neon rim from behind (magenta/cyan), soft fill from front. Gradient background glowing; neon reflections on skin and product. High contrast, saturated. 5600K fill on face, coloured sources drive palette. Production-quality neon.',
     cameraGuide:
-      '35-50mm, full body or three-quarter, subject centred, slightly low angle for power. Shallow DoF on background shapes.',
+      '35–50mm, f/2.8–4, full body or three-quarter, subject centred, slightly low angle. Shallow DoF on background shapes. 8K on subject.',
     avoid: ['natural backgrounds', 'muted tones', 'flat lighting', 'casual/candid'],
   },
   {
@@ -550,11 +550,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Vintage brands', 'Heritage collections', 'Nostalgia campaigns'],
     platforms: ['instagram'],
     sceneGuide:
-      'Shot on analog 35mm film. Visible grain, slightly faded colours with warm amber/teal cast. Subject in natural environment — street, café, park bench. Candid or editorial pose with analog charm.',
+      'Director brief: Shot on analog 35mm. Visible grain, faded colours with warm amber/teal cast. Subject in natural environment — street, café, park. Candid or editorial pose with analog charm. One frame that could lead a heritage campaign.',
     lightingGuide:
-      'Natural available light, overcast or golden hour. Slight overexposure for film look. Warm colour temperature, no clinical studio light.',
+      'Natural available light — overcast or golden hour. Slight overexposure for film look. Warm colour temp (4500–5000K). No clinical studio light. Directional where possible for shape. Production-quality “film” — not muddy.',
     cameraGuide:
-      '35mm or 50mm prime, f/2.0-2.8, slight vignetting, analog colour shifts. Film grain prominent, not digital noise.',
+      '35mm or 50mm prime, f/2–2.8, slight vignetting, analog colour shifts. Film grain prominent, not digital noise. 8K base with film treatment.',
     avoid: ['digital perfection', 'HDR look', 'studio lighting', 'sharp clinical edges'],
   },
   {
@@ -566,11 +566,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Product launches', 'Tech products', 'Premium positioning'],
     platforms: ['instagram', 'facebook', 'google'],
     sceneGuide:
-      'Ultra-realistic 3D CGI render. Product floating mid-air surrounded by geometric shapes (spheres, cubes, torus), liquid splashes, or particle effects. Clean gradient or solid colour background. Octane Render / Unreal Engine 5 quality.',
+      'Director brief: Ultra-realistic 3D CGI. Product floating mid-air with geometric shapes (spheres, cubes, torus), liquid splashes, or particles. Clean gradient or solid background. Octane / Unreal Engine 5 quality. One frame that could open a global launch.',
     lightingGuide:
-      'Three-point studio setup: key light from 45 degrees above, fill from front, rim light for edge separation. Specular highlights on product, caustics on transparent elements. 8K resolution detail.',
+      'Three-point: key from 45° above, fill from front, rim for edge separation. Speculars on product, caustics on transparent elements. 5600K. 8K detail. Production 3D lighting.',
     cameraGuide:
-      'Macro to medium, sharp focus on product, bokeh on background elements. Slight tilt-shift for miniature effect. Deep DoF for product, shallow for environment.',
+      'Macro to medium, sharp on product, bokeh on background. Slight tilt-shift optional. Deep DoF on product, shallow on environment.',
     avoid: ['people/models', 'natural backgrounds', 'casual feel', 'flat lighting', 'low-poly look'],
   },
   {
@@ -582,11 +582,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Gen-Z brands', 'Nostalgia campaigns', 'Music/nightlife', 'Streetwear'],
     platforms: ['instagram'],
     sceneGuide:
-      'Vaporwave aesthetic: subject or product against a retro-futuristic backdrop of purple/pink/cyan gradients, chrome Greek statues, floating geometric shapes, pixelated palm trees, sunset grid horizon. VHS scan lines, glitch effects, chromatic aberration. 80s-90s retro-futurism meets internet culture.',
+      'Director brief: Vaporwave hero frame. Purple/pink/cyan gradients, chrome statues, floating shapes, pixel palms, sunset grid. VHS scan lines, glitch, chromatic aberration. 80s–90s retro-futurism. One frame that could lead a Gen-Z campaign.',
     lightingGuide:
-      'Neon pink and cyan dual lighting from opposite sides. Purple ambient fill. Glowing edges. Saturated, dreamy, lo-fi warmth under digital haze.',
+      'Neon pink and cyan from opposite sides; purple ambient fill. Glowing edges on subject/product. Saturated, dreamy, lo-fi warmth. Subject still lit with key/fill so face reads. Production “vaporwave” — not flat.',
     cameraGuide:
-      '35-50mm, centred composition, VHS/CRT texture overlay, slight barrel distortion, oversaturated colour.',
+      '35–50mm, centred, VHS/CRT overlay, slight barrel distortion. Oversaturated colour. 8K base.',
     avoid: ['natural/realistic colours', 'modern clean aesthetic', 'editorial sobriety', 'monochrome'],
   },
   {
@@ -598,12 +598,12 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Brand storytelling', 'Conceptual campaigns', 'Art direction', 'Music'],
     platforms: ['instagram'],
     sceneGuide:
-      'Double exposure effect: subject silhouette filled with a secondary image — city skyline, forest, ocean waves, flower field, or abstract texture. The two images blend seamlessly. Subject outline is clearly readable. Background is minimal (white or soft gradient). Artistic, narrative, emotional.',
+      'Director brief: Double exposure — subject silhouette filled with secondary image: city skyline, forest, ocean, flowers, or abstract texture. Seamless blend; outline clearly readable. Minimal background (white or soft gradient). One frame that could lead a conceptual campaign. Narrative, emotional.',
     lightingGuide:
-      'Subject backlit to create strong silhouette edges. Secondary image has its own internal lighting. Overall mood is contemplative and cinematic.',
+      'Subject backlit for strong silhouette edges. Secondary image has its own internal lighting (directional, consistent). Overall contemplative, cinematic. No harsh front light on face.',
     cameraGuide:
-      '85mm portrait, strong silhouette edge, the fill texture visible through the subject. Clean background for contrast.',
-    avoid: ['cluttered secondary image', 'unclear silhouette', 'harsh lighting on subject face', 'too many elements'],
+      '85mm portrait, strong silhouette edge, fill texture visible through subject. Clean background. 8K.',
+    avoid: ['cluttered secondary image', 'unclear silhouette', 'harsh lighting on face', 'too many elements'],
   },
   {
     id: 'CREATIVE_GLASSMORPHISM',
@@ -614,11 +614,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Tech brands', 'Premium/modern brands', 'UI-inspired campaigns', 'Minimalism'],
     platforms: ['instagram', 'google'],
     sceneGuide:
-      'Product or subject seen through and behind layers of frosted translucent glass panels. Soft coloured light bleeds through the glass creating aurora-like gradients. Apple "Liquid Glass" aesthetic — layered, depth-rich, premium, clean. Glass panels at different depths and angles.',
+      'Director brief: Product or subject through frosted translucent glass layers. Soft coloured light bleeds through — aurora-like gradients. Apple “Liquid Glass” aesthetic: layered, depth-rich, premium. One frame that could lead a tech campaign.',
     lightingGuide:
-      'Soft ambient light passing through frosted glass, creating diffused colour washes. Subtle caustics and refractions. Bright, airy, high-key. Pastel gradients (lavender, mint, peach).',
+      'Soft ambient through frosted glass; diffused colour washes. Subtle caustics and refractions. Bright, high-key. Pastels (lavender, mint, peach). Key on subject so they read through glass. Production-quality glass.',
     cameraGuide:
-      '50mm, shallow depth of field, glass panels at different focus distances creating natural bokeh layers.',
+      '50mm, f/2.8–4, shallow DoF; glass at different focus distances for bokeh layers. 8K.',
     avoid: ['dark mood', 'gritty textures', 'harsh shadows', 'vintage/analog', 'cluttered'],
   },
   {
@@ -630,11 +630,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Quirky brands', 'Hospitality', 'Candy/food', 'Lifestyle', 'Whimsical campaigns'],
     platforms: ['instagram'],
     sceneGuide:
-      'Perfect bilateral symmetry. Pastel colour palette (powder pink, mint green, pale yellow, baby blue). Retro-quirky interior or exterior: hotel lobby, elevator, storefront, pool. Subject centred dead-on, looking directly at camera with deadpan expression. Obsessive set dressing, every prop intentional. Grand Budapest Hotel meets fashion.',
+      'Director brief: Perfect bilateral symmetry. Pastels: powder pink, mint, pale yellow, baby blue. Retro-quirky set: hotel lobby, elevator, storefront, pool. Subject centred, dead-on, deadpan expression. Every prop intentional. Grand Budapest Hotel meets fashion. One frame that could lead a whimsical campaign.',
     lightingGuide:
-      'Flat, even, warm-toned lighting with no dramatic shadows. Natural or practical lights visible (lamps, sconces). Consistent pastel colour temperature throughout.',
+      'Flat, even, warm-toned; no dramatic shadows. Practicals visible (lamps, sconces). Consistent pastel colour temp. Still production-quality — even doesn’t mean muddy; subject and set read clearly.',
     cameraGuide:
-      'Wide-angle 24-35mm, perfectly level, dead-centre symmetrical framing, deep depth of field. Aspect ratio slightly wide (16:9 or 2.39:1 cinematic).',
+      '24–35mm wide, perfectly level, dead-centre symmetrical. Deep DoF. 16:9 or 2.39:1. 8K.',
     avoid: ['asymmetry', 'dark/moody', 'desaturated', 'gritty', 'casual framing', 'handheld feel'],
   },
   {
@@ -646,11 +646,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Product launches', 'Tech/engineering brands', 'Sneaker culture', 'Craft/quality focus'],
     platforms: ['instagram', 'facebook'],
     sceneGuide:
-      'Product deconstructed/exploded: all components separated and floating in mid-air showing internal structure — sole separated from upper, laces floating, stitching visible, materials layered. Dark or gradient background. Technical beauty meets art. Like a high-end engineering diagram brought to life as a photograph.',
+      'Director brief: Product exploded — components floating in mid-air: sole from upper, laces, stitching, materials layered. Dark or gradient background. Technical beauty as art. One frame that could lead a sneaker or tech launch. Engineering diagram as photograph.',
     lightingGuide:
-      'Dramatic studio lighting: strong key from above, dark background, each floating component individually lit with rim light. Specular highlights on materials. Clean, premium.',
+      'Strong key from above or 45°; dark background. Each component rim-lit for separation. Speculars on materials. Clean, premium. 5600K on product. Production studio.',
     cameraGuide:
-      'Macro to medium, components arranged in 3D space with depth, shallow DoF on background, sharp on primary component.',
+      'Macro to medium, components in 3D depth. Shallow DoF on background, sharp on primary. 8K.',
     avoid: ['assembled product', 'models', 'casual setting', 'flat lighting', 'messy arrangement'],
   },
 
@@ -664,11 +664,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Catalog', 'E-commerce', 'Product page'],
     platforms: ['instagram', 'google'],
     sceneGuide:
-      'Neutral grey or white studio background, product centred, even lighting, no distractions. Professional product photography.',
+      'Director brief: Product as sole hero. Neutral grey or white studio background, centred, no distractions. One frame that could lead a product page or catalog. Professional, premium, conversion-ready.',
     lightingGuide:
-      'Even studio light from multiple angles, no harsh shadows, clean highlights on product surface.',
+      'Key from 45° front-left or -right, fill 2:1, subtle rim for edge separation. No harsh shadows; clean speculars on product surface. 5600K. Production pack-shot — even but dimensional.',
     cameraGuide:
-      '50mm macro, straight-on or slight angle, deep depth of field, high resolution 4K.',
+      '50mm macro, straight-on or slight angle, f/5.6–8, deep DoF. 8K. Tack-sharp on product.',
     avoid: ['models', 'environments', 'artistic styling', 'coloured backgrounds'],
   },
   {
@@ -680,11 +680,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Product launches', 'Premium positioning', 'Social buzz'],
     platforms: ['instagram'],
     sceneGuide:
-      'Product floating or placed in surreal scene: stone beads, ribbons, gradient sky, water, abstract landscape. Installation art feel, wide angle, poster-worthy.',
+      'Director brief: Product floating or placed in surreal scene — stone beads, ribbons, gradient sky, water, abstract landscape. Installation-art feel, poster-worthy. One frame that could lead a launch or social campaign.',
     lightingGuide:
-      'Warm cinematic light, gradient background, soft ambient fill. Product surface sharply lit with clean highlights.',
+      'Warm cinematic key from 30–45°; gradient background glowing. Soft ambient fill. Product sharply lit with clean highlights and rim. 5600K on product. Production-quality surreal.',
     cameraGuide:
-      'Wide angle for drama, product in foreground sharp, surreal elements in mid/background, shallow DoF.',
+      'Wide angle for drama, product in foreground sharp, surreal elements mid/background. Shallow DoF. 8K on product.',
     avoid: ['models', 'text', 'busy/cluttered', 'low-quality render'],
   },
   {
@@ -696,11 +696,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Luxury brands', 'Jewelry', 'Watches', 'Leather goods', 'Premium detail'],
     platforms: ['instagram'],
     sceneGuide:
-      'Extreme close-up of product showing micro-texture: stitching, grain of leather, watch dial, gemstone facets, weave of fabric. Dark or black background. Product lit to reveal every surface detail. Hyper-real, tactile, sensory.',
+      'Director brief: Extreme close-up — stitching, leather grain, watch dial, gem facets, fabric weave. Dark or black background. Every surface detail revealed. Hyper-real, tactile. One frame that could lead a luxury campaign.',
     lightingGuide:
-      'Single directional key light at 30 degrees creating raking light across texture. Fill from opposite side at 10% intensity. Specular highlights on edges. Black-on-black premium mood.',
+      'Raking key at 30° for texture; fill opposite at ~10%. Speculars on edges. Black-on-black premium mood. 5600K. Production macro — no flat even light.',
     cameraGuide:
-      '100mm macro, f/4-5.6, tack sharp on texture zone, creamy bokeh falloff. Focus stacking feel. 8K detail.',
+      '100mm macro, f/4–5.6, tack-sharp on texture zone, creamy bokeh falloff. Focus-stacking feel. 8K.',
     avoid: ['wide shots', 'models', 'busy backgrounds', 'flat even lighting', 'digital noise'],
   },
   {
@@ -712,11 +712,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Sneaker drops', 'Tech launches', 'Energy/dynamic brands'],
     platforms: ['instagram', 'facebook'],
     sceneGuide:
-      'Product suspended in mid-air with no visible support, slightly tilted. Dynamic elements frozen around it: water splashes, dust particles, paint splatters, fabric tendrils, or light trails. Dark to gradient background. Anti-gravity, high-energy, premium. The product is the sole subject.',
+      'Director brief: Product suspended mid-air, no support, slightly tilted. Dynamic elements frozen: water splashes, dust, paint, fabric tendrils, or light trails. Dark to gradient background. Anti-gravity, high-energy. One frame that could lead a drop campaign.',
     lightingGuide:
-      'Dramatic rim light from behind creating glowing edges. Front fill for product detail. Dynamic elements have their own motion-blur or frozen-splash lighting. High contrast.',
+      'Rim from behind for glowing edges; front fill for product detail. Dynamic elements lit by same rig (motion blur or freeze). High contrast. 5600K on product. Production studio.',
     cameraGuide:
-      '50-85mm, product centred, frozen motion elements in mid-frame, dark background, shallow DoF on furthest elements.',
+      '50–85mm, product centred, frozen motion in frame. Dark background, shallow DoF on far elements. 8K.',
     avoid: ['models', 'text', 'grounded product', 'static feel', 'low resolution'],
   },
 
@@ -730,11 +730,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Performance ads', 'Google Ads', 'D2C', 'E-commerce conversion'],
     platforms: ['instagram', 'facebook', 'google'],
     sceneGuide:
-      'Ultra-clean minimal composition. Product centred on white or very light neutral background. Abundant white space. Optional: one accent colour pop. No distractions, no environment. The product speaks for itself. Flat lay or floating.',
+      'Director brief: Ultra-clean conversion hero. Product centred on white or very light neutral. Abundant white space; optional one accent colour. No distractions. One frame that could run as a performance hero — product speaks for itself. Flat lay or floating.',
     lightingGuide:
-      'High-key, diffused, shadowless. Even illumination from all sides. Clean, clinical, Apple-product-page quality. No colour cast.',
+      'High-key, diffused key and fill; minimal shadow. Even illumination, no colour cast. Subtle shadow beneath product for grounding. 5600K. Apple-product-page quality. Production minimal.',
     cameraGuide:
-      'Straight-on or slight overhead, deep depth of field, product pin-sharp, clinical precision.',
+      'Straight-on or slight overhead, f/5.6–8, deep DoF. Product pin-sharp. 8K. Clinical precision.',
     avoid: ['busy backgrounds', 'models', 'dramatic lighting', 'heavy styling', 'text clutter'],
   },
   {
@@ -746,11 +746,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Before/after ads', 'Product comparison', 'Results-driven', 'Beauty/skincare'],
     platforms: ['instagram', 'facebook', 'google'],
     sceneGuide:
-      'Split-screen composition divided vertically. Left side: "before" state (dull, plain, unenhanced). Right side: "after" state (vibrant, premium, enhanced with the product). Clean dividing line or gradient blend between halves. Same subject in both halves for continuity.',
+      'Director brief: Split-screen vertical. Left: “before” (dull, plain, unenhanced). Right: “after” (vibrant, premium, product-enhanced). Clean divide or gradient blend. Same subject both sides. One frame that could run as a results ad. Lighting tells the story.',
     lightingGuide:
-      'Left (before): flat, slightly desaturated, overcast feel. Right (after): warm, directional, glowing, enhanced. The lighting tells the transformation story.',
+      'Left: flat, slightly desaturated, overcast feel. Right: warm, directional key at 45°, glowing, enhanced. Same colour science so comparison is fair. Production-quality consistency.',
     cameraGuide:
-      'Same camera angle both sides for continuity. 50mm, medium shot, consistent framing.',
+      'Same angle both sides. 50mm, medium shot, consistent framing. 8K.',
     avoid: ['cluttered', 'too many elements', 'different subjects each side', 'unclear division'],
   },
   {
@@ -762,11 +762,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Brand awareness', 'OOH campaigns', 'Pitch decks', 'Placement mockups'],
     platforms: ['instagram', 'facebook'],
     sceneGuide:
-      'A large billboard or poster in a real urban environment: subway station, city building wall, bus shelter, or Times Square–style display. The billboard contains the ad creative (product + model + text). Commuters or city life in soft-focus background. The billboard is the hero.',
+      'Director brief: Large billboard in real urban environment — subway, building wall, bus shelter, Times Square. Billboard shows the ad creative (product + model + text). Commuters or city life in soft-focus. The billboard is the hero. One frame that could pitch OOH placement.',
     lightingGuide:
-      'Billboard is well-lit (backlit or spotlit). Environment has natural urban lighting: daylight, street lamps, or neon. Slight contrast between billboard brightness and surroundings.',
+      'Billboard well-lit (backlit or spotlit). Environment: daylight, street lamps, or neon. Slight contrast so billboard reads. Production-quality environment lighting.',
     cameraGuide:
-      '24-35mm wide angle, street photography perspective, billboard framed prominently. Slight Dutch angle or straight-on.',
+      '24–35mm wide, street perspective, billboard framed prominently. Slight Dutch or straight-on. 8K.',
     avoid: ['blank billboard', 'empty environment', 'poor quality mockup', 'cartoon/illustrated'],
   },
   {
@@ -778,11 +778,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Review-driven ads', 'Testimonial content', 'Results ads', 'Trust building'],
     platforms: ['instagram', 'facebook', 'google'],
     sceneGuide:
-      'Subject using or wearing the product in a natural everyday setting, looking genuinely happy or satisfied. Authentic, relatable, not overly produced. The image should feel like a real customer photo that happens to be beautifully lit. Kitchen, living room, office, park — real environments.',
+      'Director brief: Subject using or wearing product in natural setting — kitchen, living room, office, park. Genuinely happy or satisfied. Feels like a real customer photo but beautifully lit. One frame that could run as a trust-building ad. Authentic, relatable.',
     lightingGuide:
-      'Natural soft light, warm tone, inviting. Window light or outdoor golden hour. No studio feel — authentic but flattering.',
+      'Soft key from window or golden hour (30–45°), fill 2:1. Warm, inviting. No studio feel — authentic but flattering. 4500–5000K. Production “natural”.',
     cameraGuide:
-      '35-50mm, natural framing, subject and product both clearly visible, slight shallow depth of field for professional touch while maintaining authentic feel.',
+      '35–50mm, natural framing, subject and product both clear. f/2.8–4, slight shallow DoF. 8K.',
     avoid: ['studio perfection', 'editorial styling', 'dramatic lighting', 'fantasy/surreal'],
   },
 
@@ -796,11 +796,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Athletic brands', 'Sportswear', 'Energy drinks', 'Fitness'],
     platforms: ['instagram', 'facebook'],
     sceneGuide:
-      'Athlete in peak motion: mid-jump, mid-kick, sprinting, landing. Frozen moment with implied explosive energy. Urban or stadium environment. Dramatic angle capturing power and speed. Product (shoe, apparel) clearly visible on the athlete.',
+      'Director brief: Peak motion frozen — mid-jump, mid-kick, sprinting, landing. Urban or stadium. Dramatic angle capturing power and speed. Product (shoe, apparel) clearly visible. One frame that could lead a Nike or athletic campaign. Explosive energy.',
     lightingGuide:
-      'Dramatic rim light from behind separating subject from background. Strong key light from 45 degrees. Motion trails or particle effects. Warm-cool contrast (orange rim, blue fill). Stadium flood lights or golden hour.',
+      'Rim from behind for separation; strong key from 45°. Motion trails or particles lit by same sources. Warm-cool contrast (orange rim, blue fill). Stadium floods or golden hour. 5600K on subject. Production sports lighting.',
     cameraGuide:
-      '24-35mm wide angle, low perspective (ground level looking up), 1/2000 shutter to freeze motion, f/2.8, subject fills frame.',
+      '24–35mm wide, low perspective (ground level up). 1/2000 freeze, f/2.8. Subject fills frame. 8K.',
     avoid: ['static pose', 'studio setting', 'muted tones', 'gentle/soft mood'],
   },
   {
@@ -812,11 +812,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Motivational', 'Hero athlete ads', 'Brand campaigns', 'Nike/Under Armour style'],
     platforms: ['instagram', 'facebook'],
     sceneGuide:
-      'Monochrome (black & white) image of athlete in powerful pose or motion. ONE accent colour element: the product (shoe, jersey) or brand element in vivid colour. Strong graphic composition, athlete fills frame. Inspirational, timeless, powerful.',
+      'Director brief: B&W athlete in powerful pose or motion. ONE accent colour: product (shoe, jersey) or brand element in vivid colour. Strong graphic composition, athlete fills frame. One frame that could lead a hero campaign. Inspirational, timeless.',
     lightingGuide:
-      'High-contrast studio lighting: strong key light from above creating sculpted shadows on musculature. Rim light for separation. Deep blacks, bright highlights, no muddy midtones.',
+      'Strong key from above or 45° sculpting musculature. Rim for separation. Deep blacks, bright highlights, no muddy midtones. B&W with accent colour in post. Production studio.',
     cameraGuide:
-      '50-85mm, three-quarter or full body, slightly low angle, sharp focus on subject, dark or gradient background.',
+      '50–85mm, three-quarter or full body, slightly low angle. Sharp on subject. Dark or gradient background. 8K.',
     avoid: ['colour (except accent)', 'soft/gentle mood', 'busy backgrounds', 'casual feel'],
   },
   {
@@ -828,11 +828,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Athlete campaigns', 'Kit launches', 'Motivational', 'Sports brands'],
     platforms: ['instagram', 'facebook'],
     sceneGuide:
-      'Athlete emerging from dark stadium tunnel into blinding light of the pitch/arena. Back view or three-quarter. Volumetric god rays and atmospheric mist streaming from the tunnel exit. Silhouette with rim-lit edges. Kit/apparel details visible. Epic hero moment, the calm before battle.',
+      'Director brief: Athlete emerging from dark tunnel into blinding pitch/arena light. Back or three-quarter. Volumetric god rays and mist from tunnel exit. Silhouette with rim-lit edges. Kit details visible. Epic hero moment — calm before battle. One frame that could lead a kit launch.',
     lightingGuide:
-      'Extreme contrast: dark tunnel behind, blinding white/warm light ahead. Volumetric fog/mist catching light rays. Rim light on shoulders and head. Wet concrete floor reflecting coloured lights. Teal-orange cinematic colour grade.',
+      'Extreme contrast: dark tunnel behind, blinding white/warm ahead. Volumetric fog catching rays. Rim on shoulders and head. Wet concrete reflecting coloured lights. Teal-orange cinematic grade. Production cinematic.',
     cameraGuide:
-      '24mm wide angle, low perspective from behind, leading lines from tunnel walls converging to bright exit. Shallow DoF on background light.',
+      '24mm wide, low from behind, leading lines to bright exit. Shallow DoF on background light. 8K.',
     avoid: ['flat lighting', 'front-facing', 'casual setting', 'indoor studio', 'no environment'],
   },
 
@@ -846,11 +846,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Festive campaigns', 'Wedding brands', 'Ethnic wear'],
     platforms: ['instagram', 'facebook'],
     sceneGuide:
-      '9:16 vertical. Model in ethnic Indian wear (lehenga, saree, sharara) in joyful motion: twirl, dupatta wings, laughter. Soft textured wall (lilac, pink, terracotta). Fabric movement fills lower frame.',
+      'Director brief: 9:16 vertical hero. Model in ethnic Indian wear (lehenga, saree, sharara) in joyful motion — twirl, dupatta wings, laughter. Soft textured wall (lilac, pink, terracotta). Fabric movement fills lower frame. One frame that could lead a festive or wedding campaign.',
     lightingGuide:
-      'Natural window light from side creating warm glow, or golden-hour outdoor. Rose gold/warm highlights, dewy skin, fresh makeup.',
+      'Soft key from side (window or golden hour), warm glow. Rose gold/warm highlights, dewy skin, fresh makeup. Fill 2:1. 4000–5000K. Production-quality festive — flattering, celebratory.',
     cameraGuide:
-      '1/250-1/500 to freeze fabric motion, 50mm portrait, model centred, fabric creates visual interest.',
+      '1/250–1/500 to freeze fabric motion, 50mm portrait, model centred. Fabric creates visual interest. 8K. 9:16.',
     avoid: ['dark moody', 'western styling', 'heavy retouching', 'studio backdrop'],
   },
   {
@@ -862,11 +862,11 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Luxury Indian brands', 'Heritage campaigns', 'Bridal'],
     platforms: ['instagram'],
     sceneGuide:
-      'Heritage architectural backdrop: haveli, palace corridor, carved stone. Model in traditional Indian outfit with jewelry. Composed, elegant pose. Rich textures and depth.',
+      'Director brief: Heritage backdrop — haveli, palace corridor, carved stone. Model in traditional Indian outfit with jewelry. Composed, elegant pose. Rich textures and depth. One frame that could lead a bridal or heritage campaign.',
     lightingGuide:
-      'Golden hour side light on sandstone/marble, warm ambient fill. Subject lit by same directional light. Consistent warm colour temperature.',
+      'Golden hour key from side on sandstone/marble; warm ambient fill. Subject lit by same directional light. Consistent warm colour temp (4000–4500K). Rim for separation. Production editorial.',
     cameraGuide:
-      '85mm portrait, three-quarter body, heritage architecture as framing element, shallow depth of field.',
+      '85mm portrait, three-quarter body, heritage architecture as framing. f/2.8–4, shallow DoF. 8K.',
     avoid: ['modern urban', 'casual styling', 'flat lighting', 'busy crowds'],
   },
   {
@@ -878,14 +878,20 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Youth Indian brands', 'Fusion fashion', 'Indo-western', 'Street culture'],
     platforms: ['instagram'],
     sceneGuide:
-      'Model in fusion Indo-western outfit: kurta with sneakers, saree draped casually with denim jacket, or lehenga with bomber jacket. Urban Indian backdrop: painted Mumbai wall, Delhi metro, Jaipur pink city street. Attitude-first, cultural pride meets street swagger. Vibrant, energetic, Gen-Z Indian.',
+      'Director brief: Fusion Indo-western — kurta with sneakers, saree with denim jacket, lehenga with bomber. Urban Indian backdrop: painted Mumbai wall, Delhi metro, Jaipur pink street. Attitude-first; cultural pride meets street swagger. One frame that could lead a Gen-Z Indian campaign.',
     lightingGuide:
-      'Natural harsh daylight or golden hour in Indian streets. Warm colour temperature, vibrant saturation. Slight film grain for grit.',
+      'Natural harsh daylight or golden hour in Indian streets. Key from 30–45°, fill 2:1. Warm colour temp, vibrant saturation. Slight film grain for grit. Production “street” — sculpted but authentic.',
     cameraGuide:
-      '35mm wide angle, street photography style, dynamic angle, slight motion or attitude pose. Film grain, warm grade.',
+      '35mm wide, street style, dynamic angle. f/2.8–4. Slight motion or attitude pose. Film grain, warm grade. 8K.',
     avoid: ['traditional formal pose', 'studio setting', 'muted colours', 'western-only styling'],
   },
 ]
+
+// Production guard: every AD_PRESET_IDS must have a matching preset (fail fast on misconfig)
+const _definedPresetIds = new Set(AD_PRESETS.map((p) => p.id))
+for (const id of AD_PRESET_IDS) {
+  if (!_definedPresetIds.has(id)) throw new Error(`Ad preset missing definition: ${id}`)
+}
 
 // ═══════════════════════════════════════════════════════════════
 // PRESET CATEGORIES
