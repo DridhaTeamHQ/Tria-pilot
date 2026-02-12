@@ -393,18 +393,9 @@ Be hyper-specific and detailed. These features will be used to preserve identity
       max_tokens: 1200,
     })
 
-    // Log full API response for debugging
-    console.log('=== FACE ANALYSIS API RESPONSE ===')
-    console.log('Response ID:', response.id)
-    console.log('Model:', response.model)
-    console.log('Choices length:', response.choices?.length)
-    console.log('First choice:', JSON.stringify(response.choices?.[0], null, 2))
-    console.log('Message:', JSON.stringify(response.choices?.[0]?.message, null, 2))
-    console.log('Content:', response.choices?.[0]?.message?.content)
-    console.log('Content type:', typeof response.choices?.[0]?.message?.content)
-    console.log('Finish reason:', response.choices?.[0]?.finish_reason)
-    console.log('Usage:', JSON.stringify(response.usage, null, 2))
-    console.log('Full response:', JSON.stringify(response, null, 2))
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('=== FACE ANALYSIS API RESPONSE ===', response.id, response.model)
+    }
 
     const content = response.choices[0]?.message?.content
     if (!content || content.trim() === '') {

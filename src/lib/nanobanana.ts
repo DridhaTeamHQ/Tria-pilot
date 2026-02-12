@@ -1,5 +1,6 @@
 import { GoogleGenAI, type ImageConfig, type GenerateContentConfig, type ContentListUnion } from '@google/genai'
 import { getGeminiKey } from '@/lib/config/api-keys'
+import { geminiGenerateContent } from '@/lib/gemini/executor'
 
 // Initialize the Google GenAI client
 const getClient = () => {
@@ -53,11 +54,13 @@ export async function generateTryOn(options: TryOnOptions): Promise<string> {
     garmentDescription,
   } = options
 
+  const isDev = process.env.NODE_ENV !== 'production'
   try {
-    console.log('🎨 Starting Gemini image generation...')
-    console.log(`Model: ${model}, Aspect Ratio: ${aspectRatio}, Resolution: ${resolution}`)
+    if (isDev) {
+      console.log('🎨 Starting Gemini image generation...')
+      console.log(`Model: ${model}, Aspect Ratio: ${aspectRatio}, Resolution: ${resolution}`)
+    }
 
-    const client = getClient()
     const contents: ContentListUnion = []
     const isPro = model === 'gemini-3-pro-image-preview'
 
@@ -79,7 +82,7 @@ export async function generateTryOn(options: TryOnOptions): Promise<string> {
         mimeType: 'image/jpeg',
       },
     } as any)
-    console.log('📸 Added person image (identity source)')
+    if (isDev) console.log('📸 Added person image (identity source)')
 
     // STEP 2: Build simple, direct prompt
     const hasSceneChange = !!sceneDescription
@@ -240,7 +243,7 @@ NEGATIVE PROMPT - FORBIDDEN:
     }
 
     contents.push(simplePrompt)
-    console.log(`📝 Added ${isPro ? 'PRO Context Lock' : 'FLASH Reminders'} face instruction`)
+    if (isDev) console.log(`📝 Added ${isPro ? 'PRO Context Lock' : 'FLASH Reminders'} face instruction`)
 
     // STEP 3: Clothing reference image
     if (clothingImage) {
@@ -252,7 +255,7 @@ NEGATIVE PROMPT - FORBIDDEN:
             mimeType: 'image/jpeg',
           },
         } as any)
-        console.log('👕 Added garment reference image')
+        if (isDev) console.log('👕 Added garment reference image')
       }
     }
 
@@ -267,7 +270,7 @@ NEGATIVE PROMPT - FORBIDDEN:
             mimeType: 'image/jpeg',
           },
         } as any)
-        console.log('🖼️ Added background reference image')
+        if (isDev) console.log('🖼️ Added background reference image')
       }
     }
 
@@ -308,14 +311,14 @@ OUTPUT: High-quality realistic photograph of the SAME PERSON from the first imag
               mimeType: 'image/jpeg',
             },
           } as any)
-          console.log(`👜 Added accessory: ${label}`)
+          if (isDev) console.log(`👜 Added accessory: ${label}`)
         }
       })
     }
 
     // No need for repeated images - Nano Banana understands "this person" from the first image
 
-    console.log('✅ Contents prepared')
+    if (isDev) console.log('✅ Contents prepared')
 
     // Build image config
     const imageConfig = {
@@ -333,22 +336,22 @@ OUTPUT: High-quality realistic photograph of the SAME PERSON from the first imag
       imageConfig,
     }
 
-    console.log('📡 Sending generation request to Gemini...')
+    if (isDev) console.log('📡 Sending generation request to Gemini...')
     const startTime = Date.now()
 
     // Generate content
-    const response = await client.models.generateContent({
+    const response = await geminiGenerateContent({
       model,
       contents,
       config,
     })
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(2)
-    console.log(`✅ Gemini responded in ${duration}s`)
+    if (isDev) console.log(`✅ Gemini responded in ${duration}s`)
 
     // Extract image from response
     if (response.data) {
-      console.log('✅ Image extracted from response.data')
+      if (isDev) console.log('✅ Image extracted from response.data')
       return `data:image/png;base64,${response.data}`
     }
 
@@ -358,7 +361,7 @@ OUTPUT: High-quality realistic photograph of the SAME PERSON from the first imag
       if (candidate.content && candidate.content.parts) {
         for (const part of candidate.content.parts) {
           if (part.inlineData && part.inlineData.mimeType?.startsWith('image/')) {
-            console.log(`✅ Image extracted from candidates (${part.inlineData.mimeType})`)
+            if (isDev) console.log(`✅ Image extracted from candidates (${part.inlineData.mimeType})`)
             return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`
           }
         }
@@ -418,8 +421,6 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
     resolution = '2K',
   } = options
 
-  const client = getClient()
-
   // Clean base64 (strip data URI prefix if present)
   const cleanPerson = personImageBase64.replace(/^data:image\/[a-z]+;base64,/, '')
   const cleanGarment = garmentImageBase64.replace(/^data:image\/[a-z]+;base64,/, '')
@@ -431,7 +432,7 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
     throw new Error('Invalid garment image')
   }
 
-  console.log(`🍌 DIRECT TRANSPORT: gemini-3-pro-image-preview | prompt: ${prompt.length} chars`)
+  if (process.env.NODE_ENV !== 'production') console.log(`🍌 DIRECT TRANSPORT: gemini-3-pro-image-preview | prompt: ${prompt.length} chars`)
 
   // Content order (conservative compositor mode):
   // [person_image, garment_image, prompt]
@@ -449,7 +450,7 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
   if (faceCropBase64 && faceCropBase64.length > 100) {
     const cleanFaceCrop = faceCropBase64.replace(/^data:image\/[a-z]+;base64,/, '')
     if (cleanFaceCrop.length > 100) {
-      console.log('👤 Adding Face Crop reference for identity lock')
+      if (process.env.NODE_ENV !== 'production') console.log('👤 Adding Face Crop reference for identity lock')
       contents.push({
         inlineData: {
           data: cleanFaceCrop,
@@ -486,14 +487,14 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
 
   const startTime = Date.now()
 
-  const response = await client.models.generateContent({
+  const response = await geminiGenerateContent({
     model: 'gemini-3-pro-image-preview',
     contents,
     config,
   })
 
   const duration = ((Date.now() - startTime) / 1000).toFixed(2)
-  console.log(`🍌 DIRECT TRANSPORT: Gemini responded in ${duration}s`)
+  if (process.env.NODE_ENV !== 'production') console.log(`🍌 DIRECT TRANSPORT: Gemini responded in ${duration}s`)
 
   // Extract image
   if (response.data) {
@@ -506,7 +507,7 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
       // Log thought process if available (Thinking Mode output)
       const thoughtPart = candidate.content.parts.find(p => p.text)
       if (thoughtPart) {
-        console.log('🧠 GEMINI THOUGHT PROCESS:', thoughtPart.text?.substring(0, 200) + '...')
+        if (process.env.NODE_ENV !== 'production') console.log('🧠 GEMINI THOUGHT PROCESS:', thoughtPart.text?.substring(0, 200) + '...')
       }
 
       for (const part of candidate.content.parts) {

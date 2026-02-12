@@ -16,11 +16,9 @@
  */
 
 import 'server-only'
-import { GoogleGenAI, type ContentListUnion, type GenerateContentConfig } from '@google/genai'
-import { getGeminiKey } from '@/lib/config/api-keys'
+import type { ContentListUnion, GenerateContentConfig } from '@google/genai'
+import { geminiGenerateContent } from '@/lib/gemini/executor'
 import type { GarmentAnalysis } from './face-analyzer'
-
-const getClient = () => new GoogleGenAI({ apiKey: getGeminiKey() })
 
 function stripDataUrl(base64: string): string {
   return (base64 || '').replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '')
@@ -166,7 +164,6 @@ export async function extractGarmentWithFidelity(params: {
   } = params
 
   const startTime = Date.now()
-  const client = getClient()
 
   const clean = stripDataUrl(clothingImageBase64)
   if (!clean || clean.length < 100) {
@@ -192,7 +189,7 @@ export async function extractGarmentWithFidelity(params: {
   }
 
   try {
-    const resp = await client.models.generateContent({ model, contents, config })
+    const resp = await geminiGenerateContent({ model, contents, config })
     const processingTimeMs = Date.now() - startTime
 
     // Check for direct data response

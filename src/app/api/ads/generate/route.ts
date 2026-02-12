@@ -227,7 +227,7 @@ export async function POST(request: Request) {
     // ── Face forensics (only when face-lock enabled) ──
     let forensicResult = null
     if (input.lockFaceIdentity && input.influencerImage) {
-      console.log('[AdsAPI] Running face forensics...')
+      if (process.env.NODE_ENV !== 'production') console.log('[AdsAPI] Running face forensics...')
       forensicResult = await buildForensicFaceAnchor({
         personImageBase64: input.influencerImage,
         garmentDescription: 'product from ad image',
@@ -239,7 +239,7 @@ export async function POST(request: Request) {
 
     // ── Build intelligent prompt with GPT-4o VISION ──
     // GPT-4o sees the product image directly — no separate analysis needed
-    console.log('[AdsAPI] Building prompt with GPT-4o vision...')
+    if (process.env.NODE_ENV !== 'production') console.log('[AdsAPI] Building prompt with GPT-4o vision...')
 
     const faceAnchorText = forensicResult?.faceAnchor || null
 
@@ -257,12 +257,12 @@ export async function POST(request: Request) {
 
     const compositionPrompt = QUALITY_PREAMBLE + rawCompositionPrompt
 
-    console.log(
-      `[AdsAPI] Prompt built (${fallback ? 'fallback' : 'GPT-4o'}): ${compositionPrompt.length} chars`
-    )
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[AdsAPI] Prompt built (${fallback ? 'fallback' : 'GPT-4o'}): ${compositionPrompt.length} chars`)
+    }
 
     // ── Generate ad image with Gemini ──
-    console.log('[AdsAPI] Generating ad image...')
+    if (process.env.NODE_ENV !== 'production') console.log('[AdsAPI] Generating ad image...')
 
     const generatedImage = await generateIntelligentAdComposition(
       input.productImage,
@@ -275,7 +275,7 @@ export async function POST(request: Request) {
     )
 
     // ── Post-generation: rate + copy (parallel) ──
-    console.log('[AdsAPI] Rating and generating copy...')
+    if (process.env.NODE_ENV !== 'production') console.log('[AdsAPI] Rating and generating copy...')
 
     const brandData = (profile.brand_data as any) || {}
     const brandName =

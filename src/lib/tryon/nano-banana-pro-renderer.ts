@@ -53,12 +53,13 @@ export async function generateWithNanoBananaPro(
   input: NanoBananaProInput
 ): Promise<NanoBananaProResult> {
   const startTime = Date.now()
+  const isDev = process.env.NODE_ENV !== 'production'
 
   try {
     // ═════════════════════════════════════════════════════════════════════════
     // STAGE 1: Scene Intelligence
     // ═════════════════════════════════════════════════════════════════════════
-    console.log('\n━━━ STAGE 1: Scene Intelligence ━━━')
+    if (isDev) console.log('\n━━━ STAGE 1: Scene Intelligence ━━━')
 
     const presetNames = getAllStylePresets().map(p => p.id)
 
@@ -84,6 +85,8 @@ export async function generateWithNanoBananaPro(
         {
           faceAnchor:
             'preserve exact eye geometry, nose bridge and tip, lip contour, jawline, skin texture, facial hair pattern, and eyewear geometry',
+          eyesAnchor:
+            'almond eye shape, medium inter-eye spacing, dark brown iris color, forward gaze direction, stable eyelid crease and brow geometry',
           characterSummary: 'single subject from Image 1',
           poseSummary: 'inherit pose and head angle from Image 1',
           appearanceSummary: 'preserve stable hairstyle and accessories from Image 1',
@@ -95,20 +98,18 @@ export async function generateWithNanoBananaPro(
       ),
     ])
 
-    console.log(`   preset=${sceneConfig.preset}`)
-    console.log(`   anchorZone="${sceneConfig.anchorZone.substring(0, 80)}"`)
-    if (sceneConfig.lightingBlueprint) {
-      console.log(`   lightingBlueprint="${sceneConfig.lightingBlueprint.substring(0, 90)}"`)
+    if (isDev) {
+      console.log(`   preset=${sceneConfig.preset}`)
+      console.log(`   anchorZone="${sceneConfig.anchorZone.substring(0, 80)}"`)
+      if (sceneConfig.lightingBlueprint) console.log(`   lightingBlueprint="${sceneConfig.lightingBlueprint.substring(0, 90)}"`)
+      if (sceneConfig.presetAvoid) console.log(`   presetAvoid="${sceneConfig.presetAvoid.substring(0, 90)}"`)
+      console.log(`   facePolicy=${sceneConfig.facePolicy}`)
     }
-    if (sceneConfig.presetAvoid) {
-      console.log(`   presetAvoid="${sceneConfig.presetAvoid.substring(0, 90)}"`)
-    }
-    console.log(`   facePolicy=${sceneConfig.facePolicy}`)
 
     // ═════════════════════════════════════════════════════════════════════════
     // STAGE 2: Compact Prompt
     // ═════════════════════════════════════════════════════════════════════════
-    console.log('\n━━━ STAGE 2: Compact Prompt ━━━')
+    if (isDev) console.log('\n━━━ STAGE 2: Compact Prompt ━━━')
 
     const promptInput = {
       garmentDescription: input.garmentDescription,
@@ -119,6 +120,7 @@ export async function generateWithNanoBananaPro(
       presetAvoid: sceneConfig.presetAvoid,
       garmentOnPersonGuidance: forensicAnchor.garmentOnPersonGuidance,
       faceForensicAnchor: forensicAnchor.faceAnchor,
+      eyesAnchor: forensicAnchor.eyesAnchor,
       characterSummary: forensicAnchor.characterSummary,
       poseSummary: forensicAnchor.poseSummary,
       appearanceSummary: forensicAnchor.appearanceSummary,
@@ -137,15 +139,17 @@ export async function generateWithNanoBananaPro(
     }
     const prompt = buildForensicPrompt(promptInput)
 
-    console.log(`   prompt (${prompt.length} chars):`)
-    console.log(`   "${prompt}"`)
+    if (isDev) {
+      console.log(`   prompt (${prompt.length} chars):`)
+      console.log(`   "${prompt}"`)
+    }
 
     // ═════════════════════════════════════════════════════════════════════════
     // STAGE 3: Nano Banana Pro Rendering
     // ═════════════════════════════════════════════════════════════════════════
-    console.log('\n━━━ STAGE 3: Nano Banana Pro ━━━')
+    if (isDev) console.log('\n━━━ STAGE 3: Nano Banana Pro ━━━')
     const aspectRatio = input.aspectRatio || '1:1'
-    console.log(`   aspectRatio=${aspectRatio}`)
+    if (isDev) console.log(`   aspectRatio=${aspectRatio}`)
 
     let generatedImage = await generateTryOnDirect({
       personImageBase64: input.personImageBase64,
@@ -226,10 +230,11 @@ export async function generateWithNanoBananaPro(
     }
 
     const genTime = Date.now() - startTime
-    console.log(`   Generated in ${(genTime / 1000).toFixed(1)}s`)
-
-    console.log('\n━━━ PIPELINE COMPLETE ━━━')
-    console.log(`   Total: ${((Date.now() - startTime) / 1000).toFixed(1)}s`)
+    if (isDev) {
+      console.log(`   Generated in ${(genTime / 1000).toFixed(1)}s`)
+      console.log('\n━━━ PIPELINE COMPLETE ━━━')
+      console.log(`   Total: ${((Date.now() - startTime) / 1000).toFixed(1)}s`)
+    }
 
     return {
       success: true,

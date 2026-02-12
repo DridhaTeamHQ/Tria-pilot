@@ -14,6 +14,7 @@ export interface ForensicPromptInput {
   realismGuidance?: string
   garmentOnPersonGuidance?: string
   faceForensicAnchor?: string
+  eyesAnchor?: string
   characterSummary?: string
   poseSummary?: string
   appearanceSummary?: string
@@ -42,6 +43,9 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   const faceAnchor =
     input.faceForensicAnchor?.trim() ||
     'preserve exact eye geometry, nose bridge and tip, lip contour, jawline, skin texture, facial hair pattern, and eyewear geometry'
+  const eyesAnchor =
+    input.eyesAnchor?.trim() ||
+    'almond eye shape, medium inter-eye spacing, dark brown iris color, forward gaze direction, stable eyelid crease and brow geometry'
   const characterSummary = input.characterSummary?.trim() || 'single subject from Image 1'
   const poseSummary = input.poseSummary?.trim() || 'inherit pose and head angle from Image 1'
   const appearanceSummary = input.appearanceSummary?.trim() || 'preserve stable hairstyle and accessories from Image 1'
@@ -103,6 +107,7 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     face: {
       source: 'Image_1',
       forensic_signature: faceAnchor,
+      eyes_signature: eyesAnchor,
       spatial_lock: faceSpatialLock,
       character: characterSummary,
       pose: poseSummary,
@@ -119,7 +124,10 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     face_rules: [
       'preserve_exact_face_geometry_and_pixels',
       'preserve_gaze_eye_alignment_nose_lips_jawline',
+      'preserve_exact_eye_shape_spacing_iris_and_gaze_from_Image_1',
+      'no_eye_resize_recolor_reposition_or_expression_change',
       'no_face_relight_reshape_beautify_smooth',
+      'no_bone_structure_change_or_facial_proportion_reinterpretation',
       'keep_face_position_and_scale_locked',
       'no_double_face_ghosting_extra_person',
     ],
@@ -141,6 +149,9 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     avoid: [
       'cinematic portrait', 'editorial', 'fashion model', 'dramatic relighting',
       'beautify face', 'changed identity', 'double face', 'ghost face',
+      'changed eyes', 'different gaze direction', 'eye shape change', 'iris color change',
+      'smooth skin', 'bone structure change', 'facial proportion change', 'beard change',
+      'cinematic grading', 'editorial styling', 'fashion pose', 'model-like reinterpretation',
       'pasted on background', 'cut-out look', 'floating subject',
       'mismatched lighting', 'sticker effect', 'flat subject on background',
       'slimmed body', 'thinned waist', 'elongated torso', 'narrowed shoulders',
@@ -151,7 +162,13 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
       ? {
           retry: {
             rule: 'identity_non_negotiable',
-            enforce: ['exact_face_from_image_1', 'no_gaze_change', 'no_face_relight'],
+            enforce: [
+              'exact_face_from_image_1',
+              'exact_eyes_from_image_1',
+              'no_eye_change',
+              'no_gaze_change',
+              'no_face_relight',
+            ],
           },
         }
       : {}),
@@ -165,6 +182,7 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     `SCENE INTEGRATION (CRITICAL — this is NOT a collage):`,
     `The person must look like they were PHOTOGRAPHED in this environment: "${environment}".`,
     `Relight the body, arms, and clothing to match the scene light direction and color temperature. ${lightingBlueprint}`,
+    `If lighting or scene changes, adjust shading naturally on environment/body only; preserve exact facial proportions and do not modify facial geometry.`,
     `Add ambient color spill from the environment onto the subject's skin and clothing edges.`,
     `Add subtle light wrap where the subject outline meets bright background areas.`,
     `Add realistic contact shadows and ambient occlusion where the body meets nearby surfaces.`,
@@ -181,6 +199,29 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     `Forensic anchor: ${faceAnchor}`,
   ].join('\n')
 
+  const primaryAuthorityBlock = [
+    `PRIMARY AUTHORITY — IDENTITY PRESERVATION (non-negotiable):`,
+    `The person in Image 1 is the immutable identity reference.`,
+    `Facial structure must remain genetically identical: eye spacing/eyelid shape, nose bridge contour, lip shape/mouth curvature, jawline/chin, beard density and edge pattern, and skin tone with natural unretouched texture.`,
+    `Do NOT beautify, enhance, smooth skin, alter bone structure, or reinterpret facial proportions.`,
+    `Expression and head pose must be inherited from Image 1.`,
+  ].join('\n')
+
+  const garmentBlock = [
+    `GARMENT APPLICATION (non-negotiable):`,
+    `Apply the garment from Image 2 accurately and preserve fabric texture, collar structure, sleeve length, and color integrity.`,
+    `Do NOT restyle the garment.`,
+    `Garment fit guidance: ${garmentFit}.`,
+  ].join('\n')
+
+  const eyesBlock = [
+    `EYES LOCK (non-negotiable):`,
+    `Preserve EXACT eye shape, inter-eye spacing, iris color, gaze direction, eyelid crease, and brow-eye geometry from Image 1.`,
+    `Do NOT change eye size, spacing, iris color, gaze, eyelid fold, or brow-eye relation.`,
+    `Eyes anchor: ${eyesAnchor}`,
+    retryMode ? `RETRY ENFORCEMENT: absolute no_eye_change; copy eye identity from Image 1 exactly.` : '',
+  ].filter(Boolean).join('\n')
+
   const bodyBlock = [
     `BODY PRESERVATION (non-negotiable):`,
     `The person's body proportions from Image 1 are authoritative. Do NOT slim, elongate, narrow, or reshape any body part.`,
@@ -191,14 +232,21 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   ].join('\n')
 
   return [
+    primaryAuthorityBlock,
+    '',
     integrationBlock,
     '',
+    garmentBlock,
+    '',
     faceBlock,
+    '',
+    eyesBlock,
     '',
     bodyBlock,
     '',
     `CONTROL=${JSON.stringify(control)}`,
     '',
+    'OUTPUT: single photorealistic composite with natural skin detail. No cinematic grading, no editorial styling, no fashion pose, no model-like reinterpretation.',
     'Generate one photorealistic image. The person must appear naturally inside the scene — same light, same space, same camera. Body proportions must exactly match the source.',
   ].join('\n')
 }

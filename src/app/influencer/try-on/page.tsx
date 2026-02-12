@@ -98,6 +98,8 @@ function TryOnPageContent() {
     const [accessoryTypes, setAccessoryTypes] = useState<('purse' | 'shoes' | 'hat' | 'jewelry' | 'bag' | 'watch' | 'sunglasses' | 'scarf' | 'other')[]>([])
     const [loading, setLoading] = useState(false)
     const [retryAfterSeconds, setRetryAfterSeconds] = useState(0)
+    const [retryReason, setRetryReason] = useState<'job_in_progress' | 'rate_limit' | null>(null)
+    const [activeJobId, setActiveJobId] = useState<string | null>(null)
     const [uploadingImage, setUploadingImage] = useState<'person' | 'clothing' | 'background' | 'accessory' | null>(null)
     // Multi-variant support: generate 3 variants, user selects one
     const [result, setResult] = useState<{ jobId: string; imageUrl: string; base64Image?: string } | null>(null)
@@ -150,9 +152,12 @@ function TryOnPageContent() {
         }
     }, [loading])
 
-    // Retry cooldown timer (for 429 responses)
+    // Retry cooldown timer (for 429 / job-in-progress responses)
     useEffect(() => {
-        if (retryAfterSeconds <= 0) return
+        if (retryAfterSeconds <= 0) {
+            setRetryReason(null)
+            return
+        }
         const t = setInterval(() => {
             setRetryAfterSeconds(prev => Math.max(0, prev - 1))
         }, 1000)
@@ -190,7 +195,6 @@ function TryOnPageContent() {
 
                 setIdentityImages(normalized)
                 if (normalized.length > 0) {
-                    console.log(`🎭 Loaded ${normalized.length} identity reference images`)
                 }
             } catch (e) {
                 console.warn('Failed to load identity images:', e)
@@ -455,6 +459,30 @@ function TryOnPageContent() {
 
         setLoading(true)
         generateInFlightRef.current = true
+
+        const pollTryOnJob = async (jobId: string) => {
+            const startedAt = Date.now()
+            const timeoutMs = 10 * 60 * 1000
+            const intervalMs = 2000
+
+            while (Date.now() - startedAt < timeoutMs) {
+                const pollResponse = await fetch(`/api/tryon/jobs/${jobId}`, { cache: 'no-store' })
+                const pollData = await safeParseResponse(pollResponse, 'try-on job polling')
+
+                if (!pollResponse.ok) {
+                    throw new Error(pollData?.error || 'Failed to poll try-on job status')
+                }
+
+                if (pollData.status === 'completed' || pollData.status === 'failed') {
+                    return pollData
+                }
+
+                await new Promise(resolve => setTimeout(resolve, intervalMs))
+            }
+
+            throw new Error('Generation is taking longer than expected. Please check Generations history.')
+        }
+
         try {
             // Collect identity references (Flash: 1-2 strong face refs)
             const allAdditionalImages: string[] = []
@@ -464,7 +492,6 @@ function TryOnPageContent() {
                 const faceOnlyTypes = new Set(['face_front', 'face_smile', 'face_left', 'face_right'])
                 const identityForModel = identityImages.filter((x) => faceOnlyTypes.has(x.type)).slice(0, 2)
 
-                console.log(`🎭 Adding ${identityForModel.length} identity references for better face consistency`)
                 for (const idImg of identityForModel) {
                     const base64 = await urlToBase64(idImg.imageUrl)
                     if (base64) {
@@ -494,31 +521,52 @@ function TryOnPageContent() {
 
             // Safe parse handles non-JSON and error responses gracefully
             const data = await safeParseResponse(response, 'try-on generation')
-            console.log('API Response:', data) // Debug: see what we got back
 
-            console.log('Setting result with imageUrl:', data.imageUrl) // Debug
+            if (!response.ok) {
+                throw new Error(data?.error || 'Failed to submit try-on job')
+            }
 
-            // Handle multi-variant response (PRO) or single image (FLASH)
-            if (data.variants && Array.isArray(data.variants) && data.variants.length > 0) {
-                // PRO multi-variant response
-                setVariants(data.variants.map((v: any, idx: number) => ({
-                    imageUrl: v.imageUrl || data.imageUrl,
-                    base64Image: v.base64Image || data.base64Image,
-                    variantId: idx
-                })))
+            const jobId = data?.jobId as string | undefined
+            if (!jobId) {
+                throw new Error('Try-on job was accepted without a job id')
+            }
+
+            // Inline completion (no worker): API returned image directly
+            if (data?.status === 'completed' && (data?.imageUrl || data?.base64Image)) {
+                const variants = Array.isArray(data?.variants) ? data.variants : [{ imageUrl: data?.imageUrl, base64Image: data?.base64Image, variantId: 0, label: 'Nano Banana Pro' }]
+                setVariants(variants.map((v: any, idx: number) => ({ imageUrl: v?.imageUrl, base64Image: v?.base64Image, variantId: idx, label: v?.label })))
                 setSelectedVariant(0)
                 setResult({
-                    jobId: data.jobId,
-                    imageUrl: data.variants[0].imageUrl || data.imageUrl,
-                    base64Image: data.variants[0].base64Image || data.base64Image
+                    jobId,
+                    imageUrl: data?.imageUrl || variants[0]?.imageUrl || '',
+                    base64Image: data?.base64Image ?? variants[0]?.base64Image,
                 })
-                toast.success(`Generated ${data.variants.length} variants! Select your favorite.`)
-            } else {
-                // Single image response (FLASH or fallback)
-                setVariants([])
-                setResult(data)
                 toast.success('Try-on generated successfully!')
+                setShowCelebration(true)
+                setTimeout(() => setShowCelebration(false), 5000)
+                return
             }
+
+            setActiveJobId(jobId)
+            toast.success('Job queued. Rendering started...')
+
+            const finalJob = await pollTryOnJob(jobId)
+
+            if (finalJob.status === 'failed') {
+                throw new Error(finalJob.error || 'Try-on generation failed')
+            }
+
+            if (!finalJob.imageUrl && !finalJob.base64Image) {
+                throw new Error('Try-on completed but no image was returned')
+            }
+
+            setVariants([])
+            setResult({
+                jobId,
+                imageUrl: finalJob.imageUrl || '',
+                base64Image: finalJob.base64Image,
+            })
+            toast.success('Try-on generated successfully!')
 
             setShowCelebration(true)
             // Show celebration for 5 seconds to let success video play fully
@@ -528,18 +576,21 @@ function TryOnPageContent() {
             const structured = error as (Error & { status?: number; retryAfterSeconds?: number; code?: string })
             const errorMessage = error instanceof Error ? error.message : 'Generation failed'
 
-            // 429 = rate limit; 503/504 or "timed out" = overload or limit — show wait and retry
-            const isRateLimit = structured?.status === 429
+            // 429 = job in progress or rate limit; 503/504 = overload — show wait and retry
+            const is429 = structured?.status === 429
+            const isJobInProgress = is429 && (structured?.code === 'JOB_IN_PROGRESS' || /already in progress/i.test(errorMessage))
             const isTimeoutOrBusy =
                 structured?.status === 503 ||
                 structured?.status === 504 ||
                 /timed out|timeout|rate limit|wait a minute/i.test(errorMessage)
-            if (isRateLimit || isTimeoutOrBusy) {
-                const retry = Math.max(1, Number(structured?.retryAfterSeconds ?? 60))
+            if (is429 || isTimeoutOrBusy) {
+                const retry = Math.max(1, Number(structured?.retryAfterSeconds ?? 10))
                 setRetryAfterSeconds(retry)
-                const msg =
-                    isRateLimit
-                        ? `Rate limit reached. Please wait ${retry}s before trying again.`
+                setRetryReason(isJobInProgress ? 'job_in_progress' : 'rate_limit')
+                const msg = isJobInProgress
+                    ? `A try-on is still in progress. You can try again in ${retry}s.`
+                    : is429
+                        ? `Too many requests. Please wait ${retry}s before trying again.`
                         : `Request timed out or service busy. Please wait ${retry}s and try again.`
                 toast.error(msg)
                 return
@@ -566,6 +617,7 @@ function TryOnPageContent() {
             toast.error(errorMessage)
         } finally {
             setLoading(false)
+            setActiveJobId(null)
             generateInFlightRef.current = false
         }
     }
@@ -1041,7 +1093,9 @@ function TryOnPageContent() {
                                 {loading ? (
                                     'Creating Magic...'
                                 ) : retryAfterSeconds > 0 ? (
-                                    `Rate limited (${retryAfterSeconds}s)`
+                                    retryReason === 'job_in_progress'
+                                        ? `Job in progress (${retryAfterSeconds}s)`
+                                        : `Try again in ${retryAfterSeconds}s`
                                 ) : (
                                     <>
                                         <Sparkles className="w-6 h-6" />
@@ -1304,7 +1358,7 @@ function TryOnPageContent() {
                                                                 : `${elapsedSeconds}s elapsed`}
                                                     </p>
                                                     <p className="text-charcoal/40 text-xs mb-4">
-                                                        Generating your variants
+                                                        {activeJobId ? `Processing job ${activeJobId.slice(0, 8)}...` : 'Rendering your try-on'}
                                                     </p>
                                                 </>
                                             )
@@ -1327,7 +1381,6 @@ function TryOnPageContent() {
                                                 console.error('Image failed to load:', result.imageUrl)
                                                 const target = e.target as HTMLImageElement
                                                 if (target.src !== result.imageUrl) {
-                                                    console.log('Falling back to storage URL')
                                                     target.src = result.imageUrl
                                                 }
                                             }}

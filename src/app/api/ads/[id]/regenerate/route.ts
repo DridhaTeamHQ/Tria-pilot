@@ -78,7 +78,7 @@ export async function POST(
         // Generate new ad image
         const prompt = promptModifier || `Generate a professional advertising image. Use studio lighting, clean composition, and brand-appropriate aesthetics.`
 
-        console.log('[Regenerate] Generating new ad image...')
+        if (process.env.NODE_ENV !== 'production') console.log('[Regenerate] Generating new ad image...')
         const generatedImage = await generateIntelligentAdComposition(
             undefined, // No product image stored
             undefined, // No influencer image stored
@@ -106,7 +106,7 @@ export async function POST(
 
         const imagePath = `${authUser.id}/${Date.now()}.${fileExtension}`
         const imageUrl = await saveUpload(generatedImage, imagePath, 'ads', contentType)
-        console.log('[Regenerate] Saved new image:', imageUrl)
+        if (process.env.NODE_ENV !== 'production') console.log('[Regenerate] Saved new image:', imageUrl)
 
         // Update the ad creative with correct column names
         const { data: updated, error: updateError } = await service
@@ -124,7 +124,7 @@ export async function POST(
             return NextResponse.json({ error: 'Failed to update creative' }, { status: 500 })
         }
 
-        console.log('[Regenerate] Updated creative:', updated?.id)
+        if (process.env.NODE_ENV !== 'production') console.log('[Regenerate] Updated creative:', updated?.id)
 
         return NextResponse.json({
             id: updated.id,

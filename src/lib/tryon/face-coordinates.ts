@@ -14,9 +14,8 @@
  */
 
 import 'server-only'
-import { GoogleGenAI } from '@google/genai'
 import sharp from 'sharp'
-import { getGeminiKey } from '@/lib/config/api-keys'
+import { geminiGenerateContent } from '@/lib/gemini/executor'
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -69,8 +68,6 @@ export async function detectFaceCoordinates(
   imageBase64: string
 ): Promise<FaceCoordinates | null> {
   try {
-    const client = new GoogleGenAI({ apiKey: getGeminiKey() })
-
     // Strip data URI prefix
     const cleanBase64 = imageBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '')
 
@@ -79,7 +76,7 @@ export async function detectFaceCoordinates(
       return null
     }
 
-    const response = await client.models.generateContent({
+    const response = await geminiGenerateContent({
       model: 'gemini-2.5-flash',
       contents: [
         {

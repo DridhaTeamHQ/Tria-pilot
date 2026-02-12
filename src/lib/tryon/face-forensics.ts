@@ -10,6 +10,7 @@ function toDataUrl(base64: string): string {
 
 export interface ForensicAnchorResult {
   faceAnchor: string
+  eyesAnchor: string
   characterSummary: string
   poseSummary: string
   appearanceSummary: string
@@ -35,6 +36,12 @@ export async function buildForensicFaceAnchor(params: {
 Return JSON only:
 {
   "faceAnchor": "<single sentence, comma-separated forensic features: eye shape/spacing, nose bridge+tip geometry, lip contour, jawline/chin geometry, skin texture, facial hair pattern, eyewear>",
+  "eyesAnchor": "<single sentence focused ONLY on eyes: eye shape, inter-eye spacing, iris color, gaze direction, eyelid/brow geometry>",
+  "eyeShape": "<very short phrase: almond/round/hooded/deep-set/etc>",
+  "eyeSpacing": "<very short phrase: narrow/medium/wide spacing>",
+  "irisColor": "<very short phrase: dark brown/light brown/hazel/blue/green/etc>",
+  "gazeDirection": "<very short phrase: straight/slight left/slight right/down/up>",
+  "eyelidBrow": "<very short phrase describing eyelid crease + brow arch/position>",
   "characterSummary": "<single sentence describing stable visible character traits and overall look>",
   "poseSummary": "<single sentence describing current pose/head angle/expression from image>",
   "appearanceSummary": "<single sentence covering hairstyle, facial hair, accessories and clothing silhouette context>",
@@ -47,6 +54,7 @@ Rules:
 - Keep it objective and visual.
 - Keep each field concise and production-safe.
 - Focus on stable geometry/features that help prevent identity drift.
+- Include beard density and beard edge pattern if visible.
 - For bodyAnchor: describe the ACTUAL body proportions you see. Do not idealize or normalize. Be precise about build, width, and mass.
 - Garment context: ${params.garmentDescription || 'garment from Image 2'}.`,
     },
@@ -70,6 +78,12 @@ Rules:
   const raw = response.choices[0]?.message?.content || '{}'
   const parsed = JSON.parse(raw) as {
     faceAnchor?: string
+    eyesAnchor?: string
+    eyeShape?: string
+    eyeSpacing?: string
+    irisColor?: string
+    gazeDirection?: string
+    eyelidBrow?: string
     characterSummary?: string
     poseSummary?: string
     appearanceSummary?: string
@@ -77,10 +91,24 @@ Rules:
     garmentOnPersonGuidance?: string
   }
 
+  const composedEyesAnchor = [
+    parsed.eyeShape?.trim(),
+    parsed.eyeSpacing?.trim(),
+    parsed.irisColor?.trim(),
+    parsed.gazeDirection?.trim(),
+    parsed.eyelidBrow?.trim(),
+  ]
+    .filter(Boolean)
+    .join(', ')
+
   return {
     faceAnchor:
       parsed.faceAnchor?.trim() ||
       'almond eyes with medium spacing, straight-medium nose bridge with rounded tip, defined upper and lower lip contour, balanced jawline and chin geometry, natural skin texture, consistent facial hair pattern, same eyewear geometry',
+    eyesAnchor:
+      parsed.eyesAnchor?.trim() ||
+      composedEyesAnchor ||
+      'almond eyes, medium spacing, dark brown irises, straight-forward gaze, stable upper eyelid crease and natural brow arch',
     characterSummary:
       parsed.characterSummary?.trim() ||
       'adult male subject with short dark hair, trimmed beard, medium complexion, and neutral-confident expression',

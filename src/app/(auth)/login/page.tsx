@@ -77,9 +77,17 @@ function LoginContent() {
       // Dashboard will handle role-based routing
       window.location.href = '/dashboard'
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Login error:', error)
-      toast.error(error.message || 'Failed to sign in')
+      const message = error instanceof Error ? error.message : ''
+      const isInvalidCredentials =
+        message?.toLowerCase().includes('invalid login credentials') ||
+        message?.toLowerCase().includes('invalid_credentials')
+      if (isInvalidCredentials) {
+        toast.error('Wrong email or password. Please try again.')
+      } else {
+        toast.error(message || 'Failed to sign in. Please try again.')
+      }
       setLoading(false)
     }
   }
