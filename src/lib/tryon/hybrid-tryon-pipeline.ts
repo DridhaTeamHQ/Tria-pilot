@@ -17,8 +17,11 @@ import {
   getGarmentByHash,
   hashImageForGarment,
 } from '@/lib/garments'
+import sharp from 'sharp'
 import { analyzeGarmentForensic, type GarmentAnalysis } from './face-analyzer'
 import { extractGarmentWithFidelity } from './garment-extractor'
+import { detectFaceCoordinates, type FaceCoordinates } from './face-coordinates'
+import { compositeFacePixels, estimateFaceBox, extractFacePixels, type FaceBox } from './face-pixel-copy'
 
 // NEW MODULES
 // import { runIntelligentPreAnalysis } from './intelligence/intelligent-pipeline'
@@ -75,6 +78,83 @@ async function fetchImageAsBase64(url: string): Promise<string> {
   if (!response.ok) throw new Error(`Failed to fetch: ${response.status}`)
   const buffer = Buffer.from(await response.arrayBuffer())
   return `data:image/png;base64,${buffer.toString('base64')}`
+}
+
+function normalizedFaceToBox(face: FaceCoordinates, width: number, height: number): FaceBox {
+  const x = Math.max(0, Math.floor((face.xmin / 1000) * width))
+  const y = Math.max(0, Math.floor((face.ymin / 1000) * height))
+  const right = Math.min(width, Math.ceil((face.xmax / 1000) * width))
+  const bottom = Math.min(height, Math.ceil((face.ymax / 1000) * height))
+
+  return {
+    x,
+    y,
+    width: Math.max(1, right - x),
+    height: Math.max(1, bottom - y),
+  }
+}
+
+function mapSourceBoxToTarget(source: FaceBox, sourceW: number, sourceH: number, targetW: number, targetH: number): FaceBox {
+  const x = Math.max(0, Math.floor((source.x / Math.max(1, sourceW)) * targetW))
+  const y = Math.max(0, Math.floor((source.y / Math.max(1, sourceH)) * targetH))
+  const width = Math.max(1, Math.floor((source.width / Math.max(1, sourceW)) * targetW))
+  const height = Math.max(1, Math.floor((source.height / Math.max(1, sourceH)) * targetH))
+  return { x, y, width, height }
+}
+
+async function applyDeterministicFaceLock(personImageBase64: string, generatedBase64: string): Promise<{
+  image: string
+  applied: boolean
+  reason?: string
+}> {
+  try {
+    const originalBuffer = Buffer.from(stripDataUrl(personImageBase64), 'base64')
+    const generatedBuffer = Buffer.from(stripDataUrl(generatedBase64), 'base64')
+
+    const [origMeta, genMeta] = await Promise.all([
+      sharp(originalBuffer).metadata(),
+      sharp(generatedBuffer).metadata(),
+    ])
+
+    if (!origMeta.width || !origMeta.height || !genMeta.width || !genMeta.height) {
+      return { image: generatedBase64, applied: false, reason: 'metadata_unavailable' }
+    }
+
+    const [sourceFace, targetFace] = await Promise.all([
+      detectFaceCoordinates(personImageBase64),
+      detectFaceCoordinates(generatedBase64),
+    ])
+
+    const sourceBox = sourceFace
+      ? normalizedFaceToBox(sourceFace, origMeta.width, origMeta.height)
+      : estimateFaceBox(origMeta.width, origMeta.height)
+
+    const fallbackTarget = mapSourceBoxToTarget(sourceBox, origMeta.width, origMeta.height, genMeta.width, genMeta.height)
+    const targetBox = targetFace
+      ? normalizedFaceToBox(targetFace, genMeta.width, genMeta.height)
+      : fallbackTarget
+
+    const faceData = await extractFacePixels(originalBuffer, sourceBox)
+    if (!faceData) {
+      return { image: generatedBase64, applied: false, reason: 'source_face_extract_failed' }
+    }
+
+    const composite = await compositeFacePixels(generatedBuffer, faceData, targetBox, true)
+    if (!composite.success) {
+      return { image: generatedBase64, applied: false, reason: composite.error || 'face_composite_failed' }
+    }
+
+    return {
+      image: `data:image/png;base64,${composite.outputBuffer.toString('base64')}`,
+      applied: composite.faceSourcedFromOriginal,
+    }
+  } catch (error) {
+    return {
+      image: generatedBase64,
+      applied: false,
+      reason: error instanceof Error ? error.message : 'face_lock_exception',
+    }
+  }
 }
 
 async function extractGarmentWithFlashGuard(
@@ -205,18 +285,26 @@ export async function runHybridTryOnPipeline(
     throw new Error('Nano Banana Pro rendering failed: ' + (renderResult.debug?.error || 'Unknown error'))
   }
 
+  const faceLock = await applyDeterministicFaceLock(input.personImageBase64, renderResult.image)
+
   // 3. Return Result
   return {
     success: true,
-    image: renderResult.image,
+    image: faceLock.image,
     status: 'PASS',
-    warnings: [],
+    warnings: faceLock.applied ? [] : [`Face lock fallback: ${faceLock.reason || 'not applied'}`],
     debug: {
       stages: ['garment_extraction', 'strict_renderer'],
       totalTimeMs: Date.now() - startTime,
-      faceOverwritten: false,
+      faceOverwritten: faceLock.applied,
       promptUsed: renderResult.promptUsed,
-      rendererDebug: renderResult.debug
+      rendererDebug: {
+        ...renderResult.debug,
+        deterministicFaceLock: {
+          applied: faceLock.applied,
+          reason: faceLock.reason || null,
+        },
+      }
     }
   }
 }
