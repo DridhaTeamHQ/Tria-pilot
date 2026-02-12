@@ -152,6 +152,12 @@ function TryOnPageContent() {
         }
     }, [loading])
 
+    // Reset retry cooldown on mount so we never show a stale "Job in progress" from a previous session
+    useEffect(() => {
+        setRetryAfterSeconds(0)
+        setRetryReason(null)
+    }, [])
+
     // Retry cooldown timer (for 429 / job-in-progress responses)
     useEffect(() => {
         if (retryAfterSeconds <= 0) {
