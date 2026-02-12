@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
+import Link from 'next/link'
 import {
   Camera,
   ShoppingBag,
@@ -40,6 +41,7 @@ import {
   Facebook,
   Globe,
   Users,
+  Images,
 } from 'lucide-react'
 import {
   AD_PRESET_CATEGORIES,
@@ -245,11 +247,20 @@ export default function AdsPage() {
       <div className="container mx-auto px-4 max-w-6xl">
 
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl md:text-5xl font-black text-black" style={{ fontFamily: 'Playfair Display, serif' }}>
-            Create Ad
-          </h1>
-          <p className="text-black/50 mt-1">Select a style, upload your product, generate.</p>
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-4xl md:text-5xl font-black text-black" style={{ fontFamily: 'Playfair Display, serif' }}>
+              Create Ad
+            </h1>
+            <p className="text-black/50 mt-1">Select a style, upload your product, generate.</p>
+          </div>
+          <Link
+            href="/brand/ads/creatives"
+            className="flex items-center gap-2 px-4 py-2.5 border-[2px] border-black bg-white font-bold text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-[#FFD93D] transition-colors"
+          >
+            <Images className="h-4 w-4" />
+            View all creatives
+          </Link>
         </div>
 
         <div className="grid lg:grid-cols-[1fr_420px] gap-6">

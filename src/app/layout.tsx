@@ -34,6 +34,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${playfair.variable} ${inter.variable} antialiased bg-cream text-charcoal`}>
         <ReactQueryProvider>
+          <Toaster />
           <ReactLenis>
             <BrutalNavbar />
             <RealtimeListener />
@@ -41,7 +42,6 @@ export default function RootLayout({
             <main className="animate-fade-in">
               {children}
             </main>
-            <Toaster />
           </ReactLenis>
         </ReactQueryProvider>
       </body>

@@ -16,6 +16,10 @@ const updateSchema = z.object({
     description: z.string().optional(),
     category: z.string().optional(),
     price: z.number().optional(),
+    discount: z.number().min(0).max(100).optional(),
+    stock: z.number().int().min(0).optional(),
+    sku: z.string().max(100).optional(),
+    try_on_compatible: z.boolean().optional(),
     link: z.string().url().optional().or(z.literal('')),
     tags: z.array(z.string()).optional(),
     audience: z.string().optional(),
@@ -43,7 +47,15 @@ export async function PUT(request: Request, { params }: Params) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        const body = await request.json()
+        let body: unknown
+        try {
+            body = await request.json()
+        } catch (parseError) {
+            return NextResponse.json(
+                { error: 'Invalid request payload. Try smaller images or fewer uploads.' },
+                { status: 413 }
+            )
+        }
         const parsed = updateSchema.safeParse(body)
 
         if (!parsed.success) {

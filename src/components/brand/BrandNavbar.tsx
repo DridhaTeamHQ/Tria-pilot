@@ -9,14 +9,16 @@ import {
     Package,
     Inbox,
     User,
-    LogOut
+    LogOut,
+    ImageIcon,
 } from 'lucide-react'
 
 const navItems = [
     { href: '/brand/campaigns', label: 'Campaigns', icon: Target },
     { href: '/brand/profile', label: 'Profile', icon: User },
     { href: '/brand/influencers', label: 'Influencers', icon: Users },
-    { href: '/brand/ads', label: 'Ads', icon: Sparkles },
+    { href: '/brand/ads', label: 'Create Ad', icon: Sparkles },
+    { href: '/brand/ads/creatives', label: 'Ad Creatives', icon: ImageIcon },
     { href: '/brand/products', label: 'Products', icon: Package },
     { href: '/brand/inbox', label: 'Inbox', icon: Inbox },
 ]

@@ -16,13 +16,16 @@ import {
     Shirt
 } from 'lucide-react'
 
-// Define Interface (shared with Server Component ideally, but defined here for now)
 export interface Product {
     id: string
     name: string
     description?: string
     category?: string
     price?: number
+    discount?: number
+    stock?: number
+    sku?: string
+    try_on_compatible?: boolean
     link?: string
     tags?: string[]
     audience?: string
@@ -39,6 +42,55 @@ interface ProductsClientProps {
 
 const CATEGORIES = ['Clothing', 'Accessories', 'Footwear', 'Beauty', 'Lifestyle', 'Electronics', 'Home', 'Other']
 const AUDIENCES = ['Men', 'Women', 'Unisex', 'Kids']
+const MAX_IMAGES = 8
+const MAX_IMAGE_DIMENSION = 1600
+const MAX_PRODUCT_PAYLOAD_BYTES = 9 * 1024 * 1024
+const MIN_JPEG_QUALITY = 0.55
+
+async function fileToDataUrl(file: File): Promise<string> {
+    return await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = () => reject(new Error('Failed to read image file'))
+        reader.readAsDataURL(file)
+    })
+}
+
+async function compressImageDataUrl(dataUrl: string): Promise<string> {
+    return await new Promise((resolve, reject) => {
+        const img = new Image()
+        img.onload = () => {
+            const maxSide = Math.max(img.width, img.height)
+            const scale = maxSide > MAX_IMAGE_DIMENSION ? MAX_IMAGE_DIMENSION / maxSide : 1
+            const targetWidth = Math.max(1, Math.round(img.width * scale))
+            const targetHeight = Math.max(1, Math.round(img.height * scale))
+
+            const canvas = document.createElement('canvas')
+            canvas.width = targetWidth
+            canvas.height = targetHeight
+            const ctx = canvas.getContext('2d')
+            if (!ctx) {
+                reject(new Error('Failed to process image'))
+                return
+            }
+
+            ctx.drawImage(img, 0, 0, targetWidth, targetHeight)
+
+            let quality = 0.86
+            let output = canvas.toDataURL('image/jpeg', quality)
+
+            // Keep reducing quality for large images to avoid request body overflow.
+            while (output.length > 2_000_000 && quality > MIN_JPEG_QUALITY) {
+                quality -= 0.08
+                output = canvas.toDataURL('image/jpeg', quality)
+            }
+
+            resolve(output)
+        }
+        img.onerror = () => reject(new Error('Invalid image file'))
+        img.src = dataUrl
+    })
+}
 
 export default function ProductsClient({ initialProducts }: ProductsClientProps) {
     const router = useRouter()
@@ -60,6 +112,10 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
     const [description, setDescription] = useState('')
     const [category, setCategory] = useState('')
     const [price, setPrice] = useState('')
+    const [discount, setDiscount] = useState('')
+    const [stock, setStock] = useState('')
+    const [sku, setSku] = useState('')
+    const [tryOnCompatible, setTryOnCompatible] = useState(false)
     const [link, setLink] = useState('')
     const [tags, setTags] = useState('')
     const [audience, setAudience] = useState('')
@@ -79,6 +135,10 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
         setDescription('')
         setCategory('')
         setPrice('')
+        setDiscount('')
+        setStock('')
+        setSku('')
+        setTryOnCompatible(false)
         setLink('')
         setTags('')
         setAudience('')
@@ -95,6 +155,10 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
         setDescription(product.description || '')
         setCategory(product.category || '')
         setPrice(product.price?.toString() || '')
+        setDiscount(product.discount?.toString() || '')
+        setStock(product.stock?.toString() ?? '')
+        setSku(product.sku || '')
+        setTryOnCompatible(product.try_on_compatible ?? false)
         setLink(product.link || '')
         setTags(product.tags?.join(', ') || '')
         setAudience(product.audience || '')
@@ -119,18 +183,31 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
         setShowForm(true)
     }
 
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files
         if (!files) return
+        const incoming = Array.from(files)
 
-        Array.from(files).forEach(file => {
-            const reader = new FileReader()
-            reader.onload = (event) => {
-                const base64 = event.target?.result as string
-                setImages(prev => [...prev, base64])
+        if (images.length + incoming.length > MAX_IMAGES) {
+            toast.error(`Maximum ${MAX_IMAGES} images allowed`)
+            return
+        }
+
+        try {
+            const processed: string[] = []
+            for (const file of incoming) {
+                const rawDataUrl = await fileToDataUrl(file)
+                const compressed = await compressImageDataUrl(rawDataUrl)
+                processed.push(compressed)
             }
-            reader.readAsDataURL(file)
-        })
+            setImages(prev => [...prev, ...processed])
+        } catch (error) {
+            console.error('Image upload processing error:', error)
+            toast.error('Failed to process selected image(s). Please try smaller files.')
+        } finally {
+            // Allow selecting the same file again after failure/success.
+            if (fileInputRef.current) fileInputRef.current.value = ''
+        }
     }
 
     const removeImage = (index: number) => {
@@ -172,6 +249,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
             toast.error('Product name is required')
             return
         }
+        setSaving(true)
 
         // 1. Optimistic Update
         const tempId = `temp-${Date.now()}`
@@ -181,6 +259,10 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
             description: description.trim() || undefined,
             category: category || undefined,
             price: price ? parseFloat(price) : undefined,
+            discount: discount ? parseFloat(discount) : undefined,
+            stock: stock ? parseInt(stock, 10) : undefined,
+            sku: sku.trim() || undefined,
+            try_on_compatible: tryOnCompatible,
             link: link.trim() || undefined,
             tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [],
             audience: audience || undefined,
@@ -219,16 +301,25 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
             const url = editingProduct
                 ? `/api/brand/products/${editingProduct.id}`
                 : '/api/brand/products'
+            const payload = JSON.stringify(productData)
+            const payloadBytes = new TextEncoder().encode(payload).length
+            if (payloadBytes > MAX_PRODUCT_PAYLOAD_BYTES) {
+                toast.error('Images are too large. Please remove a few images or upload smaller ones.')
+                setProducts(previousProducts)
+                setShowForm(true)
+                return
+            }
 
             const res = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(productData),
+                body: payload,
             })
 
-            const data = await res.json()
+            const responseText = await res.text()
+            const data = responseText ? JSON.parse(responseText) : {}
 
-            if (!res.ok) throw new Error(data.error)
+            if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`)
 
             // Success: Update with real data (server response might have generated fields like ID)
             const realProduct = data.product
@@ -241,18 +332,37 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
             // We still trigger refresh to sync server cache, but UI is already consistent
             refreshData()
         } catch (error) {
-            console.error('Failed to save product:', error)
-            toast.error(error instanceof Error ? error.message : 'Failed to save product')
+            const message = error instanceof Error ? error.message : 'Failed to save product'
+            const isBodyParseError =
+                message.toLowerCase().includes('unterminated string') ||
+                message.toLowerCase().includes('unexpected end of json')
+            const isImageTooLarge = message.toLowerCase().includes('too large')
+
+            if (!isImageTooLarge) {
+                console.error('Failed to save product:', error)
+            }
+            toast.error(
+                isBodyParseError
+                    ? 'Upload too large. Please use fewer/smaller images and try again.'
+                    : message
+            )
 
             // Revert State
             setProducts(previousProducts)
             setShowForm(true) // Re-open form
+        } finally {
+            setSaving(false)
         }
     }
 
-    const handleDelete = async (productId: string) => {
-        if (!confirm('Are you sure you want to delete this product?')) return
+    const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null)
 
+    const handleDeleteClick = (product: Product) => {
+        setDeleteConfirm({ id: product.id, name: product.name })
+    }
+
+    const handleDelete = async (productId: string) => {
+        setDeleteConfirm(null)
         // 1. Optimistic Delete
         const previousProducts = [...products]
         setProducts(prev => prev.filter(p => p.id !== productId))
@@ -384,7 +494,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                                 </div>
                             </div>
 
-                            {/* Price & Link */}
+                            {/* Price, Discount, Stock, SKU */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-black uppercase tracking-wider mb-2">
@@ -402,16 +512,68 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                                 </div>
                                 <div>
                                     <label className="block text-xs font-black uppercase tracking-wider mb-2">
-                                        Product Link
+                                        Discount (%)
                                     </label>
                                     <input
-                                        type="url"
-                                        value={link}
-                                        onChange={(e) => setLink(e.target.value)}
-                                        className="w-full px-4 py-3 border-2 border-black font-medium focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
-                                        placeholder="https://..."
+                                        type="number"
+                                        value={discount}
+                                        onChange={(e) => setDiscount(e.target.value)}
+                                        className="w-full px-4 py-3 border-2 border-black font-bold focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
+                                        placeholder="0"
+                                        min="0"
+                                        max="100"
+                                        step="1"
                                     />
                                 </div>
+                                <div>
+                                    <label className="block text-xs font-black uppercase tracking-wider mb-2">
+                                        Stock
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={stock}
+                                        onChange={(e) => setStock(e.target.value)}
+                                        className="w-full px-4 py-3 border-2 border-black font-bold focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
+                                        placeholder="0"
+                                        min="0"
+                                        step="1"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-black uppercase tracking-wider mb-2">
+                                        SKU
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={sku}
+                                        onChange={(e) => setSku(e.target.value)}
+                                        className="w-full px-4 py-3 border-2 border-black font-medium focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
+                                        placeholder="e.g. SKU-001"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={tryOnCompatible}
+                                        onChange={(e) => setTryOnCompatible(e.target.checked)}
+                                        className="w-4 h-4 border-2 border-black"
+                                    />
+                                    <span className="text-xs font-black uppercase">Try-on compatible</span>
+                                </label>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-black uppercase tracking-wider mb-2">
+                                    Product Link
+                                </label>
+                                <input
+                                    type="url"
+                                    value={link}
+                                    onChange={(e) => setLink(e.target.value)}
+                                    className="w-full px-4 py-3 border-2 border-black font-medium focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
+                                    placeholder="https://..."
+                                />
                             </div>
 
                             {/* Tags */}
@@ -605,7 +767,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                                     </div>
                                 )}
                                 {/* Try-On indicator */}
-                                {product.tryon_image && (
+                                {(product.try_on_compatible || product.tryon_image) && (
                                     <div className="absolute top-2 right-2 bg-[#FF6B35] text-white px-2 py-1 text-[10px] font-black flex items-center gap-1 border border-black">
                                         <Shirt className="w-3 h-3" />
                                         TRY-ON
@@ -616,14 +778,22 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                             {/* Content */}
                             <div className="p-4">
                                 <h3 className="font-black text-lg mb-1 truncate">{product.name}</h3>
-                                <div className="flex items-center gap-2 text-sm text-black/60 mb-3">
+                                <div className="flex items-center gap-2 text-sm text-black/60 mb-3 flex-wrap">
                                     {product.category && (
                                         <span className="bg-gray-100 px-2 py-0.5 font-bold">
                                             {product.category}
                                         </span>
                                     )}
-                                    {product.price && (
-                                        <span className="font-black">₹{product.price}</span>
+                                    {product.price != null && (
+                                        <span className="font-black">
+                                            ₹{product.price}
+                                            {product.discount != null && product.discount > 0 && (
+                                                <span className="text-green-600 ml-1">-{product.discount}%</span>
+                                            )}
+                                        </span>
+                                    )}
+                                    {product.sku && (
+                                        <span className="text-black/50 text-xs font-medium">{product.sku}</span>
                                     )}
                                 </div>
 
@@ -647,8 +817,9 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                                         </a>
                                     )}
                                     <button
-                                        onClick={() => handleDelete(product.id)}
+                                        onClick={() => handleDeleteClick(product)}
                                         className="p-2 border-2 border-black hover:bg-red-100"
+                                        aria-label="Delete product"
                                     >
                                         <Trash2 className="w-4 h-4 text-red-600" />
                                     </button>
@@ -656,6 +827,34 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* Delete confirmation modal */}
+            {deleteConfirm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <div className="bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-md p-6">
+                        <h3 className="text-xl font-black mb-2">Delete product?</h3>
+                        <p className="text-black/70 mb-6">
+                            &ldquo;{deleteConfirm.name}&rdquo; will be permanently removed. This cannot be undone.
+                        </p>
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                type="button"
+                                onClick={() => setDeleteConfirm(null)}
+                                className="px-4 py-2 border-2 border-black font-bold uppercase hover:bg-gray-100"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleDelete(deleteConfirm.id)}
+                                className="px-4 py-2 bg-red-500 text-white border-2 border-black font-bold uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-red-600"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

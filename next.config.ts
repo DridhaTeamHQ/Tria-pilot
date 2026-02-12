@@ -39,6 +39,10 @@ const nextConfig = {
   // Empty turbopack config to silence Next.js 16 warning
   // (Turbopack is now the default bundler)
   turbopack: {},
+
+  experimental: {
+    proxyClientMaxBodySize: '20mb',
+  },
 };
 
 export default nextConfig;

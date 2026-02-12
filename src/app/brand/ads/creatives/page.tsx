@@ -1,35 +1,35 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select'
-import { toast } from 'sonner'
+    staggerContainer,
+    staggerItem,
+    cardHover,
+    pageVariants,
+    overlayVariants,
+    scaleFade,
+} from '@/lib/animations'
+import { cn } from '@/lib/utils'
+import type { Platform } from '@/lib/ads/ad-styles'
 import {
     Plus,
     RefreshCw,
     Sparkles,
     Download,
-    Tag,
     X,
     Instagram,
     Facebook,
     Globe,
     Users,
-    Loader2,
     ImageIcon,
     ZoomIn,
     AlertCircle,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import type { Platform } from '@/lib/ads/ad-styles'
+import { toast } from 'sonner'
+import BrutalCard from '@/components/brutal/BrutalCard'
+import { BrutalLoader } from '@/components/ui/BrutalLoader'
 
 // ═══════════════════════════════════════════════════════════════
 // TYPES
@@ -39,10 +39,7 @@ interface AdCreative {
     id: string
     imageUrl: string
     qualityScore: number
-    campaign?: {
-        id: string
-        title: string
-    }
+    campaign?: { id: string; title: string }
     platforms: Platform[]
     copyVariants: string[]
     createdAt: string
@@ -72,36 +69,38 @@ const PLATFORM_ICONS: Record<Platform, React.ReactNode> = {
 const QUALITY_CONFIG: Record<QualityTier, { min: number; max: number; label: string }> = {
     all: { min: 0, max: 100, label: 'All' },
     high: { min: 80, max: 100, label: 'High (80+)' },
-    medium: { min: 60, max: 79, label: 'Medium (60-79)' },
-    low: { min: 0, max: 59, label: 'Low (<60)' },
+    medium: { min: 60, max: 79, label: 'Medium' },
+    low: { min: 0, max: 59, label: 'Low' },
 }
 
 // ═══════════════════════════════════════════════════════════════
-// QUALITY BADGE COMPONENT
+// QUALITY BADGE — NEO-BRUTALIST
 // ═══════════════════════════════════════════════════════════════
 
 function QualityBadge({ score }: { score: number }) {
-    let color = 'bg-red-500/20 text-red-400 border-red-500/30'
-    let label = 'Needs Work'
-
+    let bg = 'bg-[#FF8C69]' // coral low
+    let label = 'Needs work'
     if (score >= 80) {
-        color = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-        label = 'High Quality'
+        bg = 'bg-[#B4F056]'
+        label = 'High'
     } else if (score >= 60) {
-        color = 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-        label = 'Medium Quality'
+        bg = 'bg-[#FFD93D]'
+        label = 'Medium'
     }
-
     return (
-        <div className={cn("inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border", color)}>
-            <span className="font-bold">{score}</span>
-            <span>{label}</span>
-        </div>
+        <span
+            className={cn(
+                'inline-flex items-center gap-1.5 px-2.5 py-1 border-[2px] border-black text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]',
+                bg
+            )}
+        >
+            {score} — {label}
+        </span>
     )
 }
 
 // ═══════════════════════════════════════════════════════════════
-// CREATIVE CARD COMPONENT
+// CREATIVE CARD — NEO-BRUTALIST
 // ═══════════════════════════════════════════════════════════════
 
 function CreativeCard({
@@ -119,128 +118,134 @@ function CreativeCard({
 }) {
     const [imageError, setImageError] = useState(false)
     const [imageLoading, setImageLoading] = useState(true)
-
     const relativeDate = getRelativeDate(creative.createdAt)
 
-    // Use server-side proxy for Supabase images
     const getImageSrc = (url: string) => {
         if (!url) return ''
-        if (url.includes('supabase.co/storage')) {
+        if (url.includes('supabase.co/storage'))
             return `/api/images/proxy?url=${encodeURIComponent(url)}`
-        }
         return url
     }
 
     return (
-        <Card className="overflow-hidden group bg-gradient-to-br from-zinc-900 to-zinc-950 border-zinc-800/50 hover:border-zinc-700/70 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/5">
-            {/* Image Container */}
-            <div
-                className="relative aspect-[4/5] cursor-pointer overflow-hidden bg-zinc-800/50"
-                onClick={onImageClick}
+        <motion.div variants={staggerItem}>
+            <BrutalCard
+                className={cn(
+                    'overflow-hidden transition-transform hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]',
+                    'p-0'
+                )}
             >
-                {imageLoading && !imageError && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/80 backdrop-blur-sm">
-                        <Loader2 className="h-8 w-8 animate-spin text-purple-400" />
-                    </div>
-                )}
-
-                {imageError ? (
-                    <div className="w-full h-full flex flex-col items-center justify-center text-zinc-500 bg-zinc-900/50 p-4">
-                        <AlertCircle className="h-12 w-12 mb-3 text-red-400/60" />
-                        <p className="text-sm font-medium">Image failed to load</p>
-                        <p className="text-xs text-zinc-600 mt-2 text-center max-w-[200px] break-all">
-                            {creative.imageUrl.substring(0, 60)}...
-                        </p>
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            className="mt-4"
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                setImageError(false)
-                                setImageLoading(true)
+                {/* Image */}
+                <div
+                    className="group relative aspect-[4/5] cursor-pointer overflow-hidden bg-[#FFFDF5] border-b-[3px] border-black"
+                    onClick={onImageClick}
+                >
+                    {imageLoading && !imageError && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-white/90 border-b-[3px] border-black">
+                            <BrutalLoader size="sm" />
+                        </div>
+                    )}
+                    {imageError ? (
+                        <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-[#FFFDF5] border-b-[3px] border-black">
+                            <AlertCircle className="h-10 w-10 text-black mb-2" />
+                            <p className="text-xs font-bold text-black">Image failed to load</p>
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    setImageError(false)
+                                    setImageLoading(true)
+                                }}
+                                className="mt-3 px-3 py-1.5 border-[2px] border-black bg-[#FFD93D] text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                            >
+                                Retry
+                            </button>
+                        </div>
+                    ) : (
+                        <img
+                            src={getImageSrc(creative.imageUrl)}
+                            alt="Ad creative"
+                            className={cn(
+                                'w-full h-full object-cover transition-all duration-300',
+                                imageLoading ? 'opacity-0 scale-105' : 'opacity-100 scale-100 hover:scale-105'
+                            )}
+                            onError={() => {
+                                setImageError(true)
+                                setImageLoading(false)
                             }}
-                        >
-                            Retry
-                        </Button>
+                            onLoad={() => setImageLoading(false)}
+                        />
+                    )}
+                    {/* Hover zoom hint */}
+                    <div className="absolute inset-0 flex items-end justify-center pb-4 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-t from-black/20 to-transparent">
+                        <span className="flex items-center gap-1.5 px-2 py-1 bg-white border-[2px] border-black text-[10px] font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                            <ZoomIn className="h-3.5 w-3.5" /> Click to zoom
+                        </span>
                     </div>
-                ) : (
-                    <img
-                        src={getImageSrc(creative.imageUrl)}
-                        alt="Ad creative"
-                        className={cn(
-                            "w-full h-full object-cover transition-all duration-500",
-                            imageLoading ? "opacity-0 scale-105" : "opacity-100 scale-100 group-hover:scale-105"
-                        )}
-                        onError={() => {
-                            console.error('[CreativeCard] Image load failed:', creative.imageUrl)
-                            setImageError(true)
-                            setImageLoading(false)
-                        }}
-                        onLoad={() => setImageLoading(false)}
-                    />
-                )}
-
-                {/* Hover Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-6">
-                    <ZoomIn className="h-8 w-8 text-white drop-shadow-lg" />
                 </div>
-            </div>
 
-            <CardContent className="p-5 space-y-4">
-                {/* Metadata Row */}
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm text-zinc-400">
-                        <span className="font-medium">{creative.campaign?.title || 'Unassigned'}</span>
-                        <span className="text-zinc-600">•</span>
-                        <span>{relativeDate}</span>
+                <div className="p-3 space-y-3 bg-white">
+                    <div className="flex items-center justify-between flex-wrap gap-1">
+                        <span className="text-[11px] font-bold text-black">
+                            {creative.campaign?.title || 'Unassigned'}
+                        </span>
+                        <span className="text-[10px] text-black/50">{relativeDate}</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                        {creative.platforms.map(p => (
-                            <span key={p} className="text-zinc-500 hover:text-purple-400 transition-colors">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                        {creative.platforms.map((p) => (
+                            <span
+                                key={p}
+                                className="p-1 border-[1.5px] border-black bg-[#FFFDF5]"
+                                title={p}
+                            >
                                 {PLATFORM_ICONS[p]}
                             </span>
                         ))}
                     </div>
+                    <QualityBadge score={creative.qualityScore} />
+                    <div className="flex gap-2 pt-1">
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                onRegenerate()
+                            }}
+                            disabled={regenerating}
+                            className={cn(
+                                'flex-1 flex items-center justify-center gap-2 py-2.5 border-[2px] border-black text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
+                                regenerating
+                                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                    : 'bg-[#FF8C69] hover:bg-[#ff9d7d] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                            )}
+                        >
+                            {regenerating ? (
+                                <BrutalLoader size="sm" className="!min-h-0" />
+                            ) : (
+                                <>
+                                    <RefreshCw className="h-3.5 w-3.5" />
+                                    Regenerate
+                                </>
+                            )}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                onDownload()
+                            }}
+                            className="flex items-center justify-center py-2.5 px-3 bg-black text-white border-[2px] border-black font-black text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-black/90 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                        >
+                            <Download className="h-3.5 w-3.5" />
+                        </button>
+                    </div>
                 </div>
-
-                {/* Quality Badge */}
-                <QualityBadge score={creative.qualityScore} />
-
-                {/* Actions */}
-                <div className="flex items-center gap-2 pt-2">
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={onRegenerate}
-                        disabled={regenerating}
-                        className="flex-1 bg-transparent border-zinc-700 hover:bg-purple-500/10 hover:border-purple-500/50 hover:text-purple-300"
-                    >
-                        {regenerating ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                            <>
-                                <RefreshCw className="h-4 w-4 mr-2" />
-                                Regenerate
-                            </>
-                        )}
-                    </Button>
-                    <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={onDownload}
-                        className="shrink-0 text-zinc-400 hover:text-white hover:bg-zinc-800"
-                    >
-                        <Download className="h-4 w-4" />
-                    </Button>
-                </div>
-            </CardContent>
-        </Card>
+            </BrutalCard>
+        </motion.div>
     )
 }
 
 // ═══════════════════════════════════════════════════════════════
-// LIGHTBOX COMPONENT
+// LIGHTBOX — NEO-BRUTALIST
 // ═══════════════════════════════════════════════════════════════
 
 function Lightbox({
@@ -252,82 +257,84 @@ function Lightbox({
     onClose: () => void
     imageUrl: string
 }) {
-    if (!open) return null
-
-    // Proxy the URL for lightbox too
     const src = imageUrl.includes('supabase.co/storage')
         ? `/api/images/proxy?url=${encodeURIComponent(imageUrl)}`
         : imageUrl
 
     return (
-        <div
-            className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex items-center justify-center p-4"
-            onClick={onClose}
-        >
-            <button
-                className="absolute top-6 right-6 text-white/70 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10"
-                onClick={onClose}
-            >
-                <X className="h-8 w-8" />
-            </button>
-            <img
-                src={src}
-                alt="Creative preview"
-                className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
-                onClick={(e) => e.stopPropagation()}
-            />
-        </div>
+        <AnimatePresence>
+            {open && (
+                <motion.div
+                    key="lightbox"
+                    variants={overlayVariants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+                    onClick={onClose}
+                >
+                    <motion.div
+                        variants={scaleFade}
+                        initial="initial"
+                        animate="animate"
+                        exit="exit"
+                        className="relative max-w-[90vw] max-h-[90vh] bg-white border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-2"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            type="button"
+                            className="absolute -top-2 -right-2 z-10 w-10 h-10 bg-[#FF8C69] border-[3px] border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center hover:bg-[#ff9d7d] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+                            onClick={onClose}
+                            aria-label="Close"
+                        >
+                            <X className="h-5 w-5 text-black" />
+                        </button>
+                        <img
+                            src={src}
+                            alt="Creative preview"
+                            className="max-w-full max-h-[85vh] object-contain block"
+                        />
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
     )
 }
-
-// ═══════════════════════════════════════════════════════════════
-// HELPER FUNCTIONS
-// ═══════════════════════════════════════════════════════════════
 
 function getRelativeDate(dateStr: string): string {
     const date = new Date(dateStr)
     const now = new Date()
     const diff = now.getTime() - date.getTime()
-
     const minutes = Math.floor(diff / 60000)
     const hours = Math.floor(diff / 3600000)
     const days = Math.floor(diff / 86400000)
-
     if (minutes < 1) return 'Just now'
     if (minutes < 60) return `${minutes}m ago`
     if (hours < 24) return `${hours}h ago`
     if (days < 7) return `${days}d ago`
-
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MAIN COMPONENT
+// MAIN PAGE
 // ═══════════════════════════════════════════════════════════════
 
 export default function CreativesPage() {
     const router = useRouter()
-
-    // Data state
     const [creatives, setCreatives] = useState<AdCreative[]>([])
     const [campaigns, setCampaigns] = useState<Campaign[]>([])
-
-    // Filter state
     const [campaignFilter, setCampaignFilter] = useState<string>('all')
     const [platformFilter, setPlatformFilter] = useState<Platform | 'all'>('all')
     const [qualityFilter, setQualityFilter] = useState<QualityTier>('all')
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest')
-
-    // UI state
     const [loading, setLoading] = useState(true)
     const [regenerating, setRegenerating] = useState<string | null>(null)
     const [lightboxImage, setLightboxImage] = useState<string | null>(null)
 
-    // Fetch data
     useEffect(() => {
         Promise.all([
-            fetch('/api/ads/creatives').then(r => r.json()),
-            fetch('/api/campaigns').then(r => r.json()),
+            fetch('/api/ads/creatives').then((r) => r.json()),
+            fetch('/api/campaigns').then((r) => r.json()),
         ])
             .then(([creativesData, campaignsData]) => {
                 setCreatives(creativesData.creatives || [])
@@ -337,27 +344,19 @@ export default function CreativesPage() {
             .finally(() => setLoading(false))
     }, [])
 
-    // Filter creatives
     const filteredCreatives = creatives
-        .filter(c => {
+        .filter((c) => {
             if (campaignFilter !== 'all') {
                 if (campaignFilter === 'unassigned') return !c.campaign
                 return c.campaign?.id === campaignFilter
             }
             return true
         })
-        .filter(c => {
-            if (platformFilter !== 'all') {
-                return c.platforms.includes(platformFilter)
-            }
-            return true
-        })
-        .filter(c => {
-            if (qualityFilter !== 'all') {
-                const { min, max } = QUALITY_CONFIG[qualityFilter]
-                return c.qualityScore >= min && c.qualityScore <= max
-            }
-            return true
+        .filter((c) => (platformFilter === 'all' ? true : c.platforms.includes(platformFilter)))
+        .filter((c) => {
+            if (qualityFilter === 'all') return true
+            const { min, max } = QUALITY_CONFIG[qualityFilter]
+            return c.qualityScore >= min && c.qualityScore <= max
         })
         .sort((a, b) => {
             const dateA = new Date(a.createdAt).getTime()
@@ -365,21 +364,15 @@ export default function CreativesPage() {
             return sortOrder === 'newest' ? dateB - dateA : dateA - dateB
         })
 
-    // Handlers
     const handleRegenerate = async (creative: AdCreative) => {
         setRegenerating(creative.id)
         try {
-            const res = await fetch(`/api/ads/${creative.id}/regenerate`, {
-                method: 'POST',
-            })
-
+            const res = await fetch(`/api/ads/${creative.id}/regenerate`, { method: 'POST' })
             if (!res.ok) {
                 const data = await res.json()
                 throw new Error(data.error || 'Regeneration failed')
             }
-
             toast.success('Creative regenerated!')
-            // Refresh creatives
             const refreshRes = await fetch('/api/ads/creatives')
             const refreshData = await refreshRes.json()
             setCreatives(refreshData.creatives || [])
@@ -392,11 +385,9 @@ export default function CreativesPage() {
 
     const handleDownload = async (creative: AdCreative) => {
         try {
-            // Use proxy for download too
             const url = creative.imageUrl.includes('supabase.co/storage')
                 ? `/api/images/proxy?url=${encodeURIComponent(creative.imageUrl)}`
                 : creative.imageUrl
-
             const res = await fetch(url)
             const blob = await res.blob()
             const blobUrl = URL.createObjectURL(blob)
@@ -408,136 +399,193 @@ export default function CreativesPage() {
             document.body.removeChild(a)
             URL.revokeObjectURL(blobUrl)
             toast.success('Download started')
-        } catch (error) {
+        } catch {
             toast.error('Download failed')
         }
     }
 
-    const hasActiveFilters = campaignFilter !== 'all' || platformFilter !== 'all' || qualityFilter !== 'all'
+    const hasActiveFilters =
+        campaignFilter !== 'all' || platformFilter !== 'all' || qualityFilter !== 'all'
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-950 pt-24 pb-12">
-            {/* Decorative Background */}
-            <div className="fixed inset-0 pointer-events-none overflow-hidden">
-                <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-[120px]" />
-                <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-[120px]" />
-            </div>
-
-            <div className="container mx-auto px-4 max-w-7xl relative z-10">
+        <motion.div
+            variants={pageVariants}
+            initial="initial"
+            animate="animate"
+            className="min-h-screen bg-[#FFFDF5] pt-24 pb-16"
+        >
+            <div className="container mx-auto px-4 max-w-6xl">
                 {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
+                <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-purple-200 to-purple-400 bg-clip-text text-transparent mb-2">
+                        <h1
+                            className="text-4xl md:text-5xl font-black text-black"
+                            style={{ fontFamily: 'Playfair Display, serif' }}
+                        >
                             Ad Creatives
                         </h1>
-                        <p className="text-zinc-400">
+                        <p className="text-black/50 mt-1">
                             All generated ad creatives across your campaigns
                         </p>
                     </div>
-                    <Button
+                    <motion.button
+                        type="button"
+                        whileHover={{ y: -2 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => router.push('/brand/ads')}
-                        size="lg"
-                        className="bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white shadow-lg shadow-purple-500/20"
+                        className="flex items-center gap-2 px-5 py-2.5 border-[3px] border-black bg-[#FFD93D] font-black text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-shadow"
                     >
-                        <Plus className="h-5 w-5 mr-2" />
+                        <Plus className="h-4 w-4" />
                         Generate New Ad
-                    </Button>
+                    </motion.button>
                 </div>
 
-                {/* Filter Bar */}
-                <div className="flex flex-wrap items-center gap-3 mb-10 p-5 bg-zinc-900/50 backdrop-blur-sm rounded-2xl border border-zinc-800/50">
-                    <Select value={campaignFilter} onValueChange={setCampaignFilter}>
-                        <SelectTrigger className="w-48 bg-zinc-800/50 border-zinc-700 hover:border-purple-500/50 transition-colors">
-                            <SelectValue placeholder="Campaign" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-zinc-900 border-zinc-800">
-                            <SelectItem value="all">All Campaigns</SelectItem>
-                            <SelectItem value="unassigned">Unassigned</SelectItem>
-                            {campaigns.map(c => (
-                                <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>
+                {/* Filters — neo-brutalist chips */}
+                <BrutalCard className="p-4 mb-8">
+                    <p className="text-[10px] font-black uppercase text-black/50 mb-3">Filters</p>
+                    <div className="flex flex-wrap gap-3">
+                        {/* Campaign */}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="text-[10px] font-bold text-black/60 mr-1">Campaign</span>
+                            <select
+                                value={campaignFilter}
+                                onChange={(e) => setCampaignFilter(e.target.value)}
+                                className="border-[2px] border-black bg-white px-3 py-1.5 text-xs font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:outline-none focus:ring-2 focus:ring-[#FFD93D]"
+                            >
+                                <option value="all">All</option>
+                                <option value="unassigned">Unassigned</option>
+                                {campaigns.map((c) => (
+                                    <option key={c.id} value={c.id}>
+                                        {c.title}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        {/* Platform */}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="text-[10px] font-bold text-black/60 mr-1">Platform</span>
+                            {(['all', 'instagram', 'facebook', 'google', 'influencer'] as const).map(
+                                (p) => (
+                                    <button
+                                        key={p}
+                                        type="button"
+                                        onClick={() => setPlatformFilter(p === 'all' ? 'all' : p)}
+                                        className={cn(
+                                            'px-2.5 py-1 text-[10px] font-bold border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
+                                            platformFilter === p
+                                                ? 'bg-[#FFD93D] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                                                : 'bg-white hover:bg-[#FFFDF5]'
+                                        )}
+                                    >
+                                        {p === 'all' ? 'All' : PLATFORM_ICONS[p]}
+                                    </button>
+                                )
+                            )}
+                        </div>
+                        {/* Quality */}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="text-[10px] font-bold text-black/60 mr-1">Quality</span>
+                            {(['all', 'high', 'medium', 'low'] as const).map((q) => (
+                                <button
+                                    key={q}
+                                    type="button"
+                                    onClick={() => setQualityFilter(q)}
+                                    className={cn(
+                                        'px-2.5 py-1 text-[10px] font-bold border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
+                                        qualityFilter === q
+                                            ? 'bg-[#C3B1E1] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                                            : 'bg-white hover:bg-[#FFFDF5]'
+                                    )}
+                                >
+                                    {QUALITY_CONFIG[q].label}
+                                </button>
                             ))}
-                        </SelectContent>
-                    </Select>
-
-                    <Select value={platformFilter} onValueChange={(v) => setPlatformFilter(v as Platform | 'all')}>
-                        <SelectTrigger className="w-40 bg-zinc-800/50 border-zinc-700 hover:border-purple-500/50 transition-colors">
-                            <SelectValue placeholder="Platform" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-zinc-900 border-zinc-800">
-                            <SelectItem value="all">All Platforms</SelectItem>
-                            <SelectItem value="instagram">Instagram</SelectItem>
-                            <SelectItem value="facebook">Facebook</SelectItem>
-                            <SelectItem value="google">Google Ads</SelectItem>
-                            <SelectItem value="influencer">Influencer</SelectItem>
-                        </SelectContent>
-                    </Select>
-
-                    <Select value={qualityFilter} onValueChange={(v) => setQualityFilter(v as QualityTier)}>
-                        <SelectTrigger className="w-44 bg-zinc-800/50 border-zinc-700 hover:border-purple-500/50 transition-colors">
-                            <SelectValue placeholder="Quality" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-zinc-900 border-zinc-800">
-                            {Object.entries(QUALITY_CONFIG).map(([key, config]) => (
-                                <SelectItem key={key} value={key}>{config.label}</SelectItem>
+                        </div>
+                        {/* Sort */}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="text-[10px] font-bold text-black/60 mr-1">Sort</span>
+                            {(['newest', 'oldest'] as const).map((s) => (
+                                <button
+                                    key={s}
+                                    type="button"
+                                    onClick={() => setSortOrder(s)}
+                                    className={cn(
+                                        'px-2.5 py-1 text-[10px] font-bold border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
+                                        sortOrder === s
+                                            ? 'bg-black text-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                                            : 'bg-white hover:bg-[#FFFDF5]'
+                                    )}
+                                >
+                                    {s === 'newest' ? 'Newest' : 'Oldest'}
+                                </button>
                             ))}
-                        </SelectContent>
-                    </Select>
-
-                    <Select value={sortOrder} onValueChange={(v) => setSortOrder(v as 'newest' | 'oldest')}>
-                        <SelectTrigger className="w-36 bg-zinc-800/50 border-zinc-700 hover:border-purple-500/50 transition-colors">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-zinc-900 border-zinc-800">
-                            <SelectItem value="newest">Newest first</SelectItem>
-                            <SelectItem value="oldest">Oldest first</SelectItem>
-                        </SelectContent>
-                    </Select>
-
-                    {hasActiveFilters && (
-                        <button
-                            onClick={() => {
-                                setCampaignFilter('all')
-                                setPlatformFilter('all')
-                                setQualityFilter('all')
-                            }}
-                            className="text-sm text-purple-400 hover:text-purple-300 transition-colors ml-auto"
-                        >
-                            Clear filters
-                        </button>
-                    )}
-                </div>
+                        </div>
+                        {hasActiveFilters && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setCampaignFilter('all')
+                                    setPlatformFilter('all')
+                                    setQualityFilter('all')
+                                }}
+                                className="text-[10px] font-bold text-black/60 hover:text-black underline ml-auto"
+                            >
+                                Clear filters
+                            </button>
+                        )}
+                    </div>
+                </BrutalCard>
 
                 {/* Content */}
                 {loading ? (
-                    <div className="flex items-center justify-center py-32">
-                        <Loader2 className="h-10 w-10 animate-spin text-purple-400" />
-                    </div>
-                ) : filteredCreatives.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-32 text-center">
-                        <div className="w-20 h-20 rounded-full bg-zinc-800/50 flex items-center justify-center mb-6">
-                            <ImageIcon className="h-10 w-10 text-zinc-600" />
-                        </div>
-                        <h2 className="text-2xl font-semibold text-white mb-3">
-                            {creatives.length === 0 ? 'No ad creatives yet' : 'No creatives match filters'}
-                        </h2>
-                        <p className="text-zinc-500 mb-8 max-w-md">
-                            {creatives.length === 0
-                                ? 'Generate your first AI-powered ad creative to get started.'
-                                : 'Try adjusting your filters to see more creatives.'}
+                    <BrutalCard className="flex flex-col items-center justify-center py-24">
+                        <BrutalLoader size="lg" />
+                        <p className="mt-6 text-xs font-black uppercase text-black/50">
+                            Loading creatives
                         </p>
-                        {creatives.length === 0 && (
-                            <Button
-                                onClick={() => router.push('/brand/ads')}
-                                className="bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400"
-                            >
-                                <Sparkles className="h-4 w-4 mr-2" />
-                                Generate Your First Ad
-                            </Button>
-                        )}
-                    </div>
+                    </BrutalCard>
+                ) : filteredCreatives.length === 0 ? (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex flex-col items-center justify-center py-24"
+                    >
+                        <BrutalCard className="flex flex-col items-center justify-center p-12 max-w-md text-center">
+                            <div className="w-16 h-16 border-[3px] border-black bg-[#FFD93D] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center mb-4">
+                                <ImageIcon className="h-8 w-8 text-black" />
+                            </div>
+                            <h2 className="text-xl font-black text-black mb-2">
+                                {creatives.length === 0
+                                    ? 'No ad creatives yet'
+                                    : 'No creatives match filters'}
+                            </h2>
+                            <p className="text-sm text-black/60 mb-6">
+                                {creatives.length === 0
+                                    ? 'Generate your first AI-powered ad to get started.'
+                                    : 'Try adjusting your filters.'}
+                            </p>
+                            {creatives.length === 0 && (
+                                <motion.button
+                                    type="button"
+                                    whileHover={{ y: -2 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => router.push('/brand/ads')}
+                                    className="flex items-center gap-2 px-5 py-2.5 border-[3px] border-black bg-[#B4F056] font-black text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                                >
+                                    <Sparkles className="h-4 w-4" />
+                                    Generate Your First Ad
+                                </motion.button>
+                            )}
+                        </BrutalCard>
+                    </motion.div>
                 ) : (
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                        {filteredCreatives.map(creative => (
+                    <motion.div
+                        variants={staggerContainer}
+                        initial="initial"
+                        animate="animate"
+                        className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+                    >
+                        {filteredCreatives.map((creative) => (
                             <CreativeCard
                                 key={creative.id}
                                 creative={creative}
@@ -547,16 +595,15 @@ export default function CreativesPage() {
                                 regenerating={regenerating === creative.id}
                             />
                         ))}
-                    </div>
+                    </motion.div>
                 )}
             </div>
 
-            {/* Lightbox */}
             <Lightbox
                 open={lightboxImage !== null}
                 onClose={() => setLightboxImage(null)}
                 imageUrl={lightboxImage || ''}
             />
-        </div>
+        </motion.div>
     )
 }

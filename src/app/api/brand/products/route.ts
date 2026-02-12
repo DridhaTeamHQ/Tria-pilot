@@ -1,9 +1,8 @@
 /**
  * PRODUCTS API
- * 
+ *
+ * GET - List products for authenticated brand (for client hooks)
  * POST - Create new product
- * 
- * DEPRECATED: GET (Use Server Components instead)
  */
 import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
@@ -15,6 +14,10 @@ const productSchema = z.object({
     description: z.string().optional(),
     category: z.string().optional(),
     price: z.number().optional(),
+    discount: z.number().min(0).max(100).optional(),
+    stock: z.number().int().min(0).optional(),
+    sku: z.string().max(100).optional(),
+    try_on_compatible: z.boolean().optional(),
     link: z.string().url().optional().or(z.literal('')),
     tags: z.array(z.string()).optional(),
     audience: z.string().optional(),
@@ -22,6 +25,36 @@ const productSchema = z.object({
     tryon_image: z.string().optional(),
     images: z.array(z.string()).optional(),
 })
+
+export async function GET() {
+    try {
+        const supabase = await createClient()
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        if (authError || !user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+        if (!profile || (profile.role || '').toLowerCase() !== 'brand') {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        }
+        const { data: products, error } = await supabase
+            .from('products')
+            .select('*')
+            .eq('brand_id', user.id)
+            .order('created_at', { ascending: false })
+        if (error) {
+            console.error('Products GET error:', error)
+            return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 })
+        }
+        return NextResponse.json({ products: products || [] })
+    } catch (error) {
+        console.error('Products GET error:', error)
+        return NextResponse.json(
+            { error: error instanceof Error ? error.message : 'Internal server error' },
+            { status: 500 }
+        )
+    }
+}
 
 export async function POST(request: Request) {
     try {
@@ -47,7 +80,15 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Only brands can create products' }, { status: 403 })
         }
 
-        const body = await request.json()
+        let body: unknown
+        try {
+            body = await request.json()
+        } catch (parseError) {
+            return NextResponse.json(
+                { error: 'Invalid request payload. Try smaller images or fewer uploads.' },
+                { status: 413 }
+            )
+        }
         const parsed = productSchema.safeParse(body)
 
         if (!parsed.success) {
@@ -63,6 +104,10 @@ export async function POST(request: Request) {
             description: parsed.data.description || null,
             category: parsed.data.category || null,
             price: parsed.data.price || null,
+            discount: parsed.data.discount ?? null,
+            stock: parsed.data.stock ?? null,
+            sku: parsed.data.sku || null,
+            try_on_compatible: parsed.data.try_on_compatible ?? false,
             link: parsed.data.link || null,
             tags: parsed.data.tags || [],
             audience: parsed.data.audience || null,

@@ -1,10 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Send, Bot, User } from 'lucide-react'
+import { Send, Bot, User, MessageSquare } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Message {
@@ -16,7 +13,8 @@ export default function CampaignChatbot() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: "Hello! I'm your AI campaign assistant. I can help you with campaign ideas, influencer suggestions, budget planning, and more. What would you like to know?",
+      content:
+        "Hello! I'm your AI campaign assistant. I can analyze your campaigns, compare performance, suggest ideas, and help with budgets and influencers. Ask me anything about your existing or new campaigns.",
     },
   ])
   const [input, setInput] = useState('')
@@ -65,7 +63,7 @@ export default function CampaignChatbot() {
         ...prev,
         {
           role: 'assistant',
-          content: 'I apologize, but I encountered an error. Please try again.',
+          content: "I couldn't complete that. Please check your connection and try again.",
         },
       ])
     } finally {
@@ -74,76 +72,93 @@ export default function CampaignChatbot() {
   }
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="pb-4">
-        <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-          <Bot className="h-5 w-5 text-zinc-700 dark:text-zinc-300" />
-          Campaign Assistant
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex-1 flex flex-col pt-0">
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto space-y-4 mb-4 min-h-[400px] max-h-[600px] pr-2">
-          {messages.map((message, index) => (
+    <div className="h-full flex flex-col bg-white border-[3px] border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+      {/* Header */}
+      <div className="flex items-center gap-2 p-4 border-b-[3px] border-black bg-[#FFD93D]">
+        <div className="w-10 h-10 border-2 border-black flex items-center justify-center bg-white">
+          <MessageSquare className="w-5 h-5" strokeWidth={2.5} />
+        </div>
+        <div>
+          <h2 className="text-lg font-black uppercase tracking-tight text-black">
+            Campaign Assistant
+          </h2>
+          <p className="text-xs font-bold text-black/70">
+            Analyze campaigns · Ideas · Budgets · Influencers
+          </p>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-[320px] max-h-[520px]">
+        {messages.map((message, index) => (
+          <div
+            key={index}
+            className={`flex gap-2 items-start ${
+              message.role === 'user' ? 'flex-row-reverse' : ''
+            }`}
+          >
+            {message.role === 'assistant' && (
+              <div className="w-9 h-9 border-2 border-black flex items-center justify-center flex-shrink-0 bg-[#B4F056]">
+                <Bot className="w-4 h-4 text-black" strokeWidth={2.5} />
+              </div>
+            )}
             <div
-              key={index}
-              className={`flex gap-3 items-start ${
-                message.role === 'user' ? 'justify-end' : 'justify-start'
+              className={`max-w-[85%] border-2 border-black px-4 py-2.5 ${
+                message.role === 'user'
+                  ? 'bg-black text-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                  : 'bg-[#f5f5f5] text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
               }`}
             >
-              {message.role === 'assistant' && (
-                <div className="w-8 h-8 rounded-full bg-zinc-900 dark:bg-zinc-100 flex items-center justify-center flex-shrink-0 mt-1">
-                  <Bot className="h-4 w-4 text-white dark:text-zinc-900" />
-                </div>
-              )}
-              <div
-                className={`max-w-[80%] rounded-lg px-4 py-2.5 ${
-                  message.role === 'user'
-                    ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900'
-                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100'
-                }`}
-              >
-                <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
-              </div>
-              {message.role === 'user' && (
-                <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center flex-shrink-0 mt-1">
-                  <User className="h-4 w-4 text-zinc-700 dark:text-zinc-300" />
-                </div>
-              )}
+              <p className="text-sm whitespace-pre-wrap leading-relaxed font-medium">
+                {message.content}
+              </p>
             </div>
-          ))}
-          {loading && (
-            <div className="flex gap-3 justify-start items-start">
-              <div className="w-8 h-8 rounded-full bg-zinc-900 dark:bg-zinc-100 flex items-center justify-center flex-shrink-0 mt-1">
-                <Bot className="h-4 w-4 text-white dark:text-zinc-900" />
+            {message.role === 'user' && (
+              <div className="w-9 h-9 border-2 border-black flex items-center justify-center flex-shrink-0 bg-white">
+                <User className="w-4 h-4 text-black" strokeWidth={2.5} />
               </div>
-              <div className="bg-zinc-100 dark:bg-zinc-800 rounded-lg px-4 py-2.5">
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-zinc-500 dark:bg-zinc-400 rounded-full animate-bounce" />
-                  <div className="w-2 h-2 bg-zinc-500 dark:bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                  <div className="w-2 h-2 bg-zinc-500 dark:bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                </div>
+            )}
+          </div>
+        ))}
+        {loading && (
+          <div className="flex gap-2 items-start">
+            <div className="w-9 h-9 border-2 border-black flex items-center justify-center flex-shrink-0 bg-[#B4F056]">
+              <Bot className="w-4 h-4 text-black" strokeWidth={2.5} />
+            </div>
+            <div className="border-2 border-black px-4 py-2.5 bg-[#f5f5f5] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+              <div className="flex gap-1">
+                <span className="w-2 h-2 bg-black animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-2 h-2 bg-black animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-2 h-2 bg-black animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
             </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
 
-        {/* Input */}
-        <form onSubmit={handleSubmit} className="flex gap-2 pt-2">
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about campaigns, influencers, budgets..."
-            disabled={loading}
-            className="flex-1"
-          />
-          <Button type="submit" disabled={loading || !input.trim()} size="icon">
-            <Send className="h-4 w-4" />
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+      {/* Input */}
+      <form
+        onSubmit={handleSubmit}
+        className="p-4 border-t-[3px] border-black bg-white flex gap-2"
+      >
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Ask about your campaigns, performance, budgets..."
+          disabled={loading}
+          className="flex-1 px-4 py-3 border-2 border-black font-medium focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none placeholder:text-black/50"
+        />
+        <button
+          type="submit"
+          disabled={loading || !input.trim()}
+          className="p-3 bg-[#B4F056] border-2 border-black font-black uppercase text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-shadow"
+          aria-label="Send message"
+        >
+          <Send className="w-5 h-5" strokeWidth={2.5} />
+        </button>
+      </form>
+    </div>
   )
 }
-

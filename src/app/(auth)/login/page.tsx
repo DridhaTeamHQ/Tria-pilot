@@ -6,7 +6,6 @@ import { motion, LayoutGroup } from 'framer-motion'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { ArrowRight, Loader2, Mail, Lock, Eye, EyeOff } from 'lucide-react'
-import { createClient } from '@/lib/auth-client'
 
 export default function LoginPage() {
   return (
@@ -61,33 +60,31 @@ function LoginContent() {
     setLoading(true)
 
     try {
-      const supabase = createClient()
-
-      // Sign in with Supabase
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password,
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          password,
+          rememberMe: true,
+        }),
       })
 
-      if (signInError) throw signInError
+      const data = await res.json().catch(() => ({ error: 'Request failed' }))
+
+      if (!res.ok) {
+        toast.error(data.error ?? 'Failed to sign in. Please try again.')
+        return
+      }
 
       toast.success('Signed in successfully!')
 
-      // CRITICAL: Always redirect to /dashboard
-      // Dashboard will handle role-based routing
       window.location.href = '/dashboard'
-
     } catch (error: unknown) {
       console.error('Login error:', error)
-      const message = error instanceof Error ? error.message : ''
-      const isInvalidCredentials =
-        message?.toLowerCase().includes('invalid login credentials') ||
-        message?.toLowerCase().includes('invalid_credentials')
-      if (isInvalidCredentials) {
-        toast.error('Wrong email or password. Please try again.')
-      } else {
-        toast.error(message || 'Failed to sign in. Please try again.')
-      }
+      toast.error(error instanceof Error ? error.message : 'Failed to sign in. Please try again.')
+    } finally {
       setLoading(false)
     }
   }

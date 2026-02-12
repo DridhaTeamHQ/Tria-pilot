@@ -45,3 +45,6 @@ next-env.d.ts
 
 # old debug files
 old_strict_prompt*.ts
+
+# IDE / editor
+.cursor
