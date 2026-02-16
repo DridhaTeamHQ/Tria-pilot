@@ -54,20 +54,96 @@ function RegisterContent() {
   const isLayoutFlipped = selectedRole === 'BRAND'
 
   return (
-    <div className="min-h-screen w-full relative flex overflow-hidden bg-[#F9F8F4]">
+    <div className="min-h-screen w-full relative bg-[#F9F8F4]">
       {/* MOBILE BACKGROUND */}
       <div
         className="lg:hidden absolute inset-0 z-0 bg-cover bg-center"
         style={{ backgroundImage: `url('${bgImage}')` }}
       >
-        <div className="absolute inset-0 bg-white/90 backdrop-blur-sm" />
+        <div className="absolute inset-0 bg-white/95 backdrop-blur-sm" />
+      </div>
+
+      {/* MOBILE CONTENT */}
+      <div className="lg:hidden relative z-10 min-h-screen px-4 py-6 flex items-center justify-center">
+        <div className="w-full max-w-md bg-white/95 border-[3px] border-black p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+          <div className="mb-6">
+            <h2 className="text-3xl font-black text-black mb-2 uppercase tracking-tight">Join Us</h2>
+            <p className="text-black/60 font-medium">Choose your path to get started.</p>
+          </div>
+
+          <div className="space-y-4">
+            <div
+              onClick={() => setSelectedRole('INFLUENCER')}
+              className={`cursor-pointer relative bg-white border-[3px] border-black p-4 transition-all ${selectedRole === 'INFLUENCER' ? 'shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] bg-[#FFF5EE]' : 'shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'}`}
+            >
+              {selectedRole === 'INFLUENCER' && (
+                <div className="absolute top-3 right-3 w-7 h-7 bg-[#FF8C69] border-2 border-black flex items-center justify-center">
+                  <Check className="w-4 h-4 text-black" strokeWidth={3} />
+                </div>
+              )}
+              <div className="flex items-start gap-4">
+                <div className={`w-12 h-12 border-2 border-black flex items-center justify-center ${selectedRole === 'INFLUENCER' ? 'bg-[#FF8C69]' : 'bg-gray-100'}`}>
+                  <Camera className="w-6 h-6 text-black" strokeWidth={2} />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-black text-black uppercase">Influencer</h3>
+                  <p className="text-xs text-black/60 font-medium mt-1">Create content, grow your audience, and earn.</p>
+                </div>
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleJoin('INFLUENCER')
+                }}
+                className="w-full mt-4 py-2 border-2 border-black font-black uppercase text-xs flex items-center justify-center gap-2 bg-black text-white hover:bg-[#FF8C69] hover:text-black transition-all"
+              >
+                Continue as Influencer <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div
+              onClick={() => setSelectedRole('BRAND')}
+              className={`cursor-pointer relative bg-white border-[3px] border-black p-4 transition-all ${selectedRole === 'BRAND' ? 'shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] bg-[#F8FFED]' : 'shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'}`}
+            >
+              {selectedRole === 'BRAND' && (
+                <div className="absolute top-3 right-3 w-7 h-7 bg-[#B4F056] border-2 border-black flex items-center justify-center">
+                  <Check className="w-4 h-4 text-black" strokeWidth={3} />
+                </div>
+              )}
+              <div className="flex items-start gap-4">
+                <div className={`w-12 h-12 border-2 border-black flex items-center justify-center ${selectedRole === 'BRAND' ? 'bg-[#B4F056]' : 'bg-gray-100'}`}>
+                  <Building2 className="w-6 h-6 text-black" strokeWidth={2} />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-black text-black uppercase">Brand</h3>
+                  <p className="text-xs text-black/60 font-medium mt-1">Launch campaigns and find top talent.</p>
+                </div>
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleJoin('BRAND')
+                }}
+                className="w-full mt-4 py-2 border-2 border-black font-black uppercase text-xs flex items-center justify-center gap-2 bg-black text-white hover:bg-[#B4F056] hover:text-black transition-all"
+              >
+                Continue as Brand <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-6 text-center">
+            <Link href="/login" className="inline-block text-black font-bold uppercase tracking-wide border-b-2 border-transparent hover:border-black transition-all">
+              Already have an account? Sign In
+            </Link>
+          </div>
+        </div>
       </div>
 
       {/* DESKTOP LAYOUT - Dynamic Direction with Animation */}
       <LayoutGroup>
         <motion.div
           layout
-          className={`hidden lg:flex w-full relative z-0 h-screen ${isLayoutFlipped ? 'flex-row-reverse' : 'flex-row'}`}
+          className={`hidden lg:flex w-full relative z-0 h-screen overflow-hidden ${isLayoutFlipped ? 'flex-row-reverse' : 'flex-row'}`}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
 

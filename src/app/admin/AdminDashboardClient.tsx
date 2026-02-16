@@ -585,7 +585,7 @@ export default function AdminDashboardClient({ initialApplications, dataSource =
                           {app.onboarding.bio && (
                             <div className="md:col-span-2 pt-2">
                               <span className="text-black/50 font-medium text-xs uppercase tracking-wider block mb-1">Bio</span>
-                              <p className="text-black/80 italic">"{app.onboarding.bio}"</p>
+                              <p className="text-black/80 italic">{`"${app.onboarding.bio}"`}</p>
                             </div>
                           )}
                         </div>

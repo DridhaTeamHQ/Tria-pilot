@@ -1,24 +1,12 @@
 import type { Metadata } from 'next'
+import type { CSSProperties } from 'react'
 import { Toaster } from '@/components/ui/sonner'
 import BrutalNavbar from '@/components/brutal/BrutalNavbar'
 import ProfileCompletionGate from '@/components/ProfileCompletionGate'
 import { ReactQueryProvider } from '@/lib/react-query/provider'
 import { RealtimeListener } from '@/components/providers/realtime-listener'
 import './globals.css'
-import { Playfair_Display, Inter } from 'next/font/google'
 import { ReactLenis } from '@/lib/lenis'
-
-const playfair = Playfair_Display({
-  variable: "--font-playfair",
-  subsets: ["latin"],
-  display: 'swap', // Faster font loading
-});
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  display: 'swap', // Faster font loading
-});
 
 export const metadata: Metadata = {
   title: 'Kiwikoo - AI Fashion Try-On Marketplace',
@@ -30,9 +18,16 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const fontVars = {
+    ['--font-playfair' as string]: 'Playfair Display, Georgia, Cambria, "Times New Roman", serif',
+    ['--font-inter' as string]: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif',
+    ['--font-geist-sans' as string]: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif',
+    ['--font-geist-mono' as string]: '"SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+  } as CSSProperties
+
   return (
     <html lang="en">
-      <body className={`${playfair.variable} ${inter.variable} antialiased bg-cream text-charcoal`}>
+      <body className="antialiased bg-cream text-charcoal" style={fontVars}>
         <ReactQueryProvider>
           <Toaster />
           <ReactLenis>

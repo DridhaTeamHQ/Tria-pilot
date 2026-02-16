@@ -131,7 +131,7 @@ export default function SettingsProfilePage() {
                 <Mail className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-black/40" />
               </div>
               <p className="text-xs font-bold text-black/50 uppercase tracking-wide">
-                We'll send a confirmation link to your new address.
+                We&apos;ll send a confirmation link to your new address.
               </p>
             </div>
 

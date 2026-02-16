@@ -187,6 +187,7 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     `Add subtle light wrap where the subject outline meets bright background areas.`,
     `Add realistic contact shadows and ambient occlusion where the body meets nearby surfaces.`,
     `Match the subject's sharpness, noise grain, and depth-of-field to the background.`,
+    `Keep background materials naturally textured and non-plastic (real micro-contrast, no CGI-like smoothing).`,
     `The subject and background must share the same color temperature, dynamic range, and optical characteristics.`,
     `Do NOT produce a flat, pasted, or sticker look. The person must be IN the scene, not placed ON it.`,
     realism,

@@ -27,7 +27,7 @@ export default function NotFound() {
             Page Not Found
           </h2>
           <p className="text-xl font-bold text-black/60 max-w-md mx-auto">
-            The page you're looking for has vanished into the digital void or never existed.
+            The page you&apos;re looking for has vanished into the digital void or never existed.
           </p>
         </div>
 

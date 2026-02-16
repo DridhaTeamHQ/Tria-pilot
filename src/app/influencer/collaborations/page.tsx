@@ -148,7 +148,7 @@ export default function InfluencerCollaborationsPage() {
             <h3 className="text-2xl font-black uppercase mb-2">No Collaborations Found</h3>
             <p className="font-bold text-black/60 uppercase tracking-wide max-w-md mx-auto">
               {filter === 'all'
-                ? "You haven't received any collaboration requests yet. Time to shine!"
+                ? 'You haven&apos;t received any collaboration requests yet. Time to shine!'
                 : `No ${filter} collaborations found.`}
             </p>
           </div>
@@ -178,7 +178,7 @@ export default function InfluencerCollaborationsPage() {
 
                     <div className="mb-6 flex-grow">
                       <p className="text-lg font-medium leading-relaxed border-l-[2px] border-black pl-4 py-1 mb-4 bg-gray-50">
-                        "{collab.message}"
+                        {`"${collab.message}"`}
                       </p>
 
                       {collab.proposalDetails && (

@@ -219,7 +219,7 @@ export default function BrandOnboardingPage() {
         return (
           <div className="space-y-4">
             <p className="text-sm text-black/60 font-medium mb-2">
-              What's your typical budget for influencer collaborations?
+              What&apos;s your typical budget for influencer collaborations?
             </p>
             <div className="grid grid-cols-2 gap-3">
               {BUDGET_RANGES.map((range) => (

@@ -36,9 +36,10 @@ const nextConfig = {
     '@radix-ui/react-use-previous',
   ],
 
-  // Empty turbopack config to silence Next.js 16 warning
-  // (Turbopack is now the default bundler)
-  turbopack: {},
+  // Explicit root to avoid lockfile root mis-detection in multi-lockfile environments
+  turbopack: {
+    root: 'C:/Users/Tamada/Desktop/Tria Production/Tria',
+  },
 
   experimental: {
     proxyClientMaxBodySize: '20mb',

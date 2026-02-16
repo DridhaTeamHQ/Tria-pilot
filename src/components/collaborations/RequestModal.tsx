@@ -36,9 +36,8 @@ export default function RequestModal({
     notes: '',
   })
 
-  if (!isOpen) return null
-
   useEffect(() => {
+    if (!isOpen) return
     const originalOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     const onKeyDown = (event: KeyboardEvent) => {
@@ -49,7 +48,9 @@ export default function RequestModal({
       document.body.style.overflow = originalOverflow
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [onClose])
+  }, [isOpen, onClose])
+
+  if (!isOpen) return null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

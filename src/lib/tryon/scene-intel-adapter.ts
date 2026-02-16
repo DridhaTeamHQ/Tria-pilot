@@ -127,6 +127,8 @@ Rules:
 - Mention depth layering (foreground/midground/background) briefly.
 - Keep perspective and focal plane consistent with the uploaded person image.
 - Avoid exaggerated blur, fake HDR glow, and over-processed backgrounds.
+- Keep the environment photoreal, lived-in, and materially believable (real textures, natural micro-contrast, no plastic/CGI look).
+- Preserve camera realism: natural lens rendering, subtle sensor noise/grain consistency, and no airbrushed surfaces.
 - Keep wording concise and production-safe.`
 
 function toDataUrl(base64: string): string {
@@ -148,6 +150,8 @@ function buildPresetPolicy(presetId?: string, presetDescription?: string): Prese
     `Use preset lighting logic: ${baseLighting}.`,
     'Apply environmental harmonization: ambient color spill and subtle edge light wrap on the subject.',
     `Keep perspective and depth consistent with preset camera intent: ${camera}.`,
+    'Background materials must remain photoreal with natural texture variation and subtle imperfections, not synthetic or overly smooth.',
+    'Maintain natural camera rendering with consistent micro-contrast and light grain so subject and background share the same capture characteristics.',
     'Preserve natural contact shadows and local ambient occlusion where the body meets nearby surfaces.',
     'Avoid cut-out or pasted-on appearance.',
     presetAvoid ? `Avoid per preset: ${presetAvoid}.` : '',
@@ -319,7 +323,7 @@ Resolve this to a strict scene config. Remember: describe the EMPTY environment 
     parsed.cameraPolicy = 'inherit'
     if (!parsed.realismGuidance) {
       parsed.realismGuidance =
-        'Single coherent photograph: subject lit by and grounded in the same environment; shadows and highlights on the subject consistent with the scene; consistent perspective and depth; no pasted-on or cut-out look.'
+        'Single coherent photograph: subject lit by and grounded in the same environment; shadows and highlights on the subject consistent with the scene; consistent perspective and depth; no pasted-on or cut-out look. Keep realistic background texture and camera grain consistency.'
     }
     if (!parsed.lightingBlueprint) {
       parsed.lightingBlueprint =
@@ -345,7 +349,7 @@ Resolve this to a strict scene config. Remember: describe the EMPTY environment 
       facePolicy: 'immutable',
       cameraPolicy: 'inherit',
       realismGuidance:
-        'Single coherent photograph: subject lit by and grounded in the same environment; shadows and highlights on the subject consistent with the scene; consistent perspective and depth; no pasted-on or cut-out look.',
+        'Single coherent photograph: subject lit by and grounded in the same environment; shadows and highlights on the subject consistent with the scene; consistent perspective and depth; no pasted-on or cut-out look. Keep realistic background texture and camera grain consistency.',
       lightingBlueprint:
         'Match scene lighting on subject: natural key and fill from visible environment sources, coherent shadow direction and softness, and consistent color temperature between subject and background.',
       presetAvoid: 'No hard flash, no exaggerated color cast, no cut-out edges, no pasted subject appearance.',
