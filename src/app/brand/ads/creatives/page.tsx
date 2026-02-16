@@ -261,6 +261,20 @@ function Lightbox({
         ? `/api/images/proxy?url=${encodeURIComponent(imageUrl)}`
         : imageUrl
 
+    useEffect(() => {
+        if (!open) return
+        const originalOverflow = document.body.style.overflow
+        document.body.style.overflow = 'hidden'
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') onClose()
+        }
+        window.addEventListener('keydown', onKeyDown)
+        return () => {
+            document.body.style.overflow = originalOverflow
+            window.removeEventListener('keydown', onKeyDown)
+        }
+    }, [open, onClose])
+
     return (
         <AnimatePresence>
             {open && (
@@ -270,7 +284,7 @@ function Lightbox({
                     initial="initial"
                     animate="animate"
                     exit="exit"
-                    className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+                    className="fixed inset-0 z-50 bg-black/55 backdrop-blur-[2px] flex items-center justify-center p-4"
                     onClick={onClose}
                 >
                     <motion.div
@@ -278,12 +292,12 @@ function Lightbox({
                         initial="initial"
                         animate="animate"
                         exit="exit"
-                        className="relative max-w-[90vw] max-h-[90vh] bg-white border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-2"
+                        className="relative max-w-[90vw] max-h-[90vh] bg-[#FFFDF8] rounded-2xl border-[4px] border-black shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] p-2"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <button
                             type="button"
-                            className="absolute -top-2 -right-2 z-10 w-10 h-10 bg-[#FF8C69] border-[3px] border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center hover:bg-[#ff9d7d] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+                            className="absolute -top-2 -right-2 z-10 w-11 h-11 bg-[#FF8C69] border-[3px] border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center hover:bg-[#ff9d7d] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
                             onClick={onClose}
                             aria-label="Close"
                         >

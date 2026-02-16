@@ -51,10 +51,14 @@ export default async function AdminPage() {
       onboarding: {
         gender: inf.gender,
         niches: inf.niches,
+        audienceType: inf.audience_type,
+        preferredCategories: inf.preferred_categories,
+        socials: inf.socials,
         bio: inf.bio,
         followers: inf.followers,
         engagementRate: inf.engagement_rate,
         audienceRate: inf.audience_rate,
+        retentionRate: inf.retention_rate,
         badgeScore: inf.badge_score,
         badgeTier: inf.badge_tier,
         onboardingCompleted: onboardingCompleted

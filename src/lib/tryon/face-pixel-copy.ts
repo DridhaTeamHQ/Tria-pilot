@@ -57,13 +57,19 @@ export interface FaceCompositeTarget {
  * Captures forehead, ears, jawline, and some neck/hair for complete face coverage
  * INCREASED: Previous 1.25 was not capturing enough face area
  */
-export const FACE_BOX_EXPANSION = 1.24
+export const FACE_BOX_EXPANSION = 1.12
 
 /**
  * Feather radius for smooth edge blending (pixels)
  * INCREASED: Larger feather for more natural blending into body
  */
-export const BLEND_FEATHER_RADIUS = 10
+export const BLEND_FEATHER_RADIUS = 18
+
+/**
+ * Keep face composite above upper torso to avoid copying original shirt pixels.
+ */
+export const FACE_MAX_BOTTOM_FRACTION = 0.45
+export const MAX_FACE_SCALE_UP = 1.35
 
 /**
  * Default face estimation when no detection available
@@ -104,7 +110,16 @@ export function expandFaceBox(
 
     // Clamp to image bounds
     const width = Math.min(newWidth, imageWidth - x)
-    const height = Math.min(newHeight, imageHeight - y)
+    let height = Math.min(newHeight, imageHeight - y)
+
+    const maxBottomY = Math.max(4, Math.floor(imageHeight * FACE_MAX_BOTTOM_FRACTION))
+    if (y >= maxBottomY) {
+        y = Math.max(0, maxBottomY - 4)
+    }
+    const currentBottomY = y + height
+    if (currentBottomY > maxBottomY) {
+        height = Math.max(4, maxBottomY - y)
+    }
 
     return { x, y, width, height }
 }
@@ -231,10 +246,16 @@ export async function compositeFacePixels(
         }
 
         // Calculate face position in generated image
-        const targetWidth = targetBox?.width ?? faceData.box.width
-        const targetHeight = targetBox?.height ?? faceData.box.height
+        let targetWidth = targetBox?.width ?? faceData.box.width
+        let targetHeight = targetBox?.height ?? faceData.box.height
         let targetX = targetBox?.x ?? faceData.box.x
         let targetY = targetBox?.y ?? faceData.box.y
+
+        // Prevent oversized "sticker face" overlays when target detection is noisy.
+        const maxWidth = Math.max(1, Math.floor(faceData.box.width * MAX_FACE_SCALE_UP))
+        const maxHeight = Math.max(1, Math.floor(faceData.box.height * MAX_FACE_SCALE_UP))
+        targetWidth = Math.min(targetWidth, maxWidth, generatedMeta.width)
+        targetHeight = Math.min(targetHeight, maxHeight, generatedMeta.height)
 
         // Clamp to image bounds
         targetX = Math.max(0, Math.min(targetX, generatedMeta.width - targetWidth))
@@ -245,7 +266,7 @@ export async function compositeFacePixels(
 
         if (faceData.maskBuffer) {
             const effectiveMask = strictFaceMode
-                ? await createFeatheredMask(faceData.box.width, faceData.box.height, 5)
+                ? await createFeatheredMask(faceData.box.width, faceData.box.height, 14)
                 : faceData.maskBuffer
 
             // Create face with alpha channel from mask

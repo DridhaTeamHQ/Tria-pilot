@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { X } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface RequestModalProps {
   isOpen: boolean
@@ -36,6 +37,19 @@ export default function RequestModal({
   })
 
   if (!isOpen) return null
+
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.body.style.overflow = originalOverflow
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [onClose])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -84,8 +98,23 @@ export default function RequestModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="fixed inset-0 bg-black/55 backdrop-blur-[2px] flex items-center justify-center z-50 p-4"
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96, y: 14 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.96, y: 14 }}
+          transition={{ duration: 0.2 }}
+          onClick={(e) => e.stopPropagation()}
+          className="w-full max-w-2xl max-h-[calc(100dvh-1rem)]"
+        >
+      <Card className="w-full max-h-[calc(100dvh-1rem)] overflow-y-auto border-[3px] border-black rounded-2xl bg-[#FFFDF8] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -96,7 +125,7 @@ export default function RequestModal({
                   : `Request collaboration for ${productName}`}
               </CardDescription>
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose}>
+            <Button variant="ghost" size="icon" onClick={onClose} className="h-10 w-10 border-2 border-black hover:bg-[#FFD93D]">
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -154,7 +183,7 @@ export default function RequestModal({
                 required
               />
             </div>
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
@@ -165,7 +194,9 @@ export default function RequestModal({
           </form>
         </CardContent>
       </Card>
-    </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   )
 }
 

@@ -54,6 +54,25 @@ async function getImageDimensions(base64: string): Promise<{ width: number; heig
   }
 }
 
+function parseBox2D(raw: any): { top: number; left: number; bottom: number; right: number } | null {
+  if (!raw || !Array.isArray(raw.box_2d) || raw.box_2d.length < 4) return null
+  const nums = raw.box_2d.slice(0, 4).map((v: unknown) => Number(v))
+  if (nums.some((v: number) => !Number.isFinite(v))) return null
+
+  const [a, b, c, d] = nums
+  // Preferred interpretation from observed responses: [ymin, xmin, ymax, xmax]
+  if (c > a && d > b) {
+    return { top: a, left: b, bottom: c, right: d }
+  }
+
+  // Fallback interpretation: [xmin, ymin, xmax, ymax]
+  if (d > b && c > a) {
+    return { top: b, left: a, bottom: d, right: c }
+  }
+
+  return null
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN FUNCTION
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -157,6 +176,18 @@ export async function detectFaceCoordinates(
           confidence: confidence ?? 1,
         }
       } else {
+        const box2dMatch = cleanedText.match(/"box_2d"\s*:\s*\[\s*([^\]]+)\s*\]/i)
+        if (box2dMatch?.[1]) {
+          const nums = box2dMatch[1]
+            .split(',')
+            .map(s => Number(s.trim()))
+            .filter(n => Number.isFinite(n))
+          if (nums.length >= 4) {
+            raw = { box_2d: nums.slice(0, 4) }
+          }
+        }
+
+        const parsedBox2D = parseBox2D(raw)
         const top = pick('top')
         const left = pick('left')
         let bottom = pick('bottom')
@@ -164,13 +195,18 @@ export async function detectFaceCoordinates(
         let imgWidth = pick('img_width') ?? pick('imgWidth') ?? pick('width')
         let imgHeight = pick('img_height') ?? pick('imgHeight') ?? pick('height')
 
-        if ((imgWidth === null || imgHeight === null) && (top !== null || left !== null || bottom !== null || right !== null)) {
+        const resolvedTop = parsedBox2D?.top ?? top
+        const resolvedLeft = parsedBox2D?.left ?? left
+        if (bottom === null && parsedBox2D) bottom = parsedBox2D.bottom
+        if (right === null && parsedBox2D) right = parsedBox2D.right
+
+        if ((imgWidth === null || imgHeight === null) && (resolvedTop !== null || resolvedLeft !== null || bottom !== null || right !== null)) {
           const dims = await getImageDimensions(cleanBase64)
           imgWidth = imgWidth ?? dims?.width ?? null
           imgHeight = imgHeight ?? dims?.height ?? null
         }
 
-        if (top === null || left === null || imgWidth === null || imgHeight === null) {
+        if (resolvedTop === null || resolvedLeft === null || imgWidth === null || imgHeight === null) {
           console.warn('⚠️ Face detect: no recoverable JSON in response:', cleanedText.substring(0, 120))
           return null
         }
@@ -178,16 +214,16 @@ export async function detectFaceCoordinates(
         if (imgWidth > 0 && imgHeight > 0) {
           const defaultFaceH = Math.round(0.22 * imgHeight)
           const defaultFaceW = Math.round(0.18 * imgWidth)
-          if (bottom === null) bottom = Math.min(top + defaultFaceH, imgHeight)
-          if (right === null) right = Math.min(left + defaultFaceW, imgWidth)
+          if (bottom === null) bottom = Math.min(resolvedTop + defaultFaceH, imgHeight)
+          if (right === null) right = Math.min(resolvedLeft + defaultFaceW, imgWidth)
         }
         if (bottom === null || right === null) {
           console.warn('⚠️ Face detect: no recoverable JSON in response:', cleanedText.substring(0, 120))
           return null
         }
         raw = {
-          top,
-          left,
+          top: resolvedTop,
+          left: resolvedLeft,
           bottom,
           right,
           img_width: imgWidth,
@@ -210,19 +246,25 @@ export async function detectFaceCoordinates(
       ymax = Number(raw.ymax)
       xmax = Number(raw.xmax)
     } else {
+      const parsedBox2D = parseBox2D(raw)
       // Convert pixel coordinates → normalised 0-1000
       // Accept multiple key formats Gemini might return
-      const imgW = Number(raw.img_width || raw.imgWidth || raw.width || 0)
-      const imgH = Number(raw.img_height || raw.imgHeight || raw.height || 0)
+      let imgW = Number(raw.img_width || raw.imgWidth || raw.width || 0)
+      let imgH = Number(raw.img_height || raw.imgHeight || raw.height || 0)
+      if (!(imgW > 0 && imgH > 0) && parsedBox2D) {
+        const dims = await getImageDimensions(cleanBase64)
+        imgW = dims?.width ?? 0
+        imgH = dims?.height ?? 0
+      }
       if (!(imgW > 0 && imgH > 0)) {
         console.warn('⚠️ Face detect: unrecognised coordinate format')
         return null
       }
       // Pixel coordinates → normalise to 0-1000
-      const top = Number(raw.top ?? raw.ymin ?? raw.y ?? 0)
-      const left = Number(raw.left ?? raw.xmin ?? raw.x ?? 0)
-      const bottom = Number(raw.bottom ?? raw.ymax ?? 0)
-      const right = Number(raw.right ?? raw.xmax ?? 0)
+      const top = Number(parsedBox2D?.top ?? raw.top ?? raw.ymin ?? raw.y ?? 0)
+      const left = Number(parsedBox2D?.left ?? raw.left ?? raw.xmin ?? raw.x ?? 0)
+      const bottom = Number(parsedBox2D?.bottom ?? raw.bottom ?? raw.ymax ?? 0)
+      const right = Number(parsedBox2D?.right ?? raw.right ?? raw.xmax ?? 0)
 
       ymin = Math.round((top / imgH) * 1000)
       xmin = Math.round((left / imgW) * 1000)

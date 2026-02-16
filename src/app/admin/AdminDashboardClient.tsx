@@ -41,6 +41,14 @@ interface InfluencerApplication {
   } | null
 }
 
+interface MetricsDraft {
+  followers: string
+  engagementRatePercent: string
+  audienceRate: string
+  retentionRate: string
+  badgeTier: '' | 'platinum' | 'gold' | 'silver' | 'bronze'
+}
+
 interface AdminDashboardClientProps {
   initialApplications: InfluencerApplication[]
   /** Optional legacy fallback mode; full mode is the default data path */
@@ -58,11 +66,27 @@ export default function AdminDashboardClient({ initialApplications, dataSource =
   const [filterNiche, setFilterNiche] = useState<string>('')
   const [filterGender, setFilterGender] = useState<string>('')
   const [filterPlatform, setFilterPlatform] = useState<string>('')
+  const [metricsDrafts, setMetricsDrafts] = useState<Record<string, MetricsDraft>>({})
 
   const refreshRef = useRef<() => Promise<void>>(() => Promise.resolve())
   useEffect(() => {
     refreshRef.current = refresh
   })
+
+  useEffect(() => {
+    const nextDrafts: Record<string, MetricsDraft> = {}
+    for (const app of applications) {
+      nextDrafts[app.user_id] = {
+        followers: app.onboarding?.followers != null ? String(app.onboarding.followers) : '',
+        engagementRatePercent:
+          app.onboarding?.engagementRate != null ? String((Number(app.onboarding.engagementRate) * 100).toFixed(2)) : '',
+        audienceRate: app.onboarding?.audienceRate != null ? String(app.onboarding.audienceRate) : '',
+        retentionRate: app.onboarding?.retentionRate != null ? String(app.onboarding.retentionRate) : '',
+        badgeTier: ((app.onboarding?.badgeTier || '') as MetricsDraft['badgeTier']),
+      }
+    }
+    setMetricsDrafts(nextDrafts)
+  }, [applications])
 
   // Realtime: refetch when profiles change. Enable in Supabase: Database → Replication → add table "profiles".
   useEffect(() => {
@@ -211,6 +235,81 @@ export default function AdminDashboardClient({ initialApplications, dataSource =
       await refresh()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to update status')
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  const handleMetricsDraftChange = (userId: string, field: keyof MetricsDraft, value: string) => {
+    setMetricsDrafts((prev) => ({
+      ...prev,
+      [userId]: {
+        ...(prev[userId] || {
+          followers: '',
+          engagementRatePercent: '',
+          audienceRate: '',
+          retentionRate: '',
+          badgeTier: '',
+        }),
+        [field]: value,
+      },
+    }))
+  }
+
+  const handleMetricsSave = async (app: InfluencerApplication) => {
+    const draft = metricsDrafts[app.user_id]
+    if (!draft) return
+
+    const followers =
+      draft.followers.trim() === '' ? undefined : Math.max(0, Math.floor(Number(draft.followers)))
+    const engagementRate =
+      draft.engagementRatePercent.trim() === '' ? undefined : Number(draft.engagementRatePercent) / 100
+    const audienceRate =
+      draft.audienceRate.trim() === '' ? undefined : Number(draft.audienceRate)
+    const retentionRate =
+      draft.retentionRate.trim() === '' ? undefined : Number(draft.retentionRate)
+
+    if (
+      (followers !== undefined && !Number.isFinite(followers)) ||
+      (engagementRate !== undefined && !Number.isFinite(engagementRate)) ||
+      (audienceRate !== undefined && !Number.isFinite(audienceRate)) ||
+      (retentionRate !== undefined && !Number.isFinite(retentionRate))
+    ) {
+      toast.error('Please enter valid numbers before saving.')
+      return
+    }
+
+    setLoading(app.user_id)
+    try {
+      const response = await fetch('/api/admin/influencers', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: app.user_id,
+          followers,
+          engagementRate,
+          audienceRate,
+          retentionRate,
+          badgeTier: draft.badgeTier || null,
+        }),
+      })
+
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data?.error || 'Failed to update metrics')
+      const saved = data?.influencerProfile || {}
+      const savedFollowers = saved.followers != null ? Number(saved.followers).toLocaleString() : '-'
+      const savedEngagement =
+        saved.engagement_rate != null ? `${(Number(saved.engagement_rate) * 100).toFixed(2)}%` : '-'
+      const savedAudience = saved.audience_rate != null ? String(saved.audience_rate) : '-'
+      const savedRetention = saved.retention_rate != null ? `${saved.retention_rate}%` : '-'
+      const savedTier = saved.badge_tier || '-'
+      const savedScore = saved.badge_score != null ? Number(saved.badge_score).toFixed(1) : '-'
+      toast.success('Influencer metrics updated in Supabase.', {
+        description: `Followers: ${savedFollowers} | ER: ${savedEngagement} | Audience: ${savedAudience} | Retention: ${savedRetention} | Tier: ${savedTier} | Score: ${savedScore}`,
+      })
+      await refresh()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update metrics')
     } finally {
       setLoading(null)
     }
@@ -448,12 +547,18 @@ export default function AdminDashboardClient({ initialApplications, dataSource =
                           </div>
                           <div className="flex justify-between border-b border-black/5 pb-2">
                             <span className="text-black/50 font-medium">Engagement</span>
-                            <span className="font-bold text-black">{(Number(app.onboarding.engagementRate) * 100).toFixed(2)}%</span>
+                            <span className="font-bold text-black">
+                              {app.onboarding.engagementRate != null
+                                ? `${(Number(app.onboarding.engagementRate) * 100).toFixed(2)}%`
+                                : '-'}
+                            </span>
                           </div>
                           <div className="flex justify-between border-b border-black/5 pb-2">
                             <span className="text-black/50 font-medium">Badge Score</span>
                             <div className="flex items-center gap-2">
-                              <span className="font-bold text-black">{Number(app.onboarding.badgeScore).toFixed(1)}</span>
+                              <span className="font-bold text-black">
+                                {app.onboarding.badgeScore != null ? Number(app.onboarding.badgeScore).toFixed(1) : '-'}
+                              </span>
                               {app.onboarding.badgeTier && <BadgeDisplay tier={app.onboarding.badgeTier as BadgeTier} />}
                             </div>
                           </div>
@@ -465,12 +570,12 @@ export default function AdminDashboardClient({ initialApplications, dataSource =
                           {/* Full width items */}
                           <div className="md:col-span-2 pt-2">
                             <span className="text-black/50 font-medium text-xs uppercase tracking-wider block mb-1">Socials</span>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 flex-wrap">
                               {app.onboarding.socials && Object.entries(app.onboarding.socials as Record<string, string>)
                                 .filter(([, url]) => url)
-                                .map(([platform]) => (
-                                  <span key={platform} className="px-2 py-1 bg-black/5 rounded text-xs font-bold uppercase text-black/70">
-                                    {platform}
+                                .map(([platform, handle]) => (
+                                  <span key={platform} className="px-2 py-1 bg-black/5 rounded text-xs font-bold text-black/70">
+                                    <span className="uppercase">{platform}:</span> {String(handle)}
                                   </span>
                                 ))
                               }
@@ -517,6 +622,65 @@ export default function AdminDashboardClient({ initialApplications, dataSource =
                           <div className="text-xs text-black/30 mt-1">Status: {app.status}</div>
                         </div>
                       )}
+
+                      <div className="rounded-xl border-2 border-black/10 bg-white p-3 space-y-2">
+                        <p className="text-xs font-black uppercase text-black/60">Admin Metrics</p>
+                        <input
+                          type="number"
+                          min={0}
+                          placeholder="Followers"
+                          value={metricsDrafts[app.user_id]?.followers ?? ''}
+                          onChange={(e) => handleMetricsDraftChange(app.user_id, 'followers', e.target.value)}
+                          className="w-full rounded-lg border-2 border-black/20 px-2 py-1 text-sm"
+                        />
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          step="0.01"
+                          placeholder="Engagement %"
+                          value={metricsDrafts[app.user_id]?.engagementRatePercent ?? ''}
+                          onChange={(e) => handleMetricsDraftChange(app.user_id, 'engagementRatePercent', e.target.value)}
+                          className="w-full rounded-lg border-2 border-black/20 px-2 py-1 text-sm"
+                        />
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          placeholder="Audience Rate"
+                          value={metricsDrafts[app.user_id]?.audienceRate ?? ''}
+                          onChange={(e) => handleMetricsDraftChange(app.user_id, 'audienceRate', e.target.value)}
+                          className="w-full rounded-lg border-2 border-black/20 px-2 py-1 text-sm"
+                        />
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          step="0.01"
+                          placeholder="Retention %"
+                          value={metricsDrafts[app.user_id]?.retentionRate ?? ''}
+                          onChange={(e) => handleMetricsDraftChange(app.user_id, 'retentionRate', e.target.value)}
+                          className="w-full rounded-lg border-2 border-black/20 px-2 py-1 text-sm"
+                        />
+                        <select
+                          value={metricsDrafts[app.user_id]?.badgeTier ?? ''}
+                          onChange={(e) => handleMetricsDraftChange(app.user_id, 'badgeTier', e.target.value)}
+                          className="w-full rounded-lg border-2 border-black/20 px-2 py-1 text-sm bg-white"
+                        >
+                          <option value="">Badge Tier</option>
+                          <option value="platinum">Platinum</option>
+                          <option value="gold">Gold</option>
+                          <option value="silver">Silver</option>
+                          <option value="bronze">Bronze</option>
+                        </select>
+                        <button
+                          onClick={() => handleMetricsSave(app)}
+                          disabled={loading === app.user_id}
+                          className="w-full py-2 bg-[#FFD93D] text-black font-black border-2 border-black rounded-lg"
+                        >
+                          SAVE METRICS
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

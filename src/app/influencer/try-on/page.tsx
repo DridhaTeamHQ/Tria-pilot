@@ -100,6 +100,7 @@ function TryOnPageContent() {
     const [retryAfterSeconds, setRetryAfterSeconds] = useState(0)
     const [retryReason, setRetryReason] = useState<'job_in_progress' | 'rate_limit' | null>(null)
     const [activeJobId, setActiveJobId] = useState<string | null>(null)
+    const [queueStatus, setQueueStatus] = useState<'idle' | 'queued' | 'generating'>('idle')
     const [uploadingImage, setUploadingImage] = useState<'person' | 'clothing' | 'background' | 'accessory' | null>(null)
     // Multi-variant support: generate 3 variants, user selects one
     const [result, setResult] = useState<{ jobId: string; imageUrl: string; base64Image?: string } | null>(null)
@@ -169,6 +170,107 @@ function TryOnPageContent() {
         }, 1000)
         return () => clearInterval(t)
     }, [retryAfterSeconds])
+
+    const pollTryOnJob = useCallback(async (
+        jobId: string,
+        options?: { onStatus?: (status: 'pending' | 'processing') => void }
+    ) => {
+        const startedAt = Date.now()
+        const timeoutMs = 10 * 60 * 1000
+        const intervalMs = 2000
+
+        while (Date.now() - startedAt < timeoutMs) {
+            const pollResponse = await fetch(`/api/tryon/jobs/${jobId}`, { cache: 'no-store' })
+            const pollData = await safeParseResponse<any>(pollResponse, 'try-on job polling')
+            const status = pollData?.status as string | undefined
+
+            if (status === 'pending' || status === 'processing') {
+                options?.onStatus?.(status)
+            }
+
+            if (status === 'completed' || status === 'failed') {
+                return pollData
+            }
+
+            await new Promise(resolve => setTimeout(resolve, intervalMs))
+        }
+
+        throw new Error('Generation is taking longer than expected. Please check Generations history.')
+    }, [])
+
+    useEffect(() => {
+        if (!user?.id || generateInFlightRef.current) return
+
+        let cancelled = false
+        const restoreActiveJob = async () => {
+            try {
+                const response = await fetch('/api/tryon/jobs/active', { cache: 'no-store' })
+
+                if (response.status === 404) {
+                    sessionStorage.removeItem('tryonActiveJobId')
+                    return
+                }
+
+                const active = await safeParseResponse<any>(response, 'active try-on job')
+                if (!active?.jobId || (active?.status !== 'pending' && active?.status !== 'processing')) {
+                    sessionStorage.removeItem('tryonActiveJobId')
+                    return
+                }
+
+                if (cancelled) return
+
+                const restoredJobId = String(active.jobId)
+                setActiveJobId(restoredJobId)
+                setLoading(true)
+                setQueueStatus(active.status === 'pending' ? 'queued' : 'generating')
+                sessionStorage.setItem('tryonActiveJobId', restoredJobId)
+
+                const finalJob = await pollTryOnJob(restoredJobId, {
+                    onStatus: (status) => {
+                        setQueueStatus(status === 'pending' ? 'queued' : 'generating')
+                    },
+                })
+
+                if (cancelled) return
+
+                if (finalJob.status === 'failed') {
+                    throw new Error(finalJob.error || 'Try-on generation failed')
+                }
+
+                if (!finalJob.imageUrl && !finalJob.base64Image) {
+                    throw new Error('Try-on completed but no image was returned')
+                }
+
+                setVariants([])
+                setResult({
+                    jobId: restoredJobId,
+                    imageUrl: finalJob.imageUrl || '',
+                    base64Image: finalJob.base64Image,
+                })
+                toast.success('Your existing try-on is ready.')
+                setShowCelebration(true)
+                setTimeout(() => setShowCelebration(false), 5000)
+            } catch (error) {
+                if (cancelled) return
+                const structured = error as (Error & { status?: number })
+                if (structured?.status !== 404) {
+                    const message = error instanceof Error ? error.message : 'Failed to resume active try-on job'
+                    toast.error(message)
+                }
+            } finally {
+                if (cancelled) return
+                setLoading(false)
+                setActiveJobId(null)
+                setQueueStatus('idle')
+                sessionStorage.removeItem('tryonActiveJobId')
+            }
+        }
+
+        restoreActiveJob()
+        return () => {
+            cancelled = true
+        }
+    }, [user?.id, pollTryOnJob])
 
     // Fetch identity images for better face consistency
     useEffect(() => {
@@ -464,30 +566,8 @@ function TryOnPageContent() {
         }
 
         setLoading(true)
+        setQueueStatus('idle')
         generateInFlightRef.current = true
-
-        const pollTryOnJob = async (jobId: string) => {
-            const startedAt = Date.now()
-            const timeoutMs = 10 * 60 * 1000
-            const intervalMs = 2000
-
-            while (Date.now() - startedAt < timeoutMs) {
-                const pollResponse = await fetch(`/api/tryon/jobs/${jobId}`, { cache: 'no-store' })
-                const pollData = await safeParseResponse(pollResponse, 'try-on job polling')
-
-                if (!pollResponse.ok) {
-                    throw new Error(pollData?.error || 'Failed to poll try-on job status')
-                }
-
-                if (pollData.status === 'completed' || pollData.status === 'failed') {
-                    return pollData
-                }
-
-                await new Promise(resolve => setTimeout(resolve, intervalMs))
-            }
-
-            throw new Error('Generation is taking longer than expected. Please check Generations history.')
-        }
 
         try {
             // Collect identity references (Flash: 1-2 strong face refs)
@@ -554,9 +634,15 @@ function TryOnPageContent() {
             }
 
             setActiveJobId(jobId)
-            toast.success('Job queued. Rendering started...')
+            setQueueStatus('queued')
+            sessionStorage.setItem('tryonActiveJobId', jobId)
+            toast.success('Job accepted. We will keep you updated.')
 
-            const finalJob = await pollTryOnJob(jobId)
+            const finalJob = await pollTryOnJob(jobId, {
+                onStatus: (status) => {
+                    setQueueStatus(status === 'pending' ? 'queued' : 'generating')
+                },
+            })
 
             if (finalJob.status === 'failed') {
                 throw new Error(finalJob.error || 'Try-on generation failed')
@@ -582,23 +668,24 @@ function TryOnPageContent() {
             const structured = error as (Error & { status?: number; retryAfterSeconds?: number; code?: string })
             const errorMessage = error instanceof Error ? error.message : 'Generation failed'
 
-            // 429 = job in progress or rate limit; 503/504 = overload — show wait and retry
             const is429 = structured?.status === 429
+            const is503 = structured?.status === 503
             const isJobInProgress = is429 && (structured?.code === 'JOB_IN_PROGRESS' || /already in progress/i.test(errorMessage))
-            const isTimeoutOrBusy =
-                structured?.status === 503 ||
-                structured?.status === 504 ||
-                /timed out|timeout|rate limit|wait a minute/i.test(errorMessage)
-            if (is429 || isTimeoutOrBusy) {
-                const retry = Math.max(1, Number(structured?.retryAfterSeconds ?? 10))
+            if (is429 || is503) {
+                const retry = Math.min(60, Math.max(1, Number(structured?.retryAfterSeconds ?? (is503 ? 15 : 10))))
                 setRetryAfterSeconds(retry)
                 setRetryReason(isJobInProgress ? 'job_in_progress' : 'rate_limit')
                 const msg = isJobInProgress
                     ? `A try-on is still in progress. You can try again in ${retry}s.`
                     : is429
                         ? `Too many requests. Please wait ${retry}s before trying again.`
-                        : `Request timed out or service busy. Please wait ${retry}s and try again.`
+                        : `Service busy. Please wait ${retry}s and try again.`
                 toast.error(msg)
+                return
+            }
+
+            if (structured?.status === 500 && /rate limit|timeout/i.test(errorMessage)) {
+                toast.error('Generation failed: rate limit or timeout. Please try again in a minute.')
                 return
             }
 
@@ -624,6 +711,8 @@ function TryOnPageContent() {
         } finally {
             setLoading(false)
             setActiveJobId(null)
+            setQueueStatus('idle')
+            sessionStorage.removeItem('tryonActiveJobId')
             generateInFlightRef.current = false
         }
     }
@@ -1339,7 +1428,11 @@ function TryOnPageContent() {
                                         </svg>
 
                                         {/* Supporting Text */}
-                                        <h3 className="text-2xl font-serif text-charcoal mb-2">Creating Magic...</h3>
+                                        <h3 className="text-2xl font-serif text-charcoal mb-2">
+                                            {queueStatus === 'queued'
+                                                ? "You're in queue. Your turn will come shortly."
+                                                : 'Your image is generating...'}
+                                        </h3>
 
                                         {/* Real-time countdown */}
                                         {(() => {
@@ -1364,7 +1457,11 @@ function TryOnPageContent() {
                                                                 : `${elapsedSeconds}s elapsed`}
                                                     </p>
                                                     <p className="text-charcoal/40 text-xs mb-4">
-                                                        {activeJobId ? `Processing job ${activeJobId.slice(0, 8)}...` : 'Rendering your try-on'}
+                                                        {activeJobId
+                                                            ? queueStatus === 'queued'
+                                                                ? `In queue for job ${activeJobId.slice(0, 8)}...`
+                                                                : `Generating job ${activeJobId.slice(0, 8)}...`
+                                                            : 'Rendering your try-on'}
                                                     </p>
                                                 </>
                                             )

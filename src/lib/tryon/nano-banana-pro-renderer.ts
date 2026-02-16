@@ -21,6 +21,7 @@ import { assessSceneRealism, type SceneQualityAssessment } from './scene-quality
 import { getAllStylePresets } from './style-presets'
 
 const MAIN_RENDER_MODEL = 'gemini-3-pro-image-preview' as const
+const ENABLE_QUALITY_RETRY = false
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -187,7 +188,7 @@ export async function generateWithNanoBananaPro(
     driftAssessment = assessFaceDrift(personFace, generatedFace)
     sceneAssessment = generatedSceneAssessment
 
-    if (driftAssessment.shouldRetry || sceneAssessment.shouldRetry) {
+    if (ENABLE_QUALITY_RETRY && (driftAssessment.shouldRetry || sceneAssessment.shouldRetry)) {
       retried = true
       const retryReasons = [
         driftAssessment.shouldRetry ? `face:${driftAssessment.reason}` : null,

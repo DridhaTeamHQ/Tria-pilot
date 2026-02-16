@@ -38,6 +38,22 @@ export function ShareModal({ isOpen, onClose, imageUrl, imageBase64, productId }
   const [linkLoading, setLinkLoading] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
 
+  useEffect(() => {
+    if (!isOpen) return
+
+    const originalOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') handleClose()
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.body.style.overflow = originalOverflow
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [isOpen])
+
   // Helper function to shorten URL for display
   const shortenUrl = (url: string | null): string => {
     if (!url) return ''
@@ -388,28 +404,28 @@ export function ShareModal({ isOpen, onClose, imageUrl, imageBase64, productId }
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-2 sm:p-4 pointer-events-none"
           >
             <div
-              className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto pointer-events-auto"
+              className="bg-[#FFFDF8] border-[3px] border-black rounded-2xl sm:rounded-3xl shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] max-w-2xl w-full max-h-[calc(100dvh-0.75rem)] sm:max-h-[90vh] overflow-y-auto pointer-events-auto"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="sticky top-0 bg-white border-b border-charcoal/10 p-6 flex items-center justify-between z-10">
+              <div className="sticky top-0 bg-[#FFFDF8] border-b-2 border-black/10 p-4 sm:p-6 flex items-center justify-between z-10">
                 <div>
-                  <h2 className="text-2xl font-serif text-charcoal">Share to Social Media</h2>
+                  <h2 className="text-xl sm:text-2xl font-serif text-charcoal">Share to Social Media</h2>
                   <p className="text-sm text-charcoal/60 mt-1">Choose a platform and share type</p>
                 </div>
                 <button
                   onClick={handleClose}
-                  className="p-2 hover:bg-charcoal/5 rounded-full transition-colors"
+                  className="h-10 w-10 flex items-center justify-center border-2 border-black rounded-full bg-white hover:bg-[#FFD93D] transition-colors"
                 >
                   <X className="w-5 h-5 text-charcoal/60" />
                 </button>
               </div>
 
               {/* Content */}
-              <div className="p-6 space-y-6">
+              <div className="p-4 sm:p-6 space-y-6">
                 {/* Product Link Section - Show if productId is provided */}
                 {productId && (
                   <div className="bg-cream/50 rounded-xl p-4 border border-charcoal/10">
@@ -453,14 +469,14 @@ export function ShareModal({ isOpen, onClose, imageUrl, imageBase64, productId }
                   <>
                     <div>
                       <h3 className="text-lg font-semibold text-charcoal mb-4">Select Platform</h3>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-2 gap-3 sm:gap-4">
                         {PLATFORMS.map((platform) => {
                           const Icon = platform.icon
                           return (
                             <button
                               key={platform.id}
                               onClick={() => setSelectedPlatform(platform.id)}
-                              className="group relative p-6 rounded-2xl border-2 border-charcoal/10 hover:border-charcoal/30 transition-all overflow-hidden"
+                              className="group relative p-4 sm:p-6 min-h-[120px] rounded-2xl border-2 border-charcoal/10 hover:border-charcoal/30 transition-all overflow-hidden"
                             >
                               <div className={`absolute inset-0 bg-gradient-to-br ${platform.color} opacity-0 group-hover:opacity-10 transition-opacity`} />
                               <div className="relative z-10 flex flex-col items-center gap-3">
@@ -484,10 +500,10 @@ export function ShareModal({ isOpen, onClose, imageUrl, imageBase64, productId }
                 ) : (
                   <>
                     {/* Back Button */}
-                    <button
-                      onClick={() => setSelectedPlatform(null)}
-                      className="flex items-center gap-2 text-sm text-charcoal/60 hover:text-charcoal transition-colors mb-4"
-                    >
+                      <button
+                        onClick={() => setSelectedPlatform(null)}
+                        className="flex items-center gap-2 text-sm text-charcoal/60 hover:text-charcoal transition-colors mb-4 min-h-[40px]"
+                      >
                       <X className="w-4 h-4" />
                       Back to Platforms
                     </button>

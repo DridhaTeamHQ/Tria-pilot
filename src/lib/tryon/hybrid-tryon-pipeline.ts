@@ -30,6 +30,7 @@ import { compositeFacePixels, estimateFaceBox, extractFacePixels, type FaceBox }
 import { generateWithNanoBananaPro } from './nano-banana-pro-renderer'
 
 const GARMENT_EXTRACT_MODEL = 'gemini-2.5-flash-image' as const
+const ENABLE_DETERMINISTIC_FACE_LOCK = false
 
 // ═══════════════════════════════════════════════════════════════
 // TYPES
@@ -285,24 +286,37 @@ export async function runHybridTryOnPipeline(
     throw new Error('Nano Banana Pro rendering failed: ' + (renderResult.debug?.error || 'Unknown error'))
   }
 
-  const faceLock = await applyDeterministicFaceLock(input.personImageBase64, renderResult.image)
+  let finalImage = renderResult.image
+  let faceOverwritten = false
+  let faceLockReason: string | null = 'disabled'
+  const warnings: string[] = []
+
+  if (ENABLE_DETERMINISTIC_FACE_LOCK) {
+    const faceLock = await applyDeterministicFaceLock(input.personImageBase64, renderResult.image)
+    finalImage = faceLock.image
+    faceOverwritten = faceLock.applied
+    faceLockReason = faceLock.reason || null
+    if (!faceLock.applied) {
+      warnings.push(`Face lock fallback: ${faceLock.reason || 'not applied'}`)
+    }
+  }
 
   // 3. Return Result
   return {
     success: true,
-    image: faceLock.image,
+    image: finalImage,
     status: 'PASS',
-    warnings: faceLock.applied ? [] : [`Face lock fallback: ${faceLock.reason || 'not applied'}`],
+    warnings,
     debug: {
       stages: ['garment_extraction', 'strict_renderer'],
       totalTimeMs: Date.now() - startTime,
-      faceOverwritten: faceLock.applied,
+      faceOverwritten,
       promptUsed: renderResult.promptUsed,
       rendererDebug: {
         ...renderResult.debug,
         deterministicFaceLock: {
-          applied: faceLock.applied,
-          reason: faceLock.reason || null,
+          applied: faceOverwritten,
+          reason: faceLockReason,
         },
       }
     }

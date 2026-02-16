@@ -357,6 +357,31 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
 
     const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null)
 
+    useEffect(() => {
+        const isModalOpen = showForm || Boolean(deleteConfirm)
+        if (!isModalOpen) return
+
+        const originalOverflow = document.body.style.overflow
+        document.body.style.overflow = 'hidden'
+
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key !== 'Escape') return
+            if (deleteConfirm) {
+                setDeleteConfirm(null)
+                return
+            }
+            if (showForm) {
+                resetForm()
+            }
+        }
+
+        window.addEventListener('keydown', onKeyDown)
+        return () => {
+            document.body.style.overflow = originalOverflow
+            window.removeEventListener('keydown', onKeyDown)
+        }
+    }, [showForm, deleteConfirm])
+
     const handleDeleteClick = (product: Product) => {
         setDeleteConfirm({ id: product.id, name: product.name })
     }
@@ -419,8 +444,14 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
 
             {/* Product Form Modal */}
             {showForm && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                    <div className="bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-[2px] p-4"
+                    onClick={resetForm}
+                >
+                    <div
+                        className="bg-[#FFFDF8] rounded-2xl border-[3px] border-black shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <div className="flex items-center justify-between p-4 border-b-[3px] border-black">
                             <h2 className="text-xl font-black">
                                 {editingProduct ? 'Edit Product' : 'Add New Product'}
@@ -832,8 +863,14 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
 
             {/* Delete confirmation modal */}
             {deleteConfirm && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                    <div className="bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-md p-6">
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-[2px] p-4"
+                    onClick={() => setDeleteConfirm(null)}
+                >
+                    <div
+                        className="bg-[#FFFDF8] rounded-2xl border-[3px] border-black shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] w-full max-w-md p-6"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <h3 className="text-xl font-black mb-2">Delete product?</h3>
                         <p className="text-black/70 mb-6">
                             &ldquo;{deleteConfirm.name}&rdquo; will be permanently removed. This cannot be undone.

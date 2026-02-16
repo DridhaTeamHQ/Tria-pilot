@@ -11,6 +11,8 @@ import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
 import { z } from 'zod'
 
+const ALLOWED_SOCIAL_PLATFORMS = ['instagram', 'youtube', 'snapchat', 'facebook'] as const
+
 const onboardingSchema = z
   .object({
     gender: z
@@ -59,48 +61,15 @@ const onboardingSchema = z
   })
   .strict()
 
-// Simple badge calculation
-function calculateBadge(metrics: {
-  followers: number
-  engagementRate: number
-  audienceRate: number
-  retentionRate: number
-}): { tier: string; score: number } {
-  const { followers, engagementRate, audienceRate, retentionRate } = metrics
-
-  // Calculate score based on metrics
-  let score = 0
-
-  // Followers scoring (0-40 points)
-  if (followers >= 1000000) score += 40
-  else if (followers >= 500000) score += 35
-  else if (followers >= 100000) score += 30
-  else if (followers >= 50000) score += 25
-  else if (followers >= 10000) score += 20
-  else if (followers >= 1000) score += 10
-  else score += 5
-
-  // Engagement rate scoring (0-30 points)
-  const engRate = typeof engagementRate === 'number' ? engagementRate : 0
-  if (engRate >= 0.1) score += 30 // 10%+
-  else if (engRate >= 0.05) score += 25
-  else if (engRate >= 0.03) score += 20
-  else if (engRate >= 0.01) score += 15
-  else score += 5
-
-  // Audience/retention rate scoring (0-30 points)
-  const audRate = typeof audienceRate === 'number' ? audienceRate : 0
-  const retRate = typeof retentionRate === 'number' ? retentionRate : 0
-  score += Math.min(15, Math.floor(audRate / 10) * 3)
-  score += Math.min(15, Math.floor(retRate / 10) * 3)
-
-  // Determine tier
-  let tier = 'bronze'
-  if (score >= 80) tier = 'diamond'
-  else if (score >= 60) tier = 'gold'
-  else if (score >= 40) tier = 'silver'
-
-  return { tier, score }
+function normalizeSocials(raw: unknown): Record<string, string> {
+  const input = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {}
+  const normalized: Record<string, string> = {}
+  for (const platform of ALLOWED_SOCIAL_PLATFORMS) {
+    const value = input[platform]
+    const trimmed = typeof value === 'string' ? value.trim() : ''
+    if (trimmed) normalized[platform] = trimmed
+  }
+  return normalized
 }
 
 export async function POST(request: Request) {
@@ -134,6 +103,7 @@ export async function POST(request: Request) {
 
     const body = await request.json().catch(() => null)
     const data = onboardingSchema.parse(body)
+    const normalizedSocials = normalizeSocials(data.socials)
 
     // Get or create influencer profile
     let { data: infProfile, error: infError } = await service
@@ -152,12 +122,8 @@ export async function POST(request: Request) {
           niches: data.niches || [],
           audience_type: data.audienceType || [],
           preferred_categories: data.preferredCategories || [],
-          socials: data.socials || {},
+          socials: normalizedSocials,
           bio: data.bio,
-          followers: data.followers,
-          engagement_rate: data.engagementRate,
-          audience_rate: data.audienceRate,
-          retention_rate: data.retentionRate,
         })
         .select()
         .single()
@@ -175,12 +141,8 @@ export async function POST(request: Request) {
       if (data.niches) updateData.niches = data.niches
       if (data.audienceType) updateData.audience_type = data.audienceType
       if (data.preferredCategories) updateData.preferred_categories = data.preferredCategories
-      if (data.socials) updateData.socials = data.socials
+      if (data.socials) updateData.socials = normalizedSocials
       if (data.bio) updateData.bio = data.bio
-      if (data.audienceRate !== undefined) updateData.audience_rate = data.audienceRate
-      if (data.retentionRate !== undefined) updateData.retention_rate = data.retentionRate
-      if (data.followers !== undefined) updateData.followers = data.followers
-      if (data.engagementRate !== undefined) updateData.engagement_rate = data.engagementRate
 
       if (Object.keys(updateData).length > 0) {
         const { data: updated, error: updateError } = await service
@@ -199,23 +161,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // Calculate badge
-    const badge = calculateBadge({
-      followers: data.followers ?? infProfile?.followers ?? 0,
-      engagementRate: data.engagementRate ?? infProfile?.engagement_rate ?? 0,
-      audienceRate: data.audienceRate ?? infProfile?.audience_rate ?? 0,
-      retentionRate: data.retentionRate ?? infProfile?.retention_rate ?? 0,
-    })
-
-    // Update badge
-    await service
-      .from('influencer_profiles')
-      .update({
-        badge_tier: badge.tier,
-        badge_score: badge.score,
-      })
-      .eq('user_id', authUser.id)
-
     // Check if onboarding is complete
     const hasGender = data.gender || infProfile?.gender
     const hasNiches = (data.niches && data.niches.length > 0) ||
@@ -224,10 +169,10 @@ export async function POST(request: Request) {
       (Array.isArray(infProfile?.audience_type) && infProfile.audience_type.length > 0)
     const hasCategories = (data.preferredCategories && data.preferredCategories.length > 0) ||
       (Array.isArray(infProfile?.preferred_categories) && infProfile.preferred_categories.length > 0)
-    const hasMetrics = (data.audienceRate !== undefined || infProfile?.audience_rate !== null) &&
-      (data.retentionRate !== undefined || infProfile?.retention_rate !== null)
+    const existingSocials = normalizeSocials(infProfile?.socials)
+    const hasSocials = Object.keys(normalizedSocials).length > 0 || Object.keys(existingSocials).length > 0
 
-    const isCompleted = Boolean(hasGender && hasNiches && hasAudienceType && hasCategories && hasMetrics)
+    const isCompleted = Boolean(hasGender && hasNiches && hasAudienceType && hasCategories && hasSocials)
 
     // Update profiles table when onboarding completes
     if (isCompleted && !profile.onboarding_completed) {

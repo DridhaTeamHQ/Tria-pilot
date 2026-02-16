@@ -7,9 +7,10 @@ import { isQueueAvailable } from '@/lib/queue/redis'
 import { normalizeBase64 } from '@/lib/image-processing'
 import { saveUpload } from '@/lib/storage'
 import { runHybridTryOnPipeline } from '@/lib/tryon/hybrid-tryon-pipeline'
+import { GeminiRateLimitError } from '@/lib/gemini/executor'
 
 const STALE_PENDING_MS = 5 * 60 * 1000   // 5 min – pending job never picked up
-const STALE_PROCESSING_MS = 4 * 60 * 1000 // 4 min – processing job stuck
+const STALE_PROCESSING_MS = 2 * 60 * 1000 // 2 min – processing job stuck
 
 export const maxDuration = 60
 
@@ -316,6 +317,25 @@ export async function POST(request: Request) {
           : null,
       })
     } catch (inlineError) {
+      if (inlineError instanceof GeminiRateLimitError) {
+        const retryAfterSeconds = Math.min(60, Math.ceil((inlineError.retryAfterMs || 30_000) / 1000)) || 30
+        return NextResponse.json(
+          {
+            error: inlineError.message || 'Rate limit reached. Please retry shortly.',
+            code: 'RATE_LIMIT',
+            retryAfterSeconds,
+            jobId: job.id,
+          },
+          {
+            status: 429,
+            headers: {
+              'Retry-After': String(retryAfterSeconds),
+              'Cache-Control': 'no-store',
+            },
+          }
+        )
+      }
+
       const errMsg = inlineError instanceof Error ? inlineError.message : 'Generation failed'
       await service
         .from('generation_jobs')

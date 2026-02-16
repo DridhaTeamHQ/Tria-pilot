@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useTransition, Suspense } from 'react
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, ArrowRight, Loader2, Upload, X, Users, TrendingUp, Activity } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Loader2, Upload, X } from 'lucide-react'
 import {
   IDENTITY_IMAGE_REQUIREMENTS,
   type IdentityImageType,
@@ -14,13 +14,13 @@ import {
 // Neo-Brutal Components
 import { OnboardingCard } from '@/components/brutal/onboarding/OnboardingCard'
 import { ChoiceChip } from '@/components/brutal/onboarding/ChoiceChip'
-import { BrutalInput, BrutalTextarea, BrutalNumberInput } from '@/components/brutal/onboarding/BrutalInput'
+import { BrutalInput, BrutalTextarea } from '@/components/brutal/onboarding/BrutalInput'
 import { DecorativeShapes } from '@/components/brutal/onboarding/DecorativeShapes'
 
 const NICHE_OPTIONS = ['Fashion', 'Lifestyle', 'Tech', 'Beauty', 'Fitness', 'Travel', 'Food', 'Gaming']
 const AUDIENCE_OPTIONS = ['Men', 'Women', 'Unisex', 'Kids']
 const CATEGORY_OPTIONS = ['Casual', 'Formal', 'Streetwear', 'Vintage', 'Sustainable', 'Luxury', 'Athleisure']
-const TOTAL_STEPS = 9
+const TOTAL_STEPS = 8
 
 export default function InfluencerOnboardingPage() {
   const router = useRouter()
@@ -50,15 +50,11 @@ export default function InfluencerOnboardingPage() {
     preferredCategories: [] as string[],
     socials: {
       instagram: '',
-      tiktok: '',
       youtube: '',
-      twitter: '',
+      snapchat: '',
+      facebook: '',
     },
     bio: '',
-    audienceRate: '',
-    retentionRate: '',
-    followers: '',
-    engagementRate: '',
   })
 
   // Calculate identity upload progress
@@ -91,15 +87,11 @@ export default function InfluencerOnboardingPage() {
               preferredCategories: (data.profile.preferredCategories as string[]) || [],
               socials: {
                 instagram: existingSocials.instagram || '',
-                tiktok: existingSocials.tiktok || '',
                 youtube: existingSocials.youtube || '',
-                twitter: existingSocials.twitter || '',
+                snapchat: existingSocials.snapchat || '',
+                facebook: existingSocials.facebook || '',
               },
               bio: data.profile.bio || '',
-              audienceRate: data.profile.audienceRate != null ? String(data.profile.audienceRate) : '',
-              retentionRate: data.profile.retentionRate != null ? String(data.profile.retentionRate) : '',
-              followers: data.profile.followers != null ? String(data.profile.followers) : '',
-              engagementRate: data.profile.engagementRate != null ? String(Number(data.profile.engagementRate) * 100) : '',
             })
           }
           setDataLoaded(true)
@@ -131,20 +123,17 @@ export default function InfluencerOnboardingPage() {
 
   // Background save progress (non-blocking)
   const saveProgressInBackground = useCallback(() => {
-    const payload = {
-      ...formData,
-      audienceRate: formData.audienceRate === '' ? undefined : Number(formData.audienceRate),
-      retentionRate: formData.retentionRate === '' ? undefined : Number(formData.retentionRate),
-      followers: formData.followers === '' ? undefined : Number(formData.followers),
-      engagementRate: formData.engagementRate === '' ? undefined : Number(formData.engagementRate),
-    }
-
     fetch('/api/onboarding/influencer', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(formData),
     }).catch(err => console.warn('Background save failed:', err))
   }, [formData])
+
+  const hasAtLeastOneSocial = useCallback(() => {
+    const values = Object.values(formData.socials || {})
+    return values.some((value) => String(value || '').trim().length > 0)
+  }, [formData.socials])
 
   // Check if current step has required data filled
   const canProceed = () => {
@@ -157,15 +146,13 @@ export default function InfluencerOnboardingPage() {
         return formData.audienceType.length > 0
       case 4: // Clothing Categories - REQUIRED (at least 1)
         return formData.preferredCategories.length > 0
-      case 5: // Social Media - OPTIONAL
+      case 5: // Social Media - REQUIRED (at least one platform)
+        return hasAtLeastOneSocial()
+      case 6: // Bio - OPTIONAL
         return true
-      case 6: // Audience Metrics - REQUIRED (growth + retention)
-        return formData.audienceRate !== '' && formData.retentionRate !== ''
-      case 7: // Bio - OPTIONAL
+      case 7: // AI Studio - OPTIONAL
         return true
-      case 8: // AI Studio - OPTIONAL
-        return true
-      case 9: // Profile Photos - OPTIONAL
+      case 8: // Profile Photos - OPTIONAL
         return true
       default:
         return true
@@ -180,7 +167,7 @@ export default function InfluencerOnboardingPage() {
         2: 'Please select at least one niche.',
         3: 'Please select at least one target audience.',
         4: 'Please select at least one clothing category.',
-        6: 'Please enter both growth and retention rates.',
+        5: 'Please add at least one social account.',
       }
       toast.error(messages[step] || 'Please complete this step.')
       return
@@ -203,18 +190,10 @@ export default function InfluencerOnboardingPage() {
   const handleSubmit = async () => {
     setLoading(true)
     try {
-      const payload = {
-        ...formData,
-        audienceRate: formData.audienceRate === '' ? undefined : Number(formData.audienceRate),
-        retentionRate: formData.retentionRate === '' ? undefined : Number(formData.retentionRate),
-        followers: formData.followers === '' ? undefined : Number(formData.followers),
-        engagementRate: formData.engagementRate === '' ? undefined : Number(formData.engagementRate),
-      }
-
       const response = await fetch('/api/onboarding/influencer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(formData),
       })
 
       const data = await response.json()
@@ -312,10 +291,9 @@ export default function InfluencerOnboardingPage() {
       case 3: return 'Target Audience'
       case 4: return 'Clothing Categories'
       case 5: return 'Social Media'
-      case 6: return 'Audience Metrics'
-      case 7: return 'Bio'
-      case 8: return 'AI Studio Setup'
-      case 9: return 'Profile Photos'
+      case 6: return 'Bio'
+      case 7: return 'AI Studio Setup'
+      case 8: return 'Profile Photos'
       default: return 'Profile Setup'
     }
   }
@@ -325,9 +303,9 @@ export default function InfluencerOnboardingPage() {
     const cleanUsername = username.replace(/^@/, '')
     switch (platform) {
       case 'instagram': return `https://instagram.com/${cleanUsername}`
-      case 'tiktok': return `https://tiktok.com/@${cleanUsername}`
       case 'youtube': return `https://youtube.com/@${cleanUsername}`
-      case 'twitter': return `https://twitter.com/${cleanUsername}`
+      case 'facebook': return `https://facebook.com/${cleanUsername}`
+      case 'snapchat': return `https://www.snapchat.com/add/${cleanUsername}`
       default: return undefined
     }
   }
@@ -404,15 +382,6 @@ export default function InfluencerOnboardingPage() {
               verifyUrl={getSocialVerifyUrl('instagram', formData.socials.instagram)}
             />
             <BrutalInput
-              label="TikTok"
-              icon={<span>🎵</span>}
-              placeholder="@your_username"
-              value={formData.socials.tiktok}
-              onChange={(e) => setFormData({ ...formData, socials: { ...formData.socials, tiktok: e.target.value } })}
-              showVerify={Boolean(formData.socials.tiktok)}
-              verifyUrl={getSocialVerifyUrl('tiktok', formData.socials.tiktok)}
-            />
-            <BrutalInput
               label="YouTube"
               icon={<span className="text-red-500">▶️</span>}
               placeholder="Channel name"
@@ -421,52 +390,31 @@ export default function InfluencerOnboardingPage() {
               showVerify={Boolean(formData.socials.youtube)}
               verifyUrl={getSocialVerifyUrl('youtube', formData.socials.youtube)}
             />
+            <BrutalInput
+              label="Snapchat"
+              icon={<span>👻</span>}
+              placeholder="username"
+              value={formData.socials.snapchat}
+              onChange={(e) => setFormData({ ...formData, socials: { ...formData.socials, snapchat: e.target.value } })}
+              showVerify={Boolean(formData.socials.snapchat)}
+              verifyUrl={getSocialVerifyUrl('snapchat', formData.socials.snapchat)}
+            />
+            <BrutalInput
+              label="Facebook"
+              icon={<span className="text-blue-600">f</span>}
+              placeholder="username"
+              value={formData.socials.facebook}
+              onChange={(e) => setFormData({ ...formData, socials: { ...formData.socials, facebook: e.target.value } })}
+              showVerify={Boolean(formData.socials.facebook)}
+              verifyUrl={getSocialVerifyUrl('facebook', formData.socials.facebook)}
+            />
+            <p className="text-xs font-bold text-black/60">
+              Add at least one account to continue. Admin will verify and assign metrics/badges manually.
+            </p>
           </div>
         )
 
       case 6:
-        return (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <BrutalNumberInput
-              label="Total Followers"
-              icon={<Users className="w-4 h-4 text-[#FF8C69]" />}
-              placeholder="e.g. 50K or 1.5M"
-              value={formData.followers}
-              onChange={(e) => setFormData({ ...formData, followers: e.target.value })}
-              max={500000000}
-              allowKMNotation={true}
-            />
-            <BrutalNumberInput
-              label="Engagement Rate"
-              icon={<Activity className="w-4 h-4 text-[#B4F056]" />}
-              placeholder="e.g. 5.5"
-              unit="%"
-              value={formData.engagementRate}
-              onChange={(e) => setFormData({ ...formData, engagementRate: e.target.value })}
-              max={100}
-            />
-            <BrutalNumberInput
-              label="Growth Rate"
-              icon={<TrendingUp className="w-4 h-4 text-[#FFD93D]" />}
-              placeholder="e.g. 12.5"
-              unit="%"
-              value={formData.audienceRate}
-              onChange={(e) => setFormData({ ...formData, audienceRate: e.target.value })}
-              max={1000}
-            />
-            <BrutalNumberInput
-              label="Retention Rate"
-              icon={<TrendingUp className="w-4 h-4 text-[#FF8C69]" />}
-              placeholder="e.g. 45"
-              unit="%"
-              value={formData.retentionRate}
-              onChange={(e) => setFormData({ ...formData, retentionRate: e.target.value })}
-              max={100}
-            />
-          </div>
-        )
-
-      case 7:
         return (
           <BrutalTextarea
             label="Tell us about your style"
@@ -476,7 +424,7 @@ export default function InfluencerOnboardingPage() {
           />
         )
 
-      case 8:
+      case 7:
         return (
           <div className="space-y-5">
             <div className="bg-[#B4F056] border-[3px] border-black rounded-xl p-4 flex items-center gap-3 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
@@ -529,7 +477,7 @@ export default function InfluencerOnboardingPage() {
           </div>
         )
 
-      case 9:
+      case 8:
         return (
           <div className="space-y-4">
             <div className="border-[3px] border-dashed border-black/30 rounded-xl p-8 bg-white text-center cursor-pointer hover:border-black hover:bg-gray-50 transition-all">
