@@ -18,7 +18,7 @@ export function ChoiceChip({ label, selected, onClick, icon }: ChoiceChipProps) 
             whileHover={{ scale: 1.03, y: -3 }}
             whileTap={{ scale: 0.97 }}
             className={`
-        relative px-5 py-4 rounded-2xl border-[3px] font-bold text-base transition-all duration-200
+        relative px-3 sm:px-5 py-3 sm:py-4 rounded-xl sm:rounded-2xl border-[3px] font-bold text-sm sm:text-base transition-all duration-200
         ${selected
                     ? 'bg-[#FFFDF8] border-black shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] -translate-y-1 -translate-x-0.5'
                     : 'bg-white/80 border-black/20 text-black/50 hover:border-black hover:text-black hover:bg-white hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,0.5)]'

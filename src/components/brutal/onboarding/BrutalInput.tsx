@@ -52,7 +52,7 @@ export function BrutalInput({
                 )}
                 <Input
                     className={`
-            border-[2px] border-black rounded-xl px-4 py-6 text-base font-medium 
+            border-[2px] border-black rounded-xl px-3 sm:px-4 py-3 sm:py-6 text-sm sm:text-base font-medium 
             bg-white placeholder:text-black/30
             focus-visible:ring-0 focus-visible:border-black focus-visible:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
             transition-all duration-200
@@ -228,7 +228,7 @@ export function BrutalNumberInput({
                     value={value}
                     onChange={handleChange}
                     className={`
-            border-[2px] rounded-xl px-4 py-6 text-lg font-black
+            border-[2px] rounded-xl px-3 sm:px-4 py-3 sm:py-6 text-base sm:text-lg font-black
             bg-white placeholder:text-black/30 placeholder:font-medium
             focus-visible:ring-0 focus-visible:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
             transition-all duration-200

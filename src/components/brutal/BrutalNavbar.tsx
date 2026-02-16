@@ -118,13 +118,13 @@ export default function BrutalNavbar() {
 
     return (
         <header className="fixed top-0 left-0 right-0 z-50 bg-[#F9F8F4] border-b-[3px] border-black">
-            <div className="container mx-auto px-6">
-                <div className="flex items-center justify-between h-20">
+            <div className="container mx-auto px-4 sm:px-6">
+                <div className="flex items-center justify-between h-16 md:h-20">
                     {/* Logo */}
                     <Link
                         href="/"
                         prefetch={true}
-                        className="text-3xl font-black tracking-tight text-black hover:text-[#FF8C69] transition-colors"
+                        className="text-2xl md:text-3xl font-black tracking-tight text-black hover:text-[#FF8C69] transition-colors"
                     >
                         Kiwikoo
                     </Link>
@@ -229,7 +229,7 @@ export default function BrutalNavbar() {
                         transition={{ duration: 0.2 }}
                         className="md:hidden bg-[#F9F8F4] border-t-2 border-black"
                     >
-                        <div className="container mx-auto px-6 py-6 space-y-3">
+                        <div className="container mx-auto px-4 sm:px-6 py-4 space-y-3 max-h-[calc(100dvh-4rem)] overflow-y-auto">
                             {isLoggedIn ? (
                                 <>
                                     {/* User Info */}

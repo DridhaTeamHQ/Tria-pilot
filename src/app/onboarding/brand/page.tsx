@@ -149,7 +149,7 @@ export default function BrandOnboardingPage() {
 
       case 2: // Brand Type
         return (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {BRAND_TYPE_OPTIONS.map((type) => (
               <ChoiceChip
                 key={type}
@@ -163,7 +163,7 @@ export default function BrandOnboardingPage() {
 
       case 3: // Audience
         return (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {AUDIENCE_OPTIONS.map((audience) => (
               <ChoiceChip
                 key={audience}
@@ -178,7 +178,7 @@ export default function BrandOnboardingPage() {
 
       case 4: // Products
         return (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {PRODUCT_TYPE_OPTIONS.map((type) => (
               <ChoiceChip
                 key={type}
@@ -203,7 +203,7 @@ export default function BrandOnboardingPage() {
 
       case 6: // Vertical
         return (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {VERTICAL_OPTIONS.map((v) => (
               <ChoiceChip
                 key={v}
@@ -221,7 +221,7 @@ export default function BrandOnboardingPage() {
             <p className="text-sm text-black/60 font-medium mb-2">
               What&apos;s your typical budget for influencer collaborations?
             </p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {BUDGET_RANGES.map((range) => (
                 <ChoiceChip
                   key={range}
@@ -256,7 +256,7 @@ export default function BrandOnboardingPage() {
 
       <DecorativeShapes />
 
-      <div className="w-full max-w-2xl relative z-20 py-12">
+      <div className="w-full max-w-2xl relative z-20 py-8 sm:py-12">
         <OnboardingCard
           title="Setup Brand Profile"
           step={step}
@@ -276,14 +276,14 @@ export default function BrandOnboardingPage() {
           </AnimatePresence>
 
           {/* Navigation Buttons */}
-          <div className="flex justify-between mt-8 pt-6 border-t-2 border-black/10">
+          <div className="flex justify-between mt-6 sm:mt-8 pt-4 sm:pt-6 border-t-2 border-black/10 gap-3">
             <motion.button
               whileHover={{ scale: step === 1 ? 1 : 1.05 }}
               whileTap={{ scale: step === 1 ? 1 : 0.95 }}
               onClick={handleBack}
               disabled={step === 1}
               className={`
-                px-6 py-3 rounded-xl font-black flex items-center gap-2 transition-all border-[3px]
+                px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-black text-sm sm:text-base flex items-center gap-2 transition-all border-[3px]
                 ${step === 1
                   ? 'opacity-0 pointer-events-none border-transparent'
                   : 'border-black/20 hover:border-black hover:bg-white text-black/60 hover:text-black hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,0.3)]'
@@ -299,7 +299,7 @@ export default function BrandOnboardingPage() {
               whileTap={{ scale: 0.97 }}
               onClick={handleNext}
               disabled={loading}
-              className="px-8 py-3.5 bg-[#B4F056] border-[3px] border-black rounded-xl font-black text-black shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] hover:shadow-[7px_7px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center gap-2 disabled:opacity-60"
+              className="px-5 sm:px-8 py-2.5 sm:py-3.5 bg-[#B4F056] border-[3px] border-black rounded-xl font-black text-sm sm:text-base text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:hover:shadow-[7px_7px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center gap-2 disabled:opacity-60"
             >
               {loading ? (
                 <>

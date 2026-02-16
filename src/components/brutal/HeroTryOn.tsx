@@ -41,15 +41,15 @@ export default function HeroTryOn() {
     };
 
     return (
-        <div className="w-full max-w-7xl mx-auto px-6 md:px-8 flex flex-col items-center">
+        <div className="w-full max-w-7xl mx-auto px-4 md:px-8 flex flex-col items-center">
             {/* Main Content Grid - Increased gap for breathing room */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 w-full items-center">
 
                 {/* Left Side: Headlines & CTA */}
-                <div className="lg:col-span-5 flex flex-col gap-8 text-left">
+                <div className="lg:col-span-5 flex flex-col gap-6 md:gap-8 text-left">
                     {/* Headline with fade-in */}
                     <FadeInSection delay={0.1}>
-                        <h1 className="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black tracking-tighter leading-[0.9] text-black">
+                        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black tracking-tighter leading-[0.92] text-black">
                             Try Clothes. <br />
                             <span className="text-[#FF8C69]">Instantly.</span>
                         </h1>
@@ -57,7 +57,7 @@ export default function HeroTryOn() {
 
                     {/* Subtext with slight delay */}
                     <FadeInSection delay={0.2}>
-                        <p className="text-lg md:text-xl font-medium text-black/80 leading-relaxed border-l-[3px] border-black pl-5">
+                        <p className="text-base sm:text-lg md:text-xl font-medium text-black/80 leading-relaxed border-l-[3px] border-black pl-4 sm:pl-5">
                             The ultimate fashion marketplace connecting influencers with the
                             hottest brands. Try, Share, and Earn with vertically integrated AI.
                         </p>
@@ -68,7 +68,7 @@ export default function HeroTryOn() {
                         <div className="flex flex-col sm:flex-row gap-4 pt-2">
                             <button
                                 onClick={handleUploadClick}
-                                className="flex items-center justify-center gap-3 px-8 py-4 text-lg font-bold text-black bg-[#B4F056] border-[3px] border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all group"
+                                className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 sm:px-8 py-3.5 sm:py-4 text-base sm:text-lg font-bold text-black bg-[#B4F056] border-[3px] border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all group"
                             >
                                 <Upload className="w-6 h-6" />
                                 Upload a Photo
@@ -89,7 +89,7 @@ export default function HeroTryOn() {
                             <h3 className="text-base font-bold mb-4 uppercase tracking-widest">
                                 Select Outfit:
                             </h3>
-                            <div className="flex gap-5 overflow-x-auto pb-4 pt-2 px-1">
+                            <div className="flex gap-3 sm:gap-5 overflow-x-auto pb-4 pt-2 px-1">
                                 <OutfitCard
                                     imageSrc=""
                                     label="Selected"
@@ -120,7 +120,7 @@ export default function HeroTryOn() {
                         {/* Before Card with Parallax */}
                         <ParallaxWrapper speed={0.2} maxOffset={25}>
                             <FadeInSection delay={0.2} direction="left">
-                                <BrutalCard className="relative p-2 w-full md:w-[260px] lg:w-[280px] aspect-[3/4] rotate-[-2deg] z-10 hover:z-20 transition-all hover:rotate-0 bg-white">
+                                <BrutalCard className="relative p-2 w-full max-w-[260px] md:w-[260px] lg:w-[280px] aspect-[3/4] rotate-[-2deg] z-10 hover:z-20 transition-all hover:rotate-0 bg-white">
                                     <div className="absolute top-[-12px] left-[-8px] bg-black text-white px-3 py-1 font-black text-lg uppercase tracking-widest border-2 border-white transform -rotate-3 shadow-[4px_4px_0px_#FF8C69]">
                                         Before
                                     </div>
@@ -149,7 +149,7 @@ export default function HeroTryOn() {
                         {/* After Card with Parallax */}
                         <ParallaxWrapper speed={-0.15} maxOffset={20}>
                             <FadeInSection delay={0.3} direction="right">
-                                <BrutalCard className="relative p-2 w-full md:w-[260px] lg:w-[280px] aspect-[3/4] rotate-[2deg] z-10 hover:z-20 transition-all hover:rotate-0 bg-white">
+                                <BrutalCard className="relative p-2 w-full max-w-[260px] md:w-[260px] lg:w-[280px] aspect-[3/4] rotate-[2deg] z-10 hover:z-20 transition-all hover:rotate-0 bg-white">
                                     <div className="absolute top-[-12px] right-[-8px] bg-[#FF8C69] text-black px-3 py-1 font-black text-lg uppercase tracking-widest border-2 border-black transform rotate-3 shadow-[4px_4px_0px_#000]">
                                         After 😎
                                     </div>
@@ -176,7 +176,7 @@ export default function HeroTryOn() {
                             <button
                                 onClick={handleGenerateClick}
                                 disabled={!hasPhoto && isLoggedIn}
-                                className={`flex items-center justify-center gap-3 px-8 py-4 text-lg font-bold text-black border-[3px] border-black rounded-xl transition-all ${!hasPhoto && isLoggedIn
+                                className={`w-full sm:w-auto flex items-center justify-center gap-3 px-6 sm:px-8 py-3.5 sm:py-4 text-base sm:text-lg font-bold text-black border-[3px] border-black rounded-xl transition-all ${!hasPhoto && isLoggedIn
                                         ? "bg-gray-200 cursor-not-allowed opacity-60 shadow-none"
                                         : "bg-[#FF8C69] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
                                     }`}

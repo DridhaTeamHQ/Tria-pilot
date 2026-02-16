@@ -9,7 +9,7 @@ export default function Home() {
       <Section
         size="lg"
         maxWidth="full"
-        className="pt-28 md:pt-36 lg:pt-40"
+        className="pt-20 md:pt-32 lg:pt-40"
       >
         <HeroTryOn />
       </Section>

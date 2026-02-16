@@ -329,7 +329,7 @@ export default function InfluencerOnboardingPage() {
 
       case 2:
         return (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {NICHE_OPTIONS.map((niche) => (
               <ChoiceChip
                 key={niche}
@@ -343,7 +343,7 @@ export default function InfluencerOnboardingPage() {
 
       case 3:
         return (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {AUDIENCE_OPTIONS.map((audience) => (
               <ChoiceChip
                 key={audience}
@@ -357,7 +357,7 @@ export default function InfluencerOnboardingPage() {
 
       case 4:
         return (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {CATEGORY_OPTIONS.map((category) => (
               <ChoiceChip
                 key={category}
@@ -537,7 +537,7 @@ export default function InfluencerOnboardingPage() {
 
       <DecorativeShapes />
 
-      <div className="w-full max-w-2xl relative z-20 py-12">
+      <div className="w-full max-w-2xl relative z-20 py-8 sm:py-12">
         <OnboardingCard
           title="Complete Your Profile"
           step={step}
@@ -557,12 +557,12 @@ export default function InfluencerOnboardingPage() {
           </AnimatePresence>
 
           {/* Navigation Buttons */}
-          <div className="flex justify-between mt-8 pt-6 border-t-2 border-black/10">
+          <div className="flex justify-between mt-6 sm:mt-8 pt-4 sm:pt-6 border-t-2 border-black/10 gap-3">
             <button
               onClick={handleBack}
               disabled={step === 1}
               className={`
-                px-6 py-3 rounded-xl font-black flex items-center gap-2 transition-all border-[3px]
+                px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-black text-sm sm:text-base flex items-center gap-2 transition-all border-[3px]
                 ${step === 1
                   ? 'opacity-0 pointer-events-none border-transparent'
                   : 'border-black/20 hover:border-black hover:bg-white text-black/60 hover:text-black active:shadow-[3px_3px_0px_0px_rgba(0,0,0,0.3)]'
@@ -577,7 +577,7 @@ export default function InfluencerOnboardingPage() {
               onClick={handleNext}
               disabled={loading || isPending || !canProceed()}
               className={`
-                px-8 py-3.5 border-[3px] border-black rounded-xl font-black text-black 
+                px-5 sm:px-8 py-2.5 sm:py-3.5 border-[3px] border-black rounded-xl font-black text-sm sm:text-base text-black 
                 transition-all flex items-center gap-2
                 ${canProceed()
                   ? 'bg-[#FF8C69] shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] hover:shadow-[7px_7px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 active:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-0'
