@@ -132,13 +132,13 @@ export default async function BrandDashboard() {
 
   // Render UI directly (Server Side Rendered)
   return (
-    <div className="container mx-auto px-6 py-8">
+    <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
       {/* Welcome Header */}
-      <div className="mb-10">
-        <h1 className="text-4xl font-black text-black mb-2">
+      <div className="mb-8 sm:mb-10">
+        <h1 className="text-3xl sm:text-4xl font-black text-black mb-2">
           Welcome back, {companyName}!
         </h1>
-        <p className="text-black/60 font-medium text-lg">
+        <p className="text-black/60 font-medium text-sm sm:text-lg">
           {brandType && `${brandType}`}
           {vertical && ` • ${vertical}`}
           {!brandType && !vertical && 'Your brand command center'}
@@ -146,47 +146,47 @@ export default async function BrandDashboard() {
       </div>
 
       {/* Overview Cards: Total Spend, Active Campaigns, Impressions, Conversions */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-        <div className="bg-white border-[3px] border-black p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8 sm:mb-10">
+        <div className="bg-white border-[3px] border-black p-4 sm:p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-[#FFD93D] border-2 border-black flex items-center justify-center">
               <DollarSign className="w-6 h-6" strokeWidth={2.5} />
             </div>
             <div>
-              <div className="text-2xl font-black">₹{stats.totalSpend.toLocaleString()}</div>
+              <div className="text-xl sm:text-2xl font-black">₹{stats.totalSpend.toLocaleString()}</div>
               <div className="text-xs font-bold text-black/60 uppercase">Total Spend</div>
             </div>
           </div>
         </div>
-        <div className="bg-white border-[3px] border-black p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+        <div className="bg-white border-[3px] border-black p-4 sm:p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-[#A78BFA] border-2 border-black flex items-center justify-center">
               <Target className="w-6 h-6" strokeWidth={2.5} />
             </div>
             <div>
-              <div className="text-2xl font-black">{stats.activeCampaigns}</div>
+              <div className="text-xl sm:text-2xl font-black">{stats.activeCampaigns}</div>
               <div className="text-xs font-bold text-black/60 uppercase">Active Campaigns</div>
             </div>
           </div>
         </div>
-        <div className="bg-white border-[3px] border-black p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+        <div className="bg-white border-[3px] border-black p-4 sm:p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-[#34D399] border-2 border-black flex items-center justify-center">
               <BarChart3 className="w-6 h-6" strokeWidth={2.5} />
             </div>
             <div>
-              <div className="text-2xl font-black">{stats.totalImpressions.toLocaleString()}</div>
+              <div className="text-xl sm:text-2xl font-black">{stats.totalImpressions.toLocaleString()}</div>
               <div className="text-xs font-bold text-black/60 uppercase">Impressions</div>
             </div>
           </div>
         </div>
-        <div className="bg-white border-[3px] border-black p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+        <div className="bg-white border-[3px] border-black p-4 sm:p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-[#B4F056] border-2 border-black flex items-center justify-center">
               <MousePointer className="w-6 h-6" strokeWidth={2.5} />
             </div>
             <div>
-              <div className="text-2xl font-black">{stats.totalConversions.toLocaleString()}</div>
+              <div className="text-xl sm:text-2xl font-black">{stats.totalConversions.toLocaleString()}</div>
               <div className="text-xs font-bold text-black/60 uppercase">Conversions</div>
             </div>
           </div>
@@ -194,17 +194,17 @@ export default async function BrandDashboard() {
       </div>
 
       {/* Quick action buttons */}
-      <div className="flex flex-wrap gap-4 mb-10">
+      <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 mb-8 sm:mb-10">
         <Link
           href="/brand/campaigns/new"
-          className="inline-flex items-center gap-2 px-5 py-3 bg-[#A78BFA] border-[3px] border-black font-black text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
+          className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-[#A78BFA] border-[3px] border-black font-black text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
         >
           <Plus className="w-4 h-4" />
           Create Campaign
         </Link>
         <Link
           href="/brand/products"
-          className="inline-flex items-center gap-2 px-5 py-3 bg-[#B4F056] border-[3px] border-black font-black text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
+          className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-[#B4F056] border-[3px] border-black font-black text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
         >
           <Plus className="w-4 h-4" />
           Add Product
@@ -212,9 +212,9 @@ export default async function BrandDashboard() {
       </div>
 
       {/* Recent campaigns table */}
-      <div className="mb-10">
+      <div className="mb-8 sm:mb-10">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-black">Recent Campaigns</h2>
+          <h2 className="text-xl sm:text-2xl font-black">Recent Campaigns</h2>
           <Link
             href="/brand/campaigns"
             className="text-sm font-bold text-black/70 hover:text-black underline"
@@ -228,7 +228,8 @@ export default async function BrandDashboard() {
               No campaigns yet. Create your first campaign to get started.
             </div>
           ) : (
-            <table className="w-full text-left">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px] text-left">
               <thead>
                 <tr className="border-b-[2px] border-black bg-[#FFFDF5]">
                   <th className="p-3 text-xs font-black uppercase">Title</th>
@@ -265,18 +266,19 @@ export default async function BrandDashboard() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </div>
 
       {/* Quick Actions Grid */}
-      <h2 className="text-2xl font-black mb-6">Quick Actions</h2>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <h2 className="text-xl sm:text-2xl font-black mb-4 sm:mb-6">Quick Actions</h2>
+      <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {quickActions.map((action) => (
           <Link
             key={action.title}
             href={action.href}
-            className="group bg-white border-[3px] border-black p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all"
+            className="group bg-white border-[3px] border-black p-5 sm:p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all"
           >
             <div className="flex items-start justify-between mb-4">
               <div
@@ -301,21 +303,21 @@ export default async function BrandDashboard() {
 
       {/* Getting Started */}
       {stats.products === 0 && (
-        <div className="mt-10 p-8 bg-gradient-to-br from-[#B4F056]/30 to-[#FFD93D]/30 border-[3px] border-black">
-          <h2 className="text-2xl font-black text-black mb-3">🚀 Get Started</h2>
+        <div className="mt-8 sm:mt-10 p-5 sm:p-8 bg-gradient-to-br from-[#B4F056]/30 to-[#FFD93D]/30 border-[3px] border-black">
+          <h2 className="text-xl sm:text-2xl font-black text-black mb-3">🚀 Get Started</h2>
           <p className="text-black/70 font-medium mb-6">
             Start by adding your first product, then discover influencers to collaborate with!
           </p>
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <Link
               href="/brand/products"
-              className="px-6 py-3 bg-[#B4F056] border-[3px] border-black font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
+              className="px-6 py-3 text-center bg-[#B4F056] border-[3px] border-black font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
             >
               Add First Product
             </Link>
             <Link
               href="/brand/influencers"
-              className="px-6 py-3 bg-white border-[3px] border-black font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
+              className="px-6 py-3 text-center bg-white border-[3px] border-black font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
             >
               Browse Influencers
             </Link>

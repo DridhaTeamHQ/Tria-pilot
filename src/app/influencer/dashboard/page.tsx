@@ -288,7 +288,7 @@ export default function InfluencerDashboard() {
             <div className="flex gap-2">
               <Link
                 href="/influencer/try-on"
-                className="px-6 py-3 bg-black text-white rounded-xl font-bold border-[3px] border-black hover:bg-[#B4F056] hover:text-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                className="w-full sm:w-auto text-center px-6 py-3 bg-black text-white rounded-xl font-bold border-[3px] border-black hover:bg-[#B4F056] hover:text-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
               >
                 New Try-On
               </Link>
@@ -334,7 +334,7 @@ export default function InfluencerDashboard() {
           className="mb-8 sm:mb-12"
         >
           <h2 className="text-xl sm:text-2xl font-bold text-black mb-4 sm:mb-6 uppercase tracking-tight">Quick Actions</h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {quickActions.map((action, index) => {
               const Icon = action.icon
               return (
@@ -371,7 +371,7 @@ export default function InfluencerDashboard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <div className="flex items-center justify-between mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 sm:mb-8">
             <h2 className="text-2xl sm:text-3xl font-bold text-black uppercase tracking-tight">Recent Creations</h2>
             <Link
               href="/influencer/generations"

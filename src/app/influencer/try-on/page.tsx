@@ -770,14 +770,14 @@ function TryOnPageContent() {
     }
 
     return (
-        <div className="relative min-h-screen pt-24 pb-12 overflow-hidden bg-[#FDFBF7]">
+        <div className="relative min-h-screen pt-20 sm:pt-24 pb-8 sm:pb-12 overflow-hidden bg-[#FDFBF7]">
             {/* Background Elements - Kept subtle but cleaner */}
             <div className="absolute inset-0 -z-10 opacity-30 pointer-events-none">
                 <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-[#FFD93D] rounded-full blur-[120px]" />
                 <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-[#FF6B6B] rounded-full blur-[120px]" />
             </div>
 
-            <div className="container mx-auto px-4 md:px-6 z-10 relative">
+            <div className="container mx-auto px-3 sm:px-4 md:px-6 z-10 relative">
 
 
                 {/* Success Celebration */}
@@ -809,11 +809,11 @@ function TryOnPageContent() {
                 </AnimatePresence>
 
                 {/* Header */}
-                <div className="mb-12">
+                <div className="mb-8 sm:mb-12">
                     <motion.h1
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="text-5xl md:text-7xl font-black text-black uppercase tracking-tighter mb-2"
+                        className="text-4xl sm:text-5xl md:text-7xl font-black text-black uppercase tracking-tighter mb-2"
                     >
                         Virtual <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF6B6B] to-[#FF8F8F] stroke-black" style={{ WebkitTextStroke: '2px black' }}>Try-On</span>
                     </motion.h1>
@@ -821,7 +821,7 @@ function TryOnPageContent() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 }}
-                        className="text-xl font-bold text-black border-[2px] border-black bg-white inline-block px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                        className="text-xs sm:text-sm md:text-xl font-bold text-black border-[2px] border-black bg-white inline-block px-3 sm:px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
                     >
                         UPLOAD YOUR PHOTO • SELECT CLOTHING • SEE THE MAGIC
                     </motion.p>
@@ -829,16 +829,16 @@ function TryOnPageContent() {
 
 
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
                     {/* LEFT PANEL: Inputs */}
-                    <div className="lg:col-span-5 space-y-6">
+                    <div className="lg:col-span-5 space-y-5 sm:space-y-6">
 
                         {/* Upload Section Card */}
                         <motion.div
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.2 }}
-                            className="p-6 bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] space-y-6"
+                            className="p-4 sm:p-6 bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] space-y-5 sm:space-y-6"
                         >
                             <h3 className="font-serif text-xl text-charcoal flex items-center gap-2">
                                 <Upload className="w-5 h-5 text-peach" />
@@ -869,7 +869,7 @@ function TryOnPageContent() {
                                         No saved photos yet. Add some in your Profile.
                                     </div>
                                 ) : (
-                                    <div className="grid grid-cols-4 gap-2">
+                                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                                         {savedProfileImages.slice(0, 8).map((img) => (
                                             <button
                                                 key={img.id}
@@ -881,7 +881,7 @@ function TryOnPageContent() {
                                                     }`}
                                                 title={img.label || 'saved photo'}
                                             >
-                                                <img src={img.imageUrl} alt={img.label || 'saved'} className="w-full h-14 object-cover" />
+                                                <img src={img.imageUrl} alt={img.label || 'saved'} className="w-full h-12 sm:h-14 object-cover" />
                                                 {img.isPrimary && (
                                                     <div className="absolute top-1 left-1 px-1.5 py-0.5 bg-black/60 text-white text-[10px] rounded-full">
                                                         Primary
@@ -1179,7 +1179,7 @@ function TryOnPageContent() {
                                 onClick={handleGenerate}
                                 disabled={loading || retryAfterSeconds > 0 || !personImageBase64 || !clothingImageBase64}
                                 className={`
-                    w-full py-4 font-black uppercase tracking-wider flex items-center justify-center gap-3 transition-all duration-200 border-[3px] border-black
+                    w-full py-3.5 sm:py-4 text-sm sm:text-base font-black uppercase tracking-wider flex items-center justify-center gap-3 transition-all duration-200 border-[3px] border-black
                     ${loading || retryAfterSeconds > 0 || !personImageBase64 || !clothingImageBase64
                                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
                                         : 'bg-[#FFD93D] text-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-[6px] active:shadow-none'}
@@ -1202,7 +1202,7 @@ function TryOnPageContent() {
                     </div>
 
                     {/* RIGHT PANEL: Output & Presets */}
-                    <div className="lg:col-span-7 space-y-6">
+                    <div className="lg:col-span-7 space-y-5 sm:space-y-6">
 
                         {/* No analysis block in new pipeline */}
 
@@ -1212,13 +1212,13 @@ function TryOnPageContent() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.4 }}
                         >
-                            <div className="flex items-center justify-between mb-4">
+                            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
                                 <h3 className="font-serif text-xl text-charcoal flex items-center gap-2">
                                     <Palette className="w-5 h-5 text-peach" />
                                     Style Presets
                                     <span className="text-xs font-normal text-charcoal/40">(auto scene + lighting)</span>
                                 </h3>
-                                <div className="text-[11px] text-charcoal/50 mt-1">
+                                <div className="text-[11px] text-charcoal/50">
                                     Tip: for “Subtle Pose” presets, add 1–2 clear face photos to your profile for best face consistency.
                                 </div>
                                 <div className="flex gap-2 flex-wrap">
@@ -1374,10 +1374,10 @@ function TryOnPageContent() {
                             transition={{ delay: 0.45 }}
                             className="mb-6"
                         >
-                            <h3 className="font-serif text-2xl text-charcoal mb-4">
+                            <h3 className="font-serif text-xl sm:text-2xl text-charcoal mb-4">
                                 Choose Your Aspect Ratio
                             </h3>
-                            <div className="flex gap-4">
+                            <div className="grid grid-cols-3 gap-2 sm:gap-4">
                                 {['1:1', '4:5', '9:16'].map((ratio) => (
                                     <button
                                         key={ratio}
@@ -1401,12 +1401,12 @@ function TryOnPageContent() {
                             initial={{ opacity: 0, scale: 0.98 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: 0.5 }}
-                            className="relative bg-white border-[3px] border-black shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] min-h-[500px] flex flex-col"
+                            className="relative bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] min-h-[380px] sm:min-h-[500px] flex flex-col"
                         >
                             {/* Loading state takes priority - shows animation every time */}
                             {loading ? (
                                 /* SVG DRAWING ANIMATION - White background, no gradient */
-                                <div className="flex-1 flex items-center justify-center bg-white min-h-[500px]">
+                                <div className="flex-1 flex items-center justify-center bg-white min-h-[380px] sm:min-h-[500px]">
                                     <div className="text-center">
                                         {/* SVG Drawing Loader from Uiverse.io */}
                                         <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="svg-drawing-loader mx-auto mb-6">
@@ -1428,7 +1428,7 @@ function TryOnPageContent() {
                                         </svg>
 
                                         {/* Supporting Text */}
-                                        <h3 className="text-2xl font-serif text-charcoal mb-2">
+                                        <h3 className="text-xl sm:text-2xl font-serif text-charcoal mb-2 px-4">
                                             {queueStatus === 'queued'
                                                 ? "You're in queue. Your turn will come shortly."
                                                 : 'Your image is generating...'}
@@ -1594,12 +1594,12 @@ function TryOnPageContent() {
                                 </>
                             ) : (
                                 /* IDLE STATE - Simple static placeholder, no animation */
-                                <div className="flex-1 flex items-center justify-center bg-white min-h-[500px]">
+                                <div className="flex-1 flex items-center justify-center bg-white min-h-[380px] sm:min-h-[500px]">
                                     <div className="flex flex-col items-center text-center p-8 border-[3px] border-black m-8 bg-gray-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                                         <div className="w-20 h-20 bg-[#FFD93D] border-[3px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded-full flex items-center justify-center mb-6">
                                             <Sparkles className="w-10 h-10 text-black fill-white" />
                                         </div>
-                                        <h3 className="text-3xl font-black uppercase text-black mb-2">Ready to Create</h3>
+                                        <h3 className="text-2xl sm:text-3xl font-black uppercase text-black mb-2">Ready to Create</h3>
                                         <p className="text-black/60 font-bold max-w-xs">
                                             Upload your photo and clothing to start the magic.
                                         </p>
@@ -1613,7 +1613,7 @@ function TryOnPageContent() {
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="flex gap-4"
+                                className="flex flex-col sm:flex-row gap-4"
                             >
                                 <button
                                     onClick={handleDownload}
