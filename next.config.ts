@@ -38,7 +38,8 @@ const nextConfig = {
 
   // Explicit root to avoid lockfile root mis-detection in multi-lockfile environments
   turbopack: {
-    root: 'C:/Users/Tamada/Desktop/Tria Production/Tria',
+    // Portable across machines/CI; resolves to repo root at runtime
+    root: process.cwd(),
   },
 
   experimental: {
