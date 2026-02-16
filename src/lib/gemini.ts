@@ -94,9 +94,9 @@ export async function generateIntelligentAdComposition(
       generationConfig: {
         // @ts-ignore - responseModalities is valid for image models
         responseModalities: ['image', 'text'],
-        // Slightly elevated temperature for creative richness + strong topP for quality
-        temperature: 0.6,
-        topP: 0.97,
+        // Lower randomness for more stable, production-grade ad outputs
+        temperature: 0.4,
+        topP: 0.9,
         topK: 64,
       },
     })

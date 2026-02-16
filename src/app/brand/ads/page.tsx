@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import React, { cloneElement, useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
@@ -14,6 +14,7 @@ import {
   X,
   Check,
   Lock,
+  Unlock,
   Smartphone,
   Zap,
   MessageCircle,
@@ -242,217 +243,341 @@ export default function AdsPage() {
   const filteredPresets = getPresetsByCategory(activeCategory)
 
   return (
-    <motion.div variants={pageVariants} initial="initial" animate="animate"
-      className="min-h-screen bg-[#FFFDF5] pt-24 pb-16">
-      <div className="container mx-auto px-4 max-w-6xl">
+    <motion.div
+      variants={pageVariants}
+      initial="initial"
+      animate="animate"
+      className="relative min-h-screen overflow-hidden bg-[#FFF8E6] pt-20 pb-14 md:pt-24 md:pb-16"
+    >
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-24 -left-20 h-72 w-72 rounded-full bg-[#FFD93D]/35 blur-3xl" />
+        <div className="absolute top-44 -right-20 h-80 w-80 rounded-full bg-[#FF8C69]/25 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-[#B4F056]/20 blur-3xl" />
+      </div>
 
-        {/* Header */}
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+      <div className="container relative z-10 mx-auto max-w-7xl space-y-6 px-3 sm:px-4 md:space-y-8">
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+          className="flex flex-wrap items-end justify-between gap-4"
+        >
           <div>
-            <h1 className="text-4xl md:text-5xl font-black text-black" style={{ fontFamily: 'Playfair Display, serif' }}>
-              Create Ad
+            <motion.p
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.05, duration: 0.35 }}
+              className="inline-flex items-center gap-2 rounded-full border-2 border-black bg-[#FFD93D] px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+            >
+              <Sparkles className="h-3 w-3" />
+              Brand Studio
+            </motion.p>
+            <h1 className="mt-3 text-3xl font-black uppercase tracking-tight text-black sm:text-4xl md:text-5xl">
+              Build Ads Fast
             </h1>
-            <p className="text-black/50 mt-1">Select a style, upload your product, generate.</p>
+            <p className="mt-2 max-w-xl text-sm font-semibold text-black/70 md:text-base">
+              Choose a preset, upload assets, generate brutal creative.
+            </p>
           </div>
           <Link
             href="/brand/ads/creatives"
-            className="flex items-center gap-2 px-4 py-2.5 border-[2px] border-black bg-white font-bold text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-[#FFD93D] transition-colors"
+            className="inline-flex items-center gap-2 rounded-xl border-[3px] border-black bg-white px-4 py-2.5 text-sm font-black uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#FFFDF5] hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] md:px-5 md:py-3"
           >
             <Images className="h-4 w-4" />
-            View all creatives
+            View Creatives
           </Link>
-        </div>
+        </motion.div>
 
-        <div className="grid lg:grid-cols-[1fr_420px] gap-6">
-          {/* ═══ LEFT: CONTROLS ═══ */}
-          <div className="space-y-5">
-
-            {/* 1. STYLE PICKER */}
-            <BrutalCard className="p-5">
-              {/* Category tabs */}
-              <div className="flex flex-wrap gap-1.5 mb-4">
+        <div className="grid items-start gap-5 lg:grid-cols-[1fr_420px] lg:gap-6">
+          <div className="space-y-6">
+            <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.35 }}>
+            <BrutalCard className="rounded-2xl p-4 md:p-6">
+              <div className="mb-4 flex items-center gap-3">
+                <span className="flex h-8 w-8 items-center justify-center border-2 border-black bg-black text-xs font-black text-white">1</span>
+                <h2 className="text-lg md:text-xl font-black uppercase">Choose Style</h2>
+              </div>
+              <div className="flex flex-wrap gap-2 border-b-2 border-black pb-4">
                 {AD_PRESET_CATEGORIES.map((cat) => (
-                  <button key={cat.id} onClick={() => setActiveCategory(cat.id)}
+                  <button
+                    key={cat.id}
+                    onClick={() => setActiveCategory(cat.id)}
                     className={cn(
-                      'flex items-center gap-1 px-3 py-1.5 text-xs font-bold border-[2px] border-black transition-all',
+                      'inline-flex items-center gap-2 rounded-lg border-2 border-black px-3 py-2 text-xs font-black uppercase transition-all duration-200',
                       activeCategory === cat.id
-                        ? 'bg-[#FFD93D] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] -translate-y-px'
-                        : 'bg-white text-black/60 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:bg-[#FFD93D]/20'
-                    )}>
-                    {ICON_MAP[cat.icon]} {cat.label}
+                        ? 'bg-black text-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                        : 'bg-[#FFF8E6] text-black hover:-translate-y-0.5 hover:bg-[#FFD93D]'
+                    )}
+                  >
+                    {ICON_MAP[cat.icon]}
+                    {cat.label}
                   </button>
                 ))}
               </div>
 
-              {/* Preset grid */}
-              <motion.div variants={staggerContainer} initial="initial" animate="animate"
-                key={activeCategory} className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <motion.div
+                variants={staggerContainer}
+                initial="initial"
+                animate="animate"
+                key={activeCategory}
+                className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+              >
                 {filteredPresets.map((preset) => (
-                  <motion.button key={preset.id} variants={staggerItem}
+                  <motion.button
+                    key={preset.id}
+                    variants={staggerItem}
+                    whileHover={{ y: -3, scale: 1.01 }}
+                    transition={{ type: 'spring', stiffness: 260, damping: 20 }}
                     onClick={() => setSelectedPreset(preset.id)}
                     className={cn(
-                      'text-left p-3 border-[2px] border-black transition-all relative',
+                      'relative rounded-xl border-[3px] border-black p-4 text-left transition-all',
                       selectedPreset === preset.id
-                        ? 'bg-[#FFD93D] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
-                        : 'bg-white shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
-                    )}>
-                    <div className="flex items-center gap-2">
-                      <span className={cn('p-1.5 border-[2px] border-black',
-                        selectedPreset === preset.id ? 'bg-black text-[#FFD93D]' : 'bg-[#FFFDF5]')}>
-                        {ICON_MAP[preset.icon]}
+                        ? 'bg-[#FFD93D] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+                        : 'bg-white hover:bg-[#FFF3BF] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                    )}
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className={cn(
+                        'inline-flex h-9 w-9 items-center justify-center border-2 border-black',
+                        selectedPreset === preset.id ? 'bg-black text-white' : 'bg-[#B4F056] text-black'
+                      )}>
+                        {cloneElement(ICON_MAP[preset.icon] as React.ReactElement, { className: 'h-4 w-4' })}
                       </span>
-                      <div className="min-w-0">
-                        <p className="font-bold text-xs text-black leading-tight">{preset.name}</p>
-                        <p className="text-[10px] text-black/50 line-clamp-1">{preset.description}</p>
+                      <div>
+                        <p className="text-sm font-black uppercase leading-tight">{preset.name}</p>
+                        <p className="mt-1 text-xs font-medium text-black/70">{preset.description}</p>
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          <span
+                            className={cn(
+                              'rounded-md border border-black px-1.5 py-0.5 text-[9px] font-black uppercase',
+                              preset.tier === 'safe'
+                                ? 'bg-[#B4F056]'
+                                : preset.tier === 'bold'
+                                  ? 'bg-[#FFD93D]'
+                                  : 'bg-[#FF8C69]'
+                            )}
+                          >
+                            {preset.tier}
+                          </span>
+                          <span className="rounded-md border border-black bg-white px-1.5 py-0.5 text-[9px] font-black uppercase">
+                            {preset.stability}
+                          </span>
+                          <span className="rounded-md border border-black bg-[#FFF8E6] px-1.5 py-0.5 text-[9px] font-black uppercase">
+                            {preset.pack}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-black/55">
+                          Best for: {preset.platforms.map((p) => (p === 'google' ? 'Google' : p)).join(' / ')}
+                        </p>
                       </div>
                     </div>
                     {selectedPreset === preset.id && (
-                      <div className="absolute top-1.5 right-1.5 bg-black text-[#FFD93D] rounded-full p-0.5">
-                        <Check className="h-2.5 w-2.5" />
-                      </div>
+                      <span className="absolute right-2 top-2 inline-flex h-5 w-5 items-center justify-center rounded-md border-2 border-black bg-white">
+                        <Check className="h-3 w-3" />
+                      </span>
                     )}
                   </motion.button>
                 ))}
               </motion.div>
             </BrutalCard>
+            </motion.div>
 
-            {/* 2. IMAGES + CHARACTER (compact row) */}
-            <div className="grid grid-cols-2 gap-4">
-              {/* Product */}
-              <BrutalCard className="p-4">
-                <p className="text-[10px] font-black uppercase text-black/40 mb-2">Product Image</p>
-                {productImage ? (
-                  <div className="relative aspect-[4/3] border-[2px] border-black overflow-hidden shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                    <img src={productImage} alt="Product" className="w-full h-full object-cover" />
-                    <button onClick={() => setProductImage('')}
-                      className="absolute top-1 right-1 bg-red-500 text-white border-[2px] border-black p-0.5">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                ) : (
-                  <label className="flex flex-col items-center justify-center aspect-[4/3] border-[2px] border-dashed border-black/30 cursor-pointer hover:border-black hover:bg-[#FFD93D]/10 transition-all">
-                    <Upload className="h-5 w-5 text-black/30 mb-1" />
-                    <span className="text-[10px] font-bold text-black/30">Upload</span>
-                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'product')} />
-                  </label>
-                )}
-              </BrutalCard>
-
-              {/* Model / Character */}
-              <BrutalCard className="p-4">
-                <p className="text-[10px] font-black uppercase text-black/40 mb-2">Model / Character</p>
-
-                {/* Character type row */}
-                <div className="flex gap-1 mb-2">
-                  {CHARACTER_OPTIONS.map((opt) => (
-                    <button key={opt.value}
-                      onClick={() => { setCharacterType(opt.value as CharacterType); if (opt.value !== 'animal') setAnimalType('') }}
-                      className={cn('flex-1 py-1.5 text-[10px] font-bold border-[2px] border-black text-center transition-all',
-                        characterType === opt.value
-                          ? 'bg-[#FF8C69] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
-                          : 'bg-white text-black/50 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]'
-                      )}>
-                      {opt.label}
-                    </button>
-                  ))}
+            <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.35, delay: 0.04 }}>
+            <BrutalCard className="rounded-2xl p-4 md:p-6">
+              <div className="mb-4 flex items-center gap-3">
+                <span className="flex h-8 w-8 items-center justify-center border-2 border-black bg-black text-xs font-black text-white">2</span>
+                <h2 className="text-lg md:text-xl font-black uppercase">Assets & Model</h2>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="flex flex-col gap-3 rounded-xl border-[3px] border-black bg-[#FFF3BF] p-3">
+                  <p className="text-[11px] font-black uppercase tracking-wider">Product Image</p>
+                  {productImage ? (
+                    <div className="relative aspect-[4/3] overflow-hidden rounded-lg border-2 border-black">
+                      <img src={productImage} alt="Product" className="h-full w-full object-cover" />
+                      <button
+                        onClick={() => setProductImage('')}
+                        className="absolute top-2 right-2 inline-flex h-7 w-7 items-center justify-center rounded-md border-2 border-black bg-white"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex aspect-[4/3] cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-[3px] border-dashed border-black bg-white p-4 text-center transition-colors hover:bg-[#FFD93D]/80">
+                      <Upload className="h-6 w-6" />
+                      <span className="text-xs font-black uppercase">Upload Product</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'product')} />
+                    </label>
+                  )}
                 </div>
 
-                {/* Animal sub-options */}
-                {characterType === 'animal' && (
-                  <div className="flex flex-wrap gap-1 mb-2">
-                    {ANIMAL_OPTIONS.slice(0, 6).map((a) => (
-                      <button key={a} onClick={() => setAnimalType(a)}
-                        className={cn('px-2 py-1 text-[10px] font-bold border-[1.5px] border-black',
-                          animalType === a ? 'bg-[#FFD93D]' : 'bg-white')}>
-                        {a}
+                <div className="flex flex-col gap-3 rounded-xl border-[3px] border-black bg-[#FFE1D6] p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[11px] font-black uppercase tracking-wider">Model / Character</p>
+                    {influencerImage && (
+                      <button
+                        onClick={() => setLockFaceIdentity(!lockFaceIdentity)}
+                        className={cn(
+                          'inline-flex items-center gap-1 rounded-md border-2 border-black px-2 py-1 text-[10px] font-black uppercase',
+                          lockFaceIdentity ? 'bg-[#FFD93D]' : 'bg-white'
+                        )}
+                      >
+                        {lockFaceIdentity ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
+                        {lockFaceIdentity ? 'Locked' : 'Lock Face'}
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {CHARACTER_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => {
+                          setCharacterType(opt.value as CharacterType)
+                          if (opt.value !== 'animal') setAnimalType('')
+                        }}
+                        className={cn(
+                          'rounded-md border-2 border-black px-2 py-1.5 text-[10px] font-black uppercase transition-transform hover:-translate-y-0.5',
+                          characterType === opt.value ? 'bg-black text-white' : 'bg-white text-black'
+                        )}
+                      >
+                        {opt.label}
                       </button>
                     ))}
                   </div>
-                )}
 
-                {/* Human style chips */}
-                {(characterType === 'human_female' || characterType === 'human_male') && (
-                  <div className="flex flex-wrap gap-1 mb-2">
-                    {CHARACTER_STYLE_OPTIONS.slice(0, 4).map((s) => (
-                      <button key={s} onClick={() => setCharacterStyle(characterStyle === s ? '' : s)}
-                        className={cn('px-2 py-1 text-[10px] font-bold border-[1.5px] border-black',
-                          characterStyle === s ? 'bg-[#FFD93D]' : 'bg-white')}>
-                        {s}
+                  {characterType === 'animal' && (
+                    <div className="flex flex-wrap gap-1">
+                      {ANIMAL_OPTIONS.slice(0, 6).map((a) => (
+                        <button
+                          key={a}
+                          onClick={() => setAnimalType(a)}
+                          className={cn(
+                            'rounded-md border-2 border-black px-2 py-1 text-[10px] font-black uppercase',
+                            animalType === a ? 'bg-black text-white' : 'bg-white'
+                          )}
+                        >
+                          {a}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {(characterType === 'human_female' || characterType === 'human_male') && (
+                    <div className="flex flex-wrap gap-1">
+                      {CHARACTER_STYLE_OPTIONS.slice(0, 4).map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => setCharacterStyle(characterStyle === s ? '' : s)}
+                          className={cn(
+                            'rounded-md border-2 border-black px-2 py-1 text-[10px] font-black uppercase',
+                            characterStyle === s ? 'bg-black text-white' : 'bg-white'
+                          )}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {influencerImage ? (
+                    <div className="relative mt-auto aspect-[4/3] overflow-hidden rounded-lg border-2 border-black">
+                      <img src={influencerImage} alt="Model" className="h-full w-full object-cover" />
+                      <button
+                        onClick={() => {
+                          setInfluencerImage('')
+                          setLockFaceIdentity(false)
+                        }}
+                        className="absolute top-2 right-2 inline-flex h-7 w-7 items-center justify-center rounded-md border-2 border-black bg-white"
+                      >
+                        <X className="h-4 w-4" />
                       </button>
-                    ))}
-                  </div>
-                )}
+                    </div>
+                  ) : (
+                    <label className="mt-auto flex aspect-[4/3] cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-[3px] border-dashed border-black bg-white p-4 text-center transition-colors hover:bg-[#FF8C69]/75">
+                      <User className="h-6 w-6" />
+                      <span className="text-xs font-black uppercase">Reference Face</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'influencer')} />
+                    </label>
+                  )}
+                </div>
+              </div>
+            </BrutalCard>
+            </motion.div>
 
-                {/* Model ref image */}
-                {influencerImage ? (
-                  <div className="relative aspect-[4/3] border-[2px] border-black overflow-hidden shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                    <img src={influencerImage} alt="Model" className="w-full h-full object-cover" />
-                    <button onClick={() => { setInfluencerImage(''); setLockFaceIdentity(false) }}
-                      className="absolute top-1 right-1 bg-red-500 text-white border-[2px] border-black p-0.5">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                ) : (
-                  <label className="flex flex-col items-center justify-center aspect-[4/3] border-[2px] border-dashed border-black/30 cursor-pointer hover:border-black hover:bg-[#FF8C69]/10 transition-all">
-                    <Upload className="h-5 w-5 text-black/30 mb-1" />
-                    <span className="text-[10px] font-bold text-black/30">Reference face</span>
-                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'influencer')} />
-                  </label>
-                )}
-
-                {influencerImage && (
-                  <button onClick={() => setLockFaceIdentity(!lockFaceIdentity)}
-                    className={cn('flex items-center gap-1 w-full mt-2 px-2 py-1.5 text-[10px] font-bold border-[2px] border-black transition-all',
-                      lockFaceIdentity ? 'bg-[#FFD93D] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'bg-white shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]')}>
-                    <Lock className="h-3 w-3" /> Lock Face
-                  </button>
-                )}
-              </BrutalCard>
-            </div>
-
-            {/* 3. TEXT IN IMAGE (collapsible) */}
-            <BrutalCard className="p-4">
-              <button onClick={() => setTextOpen(!textOpen)} className="w-full flex items-center justify-between">
-                <span className="text-xs font-black uppercase text-black/60">
-                  Typography {hasText && <span className="text-[#FF8C69]">/ Active</span>}
+            <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.35, delay: 0.06 }}>
+            <BrutalCard className="overflow-hidden rounded-2xl">
+              <button
+                onClick={() => setTextOpen(!textOpen)}
+                className="flex w-full items-center justify-between border-b-[3px] border-black bg-[#B4F056] px-4 py-4 md:px-5"
+              >
+                <span className="text-sm font-black uppercase flex items-center gap-2">
+                  <Type className="h-4 w-4" />
+                  Typography
+                  {hasText && <span className="border-2 border-black bg-white px-2 py-0.5 text-[10px]">Active</span>}
                 </span>
-                {textOpen ? <ChevronUp className="h-4 w-4 text-black/40" /> : <ChevronDown className="h-4 w-4 text-black/40" />}
+                {textOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </button>
               <AnimatePresence>
                 {textOpen && (
-                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-                    className="mt-3 space-y-3 overflow-hidden">
-                    <Input placeholder='e.g. JUST DO IT' value={textHeadline} onChange={(e) => setTextHeadline(e.target.value)}
-                      className="h-9 text-sm bg-white border-[2px] border-black font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] placeholder:text-black/25" />
-                    <Input placeholder='Subline (optional)' value={textSubline} onChange={(e) => setTextSubline(e.target.value)}
-                      className="h-9 text-sm bg-white border-[2px] border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] placeholder:text-black/25" />
-                    <Input placeholder='Tagline / CTA' value={textTagline} onChange={(e) => setTextTagline(e.target.value)}
-                      className="h-9 text-sm bg-white border-[2px] border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] placeholder:text-black/25" />
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="space-y-4 bg-white p-4 md:p-5">
+                      <Input
+                        placeholder="Headline (e.g. JUST DO IT)"
+                        value={textHeadline}
+                        onChange={(e) => setTextHeadline(e.target.value)}
+                        className="h-11 rounded-lg border-[2px] border-black text-sm font-bold placeholder:text-black/40"
+                      />
+                      <Input
+                        placeholder="Subline (optional)"
+                        value={textSubline}
+                        onChange={(e) => setTextSubline(e.target.value)}
+                        className="h-11 rounded-lg border-[2px] border-black text-sm font-semibold placeholder:text-black/40"
+                      />
+                      <Input
+                        placeholder="Tagline / CTA"
+                        value={textTagline}
+                        onChange={(e) => setTextTagline(e.target.value)}
+                        className="h-11 rounded-lg border-[2px] border-black text-sm font-semibold placeholder:text-black/40"
+                      />
 
-                    {/* Placement + font in one row */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <p className="text-[10px] font-black text-black/40 uppercase mb-1">Position</p>
-                        <div className="flex flex-wrap gap-1">
-                          {TEXT_PLACEMENT_OPTIONS.map((o) => (
-                            <button key={o.value} onClick={() => setTextPlacement(o.value as TextPlacement)}
-                              className={cn('px-2 py-1 text-[10px] font-bold border-[1.5px] border-black',
-                                textPlacement === o.value ? 'bg-[#FFD93D]' : 'bg-white')}>
-                              {o.label}
-                            </button>
-                          ))}
+                      <div className="grid gap-4 pt-1 md:grid-cols-2">
+                        <div>
+                          <p className="mb-2 text-[10px] font-black uppercase tracking-wider">Text Position</p>
+                          <div className="flex flex-wrap gap-1">
+                            {TEXT_PLACEMENT_OPTIONS.map((o) => (
+                              <button
+                                key={o.value}
+                                onClick={() => setTextPlacement(o.value as TextPlacement)}
+                                className={cn(
+                                  'rounded-md border-2 border-black px-2 py-1 text-[10px] font-black uppercase',
+                                  textPlacement === o.value ? 'bg-black text-white' : 'bg-white'
+                                )}
+                              >
+                                {o.label}
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-black text-black/40 uppercase mb-1">Font</p>
-                        <div className="flex flex-wrap gap-1">
-                          {FONT_STYLE_OPTIONS.map((o) => (
-                            <button key={o.value} onClick={() => setTextFontStyle(o.value as FontStyle)}
-                              className={cn('px-2 py-1 text-[10px] font-bold border-[1.5px] border-black',
-                                textFontStyle === o.value ? 'bg-[#FFD93D]' : 'bg-white')}>
-                              {o.label}
-                            </button>
-                          ))}
+                        <div>
+                          <p className="mb-2 text-[10px] font-black uppercase tracking-wider">Font Style</p>
+                          <div className="flex flex-wrap gap-1">
+                            {FONT_STYLE_OPTIONS.map((o) => (
+                              <button
+                                key={o.value}
+                                onClick={() => setTextFontStyle(o.value as FontStyle)}
+                                className={cn(
+                                  'rounded-md border-2 border-black px-2 py-1 text-[10px] font-black uppercase',
+                                  textFontStyle === o.value ? 'bg-black text-white' : 'bg-white'
+                                )}
+                              >
+                                {o.label}
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -460,137 +585,187 @@ export default function AdsPage() {
                 )}
               </AnimatePresence>
             </BrutalCard>
+            </motion.div>
 
-            {/* 4. ASPECT RATIO + PLATFORMS + CAMERA ANGLE */}
-            <div className="grid grid-cols-2 gap-4">
-              {/* Aspect Ratio */}
-              <BrutalCard className="p-4">
-                <p className="text-[10px] font-black uppercase text-black/40 mb-2">Aspect Ratio</p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {ASPECT_RATIO_OPTIONS.map((opt) => (
-                    <button key={opt.value} onClick={() => setAspectRatio(opt.value)}
-                      className={cn('py-2 text-[10px] font-bold border-[2px] border-black text-center transition-all',
-                        aspectRatio === opt.value
-                          ? 'bg-[#C3B1E1] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
-                          : 'bg-white text-black/50 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:bg-[#C3B1E1]/20'
-                      )}>
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </BrutalCard>
+            <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.35, delay: 0.08 }}>
+            <BrutalCard className="overflow-hidden rounded-2xl">
+              <button
+                onClick={() => setOptionsOpen(!optionsOpen)}
+                className="flex w-full items-center justify-between border-b-[3px] border-black bg-[#FFD93D] px-4 py-4 md:px-5"
+              >
+                <span className="text-sm font-black uppercase flex items-center gap-2">
+                  <Wand2 className="h-4 w-4" />
+                  Configuration
+                </span>
+                {optionsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </button>
+              <AnimatePresence>
+                {optionsOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="space-y-5 bg-white p-4 md:p-5">
+                      <div>
+                        <p className="mb-2 text-[10px] font-black uppercase tracking-wider">Aspect Ratio</p>
+                        <div className="flex flex-wrap gap-2">
+                          {ASPECT_RATIO_OPTIONS.map((opt) => (
+                            <button
+                              key={opt.value}
+                              onClick={() => setAspectRatio(opt.value)}
+                              className={cn(
+                                'rounded-md border-2 border-black px-3 py-2 text-xs font-black uppercase',
+                                aspectRatio === opt.value ? 'bg-black text-white' : 'bg-white'
+                              )}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
 
-              {/* Platform */}
-              <BrutalCard className="p-4">
-                <p className="text-[10px] font-black uppercase text-black/40 mb-2">Platform</p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {PLATFORM_OPTIONS.map((opt) => (
-                    <button key={opt.value} onClick={() => togglePlatform(opt.value)}
-                      className={cn('py-2 text-[10px] font-bold border-[2px] border-black text-center transition-all',
-                        selectedPlatforms.includes(opt.value)
-                          ? 'bg-[#FFD93D] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
-                          : 'bg-white text-black/50 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:bg-[#FFD93D]/20'
-                      )}>
-                      {opt.label} {selectedPlatforms.includes(opt.value) && <Check className="h-3 w-3 inline" />}
-                    </button>
-                  ))}
-                </div>
-              </BrutalCard>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div>
+                          <p className="mb-2 text-[10px] font-black uppercase tracking-wider">Platforms</p>
+                          <div className="flex flex-wrap gap-2">
+                            {PLATFORM_OPTIONS.map((opt) => (
+                              <button
+                                key={opt.value}
+                                onClick={() => togglePlatform(opt.value)}
+                                className={cn(
+                                  'inline-flex items-center gap-1 rounded-md border-2 border-black px-2 py-1.5 text-[10px] font-black uppercase',
+                                  selectedPlatforms.includes(opt.value) ? 'bg-[#B4F056]' : 'bg-white'
+                                )}
+                              >
+                                {opt.value === 'instagram' && <Instagram className="h-3 w-3" />}
+                                {opt.value === 'facebook' && <Facebook className="h-3 w-3" />}
+                                {opt.value !== 'instagram' && opt.value !== 'facebook' && <Globe className="h-3 w-3" />}
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="mb-2 text-[10px] font-black uppercase tracking-wider">Camera Angle</p>
+                          <div className="flex flex-wrap gap-2">
+                            {CAMERA_ANGLE_OPTIONS.map((opt) => (
+                              <button
+                                key={opt.value}
+                                onClick={() => setCameraAngle(opt.value)}
+                                className={cn(
+                                  'rounded-md border-2 border-black px-2 py-1.5 text-[10px] font-black uppercase',
+                                  cameraAngle === opt.value ? 'bg-black text-white' : 'bg-white'
+                                )}
+                              >
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </BrutalCard>
+            </motion.div>
 
-              {/* Camera Angle — down, side, low, high for pro composition */}
-              <BrutalCard className="p-4 col-span-2">
-                <p className="text-[10px] font-black uppercase text-black/40 mb-2">Camera Angle</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {CAMERA_ANGLE_OPTIONS.map((opt) => (
-                    <button key={opt.value} onClick={() => setCameraAngle(opt.value)}
-                      className={cn('px-3 py-1.5 text-[10px] font-bold border-[2px] border-black transition-all',
-                        cameraAngle === opt.value
-                          ? 'bg-black text-[#FFD93D] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
-                          : 'bg-white text-black/70 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:bg-black/5'
-                      )}>
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </BrutalCard>
-            </div>
-
-            {/* 5. GENERATE */}
-            <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.99 }}
-              onClick={handleGenerate} disabled={!canSubmit || retryAfterSeconds > 0}
+            <motion.button
+              whileHover={{ y: -2 }}
+              whileTap={{ y: 0 }}
+              onClick={handleGenerate}
+              disabled={!canSubmit || retryAfterSeconds > 0}
+              transition={{ type: 'spring', stiffness: 260, damping: 18 }}
               className={cn(
-                'w-full h-14 text-base font-black uppercase tracking-wide border-[3px] border-black transition-all',
+                'flex w-full items-center justify-center gap-2 rounded-xl border-[3px] border-black px-4 py-3.5 text-sm font-black uppercase tracking-wide shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all sm:text-base md:px-5 md:py-4',
                 canSubmit
-                  ? 'bg-[#FFD93D] text-black shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] hover:shadow-[7px_7px_0px_0px_rgba(0,0,0,1)]'
-                  : 'bg-gray-200 text-gray-400 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)] cursor-not-allowed'
-              )}>
-              {retryAfterSeconds > 0
-                ? `Wait ${retryAfterSeconds}s`
-                : loading
-                  ? (
-                      <span className="flex items-center justify-center gap-3">
-                        <BrutalLoader size="sm" /> Generating...
-                      </span>
-                    )
-                  : 'Generate Ad'}
+                  ? 'bg-[#FF8C69] text-black hover:bg-[#ff7953]'
+                  : 'bg-black/10 text-black/50 cursor-not-allowed shadow-none'
+              )}
+            >
+              {retryAfterSeconds > 0 ? (
+                <span>Wait {retryAfterSeconds}s</span>
+              ) : loading ? (
+                <>
+                  <BrutalLoader size="sm" />
+                  <span>Generating</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-5 w-5" />
+                  Generate Ad
+                </>
+              )}
             </motion.button>
           </div>
 
-          {/* ═══ RIGHT: RESULT ═══ */}
-          <div className="lg:sticky lg:top-24 lg:self-start">
+          <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.35, delay: 0.08 }} className="lg:sticky lg:top-24">
             <AnimatePresence mode="wait">
               {loading ? (
                 <motion.div key="load" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <BrutalCard className="flex flex-col items-center justify-center min-h-[480px] p-8">
-                    <BrutalLoader size="lg" />
-                    <p className="mt-16 text-xs font-black text-black/40 uppercase tracking-widest">Creating ad...</p>
-                    <p className="text-[10px] text-black/25 mt-1">GPT-4o + Nano Banana Pro</p>
+                  <BrutalCard className="flex min-h-[420px] flex-col items-center justify-center rounded-2xl bg-[#FFF3BF] p-6 sm:min-h-[560px] sm:p-8">
+                    <BrutalLoader size="lg" showLabel={false} />
+                    <p className="mt-6 text-xs font-black uppercase tracking-[0.2em] text-black/70">Generating your creative</p>
+                    <p className="mt-2 text-[11px] font-semibold text-black/55">Balancing lighting, composition, and product focus.</p>
                   </BrutalCard>
                 </motion.div>
               ) : result ? (
                 <motion.div key="result" variants={imageRevealVariants} initial="initial" animate="animate">
-                  <BrutalCard className="overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-                    <div className="relative border-b-[3px] border-black">
+                  <BrutalCard className="overflow-hidden rounded-2xl">
+                    <div className="relative border-b-[3px] border-black bg-black/5">
                       <img src={result.imageBase64 || result.imageUrl} alt="Generated Ad" className="w-full object-cover" />
-                      <div className="absolute top-2 left-2 bg-[#FFD93D] border-[2px] border-black px-2 py-0.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                        <span className="text-[10px] font-black">{result.qualityScore}/100</span>
+                      <div className="absolute left-3 top-3 rounded-md border-2 border-black bg-[#FFD93D] px-2 py-1 text-[10px] font-black uppercase">
+                        {result.qualityScore}/100 Quality
                       </div>
                     </div>
-                    <div className="p-3 flex gap-2">
-                      <button onClick={handleDownload}
-                        className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-black text-white border-[2px] border-black font-bold text-xs hover:bg-black/80">
-                        <Download className="h-3.5 w-3.5" /> Download
-                      </button>
-                      <button onClick={handleGenerate} disabled={loading}
-                        className="flex items-center justify-center py-2.5 px-3 bg-[#FF8C69] text-black border-[2px] border-black font-bold text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                        <RefreshCw className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                    {result.copy?.length > 0 && (
-                      <div className="px-3 pb-3 space-y-1.5">
-                        <p className="text-[10px] font-black text-black/40 uppercase">Ad Copy</p>
-                        {result.copy.slice(0, 2).map((c: any, i: number) => (
-                          <div key={i} className="p-2 bg-[#FFFDF5] border-[1.5px] border-black/15 text-[11px] text-black/60">
-                            {typeof c === 'string' ? c : c?.text || JSON.stringify(c)}
-                          </div>
-                        ))}
+                    <div className="p-4 space-y-3">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <button
+                          onClick={handleDownload}
+                          className="inline-flex items-center justify-center gap-2 rounded-lg border-[3px] border-black bg-[#B4F056] px-4 py-3 text-xs font-black uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-0.5"
+                        >
+                          <Download className="h-4 w-4" />
+                          Download
+                        </button>
+                        <button
+                          onClick={handleGenerate}
+                          disabled={loading}
+                          className="inline-flex items-center justify-center gap-2 rounded-lg border-[3px] border-black bg-white px-4 py-3 text-xs font-black uppercase transition-all hover:-translate-y-0.5"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                          Regenerate
+                        </button>
                       </div>
-                    )}
+                      {result.copy?.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-black uppercase tracking-wider">Suggested Copy</p>
+                          {result.copy.slice(0, 2).map((c: any, i: number) => (
+                            <div key={i} className="rounded-lg border-2 border-black bg-[#FFF8E6] p-3 text-xs font-semibold">
+                              {typeof c === 'string' ? c : c?.text || JSON.stringify(c)}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </BrutalCard>
                 </motion.div>
               ) : (
                 <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                  <BrutalCard className="flex flex-col items-center justify-center min-h-[480px] p-8 bg-[#FFFDF5]">
-                    <div className="w-14 h-14 bg-[#FFD93D] border-[3px] border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center mb-3">
-                      <ImageIcon className="h-7 w-7 text-black" />
+                  <BrutalCard className="flex min-h-[420px] flex-col items-center justify-center rounded-2xl bg-white p-6 text-center sm:min-h-[560px] sm:p-8">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-xl border-[3px] border-black bg-[#FFD93D]">
+                      <ImageIcon className="h-8 w-8" />
                     </div>
-                    <p className="text-xs font-bold text-black/40 text-center">Your ad will appear here</p>
-                    <p className="text-[10px] text-black/25 mt-0.5 text-center">Powered by Nano Banana Pro</p>
+                    <p className="mt-5 text-base font-black uppercase">Your ad appears here</p>
+                    <p className="mt-2 text-xs font-semibold text-black/60 max-w-xs">
+                      Pick a style and hit generate. We will render the creative in this panel.
+                    </p>
                   </BrutalCard>
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
+          </motion.div>
         </div>
       </div>
     </motion.div>

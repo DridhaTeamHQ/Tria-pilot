@@ -1,9 +1,17 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Sparkles, Star } from 'lucide-react'
+import { Star } from 'lucide-react'
 
-export function BrutalLoader({ size = 'md', className = '' }: { size?: 'sm' | 'md' | 'lg', className?: string }) {
+export function BrutalLoader({
+    size = 'md',
+    className = '',
+    showLabel = true
+}: {
+    size?: 'sm' | 'md' | 'lg',
+    className?: string,
+    showLabel?: boolean
+}) {
     const sizeClasses = {
         sm: 'w-6 h-6',
         md: 'w-12 h-12',
@@ -34,7 +42,7 @@ export function BrutalLoader({ size = 'md', className = '' }: { size?: 'sm' | 'm
             </motion.div>
 
             {/* Label (Optional, mainly for larger loaders) */}
-            {size === 'lg' && (
+            {size === 'lg' && showLabel && (
                 <p className="absolute -bottom-12 text-sm font-black uppercase tracking-widest bg-white border-[2px] border-black px-2 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] whitespace-nowrap">
                     Loading...
                 </p>

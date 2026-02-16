@@ -45,13 +45,16 @@ export const AD_PRESET_IDS = [
   'CREATIVE_GLASSMORPHISM',
   'CREATIVE_WES_ANDERSON',
   'CREATIVE_DECONSTRUCTED',
-  // Standalone Product
+  'CREATIVE_FLASH_CHAOS',
+  'CREATIVE_LIQUID_CHROME',
+  'CREATIVE_COSMIC_SURREAL',
   'STANDALONE_CLEAN',
   'STANDALONE_SURREAL',
   'STANDALONE_LUXURY_MACRO',
   'STANDALONE_LEVITATION',
   // Performance / Conversion
   'PERF_MINIMAL_CLEAN',
+  'PERF_BEST_QUALITY',
   'PERF_SPLIT_COMPARE',
   'PERF_OOH_BILLBOARD',
   'PERF_SOCIAL_PROOF',
@@ -132,6 +135,18 @@ export interface AdPreset {
   /** Negative terms to avoid */
   avoid: string[]
 }
+
+export type PresetTier = 'safe' | 'bold' | 'experimental'
+export type PresetStability = 'high' | 'medium'
+export type PresetPack = 'performance' | 'fashion' | 'experimental' | 'sports' | 'heritage' | 'creator'
+
+export interface PresetTaxonomy {
+  tier: PresetTier
+  stability: PresetStability
+  pack: PresetPack
+}
+
+export type AdPresetDisplay = AdPreset & PresetTaxonomy
 
 export interface AdGenerationInput {
   preset: AdPresetId
@@ -654,7 +669,55 @@ export const AD_PRESETS: AdPreset[] = [
     avoid: ['assembled product', 'models', 'casual setting', 'flat lighting', 'messy arrangement'],
   },
 
-  // ─── Standalone Product ───
+  {
+    id: 'CREATIVE_FLASH_CHAOS',
+    name: 'Flash Chaos',
+    description: 'Paparazzi flash, kinetic motion blur, high-fashion chaos',
+    category: 'creative',
+    icon: 'CloudLightning',
+    whenToUse: ['Streetwear drops', 'Nightlife campaigns', 'Disruptive fashion launches'],
+    platforms: ['instagram', 'facebook'],
+    sceneGuide:
+      'Director brief: Controlled chaos frame like a fashion-week exit. Subject in motion through a crowd or urban lane. Product is hero but captured in a kinetic paparazzi moment. Bold, loud, expensive, editorial. One frame that feels like a leaked campaign still.',
+    lightingGuide:
+      'Mixed lighting rig: harsh on-camera flash as frontal hit plus colored edge lights from sides. Visible specular pops on skin/product, deep shadows retained for drama. Optional motion trail streaks but subject-product plane remains readable. Production-grade contrast control.',
+    cameraGuide:
+      '28-35mm, low or three-quarter angle, 1/20 to 1/80 with rear-curtain flash style energy. Crisp focal lock on subject/product, dynamic blur in background. 8K source detail.',
+    avoid: ['flat lighting', 'clean minimal studio', 'static pose', 'muted color palette'],
+  },
+  {
+    id: 'CREATIVE_LIQUID_CHROME',
+    name: 'Liquid Chrome',
+    description: 'Molten metal reflections, glossy surreal luxury',
+    category: 'creative',
+    icon: 'Sparkles',
+    whenToUse: ['Luxury product launches', 'Beauty/tech hero visuals', 'Premium surreal campaigns'],
+    platforms: ['instagram', 'facebook', 'google'],
+    sceneGuide:
+      'Director brief: Product and/or subject integrated with flowing liquid-chrome forms and mirror-metal ribbons. Surreal but physically plausible reflections. Clean composition with one dominant hero and negative space for premium ad feel.',
+    lightingGuide:
+      'High-contrast studio rig with large soft key and crisp kicker lights to sculpt chrome reflections. Polarized control on highlights where needed. Product materials stay true while metal elements reflect environment accurately. Premium cinematic tonality.',
+    cameraGuide:
+      '50-85mm, shallow depth with selective crisp planes on hero surfaces. Macro-detail readiness on textures and highlights. 8K photoreal finish with controlled bloom.',
+    avoid: ['cartoon metallic look', 'plastic textures', 'muddy reflections', 'cluttered background'],
+  },
+  {
+    id: 'CREATIVE_COSMIC_SURREAL',
+    name: 'Cosmic Surreal',
+    description: 'Cinematic dreamscape, celestial atmosphere, epic scale',
+    category: 'creative',
+    icon: 'Star',
+    whenToUse: ['Big brand moments', 'Teaser drops', 'Epic mood campaigns'],
+    platforms: ['instagram', 'facebook'],
+    sceneGuide:
+      'Director brief: Hero subject/product in a cinematic cosmic environment: atmospheric haze, volumetric light beams, abstract celestial textures. Keep composition ad-focused, not fantasy clutter. One frame that feels like a global campaign key visual.',
+    lightingGuide:
+      'Directional key with atmospheric shafts, cool-warm color separation, and clean rim separation. Subject/product remains highly legible despite dramatic environment. Fine detail preserved in midtones, no crushed blacks or blown highlights.',
+    cameraGuide:
+      '35-70mm, epic three-quarter or low angle, cinematic framing with strong foreground-background depth layers. 8K detail and premium contrast rolloff.',
+    avoid: ['busy sci-fi props', 'toy-like render look', 'low detail haze', 'unreadable hero subject'],
+  },
+
   {
     id: 'STANDALONE_CLEAN',
     name: 'Clean Product Shot',
@@ -736,6 +799,22 @@ export const AD_PRESETS: AdPreset[] = [
     cameraGuide:
       'Straight-on or slight overhead, f/5.6–8, deep DoF. Product pin-sharp. 8K. Clinical precision.',
     avoid: ['busy backgrounds', 'models', 'dramatic lighting', 'heavy styling', 'text clutter'],
+  },
+  {
+    id: 'PERF_BEST_QUALITY',
+    name: 'Best Quality Pro',
+    description: 'Highest-fidelity production look for premium conversion ads',
+    category: 'performance',
+    icon: 'Crown',
+    whenToUse: ['Flagship ad sets', 'High-budget campaigns', 'Homepage hero ads', 'Scale winners'],
+    platforms: ['instagram', 'facebook', 'google'],
+    sceneGuide:
+      'Director brief: A premium conversion hero with top-tier polish. One unmistakable focal subject/product, clean environment, strong composition hierarchy, and ad-safe negative space. Looks like a global campaign frame but optimized for direct response.',
+    lightingGuide:
+      'Balanced premium rig: soft directional key at 45 degrees, controlled fill at roughly 2:1, subtle rim for separation, and realistic material highlights. Skin/fabric/product micro-texture fully preserved. High dynamic range, no clipping, no muddy shadows.',
+    cameraGuide:
+      '50-85mm commercial lens language, precise focus placement, shallow-to-medium DoF depending on product readability. 8K-level sharpness on hero details with smooth falloff.',
+    avoid: ['over-stylized chaos', 'low-contrast haze', 'blurry hero subject', 'artifact-heavy post effects'],
   },
   {
     id: 'PERF_SPLIT_COMPARE',
@@ -893,6 +972,43 @@ for (const id of AD_PRESET_IDS) {
   if (!_definedPresetIds.has(id)) throw new Error(`Ad preset missing definition: ${id}`)
 }
 
+const TIER_SORT: Record<PresetTier, number> = {
+  safe: 0,
+  bold: 1,
+  experimental: 2,
+}
+
+const CATEGORY_DEFAULT_TAXONOMY: Record<AdPresetCategory, PresetTaxonomy> = {
+  ugc: { tier: 'safe', stability: 'high', pack: 'creator' },
+  editorial: { tier: 'bold', stability: 'medium', pack: 'fashion' },
+  commercial: { tier: 'safe', stability: 'high', pack: 'performance' },
+  creative: { tier: 'experimental', stability: 'medium', pack: 'experimental' },
+  standalone: { tier: 'safe', stability: 'high', pack: 'performance' },
+  performance: { tier: 'safe', stability: 'high', pack: 'performance' },
+  sports: { tier: 'bold', stability: 'medium', pack: 'sports' },
+  indian: { tier: 'bold', stability: 'high', pack: 'heritage' },
+}
+
+const PRESET_TAXONOMY_OVERRIDES: Partial<Record<AdPresetId, PresetTaxonomy>> = {
+  EDITORIAL_PREMIUM: { tier: 'safe', stability: 'high', pack: 'fashion' },
+  PRODUCT_HERO: { tier: 'bold', stability: 'high', pack: 'performance' },
+  CREATIVE_3D_RENDER: { tier: 'bold', stability: 'high', pack: 'experimental' },
+  CREATIVE_FLASH_CHAOS: { tier: 'experimental', stability: 'medium', pack: 'experimental' },
+  CREATIVE_LIQUID_CHROME: { tier: 'bold', stability: 'high', pack: 'experimental' },
+  CREATIVE_COSMIC_SURREAL: { tier: 'experimental', stability: 'medium', pack: 'experimental' },
+  PERF_BEST_QUALITY: { tier: 'safe', stability: 'high', pack: 'performance' },
+  SPORTS_DYNAMIC: { tier: 'bold', stability: 'high', pack: 'sports' },
+}
+
+function withTaxonomy(preset: AdPreset): AdPresetDisplay {
+  const defaults = CATEGORY_DEFAULT_TAXONOMY[preset.category]
+  const override = PRESET_TAXONOMY_OVERRIDES[preset.id]
+  return {
+    ...preset,
+    ...(override || defaults),
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════
 // PRESET CATEGORIES
 // ═══════════════════════════════════════════════════════════════
@@ -912,8 +1028,11 @@ export const AD_PRESET_CATEGORIES: {
   { id: 'indian', label: 'Indian Fashion', icon: 'Crown' },
 ]
 
-export function getPresetsByCategory(category: AdPresetCategory): AdPreset[] {
-  return AD_PRESETS.filter((p) => p.category === category)
+export function getPresetsByCategory(category: AdPresetCategory): AdPresetDisplay[] {
+  return AD_PRESETS
+    .filter((p) => p.category === category)
+    .map(withTaxonomy)
+    .sort((a, b) => TIER_SORT[a.tier] - TIER_SORT[b.tier])
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1012,12 +1131,13 @@ function resolveTextOverlay(overlay?: TextOverlayConfig): string {
 // HELPER FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
 
-export function getAdPreset(id: AdPresetId): AdPreset | undefined {
-  return AD_PRESETS.find((p) => p.id === id)
+export function getAdPreset(id: AdPresetId): AdPresetDisplay | undefined {
+  const preset = AD_PRESETS.find((p) => p.id === id)
+  return preset ? withTaxonomy(preset) : undefined
 }
 
-export function getAdPresetList(): AdPreset[] {
-  return AD_PRESETS
+export function getAdPresetList(): AdPresetDisplay[] {
+  return AD_PRESETS.map(withTaxonomy)
 }
 
 export function validateAdInput(
@@ -1146,3 +1266,6 @@ export const CAMERA_ANGLE_OPTIONS: { value: CameraAngle; label: string }[] = [
   { value: 'eye-level', label: 'Eye level' },
   { value: 'dutch', label: 'Dutch / tilted' },
 ]
+
+
+

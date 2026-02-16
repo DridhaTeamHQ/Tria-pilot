@@ -256,10 +256,18 @@ export async function POST(request: Request) {
     )
 
     // Prepend a hard quality-enforcement preamble optimized for Gemini 3 Pro (Nano Banana Pro).
-    // Uses narrative description style that Gemini responds best to.
     const hasTextContent = !!(input.textOverlay && (input.textOverlay.headline || input.textOverlay.subline || input.textOverlay.tagline))
-    const noTextRule = hasTextContent ? '' : ' CRITICAL: Do NOT include ANY text, words, letters, numbers, brand names, slogans, or typography anywhere in the image. This is a photography-only image with ZERO written content.'
-    const QUALITY_PREAMBLE = `Generate a stunning, campaign-grade photorealistic advertising photograph that could appear in Vogue, GQ, or a Nike global campaign. The image must look like it was captured by a professional photographer with high-end equipment — not AI-generated, not illustrated, not a digital render. Use a precise, intentional camera angle (down, side, low, high, or three-quarter as appropriate) for maximum impact. Every surface has realistic texture: skin has visible pores, fabric has weave, metal has accurate reflections. Anatomy is correct, hands are natural, proportions are human. Lighting is physically accurate with proper shadow falloff. Resolution 8K, tack-sharp focus on subject and product. No watermarks, no artifacts, no distortion, no extra limbs.${noTextRule}\n\n`
+    const noTextRule = hasTextContent ? '' : ' CRITICAL: Do NOT include any text, letters, numbers, logos, watermarks, UI, or typography anywhere in the image.'
+    const QUALITY_PREAMBLE = `Create one single, production-grade ad photograph for a premium brand campaign.
+The result must be photoreal, commercial, and human-shot in style (not AI-looking, not illustration, not 3D render).
+Use clean composition with a clear hero subject, natural anatomy, realistic hands, and physically correct lighting.
+Preserve micro details: skin texture, fabric weave, material reflections, and true-to-life color.
+Professional camera language: intentional framing, depth, and focus falloff with strong subject-product readability.
+Output should feel editorial plus conversion-ready, suitable for top-tier social ads and landing pages.
+Avoid low-quality artifacts: blur mush, warped geometry, duplicate limbs, extra fingers, over-smoothing, posterization, and noisy edges.
+Return exactly one final ad image.${noTextRule}
+
+`
 
     const compositionPrompt = QUALITY_PREAMBLE + rawCompositionPrompt
 
@@ -267,10 +275,10 @@ export async function POST(request: Request) {
       console.log(`[AdsAPI] Prompt built (${fallback ? 'fallback' : 'GPT-4o'}): ${compositionPrompt.length} chars`)
     }
 
-    // ── Generate ad image with Gemini ──
+    // Generate ad image with Gemini
     if (process.env.NODE_ENV !== 'production') console.log('[AdsAPI] Generating ad image...')
 
-    const generatedImage = await generateIntelligentAdComposition(
+    let generatedImage = await generateIntelligentAdComposition(
       input.productImage,
       input.influencerImage,
       compositionPrompt,
@@ -280,25 +288,60 @@ export async function POST(request: Request) {
       }
     )
 
-    // ── Post-generation: rate + copy (parallel) ──
-    if (process.env.NODE_ENV !== 'production') console.log('[AdsAPI] Rating and generating copy...')
+    // Score first pass and optionally run a quality recovery pass.
+    let rating = await rateAdCreative(generatedImage, input.productImage, input.influencerImage).catch(
+      () => ({ score: 75 })
+    )
+    let qualityScore = Number((rating as any)?.score || 75)
+
+    if (qualityScore < 82) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[AdsAPI] Low quality score (${qualityScore}). Running recovery pass...`)
+      }
+
+      const recoveryPrompt = `${compositionPrompt}
+
+QUALITY RECOVERY PASS:
+- Increase realism and premium finish while preserving the same concept.
+- Clean edges, natural skin/fabric texture, balanced dynamic range.
+- Keep a single strong focal point with ad-ready composition.
+- No warped hands, no malformed anatomy, no synthetic/plastic skin.`
+
+      const candidateImage = await generateIntelligentAdComposition(
+        input.productImage,
+        input.influencerImage,
+        recoveryPrompt,
+        {
+          lockFaceIdentity: input.lockFaceIdentity,
+          aspectRatio: input.aspectRatio as AspectRatio | undefined,
+        }
+      )
+
+      const candidateRating = await rateAdCreative(candidateImage, input.productImage, input.influencerImage).catch(
+        () => ({ score: 75 })
+      )
+      const candidateScore = Number((candidateRating as any)?.score || 75)
+
+      if (candidateScore > qualityScore) {
+        generatedImage = candidateImage
+        rating = candidateRating
+        qualityScore = candidateScore
+      }
+    }
+
+    // Post-generation: copy
+    if (process.env.NODE_ENV !== 'production') console.log('[AdsAPI] Generating ad copy...')
 
     const brandData = (profile.brand_data as any) || {}
     const brandName =
       brandData.companyName || profile.full_name || undefined
 
-    const [rating, copyVariants] = await Promise.all([
-      rateAdCreative(generatedImage, input.productImage, input.influencerImage).catch(
-        () => ({ score: 75 })
-      ),
-      generateAdCopy(generatedImage, {
-        productName: input.textOverlay?.headline || input.headline || 'fashion product',
-        brandName,
-        niche: input.preset,
-      }).catch(() => []),
-    ])
+    const copyVariants = await generateAdCopy(generatedImage, {
+      productName: input.textOverlay?.headline || input.headline || 'fashion product',
+      brandName,
+      niche: input.preset,
+    }).catch(() => [])
 
-    // ── Save to storage (non-fatal — image is already generated) ──
     let imageUrl: string | null = null
     try {
       let contentType = 'image/jpeg'
@@ -339,7 +382,7 @@ export async function POST(request: Request) {
           campaign_id: campaignData?.id || null,
           platform: input.platforms[0] || 'instagram',
           status: 'generated',
-          rating: (rating as any)?.score || 75,
+          rating: qualityScore,
         })
         .select()
         .single()
@@ -357,7 +400,7 @@ export async function POST(request: Request) {
       imageBase64: generatedImage, // inline for immediate rendering — ALWAYS available
       copy: copyVariants,
       rating,
-      qualityScore: (rating as any)?.score || 75,
+      qualityScore,
       preset: input.preset,
       promptUsed: fallback ? 'fallback' : 'gpt-4o',
     })
@@ -382,3 +425,4 @@ export async function POST(request: Request) {
     inFlight?.release?.()
   }
 }
+

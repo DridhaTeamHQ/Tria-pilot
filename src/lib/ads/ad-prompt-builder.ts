@@ -68,6 +68,9 @@ const PRESET_EXAMPLE_MAP: Record<string, string[]> = {
   CREATIVE_GLASSMORPHISM: ['standalone-surreal-installation', 'product-hero-beauty-lipstick', 'creative-reeded-glass-portrait'],
   CREATIVE_WES_ANDERSON: ['italian-cafe-candid', 'creative-martin-parr-domestic', 'creative-cyclorama-juice-portrait'],
   CREATIVE_DECONSTRUCTED: ['surreal-red-dress-cubes', 'deconstructed-face-collage', 'text-based-air-jordan-explosion', 'standalone-surreal-installation'],
+  CREATIVE_FLASH_CHAOS: ['cinematic-motion-runners', 'creative-follow-cam-snowboard', 'y2k-fisheye-bomber-street', 'digicam-neon-crosswalk'],
+  CREATIVE_LIQUID_CHROME: ['studio-chrome-floral', 'product-hero-beauty-lipstick', 'standalone-surreal-installation', 'creative-bold-color-studio'],
+  CREATIVE_COSMIC_SURREAL: ['surreal-magritte-picnic', 'cinematic-low-angle-flying', 'creative-surreal-horse-shadow', 'standalone-surreal-installation'],
   // Standalone product
   STANDALONE_CLEAN: ['standalone-clean-4k', 'standalone-high-fashion-path'],
   STANDALONE_SURREAL: ['standalone-surreal-installation', 'standalone-high-fashion-path', 'product-hero-beauty-lipstick'],
@@ -75,6 +78,7 @@ const PRESET_EXAMPLE_MAP: Record<string, string[]> = {
   STANDALONE_LEVITATION: ['text-based-air-jordan-explosion', 'product-hero-beauty-lipstick', 'standalone-surreal-installation'],
   // Performance / Conversion
   PERF_MINIMAL_CLEAN: ['standalone-clean-4k', 'standalone-high-fashion-path'],
+  PERF_BEST_QUALITY: ['editorial-escalator-fit-check', 'product-hero-beauty-lipstick', 'standalone-clean-4k', 'cinematic-low-angle-flying'],
   PERF_SPLIT_COMPARE: ['creative-bold-color-studio', 'lifestyle-blank-tee-mockup'],
   PERF_OOH_BILLBOARD: ['placement-subway-billboard', 'ooh-billboard-dual-panel'],
   PERF_SOCIAL_PROOF: ['beach-sunset-satin-twirl', 'italian-cafe-candid', 'golden-hour-glamour-cafe', 'mediterranean-swim-editorial'],
@@ -180,6 +184,45 @@ function sanitizeAndCapPrompt(raw: string): string {
     s = s.slice(0, MAX_PROMPT_LENGTH - 20) + '…'
   }
   return s
+}
+
+function buildStrategicIntelligenceBlock(
+  input: AdGenerationInput,
+  preset: AdPreset,
+  hasCharacter: boolean,
+  hasTextOverlay: boolean
+): string {
+  const platformFocus = input.platforms.includes('google')
+    ? 'conversion clarity and readability at small ad sizes'
+    : input.platforms.includes('instagram')
+      ? 'thumb-stop impact in feed/reels with immediate visual hook in first glance'
+      : input.platforms.includes('facebook')
+        ? 'clear story + trust + product comprehension for mixed-age audiences'
+        : 'high visual impact with brand-safe composition'
+
+  const ratioFocus =
+    input.aspectRatio === '9:16'
+      ? 'vertical storytelling with strong top/middle/bottom hierarchy'
+      : input.aspectRatio === '16:9'
+        ? 'wide cinematic composition with clear left-right balance'
+        : input.aspectRatio === '4:5'
+          ? 'portrait feed optimization with central product readability'
+          : 'balanced square composition with strong central focal structure'
+
+  const textFocus = hasTextOverlay
+    ? 'integrate typography as scene object with depth and occlusion'
+    : 'pure photography output with zero text elements'
+
+  const characterFocus = hasCharacter
+    ? 'character-product interaction must be obvious and physically believable'
+    : 'product hero must remain dominant with no accidental human subject'
+
+  return `STRATEGIC INTELLIGENCE OBJECTIVE:
+- Ad objective: ${platformFocus}
+- Composition objective: ${ratioFocus}
+- Text objective: ${textFocus}
+- Subject objective: ${characterFocus}
+- Preset fidelity: stay true to "${preset.name}" visual DNA while maximizing realism and production polish.`
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -393,6 +436,15 @@ Camera direction: ${preset.cameraGuide}
 ${angleInstruction}
 Must avoid: ${avoidTerms.join(', ')}`)
 
+  const hasTextOverlay = !!(input.textOverlay && (input.textOverlay.headline || input.textOverlay.subline || input.textOverlay.tagline))
+  sections.push(buildStrategicIntelligenceBlock(input, preset, hasCharacter, hasTextOverlay))
+  if (input.preset === 'PERF_BEST_QUALITY') {
+    sections.push(`BEST QUALITY MODE (MANDATORY):
+Prioritize maximum photoreal fidelity and premium ad finish over stylistic experimentation.
+No visual gimmicks unless they improve realism or product salience.
+Every output decision should improve conversion readiness and perceived production value.`)
+  }
+
   // ═══ 3. Product instruction ═══
   if (productImageBase64) {
     sections.push(`PRODUCT (attached image — LOOK AT IT):
@@ -428,7 +480,6 @@ Face is IMMUTABLE. Do NOT alter any facial feature. Include explicit instruction
   }
 
   // ═══ 6. Text — COMPOSITIONAL BLEND TYPOGRAPHY or NO TEXT ═══
-  const hasTextOverlay = input.textOverlay && (input.textOverlay.headline || input.textOverlay.subline || input.textOverlay.tagline)
   if (!hasTextOverlay) {
     // CRITICAL: Explicitly tell GPT-4o NOT to add any text
     sections.push(`TEXT: NONE. Do NOT include ANY text, words, letters, numbers, brand names, slogans, or typography in the image. The image must be purely visual — no written content whatsoever. This is a photography-only composition.`)
