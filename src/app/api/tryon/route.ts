@@ -2,19 +2,20 @@ import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
 import { tryOnSchema } from '@/lib/validation'
 import { getTryOnPresetV3 } from '@/lib/tryon/presets'
-import { enqueueTryOnJob } from '@/lib/queue/tryon-queue'
-import { getRedisConnection, isQueueAvailable, isRedisConfigured } from '@/lib/queue/redis'
+import { getRedisConnection, isRedisConfigured } from '@/lib/queue/redis'
 import { normalizeBase64 } from '@/lib/image-processing'
 import { saveUpload } from '@/lib/storage'
 import { runHybridTryOnPipeline } from '@/lib/tryon/hybrid-tryon-pipeline'
 import { GeminiRateLimitError } from '@/lib/gemini/executor'
 
-const STALE_PENDING_MS = 5 * 60 * 1000   // 5 min – pending job never picked up
-const STALE_PROCESSING_MS = 2 * 60 * 1000 // 2 min – processing job stuck
-const USER_GENERATING_LOCK_TTL_SECONDS = 120
-const GLOBAL_ACTIVE_LIMIT = 2
-
 export const maxDuration = 60
+const USER_LOCK_TTL_SECONDS = 75
+const GLOBAL_ACTIVE_TTL_SECONDS = 75
+const GLOBAL_ACTIVE_LIMIT = Math.max(
+  1,
+  Number.parseInt(process.env.TRYON_INLINE_GLOBAL_LIMIT || '4', 10) || 4
+)
+const GLOBAL_ACTIVE_KEY = 'tryon:inline:active_generations'
 
 export async function POST(request: Request) {
   let redisUserLockKey: string | null = null
@@ -116,24 +117,29 @@ export async function POST(request: Request) {
     }
 
     const userId = authUser.id
-    if (process.env.NODE_ENV !== 'production') console.log('✅ User verified, queueing generation:', { userId })
+    if (process.env.NODE_ENV !== 'production') console.log('✅ User verified, generating try-on:', { userId })
 
-    // Redis lock to prevent duplicate concurrent requests from same user.
+    // Lightweight per-user guard: prevents double-click/duplicate tabs from starting parallel generations.
     if (isRedisConfigured()) {
-      const redis = getRedisConnection()
-      redisUserLockKey = `user:${userId}:generating`
-      const lockResult = await redis.set(redisUserLockKey, 'true', 'EX', USER_GENERATING_LOCK_TTL_SECONDS, 'NX')
-      if (lockResult !== 'OK') {
-        return NextResponse.json(
-          {
-            error: 'Generation already in progress',
-            code: 'JOB_IN_PROGRESS',
-            retryAfterSeconds: 10,
-          },
-          { status: 429, headers: { 'Retry-After': '10', 'Cache-Control': 'no-store' } }
-        )
+      try {
+        const redis = getRedisConnection()
+        redisUserLockKey = `tryon:user:${userId}:generating`
+        const lockResult = await redis.set(redisUserLockKey, '1', 'EX', USER_LOCK_TTL_SECONDS, 'NX')
+        if (lockResult !== 'OK') {
+          return NextResponse.json(
+            {
+              error: 'A try-on is already in progress. Please wait for it to finish.',
+              code: 'JOB_IN_PROGRESS',
+              retryAfterSeconds: 10,
+            },
+            { status: 429, headers: { 'Retry-After': '10', 'Cache-Control': 'no-store' } }
+          )
+        }
+      } catch (redisErr) {
+        // Fail open if Redis is unavailable: keep generation working instead of hard-failing requests.
+        console.warn('[tryon] user lock unavailable, continuing without lock:', redisErr)
+        redisUserLockKey = null
       }
-      console.log(`[tryon] user lock acquired: ${redisUserLockKey}`)
     }
 
     const body = await request.json().catch(() => null)
@@ -157,44 +163,6 @@ export async function POST(request: Request) {
 
     const presetV3 = stylePreset ? getTryOnPresetV3(stylePreset) : undefined
 
-    // Allow only one active job per user, but treat stale jobs as failed so user is not blocked forever (e.g. worker not running).
-    const { data: activeJob } = await service
-      .from('generation_jobs')
-      .select('id, status, created_at')
-      .eq('user_id', userId)
-      .in('status', ['pending', 'processing'])
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    if (activeJob?.id) {
-      const createdAt = activeJob.created_at ? new Date(activeJob.created_at).getTime() : 0
-      const now = Date.now()
-      const isStale =
-        (activeJob.status === 'pending' && now - createdAt > STALE_PENDING_MS) ||
-        (activeJob.status === 'processing' && now - createdAt > STALE_PROCESSING_MS)
-
-      if (isStale) {
-        await service
-          .from('generation_jobs')
-          .update({
-            status: 'failed',
-            error_message: 'Stale job – superseded by new request.',
-          })
-          .eq('id', activeJob.id)
-      } else {
-        return NextResponse.json(
-          {
-            error: 'A try-on is already in progress. Please wait for it to finish.',
-            code: 'JOB_IN_PROGRESS',
-            activeJobId: activeJob.id,
-            retryAfterSeconds: 10,
-          },
-          { status: 429, headers: { 'Retry-After': '10', 'Cache-Control': 'no-store' } }
-        )
-      }
-    }
-
     // Create generation job first (authoritative state in DB)
     const { data: job, error: jobError } = await service
       .from('generation_jobs')
@@ -215,17 +183,6 @@ export async function POST(request: Request) {
           aspectRatio: reqAspectRatio ?? '1:1',
           resolution: reqResolution ?? '2K',
           model: 'gemini-3-pro-image-preview',
-          queue: {
-            mode: 'redis-worker',
-            acceptedAt: new Date().toISOString(),
-            preset: presetV3
-              ? {
-                  id: presetV3.id,
-                  name: presetV3.name,
-                  category: presetV3.category,
-                }
-              : null,
-          },
         },
         status: 'pending',
       })
@@ -252,64 +209,46 @@ export async function POST(request: Request) {
           lighting_name: lighting ?? 'match the original photo lighting',
         }
 
-    try {
-      if (isQueueAvailable()) {
-        await enqueueTryOnJob({ jobId: job.id, userId })
-        return NextResponse.json(
-          {
-            accepted: true,
-            success: true,
-            jobId: job.id,
-            status: 'pending',
-            pollUrl: `/api/tryon/jobs/${job.id}`,
-            message: 'Try-on job accepted and queued.',
-            preset: presetV3
-              ? { id: presetV3.id, name: presetV3.name, category: presetV3.category }
-              : null,
-          },
-          { status: 202 }
-        )
-      }
-    } catch (_) {
-      // Queue unavailable or enqueue failed – fall through to inline generation
-    }
-
-    // Inline fallback when Redis/worker is not available: run pipeline in this request so try-on still works.
+    // Run inline generation directly.
     try {
       await service
         .from('generation_jobs')
         .update({ status: 'processing', error_message: null })
         .eq('id', job.id)
 
-      // Global concurrency cap for inline generation.
+      // Global guard: cap concurrent inline generations so bursts return a clean "server busy" instead of collapsing.
       if (isRedisConfigured()) {
-        const redis = getRedisConnection()
-        const globalActiveKey = 'global:active_generations'
-        const activeCount = await redis.incr(globalActiveKey)
-        redisGlobalAcquired = true
-        if (activeCount === 1) {
-          await redis.expire(globalActiveKey, USER_GENERATING_LOCK_TTL_SECONDS)
-        }
-        console.log(`[tryon] global active incremented: ${activeCount}`)
-        if (activeCount > GLOBAL_ACTIVE_LIMIT) {
-          await redis.decr(globalActiveKey)
+        try {
+          const redis = getRedisConnection()
+          const activeCount = await redis.incr(GLOBAL_ACTIVE_KEY)
+          redisGlobalAcquired = true
+          if (activeCount === 1) {
+            await redis.expire(GLOBAL_ACTIVE_KEY, GLOBAL_ACTIVE_TTL_SECONDS)
+          }
+          if (activeCount > GLOBAL_ACTIVE_LIMIT) {
+            await redis.decr(GLOBAL_ACTIVE_KEY)
+            redisGlobalAcquired = false
+            await service
+              .from('generation_jobs')
+              .update({
+                status: 'failed',
+                error_message: 'Server busy, please wait and retry.',
+              })
+              .eq('id', job.id)
+            return NextResponse.json(
+              {
+                error: 'Server busy, please wait and retry.',
+                code: 'SERVER_BUSY',
+                retryAfterSeconds: 10,
+                jobId: job.id,
+              },
+              { status: 429, headers: { 'Retry-After': '10', 'Cache-Control': 'no-store' } }
+            )
+          }
+        } catch (redisErr) {
+          // Fail open on Redis global guard issues; Gemini/DB errors are still handled below.
+          console.warn('[tryon] global guard unavailable, continuing without cap:', redisErr)
           redisGlobalAcquired = false
-          await service
-            .from('generation_jobs')
-            .update({
-              status: 'failed',
-              error_message: 'Server busy, please wait',
-            })
-            .eq('id', job.id)
-          return NextResponse.json(
-            {
-              error: 'Server busy, please wait',
-              code: 'SERVER_BUSY',
-              retryAfterSeconds: 10,
-              jobId: job.id,
-            },
-            { status: 429, headers: { 'Retry-After': '10', 'Cache-Control': 'no-store' } }
-          )
         }
       }
 
@@ -373,6 +312,13 @@ export async function POST(request: Request) {
     } catch (inlineError) {
       if (inlineError instanceof GeminiRateLimitError) {
         const retryAfterSeconds = Math.min(60, Math.ceil((inlineError.retryAfterMs || 30_000) / 1000)) || 30
+        await service
+          .from('generation_jobs')
+          .update({
+            status: 'failed',
+            error_message: inlineError.message || 'Rate limit reached. Please retry shortly.',
+          })
+          .eq('id', job.id)
         return NextResponse.json(
           {
             error: inlineError.message || 'Rate limit reached. Please retry shortly.',
@@ -403,14 +349,11 @@ export async function POST(request: Request) {
       if (isRedisConfigured() && redisGlobalAcquired) {
         try {
           const redis = getRedisConnection()
-          const globalActiveKey = 'global:active_generations'
-          const remaining = await redis.decr(globalActiveKey)
+          const remaining = await redis.decr(GLOBAL_ACTIVE_KEY)
           redisGlobalAcquired = false
           if (remaining < 0) {
-            await redis.set(globalActiveKey, '0')
-            console.warn('[tryon] global counter corrected from negative value')
+            await redis.set(GLOBAL_ACTIVE_KEY, '0')
           }
-          console.log('[tryon] global active decremented')
         } catch (releaseErr) {
           console.warn('[tryon] failed to release global active counter:', releaseErr)
         }
@@ -425,7 +368,6 @@ export async function POST(request: Request) {
       try {
         const redis = getRedisConnection()
         await redis.del(redisUserLockKey)
-        console.log(`[tryon] user lock released: ${redisUserLockKey}`)
       } catch (releaseErr) {
         console.warn('[tryon] failed to release user lock:', releaseErr)
       }
