@@ -2,6 +2,7 @@ import IORedis from 'ioredis'
 
 let redisConnection: IORedis | null = null
 let warnedAboutRestOnlyEnv = false
+let warnedAboutQueueDisabled = false
 
 function readConfiguredRedisUrl(): string | null {
   const url =
@@ -36,6 +37,23 @@ function getRedisUrl(): string {
 
 /** Returns true if Redis URL is set (queue available). */
 export function isQueueAvailable(): boolean {
+  const queueEnabled = process.env.TRYON_QUEUE_ENABLED === 'true'
+  if (!queueEnabled) {
+    const hasAnyRedisEnv = Boolean(
+      process.env.UPSTASH_REDIS_URL ||
+      process.env.REDIS_URL ||
+      process.env.UPSTASH_REDIS_REST_URL
+    )
+    if (hasAnyRedisEnv && !warnedAboutQueueDisabled) {
+      warnedAboutQueueDisabled = true
+      console.warn(
+        '[queue] Redis credentials detected but TRYON_QUEUE_ENABLED is not "true". ' +
+        'Using inline try-on processing. Set TRYON_QUEUE_ENABLED=true only when a queue worker is running.'
+      )
+    }
+    return false
+  }
+
   const socketUrl = readConfiguredRedisUrl()
   if (socketUrl && isRedisSocketUrl(socketUrl)) return true
 

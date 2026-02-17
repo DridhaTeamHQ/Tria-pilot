@@ -1,6 +1,10 @@
 # Redis / Upstash Setup (Optional)
 
-Try-on **works without Redis**. If `UPSTASH_REDIS_URL` is not set, each generation runs **inline** in the API request and returns the image in the same response.
+Try-on **works without Redis**. Queue mode is enabled only when:
+- `TRYON_QUEUE_ENABLED="true"`
+- and a valid `UPSTASH_REDIS_URL` (or `REDIS_URL`) is configured (`redis://` / `rediss://`)
+
+Otherwise, generation runs **inline** in the API request and returns the image in the same response.
 
 Use Redis + the worker when you want:
 - **Queue-based** processing (submit job → poll for result)
@@ -36,7 +40,9 @@ Use Redis + the worker when you want:
 In your project root, open **`.env`** or **`.env.local`** and add:
 
 ```env
-# Optional: Try-on queue (Upstash Redis). If not set, try-on runs inline in the API.
+# Optional: Try-on queue (Upstash Redis)
+# Enable this only when the worker process is running.
+TRYON_QUEUE_ENABLED="true"
 UPSTASH_REDIS_URL="rediss://default:YOUR_PASSWORD@YOUR_HOST.upstash.io:6379"
 ```
 
@@ -63,11 +69,12 @@ Keep this running (e.g. in a separate terminal or as a background process). When
 
 ## 4. Summary
 
-| Variable             | Required | Where to get it                          |
-|----------------------|----------|------------------------------------------|
-| `UPSTASH_REDIS_URL`  | No       | [Upstash Console](https://console.upstash.com) → Create Redis DB → copy Redis URL |
+| Variable              | Required | Where to get it                          |
+|-----------------------|----------|------------------------------------------|
+| `TRYON_QUEUE_ENABLED` | No       | Set manually to `"true"` only when worker is running |
+| `UPSTASH_REDIS_URL`   | No       | [Upstash Console](https://console.upstash.com) → Create Redis DB → copy Redis URL |
 
-- **Not set:** Try-on runs inline; no worker needed.
-- **Set:** API enqueues jobs; run `npm run worker:tryon` so jobs are processed.
+- **Queue disabled/missing vars:** Try-on runs inline; no worker needed.
+- **Queue enabled + valid Redis URL:** API enqueues jobs; run `npm run worker:tryon` so jobs are processed.
 
 For more on the queue/worker design, see [TRYON_QUEUE_WORKER_ARCHITECTURE.md](./TRYON_QUEUE_WORKER_ARCHITECTURE.md).
