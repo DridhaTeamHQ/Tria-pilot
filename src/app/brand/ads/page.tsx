@@ -1,6 +1,6 @@
 'use client'
 
-import React, { cloneElement, useState, useEffect, useCallback } from 'react'
+import { type ReactNode, type ReactElement, type ChangeEvent, cloneElement, useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
@@ -90,7 +90,7 @@ interface GenerationResult {
   promptUsed: string
 }
 
-const ICON_MAP: Record<string, React.ReactNode> = {
+const ICON_MAP: Record<string, ReactNode> = {
   Camera: <Camera className="h-4 w-4" />,
   ShoppingBag: <ShoppingBag className="h-4 w-4" />,
   Image: <ImageIcon className="h-4 w-4" />,
@@ -158,7 +158,7 @@ export default function AdsPage() {
   }, [retryAfterSeconds])
 
   const handleImageUpload = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>, type: 'product' | 'influencer') => {
+    (e: ChangeEvent<HTMLInputElement>, type: 'product' | 'influencer') => {
       const file = e.target.files?.[0]
       if (!file) return
       if (file.size > 10 * 1024 * 1024) { toast.error('Max 10MB'); return }
@@ -213,6 +213,7 @@ export default function AdsPage() {
       const res = await fetch('/api/ads/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(input),
       })
       const data = await res.json()
@@ -340,7 +341,7 @@ export default function AdsPage() {
                         'inline-flex h-9 w-9 items-center justify-center border-2 border-black',
                         selectedPreset === preset.id ? 'bg-black text-white' : 'bg-[#B4F056] text-black'
                       )}>
-                        {cloneElement(ICON_MAP[preset.icon] as React.ReactElement, { className: 'h-4 w-4' })}
+                        {cloneElement(ICON_MAP[preset.icon] as ReactElement, { className: 'h-4 w-4' })}
                       </span>
                       <div>
                         <p className="text-sm font-black uppercase leading-tight">{preset.name}</p>

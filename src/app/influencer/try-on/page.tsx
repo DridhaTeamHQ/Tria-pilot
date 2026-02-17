@@ -180,7 +180,7 @@ function TryOnPageContent() {
         const intervalMs = 2000
 
         while (Date.now() - startedAt < timeoutMs) {
-            const pollResponse = await fetch(`/api/tryon/jobs/${jobId}`, { cache: 'no-store' })
+            const pollResponse = await fetch(`/api/tryon/jobs/${jobId}`, { cache: 'no-store', credentials: 'include' })
             const pollData = await safeParseResponse<any>(pollResponse, 'try-on job polling')
             const status = pollData?.status as string | undefined
 
@@ -204,7 +204,7 @@ function TryOnPageContent() {
         let cancelled = false
         const restoreActiveJob = async () => {
             try {
-                const response = await fetch('/api/tryon/jobs/active', { cache: 'no-store' })
+                const response = await fetch('/api/tryon/jobs/active', { cache: 'no-store', credentials: 'include' })
 
                 if (response.status === 404) {
                     sessionStorage.removeItem('tryonActiveJobId')
@@ -589,6 +589,7 @@ function TryOnPageContent() {
             const response = await fetch('/api/tryon', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({
                     personImage: personImageBase64 || personImage,
                     personImages: allAdditionalImages.length > 0 ? allAdditionalImages : undefined,

@@ -23,21 +23,21 @@ const Toaster = (props: ToasterProps) => {
         closeButton
         expand={false}
         visibleToasts={4}
-        duration={4200}
-        className="toaster group !z-[100000]"
-        offset={20}
-        mobileOffset={20}
+        duration={5000}
+        className="toaster group"
+        offset={24}
+        mobileOffset={24}
         toastOptions={{
-          duration: 4200,
+          duration: 5000,
           ...props.toastOptions,
           classNames: {
-            toast: "border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-xl backdrop-blur-sm font-sans px-4 py-3",
+            toast: "!opacity-100 !visible border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-xl font-sans px-4 py-3 min-w-[280px]",
             title: "font-bold text-sm",
-            description: "text-xs text-black/70",
-            success: "bg-[#B4F056] text-black border-black",
-            error: "bg-red-100 text-red-800 border-red-400",
-            warning: "bg-[#FFD93D] text-black border-black",
-            info: "bg-white text-black border-black",
+            description: "text-xs text-black/80",
+            success: "!bg-[#B4F056] !text-black border-black",
+            error: "!bg-red-200 !text-red-900 border-red-600",
+            warning: "!bg-[#FFD93D] !text-black border-black",
+            info: "!bg-white !text-black border-black",
             actionButton: "bg-black text-white border-2 border-black rounded-md",
             cancelButton: "bg-white text-black border-2 border-black rounded-md",
             closeButton: "border-2 border-black bg-white text-black",
@@ -70,22 +70,28 @@ const Toaster = (props: ToasterProps) => {
             left: 50% !important;
             right: auto !important;
             transform: translateX(-50%) !important;
-            padding-top: 1.25rem !important;
+            padding-top: max(1.25rem, env(safe-area-inset-top)) !important;
             z-index: 2147483647 !important;
+            pointer-events: none !important;
+            width: var(--width, 380px) !important;
+            max-width: calc(100vw - 1.5rem) !important;
           }
           [data-sonner-toaster] [data-sonner-toast] {
+            pointer-events: auto !important;
             top: 0 !important;
             bottom: auto !important;
             --y: translateY(0) !important;
+            opacity: 1 !important;
+            visibility: visible !important;
           }
           @media (max-width: 640px) {
             [data-sonner-toaster] {
-              left: 0.5rem !important;
-              right: 0.5rem !important;
+              left: 0.75rem !important;
+              right: 0.75rem !important;
               transform: none !important;
               width: auto !important;
               max-width: none !important;
-              padding-top: calc(env(safe-area-inset-top, 0px) + 0.5rem) !important;
+              padding-top: max(0.75rem, env(safe-area-inset-top)) !important;
             }
             [data-sonner-toaster] [data-sonner-toast] {
               width: 100% !important;
