@@ -150,6 +150,8 @@ export default function AdsPage() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<GenerationResult | null>(null)
   const [retryAfterSeconds, setRetryAfterSeconds] = useState(0)
+  const [generationStatus, setGenerationStatus] = useState<'idle' | 'submitting' | 'rate_limited' | 'busy' | 'error' | 'success'>('idle')
+  const [generationStatusText, setGenerationStatusText] = useState('')
 
   const hasText = !!(textHeadline || textSubline || textTagline)
   const canSubmit = selectedPreset && selectedPlatforms.length > 0 && !loading && retryAfterSeconds <= 0
@@ -228,6 +230,8 @@ export default function AdsPage() {
 
     setLoading(true)
     setResult(null)
+    setGenerationStatus('submitting')
+    setGenerationStatusText('Submitting request...')
 
     try {
       const res = await fetch('/api/ads/generate', {
@@ -241,17 +245,34 @@ export default function AdsPage() {
         if (res.status === 429) {
           const retry = Math.max(1, Number(data.retryAfterSeconds ?? 60))
           setRetryAfterSeconds(retry)
+          const isBusy = /already being generated|in progress|server busy/i.test(String(data.error || ''))
+          setGenerationStatus(isBusy ? 'busy' : 'rate_limited')
+          setGenerationStatusText(
+            isBusy
+              ? `Another generation is already running. Try again in ${retry}s.`
+              : `Rate limit active. Try again in ${retry}s.`
+          )
           toast.error(data.error || `Rate limit. Try again in ${retry}s.`)
         } else if (res.status === 504) {
+          setGenerationStatus('error')
+          setGenerationStatusText('Generation timed out. Please retry; this can happen under production load.')
           toast.error('Generation timed out in production. Please retry once; we optimized the pipeline to reduce this.')
         } else {
+          setGenerationStatus('error')
+          setGenerationStatusText(data.error || 'Generation failed.')
           toast.error(data.error || 'Generation failed')
         }
         return
       }
       setResult(data as GenerationResult)
+      setGenerationStatus('success')
+      setGenerationStatusText('Creative generated successfully.')
       toast.success('Ad generated!')
-    } catch { toast.error('Something went wrong.') }
+    } catch {
+      setGenerationStatus('error')
+      setGenerationStatusText('Unexpected error while generating creative.')
+      toast.error('Something went wrong.')
+    }
     finally { setLoading(false) }
   }
 
@@ -745,6 +766,18 @@ export default function AdsPage() {
                 </>
               )}
             </motion.button>
+            {generationStatus !== 'idle' && (
+              <div
+                className={cn(
+                  'mt-3 rounded-lg border-2 px-3 py-2 text-[11px] font-black uppercase tracking-wide',
+                  generationStatus === 'success' ? 'border-black bg-[#B4F056] text-black'
+                    : generationStatus === 'error' ? 'border-black bg-[#FFE1D6] text-black'
+                    : 'border-black bg-[#FFF3BF] text-black'
+                )}
+              >
+                {generationStatusText}
+              </div>
+            )}
           </div>
 
           <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.35, delay: 0.08 }} className="lg:sticky lg:top-24">

@@ -3,7 +3,7 @@ import { createClient, createServiceClient } from '@/lib/auth'
 import { tryOnSchema } from '@/lib/validation'
 import { getTryOnPresetV3 } from '@/lib/tryon/presets'
 import { enqueueTryOnJob } from '@/lib/queue/tryon-queue'
-import { isQueueAvailable } from '@/lib/queue/redis'
+import { getRedisConnection, isQueueAvailable, isRedisConfigured } from '@/lib/queue/redis'
 import { normalizeBase64 } from '@/lib/image-processing'
 import { saveUpload } from '@/lib/storage'
 import { runHybridTryOnPipeline } from '@/lib/tryon/hybrid-tryon-pipeline'
@@ -11,10 +11,14 @@ import { GeminiRateLimitError } from '@/lib/gemini/executor'
 
 const STALE_PENDING_MS = 5 * 60 * 1000   // 5 min – pending job never picked up
 const STALE_PROCESSING_MS = 2 * 60 * 1000 // 2 min – processing job stuck
+const USER_GENERATING_LOCK_TTL_SECONDS = 120
+const GLOBAL_ACTIVE_LIMIT = 2
 
 export const maxDuration = 60
 
 export async function POST(request: Request) {
+  let redisUserLockKey: string | null = null
+  let redisGlobalAcquired = false
   try {
     const supabase = await createClient()
     const {
@@ -113,6 +117,24 @@ export async function POST(request: Request) {
 
     const userId = authUser.id
     if (process.env.NODE_ENV !== 'production') console.log('✅ User verified, queueing generation:', { userId })
+
+    // Redis lock to prevent duplicate concurrent requests from same user.
+    if (isRedisConfigured()) {
+      const redis = getRedisConnection()
+      redisUserLockKey = `user:${userId}:generating`
+      const lockResult = await redis.set(redisUserLockKey, 'true', 'EX', USER_GENERATING_LOCK_TTL_SECONDS, 'NX')
+      if (lockResult !== 'OK') {
+        return NextResponse.json(
+          {
+            error: 'Generation already in progress',
+            code: 'JOB_IN_PROGRESS',
+            retryAfterSeconds: 10,
+          },
+          { status: 429, headers: { 'Retry-After': '10', 'Cache-Control': 'no-store' } }
+        )
+      }
+      console.log(`[tryon] user lock acquired: ${redisUserLockKey}`)
+    }
 
     const body = await request.json().catch(() => null)
     const {
@@ -259,6 +281,38 @@ export async function POST(request: Request) {
         .update({ status: 'processing', error_message: null })
         .eq('id', job.id)
 
+      // Global concurrency cap for inline generation.
+      if (isRedisConfigured()) {
+        const redis = getRedisConnection()
+        const globalActiveKey = 'global:active_generations'
+        const activeCount = await redis.incr(globalActiveKey)
+        redisGlobalAcquired = true
+        if (activeCount === 1) {
+          await redis.expire(globalActiveKey, USER_GENERATING_LOCK_TTL_SECONDS)
+        }
+        console.log(`[tryon] global active incremented: ${activeCount}`)
+        if (activeCount > GLOBAL_ACTIVE_LIMIT) {
+          await redis.decr(globalActiveKey)
+          redisGlobalAcquired = false
+          await service
+            .from('generation_jobs')
+            .update({
+              status: 'failed',
+              error_message: 'Server busy, please wait',
+            })
+            .eq('id', job.id)
+          return NextResponse.json(
+            {
+              error: 'Server busy, please wait',
+              code: 'SERVER_BUSY',
+              retryAfterSeconds: 10,
+              jobId: job.id,
+            },
+            { status: 429, headers: { 'Retry-After': '10', 'Cache-Control': 'no-store' } }
+          )
+        }
+      }
+
       const normalizedPerson = normalizeBase64(personImage)
       const normalizedClothing = normalizeBase64(clothingImage)
       const pipelineResult = await runHybridTryOnPipeline({
@@ -345,10 +399,36 @@ export async function POST(request: Request) {
         { error: errMsg, jobId: job.id, status: 'failed' },
         { status: 500 }
       )
+    } finally {
+      if (isRedisConfigured() && redisGlobalAcquired) {
+        try {
+          const redis = getRedisConnection()
+          const globalActiveKey = 'global:active_generations'
+          const remaining = await redis.decr(globalActiveKey)
+          redisGlobalAcquired = false
+          if (remaining < 0) {
+            await redis.set(globalActiveKey, '0')
+            console.warn('[tryon] global counter corrected from negative value')
+          }
+          console.log('[tryon] global active decremented')
+        } catch (releaseErr) {
+          console.warn('[tryon] failed to release global active counter:', releaseErr)
+        }
+      }
     }
   } catch (error) {
     console.error('Try-on generation error:', error)
     const message = error instanceof Error ? error.message : 'Internal server error'
     return NextResponse.json({ error: message }, { status: 500 })
+  } finally {
+    if (isRedisConfigured() && redisUserLockKey) {
+      try {
+        const redis = getRedisConnection()
+        await redis.del(redisUserLockKey)
+        console.log(`[tryon] user lock released: ${redisUserLockKey}`)
+      } catch (releaseErr) {
+        console.warn('[tryon] failed to release user lock:', releaseErr)
+      }
+    }
   }
 }
