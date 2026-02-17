@@ -8,6 +8,7 @@
  * At scale this regulates traffic without burning rate-limit count for
  * duplicate clicks and gives a clear "wait for current request" message.
  */
+import { getRedisConnection, isRedisConfigured } from '@/lib/queue/redis'
 
 export type GuardType = 'tryon' | 'ads'
 
@@ -29,14 +30,42 @@ function pruneStale() {
 export interface AcquireResult {
   allowed: boolean
   retryAfterSeconds?: number
-  release?: () => void
+  release?: () => Promise<void>
 }
 
 /**
  * Try to acquire an in-flight slot for this user and type.
  * Call release() in a finally block when the request finishes.
  */
-export function tryAcquireInFlight(userId: string, type: GuardType): AcquireResult {
+export async function tryAcquireInFlight(userId: string, type: GuardType): Promise<AcquireResult> {
+  if (isRedisConfigured()) {
+    try {
+      const redis = getRedisConnection()
+      const key = `inflight:v1:${type}:${userId}`
+      const setResult = await redis.set(key, String(Date.now()), 'PX', STALE_MS, 'NX')
+
+      if (setResult === 'OK') {
+        return {
+          allowed: true,
+          release: async () => {
+            await redis.del(key)
+          },
+        }
+      }
+
+      const ttlMs = await redis.pttl(key)
+      const retryAfterSeconds =
+        ttlMs > 0 ? Math.min(15, Math.max(5, Math.ceil(ttlMs / 1000))) : 10
+
+      return {
+        allowed: false,
+        retryAfterSeconds,
+      }
+    } catch {
+      // Fall back to in-memory guard if Redis is temporarily unavailable.
+    }
+  }
+
   pruneStale()
   const key = `${userId}:${type}`
   const existing = store.get(key)
@@ -58,6 +87,8 @@ export function tryAcquireInFlight(userId: string, type: GuardType): AcquireResu
   store.set(key, { type, started: now })
   return {
     allowed: true,
-    release: () => store.delete(key),
+    release: async () => {
+      store.delete(key)
+    },
   }
 }

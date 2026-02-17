@@ -10,6 +10,7 @@ import { checkRateLimit } from '@/lib/rate-limit'
 import { tryAcquireInFlight } from '@/lib/traffic-guard'
 import { rateAdCreative, generateAdCopy } from '@/lib/openai'
 import { generateIntelligentAdComposition } from '@/lib/gemini'
+import { GeminiRateLimitError } from '@/lib/gemini/executor'
 import { saveUpload } from '@/lib/storage'
 
 export const maxDuration = 60
@@ -18,7 +19,7 @@ export async function POST(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    let inFlight: { allowed: boolean; retryAfterSeconds?: number; release?: () => void } | null = null
+    let inFlight: { allowed: boolean; retryAfterSeconds?: number; release?: () => Promise<void> } | null = null
     try {
         const { id } = await params
         const supabase = await createClient()
@@ -56,7 +57,7 @@ export async function POST(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
         }
 
-        inFlight = tryAcquireInFlight(authUser.id, 'ads')
+        inFlight = await tryAcquireInFlight(authUser.id, 'ads')
         if (!inFlight.allowed) {
             const retry = inFlight.retryAfterSeconds ?? 15
             return NextResponse.json(
@@ -65,7 +66,7 @@ export async function POST(
             )
         }
 
-        const rateLimit = checkRateLimit(authUser.id, 'ads')
+        const rateLimit = await checkRateLimit(authUser.id, 'ads')
         if (!rateLimit.allowed) {
             const retry = rateLimit.retryAfterSeconds ?? 60
             return NextResponse.json(
@@ -137,11 +138,31 @@ export async function POST(
 
     } catch (error) {
         console.error('Ad regen error:', error)
+        if (error instanceof GeminiRateLimitError) {
+            const retryAfterSeconds = Math.min(
+                60,
+                Math.ceil((error.retryAfterMs ?? 30_000) / 1000)
+            ) || 30
+            return NextResponse.json(
+                {
+                    error: error.message || 'Rate limit reached. Please retry shortly.',
+                    code: 'RATE_LIMIT',
+                    retryAfterSeconds,
+                },
+                {
+                    status: 429,
+                    headers: {
+                        'Retry-After': String(retryAfterSeconds),
+                        'Cache-Control': 'no-store',
+                    },
+                }
+            )
+        }
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Error' },
             { status: 500 }
         )
     } finally {
-        inFlight?.release?.()
+        await inFlight?.release?.()
     }
 }

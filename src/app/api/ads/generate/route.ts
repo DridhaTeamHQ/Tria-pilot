@@ -13,6 +13,7 @@ import { checkRateLimit } from '@/lib/rate-limit'
 import { tryAcquireInFlight } from '@/lib/traffic-guard'
 import { rateAdCreative, generateAdCopy } from '@/lib/openai'
 import { generateIntelligentAdComposition } from '@/lib/gemini'
+import { GeminiRateLimitError } from '@/lib/gemini/executor'
 import { saveUpload } from '@/lib/storage'
 import {
   AD_PRESET_IDS,
@@ -102,7 +103,7 @@ const adGenerationSchema = z
   .strict()
 
 export async function POST(request: Request) {
-  let inFlight: { allowed: boolean; retryAfterSeconds?: number; release?: () => void } | null = null
+  let inFlight: { allowed: boolean; retryAfterSeconds?: number; release?: () => Promise<void> } | null = null
   try {
     const startedAt = Date.now()
     const SOFT_DEADLINE_MS = 50_000
@@ -135,7 +136,7 @@ export async function POST(request: Request) {
     }
 
     // In-flight guard: one ad generation per user at a time (regulates traffic at scale)
-    inFlight = tryAcquireInFlight(user.id, 'ads')
+    inFlight = await tryAcquireInFlight(user.id, 'ads')
     if (!inFlight.allowed) {
       const retry = inFlight.retryAfterSeconds ?? 15
       return NextResponse.json(
@@ -151,7 +152,7 @@ export async function POST(request: Request) {
     }
 
     // Check rate limit (per-minute; middleware also enforces for /api/ads/generate)
-    const rateLimit = checkRateLimit(user.id, 'ads')
+    const rateLimit = await checkRateLimit(user.id, 'ads')
     if (!rateLimit.allowed) {
       const retry = rateLimit.retryAfterSeconds ?? 60
       return NextResponse.json(
@@ -423,6 +424,27 @@ QUALITY RECOVERY PASS:
       )
     }
 
+    if (error instanceof GeminiRateLimitError) {
+      const retryAfterSeconds = Math.min(
+        60,
+        Math.ceil((error.retryAfterMs ?? 30_000) / 1000)
+      ) || 30
+      return NextResponse.json(
+        {
+          error: error.message || 'Rate limit reached. Please retry shortly.',
+          code: 'RATE_LIMIT',
+          retryAfterSeconds,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(retryAfterSeconds),
+            'Cache-Control': 'no-store',
+          },
+        }
+      )
+    }
+
     return NextResponse.json(
       {
         error:
@@ -431,7 +453,7 @@ QUALITY RECOVERY PASS:
       { status: 500 }
     )
   } finally {
-    inFlight?.release?.()
+    await inFlight?.release?.()
   }
 }
 

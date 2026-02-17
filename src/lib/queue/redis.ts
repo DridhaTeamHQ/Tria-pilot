@@ -18,6 +18,12 @@ function isRedisSocketUrl(url: string): boolean {
   return url.startsWith('redis://') || url.startsWith('rediss://')
 }
 
+/** Returns true when a valid redis:// or rediss:// URL is configured. */
+export function isRedisConfigured(): boolean {
+  const socketUrl = readConfiguredRedisUrl()
+  return Boolean(socketUrl && isRedisSocketUrl(socketUrl))
+}
+
 function getRedisUrl(): string {
   const url = readConfiguredRedisUrl()
   if (!url) {

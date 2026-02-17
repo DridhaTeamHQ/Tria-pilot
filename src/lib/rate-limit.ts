@@ -1,5 +1,6 @@
-// In-memory rate limiting (for development)
-// For production, use Redis
+import { getRedisConnection, isRedisConfigured } from '@/lib/queue/redis'
+
+// In-memory fallback rate limiting (used when Redis is unavailable)
 
 interface RateLimitStore {
   [key: string]: {
@@ -21,13 +22,49 @@ const defaultConfigs: Record<string, RateLimitConfig> = {
   campaigns: { maxRequests: 5, windowMs: 60 * 1000 }, // 5 per minute
 }
 
-export function checkRateLimit(
+export async function checkRateLimit(
   userId: string,
   endpoint: 'tryon' | 'ads' | 'campaigns'
-): { allowed: boolean; remaining: number; resetTime: number; retryAfterSeconds?: number } {
+): Promise<{ allowed: boolean; remaining: number; resetTime: number; retryAfterSeconds?: number }> {
   const config = defaultConfigs[endpoint]
   const key = `${userId}:${endpoint}`
   const now = Date.now()
+
+  if (isRedisConfigured()) {
+    try {
+      const redis = getRedisConnection()
+      const redisKey = `ratelimit:v1:${endpoint}:${userId}`
+      const count = await redis.incr(redisKey)
+
+      if (count === 1) {
+        await redis.pexpire(redisKey, config.windowMs)
+      }
+
+      let ttlMs = await redis.pttl(redisKey)
+      if (ttlMs < 0) {
+        await redis.pexpire(redisKey, config.windowMs)
+        ttlMs = config.windowMs
+      }
+
+      const resetTime = now + Math.max(1, ttlMs)
+      if (count > config.maxRequests) {
+        return {
+          allowed: false,
+          remaining: 0,
+          resetTime,
+          retryAfterSeconds: Math.max(1, Math.ceil(ttlMs / 1000)),
+        }
+      }
+
+      return {
+        allowed: true,
+        remaining: Math.max(0, config.maxRequests - count),
+        resetTime,
+      }
+    } catch {
+      // Fall back to in-memory limiter if Redis is temporarily unavailable.
+    }
+  }
 
   if (store[key] && store[key].resetTime < now) {
     delete store[key]
