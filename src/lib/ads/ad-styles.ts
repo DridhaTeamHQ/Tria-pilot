@@ -87,6 +87,26 @@ export type CaptionTone = 'casual' | 'premium' | 'confident'
 export type CtaType = 'shop_now' | 'learn_more' | 'explore' | 'buy_now'
 
 export type CharacterType = 'human_female' | 'human_male' | 'animal' | 'none'
+export type CharacterIdentity =
+  | 'global_modern'
+  | 'indian_woman_modern'
+  | 'indian_man_modern'
+  | 'south_asian_modern'
+  | 'east_asian_modern'
+  | 'middle_eastern_modern'
+  | 'african_modern'
+  | 'latina_modern'
+  | 'european_modern'
+  | 'mixed_heritage_modern'
+  | 'north_american_modern'
+  | 'latin_american_modern'
+  | 'mediterranean_modern'
+  | 'south_east_asian_modern'
+  | 'central_asian_modern'
+  | 'pacific_islander_modern'
+
+export type StylePack = 'luxury' | 'high_street' | 'sports'
+export type PresetTextSystem = 'luxury_masthead' | 'highstreet_panel' | 'sports_brush'
 
 export type FontStyle = 'serif' | 'sans-serif' | 'handwritten' | 'bold-display'
 
@@ -136,6 +156,33 @@ export interface AdPreset {
   avoid: string[]
 }
 
+const PRESET_STYLE_PACK_OVERRIDES: Partial<Record<AdPresetId, StylePack>> = {
+  EDITORIAL_PREMIUM: 'luxury',
+  EDITORIAL_FASHION: 'luxury',
+  EDITORIAL_BEAUTY: 'luxury',
+  EDITORIAL_FILM_NOIR: 'luxury',
+  EDITORIAL_ETHEREAL: 'luxury',
+  PRODUCT_HERO: 'luxury',
+  STANDALONE_LUXURY_MACRO: 'luxury',
+  PERF_BEST_QUALITY: 'luxury',
+  SPORTS_DYNAMIC: 'sports',
+  SPORTS_MONOCHROME: 'sports',
+  SPORTS_TUNNEL_HERO: 'sports',
+  CREATIVE_CINEMATIC: 'sports',
+}
+
+const PRESET_TEXT_SYSTEM_OVERRIDES: Partial<Record<AdPresetId, PresetTextSystem>> = {
+  EDITORIAL_PREMIUM: 'luxury_masthead',
+  EDITORIAL_FASHION: 'luxury_masthead',
+  EDITORIAL_BEAUTY: 'luxury_masthead',
+  STUDIO_POSTER: 'highstreet_panel',
+  COMMERCIAL_FLAT_POSTER: 'highstreet_panel',
+  CREATIVE_TEXT_DYNAMIC: 'sports_brush',
+  SPORTS_DYNAMIC: 'sports_brush',
+  SPORTS_MONOCHROME: 'sports_brush',
+  SPORTS_TUNNEL_HERO: 'sports_brush',
+}
+
 export type PresetTier = 'safe' | 'bold' | 'experimental'
 export type PresetStability = 'high' | 'medium'
 export type PresetPack = 'performance' | 'fashion' | 'experimental' | 'sports' | 'heritage' | 'creator'
@@ -151,6 +198,7 @@ export type AdPresetDisplay = AdPreset & PresetTaxonomy
 export interface AdGenerationInput {
   preset: AdPresetId
   campaignId?: string
+  stylePack?: StylePack
 
   // Image inputs
   productImage?: string
@@ -159,6 +207,7 @@ export interface AdGenerationInput {
 
   // Character
   characterType?: CharacterType
+  characterIdentity?: CharacterIdentity
   animalType?: string
   characterStyle?: string
   characterAge?: string
@@ -319,7 +368,7 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Fashion launches', 'Lookbook', 'Designer brands'],
     platforms: ['instagram'],
     sceneGuide:
-      'Director brief: Model as sculpture. Studio or minimal architectural set; strong styling, fashion-forward pose, confident attitude. Product is the star — fabric, silhouette, accessory must read. One frame that could lead a lookbook or campaign. Guy Bourdin, Tim Walker energy.',
+      'Director brief: Model as sculpture. Studio or minimal architectural set; strong styling, fashion-forward pose, confident attitude. Product is the star — fabric, silhouette, accessory must read. Side-profile and seated sculptural poses are encouraged for premium minimal editorials. One frame that could lead a lookbook or campaign. Guy Bourdin, Tim Walker energy.',
     lightingGuide:
       'Controlled studio rig: key at 45° (beauty dish or large softbox), fill to taste (2:1 or 3:1). Rim or backlight for hair and shoulder separation. Sharp detail on fabric weave and accessories. 5600K. Production fashion lighting — no flat single-source.',
     cameraGuide:
@@ -351,7 +400,7 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Streetwear', 'Urban brands', 'Youth editorial'],
     platforms: ['instagram'],
     sceneGuide:
-      'Director brief: Urban fashion in context — graffiti wall, concrete, metal, city grit. Subject with attitude: leaning, walking, or strong stance. Raw but lit like a campaign. One frame that could lead a street-style feature. Martin Parr meets high fashion.',
+      'Director brief: Urban fashion in context — graffiti wall, concrete, metal, city grit, storefront glass, or retail interior moments. Subject with attitude: leaning, walking, candid interaction, or strong stance. Raw but lit like a campaign. One frame that could lead a street-style feature. Martin Parr meets high fashion.',
     lightingGuide:
       'Natural urban light: harsh daylight with strong directional shadows, or overcast soft key. Film grain and slight desaturation for edge. Optional neon or street lamp accent. No studio look — environment-driven shadows. Production-quality “street” lighting.',
     cameraGuide:
@@ -417,7 +466,7 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Sales', 'Announcements', 'Brand drops', 'Banner ads'],
     platforms: ['instagram', 'facebook', 'google'],
     sceneGuide:
-      'Director brief: Solid or soft gradient studio backdrop; no texture or distractions. Space reserved for text overlay. Subject centred for maximum impact. One frame that could run as a poster or banner — iconic, clean, campaign-ready.',
+      'Director brief: Solid or soft gradient studio backdrop; no texture or distractions. Space reserved for text overlay. Subject centred for maximum impact. Any text must come from user-provided campaign copy only. One frame that could run as a poster or banner — iconic, clean, campaign-ready.',
     lightingGuide:
       'Controlled key at 45°, fill for even illumination, gentle shadows. Rim optional for separation. 5600K. Strong clarity on subject and product. Production studio lighting — flattering, defined.',
     cameraGuide:
@@ -465,7 +514,7 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Campaign launches', 'Print ads', 'Window displays', 'Brand drops'],
     platforms: ['instagram', 'facebook', 'google'],
     sceneGuide:
-      'Director brief: Bold graphic campaign poster. Subject or product as hero; strong graphic elements — colour blocks, geometric shapes, striking negative space. Print-quality composition. Zara/H&M seasonal poster energy. One frame that stops scroll and works in-store.',
+      'Director brief: Bold graphic campaign poster. Subject or product as hero; strong graphic elements — colour blocks, geometric shapes, striking negative space, optional oversized numerals. Print-quality composition. Seasonal high-street poster energy. Any typography must use brand-user provided text only. One frame that stops scroll and works in-store.',
     lightingGuide:
       'Controlled studio: high-key for bright campaigns (soft key + fill, 5600K), or low-key for luxury (single key, rim, deep shadows). Sharp, defined, intentional. Production-grade.',
     cameraGuide:
@@ -1084,8 +1133,15 @@ export function buildFallbackPrompt(input: AdGenerationInput): string {
 
   const hasText = !!(input.textOverlay && (input.textOverlay.headline || input.textOverlay.subline || input.textOverlay.tagline))
   const noTextInstruction = hasText ? '' : 'NO TEXT: Do NOT include any text, words, letters, numbers, brand names, slogans, or typography in the image. This is a photography-only composition with ZERO written content.'
+  const stylePackDirective =
+    input.stylePack === 'luxury'
+      ? 'Style pack: LUXURY. Premium editorial polish, elevated materials, cinematic lighting, restrained color harmony, and sophisticated composition.'
+      : input.stylePack === 'sports'
+        ? 'Style pack: SPORTS. Dynamic athletic energy, body-in-motion clarity, bold angles, and high-impact commercial sports styling.'
+        : 'Style pack: HIGH STREET. Modern retail campaign look, trend-forward styling, clean typography zones, and urban-commercial realism.'
 
   return [
+    stylePackDirective,
     sceneGuide,
     character ? `Character (MUST be prominent): ${character}` : '',
     `Lighting: ${preset.lightingGuide}`,
@@ -1112,8 +1168,40 @@ function resolveCharacterDescription(input: AdGenerationInput): string {
   const style = input.characterStyle || 'natural, confident'
   const pose = input.subject?.pose || 'relaxed, natural'
   const expression = input.subject?.expression || 'confident'
+  const identityDirective =
+    input.characterIdentity === 'indian_woman_modern'
+      ? 'Indian woman, modern South Delhi aesthetic (contemporary urban styling), explicitly avoid stereotypical or costume-like cultural cues. Casting lock: the model must clearly read as Indian and must not drift to non-Indian identity.'
+      : input.characterIdentity === 'indian_man_modern'
+        ? 'Indian man, modern South Delhi aesthetic (contemporary urban styling), explicitly avoid stereotypical or costume-like cultural cues. Casting lock: the model must clearly read as Indian and must not drift to non-Indian identity.'
+        : input.characterIdentity === 'south_asian_modern'
+          ? 'South Asian modern identity with contemporary styling and realistic urban context.'
+          : input.characterIdentity === 'east_asian_modern'
+            ? 'East Asian modern identity with contemporary styling and realistic urban context.'
+            : input.characterIdentity === 'middle_eastern_modern'
+              ? 'Middle Eastern modern identity with contemporary styling and realistic urban context.'
+              : input.characterIdentity === 'african_modern'
+                ? 'African modern identity with contemporary styling and realistic urban context.'
+                : input.characterIdentity === 'latina_modern'
+                  ? 'Latina modern identity with contemporary styling and realistic urban context.'
+                  : input.characterIdentity === 'european_modern'
+                    ? 'European modern identity with contemporary styling and realistic urban context.'
+                    : input.characterIdentity === 'north_american_modern'
+                      ? 'North American modern identity with contemporary styling and realistic urban context.'
+                      : input.characterIdentity === 'latin_american_modern'
+                        ? 'Latin American modern identity with contemporary styling and realistic urban context.'
+                        : input.characterIdentity === 'mediterranean_modern'
+                          ? 'Mediterranean modern identity with contemporary styling and realistic urban context.'
+                          : input.characterIdentity === 'south_east_asian_modern'
+                            ? 'South East Asian modern identity with contemporary styling and realistic urban context.'
+                            : input.characterIdentity === 'central_asian_modern'
+                              ? 'Central Asian modern identity with contemporary styling and realistic urban context.'
+                              : input.characterIdentity === 'pacific_islander_modern'
+                                ? 'Pacific Islander modern identity with contemporary styling and realistic urban context.'
+                    : input.characterIdentity === 'mixed_heritage_modern'
+                      ? 'Mixed-heritage modern identity with contemporary styling and realistic urban context.'
+                      : 'Global modern look with contemporary styling and non-stereotyped representation.'
 
-  return `A young ${gender} (${age}), ${style} style, ${pose} pose, ${expression} expression. Body proportions and facial features are realistic and anatomically correct.`
+  return `A young ${gender} (${age}), ${style} style, ${pose} pose, ${expression} expression. ${identityDirective} Body proportions and facial features are realistic and anatomically correct.`
 }
 
 function resolveTextOverlay(overlay?: TextOverlayConfig): string {
@@ -1138,6 +1226,28 @@ export function getAdPreset(id: AdPresetId): AdPresetDisplay | undefined {
 
 export function getAdPresetList(): AdPresetDisplay[] {
   return AD_PRESETS.map(withTaxonomy)
+}
+
+export function resolveStylePackForPreset(presetId: AdPresetId): StylePack {
+  const override = PRESET_STYLE_PACK_OVERRIDES[presetId]
+  if (override) return override
+
+  const preset = AD_PRESETS.find((p) => p.id === presetId)
+  if (!preset) return 'high_street'
+
+  if (preset.category === 'sports') return 'sports'
+  if (preset.category === 'editorial' || preset.category === 'indian') return 'luxury'
+  return 'high_street'
+}
+
+export function resolveTextSystemForPreset(presetId: AdPresetId): PresetTextSystem {
+  const override = PRESET_TEXT_SYSTEM_OVERRIDES[presetId]
+  if (override) return override
+
+  const stylePack = resolveStylePackForPreset(presetId)
+  if (stylePack === 'sports') return 'sports_brush'
+  if (stylePack === 'luxury') return 'luxury_masthead'
+  return 'highstreet_panel'
 }
 
 export function validateAdInput(
@@ -1231,6 +1341,35 @@ export const CHARACTER_STYLE_OPTIONS: string[] = [
   'Bohemian',
   'Minimalist',
   'Bold / Statement',
+]
+
+export const CHARACTER_IDENTITY_OPTIONS: {
+  value: CharacterIdentity
+  label: string
+  forCharacter?: Array<'human_female' | 'human_male'>
+}[] = [
+  { value: 'global_modern', label: 'Global Modern' },
+  { value: 'indian_woman_modern', label: 'Indian Woman (South Delhi Modern)', forCharacter: ['human_female'] },
+  { value: 'indian_man_modern', label: 'Indian Man (South Delhi Modern)', forCharacter: ['human_male'] },
+  { value: 'south_asian_modern', label: 'South Asian Modern' },
+  { value: 'south_east_asian_modern', label: 'South East Asian Modern' },
+  { value: 'east_asian_modern', label: 'East Asian Modern' },
+  { value: 'central_asian_modern', label: 'Central Asian Modern' },
+  { value: 'middle_eastern_modern', label: 'Middle Eastern Modern' },
+  { value: 'mediterranean_modern', label: 'Mediterranean Modern' },
+  { value: 'african_modern', label: 'African Modern' },
+  { value: 'latina_modern', label: 'Latina Modern', forCharacter: ['human_female'] },
+  { value: 'latin_american_modern', label: 'Latin American Modern' },
+  { value: 'north_american_modern', label: 'North American Modern' },
+  { value: 'european_modern', label: 'European Modern' },
+  { value: 'pacific_islander_modern', label: 'Pacific Islander Modern' },
+  { value: 'mixed_heritage_modern', label: 'Mixed Heritage Modern' },
+]
+
+export const STYLE_PACK_OPTIONS: { value: StylePack; label: string }[] = [
+  { value: 'luxury', label: 'Luxury' },
+  { value: 'high_street', label: 'High Street' },
+  { value: 'sports', label: 'Sports' },
 ]
 
 export const FONT_STYLE_OPTIONS: { value: FontStyle; label: string }[] = [

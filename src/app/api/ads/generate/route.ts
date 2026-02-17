@@ -27,6 +27,7 @@ import {
   type TextPlacement,
   type AspectRatio,
   validateAdInput,
+  resolveStylePackForPreset,
 } from '@/lib/ads/ad-styles'
 import { buildAdPrompt } from '@/lib/ads/ad-prompt-builder'
 import { buildForensicFaceAnchor } from '@/lib/tryon/face-forensics'
@@ -40,6 +41,7 @@ const adGenerationSchema = z
   .object({
     preset: z.enum(AD_PRESET_IDS as unknown as [string, ...string[]]),
     campaignId: z.string().max(100).optional(),
+    stylePack: z.enum(['luxury', 'high_street', 'sports']).optional(),
 
     // Image inputs
     productImage: z.string().min(1).max(15_000_000).optional(),
@@ -51,6 +53,27 @@ const adGenerationSchema = z
       .enum(['human_female', 'human_male', 'animal', 'none'])
       .optional()
       .default('none'),
+    characterIdentity: z
+      .enum([
+        'global_modern',
+        'indian_woman_modern',
+        'indian_man_modern',
+        'south_asian_modern',
+        'south_east_asian_modern',
+        'east_asian_modern',
+        'central_asian_modern',
+        'middle_eastern_modern',
+        'mediterranean_modern',
+        'african_modern',
+        'latina_modern',
+        'latin_american_modern',
+        'north_american_modern',
+        'european_modern',
+        'pacific_islander_modern',
+        'mixed_heritage_modern',
+      ])
+      .optional()
+      .default('global_modern'),
     animalType: z.string().trim().max(50).optional(),
     characterStyle: z.string().trim().max(100).optional(),
     characterAge: z.string().trim().max(20).optional(),
@@ -205,10 +228,12 @@ export async function POST(request: Request) {
     const generationInput: AdGenerationInput = {
       preset: input.preset as AdPresetId,
       campaignId: input.campaignId,
+      stylePack: input.stylePack ?? resolveStylePackForPreset(input.preset as AdPresetId),
       productImage: input.productImage,
       influencerImage: input.influencerImage,
       lockFaceIdentity: input.lockFaceIdentity,
       characterType: input.characterType as CharacterType,
+      characterIdentity: input.characterIdentity,
       animalType: input.animalType,
       characterStyle: input.characterStyle,
       characterAge: input.characterAge,
@@ -270,6 +295,8 @@ Preserve micro details: skin texture, fabric weave, material reflections, and tr
 Professional camera language: intentional framing, depth, and focus falloff with strong subject-product readability.
 Output should feel editorial plus conversion-ready, suitable for top-tier social ads and landing pages.
 Avoid low-quality artifacts: blur mush, warped geometry, duplicate limbs, extra fingers, over-smoothing, posterization, and noisy edges.
+If humans are present, facial realism is non-negotiable: visible pores, natural asymmetry, realistic under-eye/skin texture, consistent skin tone across face and neck.
+Do NOT output waxy/plastic/clay skin, porcelain beauty-filter faces, mannequin-like expressions, or CGI facial surfaces.
 Return exactly one final ad image.${noTextRule}
 
 `
@@ -313,7 +340,9 @@ QUALITY RECOVERY PASS:
 - Increase realism and premium finish while preserving the same concept.
 - Clean edges, natural skin/fabric texture, balanced dynamic range.
 - Keep a single strong focal point with ad-ready composition.
-- No warped hands, no malformed anatomy, no synthetic/plastic skin.`
+- No warped hands, no malformed anatomy, no synthetic/plastic/clay skin.
+- Face correction priority: realistic pores, subtle facial asymmetry, accurate skin micro-contrast, natural eye detail, no beauty-filter smoothing.
+- Text correction priority: crisp and legible typography, realistic print/paint/signage treatment, never chunky toy-like 3D letters.`
 
       const candidateImage = await generateIntelligentAdComposition(
         input.productImage,

@@ -1,6 +1,6 @@
 'use client'
 
-import { type ReactNode, type ReactElement, type ChangeEvent, cloneElement, useState, useEffect, useCallback } from 'react'
+import { type ReactNode, type ChangeEvent, useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
@@ -47,6 +47,7 @@ import {
 import {
   AD_PRESET_CATEGORIES,
   CHARACTER_OPTIONS,
+  CHARACTER_IDENTITY_OPTIONS,
   ANIMAL_OPTIONS,
   CHARACTER_STYLE_OPTIONS,
   FONT_STYLE_OPTIONS,
@@ -55,12 +56,14 @@ import {
   ASPECT_RATIO_OPTIONS,
   CAMERA_ANGLE_OPTIONS,
   getPresetsByCategory,
+  resolveStylePackForPreset,
   validateAdInput,
   type AdPresetId,
   type AdPresetCategory,
   type Platform,
   type CtaType,
   type CharacterType,
+  type CharacterIdentity,
   type FontStyle,
   type TextPlacement,
   type AspectRatio,
@@ -128,6 +131,7 @@ export default function AdsPage() {
   const [influencerImage, setInfluencerImage] = useState('')
   const [lockFaceIdentity, setLockFaceIdentity] = useState(false)
   const [characterType, setCharacterType] = useState<CharacterType>('none')
+  const [characterIdentity, setCharacterIdentity] = useState<CharacterIdentity>('global_modern')
   const [animalType, setAnimalType] = useState('')
   const [characterStyle, setCharacterStyle] = useState('')
   const [characterAge, setCharacterAge] = useState('')
@@ -149,6 +153,12 @@ export default function AdsPage() {
 
   const hasText = !!(textHeadline || textSubline || textTagline)
   const canSubmit = selectedPreset && selectedPlatforms.length > 0 && !loading && retryAfterSeconds <= 0
+  const visibleIdentityOptions =
+    characterType === 'human_female' || characterType === 'human_male'
+      ? CHARACTER_IDENTITY_OPTIONS.filter((opt) =>
+          !opt.forCharacter || opt.forCharacter.includes(characterType)
+        )
+      : CHARACTER_IDENTITY_OPTIONS
 
   // Countdown for rate limit / in-flight wait
   useEffect(() => {
@@ -156,6 +166,14 @@ export default function AdsPage() {
     const t = setInterval(() => setRetryAfterSeconds((prev) => Math.max(0, prev - 1)), 1000)
     return () => clearInterval(t)
   }, [retryAfterSeconds])
+
+  useEffect(() => {
+    if (characterType !== 'human_female' && characterType !== 'human_male') return
+    const isAllowed = visibleIdentityOptions.some((opt) => opt.value === characterIdentity)
+    if (!isAllowed) {
+      setCharacterIdentity('global_modern')
+    }
+  }, [characterType, characterIdentity, visibleIdentityOptions])
 
   const handleImageUpload = useCallback(
     (e: ChangeEvent<HTMLInputElement>, type: 'product' | 'influencer') => {
@@ -183,10 +201,12 @@ export default function AdsPage() {
     const isHuman = characterType === 'human_female' || characterType === 'human_male'
     const input: any = {
       preset: selectedPreset,
+      stylePack: resolveStylePackForPreset(selectedPreset),
       productImage: productImage || undefined,
       influencerImage: influencerImage || undefined,
       lockFaceIdentity,
       characterType,
+      characterIdentity: isHuman ? characterIdentity : undefined,
       animalType: characterType === 'animal' ? (animalType || 'Fox') : undefined,
       characterStyle: isHuman ? (characterStyle || undefined) : undefined,
       characterAge: isHuman ? (characterAge || undefined) : undefined,
@@ -343,7 +363,7 @@ export default function AdsPage() {
                         'inline-flex h-9 w-9 items-center justify-center border-2 border-black',
                         selectedPreset === preset.id ? 'bg-black text-white' : 'bg-[#B4F056] text-black'
                       )}>
-                        {cloneElement(ICON_MAP[preset.icon] as ReactElement, { className: 'h-4 w-4' })}
+                        {ICON_MAP[preset.icon] ?? <Sparkles className="h-4 w-4" />}
                       </span>
                       <div>
                         <p className="text-sm font-black uppercase leading-tight">{preset.name}</p>
@@ -436,6 +456,10 @@ export default function AdsPage() {
                         onClick={() => {
                           setCharacterType(opt.value as CharacterType)
                           if (opt.value !== 'animal') setAnimalType('')
+                          if (opt.value !== 'human_female' && opt.value !== 'human_male') {
+                            setCharacterIdentity('global_modern')
+                            setCharacterStyle('')
+                          }
                         }}
                         className={cn(
                           'rounded-md border-2 border-black px-2 py-1.5 text-[10px] font-black uppercase transition-transform hover:-translate-y-0.5',
@@ -465,19 +489,38 @@ export default function AdsPage() {
                   )}
 
                   {(characterType === 'human_female' || characterType === 'human_male') && (
-                    <div className="flex flex-wrap gap-1">
-                      {CHARACTER_STYLE_OPTIONS.slice(0, 4).map((s) => (
-                        <button
-                          key={s}
-                          onClick={() => setCharacterStyle(characterStyle === s ? '' : s)}
-                          className={cn(
-                            'rounded-md border-2 border-black px-2 py-1 text-[10px] font-black uppercase',
-                            characterStyle === s ? 'bg-black text-white' : 'bg-white'
-                          )}
-                        >
-                          {s}
-                        </button>
-                      ))}
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap gap-1">
+                        {CHARACTER_STYLE_OPTIONS.slice(0, 6).map((s) => (
+                          <button
+                            key={s}
+                            onClick={() => setCharacterStyle(characterStyle === s ? '' : s)}
+                            className={cn(
+                              'rounded-md border-2 border-black px-2 py-1 text-[10px] font-black uppercase',
+                              characterStyle === s ? 'bg-black text-white' : 'bg-white'
+                            )}
+                          >
+                            {s}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="rounded-md border-2 border-black bg-white p-2">
+                        <p className="mb-1 text-[9px] font-black uppercase tracking-wider text-black/60">People Type</p>
+                        <div className="relative">
+                          <select
+                            value={characterIdentity}
+                            onChange={(e) => setCharacterIdentity(e.target.value as CharacterIdentity)}
+                            className="h-9 w-full cursor-pointer appearance-none rounded-md border-2 border-black bg-[#FFFDF5] pl-3 pr-8 py-1.5 text-[10px] font-black uppercase tracking-wide outline-none focus:ring-2 focus:ring-black/20"
+                          >
+                            {visibleIdentityOptions.map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-black" />
+                        </div>
+                      </div>
                     </div>
                   )}
 

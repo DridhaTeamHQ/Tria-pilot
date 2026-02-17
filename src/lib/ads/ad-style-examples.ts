@@ -369,6 +369,91 @@ export const AD_STYLE_EXAMPLES: AdStyleExample[] = [
       'Lifestyle product mockup: same model/pose/lighting/background; only change is shirt—fully blank, no graphics or text residue. For print-ready apparel mockups (e.g. custom tee). Outdoor, rustic BG, natural light.',
     imagePath: 'assets/ad-examples/lifestyle-blank-tee-mockup.png',
   },
+  // ─── Luxury fashion and retail references (brand-agnostic style) ───
+  {
+    id: 'luxury-car-window-chiaroscuro',
+    name: 'Luxury Editorial – Car interior chiaroscuro (handbag hero)',
+    prompt: `A high-fashion portrait inside a vintage car interior. The model reclines in tailored neutral outerwear while a premium structured handbag sits in the foreground as the hero accessory. Hard natural sunlight enters through the side window, carving dramatic light bands across face, coat, and bag. Deep interior shadows, warm beige-brown palette, cinematic filmic texture, 85mm editorial framing, premium magazine ad quality.`,
+    styleNotes:
+      'Luxury narrative editorial: car interior, dramatic sunlight slices, handbag as foreground hero, warm neutrals, filmic contrast. Strong for premium fashion/accessories.',
+  },
+  {
+    id: 'luxury-chain-maximal-portrait',
+    name: 'Luxury Editorial – Maximal portrait (chain + accessory)',
+    prompt: `Close-up luxury portrait against a saturated draped backdrop (teal and crimson). Model in statement styling with glossy gloves and oversized eyewear, gripping a gold chain attached to a premium accessory bag. Bold expression, intense color contrast, sculpted studio key light, deep micro-detail in fabric, metal, and skin. High-impact campaign portrait with poster-ready energy.`,
+    styleNotes:
+      'Maximal luxury styling: saturated color blocking, statement accessories, metallic chain highlights, tight portrait crop, high-fashion drama.',
+  },
+  {
+    id: 'luxury-baroque-lounge-duo',
+    name: 'Luxury Editorial – Mood-lit lounge duo (cinematic noir)',
+    prompt: `Two fashion models in a moody lounge booth with dark wood paneling and textured walls. One reclines while the other poses with a premium handbag and clutch. Warm tungsten practicals and deep red accents shape a low-key cinematic atmosphere. Rich blacks, emerald leather tones, and controlled highlights on jewelry and hardware. Editorial luxury campaign frame with strong composition hierarchy.`,
+    styleNotes:
+      'Low-key luxury interior: dual subjects, lounge booth, warm practical light, rich materials, handbag hardware highlights. Great for premium evening campaigns.',
+  },
+  {
+    id: 'luxury-submerged-golden-refraction',
+    name: 'Luxury Beauty – Submerged portrait with golden refractions',
+    prompt: `A beauty-fashion close-up with model partially submerged in clear water, surrounded by floral and crystalline elements. Golden sunlight refracts through moving ripples, painting dynamic highlights across skin and accessories. The look is ethereal yet photoreal, with precise facial detail, high-end color grading, and luxury editorial finish. Composition feels premium, surreal, and ad-ready.`,
+    styleNotes:
+      'Ethereal luxury beauty: water refractions, floral accents, golden highlights, ultra-premium skin rendering, surreal editorial mood.',
+  },
+  {
+    id: 'minimal-monochrome-side-profile',
+    name: 'Minimal Editorial – Monochrome side profile on seamless',
+    prompt: `Strict side-profile fashion portrait in a minimal seamless studio. Monochrome wardrobe with sharp silhouette, negative space dominant, and restrained styling. Lighting is clean and directional, producing subtle tonal gradients without clutter. Crisp profile line, editorial composition, high-resolution detail, timeless luxury minimalism.`,
+    styleNotes:
+      'Minimal monochrome editorial: side profile, high negative space, clean tonal transitions, silhouette-first framing.',
+  },
+  {
+    id: 'monochrome-beauty-print-poster',
+    name: 'Monochrome Print Poster – Beauty close-up with ad typography zone',
+    prompt: `Black-and-white beauty close-up with premium skin texture and high-contrast eye detail, composed inside a clean print-poster layout with large neutral margins for typography. One hero portrait dominates upper frame; lower frame reserved for campaign copy and masthead. Lighting is controlled studio softbox with subtle shadow contouring. The image reads like a magazine print ad.`,
+    styleNotes:
+      'Print-ad composition: monochrome beauty hero + structured whitespace for brand text. Strong for luxury and fashion sale campaigns.',
+  },
+  {
+    id: 'minimal-seated-profile-studio',
+    name: 'Minimal Studio – Seated profile with sculptural pose',
+    prompt: `Model seated in profile on a simple geometric stool in a neutral seamless studio. Monochrome outfit, clean jewelry accents, and sculptural posture create a refined editorial silhouette. Lighting is soft, high-key, and evenly graded, preserving skin and fabric texture without harsh shadows. Minimalist campaign frame with premium polish.`,
+    styleNotes:
+      'Studio minimalism: seated profile, sculptural pose, neutral backdrop, soft high-key light, modern luxury look.',
+  },
+  {
+    id: 'clean-highkey-portrait-jewelry',
+    name: 'Clean High-Key Portrait – Front-facing beauty with subtle jewelry',
+    prompt: `Front-facing beauty portrait on a pale seamless background. Soft high-key lighting with faint directional shadow, natural skin texture, and understated jewelry detail. Styling remains minimal and clean, with editorial-grade clarity and balanced tones. Designed for premium fashion/beauty ads with conversion-ready readability.`,
+    styleNotes:
+      'High-key beauty commerce/editorial hybrid: front portrait, minimal styling, clean background, subtle accessories.',
+  },
+  {
+    id: 'sale-poster-oversized-numeral',
+    name: 'Sale Poster – Oversized numeral with model occlusion',
+    prompt: `Campaign poster composition with a model in a confident crouched fashion pose against a textured paper or folded-fabric backdrop. A giant semi-transparent numeral occupies most of the frame, partially occluded by the subject for depth. Large masthead at top, promotional text stack at mid-left, and date/CTA at lower section. Studio lighting is directional with premium contrast and print-ready sharpness.`,
+    styleNotes:
+      'Retail sale poster language: oversized numeral, typographic hierarchy, model-text occlusion, textured backdrop, clean campaign structure.',
+  },
+  {
+    id: 'storefront-walkby-motion',
+    name: 'Street Retail – Storefront walk-by with motion blur',
+    prompt: `Street-level retail scene outside a flagship storefront. A well-dressed pedestrian strides past in slight motion blur while the store facade, signage, and window displays remain sharp. Daylight reflections on glass, urban context, and documentary framing create authentic commercial realism. The composition balances brand environment and candid human movement.`,
+    styleNotes:
+      'Retail street candid: moving subject with sharp storefront and reflections. Useful for high-street brand context and urban authenticity.',
+  },
+  {
+    id: 'retail-checkout-candid',
+    name: 'Retail Interior – Checkout candid interaction',
+    prompt: `Documentary-style candid inside a fashion retail store at checkout. Two subjects interact over a garment while branded signage and product racks recede in soft focus. Lighting mixes practical overhead spots with ambient store fill, preserving realistic shadows and skin tones. Feels like authentic in-store brand storytelling rather than staged studio work.`,
+    styleNotes:
+      'In-store social proof: candid interaction, branded interior context, practical retail lighting, trustworthy lifestyle realism.',
+  },
+  {
+    id: 'backstage-phone-candid',
+    name: 'Backstage Candid – Industrial space, on-phone styling moment',
+    prompt: `Candid backstage fashion moment in an industrial prep space. Subject stands in relaxed posture speaking on phone, carrying layered accessories and garments. Neutral concrete textures, soft practical overhead light, and shallow depth of field create editorial realism. Clean but unpolished atmosphere suitable for street-luxury storytelling.`,
+    styleNotes:
+      'Backstage authenticity: industrial textures, candid pose, practical lighting, lifestyle fashion mood with premium detail.',
+  },
   // ─── User-provided reference-quality prompts (ultra-detailed narrative style) ───
   {
     id: 'mediterranean-swim-editorial',
@@ -584,6 +669,48 @@ export const AD_STYLE_EXAMPLES: AdStyleExample[] = [
 The woman wears a crisp white oversized button-down shirt layered under a rich burgundy knit shawl, lending textured depth to her relaxed yet elegant ensemble. She holds a large bouquet of white lilies in one hand and a bold leopard-print bag in the other, standing out vividly against the graphic metallic steps. Her hair is slicked back smoothly, complemented by sleek sunglasses, adding a polished, fashion-forward edge. Soft, ambient indoor lighting bathes the scene evenly, enhancing the tactile knit texture, the crisp cotton folds of the shirt, and subtle gleam of metal, creating an effortlessly stylish and candid escalator fit check with a clean, minimalistic editorial feel.`,
     styleNotes:
       'Overhead/down-angle: symmetrical escalator, metallic steps + yellow safety lines, 85mm compression. White shirt + burgundy shawl, lilies, leopard bag, slicked hair, sunglasses. Soft ambient indoor light, minimal editorial fit check. Use for fashion editorial, UGC fit check, product lifestyle.',
+  },
+  {
+    id: 'luxury-masthead-motion-blur',
+    name: 'Luxury Masthead - oversized serif logo with motion foreground',
+    prompt: `A premium fashion campaign frame with a dark cinematic backdrop and an oversized high-contrast serif masthead word occupying the center of the composition. The subject stands in sharp focus at camera-right while soft long-exposure motion blur from passing pedestrians sweeps across foreground layers, partially occluding the typography for depth. Lighting is controlled and moody: key from 45 degrees, subtle fill, elegant rim separation. The masthead typography is integrated physically in the scene plane (not a flat overlay), with slight atmospheric haze and refined contrast. Editorial luxury tone, clean composition, no clutter, premium print-ad realism.`,
+    styleNotes:
+      'Luxury typographic language: oversized serif masthead, cinematic dark palette, motion blur passing layers, subject in clean sharp focus. Strong for editorial premium, luxury, and fashion hero campaigns.',
+  },
+  {
+    id: 'highstreet-poster-panel-layout',
+    name: 'High Street Poster - image plus block panel editorial card',
+    prompt: `A high-street fashion poster composition that combines a vibrant lifestyle photo in the upper portion and a muted brand information panel in the lower portion. The top image is energetic, daytime street fashion with natural movement and candid confidence. The lower panel uses clean editorial typography hierarchy: large serif headline, secondary sans info block, and small footer credits aligned with generous spacing. Colors are restrained and modern with soft sage or stone tones. The layout is print-inspired, modular, and conversion-ready. Typography is crisp, balanced, and integrated into the poster grid, preserving premium ad design realism.`,
+    styleNotes:
+      'Modular poster system: split visual + information panel, editorial hierarchy, high-street catalog feel. Useful for commercial flat poster, studio poster, and performance creatives with clean text structure.',
+  },
+  {
+    id: 'sports-brush-slogan-packshot',
+    name: 'Sports Brush Typography - bold slogan over product hero',
+    prompt: `A high-impact sports ad featuring a hero product shot against a dark or neutral background with aggressive typographic layering. Use one heavy condensed black headline as structural base and a contrasting brush-stroke slogan crossing through it diagonally in dynamic color. Product remains tack-sharp and dominant, with dramatic side lighting and controlled reflections. Typography has energy and urgency but remains legible and compositionally balanced. The design feels like modern footwear campaign art direction: clean, bold, kinetic, and commercially polished.`,
+    styleNotes:
+      'Sports conversion typography: condensed headline + expressive brush script accent over product hero. Strong for sports dynamic, text-dynamic, and performance ad variants.',
+  },
+  {
+    id: 'sports-handheld-vertical-type',
+    name: 'Sports Vertical Handheld - hand + shoe with stacked slogan',
+    prompt: `A vertical sports campaign visual with a hand lifting a performance shoe into frame against a clean studio background. Typography is stacked in the upper half with a strong bold uppercase headline and a secondary energetic script layer crossing one keyword for emphasis. Product remains central and highly readable with crisp material detail, premium lighting, and minimal distractions. Composition is simple, punchy, and optimized for social/mobile formats, preserving clear visual hierarchy between text and product.`,
+    styleNotes:
+      'Vertical performance layout: hand-held product hero with stacked typography and script accent. Ideal for 9:16 and 4:5 campaign outputs with strong CTA readability.',
+  },
+  {
+    id: 'south-delhi-modern-woman-cafe',
+    name: 'South Delhi Modern Woman - clean cafe street editorial',
+    prompt: `A photoreal campaign still of a modern Indian woman in her mid-20s standing outside a minimalist South Delhi cafe on a tree-lined lane at soft late-afternoon light. She wears a tailored olive cropped jacket over a clean white ribbed tank, high-waisted straight-leg denim, understated gold hoops, and a sleek low bun with natural flyaways. Her makeup is fresh and contemporary with neutral tones, no theatrical styling, no costume cues. She holds the product naturally at waist level while facing camera in a confident three-quarter stance. Background includes glass storefront reflections, matte concrete textures, parked scooters softly out of focus, and warm urban depth. Lighting is a controlled natural key from front-left with subtle bounce fill and a faint rim from the storefront side. Shot on 50mm at f/2.8 with premium skin texture, realistic pores, accurate anatomy, and clean high-street editorial quality.`,
+    styleNotes:
+      'Modern South Delhi high-street woman casting: contemporary styling, realistic urban cafe lane, neutral palette, premium natural light. Use for non-stereotyped Indian woman representation in lifestyle/editorial presets.',
+  },
+  {
+    id: 'south-delhi-modern-man-street',
+    name: 'South Delhi Modern Man - urban retail confidence',
+    prompt: `A photoreal ad frame featuring a modern Indian man in his late-20s walking through a polished South Delhi retail block at golden hour. He wears a charcoal overshirt, fitted cream tee, structured dark denim, clean sneakers, and a subtle metal watch, styled contemporary and understated. He carries or wears the product in an obvious hero interaction while keeping a relaxed, confident expression. The environment shows upscale storefronts, glass reflections, warm stone surfaces, and soft city movement in the distance. No costume-like cultural props, no stereotype framing. Lighting uses a directional warm key from sun-right, controlled fill from pavement bounce, and gentle back rim for separation. Shot on 35mm, eye-level with slight cinematic depth, crisp fabric texture, realistic skin detail, and premium high-street campaign polish.`,
+    styleNotes:
+      'Modern South Delhi male casting: contemporary urban retail look, premium commercial realism, non-stereotyped representation. Strong for high-street, performance, and editorial city presets.',
   },
 
   // ═══ USER-PROVIDED PROMPTS (add your own examples below — they will be used as references for GPT-4o) ═══

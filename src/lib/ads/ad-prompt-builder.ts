@@ -17,7 +17,10 @@ import {
   type AdGenerationInput,
   type AdPreset,
   type AdPresetId,
+  type CharacterIdentity,
   getAdPreset,
+  resolveStylePackForPreset,
+  resolveTextSystemForPreset,
   buildFallbackPrompt,
 } from './ad-styles'
 import { AD_STYLE_EXAMPLES, type AdStyleExample } from './ad-style-examples'
@@ -43,22 +46,22 @@ const PRESET_EXAMPLE_MAP: Record<string, string[]> = {
   UGC_FLAT_LAY: ['editorial-escalator-fit-check', 'angle-down-hero-product', 'standalone-clean-4k', 'food-office-product-in-hand', 'lifestyle-blank-tee-mockup'],
   UGC_GRWM: ['y2k-mirror-lip-gloss', 'italian-cafe-candid', 'golden-hour-glamour-cafe', 'creative-cyclorama-juice-portrait'],
   // Editorial presets
-  EDITORIAL_PREMIUM: ['editorial-escalator-fit-check', 'editorial-amber-hoodie-headphones', 'editorial-tennis-court-spotlight', 'editorial-70s-staircase-jumpsuit', 'japandi-overpass-candid', 'editorial-kerala-bed', 'barbershop-kodachrome-trench', 'meadow-white-dress-contemplative', 'creative-surreal-horse-shadow', 'editorial-glow-blur-portrait'],
-  EDITORIAL_FASHION: ['editorial-escalator-fit-check', 'editorial-tennis-court-spotlight', 'y2k-duo-white-studio-dynamic', 'editorial-bw-low-angle-latex', 'editorial-70s-staircase-jumpsuit', 'angle-side-profile-editorial', 'creative-bold-color-studio', 'creative-reeded-glass-portrait', 'creative-raw-analog-tennis'],
-  EDITORIAL_BEAUTY: ['editorial-amber-hoodie-headphones', 'beauty-ice-block-lipbalm', 'creative-beauty-close-up-cream', 'y2k-mirror-lip-gloss', 'editorial-glow-blur-portrait', 'creative-product-hands-motion-blur'],
-  EDITORIAL_STREET: ['digicam-neon-crosswalk', 'y2k-fisheye-bomber-street', 'y2k-red-studio-helmet', 'street-high-angle-crosswalk', 'tokyo-street-matcha-jersey', 'y2k-varsity-studio', 'cinematic-motion-runners', 'creative-raw-analog-tennis'],
-  EDITORIAL_FILM_NOIR: ['editorial-tennis-court-spotlight', 'barbershop-kodachrome-trench', 'creative-surreal-horse-shadow', 'sports-monochrome-typography', 'deconstructed-face-collage'],
+  EDITORIAL_PREMIUM: ['editorial-escalator-fit-check', 'editorial-amber-hoodie-headphones', 'editorial-tennis-court-spotlight', 'editorial-70s-staircase-jumpsuit', 'japandi-overpass-candid', 'editorial-kerala-bed', 'barbershop-kodachrome-trench', 'meadow-white-dress-contemplative', 'creative-surreal-horse-shadow', 'editorial-glow-blur-portrait', 'luxury-car-window-chiaroscuro', 'luxury-chain-maximal-portrait', 'luxury-baroque-lounge-duo', 'luxury-masthead-motion-blur'],
+  EDITORIAL_FASHION: ['editorial-escalator-fit-check', 'editorial-tennis-court-spotlight', 'y2k-duo-white-studio-dynamic', 'editorial-bw-low-angle-latex', 'editorial-70s-staircase-jumpsuit', 'angle-side-profile-editorial', 'creative-bold-color-studio', 'creative-reeded-glass-portrait', 'creative-raw-analog-tennis', 'minimal-monochrome-side-profile', 'minimal-seated-profile-studio'],
+  EDITORIAL_BEAUTY: ['editorial-amber-hoodie-headphones', 'beauty-ice-block-lipbalm', 'creative-beauty-close-up-cream', 'y2k-mirror-lip-gloss', 'editorial-glow-blur-portrait', 'creative-product-hands-motion-blur', 'monochrome-beauty-print-poster', 'clean-highkey-portrait-jewelry', 'luxury-submerged-golden-refraction'],
+  EDITORIAL_STREET: ['digicam-neon-crosswalk', 'y2k-fisheye-bomber-street', 'y2k-red-studio-helmet', 'street-high-angle-crosswalk', 'tokyo-street-matcha-jersey', 'y2k-varsity-studio', 'cinematic-motion-runners', 'creative-raw-analog-tennis', 'storefront-walkby-motion', 'retail-checkout-candid', 'backstage-phone-candid'],
+  EDITORIAL_FILM_NOIR: ['editorial-tennis-court-spotlight', 'barbershop-kodachrome-trench', 'creative-surreal-horse-shadow', 'sports-monochrome-typography', 'deconstructed-face-collage', 'luxury-baroque-lounge-duo', 'monochrome-beauty-print-poster'],
   EDITORIAL_ETHEREAL: ['beach-sunset-satin-twirl', 'meadow-white-dress-contemplative', 'editorial-glow-blur-portrait', 'creative-beauty-close-up-cream', 'italian-cafe-candid'],
   // Commercial presets
   PRODUCT_LIFESTYLE: ['editorial-escalator-fit-check', 'japandi-overpass-candid', 'angle-high-soft-flattering', 'lifestyle-blank-tee-mockup', 'food-office-product-in-hand', 'ugc-phone-sky'],
-  STUDIO_POSTER: ['studio-chrome-floral', 'sports-monochrome-typography', 'creative-bw-neon-cta'],
+  STUDIO_POSTER: ['studio-chrome-floral', 'sports-monochrome-typography', 'creative-bw-neon-cta', 'monochrome-beauty-print-poster', 'sale-poster-oversized-numeral', 'highstreet-poster-panel-layout'],
   PRODUCT_HERO: ['beauty-ice-block-lipbalm', 'product-hero-beauty-lipstick', 'standalone-surreal-installation', 'text-based-air-jordan-explosion'],
   COMMERCIAL_CAROUSEL: ['standalone-clean-4k', 'lifestyle-blank-tee-mockup', 'standalone-high-fashion-path'],
-  COMMERCIAL_FLAT_POSTER: ['studio-chrome-floral', 'creative-bold-color-studio', 'text-based-dynamic-magenta'],
+  COMMERCIAL_FLAT_POSTER: ['studio-chrome-floral', 'creative-bold-color-studio', 'text-based-dynamic-magenta', 'sale-poster-oversized-numeral', 'monochrome-beauty-print-poster', 'highstreet-poster-panel-layout'],
   // Creative presets
   CREATIVE_SURREAL: ['editorial-tennis-court-spotlight', 'surreal-red-dress-cubes', 'beauty-ice-block-lipbalm', 'surreal-magritte-picnic', 'standalone-surreal-installation', 'creative-surreal-horse-shadow'],
   CREATIVE_CINEMATIC: ['tunnel-360-pastel-tracksuit', 'cinematic-motion-runners', 'cinematic-low-angle-flying', 'barbershop-kodachrome-trench', 'creative-follow-cam-snowboard'],
-  CREATIVE_TEXT_DYNAMIC: ['text-based-dynamic-magenta', 'text-based-dynamic-green', 'text-based-dynamic-blue-white', 'text-based-air-jordan-explosion'],
+  CREATIVE_TEXT_DYNAMIC: ['text-based-dynamic-magenta', 'text-based-dynamic-green', 'text-based-dynamic-blue-white', 'text-based-air-jordan-explosion', 'sale-poster-oversized-numeral', 'luxury-chain-maximal-portrait', 'sports-brush-slogan-packshot'],
   CREATIVE_BOLD_COLOR: ['creative-bold-color-studio', 'creative-reeded-glass-portrait', 'text-based-pop-art'],
   CREATIVE_NEON_GRADIENT: ['text-based-dynamic-magenta', 'text-based-dynamic-green', 'text-based-dynamic-blue-white'],
   CREATIVE_RETRO_FILM: ['editorial-amber-hoodie-headphones', 'digicam-neon-crosswalk', 'editorial-70s-staircase-jumpsuit', 'barbershop-kodachrome-trench', 'tokyo-street-matcha-jersey', 'cinematic-motion-runners', 'creative-raw-analog-tennis', 'creative-martin-parr-domestic'],
@@ -78,18 +81,37 @@ const PRESET_EXAMPLE_MAP: Record<string, string[]> = {
   STANDALONE_LEVITATION: ['text-based-air-jordan-explosion', 'product-hero-beauty-lipstick', 'standalone-surreal-installation'],
   // Performance / Conversion
   PERF_MINIMAL_CLEAN: ['standalone-clean-4k', 'standalone-high-fashion-path'],
-  PERF_BEST_QUALITY: ['editorial-escalator-fit-check', 'product-hero-beauty-lipstick', 'standalone-clean-4k', 'cinematic-low-angle-flying'],
+  PERF_BEST_QUALITY: ['editorial-escalator-fit-check', 'product-hero-beauty-lipstick', 'standalone-clean-4k', 'cinematic-low-angle-flying', 'minimal-seated-profile-studio', 'clean-highkey-portrait-jewelry', 'luxury-car-window-chiaroscuro', 'luxury-masthead-motion-blur'],
   PERF_SPLIT_COMPARE: ['creative-bold-color-studio', 'lifestyle-blank-tee-mockup'],
   PERF_OOH_BILLBOARD: ['placement-subway-billboard', 'ooh-billboard-dual-panel'],
-  PERF_SOCIAL_PROOF: ['beach-sunset-satin-twirl', 'italian-cafe-candid', 'golden-hour-glamour-cafe', 'mediterranean-swim-editorial'],
+  PERF_SOCIAL_PROOF: ['beach-sunset-satin-twirl', 'italian-cafe-candid', 'golden-hour-glamour-cafe', 'mediterranean-swim-editorial', 'retail-checkout-candid', 'backstage-phone-candid'],
   // Sports / Athletic
-  SPORTS_DYNAMIC: ['y2k-duo-white-studio-dynamic', 'tunnel-360-pastel-tracksuit', 'editorial-bw-low-angle-latex', 'angle-low-hero-dramatic', 'cinematic-motion-runners', 'creative-follow-cam-snowboard', 'creative-fashion-kick-identity'],
-  SPORTS_MONOCHROME: ['sports-monochrome-typography', 'text-based-air-jordan-explosion'],
+  SPORTS_DYNAMIC: ['y2k-duo-white-studio-dynamic', 'tunnel-360-pastel-tracksuit', 'editorial-bw-low-angle-latex', 'angle-low-hero-dramatic', 'cinematic-motion-runners', 'creative-follow-cam-snowboard', 'creative-fashion-kick-identity', 'sports-brush-slogan-packshot', 'sports-handheld-vertical-type'],
+  SPORTS_MONOCHROME: ['sports-monochrome-typography', 'text-based-air-jordan-explosion', 'sports-brush-slogan-packshot'],
   SPORTS_TUNNEL_HERO: ['cinematic-motion-runners', 'cinematic-low-angle-flying', 'sports-monochrome-typography'],
   // Indian fashion
   INDIAN_FESTIVE: ['vertical-lehenga-celebrate', 'vertical-sharara-twirl'],
   INDIAN_ETHNIC: ['vertical-lehenga-celebrate', 'vertical-sharara-twirl', 'editorial-kerala-bed'],
   INDIAN_STREET_FUSION: ['y2k-fisheye-bomber-street', 'y2k-varsity-studio', 'cinematic-motion-runners', 'creative-raw-analog-tennis'],
+}
+
+const IDENTITY_EXAMPLE_MAP: Partial<Record<CharacterIdentity, string[]>> = {
+  indian_woman_modern: ['south-delhi-modern-woman-cafe', 'south-delhi-modern-man-street', 'storefront-walkby-motion'],
+  indian_man_modern: ['south-delhi-modern-man-street', 'south-delhi-modern-woman-cafe', 'storefront-walkby-motion'],
+  south_asian_modern: ['south-delhi-modern-woman-cafe', 'south-delhi-modern-man-street'],
+}
+
+const NON_INDIAN_BIASED_EXAMPLES = new Set<string>([
+  'golden-hour-glamour-cafe',
+  'italian-cafe-candid',
+  'editorial-amber-hoodie-headphones',
+  'editorial-tennis-court-spotlight',
+])
+
+const TEXT_SYSTEM_EXAMPLES: Record<string, string[]> = {
+  luxury_masthead: ['luxury-masthead-motion-blur'],
+  highstreet_panel: ['highstreet-poster-panel-layout'],
+  sports_brush: ['sports-brush-slogan-packshot', 'sports-handheld-vertical-type'],
 }
 
 /** Presets that default to "no model" but should respect user's explicit character choice */
@@ -107,8 +129,12 @@ const PRODUCT_ONLY_PRESETS: Set<string> = new Set([
   'UGC_FLAT_LAY',
 ])
 
-function getStyleExamplesForPreset(presetId: AdPresetId, hasCharacter: boolean): AdStyleExample[] {
+function getStyleExamplesForPreset(input: AdGenerationInput, hasCharacter: boolean): AdStyleExample[] {
+  const presetId = input.preset
   let ids = PRESET_EXAMPLE_MAP[presetId] || []
+  const identity = input.characterIdentity
+  const hasIndianIdentity =
+    identity === 'indian_woman_modern' || identity === 'indian_man_modern' || identity === 'south_asian_modern'
 
   // If user explicitly chose a character on a product-only preset, swap in
   // character-inclusive references so GPT-4o generates with a model
@@ -116,9 +142,27 @@ function getStyleExamplesForPreset(presetId: AdPresetId, hasCharacter: boolean):
     ids = ['text-based-dynamic-magenta', 'creative-bold-color-studio', 'creative-fashion-kick-identity']
   }
 
+  if (hasCharacter && identity && IDENTITY_EXAMPLE_MAP[identity]) {
+    const identityIds = IDENTITY_EXAMPLE_MAP[identity] || []
+    const filteredPresetIds = hasIndianIdentity
+      ? ids.filter((id) => !NON_INDIAN_BIASED_EXAMPLES.has(id))
+      : ids
+    ids = [...identityIds, ...filteredPresetIds]
+  }
+
+  const hasTextRequested = Boolean(
+    input.textOverlay && (input.textOverlay.headline || input.textOverlay.subline || input.textOverlay.tagline)
+  )
+  if (hasTextRequested) {
+    const textSystem = resolveTextSystemForPreset(input.preset)
+    const textIds = TEXT_SYSTEM_EXAMPLES[textSystem] || []
+    ids = [...textIds, ...ids]
+  }
+
   return ids
     .map((id) => AD_STYLE_EXAMPLES.find((e) => e.id === id))
-    .filter(Boolean) as AdStyleExample[]
+    .filter(Boolean)
+    .slice(0, 6) as AdStyleExample[]
 }
 
 export interface ProductAnalysis {
@@ -225,6 +269,118 @@ function buildStrategicIntelligenceBlock(
 - Preset fidelity: stay true to "${preset.name}" visual DNA while maximizing realism and production polish.`
 }
 
+function buildStylePackDirective(input: AdGenerationInput): string {
+  const stylePack = input.stylePack || resolveStylePackForPreset(input.preset)
+  if (stylePack === 'luxury') {
+    return `STYLE PACK (LOCKED): LUXURY
+Prioritize premium editorial polish, elevated materials, cinematic lighting, controlled color harmony, and sophisticated fashion composition.`
+  }
+  if (stylePack === 'sports') {
+    return `STYLE PACK (LOCKED): SPORTS
+Prioritize athletic energy, dynamic body language, motion-ready framing, bold hero angles, and performance-commercial realism.`
+  }
+  return `STYLE PACK (LOCKED): HIGH STREET
+Prioritize contemporary retail campaign aesthetics, trend-forward styling, urban realism, and clean conversion-ready composition.`
+}
+
+function resolveIdentityDirective(input: AdGenerationInput): string {
+  const identity = input.characterIdentity || 'global_modern'
+  switch (identity) {
+    case 'indian_woman_modern':
+      return 'Identity direction: Indian woman with modern South Delhi fashion-forward styling. Explicitly avoid stereotypical cues (no tokenistic bindi or costume tropes unless user explicitly asks).'
+    case 'indian_man_modern':
+      return 'Identity direction: Indian man with modern South Delhi fashion-forward styling. Explicitly avoid stereotypical cues (no tokenistic cultural props unless user explicitly asks).'
+    case 'south_asian_modern':
+      return 'Identity direction: South Asian modern identity with contemporary urban styling and non-stereotyped representation.'
+    case 'east_asian_modern':
+      return 'Identity direction: East Asian modern identity with contemporary urban styling and non-stereotyped representation.'
+    case 'middle_eastern_modern':
+      return 'Identity direction: Middle Eastern modern identity with contemporary urban styling and non-stereotyped representation.'
+    case 'african_modern':
+      return 'Identity direction: African modern identity with contemporary urban styling and non-stereotyped representation.'
+    case 'latina_modern':
+      return 'Identity direction: Latina modern identity with contemporary urban styling and non-stereotyped representation.'
+    case 'european_modern':
+      return 'Identity direction: European modern identity with contemporary urban styling and non-stereotyped representation.'
+    case 'north_american_modern':
+      return 'Identity direction: North American modern identity with contemporary urban styling and non-stereotyped representation.'
+    case 'latin_american_modern':
+      return 'Identity direction: Latin American modern identity with contemporary urban styling and non-stereotyped representation.'
+    case 'mediterranean_modern':
+      return 'Identity direction: Mediterranean modern identity with contemporary urban styling and non-stereotyped representation.'
+    case 'south_east_asian_modern':
+      return 'Identity direction: South East Asian modern identity with contemporary urban styling and non-stereotyped representation.'
+    case 'central_asian_modern':
+      return 'Identity direction: Central Asian modern identity with contemporary urban styling and non-stereotyped representation.'
+    case 'pacific_islander_modern':
+      return 'Identity direction: Pacific Islander modern identity with contemporary urban styling and non-stereotyped representation.'
+    case 'mixed_heritage_modern':
+      return 'Identity direction: Mixed-heritage modern identity with contemporary urban styling and non-stereotyped representation.'
+    default:
+      return 'Identity direction: Global modern casting and styling with non-stereotyped representation.'
+  }
+}
+
+function buildIdentityCastingLock(input: AdGenerationInput): string {
+  const identity = input.characterIdentity || 'global_modern'
+  if (identity === 'indian_woman_modern') {
+    return `CASTING LOCK (CRITICAL):
+The model MUST clearly read as a modern Indian woman. Keep casting contemporary, urban, and premium (South Delhi high-street sensibility). Do NOT drift to non-Indian casting. Do NOT add tokenistic stereotypes, costumes, or clichéd cultural props unless user explicitly requests them.`
+  }
+  if (identity === 'indian_man_modern') {
+    return `CASTING LOCK (CRITICAL):
+The model MUST clearly read as a modern Indian man. Keep casting contemporary, urban, and premium (South Delhi high-street sensibility). Do NOT drift to non-Indian casting. Do NOT add tokenistic stereotypes, costumes, or clichéd cultural props unless user explicitly requests them.`
+  }
+  if (identity === 'south_asian_modern') {
+    return `CASTING LOCK (CRITICAL):
+The model MUST clearly read as South Asian with contemporary, non-stereotyped urban styling. Preserve realistic skin tone and facial structure; do not drift to unrelated identity casting.`
+  }
+  return `CASTING LOCK:
+Honor the selected identity direction and keep casting consistent with the chosen people type.`
+}
+
+function buildFaceRealismLock(input: AdGenerationInput): string {
+  const ct = input.characterType || 'none'
+  const hasHuman = ct === 'human_female' || ct === 'human_male'
+  if (!hasHuman) return ''
+
+  return `FACE REALISM LOCK (CRITICAL):
+- Photographic human skin only: visible pores, fine facial hair, natural under-eye texture, realistic lip texture.
+- Preserve natural facial asymmetry and realistic proportions (eyes, nose, jaw, ears, hands).
+- Keep skin tone truthful and consistent across face/neck/body with realistic undertones.
+- Do NOT apply porcelain beauty-filter smoothing, waxy skin, plastic sheen, CGI doll look, or over-retouched glam blur.
+- Hairline, brows, eyelashes, and flyaway strands must look natural and high-detail.
+- Expression and gaze must be human and grounded, not mannequin-like.`
+}
+
+function buildTextArtDirectionBlock(input: AdGenerationInput, preset: AdPreset): string {
+  const textSystem = resolveTextSystemForPreset(input.preset)
+  if (textSystem === 'sports_brush') {
+    return `TEXT ART DIRECTION (SPORTS SYSTEM):
+Use a two-layer sports typography system:
+1) Primary headline in ultra-bold condensed uppercase sans (black/white anchor).
+2) Secondary energetic brush-stroke script crossing one key word for impact.
+Keep product legibility first. Typography should feel kinetic and campaign-ready like elite footwear posters, without copying any external brand words.
+Render text as realistic print/paint/graphic treatment integrated in the scene plane — NOT thick toy-like 3D letters, NOT clay/plastic/wax material.`
+  }
+
+  if (textSystem === 'luxury_masthead') {
+    return `TEXT ART DIRECTION (LUXURY SYSTEM):
+Use oversized high-contrast serif masthead typography with elegant spacing and restrained composition.
+Allow partial occlusion by subject/motion for depth, as seen in premium fashion films and print covers.
+Keep hierarchy minimal and sophisticated: one dominant headline, one subtle support line.
+Typography should read as premium print/editorial masthead treatment, not inflated 3D object or molded material.`
+  }
+
+  return `TEXT ART DIRECTION (HIGH STREET SYSTEM):
+Use modular poster hierarchy with clean commercial structure:
+- Strong top headline
+- Secondary support line
+- Optional lower information block
+Typography must be highly legible, grid-aligned, and integrated with the image plane, not a flat afterthought.
+Prefer realistic poster/signage/paint treatment over heavy 3D extrusion; avoid synthetic clay-like letterforms.`
+}
+
 // ═══════════════════════════════════════════════════════════════
 // GPT-4o VISION PROMPT BUILDER
 // ═══════════════════════════════════════════════════════════════
@@ -270,7 +426,8 @@ async function buildPromptWithGPT(
 function buildSystemMessage(hasText: boolean): string {
   return `You are a PHOTOSHOOT AD DIRECTOR and elite advertising creative director. You write image-generation prompts for Gemini 3 Pro. You think in full productions: lighting design, set mood, lens choice, colour grade, and one killer visual idea. Your prompts read like a director's brief to a DP and stylist — specific, obsessive, production-quality.
 
-You receive: a product image, a creative brief, and REFERENCE PROMPTS from real campaigns. Study the references — absorb their density and quality. Your output must match or exceed them. GO CRAZY on style: every frame should look like it belongs in a Vogue spread, a Nike hero spot, or a luxury lookbook. No safe, generic descriptions.
+You receive: a product image, a creative brief, and REFERENCE PROMPTS from real campaigns. Study the references — absorb their density and quality. Your output must match or exceed them. GO CRAZY on style: every frame should look like it belongs in a Vogue spread, a luxury hero spot, or a global lookbook. No safe, generic descriptions.
+CRITICAL: Reference prompts can contain example brand words. Treat those words as style examples only — NEVER copy those brand names/slogans unless the user explicitly provided them in the current brief text fields.
 
 YOUR JOB: Write ONE narrative-style prompt (NOT keyword stuffing) that generates a STUNNING, campaign-grade ad image. Think like a director calling the shot: "Key from 45° left, half-stop under; rim from behind right to separate from the drop; fill at 2:1 so we keep shape but don't flatten." Name the mood, the light quality, the palette, the lens.
 
@@ -312,6 +469,7 @@ Example of BAD keyword structure:
    Name photographers when relevant: Guy Bourdin, Tim Walker, Annie Leibovitz, Martin Parr, Peter Lindbergh, Mario Testino, Inez & Vinoodh.
 
 ${hasText ? `4. TYPOGRAPHY = COMPOSITIONAL BLEND (text has been requested by the user).
+   Use ONLY the EXACT text strings provided in the brief. Do NOT invent new words, slogans, logos, brand names, numbers, hashtags, or taglines.
    Text is DESIGNED INTO the scene — not added on top. Use 2+ blending techniques:
    a) DEPTH LAYERING: letters BEHIND subject (subject's body occludes parts of text)
    b) 3D EXTRUSION: letters have physical thickness, catch scene lighting, cast shadows
@@ -320,7 +478,7 @@ ${hasText ? `4. TYPOGRAPHY = COMPOSITIONAL BLEND (text has been requested by the
    e) PARTIAL OCCLUSION: product/hand/hair overlaps parts of text
    f) MATERIAL TEXTURE: chrome, neon tube, embossed leather, frosted glass
 
-   NEVER say "add text" or "text overlay". Instead describe physical presence: "massive ultra-bold white sans-serif letters 'JUST DO IT' — the D and O appear BEHIND the athlete's shoulder, letters have 3mm depth with soft shadow, same dramatic rim lighting as the subject, text occupies 30% of frame width."` : `4. NO TEXT / NO TYPOGRAPHY (CRITICAL — NON-NEGOTIABLE).
+   NEVER say "add text" or "text overlay". Instead describe physical presence: "massive ultra-bold white sans-serif letters '[HEADLINE]' — the first characters appear BEHIND the subject's shoulder, letters have 3mm depth with soft shadow, same dramatic rim lighting as the subject, text occupies 30% of frame width."` : `4. NO TEXT / NO TYPOGRAPHY (CRITICAL — NON-NEGOTIABLE).
    The user has NOT requested any text. Do NOT include ANY text, words, letters, numbers, brand names, slogans, watermarks, or typography of ANY kind in the image. The image must be PURELY VISUAL — a photograph with ZERO written content. If you include ANY text, you have FAILED this assignment.
    Do NOT write text on walls, signs, clothing, or any surface. No logos, no brand marks, no captions.`}
 
@@ -362,7 +520,7 @@ function buildUserContent(
 
   // ═══ 1. REFERENCE PROMPTS (the training data) ═══
   // These are REAL prompts that produced stunning images. GPT-4o studies them.
-  const examples = getStyleExamplesForPreset(input.preset, hasCharacter)
+  const examples = getStyleExamplesForPreset(input, hasCharacter)
   if (examples.length > 0) {
     const exampleBlocks = examples
       .slice(0, 3) // max 3 references to keep token budget
@@ -435,6 +593,7 @@ Lighting direction: ${preset.lightingGuide}
 Camera direction: ${preset.cameraGuide}
 ${angleInstruction}
 Must avoid: ${avoidTerms.join(', ')}`)
+  sections.push(buildStylePackDirective(input))
 
   const hasTextOverlay = !!(input.textOverlay && (input.textOverlay.headline || input.textOverlay.subline || input.textOverlay.tagline))
   sections.push(buildStrategicIntelligenceBlock(input, preset, hasCharacter, hasTextOverlay))
@@ -466,9 +625,14 @@ The ${animal} MUST be prominent in the image — not a background element. It is
       const pose = input.subject?.pose || 'dynamic, editorial'
       const expression = input.subject?.expression || 'confident, direct gaze'
       sections.push(`CHARACTER (USER SELECTED — MUST INCLUDE):
-A young ${gender} (age ${age}), ${style} style. ${pose} pose, ${expression}. Realistic skin with visible pores and texture, natural body proportions, anatomically correct. The ${gender} wears or holds the product. Describe a specific complementary outfit.
+A young ${gender} (age ${age}), ${style} style. ${pose} pose, ${expression}. ${resolveIdentityDirective(input)} ${buildIdentityCastingLock(input)} Realistic skin with visible pores and texture, natural body proportions, anatomically correct. The ${gender} wears or holds the product. Describe a specific complementary outfit.
 The ${gender} MUST be prominent in the image — not just hands or silhouette. Show at least three-quarter body. This is a model-driven ad.`)
     }
+  }
+
+  const faceRealismLock = buildFaceRealismLock(input)
+  if (faceRealismLock) {
+    sections.push(faceRealismLock)
   }
 
   // ═══ 5. Face identity lock ═══
@@ -482,7 +646,7 @@ Face is IMMUTABLE. Do NOT alter any facial feature. Include explicit instruction
   // ═══ 6. Text — COMPOSITIONAL BLEND TYPOGRAPHY or NO TEXT ═══
   if (!hasTextOverlay) {
     // CRITICAL: Explicitly tell GPT-4o NOT to add any text
-    sections.push(`TEXT: NONE. Do NOT include ANY text, words, letters, numbers, brand names, slogans, or typography in the image. The image must be purely visual — no written content whatsoever. This is a photography-only composition.`)
+    sections.push(`TEXT: NONE. Do NOT include ANY text, words, letters, numbers, brand names, slogans, or typography in the image, even if reference prompts contain text. The image must be purely visual — no written content whatsoever. This is a photography-only composition.`)
   }
 
   if (hasTextOverlay) {
@@ -502,7 +666,7 @@ Face is IMMUTABLE. Do NOT alter any facial feature. Include explicit instruction
     // Build specific text entries with blending instructions
     const textEntries: string[] = []
     if (to.headline) {
-      textEntries.push(`HEADLINE: "${to.headline}" — rendered in ${fontDesc}, MASSIVE scale (occupying 25-40% of frame width). The letters have 3D depth/extrusion with subtle shadow. Position: ${placement} of frame.`)
+      textEntries.push(`HEADLINE: "${to.headline}" — rendered in ${fontDesc}, MASSIVE scale (occupying 25-40% of frame width). Keep exact spelling and letter order character-by-character. Position: ${placement} of frame.`)
     }
     if (to.subline) {
       textEntries.push(`SUBLINE: "${to.subline}" — same font family but lighter weight, 40% the size of headline, positioned below headline.`)
@@ -512,20 +676,31 @@ Face is IMMUTABLE. Do NOT alter any facial feature. Include explicit instruction
     }
 
     if (textEntries.length > 0) {
+      const allowedText = [to.headline, to.subline, to.tagline]
+        .filter((v): v is string => Boolean(v && v.trim()))
+        .map((v) => `"${v}"`)
+        .join(', ')
+
       // Pick blending techniques based on whether there's a character
       const blendTechniques = hasCharacter
         ? `BLENDING (CRITICAL — this is what separates amateur from pro):
 - DEPTH LAYERING: The headline letters appear PARTIALLY BEHIND the subject's body — e.g. the model's arm or shoulder OVERLAPS and OCCLUDES 1-2 letters, creating depth. The text exists in the mid-ground between background and subject.
-- 3D PRESENCE: Letters have physical thickness (like 3D extruded signage), catch the same key light as the subject, and cast soft shadows on the background.
-- COLOUR INTEGRATION: Text colour picks up tones from the scene — if the lighting is warm amber, the text has a subtle warm gradient. If the product is red, the text has a faint red reflection or glow.
+- SURFACE INTEGRATION: Treat text like realistic printed signage, painted wall typography, or billboard ink that receives the same light direction as the scene.
+- COLOUR INTEGRATION: Text colour picks up tones from the scene — if lighting is warm amber, text can carry a subtle warm tint while staying legible.
 Think: Nike "JUST DO IT" campaign posters where the massive white letters sit behind the athlete's body, partially hidden by their silhouette, with the same dramatic lighting as the rest of the scene.`
         : `BLENDING (CRITICAL — this is what separates amateur from pro):
 - ENVIRONMENT INTEGRATION: The text wraps around or interacts with the product — letters curve around the product surface, or the product sits ON TOP of certain letters creating occlusion.
-- 3D EXTRUSION: Letters are rendered as physical 3D objects in the scene with thickness, specular highlights, and shadows matching the product's lighting.
-- MATERIAL TEXTURE: The text surface matches the scene mood — chrome/metallic for premium, neon-glow for creative, matte concrete for editorial, holographic for futuristic.
+- PRINT-REAL MATERIALITY: Letters should feel like realistic print/paint/signage materials, not inflated 3D blobs.
+- MATERIAL TEXTURE: The text surface matches scene mood while remaining believable and sharp for ad readability.
 Think: Luxury product ads where massive gold-embossed letters frame the product, or sneaker ads where the shoe sits on top of a giant 3D "AIR" with the same dramatic lighting.`
 
-      sections.push(`COMPOSITIONAL BLEND TYPOGRAPHY (NOT an overlay — text is PART of the image):
+      sections.push(`${buildTextArtDirectionBlock(input, preset)}
+
+TEXT CONTENT LOCK (NON-NEGOTIABLE):
+Allowed text strings in-image: ${allowedText}.
+Use ONLY these exact strings. Do NOT invent extra words, extra taglines, extra numbers, hashtags, or any other brand text.
+
+COMPOSITIONAL BLEND TYPOGRAPHY (NOT an overlay — text is PART of the image):
 ${textEntries.join('\n')}
 
 ${blendTechniques}
@@ -554,6 +729,7 @@ Your prompt must produce an image that looks like it was shot by a top creative 
 - Camera: lens mm, f-stop, shutter if motion, depth of field
 - Colour grading: cinematic LUT name or tone description
 - Texture quality: 8K, photorealistic, film grain if editorial, dewy/matte as appropriate
+- Realism guardrail: NO clay/wax/plastic/melted text, NO toy-like CGI letters, NO synthetic doll skin, NO over-smoothed faces.
 - End with AVOID line (MUST include${hasTextOverlay ? '' : ': "no text, no words, no letters, no numbers, no brand names, no typography"'})
 
 Write the prompt NOW. Output ONLY the prompt text.`)
