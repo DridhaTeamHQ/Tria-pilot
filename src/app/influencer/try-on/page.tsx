@@ -334,6 +334,38 @@ function TryOnPageContent() {
         fetchSavedProfileImages()
     }, [fetchSavedProfileImages])
 
+    // Auto-select the primary (or first) saved profile image so the button is immediately usable
+    const autoPersonLoadedRef = useRef(false)
+    useEffect(() => {
+        if (autoPersonLoadedRef.current) return
+        if (personImage || personImageBase64) return
+        if (savedProfileImages.length === 0) return
+
+        const pick = savedProfileImages.find((img) => img.isPrimary) || savedProfileImages[0]
+        if (!pick?.imageUrl) return
+
+        autoPersonLoadedRef.current = true
+        ;(async () => {
+            try {
+                setUploadingImage('person')
+                const res = await fetch(pick.imageUrl)
+                const blob = await res.blob()
+                const base64: string = await new Promise((resolve, reject) => {
+                    const reader = new FileReader()
+                    reader.onloadend = () => resolve(reader.result as string)
+                    reader.onerror = () => reject(new Error('Failed to read image'))
+                    reader.readAsDataURL(blob)
+                })
+                setPersonImage(base64)
+                setPersonImageBase64(base64)
+            } catch {
+                console.warn('[tryon] auto-select person image failed')
+            } finally {
+                setUploadingImage(null)
+            }
+        })()
+    }, [savedProfileImages, personImage, personImageBase64])
+
     // Track if we've already loaded the product image to prevent infinite loops
     const productImageLoadedRef = useRef<string | null>(null)
 
@@ -671,16 +703,30 @@ function TryOnPageContent() {
 
             const is429 = structured?.status === 429
             const is503 = structured?.status === 503
-            const isJobInProgress = is429 && (structured?.code === 'JOB_IN_PROGRESS' || /already in progress/i.test(errorMessage))
+            const code = structured?.code
+            const isJobInProgress = is429 && (code === 'JOB_IN_PROGRESS' || /already in progress/i.test(errorMessage))
+            const isServerBusy = is503 || (is429 && code === 'SERVER_BUSY')
+            const isProviderRateLimit = is429 && code === 'RATE_LIMIT'
             if (is429 || is503) {
-                const retry = Math.min(60, Math.max(1, Number(structured?.retryAfterSeconds ?? (is503 ? 15 : 10))))
-                setRetryAfterSeconds(retry)
-                setRetryReason(isJobInProgress ? 'job_in_progress' : 'rate_limit')
+                const retry = Math.min(30, Math.max(1, Number(structured?.retryAfterSeconds ?? (is503 ? 15 : 10))))
+
+                // Only lock the button for local server-side contention.
+                // For provider RATE_LIMIT, don't hard-lock UI; let user retry when ready.
+                if (isJobInProgress || isServerBusy) {
+                    setRetryAfterSeconds(retry)
+                    setRetryReason(isJobInProgress ? 'job_in_progress' : 'rate_limit')
+                } else {
+                    setRetryAfterSeconds(0)
+                    setRetryReason(null)
+                }
+
                 const msg = isJobInProgress
                     ? `A try-on is still in progress. You can try again in ${retry}s.`
-                    : is429
-                        ? `Too many requests. Please wait ${retry}s before trying again.`
-                        : `Service busy. Please wait ${retry}s and try again.`
+                    : isServerBusy
+                        ? `Service is busy. Please wait ${retry}s and try again.`
+                        : isProviderRateLimit
+                            ? `Model provider is rate-limited right now. You can retry now or wait ~${retry}s.`
+                            : `Too many requests. Please wait ${retry}s before trying again.`
                 toast.error(msg)
                 return
             }
@@ -769,6 +815,15 @@ function TryOnPageContent() {
             </div>
         )
     }
+
+    const hasPersonInput = Boolean(personImageBase64 || personImage)
+    const hasClothingInput = Boolean(clothingImageBase64 || clothingImage)
+    const hasBackgroundInput = Boolean(backgroundImageBase64 || backgroundImage)
+    const missingRequiredInput =
+        !hasPersonInput ||
+        (editType === 'clothing_change' && !hasClothingInput) ||
+        (editType === 'background_change' && !hasBackgroundInput)
+    const isGenerateDisabled = loading || retryAfterSeconds > 0 || missingRequiredInput
 
     return (
         <div className="relative min-h-screen pt-20 sm:pt-24 pb-8 sm:pb-12 overflow-hidden bg-[#FDFBF7]">
@@ -1189,10 +1244,10 @@ function TryOnPageContent() {
                             )}
                             <button
                                 onClick={handleGenerate}
-                                disabled={loading || retryAfterSeconds > 0 || !personImageBase64 || !clothingImageBase64}
+                                disabled={isGenerateDisabled}
                                 className={`
                     w-full py-3.5 sm:py-4 text-sm sm:text-base font-black uppercase tracking-wider flex items-center justify-center gap-3 transition-all duration-200 border-[3px] border-black
-                    ${loading || retryAfterSeconds > 0 || !personImageBase64 || !clothingImageBase64
+                    ${isGenerateDisabled
                                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
                                         : 'bg-[#FFD93D] text-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-[6px] active:shadow-none'}
                   `}

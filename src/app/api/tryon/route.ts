@@ -13,7 +13,7 @@ const USER_LOCK_TTL_SECONDS = 75
 const GLOBAL_ACTIVE_TTL_SECONDS = 75
 const GLOBAL_ACTIVE_LIMIT = Math.max(
   1,
-  Number.parseInt(process.env.TRYON_INLINE_GLOBAL_LIMIT || '4', 10) || 4
+  Number.parseInt(process.env.TRYON_INLINE_GLOBAL_LIMIT || '8', 10) || 8
 )
 const GLOBAL_ACTIVE_KEY = 'tryon:inline:active_generations'
 
@@ -217,7 +217,7 @@ export async function POST(request: Request) {
         .eq('id', job.id)
 
       // Global guard: cap concurrent inline generations so bursts return a clean "server busy" instead of collapsing.
-      if (isRedisConfigured()) {
+      if (process.env.NODE_ENV === 'production' && isRedisConfigured()) {
         try {
           const redis = getRedisConnection()
           const activeCount = await redis.incr(GLOBAL_ACTIVE_KEY)

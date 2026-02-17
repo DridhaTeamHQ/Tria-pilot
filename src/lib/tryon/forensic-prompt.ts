@@ -219,6 +219,8 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     `EYES LOCK (non-negotiable):`,
     `Preserve EXACT eye shape, inter-eye spacing, iris color, gaze direction, eyelid crease, and brow-eye geometry from Image 1.`,
     `Do NOT change eye size, spacing, iris color, gaze, eyelid fold, or brow-eye relation.`,
+    `Preserve natural sclera tone, pupil size ratio, eyelid thickness, and catchlight direction from Image 1.`,
+    `Avoid lazy eye drift, mismatched pupils, or asymmetric eyelid deformation.`,
     `Eyes anchor: ${eyesAnchor}`,
     retryMode ? `RETRY ENFORCEMENT: absolute no_eye_change; copy eye identity from Image 1 exactly.` : '',
   ].filter(Boolean).join('\n')

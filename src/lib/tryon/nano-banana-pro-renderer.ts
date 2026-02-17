@@ -19,6 +19,7 @@ import { buildForensicFaceAnchor } from './face-forensics'
 import { getStrictSceneConfig } from './scene-intel-adapter'
 import { assessSceneRealism, type SceneQualityAssessment } from './scene-quality-check'
 import { getAllStylePresets } from './style-presets'
+import { extractFaceCrop } from './face-crop'
 
 const MAIN_RENDER_MODEL = 'gemini-3-pro-image-preview' as const
 const ENABLE_QUALITY_RETRY = false
@@ -64,7 +65,7 @@ export async function generateWithNanoBananaPro(
 
     const presetNames = getAllStylePresets().map(p => p.id)
 
-    const [sceneConfig, personFace, forensicAnchor] = await Promise.all([
+    const [sceneConfig, personFace, forensicAnchor, faceCropResult] = await Promise.all([
       withTimeout(
         getStrictSceneConfig({
           userRequest: input.userRequest,
@@ -96,6 +97,11 @@ export async function generateWithNanoBananaPro(
           garmentOnPersonGuidance:
             'garment follows original shoulder slope and torso drape from Image 1 — do not slim or reshape body',
         }
+      ),
+      withTimeout(
+        extractFaceCrop(input.personImageBase64),
+        3000,
+        { success: false, faceCropBase64: '' }
       ),
     ])
 
@@ -155,8 +161,8 @@ export async function generateWithNanoBananaPro(
     let generatedImage = await generateTryOnDirect({
       personImageBase64: input.personImageBase64,
       garmentImageBase64: input.garmentImageBase64,
-      // Keep the transport simple: person + prompt + garment.
-      faceCropBase64: undefined,
+      // Secondary identity reference improves eye geometry and face fidelity without post-processing.
+      faceCropBase64: faceCropResult.success ? faceCropResult.faceCropBase64 : undefined,
       prompt,
       aspectRatio,
       resolution: '2K',
@@ -206,7 +212,7 @@ export async function generateWithNanoBananaPro(
       generatedImage = await generateTryOnDirect({
         personImageBase64: input.personImageBase64,
         garmentImageBase64: input.garmentImageBase64,
-        faceCropBase64: undefined,
+        faceCropBase64: faceCropResult.success ? faceCropResult.faceCropBase64 : undefined,
         prompt: retryPrompt,
         aspectRatio,
         resolution: '2K',
@@ -250,6 +256,7 @@ export async function generateWithNanoBananaPro(
         retried,
         driftAssessment,
         sceneAssessment,
+        faceCropUsed: Boolean(faceCropResult.success && faceCropResult.faceCropBase64),
         faceFreezeStatus: 'disabled',
         eyeCompositeStatus: 'disabled',
       },
