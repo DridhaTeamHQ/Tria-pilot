@@ -216,12 +216,14 @@ export default function AdsPage() {
         credentials: 'include',
         body: JSON.stringify(input),
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => ({ error: 'Request failed' }))
       if (!res.ok) {
         if (res.status === 429) {
           const retry = Math.max(1, Number(data.retryAfterSeconds ?? 60))
           setRetryAfterSeconds(retry)
           toast.error(data.error || `Rate limit. Try again in ${retry}s.`)
+        } else if (res.status === 504) {
+          toast.error('Generation timed out in production. Please retry once; we optimized the pipeline to reduce this.')
         } else {
           toast.error(data.error || 'Generation failed')
         }

@@ -104,6 +104,10 @@ const adGenerationSchema = z
 export async function POST(request: Request) {
   let inFlight: { allowed: boolean; retryAfterSeconds?: number; release?: () => void } | null = null
   try {
+    const startedAt = Date.now()
+    const SOFT_DEADLINE_MS = 50_000
+    const timeRemaining = () => SOFT_DEADLINE_MS - (Date.now() - startedAt)
+
     const supabase = await createClient()
     const {
       data: { user },
@@ -289,12 +293,15 @@ Return exactly one final ad image.${noTextRule}
     )
 
     // Score first pass and optionally run a quality recovery pass.
+    // In production, we default to one pass to avoid 504 timeouts.
+    const enableRecoveryPass = process.env.AD_ENABLE_RECOVERY_PASS === 'true'
+
     let rating = await rateAdCreative(generatedImage, input.productImage, input.influencerImage).catch(
       () => ({ score: 75 })
     )
     let qualityScore = Number((rating as any)?.score || 75)
 
-    if (qualityScore < 82) {
+    if (enableRecoveryPass && qualityScore < 82 && timeRemaining() > 18_000) {
       if (process.env.NODE_ENV !== 'production') {
         console.log(`[AdsAPI] Low quality score (${qualityScore}). Running recovery pass...`)
       }
@@ -329,18 +336,20 @@ QUALITY RECOVERY PASS:
       }
     }
 
-    // Post-generation: copy
+    // Post-generation: copy. If we are close to timeout, skip heavy extras and return image first.
     if (process.env.NODE_ENV !== 'production') console.log('[AdsAPI] Generating ad copy...')
 
     const brandData = (profile.brand_data as any) || {}
     const brandName =
       brandData.companyName || profile.full_name || undefined
 
-    const copyVariants = await generateAdCopy(generatedImage, {
-      productName: input.textOverlay?.headline || input.headline || 'fashion product',
-      brandName,
-      niche: input.preset,
-    }).catch(() => [])
+    const copyVariants = timeRemaining() > 8_000
+      ? await generateAdCopy(generatedImage, {
+          productName: input.textOverlay?.headline || input.headline || 'fashion product',
+          brandName,
+          niche: input.preset,
+        }).catch(() => [])
+      : []
 
     let imageUrl: string | null = null
     try {

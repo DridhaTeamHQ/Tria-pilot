@@ -12,6 +12,8 @@ import { rateAdCreative, generateAdCopy } from '@/lib/openai'
 import { generateIntelligentAdComposition } from '@/lib/gemini'
 import { saveUpload } from '@/lib/storage'
 
+export const maxDuration = 60
+
 export async function POST(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
