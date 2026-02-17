@@ -163,6 +163,6 @@ export async function POST(
             { status: 500 }
         )
     } finally {
-        await inFlight?.release?.()
+        void inFlight?.release?.()
     }
 }

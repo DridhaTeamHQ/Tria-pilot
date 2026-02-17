@@ -453,7 +453,7 @@ QUALITY RECOVERY PASS:
       { status: 500 }
     )
   } finally {
-    await inFlight?.release?.()
+    void inFlight?.release?.()
   }
 }
 

@@ -18,6 +18,8 @@ interface InFlightEntry {
 }
 
 const STALE_MS = 2 * 60 * 1000 // 2 min — release if request crashed/hung
+/** Max time to wait for Redis release so serverless response is never blocked (key expires by TTL anyway). */
+const RELEASE_TIMEOUT_MS = 2_000
 const store = new Map<string, InFlightEntry>()
 
 function pruneStale() {
@@ -48,7 +50,10 @@ export async function tryAcquireInFlight(userId: string, type: GuardType): Promi
         return {
           allowed: true,
           release: async () => {
-            await redis.del(key)
+            await Promise.race([
+              redis.del(key).catch(() => {}),
+              new Promise<void>((r) => setTimeout(r, RELEASE_TIMEOUT_MS)),
+            ])
           },
         }
       }
