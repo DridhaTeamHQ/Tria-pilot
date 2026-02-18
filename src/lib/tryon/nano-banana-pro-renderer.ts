@@ -23,7 +23,9 @@ import { extractFaceCrop } from './face-crop'
 import { computeMicroFaceDrift, getDriftRetryParams, shouldRetryForDrift } from './micro-face-drift'
 
 const MAIN_RENDER_MODEL = 'gemini-3-pro-image-preview' as const
-const ENABLE_QUALITY_RETRY = true
+const ENABLE_QUALITY_RETRY =
+  process.env.TRYON_ENABLE_QUALITY_RETRY === 'true' ||
+  process.env.NODE_ENV !== 'production'
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -209,10 +211,14 @@ export async function generateWithNanoBananaPro(
       driftRetryParams = { temperatureAdjust: 0, realismBias: 0, emphasis: '' }
     }
 
-    if (
-      ENABLE_QUALITY_RETRY &&
-      (driftAssessment.shouldRetry || sceneAssessment.shouldRetry || Boolean(driftRetryParams.emphasis))
-    ) {
+    const elapsedBeforeRetryMs = Date.now() - startTime
+    const hasRetrySignal =
+      driftAssessment.shouldRetry || sceneAssessment.shouldRetry || Boolean(driftRetryParams.emphasis)
+    // Keep production reliable: avoid second full model pass when we're already near timeout.
+    const retryBudgetMs = process.env.NODE_ENV === 'production' ? 45_000 : 120_000
+    const canRetryInTime = elapsedBeforeRetryMs < retryBudgetMs
+
+    if (ENABLE_QUALITY_RETRY && hasRetrySignal && canRetryInTime) {
       retried = true
       const retryReasons = [
         driftAssessment.shouldRetry ? `face:${driftAssessment.reason}` : null,
@@ -261,6 +267,10 @@ export async function generateWithNanoBananaPro(
       } catch (microErr) {
         console.warn('⚠️ Micro face drift re-check failed:', microErr)
       }
+    } else if (ENABLE_QUALITY_RETRY && hasRetrySignal && !canRetryInTime) {
+      console.warn(
+        `   ⚠️ Skipping retry to avoid timeout (elapsed=${elapsedBeforeRetryMs}ms, budget=${retryBudgetMs}ms)`
+      )
     }
 
     const genTime = Date.now() - startTime

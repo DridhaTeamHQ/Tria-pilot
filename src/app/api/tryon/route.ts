@@ -8,7 +8,10 @@ import { saveUpload } from '@/lib/storage'
 import { runHybridTryOnPipeline } from '@/lib/tryon/hybrid-tryon-pipeline'
 import { GeminiRateLimitError } from '@/lib/gemini/executor'
 
-export const maxDuration = 60
+const parsedTryOnMaxDuration = Number.parseInt(process.env.TRYON_MAX_DURATION_SECONDS || '120', 10)
+export const maxDuration = Number.isFinite(parsedTryOnMaxDuration)
+  ? Math.max(60, parsedTryOnMaxDuration)
+  : 120
 const TRYON_RATE_LIMIT_DISABLED = true
 const USER_LOCK_TTL_SECONDS = 75
 const GLOBAL_ACTIVE_TTL_SECONDS = 75
