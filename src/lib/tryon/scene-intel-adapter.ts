@@ -17,6 +17,7 @@
 import 'server-only'
 import { getOpenAI } from '@/lib/openai'
 import { getPresetById } from './presets/index'
+import { getPresetExampleGuidance, getRequestExampleGuidance } from './presets/example-prompts-reference'
 
 const PROMPT_INTEL_MODEL = process.env.TRYON_PROMPT_MODEL?.trim() || 'gpt-4o'
 
@@ -138,6 +139,7 @@ function toDataUrl(base64: string): string {
 
 function buildPresetPolicy(presetId?: string, presetDescription?: string): PresetPolicy {
   const preset = presetId ? getPresetById(presetId) : undefined
+  const exampleGuidance = getPresetExampleGuidance(presetId)
   const anchorZone = (preset?.scene || presetDescription || 'Clean gradient studio backdrop with soft even ambient lighting.').trim()
   const baseLighting =
     (preset?.lighting ||
@@ -148,8 +150,14 @@ function buildPresetPolicy(presetId?: string, presetDescription?: string): Prese
   const realismGuidance = [
     'Single coherent photograph: subject lit by and grounded in the same environment.',
     `Use preset lighting logic: ${baseLighting}.`,
+    exampleGuidance?.vibe ? `Target vibe from successful references: ${exampleGuidance.vibe}.` : '',
+    exampleGuidance?.scene ? `Reference scene characteristics: ${exampleGuidance.scene}.` : '',
     'Apply environmental harmonization: ambient color spill and subtle edge light wrap on the subject.',
     `Keep perspective and depth consistent with preset camera intent: ${camera}.`,
+    exampleGuidance?.camera ? `Camera treatment from references: ${exampleGuidance.camera}.` : '',
+    exampleGuidance?.colorGrading
+      ? `Color treatment from references: ${exampleGuidance.colorGrading}.`
+      : '',
     'Background materials must remain photoreal with natural texture variation and subtle imperfections, not synthetic or overly smooth.',
     'Maintain natural camera rendering with consistent micro-contrast and light grain so subject and background share the same capture characteristics.',
     'Preserve natural contact shadows and local ambient occlusion where the body meets nearby surfaces.',
@@ -163,6 +171,7 @@ function buildPresetPolicy(presetId?: string, presetDescription?: string): Prese
     `Lighting blueprint from preset "${presetId || 'custom'}":`,
     'derive key/fill/rim from visible scene sources,',
     `match highlight and shadow direction to "${baseLighting}",`,
+    exampleGuidance?.lighting ? `reference lighting behavior: ${exampleGuidance.lighting},` : '',
     'keep subject and background in the same color-temperature space,',
     'add subtle ambient color spill and edge light wrap from the environment,',
     'preserve realistic falloff and contact shadows at feet/body edges.',
@@ -172,7 +181,10 @@ function buildPresetPolicy(presetId?: string, presetDescription?: string): Prese
     anchorZone,
     realismGuidance,
     lightingBlueprint,
-    presetAvoid,
+    presetAvoid:
+      [presetAvoid, ...(exampleGuidance?.avoidTerms || [])]
+        .filter(Boolean)
+        .join('; ') || undefined,
   }
 }
 
@@ -253,6 +265,8 @@ export async function getStrictSceneConfig(
 ): Promise<SceneIntelOutput> {
   try {
     const userRequest = (input.userRequest || '').trim()
+    const requestGuidance = getRequestExampleGuidance(userRequest)
+
     const presetId = (input.presetId || '').trim()
     const presetDescription = (input.presetDescription || '').trim()
 
@@ -277,7 +291,9 @@ export async function getStrictSceneConfig(
           cameraPolicy: 'inherit',
           realismGuidance: mergeGuidance(presetPolicy.realismGuidance, refined.realismGuidance),
           lightingBlueprint: mergeGuidance(presetPolicy.lightingBlueprint, refined.lightingBlueprint),
-          presetAvoid: presetPolicy.presetAvoid,
+          presetAvoid: [presetPolicy.presetAvoid, ...(requestGuidance?.avoidTerms || [])]
+            .filter(Boolean)
+            .join('; ') || undefined,
         }
       } catch {
         return {
@@ -288,17 +304,34 @@ export async function getStrictSceneConfig(
           posePolicy: 'inherit',
           facePolicy: 'immutable',
           cameraPolicy: 'inherit',
-          realismGuidance: presetPolicy.realismGuidance,
-          lightingBlueprint: presetPolicy.lightingBlueprint,
-          presetAvoid: presetPolicy.presetAvoid,
+          realismGuidance: mergeGuidance(
+            presetPolicy.realismGuidance,
+            requestGuidance
+              ? `Reference vibe hints: ${requestGuidance.vibe}. Scene cues: ${requestGuidance.scene}.`
+              : undefined
+          ),
+          lightingBlueprint: mergeGuidance(
+            presetPolicy.lightingBlueprint,
+            requestGuidance?.lighting
+              ? `Reference lighting hints: ${requestGuidance.lighting}.`
+              : undefined
+          ),
+          presetAvoid: [presetPolicy.presetAvoid, ...(requestGuidance?.avoidTerms || [])]
+            .filter(Boolean)
+            .join('; ') || undefined,
         }
       }
     }
 
     const openai = getOpenAI()
 
+    const requestHint = requestGuidance
+      ? `\nReference style hints from successful examples:\n- vibe: ${requestGuidance.vibe}\n- scene cues: ${requestGuidance.scene}\n- lighting cues: ${requestGuidance.lighting}`
+      : ''
+
     const userMessage = `User request: "${userRequest || 'clean studio'}"
 Available presets: ${input.availablePresets.join(', ')}
+${requestHint}
 
 Resolve this to a strict scene config. Remember: describe the EMPTY environment only. No people. No face. No pose.`
 

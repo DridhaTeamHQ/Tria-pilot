@@ -1,5 +1,6 @@
 import { ALL_PRESETS, getPresetById, type ScenePreset } from './presets/index'
 import type { TryOnStylePreset, TryOnPresetCategory, InstagramStylePack } from './types'
+import { getPresetExampleGuidance } from './presets/example-prompts-reference'
 
 /**
  * UI PRESETS BRIDGE
@@ -76,13 +77,26 @@ export function getTryOnPresetListV3(): Array<{
   name: string
   category: TryOnPresetCategory
   description: string
+  vibe?: string
+  poseHint?: string
+  framingHint?: string
+  sceneObjects?: string
+  styleTags?: string[]
 }> {
-  return TRYON_PRESETS_V3.map((p) => ({
-    id: p.id,
-    name: p.name,
-    category: p.category,
-    description: p.description,
-  }))
+  return TRYON_PRESETS_V3.map((p) => {
+    const guidance = getPresetExampleGuidance(p.id)
+    return {
+      id: p.id,
+      name: p.name,
+      category: p.category,
+      description: p.description,
+      vibe: guidance?.vibe,
+      poseHint: guidance?.poseInference,
+      framingHint: guidance?.camera,
+      sceneObjects: guidance?.scene,
+      styleTags: guidance?.styleKeywords?.slice(0, 6),
+    }
+  })
 }
 
 // ═══════════════════════════════════════════════════════════════

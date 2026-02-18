@@ -6,6 +6,7 @@
  */
 
 import 'server-only'
+import type { PresetStrengthProfile } from './preset-strength-profile'
 
 export interface ForensicPromptInput {
   garmentDescription?: string
@@ -25,6 +26,14 @@ export interface ForensicPromptInput {
   presetAvoid?: string
   bodyAnchor?: string
   identityCorrectionGuidance?: string
+  styleGuidance?: string
+  colorGradingGuidance?: string
+  cameraGuidance?: string
+  poseInferenceGuidance?: string
+  additionalAvoidTerms?: string[]
+  identityPriorityRules?: string[]
+  strengthProfile?: PresetStrengthProfile
+  hasFaceReference?: boolean
   faceBox?: {
     ymin: number
     xmin: number
@@ -68,10 +77,27 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     .split(/[;,]/)
     .map(s => s.trim().toLowerCase())
     .filter(Boolean)
+  const additionalAvoidTerms = (input.additionalAvoidTerms || [])
+    .map(term => term.trim().toLowerCase())
+    .filter(Boolean)
+  const mergedAvoidTerms = Array.from(new Set([...presetAvoidTerms, ...additionalAvoidTerms]))
   const bodyAnchor =
     input.bodyAnchor?.trim() ||
     'preserve original body build, weight, shoulder width, torso mass, and limb proportions exactly as visible in Image 1'
   const identityCorrectionGuidance = input.identityCorrectionGuidance?.trim()
+  const styleGuidance = input.styleGuidance?.trim() ? clamp(input.styleGuidance.trim(), 360) : undefined
+  const colorGradingGuidance = input.colorGradingGuidance?.trim()
+    ? clamp(input.colorGradingGuidance.trim(), 220)
+    : undefined
+  const cameraGuidance = input.cameraGuidance?.trim() ? clamp(input.cameraGuidance.trim(), 180) : undefined
+  const poseInferenceGuidance = input.poseInferenceGuidance?.trim()
+    ? clamp(input.poseInferenceGuidance.trim(), 260)
+    : undefined
+  const identityPriorityRules = (input.identityPriorityRules || [])
+    .map(rule => rule.trim())
+    .filter(Boolean)
+  const strengthProfile = input.strengthProfile
+  const hasFaceReference = Boolean(input.hasFaceReference)
   const faceBox = input.faceBox
   const faceSpatialLock = faceBox
     ? {
@@ -83,8 +109,8 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
           xmax: Math.max(0, Math.min(1000, Math.round(faceBox.xmax))),
         },
         tolerance: {
-          center_shift_max: 45,
-          scale_delta_max: 0.12,
+          center_shift_max: 35,
+          scale_delta_max: 0.1,
         },
         instruction: 'keep_face_bbox_center_and_scale_locked',
       }
@@ -158,16 +184,14 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
       aspect_ratio: aspectRatio,
     },
     avoid: [
-      'cinematic portrait', 'editorial', 'fashion model', 'dramatic relighting',
       'beautify face', 'changed identity', 'double face', 'ghost face',
       'changed eyes', 'different gaze direction', 'eye shape change', 'iris color change',
       'smooth skin', 'bone structure change', 'facial proportion change', 'beard change',
-      'cinematic grading', 'editorial styling', 'fashion pose', 'model-like reinterpretation',
       'pasted on background', 'cut-out look', 'floating subject',
       'mismatched lighting', 'sticker effect', 'flat subject on background',
       'slimmed body', 'thinned waist', 'elongated torso', 'narrowed shoulders',
       'idealized proportions', 'model body type', 'beauty-standard reshape',
-      ...presetAvoidTerms,
+      ...mergedAvoidTerms,
     ],
     ...(retryMode
       ? {
@@ -206,6 +230,25 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     `Keep background materials naturally textured and non-plastic (real micro-contrast, no CGI-like smoothing).`,
     `The subject and background must share the same color temperature, dynamic range, and optical characteristics.`,
     `Do NOT produce a flat, pasted, or sticker look. The person must be IN the scene, not placed ON it.`,
+    hasFaceReference
+      ? `Image 3 is a cropped face reference from Image 1. Treat Image 3 as micro-identity authority for eye geometry, brow contour, nose-lip relation, beard pattern, and skin micro-texture.`
+      : '',
+    strengthProfile
+      ? `PRESET STRENGTH WEIGHTS (0-1): framing=${strengthProfile.framingDiscipline.toFixed(2)}, color=${strengthProfile.colorCleanliness.toFixed(2)}, mood=${strengthProfile.moodIntensity.toFixed(2)}, grain=${strengthProfile.grainTexture.toFixed(2)}, iphone_realism=${strengthProfile.iphoneRealism.toFixed(2)}, pose_freedom=${strengthProfile.poseFreedom.toFixed(2)}, identity_rigidity=${strengthProfile.identityRigidity.toFixed(2)}, stylization=${strengthProfile.stylizationAllowance.toFixed(2)}.`
+      : '',
+    strengthProfile
+      ? `Apply these weights as behavior controls: higher framing/color weights enforce cleaner composition and color discipline; higher mood/grain/stylization weights allow stronger scene aesthetic cues; higher iphone_realism favors candid smartphone rendering; higher pose_freedom allows natural non-rigid posture while preserving anatomy; identity_rigidity is always dominant.`
+      : '',
+    styleGuidance
+      ? `STYLE TARGET (from high-performing references): ${styleGuidance}. Keep this mood while preserving exact identity and body geometry.`
+      : '',
+    colorGradingGuidance
+      ? `Color treatment target: ${colorGradingGuidance}. Keep skin tones natural and identity-faithful.`
+      : '',
+    cameraGuidance ? `Camera treatment target: ${cameraGuidance}.` : '',
+    poseInferenceGuidance
+      ? `Pose intelligence: infer a natural scene-appropriate pose and posture from styling cues (${poseInferenceGuidance}) while avoiding mannequin stiffness and preserving anatomy.`
+      : '',
     realism,
     sceneCorrectionGuidance ? `Scene fix: ${sceneCorrectionGuidance}` : '',
   ].filter(Boolean).join('\n')
@@ -213,6 +256,7 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   const faceBlock = [
     `FACE LOCK (non-negotiable):`,
     `The face from Image 1 is immutable. Do not relight, reshape, beautify, smooth, or reposition it.`,
+    `Do NOT apply cinematic grade, heavy contrast, or stylization to the face region. Style treatment applies to scene and non-face regions only.`,
     `Forensic anchor: ${faceAnchor}`,
     identityCorrectionGuidance ? `Identity correction priority: ${identityCorrectionGuidance}` : '',
   ].join('\n')
@@ -223,11 +267,14 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     `Facial structure must remain genetically identical: eye spacing/eyelid shape, nose bridge contour, lip shape/mouth curvature, cheek volume, midface width, jawline/chin, beard density and edge pattern, and skin tone with natural unretouched texture.`,
     `Do NOT beautify, enhance, smooth skin, alter bone structure, or reinterpret facial proportions.`,
     `Expression and head pose must be inherited from Image 1.`,
+    ...identityPriorityRules.map(rule => `Identity priority: ${rule}`),
   ].join('\n')
 
   const garmentBlock = [
     `GARMENT APPLICATION (non-negotiable):`,
     `Apply the garment from Image 2 accurately and preserve fabric texture, collar structure, sleeve length, and color integrity.`,
+    `GARMENT COLOR LOCK: keep hue, saturation, brightness, undertone, and local contrast of the garment consistent with Image 2. Do not recolor garment to match scene grade.`,
+    `If color grading is applied, grade the scene while preserving original garment color identity from Image 2.`,
     `Do NOT restyle the garment.`,
     `Garment fit guidance: ${garmentFit}.`,
   ].join('\n')
@@ -267,7 +314,7 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     '',
     `CONTROL=${JSON.stringify(control)}`,
     '',
-    'OUTPUT: single photorealistic composite with natural skin detail. No cinematic grading, no editorial styling, no fashion pose, no model-like reinterpretation.',
+    'OUTPUT: single photorealistic composite with natural skin detail and coherent scene integration. Keep identity exact; allow preset-guided style without altering facial structure or body proportions.',
     'Generate one photorealistic image. The person must appear naturally inside the scene — same light, same space, same camera. Body proportions must exactly match the source.',
   ].join('\n')
 }

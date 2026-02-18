@@ -21,7 +21,7 @@ import sharp from 'sharp'
 import { analyzeGarmentForensic, type GarmentAnalysis } from './face-analyzer'
 import { extractGarmentWithFidelity } from './garment-extractor'
 import { detectFaceCoordinates, type FaceCoordinates } from './face-coordinates'
-import { compositeFacePixels, estimateFaceBox, extractFacePixels, type FaceBox } from './face-pixel-copy'
+import { compositeFacePixels, extractFacePixels, type FaceBox } from './face-pixel-copy'
 
 // NEW MODULES
 // import { runIntelligentPreAnalysis } from './intelligence/intelligent-pipeline'
@@ -30,9 +30,10 @@ import { compositeFacePixels, estimateFaceBox, extractFacePixels, type FaceBox }
 import { generateWithNanoBananaPro } from './nano-banana-pro-renderer'
 
 const GARMENT_EXTRACT_MODEL = 'gemini-2.5-flash-image' as const
-// Keep disabled: face pixel compositing can create ghost-face artifacts when target
-// placement is imperfect. We prefer model-only identity preservation.
+// Disabled by default: pixel compositing can improve some failures but can also
+// create visible artifacts/identity mismatch when target alignment is imperfect.
 const ENABLE_DETERMINISTIC_FACE_LOCK = false
+const FACE_LOCK_DRIFT_THRESHOLD = 34
 
 // ═══════════════════════════════════════════════════════════════
 // TYPES
@@ -74,6 +75,79 @@ export interface HybridTryOnResult {
 
 function stripDataUrl(base64: string): string {
   return (base64 || '').replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '')
+}
+
+function isWeakColorLabel(label: string): boolean {
+  const v = (label || '').trim().toLowerCase()
+  return !v || v === 'unknown' || v === 'neutral' || v === 'mixed' || v === 'multicolor'
+}
+
+function rgbToColorName(r: number, g: number, b: number): string {
+  const rn = r / 255
+  const gn = g / 255
+  const bn = b / 255
+  const max = Math.max(rn, gn, bn)
+  const min = Math.min(rn, gn, bn)
+  const delta = max - min
+  const lightness = (max + min) / 2
+
+  let hue = 0
+  if (delta > 0) {
+    if (max === rn) hue = ((gn - bn) / delta) % 6
+    else if (max === gn) hue = (bn - rn) / delta + 2
+    else hue = (rn - gn) / delta + 4
+    hue = Math.round(hue * 60)
+    if (hue < 0) hue += 360
+  }
+
+  const saturation = max === 0 ? 0 : delta / max
+  if (lightness < 0.12) return 'black'
+  if (lightness > 0.9 && saturation < 0.14) return 'white'
+  if (saturation < 0.14) return lightness < 0.5 ? 'charcoal gray' : 'light gray'
+
+  if (hue >= 20 && hue < 45) return 'mustard yellow'
+  if (hue >= 45 && hue < 68) return 'yellow'
+  if (hue >= 68 && hue < 95) return 'olive green'
+  if (hue >= 95 && hue < 160) return 'green'
+  if (hue >= 160 && hue < 195) return 'teal'
+  if (hue >= 195 && hue < 255) return 'blue'
+  if (hue >= 255 && hue < 290) return 'purple'
+  if (hue >= 290 && hue < 335) return 'magenta'
+  return 'red'
+}
+
+async function estimateDominantGarmentColor(garmentImageBase64: string): Promise<string | null> {
+  try {
+    const clean = stripDataUrl(garmentImageBase64)
+    const buffer = Buffer.from(clean, 'base64')
+    const { data, info } = await sharp(buffer)
+      .resize(48, 48, { fit: 'inside' })
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true })
+
+    let rSum = 0
+    let gSum = 0
+    let bSum = 0
+    let wSum = 0
+    for (let i = 0; i < data.length; i += info.channels) {
+      const a = data[i + 3] / 255
+      if (a < 0.05) continue
+      const weight = a
+      rSum += data[i] * weight
+      gSum += data[i + 1] * weight
+      bSum += data[i + 2] * weight
+      wSum += weight
+    }
+
+    if (wSum < 1) return null
+    const r = Math.round(rSum / wSum)
+    const g = Math.round(gSum / wSum)
+    const b = Math.round(bSum / wSum)
+    return rgbToColorName(r, g, b)
+  } catch {
+    return null
+  }
 }
 
 async function fetchImageAsBase64(url: string): Promise<string> {
@@ -155,7 +229,7 @@ async function applyDeterministicFaceLock(personImageBase64: string, generatedBa
     }
 
     const [sourceFace, targetFace] = await Promise.all([
-      detectFaceCoordinates(personImageBase64),
+      detectFaceCoordinates(personImageBase64, { allowHeuristicFallback: true }),
       detectFaceCoordinates(generatedBase64),
     ])
 
@@ -167,9 +241,11 @@ async function applyDeterministicFaceLock(personImageBase64: string, generatedBa
       return { image: generatedBase64, applied: false, reason: 'target_face_not_detected' }
     }
 
-    const sourceBox = sourceFace
-      ? normalizedFaceToBox(sourceFace, origMeta.width, origMeta.height)
-      : estimateFaceBox(origMeta.width, origMeta.height)
+    if (!sourceFace) {
+      return { image: generatedBase64, applied: false, reason: 'source_face_not_detected' }
+    }
+
+    const sourceBox = normalizedFaceToBox(sourceFace, origMeta.width, origMeta.height)
 
     const targetBox = normalizedFaceToBox(targetFace, genMeta.width, genMeta.height)
     if (!isPlausibleTargetFace(sourceBox, targetBox, origMeta.width, origMeta.height, genMeta.width, genMeta.height)) {
@@ -228,14 +304,23 @@ async function resolveGarmentAssetLocal(params: {
   let garmentDescription = ''
   try {
     garmentAnalysis = await analyzeGarmentForensic(params.clothingImageBase64)
+    const dominantColor = await estimateDominantGarmentColor(params.clothingImageBase64)
+    // Trust sampled dominant color from the actual garment image for color fidelity.
+    // GPT color labels can be semantically useful but are less reliable for exact hue.
+    const sampledColor = (dominantColor || '').trim()
+    const analyzedColor = (garmentAnalysis.primaryColor || '').trim()
+    const primaryColor = sampledColor || analyzedColor
     // Build a concise description from the analysis
     const parts: string[] = []
-    if (garmentAnalysis.primaryColor) parts.push(garmentAnalysis.primaryColor)
+    if (primaryColor) parts.push(primaryColor)
     if (garmentAnalysis.garmentType) parts.push(garmentAnalysis.garmentType)
     if (garmentAnalysis.necklineType) parts.push(`with ${garmentAnalysis.necklineType} neckline`)
     if (garmentAnalysis.patternType && garmentAnalysis.patternType !== 'solid') parts.push(`${garmentAnalysis.patternType} pattern`)
     if (garmentAnalysis.fabricType) parts.push(`in ${garmentAnalysis.fabricType}`)
     garmentDescription = parts.join(' ') || 'garment from reference image'
+    if (sampledColor && analyzedColor && sampledColor.toLowerCase() !== analyzedColor.toLowerCase()) {
+      console.log(`   Color fidelity: sampled="${sampledColor}", analyzed="${analyzedColor}" (using sampled)`)
+    }
     console.log(`   Description: "${garmentDescription}"`)
   } catch (analysisErr) {
     console.warn('⚠️ Garment analysis failed, using generic description:', analysisErr)
@@ -332,7 +417,14 @@ export async function runHybridTryOnPipeline(
   let faceLockReason: string | null = 'disabled'
   const warnings: string[] = []
 
-  if (ENABLE_DETERMINISTIC_FACE_LOCK) {
+  const microDriftPercent = Number(renderResult.debug?.microDrift?.driftPercent)
+  const shouldFaceLockForDrift =
+    Number.isFinite(microDriftPercent) && microDriftPercent >= FACE_LOCK_DRIFT_THRESHOLD
+  const shouldFaceLockForUnknownFace =
+    renderResult.debug?.driftAssessment?.reason === 'generated_face_unknown'
+  const shouldApplyDeterministicFaceLock = shouldFaceLockForDrift || shouldFaceLockForUnknownFace
+
+  if (ENABLE_DETERMINISTIC_FACE_LOCK && shouldApplyDeterministicFaceLock) {
     const faceLock = await applyDeterministicFaceLock(input.personImageBase64, renderResult.image)
     finalImage = faceLock.image
     faceOverwritten = faceLock.applied
@@ -340,6 +432,8 @@ export async function runHybridTryOnPipeline(
     if (!faceLock.applied) {
       warnings.push(`Face lock fallback: ${faceLock.reason || 'not applied'}`)
     }
+  } else if (ENABLE_DETERMINISTIC_FACE_LOCK) {
+    faceLockReason = 'not_needed_low_drift'
   }
 
   // 3. Return Result

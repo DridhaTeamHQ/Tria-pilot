@@ -16,7 +16,12 @@ interface TryOnPreset {
     id: string
     name: string
     description: string
-    category: 'studio' | 'street' | 'outdoor' | 'lifestyle' | 'editorial' | 'traditional'
+    category: string
+    vibe?: string
+    poseHint?: string
+    framingHint?: string
+    sceneObjects?: string
+    styleTags?: string[]
 }
 // Inline loading animation - no popup overlay
 import { ShareModal } from '@/components/tryon/ShareModal'
@@ -1384,6 +1389,9 @@ function TryOnPageContent() {
                                                     lifestyle: 'from-pink-400/40 to-rose-500/40',
                                                     editorial: 'from-purple-500/40 to-violet-600/40',
                                                     traditional: 'from-orange-500/40 to-amber-600/40',
+                                                    home: 'from-orange-300/40 to-amber-500/40',
+                                                    office: 'from-cyan-300/40 to-blue-500/40',
+                                                    travel: 'from-sky-300/40 to-indigo-500/40',
                                                 }
                                                 const bgGradient = categoryColors[preset.category] || 'from-gray-400/40 to-gray-500/40'
 
@@ -1403,7 +1411,10 @@ function TryOnPageContent() {
                                                             preset.category === 'street' ? 'bg-[#E5F6FF]' :
                                                                 preset.category === 'outdoor' ? 'bg-[#E5FFE9]' :
                                                                     preset.category === 'lifestyle' ? 'bg-[#FFF4E5]' :
-                                                                        'bg-gray-100'
+                                                                        preset.category === 'home' ? 'bg-[#FFF7E5]' :
+                                                                            preset.category === 'office' ? 'bg-[#E5FBFF]' :
+                                                                                preset.category === 'travel' ? 'bg-[#EEF1FF]' :
+                                                                                    'bg-gray-100'
                                                             }`} />
                                                         <div className="absolute inset-0 border-b-[3px] border-black z-0 opacity-10" />
 
@@ -1421,9 +1432,31 @@ function TryOnPageContent() {
                                                             {/* Name & Description */}
                                                             <div className="text-black mt-auto">
                                                                 <div className="font-black text-sm uppercase leading-tight mb-1">{preset.name}</div>
-                                                                <div className="text-[9px] font-bold opacity-60 line-clamp-2 leading-tight uppercase">
+                                                                <div className="text-[9px] font-bold opacity-60 line-clamp-2 leading-tight uppercase mb-1">
                                                                     {preset.description}
                                                                 </div>
+                                                                {preset.vibe && (
+                                                                    <div className="text-[8px] font-black uppercase tracking-wide text-black/65 line-clamp-1">
+                                                                        {preset.vibe}
+                                                                    </div>
+                                                                )}
+                                                                {(preset.styleTags?.length || preset.framingHint || preset.poseHint) && (
+                                                                    <div className="mt-1 flex flex-wrap gap-1">
+                                                                        {preset.framingHint ? (
+                                                                            <span className="text-[8px] uppercase font-black border border-black/50 bg-white/80 px-1 py-[1px]">
+                                                                                {preset.framingHint.split(',')[0]}
+                                                                            </span>
+                                                                        ) : null}
+                                                                        {preset.styleTags?.slice(0, 2).map(tag => (
+                                                                            <span
+                                                                                key={`${preset.id}-${tag}`}
+                                                                                className="text-[8px] uppercase font-black border border-black/50 bg-white/80 px-1 py-[1px]"
+                                                                            >
+                                                                                {tag}
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </button>

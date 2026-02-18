@@ -18,14 +18,15 @@ import { detectFaceCoordinates, type FaceCoordinates } from './face-coordinates'
 import { buildForensicFaceAnchor } from './face-forensics'
 import { getStrictSceneConfig } from './scene-intel-adapter'
 import { assessSceneRealism, type SceneQualityAssessment } from './scene-quality-check'
-import { getAllStylePresets } from './style-presets'
+import { getAllPresetIds } from './presets/index'
 import { extractFaceCrop } from './face-crop'
-import { computeMicroFaceDrift, getDriftRetryParams, shouldRetryForDrift } from './micro-face-drift'
+import { computeMicroFaceDrift, getDriftRetryParams } from './micro-face-drift'
+import { getPresetExampleGuidance, getRequestExampleGuidance } from './presets/example-prompts-reference'
+import { getPresetStrengthProfile } from './preset-strength-profile'
 
 const MAIN_RENDER_MODEL = 'gemini-3-pro-image-preview' as const
-const ENABLE_QUALITY_RETRY =
-  process.env.TRYON_ENABLE_QUALITY_RETRY === 'true' ||
-  process.env.NODE_ENV !== 'production'
+const ENABLE_QUALITY_RETRY = process.env.TRYON_ENABLE_QUALITY_RETRY === 'true'
+const MICRO_DRIFT_RETRY_THRESHOLD = 40
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -66,7 +67,7 @@ export async function generateWithNanoBananaPro(
     // ═════════════════════════════════════════════════════════════════════════
     if (isDev) console.log('\n━━━ STAGE 1: Scene Intelligence ━━━')
 
-    const presetNames = getAllStylePresets().map(p => p.id)
+    const presetNames = getAllPresetIds()
 
     const [sceneConfig, personFace, forensicAnchor, faceCropResult] = await Promise.all([
       withTimeout(
@@ -121,6 +122,14 @@ export async function generateWithNanoBananaPro(
     // ═════════════════════════════════════════════════════════════════════════
     if (isDev) console.log('\n━━━ STAGE 2: Compact Prompt ━━━')
 
+    const presetGuidance = getPresetExampleGuidance(sceneConfig.preset || input.presetId)
+    const requestGuidance = getRequestExampleGuidance(input.userRequest)
+    const exampleGuidance = presetGuidance || requestGuidance
+    const resolvedPresetId = sceneConfig.preset || input.presetId
+    const strengthProfile = getPresetStrengthProfile({
+      presetId: resolvedPresetId,
+    })
+
     const promptInput = {
       garmentDescription: input.garmentDescription,
       preset: sceneConfig.anchorZone,
@@ -135,7 +144,21 @@ export async function generateWithNanoBananaPro(
       poseSummary: forensicAnchor.poseSummary,
       appearanceSummary: forensicAnchor.appearanceSummary,
       bodyAnchor: forensicAnchor.bodyAnchor,
-      faceBox: personFace
+      styleGuidance: exampleGuidance
+        ? `${exampleGuidance.vibe} ${exampleGuidance.scene}`
+        : undefined,
+      colorGradingGuidance: exampleGuidance?.colorGrading,
+      cameraGuidance: exampleGuidance?.camera,
+      poseInferenceGuidance: exampleGuidance?.poseInference,
+      additionalAvoidTerms: Array.from(
+        new Set([...(presetGuidance?.avoidTerms || []), ...(requestGuidance?.avoidTerms || [])])
+      ),
+      identityPriorityRules: Array.from(
+        new Set([...(presetGuidance?.identityRules || []), ...(requestGuidance?.identityRules || [])])
+      ),
+      strengthProfile,
+      hasFaceReference: Boolean(faceCropResult.success && faceCropResult.faceCropBase64),
+      faceBox: personFace && isFaceBoxSafeForSpatialLock(personFace)
         ? {
             ymin: personFace.ymin,
             xmin: personFace.xmin,
@@ -198,11 +221,21 @@ export async function generateWithNanoBananaPro(
     ])
     driftAssessment = assessFaceDrift(personFace, generatedFace)
     sceneAssessment = generatedSceneAssessment
+    const firstPassImage = generatedImage
+    const firstPassFace = generatedFace
+    const firstPassDriftAssessment = driftAssessment
+    const firstPassSceneAssessment = sceneAssessment
+    const hasTrustedSourceFace = Boolean(personFace && isFaceBoxSafeForSpatialLock(personFace))
     try {
       const refBuffer = base64ToBuffer(input.personImageBase64)
       const genBuffer = base64ToBuffer(generatedImage)
       microDrift = await computeMicroFaceDrift(refBuffer, genBuffer)
-      if (shouldRetryForDrift(microDrift)) {
+      if (
+        hasTrustedSourceFace &&
+        generatedFace &&
+        microDrift.success &&
+        microDrift.driftPercent >= MICRO_DRIFT_RETRY_THRESHOLD
+      ) {
         driftRetryParams = getDriftRetryParams(microDrift)
       }
     } catch (microErr) {
@@ -210,13 +243,28 @@ export async function generateWithNanoBananaPro(
       microDrift = null
       driftRetryParams = { temperatureAdjust: 0, realismBias: 0, emphasis: '' }
     }
+    const firstPassMicroDrift = microDrift
 
+    const firstPassMicroDriftSevere = Boolean(
+      firstPassMicroDrift?.success &&
+      firstPassMicroDrift.driftPercent >= MICRO_DRIFT_RETRY_THRESHOLD
+    )
+    const hardFaceFailure = hasTrustedSourceFace && firstPassDriftAssessment.reason === 'generated_face_unknown'
+    const geometryRetrySignal = Boolean(
+      hasTrustedSourceFace &&
+      firstPassFace &&
+      firstPassDriftAssessment.shouldRetry &&
+      firstPassMicroDriftSevere
+    )
+    const hasRetrySignal = hardFaceFailure || geometryRetrySignal
     const elapsedBeforeRetryMs = Date.now() - startTime
-    const hasRetrySignal =
-      driftAssessment.shouldRetry || sceneAssessment.shouldRetry || Boolean(driftRetryParams.emphasis)
     // Keep production reliable: avoid second full model pass when we're already near timeout.
     const retryBudgetMs = process.env.NODE_ENV === 'production' ? 45_000 : 120_000
     const canRetryInTime = elapsedBeforeRetryMs < retryBudgetMs
+
+    if (!hasTrustedSourceFace && isDev) {
+      console.warn('   ⚠️ Skipping retry: source face detection is not trustworthy in this run.')
+    }
 
     if (ENABLE_QUALITY_RETRY && hasRetrySignal && canRetryInTime) {
       retried = true
@@ -260,12 +308,34 @@ export async function generateWithNanoBananaPro(
       ])
       driftAssessment = assessFaceDrift(personFace, retryFace)
       sceneAssessment = retrySceneAssessment
+      let retryMicroDrift: Awaited<ReturnType<typeof computeMicroFaceDrift>> | null = null
       try {
         const refBuffer = base64ToBuffer(input.personImageBase64)
         const retryBuffer = base64ToBuffer(generatedImage)
-        microDrift = await computeMicroFaceDrift(refBuffer, retryBuffer)
+        retryMicroDrift = await computeMicroFaceDrift(refBuffer, retryBuffer)
       } catch (microErr) {
         console.warn('⚠️ Micro face drift re-check failed:', microErr)
+        retryMicroDrift = null
+      }
+      const useRetry = shouldUseRetryCandidate({
+        firstFace: firstPassFace,
+        firstDriftAssessment: firstPassDriftAssessment,
+        firstMicroDrift: firstPassMicroDrift,
+        firstSceneAssessment: firstPassSceneAssessment,
+        retryFace,
+        retryDriftAssessment: driftAssessment,
+        retryMicroDrift,
+        retrySceneAssessment: sceneAssessment,
+      })
+
+      if (!useRetry) {
+        generatedImage = firstPassImage
+        driftAssessment = firstPassDriftAssessment
+        sceneAssessment = firstPassSceneAssessment
+        microDrift = firstPassMicroDrift
+        console.warn('   ↩️ Keeping first pass output (retry did not improve identity).')
+      } else {
+        microDrift = retryMicroDrift
       }
     } else if (ENABLE_QUALITY_RETRY && hasRetrySignal && !canRetryInTime) {
       console.warn(
@@ -288,6 +358,10 @@ export async function generateWithNanoBananaPro(
       debug: {
         model: MAIN_RENDER_MODEL,
         sceneConfig,
+        exampleGuidance,
+        strengthProfile,
+        presetGuidance,
+        requestGuidance,
         forensicAnchor,
         personFace,
         retried,
@@ -310,6 +384,19 @@ export async function generateWithNanoBananaPro(
       debug: { error: error instanceof Error ? error.message : String(error) },
     }
   }
+}
+
+function isFaceBoxSafeForSpatialLock(face: FaceCoordinates): boolean {
+  const w = Math.max(1, face.xmax - face.xmin)
+  const h = Math.max(1, face.ymax - face.ymin)
+  const area = (w * h) / 1_000_000
+  const aspect = h / w
+  const edgeMargin = Math.min(face.xmin, face.ymin, 1000 - face.xmax, 1000 - face.ymax)
+  if (face.confidence < 0.75) return false
+  if (area < 0.03 || area > 0.24) return false
+  if (aspect < 0.75 || aspect > 1.6) return false
+  if (edgeMargin < 15) return false
+  return true
 }
 
 function base64ToBuffer(dataUrlOrBase64: string): Buffer {
@@ -348,6 +435,51 @@ function assessFaceDrift(
     reason: drift ? 'geometry_drift' : 'stable',
     metrics: { iou, centerDistance, sizeDelta },
   }
+}
+
+function shouldUseRetryCandidate(args: {
+  firstFace: FaceCoordinates | null
+  firstDriftAssessment: ReturnType<typeof assessFaceDrift>
+  firstMicroDrift: Awaited<ReturnType<typeof computeMicroFaceDrift>> | null
+  firstSceneAssessment: SceneQualityAssessment
+  retryFace: FaceCoordinates | null
+  retryDriftAssessment: ReturnType<typeof assessFaceDrift>
+  retryMicroDrift: Awaited<ReturnType<typeof computeMicroFaceDrift>> | null
+  retrySceneAssessment: SceneQualityAssessment
+}): boolean {
+  const {
+    firstFace,
+    firstDriftAssessment,
+    firstMicroDrift,
+    firstSceneAssessment,
+    retryFace,
+    retryDriftAssessment,
+    retryMicroDrift,
+    retrySceneAssessment,
+  } = args
+
+  // Never replace a valid detected face with an undetected one.
+  if (firstFace && !retryFace) return false
+  if (!firstFace && retryFace) return true
+
+  const firstDrift = firstMicroDrift?.driftPercent
+  const retryDrift = retryMicroDrift?.driftPercent
+  if (typeof firstDrift === 'number' && typeof retryDrift === 'number') {
+    // Require meaningful improvement to avoid flip-flopping between similar outputs.
+    if (retryDrift <= firstDrift - 2.5) return true
+    if (retryDrift >= firstDrift - 1.0) return false
+  }
+
+  // If first pass face is stable and retry still drifts, keep first.
+  if (!firstDriftAssessment.shouldRetry && retryDriftAssessment.shouldRetry) return false
+
+  // Scene-only improvement can win, but only when retry is not worse on face geometry.
+  if (firstSceneAssessment.shouldRetry && !retrySceneAssessment.shouldRetry) {
+    return !retryDriftAssessment.shouldRetry
+  }
+
+  // Default to preserving first pass identity.
+  return false
 }
 
 function faceIoU(a: FaceCoordinates, b: FaceCoordinates): number {

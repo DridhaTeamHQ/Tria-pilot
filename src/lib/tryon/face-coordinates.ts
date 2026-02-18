@@ -34,6 +34,31 @@ export interface FaceCoordinates {
   confidence: number
 }
 
+interface DetectFaceOptions {
+  // Use only for source/anchor images when model detection fails.
+  // Produces a conservative center-top portrait box instead of null.
+  allowHeuristicFallback?: boolean
+}
+
+function isImplausibleFaceBox(ymin: number, xmin: number, ymax: number, xmax: number): boolean {
+  const w = xmax - xmin
+  const h = ymax - ymin
+  const areaRatio = (w * h) / 1_000_000 // normalized space area
+
+  // Faces should not occupy most of the frame in this pipeline.
+  // Reject near full-image boxes that usually come from model parsing glitches.
+  if (areaRatio > 0.55) return true
+  if (w > 900 || h > 900) return true
+
+  // Common bad output: starts at 0,0 and spans almost entire image.
+  if (xmin <= 10 && ymin <= 10 && (xmax >= 820 || ymax >= 820)) return true
+
+  // Tiny boxes are also unreliable for facial lock anchoring.
+  if (w < 35 || h < 35) return true
+
+  return false
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // FACE DETECTION PROMPT
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -84,7 +109,8 @@ function parseBox2D(raw: any): { top: number; left: number; bottom: number; righ
  * @returns FaceCoordinates or null if detection fails
  */
 export async function detectFaceCoordinates(
-  imageBase64: string
+  imageBase64: string,
+  options?: DetectFaceOptions
 ): Promise<FaceCoordinates | null> {
   try {
     // Strip data URI prefix
@@ -93,6 +119,25 @@ export async function detectFaceCoordinates(
     if (!cleanBase64 || cleanBase64.length < 100) {
       console.warn('⚠️ Face detect: invalid image data')
       return null
+    }
+
+    const heuristicFallback = async (): Promise<FaceCoordinates | null> => {
+      if (!options?.allowHeuristicFallback) return null
+      const dims = await getImageDimensions(cleanBase64)
+      if (!dims?.width || !dims?.height) return null
+      // Conservative portrait prior: center-top region likely contains face.
+      const yMin = 70
+      const yMax = 520
+      const xMin = 260
+      const xMax = 740
+      console.warn('⚠️ Face detect: using heuristic source-face fallback box')
+      return {
+        ymin: yMin,
+        xmin: xMin,
+        ymax: yMax,
+        xmax: xMax,
+        confidence: 0.25,
+      }
     }
 
     const response = await geminiGenerateContent({
@@ -291,12 +336,22 @@ export async function detectFaceCoordinates(
       return null
     }
 
+    if (isImplausibleFaceBox(ymin, xmin, ymax, xmax)) {
+      console.warn(
+        `⚠️ Face detect: implausible face box rejected [${ymin},${xmin}]-[${ymax},${xmax}]`
+      )
+      return await heuristicFallback()
+    }
+
+    const parsedConfidence = Number(raw?.confidence)
     const result: FaceCoordinates = {
       ymin,
       xmin,
       ymax,
       xmax,
-      confidence: 1.0,
+      confidence: Number.isFinite(parsedConfidence)
+        ? Math.max(0, Math.min(1, parsedConfidence))
+        : 1.0,
     }
 
     console.log(
@@ -306,6 +361,20 @@ export async function detectFaceCoordinates(
     return result
   } catch (error) {
     console.error('⚠️ Face coordinate detection failed:', error)
+    // Last-chance fallback only for source-anchor use.
+    if (options?.allowHeuristicFallback) {
+      try {
+        const fallbackDims = await getImageDimensions(
+          imageBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '')
+        )
+        if (fallbackDims?.width && fallbackDims?.height) {
+          console.warn('⚠️ Face detect: exception fallback to heuristic source-face box')
+          return { ymin: 70, xmin: 260, ymax: 520, xmax: 740, confidence: 0.2 }
+        }
+      } catch {
+        // ignore
+      }
+    }
     return null
   }
 }

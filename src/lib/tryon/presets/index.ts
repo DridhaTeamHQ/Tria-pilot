@@ -2,7 +2,7 @@
  * SCENE DATASET INDEX
  * 
  * Central export for all scene presets.
- * All presets now live in photoshoot.ts (25 curated presets).
+ * All presets now live in photoshoot.ts (24 curated presets).
  * india.ts and global.ts provide backward-compatible filtered views.
  */
 
@@ -18,7 +18,7 @@ export type { ScenePreset }
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * All available scene presets (25 curated presets from photoshoot.ts)
+ * All available scene presets (24 curated presets from photoshoot.ts)
  * INDIAN_PRESETS and GLOBAL_PRESETS are filtered views of the same set
  */
 export const ALL_PRESETS: ScenePreset[] = PHOTOSHOOT_PRESETS
