@@ -33,8 +33,8 @@ import { buildAdPrompt } from '@/lib/ads/ad-prompt-builder'
 import { buildForensicFaceAnchor } from '@/lib/tryon/face-forensics'
 import { z } from 'zod'
 
-// Increase serverless timeout for Vercel
-export const maxDuration = 60
+// Increase serverless timeout for Vercel (ad pipeline: GPT + Gemini + image gen can exceed 60s under load)
+export const maxDuration = 120
 
 // Schema for the expanded preset-based generation
 const adGenerationSchema = z
