@@ -5,11 +5,11 @@ import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 interface ProductLinkData {
-  maskedUrl: string
-  linkCode: string
-  originalUrl: string
+  maskedUrl: string | null
+  linkCode: string | null
+  originalUrl: string | null
   productId: string
-  productName: string
+  productName: string | null
 }
 
 export function useProductLink(productId: string | null) {
@@ -23,6 +23,15 @@ export function useProductLink(productId: string | null) {
       const res = await fetch(`/api/links/product/${productId}`, {
         credentials: 'include',
       })
+      if (res.status === 404) {
+        return {
+          maskedUrl: null,
+          linkCode: null,
+          originalUrl: null,
+          productId,
+          productName: null,
+        }
+      }
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
         throw new Error(errorData.error || 'Failed to fetch product link')

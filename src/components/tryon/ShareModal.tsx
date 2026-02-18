@@ -76,9 +76,12 @@ export function ShareModal({ isOpen, onClose, imageUrl, imageBase64, productId }
       fetch(`/api/links/product/${productId}`, {
         credentials: 'include',
       })
-        .then((res) => res.json())
+        .then(async (res) => {
+          if (!res.ok) return null
+          return res.json()
+        })
         .then((data) => {
-          if (data.maskedUrl) {
+          if (data?.maskedUrl) {
             setMaskedLink(data.maskedUrl)
             setOriginalUrl(data.originalUrl || null)
             // Auto-copy masked link to clipboard

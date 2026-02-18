@@ -937,7 +937,7 @@ function TryOnPageContent() {
                                                     }`}
                                                 title={img.label || 'saved photo'}
                                             >
-                                                <img src={img.imageUrl} alt={img.label || 'saved'} className="w-full h-12 sm:h-14 object-cover" />
+                                                <img src={img.imageUrl} alt={img.label || 'saved'} loading="lazy" decoding="async" className="w-full h-12 sm:h-14 object-cover" />
                                                 {img.isPrimary && (
                                                     <div className="absolute top-1 left-1 px-1.5 py-0.5 bg-black/60 text-white text-[10px] rounded-full">
                                                         Primary
@@ -1116,7 +1116,7 @@ function TryOnPageContent() {
                                                             `}
                                                             title={isRef ? "Recommended Try-On Reference" : "Product Variant"}
                                                         >
-                                                            <img src={url} alt={`Var ${idx}`} className="w-full h-full object-cover" />
+                                                            <img src={url} alt={`Var ${idx}`} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                                                             {isRef && (
                                                                 <div className="absolute top-0.5 right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-white shadow-sm flex items-center justify-center">
                                                                     <Sparkles className="w-1.5 h-1.5 text-white" />
@@ -1211,7 +1211,7 @@ function TryOnPageContent() {
                                     <div className="mt-3 flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
                                         {accessoryImages.map((img: string, idx: number) => (
                                             <div key={idx} className="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden border border-white shadow-sm group">
-                                                <img src={img} alt="" className="w-full h-full object-cover" />
+                                                <img src={img} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                                                     <button onClick={() => handleRemoveAccessory(idx)} className="text-white hover:text-red-400">
                                                         <X className="w-4 h-4" />
