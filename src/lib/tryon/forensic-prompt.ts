@@ -24,6 +24,7 @@ export interface ForensicPromptInput {
   lightingBlueprint?: string
   presetAvoid?: string
   bodyAnchor?: string
+  identityCorrectionGuidance?: string
   faceBox?: {
     ymin: number
     xmin: number
@@ -33,16 +34,22 @@ export interface ForensicPromptInput {
 }
 
 export function buildForensicPrompt(input: ForensicPromptInput): string {
+  const clamp = (value: string, max: number) =>
+    value.length > max ? `${value.slice(0, max)}...` : value
+
   const garment = input.garmentDescription?.trim() || 'garment from Image 2'
-  const environment = input.preset?.trim() || 'keep background from Image 1'
-  const realism = input.realismGuidance?.trim() || 'maintain physically plausible ambient lighting'
+  const environment = clamp(input.preset?.trim() || 'keep background from Image 1', 420)
+  const realism = clamp(
+    input.realismGuidance?.trim() || 'maintain physically plausible ambient lighting',
+    520
+  )
   const lighting = input.lighting?.trim() || 'ambient_only'
   const garmentFit =
     input.garmentOnPersonGuidance?.trim() ||
     'garment follows original shoulder slope and torso drape from Image 1'
   const faceAnchor =
     input.faceForensicAnchor?.trim() ||
-    'preserve exact eye geometry, nose bridge and tip, lip contour, jawline, skin texture, facial hair pattern, and eyewear geometry'
+    'preserve exact eye geometry, nose bridge and tip, lip contour, cheek fullness, midface contour, jawline, skin texture, facial hair pattern, and eyewear geometry'
   const eyesAnchor =
     input.eyesAnchor?.trim() ||
     'almond eye shape, medium inter-eye spacing, dark brown iris color, forward gaze direction, stable eyelid crease and brow geometry'
@@ -52,9 +59,11 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   const aspectRatio = input.aspectRatio || '1:1'
   const retryMode = Boolean(input.retryMode)
   const sceneCorrectionGuidance = input.sceneCorrectionGuidance?.trim()
-  const lightingBlueprint =
+  const lightingBlueprint = clamp(
     input.lightingBlueprint?.trim() ||
-    'Match scene lighting on subject with coherent key/fill behavior and consistent shadow direction and color temperature.'
+      'Match scene lighting on subject with coherent key/fill behavior and consistent shadow direction and color temperature.',
+    620
+  )
   const presetAvoidTerms = (input.presetAvoid || '')
     .split(/[;,]/)
     .map(s => s.trim().toLowerCase())
@@ -62,6 +71,7 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   const bodyAnchor =
     input.bodyAnchor?.trim() ||
     'preserve original body build, weight, shoulder width, torso mass, and limb proportions exactly as visible in Image 1'
+  const identityCorrectionGuidance = input.identityCorrectionGuidance?.trim()
   const faceBox = input.faceBox
   const faceSpatialLock = faceBox
     ? {
@@ -115,6 +125,7 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     },
     task: {
       action: 'dress_person_in_Image_1_with_garment_from_Image_2',
+      edit_scope: 'replace_garment_only_preserve_head_face_body_geometry',
       garment: garment,
       fit: garmentFit,
       environment,
@@ -179,6 +190,11 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   // Integration in PLAIN TEXT so the model can't deprioritize it.
   // ═══════════════════════════════════════════════════════════════════════════
   const integrationBlock = [
+    `EDIT SCOPE (strict):`,
+    `Change ONLY the garment from Image 2 onto the person in Image 1.`,
+    `Preserve all non-garment regions from Image 1: head, face, neck, hair, ears, glasses, shoulders, arms, hands, torso silhouette, waist, and body proportions.`,
+    `Do NOT slim, reshape, stylize, or beautify the person. Keep face shape and body geometry unchanged.`,
+    '',
     `SCENE INTEGRATION (CRITICAL — this is NOT a collage):`,
     `The person must look like they were PHOTOGRAPHED in this environment: "${environment}".`,
     `Relight the body, arms, and clothing to match the scene light direction and color temperature. ${lightingBlueprint}`,
@@ -198,12 +214,13 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     `FACE LOCK (non-negotiable):`,
     `The face from Image 1 is immutable. Do not relight, reshape, beautify, smooth, or reposition it.`,
     `Forensic anchor: ${faceAnchor}`,
+    identityCorrectionGuidance ? `Identity correction priority: ${identityCorrectionGuidance}` : '',
   ].join('\n')
 
   const primaryAuthorityBlock = [
     `PRIMARY AUTHORITY — IDENTITY PRESERVATION (non-negotiable):`,
     `The person in Image 1 is the immutable identity reference.`,
-    `Facial structure must remain genetically identical: eye spacing/eyelid shape, nose bridge contour, lip shape/mouth curvature, jawline/chin, beard density and edge pattern, and skin tone with natural unretouched texture.`,
+    `Facial structure must remain genetically identical: eye spacing/eyelid shape, nose bridge contour, lip shape/mouth curvature, cheek volume, midface width, jawline/chin, beard density and edge pattern, and skin tone with natural unretouched texture.`,
     `Do NOT beautify, enhance, smooth skin, alter bone structure, or reinterpret facial proportions.`,
     `Expression and head pose must be inherited from Image 1.`,
   ].join('\n')
@@ -232,6 +249,7 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     `Shoulder width, torso mass, waist, hip width, arm thickness, and overall weight must match Image 1 exactly.`,
     `The garment must conform to the body as-is — the body does NOT conform to the garment.`,
     `No idealization, no beauty-standard correction, no fitness-model adjustment.`,
+    identityCorrectionGuidance ? `Correction note: ${identityCorrectionGuidance}` : '',
   ].join('\n')
 
   return [

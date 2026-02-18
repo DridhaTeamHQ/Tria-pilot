@@ -243,18 +243,23 @@ function calculateStructuralSimilarity(buf1: Buffer, buf2: Buffer): number {
 function calculateEdgeDensityDiff(buf1: Buffer, buf2: Buffer, width: number): number {
     // Simple Sobel-like edge detection
     const getEdgeDensity = (buf: Buffer): number => {
+        if (!buf || buf.length === 0 || width <= 2) return 0
         let edgeSum = 0
-        for (let i = 1; i < buf.length - 1; i++) {
+        let samples = 0
+        // Keep vertical neighbors in-range: i-width >= 0 and i+width < buf.length
+        for (let i = width + 1; i < buf.length - width - 1; i++) {
             if (i % width === 0 || i % width === width - 1) continue
-            const dx = Math.abs(buf[i + 1] - buf[i - 1])
-            const dy = Math.abs(buf[i + width] - buf[i - width])
+            const dx = Math.abs((buf[i + 1] ?? 0) - (buf[i - 1] ?? 0))
+            const dy = Math.abs((buf[i + width] ?? 0) - (buf[i - width] ?? 0))
             edgeSum += Math.sqrt(dx * dx + dy * dy)
+            samples++
         }
-        return edgeSum / buf.length
+        return samples > 0 ? edgeSum / samples : 0
     }
 
     const density1 = getEdgeDensity(buf1)
     const density2 = getEdgeDensity(buf2)
+    if (!Number.isFinite(density1) || !Number.isFinite(density2)) return 0
 
     // Return percentage difference
     const maxDensity = Math.max(density1, density2, 1)
@@ -337,11 +342,12 @@ export async function computeMicroFaceDrift(
         eyeSpacingDelta
     }
 
-    const driftPercent =
+    const driftPercentRaw =
         metrics.landmarkDistance * METRIC_WEIGHTS.landmarkDistance +
         metrics.cheekVolumeRatio * METRIC_WEIGHTS.cheekVolumeRatio +
         metrics.jawContourVariance * METRIC_WEIGHTS.jawContourVariance +
         metrics.eyeSpacingDelta * METRIC_WEIGHTS.eyeSpacingDelta
+    const driftPercent = Number.isFinite(driftPercentRaw) ? driftPercentRaw : 0
 
     // Determine status
     let status: DriftStatus

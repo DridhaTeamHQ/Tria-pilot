@@ -176,12 +176,13 @@ export async function detectFaceCoordinates(
           confidence: confidence ?? 1,
         }
       } else {
-        const box2dMatch = cleanedText.match(/"box_2d"\s*:\s*\[\s*([^\]]+)\s*\]/i)
-        if (box2dMatch?.[1]) {
-          const nums = box2dMatch[1]
-            .split(',')
-            .map(s => Number(s.trim()))
-            .filter(n => Number.isFinite(n))
+        // Recover box_2d even from truncated responses like:
+        // {"box_2d": [106, 316, 454, 596
+        const box2dLooseMatch = cleanedText.match(/"box_2d"\s*:\s*\[\s*([^\]}]*)/i)
+        if (box2dLooseMatch?.[1]) {
+          const nums = (box2dLooseMatch[1].match(/-?\d+(?:\.\d+)?/g) || [])
+            .map((s) => Number(s))
+            .filter((n) => Number.isFinite(n))
           if (nums.length >= 4) {
             raw = { box_2d: nums.slice(0, 4) }
           }

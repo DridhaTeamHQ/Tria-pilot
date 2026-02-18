@@ -20,9 +20,10 @@ import { getStrictSceneConfig } from './scene-intel-adapter'
 import { assessSceneRealism, type SceneQualityAssessment } from './scene-quality-check'
 import { getAllStylePresets } from './style-presets'
 import { extractFaceCrop } from './face-crop'
+import { computeMicroFaceDrift, getDriftRetryParams, shouldRetryForDrift } from './micro-face-drift'
 
 const MAIN_RENDER_MODEL = 'gemini-3-pro-image-preview' as const
-const ENABLE_QUALITY_RETRY = false
+const ENABLE_QUALITY_RETRY = true
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -175,6 +176,8 @@ export async function generateWithNanoBananaPro(
       shouldRetry: false,
       reason: 'not_checked',
     }
+    let microDrift: Awaited<ReturnType<typeof computeMicroFaceDrift>> | null = null
+    let driftRetryParams = { temperatureAdjust: 0, realismBias: 0, emphasis: '' }
     let sceneAssessment: SceneQualityAssessment = buildSceneAssessmentFallback()
 
     const [generatedFace, generatedSceneAssessment] = await Promise.all([
@@ -193,12 +196,28 @@ export async function generateWithNanoBananaPro(
     ])
     driftAssessment = assessFaceDrift(personFace, generatedFace)
     sceneAssessment = generatedSceneAssessment
+    try {
+      const refBuffer = base64ToBuffer(input.personImageBase64)
+      const genBuffer = base64ToBuffer(generatedImage)
+      microDrift = await computeMicroFaceDrift(refBuffer, genBuffer)
+      if (shouldRetryForDrift(microDrift)) {
+        driftRetryParams = getDriftRetryParams(microDrift)
+      }
+    } catch (microErr) {
+      console.warn('⚠️ Micro face drift check failed:', microErr)
+      microDrift = null
+      driftRetryParams = { temperatureAdjust: 0, realismBias: 0, emphasis: '' }
+    }
 
-    if (ENABLE_QUALITY_RETRY && (driftAssessment.shouldRetry || sceneAssessment.shouldRetry)) {
+    if (
+      ENABLE_QUALITY_RETRY &&
+      (driftAssessment.shouldRetry || sceneAssessment.shouldRetry || Boolean(driftRetryParams.emphasis))
+    ) {
       retried = true
       const retryReasons = [
         driftAssessment.shouldRetry ? `face:${driftAssessment.reason}` : null,
         sceneAssessment.shouldRetry ? `scene:${sceneAssessment.reason}` : null,
+        driftRetryParams.emphasis ? `micro-face:${driftRetryParams.emphasis}` : null,
       ]
         .filter(Boolean)
         .join(', ')
@@ -207,6 +226,7 @@ export async function generateWithNanoBananaPro(
         ...promptInput,
         retryMode: true,
         sceneCorrectionGuidance: sceneAssessment.correctionGuidance,
+        identityCorrectionGuidance: driftRetryParams.emphasis || undefined,
       })
 
       generatedImage = await generateTryOnDirect({
@@ -234,6 +254,13 @@ export async function generateWithNanoBananaPro(
       ])
       driftAssessment = assessFaceDrift(personFace, retryFace)
       sceneAssessment = retrySceneAssessment
+      try {
+        const refBuffer = base64ToBuffer(input.personImageBase64)
+        const retryBuffer = base64ToBuffer(generatedImage)
+        microDrift = await computeMicroFaceDrift(refBuffer, retryBuffer)
+      } catch (microErr) {
+        console.warn('⚠️ Micro face drift re-check failed:', microErr)
+      }
     }
 
     const genTime = Date.now() - startTime
@@ -255,6 +282,8 @@ export async function generateWithNanoBananaPro(
         personFace,
         retried,
         driftAssessment,
+        microDrift,
+        driftRetryParams,
         sceneAssessment,
         faceCropUsed: Boolean(faceCropResult.success && faceCropResult.faceCropBase64),
         faceFreezeStatus: 'disabled',
@@ -273,6 +302,11 @@ export async function generateWithNanoBananaPro(
   }
 }
 
+function base64ToBuffer(dataUrlOrBase64: string): Buffer {
+  const cleaned = (dataUrlOrBase64 || '').replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '')
+  return Buffer.from(cleaned, 'base64')
+}
+
 function assessFaceDrift(
   personFace: FaceCoordinates | null,
   generatedFace: FaceCoordinates | null
@@ -288,10 +322,10 @@ function assessFaceDrift(
   if (!personFace) {
     return { shouldRetry: false, reason: 'person_face_missing' }
   }
-  // Do NOT retry when we failed to detect a face in the output (e.g. detector parse error).
-  // Retry only when we have both faces and clear geometry drift — otherwise we double-hit the API for no reason.
+  // Retry once when output face detection fails (e.g. parser hiccup / weak detection),
+  // because this commonly correlates with identity drift.
   if (!generatedFace) {
-    return { shouldRetry: false, reason: 'generated_face_unknown' }
+    return { shouldRetry: true, reason: 'generated_face_unknown' }
   }
 
   const iou = faceIoU(personFace, generatedFace)

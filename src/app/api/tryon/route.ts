@@ -9,6 +9,7 @@ import { runHybridTryOnPipeline } from '@/lib/tryon/hybrid-tryon-pipeline'
 import { GeminiRateLimitError } from '@/lib/gemini/executor'
 
 export const maxDuration = 60
+const TRYON_RATE_LIMIT_DISABLED = true
 const USER_LOCK_TTL_SECONDS = 75
 const GLOBAL_ACTIVE_TTL_SECONDS = 75
 const GLOBAL_ACTIVE_LIMIT = Math.max(
@@ -120,7 +121,7 @@ export async function POST(request: Request) {
     if (process.env.NODE_ENV !== 'production') console.log('✅ User verified, generating try-on:', { userId })
 
     // Lightweight per-user guard: prevents double-click/duplicate tabs from starting parallel generations.
-    if (isRedisConfigured()) {
+    if (!TRYON_RATE_LIMIT_DISABLED && isRedisConfigured()) {
       try {
         const redis = getRedisConnection()
         redisUserLockKey = `tryon:user:${userId}:generating`
@@ -217,7 +218,7 @@ export async function POST(request: Request) {
         .eq('id', job.id)
 
       // Global guard: cap concurrent inline generations so bursts return a clean "server busy" instead of collapsing.
-      if (process.env.NODE_ENV === 'production' && isRedisConfigured()) {
+      if (!TRYON_RATE_LIMIT_DISABLED && process.env.NODE_ENV === 'production' && isRedisConfigured()) {
         try {
           const redis = getRedisConnection()
           const activeCount = await redis.incr(GLOBAL_ACTIVE_KEY)

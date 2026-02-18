@@ -30,7 +30,9 @@ import { compositeFacePixels, estimateFaceBox, extractFacePixels, type FaceBox }
 import { generateWithNanoBananaPro } from './nano-banana-pro-renderer'
 
 const GARMENT_EXTRACT_MODEL = 'gemini-2.5-flash-image' as const
-const ENABLE_DETERMINISTIC_FACE_LOCK = true
+// Keep disabled: face pixel compositing can create ghost-face artifacts when target
+// placement is imperfect. We prefer model-only identity preservation.
+const ENABLE_DETERMINISTIC_FACE_LOCK = false
 
 // ═══════════════════════════════════════════════════════════════
 // TYPES
@@ -103,6 +105,37 @@ function mapSourceBoxToTarget(source: FaceBox, sourceW: number, sourceH: number,
   return { x, y, width, height }
 }
 
+function isPlausibleTargetFace(
+  sourceBox: FaceBox,
+  targetBox: FaceBox,
+  sourceW: number,
+  sourceH: number,
+  targetW: number,
+  targetH: number
+): boolean {
+  const sourceAreaRatio = (sourceBox.width * sourceBox.height) / Math.max(1, sourceW * sourceH)
+  const targetAreaRatio = (targetBox.width * targetBox.height) / Math.max(1, targetW * targetH)
+  const sourceWidthRatio = sourceBox.width / Math.max(1, sourceW)
+  const targetWidthRatio = targetBox.width / Math.max(1, targetW)
+  const sourceHeightRatio = sourceBox.height / Math.max(1, sourceH)
+  const targetHeightRatio = targetBox.height / Math.max(1, targetH)
+
+  // Reject tiny detections (common when model invents a small face thumbnail in corner).
+  if (targetAreaRatio < 0.015 || targetWidthRatio < 0.08 || targetHeightRatio < 0.08) {
+    return false
+  }
+
+  // Reject extreme scale mismatch between source and target face size.
+  const widthScale = targetWidthRatio / Math.max(0.0001, sourceWidthRatio)
+  const heightScale = targetHeightRatio / Math.max(0.0001, sourceHeightRatio)
+  const areaScale = targetAreaRatio / Math.max(0.0001, sourceAreaRatio)
+  if (widthScale < 0.35 || widthScale > 2.8) return false
+  if (heightScale < 0.35 || heightScale > 2.8) return false
+  if (areaScale < 0.15 || areaScale > 6.5) return false
+
+  return true
+}
+
 async function applyDeterministicFaceLock(personImageBase64: string, generatedBase64: string): Promise<{
   image: string
   applied: boolean
@@ -126,14 +159,22 @@ async function applyDeterministicFaceLock(personImageBase64: string, generatedBa
       detectFaceCoordinates(generatedBase64),
     ])
 
+    // Never paste when we don't know where the face is in the generated image.
+    // Using a fallback (e.g. scaled source box) causes the "ghost face" — a face
+    // pasted at wrong coordinates (e.g. top-left). Only composite when we have
+    // reliable target face detection.
+    if (!targetFace) {
+      return { image: generatedBase64, applied: false, reason: 'target_face_not_detected' }
+    }
+
     const sourceBox = sourceFace
       ? normalizedFaceToBox(sourceFace, origMeta.width, origMeta.height)
       : estimateFaceBox(origMeta.width, origMeta.height)
 
-    const fallbackTarget = mapSourceBoxToTarget(sourceBox, origMeta.width, origMeta.height, genMeta.width, genMeta.height)
-    const targetBox = targetFace
-      ? normalizedFaceToBox(targetFace, genMeta.width, genMeta.height)
-      : fallbackTarget
+    const targetBox = normalizedFaceToBox(targetFace, genMeta.width, genMeta.height)
+    if (!isPlausibleTargetFace(sourceBox, targetBox, origMeta.width, origMeta.height, genMeta.width, genMeta.height)) {
+      return { image: generatedBase64, applied: false, reason: 'target_face_implausible' }
+    }
 
     const faceData = await extractFacePixels(originalBuffer, sourceBox)
     if (!faceData) {

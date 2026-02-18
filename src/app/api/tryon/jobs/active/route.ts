@@ -14,7 +14,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    return NextResponse.json({ active: false }, { status: 404 })
+    return NextResponse.json({ active: false })
   } catch (error) {
     console.error('Try-on active job error:', error)
     return NextResponse.json({ error: 'Failed to fetch active job' }, { status: 500 })
