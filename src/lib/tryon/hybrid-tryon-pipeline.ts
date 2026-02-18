@@ -30,7 +30,7 @@ import { compositeFacePixels, estimateFaceBox, extractFacePixels, type FaceBox }
 import { generateWithNanoBananaPro } from './nano-banana-pro-renderer'
 
 const GARMENT_EXTRACT_MODEL = 'gemini-2.5-flash-image' as const
-const ENABLE_DETERMINISTIC_FACE_LOCK = false
+const ENABLE_DETERMINISTIC_FACE_LOCK = true
 
 // ═══════════════════════════════════════════════════════════════
 // TYPES
