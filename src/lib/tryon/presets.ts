@@ -64,6 +64,45 @@ function convertToUiPreset(p: ScenePreset): TryOnStylePreset {
 // Generate the V3 list from the Master Source
 export const TRYON_PRESETS_V3: TryOnStylePreset[] = ALL_PRESETS.map(convertToUiPreset)
 
+function validateTryOnPresetBridge(): void {
+  if (!TRYON_PRESETS_V3.length) {
+    throw new Error('Try-on preset bridge error: no UI presets generated from ALL_PRESETS')
+  }
+
+  const uiIds = new Set<string>()
+  for (const preset of TRYON_PRESETS_V3) {
+    if (!preset.id?.trim()) {
+      throw new Error('Try-on preset bridge error: preset id is empty')
+    }
+    if (uiIds.has(preset.id)) {
+      throw new Error(`Try-on preset bridge error: duplicate UI preset id "${preset.id}"`)
+    }
+    uiIds.add(preset.id)
+
+    if (!preset.background_name?.trim()) {
+      throw new Error(`Try-on preset bridge error: background_name missing for "${preset.id}"`)
+    }
+    if (!preset.lighting_name?.trim()) {
+      throw new Error(`Try-on preset bridge error: lighting_name missing for "${preset.id}"`)
+    }
+    if (!preset.camera_spec?.trim()) {
+      throw new Error(`Try-on preset bridge error: camera_spec missing for "${preset.id}"`)
+    }
+    if (!preset.negative_bias?.trim()) {
+      throw new Error(`Try-on preset bridge error: negative_bias missing for "${preset.id}"`)
+    }
+  }
+
+  const sourceIds = new Set(ALL_PRESETS.map((preset) => preset.id))
+  if (uiIds.size !== sourceIds.size) {
+    throw new Error(
+      `Try-on preset bridge error: source/UI preset count mismatch (source=${sourceIds.size}, ui=${uiIds.size})`
+    )
+  }
+}
+
+validateTryOnPresetBridge()
+
 export function getTryOnPresetV3(id: string): TryOnStylePreset | undefined {
   return TRYON_PRESETS_V3.find((p) => p.id === id)
 }

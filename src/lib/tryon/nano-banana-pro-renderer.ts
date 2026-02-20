@@ -36,6 +36,19 @@ const ULTRA_FACE_LOCK_PRESETS = new Set([
   'studio_crimson_noir',
   'golden_hour_bedroom',
 ])
+const COMPLEX_BACKGROUND_PRESETS = new Set([
+  'urban_gas_station_night',
+  'street_mcdonalds_bmw_night',
+  'studio_crimson_noir',
+  'golden_hour_bedroom',
+  'outdoor_kerala_theyyam_gtr',
+  'editorial_night_garden_flash',
+  'editorial_newspaper_set',
+  'editorial_court_geometric_sun',
+  'editorial_dark_study_set',
+  'studio_green_red_gel_editorial',
+  'studio_red_seamless_profile',
+])
 const NO_SYNTHETIC_BLUR_PRESETS = new Set([
   'urban_gas_station_night',
   'street_mcdonalds_bmw_night',
@@ -157,6 +170,7 @@ export async function generateWithNanoBananaPro(
     const exampleGuidance = presetGuidance || requestGuidance
     const resolvedPresetId = sceneConfig.preset || input.presetId
     const isUltraFaceLockPreset = ULTRA_FACE_LOCK_PRESETS.has((resolvedPresetId || '').toLowerCase())
+    const isComplexBackgroundPreset = COMPLEX_BACKGROUND_PRESETS.has((resolvedPresetId || '').toLowerCase())
     const resolvedPreset = getPresetById(resolvedPresetId || '')
     const presetFaceGuard = getPresetFaceGuard(resolvedPresetId)
     const presetOpticalGuard = getPresetOpticalGuard(resolvedPresetId)
@@ -165,6 +179,14 @@ export async function generateWithNanoBananaPro(
       category: resolvedPreset?.category,
     })
     const faceSpatialLock = getFaceSpatialLock(personFace)
+    const identityCorrectionGuidance = [
+      presetFaceGuard.identityCorrectionGuidance,
+      !faceSpatialLock
+        ? 'Face detection confidence is limited in this run. Prioritize exact source identity signals (eyes, nose-lip relation, jawline, beard/skin texture) and avoid any beautification or age/complexion shift.'
+        : undefined,
+    ]
+      .filter(Boolean)
+      .join(' ')
 
     const promptInput = {
       garmentDescription: input.garmentDescription,
@@ -204,10 +226,13 @@ export async function generateWithNanoBananaPro(
           ...sanitizeIdentityRules([...(presetGuidance?.identityRules || []), ...(requestGuidance?.identityRules || [])]),
           'Preset style, grading, and mood controls apply to scene and garment only, never to facial geometry or face skin texture.',
           'Night or moody rendering must not reshape jaw, cheeks, eyes, or brows, and must not beautify or airbrush the face.',
+          'If scene detail conflicts with identity preservation, simplify scene detail before altering any face geometry or face texture.',
+          'Preserve perceived age from the source face exactly; no de-aging, youthification, or wrinkle cleanup.',
+          'Preserve source skin luminance and undertone on the face; no whitening, brightening, fairness shift, or complexion rewrite.',
           ...presetFaceGuard.identityPriorityRules,
         ])
       ),
-      identityCorrectionGuidance: presetFaceGuard.identityCorrectionGuidance,
+      identityCorrectionGuidance: identityCorrectionGuidance || undefined,
       strengthProfile,
       hasFaceReference: Boolean(faceCropResult.success && faceCropResult.faceCropBase64),
       faceBox: faceSpatialLock
@@ -220,7 +245,7 @@ export async function generateWithNanoBananaPro(
         : undefined,
       faceSpatialLockQuality: faceSpatialLock?.quality,
       aspectRatio: input.aspectRatio || '1:1',
-      retryMode: false,
+      retryMode: true,
       sceneCorrectionGuidance: undefined as string | undefined,
     }
     const prompt = buildForensicPrompt(promptInput)
@@ -283,6 +308,11 @@ export async function generateWithNanoBananaPro(
     const firstPassDriftAssessment = driftAssessment
     const firstPassSceneAssessment = sceneAssessment
     const hasTrustedSourceFace = Boolean(faceSpatialLock)
+    const microDriftRetryThreshold = isUltraFaceLockPreset
+      ? 12
+      : isComplexBackgroundPreset
+        ? 16
+        : MICRO_DRIFT_RETRY_THRESHOLD
     try {
       const refBuffer = base64ToBuffer(input.personImageBase64)
       const genBuffer = base64ToBuffer(generatedImage)
@@ -291,7 +321,7 @@ export async function generateWithNanoBananaPro(
         hasTrustedSourceFace &&
         generatedFace &&
         microDrift.success &&
-        microDrift.driftPercent >= MICRO_DRIFT_RETRY_THRESHOLD
+        microDrift.driftPercent >= microDriftRetryThreshold
       ) {
         driftRetryParams = getDriftRetryParams(microDrift)
       }
@@ -304,7 +334,7 @@ export async function generateWithNanoBananaPro(
 
     const firstPassMicroDriftSevere = Boolean(
       firstPassMicroDrift?.success &&
-      firstPassMicroDrift.driftPercent >= MICRO_DRIFT_RETRY_THRESHOLD
+      firstPassMicroDrift.driftPercent >= microDriftRetryThreshold
     )
     const hardFaceFailure = hasTrustedSourceFace && firstPassDriftAssessment.reason === 'generated_face_unknown'
     const geometryRetrySignal = Boolean(
@@ -313,7 +343,12 @@ export async function generateWithNanoBananaPro(
       firstPassDriftAssessment.shouldRetry &&
       firstPassMicroDriftSevere
     )
-    const hasRetrySignal = hardFaceFailure || geometryRetrySignal
+    const microOnlyRetrySignal = Boolean(
+      hasTrustedSourceFace &&
+      firstPassMicroDrift?.success &&
+      firstPassMicroDrift.driftPercent >= microDriftRetryThreshold
+    )
+    const hasRetrySignal = hardFaceFailure || geometryRetrySignal || microOnlyRetrySignal
     const elapsedBeforeRetryMs = Date.now() - startTime
     // Keep production reliable: avoid second full model pass when we're already near timeout.
     const retryBudgetMs = process.env.NODE_ENV === 'production' ? 45_000 : 120_000
@@ -333,11 +368,26 @@ export async function generateWithNanoBananaPro(
         .filter(Boolean)
         .join(', ')
       console.warn(`   ⚠️ Quality retry triggered (${retryReasons}), retrying once with stricter controls`)
+      const retryIdentityCorrectionGuidance = buildRetryIdentityCorrectionGuidance({
+        baseIdentityCorrectionGuidance: promptInput.identityCorrectionGuidance,
+        microDriftEmphasis: driftRetryParams.emphasis,
+        hasHardFaceFailure: hardFaceFailure,
+        isComplexBackgroundPreset,
+      })
+      const retrySceneCorrectionGuidance = [
+        sceneAssessment.correctionGuidance,
+        isComplexBackgroundPreset
+          ? 'When scene complexity conflicts with identity, simplify distant background detail and preserve legible real textures instead of adding stylized blur or glow.'
+          : undefined,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .trim()
       const retryPrompt = buildForensicPrompt({
         ...promptInput,
         retryMode: true,
-        sceneCorrectionGuidance: sceneAssessment.correctionGuidance,
-        identityCorrectionGuidance: driftRetryParams.emphasis || undefined,
+        sceneCorrectionGuidance: retrySceneCorrectionGuidance || undefined,
+        identityCorrectionGuidance: retryIdentityCorrectionGuidance || undefined,
       })
 
       generatedImage = await generateTryOnDirect({
@@ -574,6 +624,27 @@ function shouldUseRetryCandidate(args: {
 
   // Default to preserving first pass identity.
   return false
+}
+
+function buildRetryIdentityCorrectionGuidance(args: {
+  baseIdentityCorrectionGuidance?: string
+  microDriftEmphasis?: string
+  hasHardFaceFailure: boolean
+  isComplexBackgroundPreset: boolean
+}): string {
+  return [
+    args.baseIdentityCorrectionGuidance,
+    args.microDriftEmphasis,
+    args.hasHardFaceFailure
+      ? 'Hard identity correction: lock face age, skin luminance, and facial geometry to source exactly; no beautification or complexion shift.'
+      : undefined,
+    args.isComplexBackgroundPreset
+      ? 'Complex scene rule: preserve source face first; if needed reduce background stylistic intensity before any face-region change.'
+      : undefined,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .trim()
 }
 
 function faceIoU(a: FaceCoordinates, b: FaceCoordinates): number {

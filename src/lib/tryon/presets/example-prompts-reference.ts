@@ -720,6 +720,41 @@ const PRESET_ALIASES: Record<string, string> = {
   street_mcdonalds_bmw_night: 'street_mcdonalds_bmw_night',
 }
 
+function validateExamplePromptDataset(): void {
+  const ids = new Set<string>()
+  for (const example of EXAMPLE_PROMPTS_REFERENCE) {
+    if (!example.id?.trim()) {
+      throw new Error('Example prompt dataset error: example id is empty')
+    }
+    if (ids.has(example.id)) {
+      throw new Error(`Example prompt dataset error: duplicate example id "${example.id}"`)
+    }
+    ids.add(example.id)
+
+    if (!example.presetId?.trim()) {
+      throw new Error(`Example prompt dataset error: presetId missing for "${example.id}"`)
+    }
+    if (!example.scene?.trim()) {
+      throw new Error(`Example prompt dataset error: scene missing for "${example.id}"`)
+    }
+    if (!example.lighting?.trim()) {
+      throw new Error(`Example prompt dataset error: lighting missing for "${example.id}"`)
+    }
+    if (!example.styleKeywords?.length) {
+      throw new Error(`Example prompt dataset error: styleKeywords missing for "${example.id}"`)
+    }
+
+    const resolvedPresetId = PRESET_ALIASES[example.presetId] || example.presetId
+    if (!getPresetById(resolvedPresetId)) {
+      throw new Error(
+        `Example prompt dataset error: unknown presetId "${example.presetId}" (resolved "${resolvedPresetId}") for "${example.id}"`
+      )
+    }
+  }
+}
+
+validateExamplePromptDataset()
+
 export const EXAMPLE_PRESET_IDS = Array.from(
   new Set(
     EXAMPLE_PROMPTS_REFERENCE.map((e) => PRESET_ALIASES[e.presetId] || e.presetId)
