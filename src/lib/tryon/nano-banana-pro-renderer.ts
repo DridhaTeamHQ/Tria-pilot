@@ -18,15 +18,45 @@ import { detectFaceCoordinates, type FaceCoordinates } from './face-coordinates'
 import { buildForensicFaceAnchor } from './face-forensics'
 import { getStrictSceneConfig } from './scene-intel-adapter'
 import { assessSceneRealism, type SceneQualityAssessment } from './scene-quality-check'
-import { getAllPresetIds } from './presets/index'
+import { getAllPresetIds, getPresetById } from './presets/index'
 import { extractFaceCrop } from './face-crop'
 import { computeMicroFaceDrift, getDriftRetryParams } from './micro-face-drift'
 import { getPresetExampleGuidance, getRequestExampleGuidance } from './presets/example-prompts-reference'
 import { getPresetStrengthProfile } from './preset-strength-profile'
 
 const MAIN_RENDER_MODEL = 'gemini-3-pro-image-preview' as const
-const ENABLE_QUALITY_RETRY = process.env.TRYON_ENABLE_QUALITY_RETRY === 'true'
-const MICRO_DRIFT_RETRY_THRESHOLD = 40
+const ENABLE_QUALITY_RETRY = process.env.TRYON_ENABLE_QUALITY_RETRY !== 'false'
+const MICRO_DRIFT_RETRY_THRESHOLD = 22
+const ULTRA_FACE_LOCK_IOU_MIN = 0.68
+const ULTRA_FACE_LOCK_CENTER_MAX = 55
+const ULTRA_FACE_LOCK_SIZE_DELTA_MAX = 0.14
+const ULTRA_FACE_LOCK_PRESETS = new Set([
+  'urban_gas_station_night',
+  'street_mcdonalds_bmw_night',
+  'studio_crimson_noir',
+  'golden_hour_bedroom',
+])
+const NO_SYNTHETIC_BLUR_PRESETS = new Set([
+  'urban_gas_station_night',
+  'street_mcdonalds_bmw_night',
+  'studio_crimson_noir',
+  'golden_hour_bedroom',
+  'outdoor_kerala_theyyam_gtr',
+  'studio_bw_minimalist_portrait',
+  'home_cozy_teddy_selfie',
+  'travel_scene_lock_realism',
+  'street_elevator_mirror_chic',
+  'editorial_sky_negative_space',
+  'editorial_night_garden_flash',
+  'studio_white_brick_bench',
+  'editorial_newspaper_set',
+  'editorial_court_geometric_sun',
+  'studio_window_blind_portrait',
+  'editorial_dark_study_set',
+  'studio_orange_director_chair',
+  'studio_green_red_gel_editorial',
+  'studio_red_seamless_profile',
+])
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -126,9 +156,15 @@ export async function generateWithNanoBananaPro(
     const requestGuidance = getRequestExampleGuidance(input.userRequest)
     const exampleGuidance = presetGuidance || requestGuidance
     const resolvedPresetId = sceneConfig.preset || input.presetId
+    const isUltraFaceLockPreset = ULTRA_FACE_LOCK_PRESETS.has((resolvedPresetId || '').toLowerCase())
+    const resolvedPreset = getPresetById(resolvedPresetId || '')
+    const presetFaceGuard = getPresetFaceGuard(resolvedPresetId)
+    const presetOpticalGuard = getPresetOpticalGuard(resolvedPresetId)
     const strengthProfile = getPresetStrengthProfile({
       presetId: resolvedPresetId,
+      category: resolvedPreset?.category,
     })
+    const faceSpatialLock = getFaceSpatialLock(personFace)
 
     const promptInput = {
       garmentDescription: input.garmentDescription,
@@ -144,28 +180,45 @@ export async function generateWithNanoBananaPro(
       poseSummary: forensicAnchor.poseSummary,
       appearanceSummary: forensicAnchor.appearanceSummary,
       bodyAnchor: forensicAnchor.bodyAnchor,
-      styleGuidance: exampleGuidance
-        ? `${exampleGuidance.vibe} ${exampleGuidance.scene}`
-        : undefined,
-      colorGradingGuidance: exampleGuidance?.colorGrading,
-      cameraGuidance: exampleGuidance?.camera,
-      poseInferenceGuidance: exampleGuidance?.poseInference,
+      styleGuidance: sanitizeEnvironmentGuidance(
+        exampleGuidance
+          ? `${exampleGuidance.vibe} ${exampleGuidance.scene} Lighting intent: ${exampleGuidance.lighting}.`
+          : undefined
+      ),
+      colorGradingGuidance: sanitizeEnvironmentGuidance(exampleGuidance?.colorGrading),
+      cameraGuidance: [
+        sanitizeEnvironmentGuidance(exampleGuidance?.camera),
+        presetOpticalGuard.cameraGuidance,
+      ].filter(Boolean).join(' '),
+      poseInferenceGuidance: sanitizeEnvironmentGuidance(exampleGuidance?.poseInference),
       additionalAvoidTerms: Array.from(
-        new Set([...(presetGuidance?.avoidTerms || []), ...(requestGuidance?.avoidTerms || [])])
+        new Set([
+          ...(presetGuidance?.avoidTerms || []),
+          ...(requestGuidance?.avoidTerms || []),
+          ...presetFaceGuard.additionalAvoidTerms,
+          ...presetOpticalGuard.additionalAvoidTerms,
+        ])
       ),
       identityPriorityRules: Array.from(
-        new Set([...(presetGuidance?.identityRules || []), ...(requestGuidance?.identityRules || [])])
+        new Set([
+          ...sanitizeIdentityRules([...(presetGuidance?.identityRules || []), ...(requestGuidance?.identityRules || [])]),
+          'Preset style, grading, and mood controls apply to scene and garment only, never to facial geometry or face skin texture.',
+          'Night or moody rendering must not reshape jaw, cheeks, eyes, or brows, and must not beautify or airbrush the face.',
+          ...presetFaceGuard.identityPriorityRules,
+        ])
       ),
+      identityCorrectionGuidance: presetFaceGuard.identityCorrectionGuidance,
       strengthProfile,
       hasFaceReference: Boolean(faceCropResult.success && faceCropResult.faceCropBase64),
-      faceBox: personFace && isFaceBoxSafeForSpatialLock(personFace)
+      faceBox: faceSpatialLock
         ? {
-            ymin: personFace.ymin,
-            xmin: personFace.xmin,
-            ymax: personFace.ymax,
-            xmax: personFace.xmax,
+            ymin: faceSpatialLock.box.ymin,
+            xmin: faceSpatialLock.box.xmin,
+            ymax: faceSpatialLock.box.ymax,
+            xmax: faceSpatialLock.box.xmax,
           }
         : undefined,
+      faceSpatialLockQuality: faceSpatialLock?.quality,
       aspectRatio: input.aspectRatio || '1:1',
       retryMode: false,
       sceneCorrectionGuidance: undefined as string | undefined,
@@ -220,12 +273,16 @@ export async function generateWithNanoBananaPro(
       ),
     ])
     driftAssessment = assessFaceDrift(personFace, generatedFace)
+    driftAssessment = tightenDriftAssessmentForUltraFaceLock(
+      driftAssessment,
+      isUltraFaceLockPreset
+    )
     sceneAssessment = generatedSceneAssessment
     const firstPassImage = generatedImage
     const firstPassFace = generatedFace
     const firstPassDriftAssessment = driftAssessment
     const firstPassSceneAssessment = sceneAssessment
-    const hasTrustedSourceFace = Boolean(personFace && isFaceBoxSafeForSpatialLock(personFace))
+    const hasTrustedSourceFace = Boolean(faceSpatialLock)
     try {
       const refBuffer = base64ToBuffer(input.personImageBase64)
       const genBuffer = base64ToBuffer(generatedImage)
@@ -307,6 +364,10 @@ export async function generateWithNanoBananaPro(
         ),
       ])
       driftAssessment = assessFaceDrift(personFace, retryFace)
+      driftAssessment = tightenDriftAssessmentForUltraFaceLock(
+        driftAssessment,
+        isUltraFaceLockPreset
+      )
       sceneAssessment = retrySceneAssessment
       let retryMicroDrift: Awaited<ReturnType<typeof computeMicroFaceDrift>> | null = null
       try {
@@ -399,6 +460,39 @@ function isFaceBoxSafeForSpatialLock(face: FaceCoordinates): boolean {
   return true
 }
 
+function isFaceBoxUsableForSpatialLock(face: FaceCoordinates): boolean {
+  const w = Math.max(1, face.xmax - face.xmin)
+  const h = Math.max(1, face.ymax - face.ymin)
+  const area = (w * h) / 1_000_000
+  const aspect = h / w
+  const edgeMargin = Math.min(face.xmin, face.ymin, 1000 - face.xmax, 1000 - face.ymax)
+  if (face.confidence < 0.62) return false
+  if (area < 0.015 || area > 0.32) return false
+  if (aspect < 0.65 || aspect > 1.8) return false
+  if (edgeMargin < 6) return false
+  return true
+}
+
+function getFaceSpatialLock(face: FaceCoordinates | null): {
+  quality: 'strict' | 'relaxed'
+  box: { ymin: number; xmin: number; ymax: number; xmax: number }
+} | null {
+  if (!face) return null
+  if (isFaceBoxSafeForSpatialLock(face)) {
+    return {
+      quality: 'strict',
+      box: { ymin: face.ymin, xmin: face.xmin, ymax: face.ymax, xmax: face.xmax },
+    }
+  }
+  if (isFaceBoxUsableForSpatialLock(face)) {
+    return {
+      quality: 'relaxed',
+      box: { ymin: face.ymin, xmin: face.xmin, ymax: face.ymax, xmax: face.xmax },
+    }
+  }
+  return null
+}
+
 function base64ToBuffer(dataUrlOrBase64: string): Buffer {
   const cleaned = (dataUrlOrBase64 || '').replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '')
   return Buffer.from(cleaned, 'base64')
@@ -429,7 +523,7 @@ function assessFaceDrift(
   const centerDistance = faceCenterDistance(personFace, generatedFace)
   const sizeDelta = faceSizeDelta(personFace, generatedFace)
 
-  const drift = iou < 0.45 || centerDistance > 90 || sizeDelta > 0.22
+  const drift = iou < 0.58 || centerDistance > 70 || sizeDelta > 0.18
   return {
     shouldRetry: drift,
     reason: drift ? 'geometry_drift' : 'stable',
@@ -524,6 +618,144 @@ function buildSceneAssessmentFallback(): SceneQualityAssessment {
       backgroundQuality: 85,
       compositionBalance: 85,
     },
+  }
+}
+
+function tightenDriftAssessmentForUltraFaceLock(
+  assessment: ReturnType<typeof assessFaceDrift>,
+  enabled: boolean
+): ReturnType<typeof assessFaceDrift> {
+  if (!enabled || !assessment.metrics) return assessment
+  const { iou, centerDistance, sizeDelta } = assessment.metrics
+  const ultraDrift =
+    iou < ULTRA_FACE_LOCK_IOU_MIN ||
+    centerDistance > ULTRA_FACE_LOCK_CENTER_MAX ||
+    sizeDelta > ULTRA_FACE_LOCK_SIZE_DELTA_MAX
+  if (!ultraDrift) return assessment
+  return {
+    shouldRetry: true,
+    reason: 'ultra_lock_geometry_drift',
+    metrics: assessment.metrics,
+  }
+}
+
+function sanitizeEnvironmentGuidance(value?: string): string | undefined {
+  if (!value?.trim()) return undefined
+  const normalized = value
+    .replace(/\s+/g, ' ')
+    .trim()
+  const blocked = [
+    'change face',
+    'replace face',
+    'swap face',
+    'face from image',
+    'do not change face',
+    'keep face',
+    'face 100%',
+    'identical to reference photo',
+    'beautify',
+    'skin smoothing',
+  ]
+  const sentences = normalized.split(/[.!?]\s+/)
+  const safe = sentences.filter((sentence) => {
+    const lower = sentence.toLowerCase()
+    return !blocked.some(token => lower.includes(token))
+  })
+  return safe.join(' ').trim() || undefined
+}
+
+function sanitizeIdentityRules(rules: string[]): string[] {
+  const forbidden = ['replace face', 'swap face', 'face from image 3', 'change identity']
+  return rules
+    .map(rule => rule.trim())
+    .filter(Boolean)
+    .filter((rule) => {
+      const lower = rule.toLowerCase()
+      return !forbidden.some(token => lower.includes(token))
+    })
+}
+
+function getPresetFaceGuard(presetId?: string): {
+  identityPriorityRules: string[]
+  additionalAvoidTerms: string[]
+  identityCorrectionGuidance?: string
+} {
+  const id = (presetId || '').trim().toLowerCase()
+  if (!ULTRA_FACE_LOCK_PRESETS.has(id)) {
+    return {
+      identityPriorityRules: [],
+      additionalAvoidTerms: [],
+    }
+  }
+
+  const sharedRules = [
+    'Ultra face-lock preset: preserve face geometry exactly at source proportions and pixel-level texture fidelity.',
+    'Do not apply mood grade or stylization to eyes, nose, lips, cheeks, jawline, or brow shape.',
+    'Keep natural pore detail and facial micro-contrast from source; do not smooth, contour, or beautify.',
+  ]
+  const sharedAvoid = [
+    'face reshape',
+    'jawline edit',
+    'eye restyle',
+    'beauty retouch',
+    'skin denoise face',
+    'face tone remap',
+  ]
+
+  if (id === 'golden_hour_bedroom') {
+    return {
+      identityPriorityRules: [
+        ...sharedRules,
+        'For striped blind shadows, keep face planes unchanged and avoid shadow-driven face warping.',
+      ],
+      additionalAvoidTerms: [...sharedAvoid, 'striped shadow warping on face'],
+      identityCorrectionGuidance:
+        'Golden-hour blind lighting may affect scene mood, but face geometry and pore texture must remain source-identical.',
+    }
+  }
+
+  if (id === 'studio_crimson_noir') {
+    return {
+      identityPriorityRules: [
+        ...sharedRules,
+        'Crimson low-key grading must remain background-dominant and must not recolor facial anatomy unnaturally.',
+      ],
+      additionalAvoidTerms: [...sharedAvoid, 'crimson face cast clipping'],
+      identityCorrectionGuidance:
+        'Neo-noir treatment should deepen background and clothing contrast while keeping face topology and tonal identity stable.',
+    }
+  }
+
+  return {
+    identityPriorityRules: sharedRules,
+    additionalAvoidTerms: sharedAvoid,
+    identityCorrectionGuidance:
+      'Night preset: preserve exact face topology and avoid any beauty or cinematic grading on the face region.',
+  }
+}
+
+function getPresetOpticalGuard(presetId?: string): {
+  cameraGuidance?: string
+  additionalAvoidTerms: string[]
+} {
+  const id = (presetId || '').trim().toLowerCase()
+  if (!NO_SYNTHETIC_BLUR_PRESETS.has(id)) {
+    return {
+      additionalAvoidTerms: [],
+    }
+  }
+
+  return {
+    cameraGuidance:
+      'Optical behavior: maintain medium-to-deep focus with legible background materials and edges; avoid synthetic portrait-mode blur.',
+    additionalAvoidTerms: [
+      'gaussian background blur',
+      'fake bokeh circles',
+      'portrait mode cutout blur',
+      'blur wall background',
+      'depth blur artifacts',
+      'smudged background textures',
+    ],
   }
 }
 

@@ -1,6 +1,7 @@
 import { ALL_PRESETS, getPresetById, type ScenePreset } from './presets/index'
 import type { TryOnStylePreset, TryOnPresetCategory, InstagramStylePack } from './types'
 import { getPresetExampleGuidance } from './presets/example-prompts-reference'
+import { getPresetStrengthProfile } from './preset-strength-profile'
 
 /**
  * UI PRESETS BRIDGE
@@ -24,11 +25,22 @@ function mapStyleToPack(style: string): InstagramStylePack {
 
 // Convert ScenePreset to TryOnStylePreset - PRESERVES ALL STRUCTURAL FIELDS
 function convertToUiPreset(p: ScenePreset): TryOnStylePreset {
+  const sceneSummary = p.scene
+    .split(/[.;]/)
+    .map(s => s.trim())
+    .filter(Boolean)
+    .slice(0, 1)
+    .join('. ')
+  const lightingSummary = p.lighting
+    .split(/[.;]/)
+    .map(s => s.trim())
+    .filter(Boolean)
+    .slice(0, 1)
+    .join('. ')
   return {
     id: p.id,
     name: p.label,
-    // Use the first sentence of the scene as description
-    description: p.scene.split(',')[0] + '.',
+    description: [sceneSummary, lightingSummary].filter(Boolean).join(' • '),
     category: p.category as TryOnPresetCategory,
     pose_mode: 'locked',
     identity_lock: 'high',
@@ -82,9 +94,13 @@ export function getTryOnPresetListV3(): Array<{
   framingHint?: string
   sceneObjects?: string
   styleTags?: string[]
+  faceStability?: 'max' | 'high'
+  lightingHint?: string
 }> {
   return TRYON_PRESETS_V3.map((p) => {
     const guidance = getPresetExampleGuidance(p.id)
+    const strength = getPresetStrengthProfile({ presetId: p.id, category: p.category })
+    const faceStability: 'max' | 'high' = strength.identityRigidity >= 0.98 ? 'max' : 'high'
     return {
       id: p.id,
       name: p.name,
@@ -95,6 +111,8 @@ export function getTryOnPresetListV3(): Array<{
       framingHint: guidance?.camera,
       sceneObjects: guidance?.scene,
       styleTags: guidance?.styleKeywords?.slice(0, 6),
+      faceStability,
+      lightingHint: p.lighting_name.split(/[.;]/)[0]?.trim(),
     }
   })
 }

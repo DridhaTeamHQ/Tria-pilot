@@ -22,6 +22,8 @@ interface TryOnPreset {
     framingHint?: string
     sceneObjects?: string
     styleTags?: string[]
+    faceStability?: 'max' | 'high'
+    lightingHint?: string
 }
 // Inline loading animation - no popup overlay
 import { ShareModal } from '@/components/tryon/ShareModal'
@@ -832,10 +834,10 @@ function TryOnPageContent() {
 
     return (
         <div className="relative min-h-screen pt-20 sm:pt-24 pb-8 sm:pb-12 overflow-hidden bg-[#FDFBF7]">
-            {/* Background Elements - Kept subtle but cleaner */}
+            {/* Background Elements - flat accents (no blur haze) */}
             <div className="absolute inset-0 -z-10 opacity-30 pointer-events-none">
-                <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-[#FFD93D] rounded-full blur-[120px]" />
-                <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-[#FF6B6B] rounded-full blur-[120px]" />
+                <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-[#FFD93D] rounded-full opacity-20" />
+                <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-[#FF6B6B] rounded-full opacity-[0.18]" />
             </div>
 
             <div className="container mx-auto px-3 sm:px-4 md:px-6 z-10 relative">
@@ -1291,7 +1293,7 @@ function TryOnPageContent() {
                                     <span className="text-xs font-normal text-charcoal/40">(auto scene + lighting)</span>
                                 </h3>
                                 <div className="text-[11px] text-charcoal/50">
-                                    Tip: for “Subtle Pose” presets, add 1–2 clear face photos to your profile for best face consistency.
+                                    Tip: presets marked “Face Lock: Max” are safest for strict identity consistency in moody/night scenes.
                                 </div>
                                 <div className="flex gap-2 flex-wrap">
                                     <button
@@ -1424,6 +1426,11 @@ function TryOnPageContent() {
                                                                 <span className="text-[9px] font-black uppercase tracking-wider text-black border border-black bg-white px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
                                                                     {preset.category}
                                                                 </span>
+                                                                {preset.faceStability === 'max' && (
+                                                                    <span className="text-[8px] font-black uppercase tracking-wider text-black border border-black bg-[#FFD93D] px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] ml-1">
+                                                                        Face Lock: Max
+                                                                    </span>
+                                                                )}
                                                                 {selectedPreset === preset.id && (
                                                                     <Check className="w-4 h-4 text-peach" />
                                                                 )}
@@ -1438,6 +1445,11 @@ function TryOnPageContent() {
                                                                 {preset.vibe && (
                                                                     <div className="text-[8px] font-black uppercase tracking-wide text-black/65 line-clamp-1">
                                                                         {preset.vibe}
+                                                                    </div>
+                                                                )}
+                                                                {preset.lightingHint && (
+                                                                    <div className="text-[8px] font-bold uppercase tracking-wide text-black/55 line-clamp-1 mt-1">
+                                                                        Light: {preset.lightingHint}
                                                                     </div>
                                                                 )}
                                                                 {(preset.styleTags?.length || preset.framingHint || preset.poseHint) && (

@@ -34,6 +34,7 @@ export interface ForensicPromptInput {
   identityPriorityRules?: string[]
   strengthProfile?: PresetStrengthProfile
   hasFaceReference?: boolean
+  faceSpatialLockQuality?: 'strict' | 'relaxed'
   faceBox?: {
     ymin: number
     xmin: number
@@ -98,6 +99,7 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     .filter(Boolean)
   const strengthProfile = input.strengthProfile
   const hasFaceReference = Boolean(input.hasFaceReference)
+  const faceSpatialLockQuality = input.faceSpatialLockQuality || 'strict'
   const faceBox = input.faceBox
   const faceSpatialLock = faceBox
     ? {
@@ -109,10 +111,13 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
           xmax: Math.max(0, Math.min(1000, Math.round(faceBox.xmax))),
         },
         tolerance: {
-          center_shift_max: 35,
-          scale_delta_max: 0.1,
+          center_shift_max: faceSpatialLockQuality === 'strict' ? 24 : 32,
+          scale_delta_max: faceSpatialLockQuality === 'strict' ? 0.07 : 0.1,
         },
-        instruction: 'keep_face_bbox_center_and_scale_locked',
+        instruction:
+          faceSpatialLockQuality === 'strict'
+            ? 'keep_face_bbox_center_and_scale_locked'
+            : 'keep_face_bbox_center_and_scale_stable',
       }
     : undefined
 
@@ -187,6 +192,8 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
       'beautify face', 'changed identity', 'double face', 'ghost face',
       'changed eyes', 'different gaze direction', 'eye shape change', 'iris color change',
       'smooth skin', 'bone structure change', 'facial proportion change', 'beard change',
+      'face retouch', 'skin airbrushing', 'face contouring effect', 'face reshaping',
+      'eye enlargement', 'jawline slimming', 'cheekbone enhancement', 'digital makeup look',
       'pasted on background', 'cut-out look', 'floating subject',
       'mismatched lighting', 'sticker effect', 'flat subject on background',
       'slimmed body', 'thinned waist', 'elongated torso', 'narrowed shoulders',
@@ -237,18 +244,21 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
       ? `PRESET STRENGTH WEIGHTS (0-1): framing=${strengthProfile.framingDiscipline.toFixed(2)}, color=${strengthProfile.colorCleanliness.toFixed(2)}, mood=${strengthProfile.moodIntensity.toFixed(2)}, grain=${strengthProfile.grainTexture.toFixed(2)}, iphone_realism=${strengthProfile.iphoneRealism.toFixed(2)}, pose_freedom=${strengthProfile.poseFreedom.toFixed(2)}, identity_rigidity=${strengthProfile.identityRigidity.toFixed(2)}, stylization=${strengthProfile.stylizationAllowance.toFixed(2)}.`
       : '',
     strengthProfile
-      ? `Apply these weights as behavior controls: higher framing/color weights enforce cleaner composition and color discipline; higher mood/grain/stylization weights allow stronger scene aesthetic cues; higher iphone_realism favors candid smartphone rendering; higher pose_freedom allows natural non-rigid posture while preserving anatomy; identity_rigidity is always dominant.`
+      ? `Apply these weights as behavior controls on environment, garment, and non-face skin only: higher framing/color weights enforce cleaner composition and color discipline; higher mood/grain/stylization weights allow stronger scene aesthetic cues; higher iphone_realism favors candid smartphone rendering; higher pose_freedom allows natural non-rigid posture while preserving anatomy; identity_rigidity is always dominant.`
       : '',
     styleGuidance
-      ? `STYLE TARGET (from high-performing references): ${styleGuidance}. Keep this mood while preserving exact identity and body geometry.`
+      ? `STYLE TARGET (from high-performing references): ${styleGuidance}. Keep this mood while preserving exact identity and body geometry. Apply style cues to scene/background/garment only; never to facial geometry or face skin texture.`
       : '',
     colorGradingGuidance
-      ? `Color treatment target: ${colorGradingGuidance}. Keep skin tones natural and identity-faithful.`
+      ? `Color treatment target: ${colorGradingGuidance}. Keep skin tones natural and identity-faithful. Face region grading must stay neutral and source-faithful (no heavy contrast, no beauty grade, no skin blur).`
       : '',
-    cameraGuidance ? `Camera treatment target: ${cameraGuidance}.` : '',
+    cameraGuidance
+      ? `Camera treatment target: ${cameraGuidance}. Camera look adjustments apply to scene integration and garment rendering only, never to face structure or face texture.`
+      : '',
     poseInferenceGuidance
       ? `Pose intelligence: infer a natural scene-appropriate pose and posture from styling cues (${poseInferenceGuidance}) while avoiding mannequin stiffness and preserving anatomy.`
       : '',
+    `Pose realism rule: preserve original pose from Image 1 while keeping natural body micro-asymmetry (shoulders, hands, spine, and neck) and avoiding rigid mannequin-like posture.`,
     realism,
     sceneCorrectionGuidance ? `Scene fix: ${sceneCorrectionGuidance}` : '',
   ].filter(Boolean).join('\n')
@@ -257,6 +267,7 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     `FACE LOCK (non-negotiable):`,
     `The face from Image 1 is immutable. Do not relight, reshape, beautify, smooth, or reposition it.`,
     `Do NOT apply cinematic grade, heavy contrast, or stylization to the face region. Style treatment applies to scene and non-face regions only.`,
+    `For night or moody presets, preserve natural pore-level face texture and source-faithful face tonality; no jaw/cheek/eye reshaping, no digital makeup, no skin airbrushing.`,
     `Forensic anchor: ${faceAnchor}`,
     identityCorrectionGuidance ? `Identity correction priority: ${identityCorrectionGuidance}` : '',
   ].join('\n')

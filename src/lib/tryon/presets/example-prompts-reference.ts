@@ -9,6 +9,7 @@
  * Usage: Import and use in scene intelligence, preset loader, or prompt composer
  * to align outputs with these reference aesthetics.
  */
+import { getPresetById } from './index'
 
 export interface ExamplePromptReference {
   id: string
@@ -114,7 +115,7 @@ Lighting: harsh direct Phone flash reflected off mirror, blown highlights, hard 
   {
     id: 'golden_hour_bed_selfie',
     name: 'Golden Hour Bed Selfie (Blinds)',
-    presetId: 'lifestyle_living_room', // or new: golden_hour_bedroom
+    presetId: 'golden_hour_bedroom',
     vibe: 'Soft, daydreaming, cinematic. Striped shadows from blinds, warm golden hour.',
     scene: 'Bedroom. White or off-white linen sheets, wrinkled. Subject lying on bed. Window with horizontal blinds. Minimal background.',
     lighting: 'Soft golden hour light through window blinds casting striped shadows across face and bedding. High contrast light/shadow bands. Warm golden hue. Soft muted shadows.',
@@ -140,7 +141,7 @@ Lighting: harsh direct Phone flash reflected off mirror, blown highlights, hard 
   {
     id: 'bw_disposable_party',
     name: 'B&W Disposable Camera (House Party)',
-    presetId: 'studio_black', // mood is similar: harsh flash, dark bg; or new preset
+    presetId: 'studio_gray_flash',
     vibe: 'Grainy, lo-fi, 1990s disposable camera. Dark academia bad boy. Harsh flash, high contrast.',
     scene: 'Dimly lit house party. Dark, blurred background. Vague shapes of people. Shallow depth of field.',
     lighting: 'Harsh direct frontal flash. Strong contrasts, bright highlights on skin and hair, deep shadows. Flash reflections in eyes. Film grain.',
@@ -167,7 +168,7 @@ Lighting: harsh direct Phone flash reflected off mirror, blown highlights, hard 
   {
     id: 'godfather_mafia_office',
     name: 'Godfather / Mafia Office',
-    presetId: 'lifestyle_living_room', // or new: editorial_mafia_office
+    presetId: 'editorial_mafia_office',
     vibe: 'Bold editorial, luxury fashion magazine cover. Harsh flash, paparazzi-like rawness.',
     scene: 'Mafia office / study. Brown leather English-style sofa (tufted, nailhead trim). Dark wood paneling. Leather desk chair, desk. Classic opulent study.',
     lighting: 'Strong direct frontal flash. Harsh contrasts, crisp shadows, glossy highlights on skin, fabric sheen, metallic jewelry. Bold cast shadows. Raw editorial, paparazzi-like.',
@@ -195,7 +196,7 @@ Lighting: harsh direct Phone flash reflected off mirror, blown highlights, hard 
   {
     id: 'european_bench_street',
     name: 'European City Bench (Lifestyle)',
-    presetId: 'lifestyle_cafe',
+    presetId: 'lifestyle_european_bench',
     vibe: 'Natural, casual, refined. Soft daylight, urban chic, lifestyle editorial.',
     scene: 'European city sidewalk. Wooden slatted bench. Light-colored stone buildings, windows, balconies with wrought-iron, ivy on walls. Paved street, crosswalk. Parked bicycle, blurred pedestrians. Small oval tray on bench.',
     lighting: 'Soft natural daylight, overcast or late afternoon. Diffused, no harsh shadows. Gentle highlights on leather and metal. Flattering even illumination.',
@@ -221,7 +222,7 @@ Lighting: harsh direct Phone flash reflected off mirror, blown highlights, hard 
   {
     id: 'subway_fisheye_streetwear',
     name: 'Subway / Underpass Fish-Eye (Streetwear)',
-    presetId: 'urban_street_dusk',
+    presetId: 'street_subway_fisheye',
     vibe: 'Gritty urban, streetwear chic. Low-angle fish-eye, fluorescent light, graffiti.',
     scene: 'Underground or subway passage. Concrete stairs, tiled walls covered in black graffiti. Metal handrail. Dark curved ceiling. Urban, raw.',
     lighting: 'Bright overhead rectangular fluorescent fixtures. Harsh industrial illumination. Sharp contrasts, deep shadows under stairs. Cool or neutral white. Reflections on lens distortion.',
@@ -278,7 +279,7 @@ Lighting: harsh direct Phone flash reflected off mirror, blown highlights, hard 
   {
     id: 'bw_fisheye_night_street',
     name: 'B&W Fish-Eye Night Street',
-    presetId: 'urban_street_dusk',
+    presetId: 'street_subway_fisheye',
     vibe: 'Moody, gritty, 90s editorial. High contrast, circular distortion.',
     scene: 'Urban street at night, East Asian city. Neon signs (East Asian characters), multi-story buildings, storefronts. Dark ground, subtle reflections.',
     lighting: 'Dramatic artificial night lighting. Very bright overexposed streetlamp behind subject, strong highlight on hair and shoulder. Neon signs provide ambient fill. High contrast B&W.',
@@ -348,7 +349,7 @@ Lighting: harsh direct Phone flash reflected off mirror, blown highlights, hard 
   {
     id: 'bereal_minecraft_miami_duo',
     name: 'BeReal Minecraft Duo (Miami)',
-    presetId: 'urban_street_dusk',
+    presetId: 'casual_street_candid',
     vibe: 'BeReal meets Digital Glitch. Spontaneous, ironic, identical poses.',
     scene: 'Miami/Wynwood style. Pastel pink wall with abstract graffiti (blue, purple geometric). Concrete sidewalk. Vintage pastel car blurred in background. Utility box on wall.',
     lighting: 'Bright sunny day, almost shadowless. Even light, slight haze or reflection from light buildings. Emphasizes mundane moment and texture (skin, concrete, pixelated character).',
@@ -402,7 +403,7 @@ Lighting: harsh direct Phone flash reflected off mirror, blown highlights, hard 
   {
     id: 'mcdonalds_bmw_night',
     name: 'McDonald\'s BMW (Night Parking Lot)',
-    presetId: 'urban_street_dusk',
+    presetId: 'street_mcdonalds_bmw_night',
     vibe: 'Luxury street lifestyle, mafia aesthetic. Luxury + fast food contrast.',
     scene: 'Nighttime urban fast-food parking lot. Brightly lit McDonald\'s in background (glowing sign, yellow arches). Street lamps. Dark asphalt. White BMW M5 Competition (G80) front-facing, hood as seating.',
     lighting: 'Cinematic night. Street lamps warm yellowish. McDonald\'s building bright. Soft rim on shoulders and hair, gentle highlights on face. Natural shadows under chin, around eyes. No overexposure.',
@@ -446,7 +447,7 @@ Lighting: harsh direct Phone flash reflected off mirror, blown highlights, hard 
   {
     id: 'airport_terminal_rimowa',
     name: 'Airport Terminal (Rimowa Traveler)',
-    presetId: 'lifestyle_cafe',
+    presetId: 'lifestyle_airport_terminal',
     vibe: 'Naturalistic, candid travel. Sporty-chic, unposed, iPhone quality.',
     scene: 'Modern airport terminal or jet bridge. Expansive floor-to-ceiling glass walls. Tarmac visible: ground vehicles, runway markings, jet bridges. Cylindrical silver column, waist-height railing. Dark grey speckled carpet. Polished metal and glass.',
     lighting: 'Muted natural daylight through large windows. Overcast bright sky, diffused light. Subtle shadows on clothing, skin, hair. Suitcase surface softly reflects ambient light.',
@@ -460,7 +461,7 @@ Lighting: harsh direct Phone flash reflected off mirror, blown highlights, hard 
   {
     id: 'outdoor_patio_green_noodles',
     name: 'Outdoor Patio (Green Noodles / Influencer)',
-    presetId: 'lifestyle_cafe',
+    presetId: 'lifestyle_tropical_patio',
     vibe: 'Accidental Renaissance, casual snapshot. Lush tropical patio, influencer aesthetic.',
     scene: 'Upscale outdoor restaurant or resort patio. White marble-patterned table. Large dark green patio umbrella. Lush tropical greenery, palms, large leaves. White geometric lattice wall through plants. Plush tan booth seating. Props: large white bowl (green noodles/salad), small plate with chopsticks, designer handbag (e.g. Gucci Dionysus), rounded water glass.',
     lighting: 'High contrast mixed natural light. Subject and table shaded by umbrella — deep shadows, low contrast on face and table. Background foliage brightly sunlit, strong separation, rim on leaves. Shallow DoF, bokeh on greenery.',
@@ -474,7 +475,7 @@ Lighting: harsh direct Phone flash reflected off mirror, blown highlights, hard 
   {
     id: 'crimson_neo_noir_portrait',
     name: 'Crimson Neo-Noir Portrait',
-    presetId: 'studio_black',
+    presetId: 'studio_crimson_noir',
     vibe: 'Cinematic neo-noir. Introspective, powerful, silent authority. Low-key, dramatic.',
     scene: 'Studio. Solid deep crimson red (or maroon) monochromatic background. Smooth, out of focus. No other elements.',
     lighting: 'Low-key cinematic. Strong dramatic side light from slightly below. Subtle rim light outlining jawline, beard, and glasses. High contrast, deep shadows. No soft beauty lighting.',
@@ -486,22 +487,237 @@ Lighting: harsh direct Phone flash reflected off mirror, blown highlights, hard 
     camera: 'Slightly low angle, close-up/medium close-up, shallow DoF',
     colorGrading: 'Deep crimson background, high contrast, rich moody.',
   },
+  {
+    id: 'kerala_theyyam_gtr_drone',
+    name: 'Kerala Theyyam + GT-R Aerial',
+    presetId: 'outdoor_kerala_theyyam_gtr',
+    vibe: 'Powerful cultural fusion in humid monsoon atmosphere, calm but dramatic.',
+    scene: 'Traditional Kerala tiled ancestral house centered in frame, dense tropical greenery and coconut trees, slightly wet mud driveway, matte black Nissan GT-R R34 widebody parked in front, Theyyam performer in vibrant red costume beside the car.',
+    lighting: 'Soft overcast monsoon daylight with diffused shadows, subtle mist between trees, warm headlight beams reflecting on damp ground and volumetric humidity.',
+    poseNotes: 'Static environmental composition; vehicle and performer positioned using rule of thirds to keep heritage house dominant.',
+    styleKeywords: ['aerial drone', 'kerala', 'theyyam', 'monsoon', 'wet ground reflections', 'cinematic realism', 'global illumination', 'ultra detailed'],
+    fullPrompt: `Ultra-photorealistic cinematic aerial image at about 45-degree drone angle. Traditional Kerala ancestral tiled house surrounded by dense tropical greenery and humid monsoon air. Slightly wet mud driveway in front with matte black Nissan GT-R R34 widebody parked aggressively. Headlights ON with warm realistic beam spread and damp-ground reflections. Traditional Kerala Theyyam performer in full vibrant red costume standing calmly beside the car. True-to-life greens, earthy browns, deep matte blacks, realistic red costume detail, natural filmic contrast, no oversaturation.`,
+    negativePrompt: 'cartoon, anime, CGI plastic look, oversaturation, harsh midday sun, fake fog, warped architecture',
+    camera: 'Aerial drone style, cinematic 35mm look, slightly tilted perspective',
+    colorGrading: 'Filmic natural realism with humid atmospheric depth and balanced contrast.',
+    faceRule: 'When a face is visible, preserve identity exactly with no beautification or facial reshaping.',
+  },
+  {
+    id: 'bw_minimalist_studio_glasses',
+    name: 'Black-and-White Minimalist Studio Portrait',
+    presetId: 'studio_bw_minimalist_portrait',
+    vibe: 'Minimalist monochrome fashion portrait with high graphic contrast and clean lines.',
+    scene: 'Neutral light-toned studio wall background, no props, vertical 9:16 composition with subject isolated cleanly.',
+    lighting: 'Soft frontal-top studio key with gentle fill, smooth light-to-shadow transitions, crisp contour definition without harsh clipping.',
+    poseNotes: 'Head tilted back, chin raised, eyes half-open toward camera. Relaxed fashion posture emphasizing neck line and facial contours.',
+    styleKeywords: ['black and white', 'minimalist', 'fashion portrait', 'square translucent glasses', 'high contrast', 'clean background'],
+    fullPrompt: `Photorealistic black-and-white minimalist portrait in vertical 9:16. Subject looks into camera with head tilted back, chin raised, eyes half-open. Preserve facial structure exactly from reference. Smooth dark hair in a high long ponytail, large square glasses with natural reflections, natural skin texture with clean retouch, dramatic but controlled contrast, soft studio front-top light, clean neutral background.`,
+    negativePrompt: 'face distortion, anime, CGI, painterly, over-smoothing, blown highlights, warped glasses geometry',
+    camera: 'Portrait framing, close-up to medium close-up, studio capture',
+    colorGrading: 'Monochrome high-contrast with smooth tonal rolloff.',
+    faceRule: 'Preserve exact face geometry from reference with no distortion of eyes, nose, jaw, or proportions.',
+  },
+  {
+    id: 'cozy_teddy_bear_selfie',
+    name: 'Cozy Teddy Bear Couch Selfie',
+    presetId: 'home_cozy_teddy_selfie',
+    vibe: 'Youthful cozy late-evening candid with intimate realistic texture.',
+    scene: 'Apartment living-room couch with textured throw blanket midground, soft neutral wall, pastel pillow background, slight foreground sleeve blur.',
+    lighting: 'Diffused key from 45 degrees camera-left simulating soft window light, gentle couch bounce fill, realistic micro-shadows in plush fur.',
+    poseNotes: 'Phone held close at slight downward angle. Teddy bear pressed against cheek with natural fur compression. Relaxed shoulders and soft pout expression.',
+    styleKeywords: ['cozy selfie', 'teddy bear', 'living room', 'natural pores', 'iphone realism', 'raw texture'],
+    fullPrompt: `High-resolution RAW-like cozy selfie. Subject with loose messy waves, natural pores, subtle cheek redness, minimal makeup, pastel oversized hoodie, pastel rose acrylic nails, holding beige plush teddy bear pressed to cheek with realistic fur compression and stitching detail. Living room couch context, soft realistic lighting, authentic skin and fabric micro-contrast, no CGI plush look.`,
+    negativePrompt: 'plastic skin, CGI plush fur, over-smoothed pores, waxy hoodie texture, fake depth blur',
+    camera: 'Front-facing phone capture simulation, 50mm equivalent perspective',
+    colorGrading: 'True-to-life warm-neutral tones with gentle highlight rolloff.',
+    faceRule: 'Keep face and eyes identical to the reference identity with no beautification or geometric drift.',
+  },
+  {
+    id: 'travel_scene_lock_dslr',
+    name: 'Travel Scene Lock (DSLR Realism)',
+    presetId: 'travel_scene_lock_realism',
+    vibe: 'High-quality travel photo realism with strict scene continuity.',
+    scene: 'Use base travel scene as fixed location with unchanged background geometry, perspective, and lighting.',
+    lighting: 'Maintain original scene lighting exactly, with physically consistent shadows on clothing and body.',
+    poseNotes: 'Keep original pose and camera angle from base image; only clothing changes should occur naturally on body.',
+    styleKeywords: ['travel photo', 'scene lock', 'dslr realism', 'natural colors', 'sharp focus', 'no distortion'],
+    fullPrompt: `Keep the first image as fixed scene authority: same background, camera angle, perspective, lighting, and pose. Apply requested clothing with realistic fit, folds, and shadows while preserving true body proportions. Final output must look like a real travel photo: sharp, photorealistic, natural colors, no distortion, no extra people.`,
+    negativePrompt: 'low quality, blurry, distorted face, wrong proportions, anime, CGI look, fake skin, extra fingers, wrong lighting, different background, altered pose',
+    camera: 'Natural DSLR-like travel framing',
+    colorGrading: 'Balanced natural tones with realistic dynamic range.',
+    faceRule: 'Identity from source image remains immutable; no face swap, no face/head replacement, no facial reshaping.',
+  },
+  {
+    id: 'elevator_mirror_urban_chic',
+    name: 'Elevator Mirror Urban Chic',
+    presetId: 'street_elevator_mirror_chic',
+    vibe: 'Quietly confident urban mirror capture with monochrome chic styling.',
+    scene: 'Business elevator interior with brushed-steel walls, cool LED strips overhead, subtle smudges and fingerprints on metal and mirror surfaces.',
+    lighting: 'Cool practical LED key from above, soft metallic bounce fill, realistic reflective highlights on steel and phone edges.',
+    poseNotes: 'Phone at waist height with slight tilt, gaze directed to phone screen, one finger near call button, relaxed posture.',
+    styleKeywords: ['elevator mirror', 'urban chic', 'iphone capture', 'cool leds', 'monochrome mood', 'real texture'],
+    fullPrompt: `Urban elevator mirror selfie with brushed steel walls, cool LED strips, subtle fingerprints and smudges visible on reflective surfaces. Soft cream satin top with tailored pants, natural skin texture, understated jewelry, relaxed phone-at-waist pose, gaze down to display. Monochrome-leaning palette and realistic fabric creases, authentic iPhone mirror-capture feel.`,
+    negativePrompt: 'perfectly clean mirror CGI, plastic steel texture, studio beauty lighting, exaggerated stylization, warped reflections',
+    camera: 'iPhone mirror capture, slight handheld tilt',
+    colorGrading: 'Muted monochrome-leaning tones with realistic metallic contrast.',
+    faceRule: 'Preserve exact identity and natural face texture with no beautification, reshaping, or eye drift.',
+  },
+  {
+    id: 'sky_negative_space_editorial_ref',
+    name: 'Sky Negative Space Editorial',
+    presetId: 'editorial_sky_negative_space',
+    vibe: 'Airy minimalist editorial with large sky dominance and calm posture.',
+    scene: 'Subject positioned low in frame under expansive clouded sky with minimal horizon clutter.',
+    lighting: 'Soft natural daylight with gentle contrast, preserving cloud detail and atmospheric depth.',
+    poseNotes: 'Relaxed standing posture, natural hand placement, subtle head tilt.',
+    styleKeywords: ['negative space', 'sky editorial', 'minimal', 'cloud texture', 'natural light'],
+    fullPrompt: `Editorial outdoor composition with sky as the primary visual field. Keep subject low in frame and maintain realistic cloud texture, natural tones, and non-stylized facial detail.`,
+    camera: '50mm, deep focus, wide vertical composition',
+    colorGrading: 'Filmic neutral-cool with soft contrast.',
+    faceRule: 'Identity unchanged; no beautification or geometry drift.',
+  },
+  {
+    id: 'night_garden_flash_ref',
+    name: 'Night Garden Flash Editorial',
+    presetId: 'editorial_night_garden_flash',
+    vibe: 'Raw flash-at-night editorial with tropical texture and controlled color contrast.',
+    scene: 'Dense foliage backdrop at night with natural leaf layering and dark environmental depth.',
+    lighting: 'Direct frontal flash plus subtle colored spill on foliage; realistic falloff and no fake glow.',
+    poseNotes: 'Still upper-body pose with relaxed shoulders and candid expression.',
+    styleKeywords: ['flash', 'night', 'garden', 'editorial', 'tropical'],
+    fullPrompt: `Night editorial portrait in a tropical garden with direct flash realism, clean skin texture, and physically plausible colored spill. Preserve facial identity exactly.`,
+    camera: '35mm, crisp flash detail, medium depth',
+    colorGrading: 'Warm skin with restrained red-green contrast.',
+    faceRule: 'Face lock absolute; no smoothing, no reshaping.',
+  },
+  {
+    id: 'white_brick_bench_ref',
+    name: 'White Brick Bench Studio',
+    presetId: 'studio_white_brick_bench',
+    vibe: 'Minimal architecture-forward studio realism.',
+    scene: 'White brick wall, dark bench seating, clean matte floor, centered composition.',
+    lighting: 'Broad diffused frontal key with gentle side contour, even tonal transitions.',
+    poseNotes: 'Seated neutral posture with natural micro-asymmetry and relaxed limbs.',
+    styleKeywords: ['minimal studio', 'white brick', 'bench', 'clean geometry'],
+    fullPrompt: `Photorealistic studio scene with white brick wall and bench. Keep textures crisp and avoid blur haze.`,
+    camera: '35-50mm, deep focus',
+    colorGrading: 'Neutral clean tones, subtle contrast.',
+    faceRule: 'Preserve exact face structure and expression from source.',
+  },
+  {
+    id: 'newspaper_editorial_ref',
+    name: 'Newspaper Set Editorial',
+    presetId: 'editorial_newspaper_set',
+    vibe: 'Graphic editorial with playful set design and crisp printed textures.',
+    scene: 'Chair and environment covered with layered newspapers, visible typography and paper folds.',
+    lighting: 'Punchy front-top key, balanced fill from paper surfaces, mild side separation.',
+    poseNotes: 'Relaxed seated pose with confident attitude and natural limb placement.',
+    styleKeywords: ['newspaper set', 'graphic editorial', 'set design', 'fashion'],
+    fullPrompt: `Editorial fashion setup with newspaper-wrapped chair and floor. Keep print details legible and textures realistic.`,
+    camera: '35mm, low seated angle, deep focus',
+    colorGrading: 'Clean neutral-white with subtle warm highlights.',
+    faceRule: 'No face stylization or feature alteration.',
+  },
+  {
+    id: 'court_geometric_sun_ref',
+    name: 'Court Geometric Sunlight',
+    presetId: 'editorial_court_geometric_sun',
+    vibe: 'Natural hard-light editorial with geometric architecture.',
+    scene: 'Outdoor court lines, walls, and strong diagonal sunlight-shadow geometry.',
+    lighting: 'Hard natural key sunlight, ground bounce fill, crisp shadow edges with realistic direction.',
+    poseNotes: 'Ground-seated casual pose with relaxed posture and believable weight distribution.',
+    styleKeywords: ['hard sunlight', 'geometric shadows', 'court', 'editorial'],
+    fullPrompt: `Outdoor editorial on a court with strong geometric sunlight. Keep hard shadow logic physically consistent and detail sharp.`,
+    camera: '35mm full-body, deep focus',
+    colorGrading: 'Natural warm daylight with clean contrast.',
+    faceRule: 'Identity and facial proportions unchanged.',
+  },
+  {
+    id: 'window_blind_portrait_ref',
+    name: 'Window Blind Portrait',
+    presetId: 'studio_window_blind_portrait',
+    vibe: 'Quiet cinematic portrait with natural blind light pattern.',
+    scene: 'Minimal interior wall with clean blind-shadow projection across scene and subject.',
+    lighting: 'Directional sunlight through blinds, soft bounce fill preserving texture in shadow bands.',
+    poseNotes: 'Still seated/standing portrait pose with natural head angle and calm expression.',
+    styleKeywords: ['blind shadows', 'cinematic portrait', 'natural light', 'minimal wall'],
+    fullPrompt: `Portrait with real sunlight blind stripes and natural skin texture. Avoid fake projection artifacts or blur haze.`,
+    camera: 'Portrait close-medium framing, medium depth',
+    colorGrading: 'Warm cinematic-neutral with smooth transitions.',
+    faceRule: 'Exact face lock; no eye/jaw/nose change.',
+  },
+  {
+    id: 'dark_study_editorial_ref',
+    name: 'Dark Study Set Editorial',
+    presetId: 'editorial_dark_study_set',
+    vibe: 'Vintage-inspired dark-set editorial with rich prop storytelling.',
+    scene: 'Armchair, lamp, books, flowers, and textured rug in a controlled dark environment.',
+    lighting: 'Warm practical key with soft directional fill and restrained rim separation.',
+    poseNotes: 'Seated composed pose, hands relaxed, natural shoulder line.',
+    styleKeywords: ['dark study', 'vintage editorial', 'props', 'warm practicals'],
+    fullPrompt: `Cinematic dark-set editorial with realistic practical lamp lighting and preserved fabric/prop texture detail.`,
+    camera: '50mm seated environmental portrait, deep detail',
+    colorGrading: 'Warm-earth palette with controlled shadows.',
+    faceRule: 'Identity fidelity mandatory; no beauty retouch.',
+  },
+  {
+    id: 'orange_director_chair_ref',
+    name: 'Orange Director Chair Studio',
+    presetId: 'studio_orange_director_chair',
+    vibe: 'Bold color-block fashion editorial with clean studio realism.',
+    scene: 'Solid orange seamless background with director chair and minimal set interruption.',
+    lighting: 'Soft frontal key, subtle fill, clean separation without clipping the orange channel.',
+    poseNotes: 'Seated crossed-leg editorial pose with relaxed hand placement.',
+    styleKeywords: ['orange seamless', 'director chair', 'fashion studio', 'color block'],
+    fullPrompt: `Studio fashion portrait on orange seamless with realistic skin and textile response. Keep backdrop smooth without banding or blur.`,
+    camera: 'Full-body seated framing, deep focus',
+    colorGrading: 'Rich but controlled warm orange with neutral skin.',
+    faceRule: 'Face unchanged and unretouched.',
+  },
+  {
+    id: 'green_red_gel_editorial_ref',
+    name: 'Green-Red Gel Editorial',
+    presetId: 'studio_green_red_gel_editorial',
+    vibe: 'Stylized but photoreal editorial color-light contrast.',
+    scene: 'Minimal wall setup with clean gradients and controlled colored spill.',
+    lighting: 'Warm key with green side fill, preserving natural skin texture and contour logic.',
+    poseNotes: 'Standing three-quarter pose with natural body line and relaxed joints.',
+    styleKeywords: ['gel lighting', 'editorial color', 'green red', 'studio'],
+    fullPrompt: `Editorial studio portrait with controlled dual-color lighting and realistic skin/fabric texture.`,
+    camera: 'Three-quarter standing, medium-deep focus',
+    colorGrading: 'Color-separated cinematic tones without posterization.',
+    faceRule: 'No facial reshaping or artificial smoothing.',
+  },
+  {
+    id: 'red_seamless_profile_ref',
+    name: 'Red Seamless Profile',
+    presetId: 'studio_red_seamless_profile',
+    vibe: 'Elegant side-profile editorial against bold red seamless.',
+    scene: 'Clean red seamless background with no set clutter and profile-centric composition.',
+    lighting: 'Soft side key with subtle frontal fill and fine edge contour.',
+    poseNotes: 'Natural side-profile posture with relaxed neck and shoulder alignment.',
+    styleKeywords: ['red seamless', 'profile', 'editorial', 'clean studio'],
+    fullPrompt: `Red seamless profile portrait with realistic skin and garment detail, sharp edge definition, and no blur-wall artifacts.`,
+    camera: 'Medium profile framing, deep focus',
+    colorGrading: 'Balanced red background with preserved skin realism.',
+    faceRule: 'Preserve exact profile anatomy and identity.',
+  },
 ]
 
 /** Preset IDs that have at least one example (for prompt builder to prefer these) */
 const PRESET_ALIASES: Record<string, string> = {
-  studio_black: 'studio_editorial',
+  studio_black: 'studio_crimson_noir',
   studio_grey: 'studio_white',
   studio_gradient: 'studio_white',
-  celebration_festive: 'lifestyle_cafe',
-  studio_beam_split: 'studio_white',
-  studio_gray_flash: 'studio_editorial',
-  studio_crimson_noir: 'editorial_mafia_office',
-  lifestyle_airport_terminal: 'lifestyle_subway',
-  lifestyle_tropical_patio: 'lifestyle_cafe',
-  lifestyle_european_bench: 'urban_basketball_court',
-  street_subway_fisheye: 'lifestyle_subway',
-  street_mcdonalds_bmw_night: 'urban_gas_station_night',
+  celebration_festive: 'celebration_festive',
+  studio_beam_split: 'studio_beam_split',
+  studio_gray_flash: 'studio_gray_flash',
+  studio_crimson_noir: 'studio_crimson_noir',
+  lifestyle_airport_terminal: 'lifestyle_airport_terminal',
+  lifestyle_tropical_patio: 'lifestyle_tropical_patio',
+  lifestyle_european_bench: 'lifestyle_european_bench',
+  street_subway_fisheye: 'street_subway_fisheye',
+  street_mcdonalds_bmw_night: 'street_mcdonalds_bmw_night',
 }
 
 export const EXAMPLE_PRESET_IDS = Array.from(
@@ -583,10 +799,23 @@ function topUniqueByLength(values: string[], limit: number): string[] {
   return deduped.slice(0, limit)
 }
 
+function getDefaultPoseInference(presetId?: string): string {
+  const preset = getPresetById((presetId || '').trim())
+  if (!preset) return ''
+  if (preset.motion === 'candid motion') {
+    return 'Use natural candid posture with believable weight shift and relaxed hand placement while preserving anatomy and source identity.'
+  }
+  if (preset.motion === 'subtle motion') {
+    return 'Keep the source pose with subtle natural posture dynamics (small shoulder angle variation and organic hand tension), never rigid mannequin alignment.'
+  }
+  return 'Keep the source pose stable with natural joint articulation and non-rigid posture; avoid mannequin stiffness.'
+}
+
 export function getPresetExampleGuidance(presetId?: string): PresetExampleGuidance | null {
   const rawTarget = (presetId || '').trim()
   const target = PRESET_ALIASES[rawTarget] || rawTarget
   if (!target) return null
+  const preset = getPresetById(rawTarget) || getPresetById(target)
 
   let scored = EXAMPLE_PROMPTS_REFERENCE
     .map((example) => ({ example, score: scorePresetMatch(target, example) }))
@@ -623,9 +852,18 @@ export function getPresetExampleGuidance(presetId?: string): PresetExampleGuidan
   )
 
   const vibe = topUniqueByLength(examples.map((e) => e.vibe), 3).join(' ')
-  const scene = topUniqueByLength(examples.map((e) => e.scene), 2).join(' ')
-  const lighting = topUniqueByLength(examples.map((e) => e.lighting), 3).join(' ')
-  const poseInference = topUniqueByLength(examples.map((e) => e.poseNotes), 3).join(' ')
+  const scene =
+    topUniqueByLength(examples.map((e) => e.scene), 2).join(' ') ||
+    preset?.scene ||
+    'Realistic environment matching the selected preset.'
+  const lighting =
+    topUniqueByLength(examples.map((e) => e.lighting), 3).join(' ') ||
+    preset?.lighting ||
+    'Physically plausible scene lighting with coherent key/fill behavior.'
+  const poseInference =
+    topUniqueByLength(examples.map((e) => e.poseNotes), 3).join(' ') ||
+    getDefaultPoseInference(rawTarget) ||
+    getDefaultPoseInference(target)
   const colorGrading = topUniqueByLength(
     examples.map((e) => e.colorGrading || '').filter(Boolean),
     3
@@ -633,7 +871,7 @@ export function getPresetExampleGuidance(presetId?: string): PresetExampleGuidan
   const camera = topUniqueByLength(
     examples.map((e) => e.camera || '').filter(Boolean),
     3
-  ).join(' ')
+  ).join(' ') || preset?.camera || 'Natural camera rendering with coherent perspective and depth.'
 
   return {
     presetId: target,
@@ -681,14 +919,24 @@ export function getRequestExampleGuidance(userRequest?: string): PresetExampleGu
 
   // Override with request-focused matched examples and merged fields.
   const examples = scored.map((x) => x.example)
+  const preset = getPresetById(pseudoPreset)
   return {
     ...direct,
     presetId: pseudoPreset,
     matchedExamples: examples.length,
     vibe: topUniqueByLength(examples.map((e) => e.vibe), 3).join(' '),
-    scene: topUniqueByLength(examples.map((e) => e.scene), 3).join(' '),
-    lighting: topUniqueByLength(examples.map((e) => e.lighting), 3).join(' '),
-    poseInference: topUniqueByLength(examples.map((e) => e.poseNotes), 3).join(' '),
+    scene:
+      topUniqueByLength(examples.map((e) => e.scene), 3).join(' ') ||
+      preset?.scene ||
+      direct.scene,
+    lighting:
+      topUniqueByLength(examples.map((e) => e.lighting), 3).join(' ') ||
+      preset?.lighting ||
+      direct.lighting,
+    poseInference:
+      topUniqueByLength(examples.map((e) => e.poseNotes), 3).join(' ') ||
+      getDefaultPoseInference(pseudoPreset) ||
+      direct.poseInference,
     colorGrading: topUniqueByLength(
       examples.map((e) => e.colorGrading || '').filter(Boolean),
       3
@@ -696,7 +944,7 @@ export function getRequestExampleGuidance(userRequest?: string): PresetExampleGu
     camera: topUniqueByLength(
       examples.map((e) => e.camera || '').filter(Boolean),
       3
-    ).join(' '),
+    ).join(' ') || preset?.camera || direct.camera,
     styleKeywords: topUniqueByLength(
       examples.flatMap((e) => e.styleKeywords || []),
       14

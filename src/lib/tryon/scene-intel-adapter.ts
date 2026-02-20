@@ -348,23 +348,47 @@ Resolve this to a strict scene config. Remember: describe the EMPTY environment 
 
     const raw = response.choices[0]?.message?.content || ''
     const parsed = JSON.parse(raw) as SceneIntelOutput
+    const resolvedPresetId = (parsed.preset || '').trim()
+    const resolvedPresetPolicy = resolvedPresetId
+      ? buildPresetPolicy(resolvedPresetId, getPresetById(resolvedPresetId)?.scene || '')
+      : undefined
 
     // Enforce immutable policies (safety net)
     parsed.lightingMode = 'environment_coherent'
     parsed.posePolicy = 'inherit'
     parsed.facePolicy = 'immutable'
     parsed.cameraPolicy = 'inherit'
+    if (resolvedPresetPolicy?.anchorZone) {
+      parsed.anchorZone = mergeGuidance(
+        resolvedPresetPolicy.anchorZone,
+        parsed.anchorZone
+      )
+    }
     if (!parsed.realismGuidance) {
       parsed.realismGuidance =
         'Single coherent photograph: subject lit by and grounded in the same environment; shadows and highlights on the subject consistent with the scene; consistent perspective and depth; no pasted-on or cut-out look. Keep realistic background texture and camera grain consistency.'
+    }
+    if (resolvedPresetPolicy?.realismGuidance) {
+      parsed.realismGuidance = mergeGuidance(
+        resolvedPresetPolicy.realismGuidance,
+        parsed.realismGuidance
+      )
     }
     if (!parsed.lightingBlueprint) {
       parsed.lightingBlueprint =
         'Match scene lighting on subject: natural key and fill from visible environment sources, coherent shadow direction and softness, and consistent color temperature between subject and background.'
     }
-    if (!parsed.presetAvoid && presetId) {
-      parsed.presetAvoid = buildPresetPolicy(presetId, presetDescription).presetAvoid
+    if (resolvedPresetPolicy?.lightingBlueprint) {
+      parsed.lightingBlueprint = mergeGuidance(
+        resolvedPresetPolicy.lightingBlueprint,
+        parsed.lightingBlueprint
+      )
     }
+    const fallbackPresetAvoid = resolvedPresetPolicy?.presetAvoid ||
+      (presetId ? buildPresetPolicy(presetId, presetDescription).presetAvoid : undefined)
+    parsed.presetAvoid = [fallbackPresetAvoid, parsed.presetAvoid, ...(requestGuidance?.avoidTerms || [])]
+      .filter(Boolean)
+      .join('; ') || undefined
 
     console.log(`🎬 Scene Intel: preset=${parsed.preset} zone="${parsed.anchorZone.substring(0, 60)}..."`)
 

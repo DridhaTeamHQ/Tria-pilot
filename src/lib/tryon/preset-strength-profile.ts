@@ -143,6 +143,29 @@ export function getPresetStrengthProfile(params: {
     })
   }
 
+  // Low-key + blind-shadow presets can over-style faces if unrestricted.
+  if (id === 'studio_crimson_noir' || id === 'golden_hour_bedroom') {
+    profile = merge(profile, {
+      framingDiscipline: Math.max(profile.framingDiscipline, 0.86),
+      colorCleanliness: Math.max(profile.colorCleanliness, 0.9),
+      moodIntensity: Math.max(profile.moodIntensity, 0.82),
+      grainTexture: Math.min(profile.grainTexture, 0.42),
+      iphoneRealism: Math.max(profile.iphoneRealism, 0.78),
+      poseFreedom: Math.min(profile.poseFreedom, 0.5),
+      identityRigidity: Math.max(profile.identityRigidity, 0.985),
+      stylizationAllowance: Math.min(profile.stylizationAllowance, 0.24),
+    })
+  }
+
+  // Production safety floor: face consistency must remain stable across ALL presets.
+  profile = merge(profile, {
+    colorCleanliness: Math.max(profile.colorCleanliness, 0.78),
+    grainTexture: Math.min(profile.grainTexture, 0.55),
+    poseFreedom: Math.max(Math.min(profile.poseFreedom, 0.62), 0.4),
+    identityRigidity: Math.max(profile.identityRigidity, 0.98),
+    stylizationAllowance: Math.min(profile.stylizationAllowance, 0.26),
+  })
+
   return profile
 }
 
