@@ -7,21 +7,19 @@ import { ArrowRight } from "lucide-react";
 export default function CTASection() {
     return (
         <section className="py-24 md:py-32 bg-black border-t-[3px] border-black relative overflow-hidden text-center">
-            {/* Subtle gradient glow */}
-            <motion.div
+            {/* Static gradient glow - no animation to avoid scroll lag */}
+            <div
                 className="absolute inset-0 pointer-events-none opacity-20"
                 style={{
                     background: "radial-gradient(ellipse 80% 50% at 50% 50%, #FF8C69 0%, transparent 50%)",
                 }}
-                animate={{ opacity: [0.15, 0.25, 0.15] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
             />
             <div className="mx-auto max-w-3xl px-6 md:px-8 relative z-10">
                 <motion.div
-                    initial={{ opacity: 0, y: 16 }}
+                    initial={{ opacity: 0, y: 12 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    viewport={{ once: true }}
+                    transition={{ duration: 0.35 }}
+                    viewport={{ once: true, amount: 0.2 }}
                 >
                     <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white mb-6 tracking-tighter">
                         Ready to Transform <br />

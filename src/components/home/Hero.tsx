@@ -15,18 +15,14 @@ export default function Hero() {
                     backgroundSize: "24px 24px",
                 }}
             />
-            {/* Vibrant orbs - subtle motion */}
-            <motion.div
-                className="absolute top-1/4 right-0 w-[400px] h-[400px] rounded-full opacity-30 pointer-events-none"
+            {/* Vibrant orbs - static to avoid scroll lag */}
+            <div
+                className="absolute top-1/4 right-0 w-[400px] h-[400px] rounded-full opacity-25 pointer-events-none"
                 style={{ background: "radial-gradient(circle, #FF8C69 0%, transparent 70%)" }}
-                animate={{ x: [0, 30, 0], y: [0, -20, 0] }}
-                transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
             />
-            <motion.div
-                className="absolute bottom-1/4 left-0 w-[350px] h-[350px] rounded-full opacity-30 pointer-events-none"
+            <div
+                className="absolute bottom-1/4 left-0 w-[350px] h-[350px] rounded-full opacity-25 pointer-events-none"
                 style={{ background: "radial-gradient(circle, #B4F056 0%, transparent 70%)" }}
-                animate={{ x: [0, -20, 0], y: [0, 25, 0] }}
-                transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
             />
 
             <div className="relative z-10 mx-auto max-w-7xl px-6 md:px-8 py-20 md:py-28 text-center">

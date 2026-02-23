@@ -76,8 +76,8 @@ function FlipCard({ feature, index }: { feature: (typeof features)[0]; index: nu
             className={`${feature.gridClass} relative min-h-[250px] ${index === 0 ? "min-h-[500px]" : ""}`}
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-40px" }}
-            transition={{ duration: 0.5, delay: index * 0.1, ease: [0.22, 1, 0.36, 1] }}
+            viewport={{ once: true, amount: 0.2, margin: "0px 0px -80px 0px" }}
+            transition={{ duration: 0.4, delay: index * 0.06, ease: "easeOut" }}
             style={{ perspective: 1200 }}
             onMouseEnter={() => setIsFlipped(true)}
             onMouseLeave={() => setIsFlipped(false)}
@@ -162,14 +162,10 @@ function FlipCard({ feature, index }: { feature: (typeof features)[0]; index: nu
                             <h3 className="text-xl font-black text-white uppercase tracking-tight drop-shadow-sm">
                                 {feature.title}
                             </h3>
-                            <motion.div
-                                className="flex items-center gap-2 text-white/90 mt-2 font-medium"
-                                animate={{ x: [0, 4, 0] }}
-                                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                            >
+                            <div className="flex items-center gap-2 text-white/90 mt-2 font-medium">
                                 <ArrowRight className="w-4 h-4" />
                                 <span className="text-sm">Hover to explore</span>
-                            </motion.div>
+                            </div>
                         </div>
                         <div
                             className="absolute top-0 left-0 right-0 h-1 z-20"
@@ -200,47 +196,25 @@ export default function FeaturesGrid() {
 
             <div className="mx-auto max-w-7xl px-6 md:px-8 relative z-10">
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 12 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5 }}
+                    viewport={{ once: true, amount: 0.3 }}
+                    transition={{ duration: 0.35 }}
                     className="mb-14"
                 >
-                    <motion.span
-                        initial={{ opacity: 0, x: -8 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: true }}
-                        className="text-sm font-bold uppercase tracking-widest text-[#FF8C69]"
-                    >
+                    <span className="text-sm font-bold uppercase tracking-widest text-[#FF8C69]">
                         Our Features
-                    </motion.span>
-                    <motion.h2
-                        initial={{ opacity: 0, y: 12 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.5, delay: 0.1 }}
-                        className="text-4xl md:text-5xl lg:text-6xl font-black text-black mt-2 tracking-tighter"
-                    >
+                    </span>
+                    <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-black mt-2 tracking-tighter">
                         What we are building
-                    </motion.h2>
+                    </h2>
                 </motion.div>
 
-                <motion.div
-                    className="grid grid-cols-1 md:grid-cols-4 gap-4 auto-rows-[250px]"
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true, margin: "-60px" }}
-                    variants={{
-                        hidden: {},
-                        visible: {
-                            transition: { staggerChildren: 0.08, delayChildren: 0.1 },
-                        },
-                    }}
-                >
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 auto-rows-[250px]">
                     {features.map((feature, index) => (
                         <FlipCard key={feature.title} feature={feature} index={index} />
                     ))}
-                </motion.div>
+                </div>
             </div>
         </section>
     );

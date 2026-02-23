@@ -50,9 +50,10 @@ export default function ValuesSection() {
         <section className="py-24 md:py-32 bg-white border-t-[3px] border-black overflow-hidden">
             <div className="mx-auto max-w-7xl px-6 md:px-8">
                 <motion.div
-                    initial={{ opacity: 0, y: 16 }}
+                    initial={{ opacity: 0, y: 12 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
+                    viewport={{ once: true, amount: 0.2 }}
+                    transition={{ duration: 0.35 }}
                     className="mb-14"
                 >
                     <span className="text-sm font-bold uppercase tracking-widest text-[#FF8C69]">

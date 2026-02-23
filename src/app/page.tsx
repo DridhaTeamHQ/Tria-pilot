@@ -8,19 +8,10 @@ import Footer from "@/components/Footer";
 export default function Home() {
     return (
         <main className="min-h-screen bg-[#F9F8F4] text-black overflow-x-hidden selection:bg-[#FF8C69] selection:text-black">
-            {/* Hero - Where Fashion Meets AI */}
             <Hero />
-
-            {/* Features - flip cards */}
             <FeaturesGrid />
-
-            {/* Values - what we stand for */}
             <ValuesSection />
-
-            {/* Platform - for brands / for influencers */}
             <PlatformSection />
-
-            {/* CTA - Ready to Transform Fashion? */}
             <CTASection />
 
             {/* Footer */}
