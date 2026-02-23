@@ -6,51 +6,56 @@ import { ArrowRight } from "lucide-react";
 
 export default function CTASection() {
     return (
-        <section className="py-32 bg-[#1a1a1a] relative overflow-hidden text-center">
-            {/* Background Gradients */}
-            <div className="absolute top-1/2 left-1/4 w-[500px] h-[500px] bg-peach/10 blur-[150px] rounded-full -translate-y-1/2" />
-            <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-500/10 blur-[150px] rounded-full" />
-
-            <div className="container mx-auto px-6 relative z-10">
+        <section className="py-24 md:py-32 bg-black border-t-[3px] border-black relative overflow-hidden text-center">
+            {/* Subtle gradient glow */}
+            <motion.div
+                className="absolute inset-0 pointer-events-none opacity-20"
+                style={{
+                    background: "radial-gradient(ellipse 80% 50% at 50% 50%, #FF8C69 0%, transparent 50%)",
+                }}
+                animate={{ opacity: [0.15, 0.25, 0.15] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <div className="mx-auto max-w-3xl px-6 md:px-8 relative z-10">
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.8 }}
+                    initial={{ opacity: 0, y: 16 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
                     viewport={{ once: true }}
                 >
-                    <h2 className="text-5xl md:text-7xl font-serif text-white mb-8 tracking-tight">
+                    <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white mb-6 tracking-tighter">
                         Ready to Transform <br />
-                        <span className="italic text-peach">Fashion?</span>
+                        <span className="italic text-[#FF8C69]">Fashion?</span>
                     </h2>
 
-                    <p className="text-xl text-white/60 mb-12 max-w-2xl mx-auto font-light">
-                        Join the future of fashion marketing. Whether you&apos;re a creator or a brand, Gen-Z fashion is
-                        your gateway to success.
+                    <p className="text-lg md:text-xl text-white/80 mb-10 font-medium max-w-xl mx-auto">
+                        Join the future of fashion marketing. Whether you&apos;re a creator or a brand,
+                        Gen-Z fashion is your gateway to success.
                     </p>
 
-                    <div className="flex flex-col sm:flex-row gap-6 justify-center">
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
                         <Link href="/register">
-                            <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                className="px-10 py-5 bg-white text-[#1a1a1a] rounded-full font-medium text-lg min-w-[200px] hover:bg-peach transition-colors"
+                            <motion.span
+                                whileHover={{ scale: 1.03, boxShadow: "0 0 24px rgba(180,240,86,0.4)" }}
+                                whileTap={{ scale: 0.98 }}
+                                className="inline-flex items-center justify-center gap-2 min-w-[200px] px-8 py-4 bg-[#B4F056] text-black font-bold border-[3px] border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(180,240,86,0.5)] transition-all"
                             >
                                 Create Account
-                            </motion.button>
+                                <ArrowRight className="w-5 h-5" />
+                            </motion.span>
                         </Link>
-
                         <Link href="/about">
-                            <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                className="px-10 py-5 border border-white/20 text-white rounded-full font-medium text-lg min-w-[200px] hover:bg-white/10 transition-colors"
+                            <motion.span
+                                whileHover={{ scale: 1.03, boxShadow: "0 0 24px rgba(255,255,255,0.2)" }}
+                                whileTap={{ scale: 0.98 }}
+                                className="inline-flex items-center justify-center min-w-[200px] px-8 py-4 bg-white text-black font-bold border-[3px] border-white rounded-xl shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)] hover:bg-[#F9F8F4] transition-all"
                             >
                                 Learn More
-                            </motion.button>
+                            </motion.span>
                         </Link>
                     </div>
 
-                    <p className="mt-12 text-sm text-white/30">
+                    <p className="mt-10 text-sm text-white/50 font-medium">
                         No credit card required for creators. 14-day free trial for brands.
                     </p>
                 </motion.div>

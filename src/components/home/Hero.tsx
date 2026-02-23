@@ -1,138 +1,124 @@
 "use client";
 
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion } from "framer-motion";
 import Link from "next/link";
-import { useRef } from "react";
 import { ArrowRight, ShoppingBag, TrendingUp, Zap } from "lucide-react";
 
 export default function Hero() {
-    const containerRef = useRef<HTMLDivElement>(null);
-    const { scrollY } = useScroll();
-
-    // Parallax effect for the background
-    const y = useTransform(scrollY, [0, 1000], [0, 400]);
-    const opacity = useTransform(scrollY, [0, 500], [1, 0.5]);
-
     return (
-        <section
-            ref={containerRef}
-            className="relative h-screen min-h-[800px] w-full overflow-hidden bg-[#1a1a1a]"
-        >
-            {/* Background Video with Parallax */}
+        <section className="relative w-full overflow-hidden bg-[#F9F8F4] border-b-[3px] border-black min-h-[85vh] flex flex-col justify-center">
+            {/* Dot grid background */}
+            <div
+                className="absolute inset-0 opacity-[0.4]"
+                style={{
+                    backgroundImage: `radial-gradient(#1F1D1A 1px, transparent 1px)`,
+                    backgroundSize: "24px 24px",
+                }}
+            />
+            {/* Vibrant orbs - subtle motion */}
             <motion.div
-                style={{ y, opacity, translateZ: 0, willChange: 'transform, opacity' }}
-                className="absolute inset-0 w-full h-full gpu-accelerated"
-            >
-                <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-black/80 z-10" />
-                <video
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    className="w-full h-full object-cover object-center scale-105"
-                >
-                    <source src="/bannervideo/Video Project 6.mp4" type="video/mp4" />
-                </video>
-            </motion.div>
+                className="absolute top-1/4 right-0 w-[400px] h-[400px] rounded-full opacity-30 pointer-events-none"
+                style={{ background: "radial-gradient(circle, #FF8C69 0%, transparent 70%)" }}
+                animate={{ x: [0, 30, 0], y: [0, -20, 0] }}
+                transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.div
+                className="absolute bottom-1/4 left-0 w-[350px] h-[350px] rounded-full opacity-30 pointer-events-none"
+                style={{ background: "radial-gradient(circle, #B4F056 0%, transparent 70%)" }}
+                animate={{ x: [0, -20, 0], y: [0, 25, 0] }}
+                transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+            />
 
-            {/* Content Container */}
-            <div className="relative z-20 h-full container mx-auto px-6 flex flex-col justify-center items-center text-center text-white">
-
-                {/* Brand Pill */}
+            <div className="relative z-10 mx-auto max-w-7xl px-6 md:px-8 py-20 md:py-28 text-center">
+                {/* Brand pill - neo brutal */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, ease: "easeOut" }}
-                    className="mb-10 inline-flex items-center gap-3 px-6 py-2 rounded-full border border-white/30 bg-white/10 backdrop-blur-lg"
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                    className="mb-8 inline-flex items-center gap-3 px-5 py-2 rounded-xl border-[3px] border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
                 >
-                    <span className="w-2.5 h-2.5 rounded-full bg-peach animate-pulse" />
-                    <span className="text-sm font-medium tracking-widest uppercase">Kiwikoo • Production</span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#FF8C69]" />
+                    <span className="text-sm font-bold tracking-widest uppercase text-black">
+                        Kiwikoo · Production
+                    </span>
                 </motion.div>
 
-                {/* Main Heading - LARGER */}
+                {/* Main heading */}
                 <motion.h1
-                    initial={{ opacity: 0, y: 30 }}
+                    initial={{ opacity: 0, y: 24 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                    className="text-7xl md:text-8xl lg:text-[10rem] font-serif tracking-tight mb-8 leading-[0.9]"
+                    transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+                    className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tighter text-black mb-6 leading-[0.95]"
                 >
                     Where Fashion <br />
-                    <span className="italic text-peach">Meets AI</span>
+                    <span className="italic text-[#FF8C69]">Meets AI</span>
                 </motion.h1>
 
-                {/* Subheading - LARGER */}
                 <motion.p
-                    initial={{ opacity: 0, y: 30 }}
+                    initial={{ opacity: 0, y: 24 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
-                    className="text-xl md:text-2xl text-white/80 max-w-3xl mb-14 font-light leading-relaxed"
+                    transition={{ duration: 0.5, delay: 0.25 }}
+                    className="text-lg md:text-xl text-black/80 max-w-2xl mx-auto mb-12 font-medium leading-relaxed"
                 >
                     The ultimate fashion marketplace connecting influencers with the hottest brands.
                     Try, Share, and Earn with vertically integrated AI.
                 </motion.p>
 
-                {/* Buttons - LARGER */}
+                {/* CTAs - neo brutal buttons */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.6 }}
-                    className="flex flex-col sm:flex-row gap-5 w-full sm:w-auto"
+                    transition={{ duration: 0.5, delay: 0.35 }}
+                    className="flex flex-col sm:flex-row gap-4 justify-center items-center"
                 >
                     <Link href="/register">
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="w-full sm:w-auto px-10 py-5 bg-white text-black rounded-full font-semibold text-base tracking-wide hover:bg-peach transition-colors flex items-center justify-center gap-3 group shadow-xl"
+                        <motion.span
+                            whileHover={{ translateY: -2 }}
+                            whileTap={{ translateY: 2 }}
+                            className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-4 bg-[#B4F056] text-black font-bold border-[3px] border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all"
                         >
                             Get Started For Free
-                            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                        </motion.button>
+                            <ArrowRight className="w-5 h-5" />
+                        </motion.span>
                     </Link>
-
                     <Link href="/login">
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="w-full sm:w-auto px-10 py-5 bg-white/10 border border-white/30 text-white rounded-full font-semibold text-base tracking-wide hover:bg-white/20 transition-colors backdrop-blur-md"
+                        <motion.span
+                            whileHover={{ translateY: -2 }}
+                            whileTap={{ translateY: 2 }}
+                            className="inline-flex items-center justify-center w-full sm:w-auto px-8 py-4 bg-white text-black font-bold border-[3px] border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all"
                         >
                             Log In
-                        </motion.button>
+                        </motion.span>
                     </Link>
                 </motion.div>
 
-                {/* Floating Stats / Features (Grid at bottom) */}
+                {/* Stats row - brutal cards */}
                 <motion.div
-                    initial={{ opacity: 0, y: 40 }}
+                    initial={{ opacity: 0, y: 24 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, delay: 0.8 }}
-                    className="absolute bottom-12 left-0 right-0 px-6 hidden md:flex justify-center gap-12 text-center"
+                    transition={{ duration: 0.5, delay: 0.5 }}
+                    className="mt-16 hidden md:flex justify-center gap-6 flex-wrap"
                 >
-                    <div className="flex flex-col items-center gap-2">
-                        <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center mb-2">
-                            <Zap className="w-5 h-5 text-peach" />
+                    {[
+                        { icon: Zap, label: "Instant", sub: "Virtual Try-On" },
+                        { icon: ShoppingBag, label: "Marketplace", sub: "Brand Connect" },
+                        { icon: TrendingUp, label: "Analytics", sub: "Real-time Data" },
+                    ].map((item) => (
+                        <div
+                            key={item.sub}
+                            className="flex flex-col items-center gap-2 px-6 py-4 bg-white border-[3px] border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                        >
+                            <div className="w-12 h-12 rounded-xl border-[3px] border-black bg-[#F9F8F4] flex items-center justify-center">
+                                <item.icon className="w-5 h-5 text-[#FF8C69]" />
+                            </div>
+                            <span className="text-lg font-bold text-black">{item.label}</span>
+                            <span className="text-xs font-medium text-black/60 uppercase tracking-wider">
+                                {item.sub}
+                            </span>
                         </div>
-                        <span className="text-xl font-medium">Instant</span>
-                        <span className="text-xs text-white/50 uppercase tracking-widest">Virtual Try-On</span>
-                    </div>
-                    <div className="w-px h-20 bg-gradient-to-b from-white/0 via-white/20 to-white/0" />
-                    <div className="flex flex-col items-center gap-2">
-                        <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center mb-2">
-                            <ShoppingBag className="w-5 h-5 text-peach" />
-                        </div>
-                        <span className="text-xl font-medium">Marketplace</span>
-                        <span className="text-xs text-white/50 uppercase tracking-widest">Brand Connect</span>
-                    </div>
-                    <div className="w-px h-20 bg-gradient-to-b from-white/0 via-white/20 to-white/0" />
-                    <div className="flex flex-col items-center gap-2">
-                        <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center mb-2">
-                            <TrendingUp className="w-5 h-5 text-peach" />
-                        </div>
-                        <span className="text-xl font-medium">Analytics</span>
-                        <span className="text-xs text-white/50 uppercase tracking-widest">Real-time Data</span>
-                    </div>
+                    ))}
                 </motion.div>
             </div>
         </section>
     );
 }
-

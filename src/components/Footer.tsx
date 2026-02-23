@@ -2,50 +2,113 @@ import Link from "next/link";
 
 export default function Footer() {
     return (
-        <footer className="bg-cream border-t border-subtle py-20">
-            <div className="container mx-auto px-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
+        <footer className="bg-[#F9F8F4] border-t-[3px] border-black py-16 md:py-20">
+            <div className="mx-auto max-w-7xl px-6 md:px-8">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-10 md:gap-12">
                     <div className="space-y-4">
-                        <h3 className="text-xl font-serif font-bold text-charcoal">Kiwikoo</h3>
-                        <p className="text-sm text-charcoal/60">
+                        <h3 className="text-xl font-black text-black tracking-tight">Kiwikoo</h3>
+                        <p className="text-sm text-black/70 font-medium leading-relaxed">
                             AI-powered fashion try-on marketplace connecting influencers and brands.
                         </p>
                     </div>
 
                     <div>
-                        <h4 className="font-semibold mb-4 text-charcoal">Company</h4>
-                        <ul className="space-y-2 text-sm text-charcoal/70">
-                            <li><Link href="/about" className="hover:text-charcoal">About Us</Link></li>
-                            <li><Link href="/register" className="hover:text-charcoal">Join Us</Link></li>
-                            <li><Link href="/marketplace" className="hover:text-charcoal">Marketplace</Link></li>
-                            <li><Link href="/login" className="hover:text-charcoal">Sign In</Link></li>
-                            <li><Link href="/help" className="hover:text-charcoal">Help & Support</Link></li>
+                        <h4 className="font-bold mb-4 text-black uppercase tracking-wide text-sm">
+                            Company
+                        </h4>
+                        <ul className="space-y-2 text-sm font-medium text-black/70">
+                            <li>
+                                <Link href="/about" className="hover:text-black hover:underline">
+                                    About Us
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/register" className="hover:text-black hover:underline">
+                                    Join Us
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/marketplace" className="hover:text-black hover:underline">
+                                    Marketplace
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/login" className="hover:text-black hover:underline">
+                                    Sign In
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/help" className="hover:text-black hover:underline">
+                                    Help & Support
+                                </Link>
+                            </li>
                         </ul>
                     </div>
 
                     <div>
-                        <h4 className="font-semibold mb-4 text-charcoal">Features</h4>
-                        <ul className="space-y-2 text-sm text-charcoal/70">
-                            <li><Link href="/influencer/try-on" className="hover:text-charcoal">Virtual Try-On</Link></li>
-                            <li><Link href="/brand/ads" className="hover:text-charcoal">Ad Generation</Link></li>
-                            <li><Link href="/brand/campaigns" className="hover:text-charcoal">Campaigns</Link></li>
-                            <li><Link href="/influencer/dashboard" className="hover:text-charcoal">Dashboard</Link></li>
+                        <h4 className="font-bold mb-4 text-black uppercase tracking-wide text-sm">
+                            Features
+                        </h4>
+                        <ul className="space-y-2 text-sm font-medium text-black/70">
+                            <li>
+                                <Link
+                                    href="/influencer/try-on"
+                                    className="hover:text-black hover:underline"
+                                >
+                                    Virtual Try-On
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/brand/ads" className="hover:text-black hover:underline">
+                                    Ad Generation
+                                </Link>
+                            </li>
+                            <li>
+                                <Link
+                                    href="/brand/campaigns"
+                                    className="hover:text-black hover:underline"
+                                >
+                                    Campaigns
+                                </Link>
+                            </li>
+                            <li>
+                                <Link
+                                    href="/influencer/dashboard"
+                                    className="hover:text-black hover:underline"
+                                >
+                                    Dashboard
+                                </Link>
+                            </li>
                         </ul>
                     </div>
 
                     <div>
-                        <h4 className="font-semibold mb-4 text-charcoal">Legal</h4>
-                        <ul className="space-y-2 text-sm text-charcoal/70">
-                            <li><Link href="/privacy" className="hover:text-charcoal">Privacy Policy</Link></li>
-                            <li><Link href="/terms" className="hover:text-charcoal">Terms of Use</Link></li>
-                            <li><Link href="/contact" className="hover:text-charcoal">Contact Us</Link></li>
+                        <h4 className="font-bold mb-4 text-black uppercase tracking-wide text-sm">
+                            Legal
+                        </h4>
+                        <ul className="space-y-2 text-sm font-medium text-black/70">
+                            <li>
+                                <Link href="/privacy" className="hover:text-black hover:underline">
+                                    Privacy Policy
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/terms" className="hover:text-black hover:underline">
+                                    Terms of Use
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/contact" className="hover:text-black hover:underline">
+                                    Contact Us
+                                </Link>
+                            </li>
                         </ul>
                     </div>
                 </div>
 
-                <div className="mt-20 pt-8 border-t border-subtle/50 flex flex-col md:flex-row justify-between items-center text-xs text-charcoal/50">
+                <div className="mt-16 pt-8 border-t-[3px] border-black flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-medium text-black/60">
                     <p>&copy; 2026 Kiwikoo. All rights reserved.</p>
-                    <div className="flex gap-4 mt-4 md:mt-0">
+                    <div className="flex gap-4">
                         <span>English (US)</span>
                     </div>
                 </div>
