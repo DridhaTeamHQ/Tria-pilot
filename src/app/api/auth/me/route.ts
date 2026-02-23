@@ -20,16 +20,16 @@ export async function GET() {
       error: authError,
     } = await supabase.auth.getUser()
 
-    // Handle auth errors
+    // Handle auth errors — return 200 + null when not logged in to avoid 401 log noise
     if (authError) {
       if (!authError.message?.includes('Auth session missing')) {
         console.error('Auth error in /api/auth/me:', authError.message)
       }
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ user: null, profile: null })
     }
 
     if (!authUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ user: null, profile: null })
     }
 
     // Fetch profile from profiles table (SOURCE OF TRUTH)
