@@ -99,10 +99,9 @@ export async function updateSession(request: NextRequest) {
             // Handle refresh token errors gracefully
             if (error.message?.includes('refresh_token') || error.message?.includes('Refresh Token')) {
                 // Invalid/expired refresh token - continue as unauthenticated
-                console.log('⚠️  Invalid refresh token, clearing session')
             } else if (!error.message?.includes('Auth session missing')) {
                 // Log non-trivial errors
-                console.warn('⚠️  Auth error:', error.message)
+                console.warn('Auth error:', error.message)
             }
         } else {
             user = authUser

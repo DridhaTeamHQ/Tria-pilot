@@ -256,6 +256,7 @@ export async function POST(request: Request) {
       const normalizedPerson = normalizeBase64(personImage)
       const normalizedClothing = normalizeBase64(clothingImage)
       const pipelineResult = await runHybridTryOnPipeline({
+        userId,
         personImageBase64: normalizedPerson,
         clothingImageBase64: normalizedClothing,
         aspectRatio: reqAspectRatio ?? '1:1',

@@ -30,6 +30,8 @@ export interface ForensicPromptInput {
   colorGradingGuidance?: string
   cameraGuidance?: string
   poseInferenceGuidance?: string
+  researchContext?: string
+  webResearchContext?: string
   additionalAvoidTerms?: string[]
   identityPriorityRules?: string[]
   strengthProfile?: PresetStrengthProfile
@@ -49,6 +51,7 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
 
   const garment = input.garmentDescription?.trim() || 'garment from Image 2'
   const environment = clamp(input.preset?.trim() || 'keep background from Image 1', 420)
+  const isSceneChange = environment !== 'keep background from Image 1'
   const realism = clamp(
     input.realismGuidance?.trim() || 'maintain physically plausible ambient lighting',
     520
@@ -93,6 +96,12 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   const cameraGuidance = input.cameraGuidance?.trim() ? clamp(input.cameraGuidance.trim(), 180) : undefined
   const poseInferenceGuidance = input.poseInferenceGuidance?.trim()
     ? clamp(input.poseInferenceGuidance.trim(), 260)
+    : undefined
+  const researchContext = input.researchContext?.trim()
+    ? clamp(input.researchContext.trim(), 1400)
+    : undefined
+  const webResearchContext = input.webResearchContext?.trim()
+    ? clamp(input.webResearchContext.trim(), 700)
     : undefined
   const identityPriorityRules = (input.identityPriorityRules || [])
     .map(rule => rule.trim())
@@ -155,8 +164,12 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
       appearance: appearanceSummary,
     },
     task: {
-      action: 'dress_person_in_Image_1_with_garment_from_Image_2',
-      edit_scope: 'replace_garment_only_preserve_head_face_body_geometry',
+      action: isSceneChange
+        ? 'place_person_from_Image_1_into_new_scene_wearing_garment_from_Image_2'
+        : 'dress_person_in_Image_1_with_garment_from_Image_2',
+      edit_scope: isSceneChange
+        ? 'change_garment_AND_background_preserve_face_and_body_geometry'
+        : 'replace_garment_only_preserve_head_face_body_geometry',
       garment: garment,
       fit: garmentFit,
       environment,
@@ -223,13 +236,17 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   // Integration in PLAIN TEXT so the model can't deprioritize it.
   // ═══════════════════════════════════════════════════════════════════════════
   const integrationBlock = [
-    `EDIT SCOPE (strict):`,
-    `Change ONLY the garment from Image 2 onto the person in Image 1.`,
-    `Preserve all non-garment regions from Image 1: head, face, neck, hair, ears, glasses, shoulders, arms, hands, torso silhouette, waist, and body proportions.`,
+    `EDIT SCOPE:`,
+    isSceneChange
+      ? `Place the person from Image 1 into a NEW environment (described below) wearing the garment from Image 2. The background MUST change — do NOT keep the original background from Image 1.`
+      : `Change the garment on the person in Image 1 to the garment from Image 2. Keep the original background.`,
+    `Preserve the person's identity from Image 1: head, face, neck, hair, ears, glasses, shoulders, arms, hands, torso silhouette, waist, and body proportions.`,
     `Do NOT slim, reshape, stylize, or beautify the person. Keep face shape and body geometry unchanged.`,
     '',
-    `SCENE INTEGRATION (CRITICAL — this is NOT a collage):`,
-    `The person must look like they were PHOTOGRAPHED in this environment: "${environment}".`,
+    isSceneChange ? `SCENE (CRITICAL — generate a new background, this is NOT a clothing-only swap):` : `SCENE:`,
+    isSceneChange
+      ? `Generate a completely new scene: "${environment}". The person must look like they were PHOTOGRAPHED in this environment — not pasted onto it.`
+      : `Keep the original background from Image 1. Only change the garment.`,
     `Relight the body, arms, and clothing to match the scene light direction and color temperature. ${lightingBlueprint}`,
     `If lighting or scene changes, adjust shading naturally on environment/body only; preserve exact facial proportions and do not modify facial geometry.`,
     `Add ambient color spill from the environment onto the subject's skin and clothing edges.`,
@@ -240,7 +257,7 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     `The subject and background must share the same color temperature, dynamic range, and optical characteristics.`,
     `Do NOT produce a flat, pasted, or sticker look. The person must be IN the scene, not placed ON it.`,
     hasFaceReference
-      ? `Image 3 is a cropped face reference from Image 1. Treat Image 3 as micro-identity authority for eye geometry, brow contour, nose-lip relation, beard pattern, and skin micro-texture.`
+      ? `Reminder: Image 3 (face crop) is your ground truth for the face. Match every facial proportion and texture detail to Image 3.`
       : '',
     strengthProfile
       ? `PRESET STRENGTH WEIGHTS (0-1): framing=${strengthProfile.framingDiscipline.toFixed(2)}, color=${strengthProfile.colorCleanliness.toFixed(2)}, mood=${strengthProfile.moodIntensity.toFixed(2)}, grain=${strengthProfile.grainTexture.toFixed(2)}, iphone_realism=${strengthProfile.iphoneRealism.toFixed(2)}, pose_freedom=${strengthProfile.poseFreedom.toFixed(2)}, identity_rigidity=${strengthProfile.identityRigidity.toFixed(2)}, stylization=${strengthProfile.stylizationAllowance.toFixed(2)}.`
@@ -260,6 +277,12 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     poseInferenceGuidance
       ? `Pose intelligence: infer a natural scene-appropriate pose and posture from styling cues (${poseInferenceGuidance}) while avoiding mannequin stiffness and preserving anatomy.`
       : '',
+    researchContext
+      ? `RESEARCH MEMORY (high-priority lessons from prior successful/failed generations): ${researchContext}`
+      : '',
+    webResearchContext
+      ? `LIVE WEB RESEARCH (preset-tuned realism hints): ${webResearchContext}`
+      : '',
     `Pose realism rule: preserve original pose from Image 1 while keeping natural body micro-asymmetry (shoulders, hands, spine, and neck) and avoiding rigid mannequin-like posture.`,
     realism,
     sceneCorrectionGuidance ? `Scene fix: ${sceneCorrectionGuidance}` : '',
@@ -267,24 +290,28 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
 
   const faceBlock = [
     `FACE LOCK (non-negotiable):`,
-    `The face from Image 1 is immutable. Do not relight, reshape, beautify, smooth, or reposition it.`,
+    `The face from Image 1 is immutable. Do not reshape, slim, narrow, beautify, smooth, or reposition it.`,
+    `FACE GEOMETRY ANCHOR: this person has ${faceAnchor}. The generated face MUST match these exact proportions — do not slim the face, do not narrow the jaw, do not reduce cheek volume, do not thin the beard.`,
     `Do NOT apply cinematic grade, heavy contrast, or stylization to the face region. Style treatment applies to scene and non-face regions only.`,
-    `For night or moody presets, preserve natural pore-level face texture and source-faithful face tonality; no jaw/cheek/eye reshaping, no digital makeup, no skin airbrushing.`,
+    `Face texture lock: preserve pore detail, beard strands, and natural micro-contrast from Image 1. Do not denoise, airbrush, or smooth facial skin.`,
+    `Do not use beauty filter behavior on face: no bilateral smoothing, no skin blur, no tone-evening, and no complexion homogenization.`,
     `Keep face exposure and tone mapping identity-faithful: no youth-enhancing relight, no skin brightening, and no complexion shift relative to Image 1.`,
-    `Forensic anchor: ${faceAnchor}`,
     identityCorrectionGuidance ? `Identity correction priority: ${identityCorrectionGuidance}` : '',
-  ].join('\n')
+  ].filter(Boolean).join('\n')
 
   const primaryAuthorityBlock = [
     `PRIMARY AUTHORITY — IDENTITY PRESERVATION (non-negotiable):`,
-    `The person in Image 1 is the immutable identity reference.`,
+    `The person in Image 1 is the sole identity reference. You must produce a face that is recognizably the SAME individual — if shown side by side, a viewer must immediately confirm it is the same person.`,
+    hasFaceReference
+      ? `Image 3 is a close-up crop of the person's face from Image 1. Use Image 3 as your pixel-level authority for every facial feature: the exact shape and spacing of the eyes, the nose bridge width and tip shape, the lip contour and mouth width, the jawline angle, the beard density and edge pattern, the skin texture including pores and blemishes, and any eyewear. Copy these features from Image 3, do not reinterpret them.`
+      : '',
     `Facial structure must remain genetically identical: eye spacing/eyelid shape, nose bridge contour, lip shape/mouth curvature, cheek volume, midface width, jawline/chin, beard density and edge pattern, and skin tone with natural unretouched texture.`,
     `Preserve perceived age exactly as in Image 1. No de-aging, no youthification, no wrinkle removal, and no age reinterpretation.`,
     `Preserve original skin luminance and undertone from Image 1. No skin whitening/brightening, no fairness shift, and no beauty skin cleanup.`,
     `Do NOT beautify, enhance, smooth skin, alter bone structure, or reinterpret facial proportions.`,
     `Expression and head pose must be inherited from Image 1.`,
     ...identityPriorityRules.map(rule => `Identity priority: ${rule}`),
-  ].join('\n')
+  ].filter(Boolean).join('\n')
 
   const garmentBlock = [
     `GARMENT APPLICATION (non-negotiable):`,
@@ -331,6 +358,9 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     `CONTROL=${JSON.stringify(control)}`,
     '',
     'OUTPUT: single photorealistic composite with natural skin detail and coherent scene integration. Keep identity exact; allow preset-guided style without altering facial structure or body proportions.',
+    hasFaceReference
+      ? 'VERIFICATION: Before finalizing, compare the face you generated against Image 3 (face crop). The eye spacing, nose shape, jawline, beard pattern, and skin texture must match Image 3 exactly. If they do not match, regenerate the face region to match Image 3.'
+      : '',
     'Generate one photorealistic image. The person must appear naturally inside the scene — same light, same space, same camera. Body proportions must exactly match the source.',
   ].join('\n')
 }

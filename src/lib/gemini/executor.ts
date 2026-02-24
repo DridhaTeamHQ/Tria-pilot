@@ -5,6 +5,7 @@ import { getGeminiKey } from '@/lib/config/api-keys'
 
 const GEMINI_MAX_RETRIES = 3
 const BASE_BACKOFF_MS = 500
+const RETRYABLE_STATUS_CODES = new Set([429, 503, 529])
 
 const proImageLimiter = new Bottleneck({
   maxConcurrent: 2,
@@ -89,7 +90,7 @@ async function generateWithBackoff(params: GenerateContentParameters) {
     } catch (error) {
       lastError = error
       const status = getStatusCode(error)
-      if (status !== 429) throw error
+      if (!RETRYABLE_STATUS_CODES.has(status as number)) throw error
 
       const backoffMs =
         parseRetryAfterMs(error) ??
@@ -97,10 +98,13 @@ async function generateWithBackoff(params: GenerateContentParameters) {
 
       attempt += 1
       if (attempt >= GEMINI_MAX_RETRIES) {
-        throw new GeminiRateLimitError(
-          `Gemini rate limit persisted after ${GEMINI_MAX_RETRIES} attempts`,
-          backoffMs
-        )
+        if (status === 429) {
+          throw new GeminiRateLimitError(
+            `Gemini rate limit persisted after ${GEMINI_MAX_RETRIES} attempts`,
+            backoffMs
+          )
+        }
+        throw lastError instanceof Error ? lastError : new Error(`Gemini ${status} persisted after ${GEMINI_MAX_RETRIES} attempts`)
       }
 
       await sleep(backoffMs)

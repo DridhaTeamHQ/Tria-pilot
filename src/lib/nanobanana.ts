@@ -434,9 +434,11 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
 
   if (process.env.NODE_ENV !== 'production') console.log(`🍌 DIRECT TRANSPORT: gemini-3-pro-image-preview | prompt: ${prompt.length} chars`)
 
-  // Content order (conservative compositor mode):
-  // [person_image, garment_image, prompt]
-  // Keep the person image first so identity remains the primary anchor.
+  // Content order MUST match prompt references:
+  //   Image 1 = person (identity anchor)
+  //   Image 2 = garment (clothing to apply)
+  //   Image 3 = face crop (micro-identity reinforcement, optional)
+  //   Last    = prompt text
   const contents: ContentListUnion = [
     {
       inlineData: {
@@ -446,11 +448,19 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
     } as any,
   ]
 
-  // Optional face crop reinforcement (kept small and after primary person anchor)
+  // Garment MUST be Image 2 (matching prompt: "garment from Image 2")
+  contents.push({
+    inlineData: {
+      data: cleanGarment,
+      mimeType: 'image/jpeg',
+    },
+  } as any)
+
+  // Face crop is Image 3 (matching prompt: "Image 3 is a cropped face reference")
   if (faceCropBase64 && faceCropBase64.length > 100) {
     const cleanFaceCrop = faceCropBase64.replace(/^data:image\/[a-z]+;base64,/, '')
     if (cleanFaceCrop.length > 100) {
-      if (process.env.NODE_ENV !== 'production') console.log('👤 Adding Face Crop reference for identity lock')
+      if (process.env.NODE_ENV !== 'production') console.log('👤 Adding Face Crop reference as Image 3 for identity lock')
       contents.push({
         inlineData: {
           data: cleanFaceCrop,
@@ -460,14 +470,7 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
     }
   }
 
-  // Add garment reference image second (before instructions)
-  contents.push({
-    inlineData: {
-      data: cleanGarment,
-      mimeType: 'image/jpeg',
-    },
-  } as any)
-  // Add concise instruction text last
+  // Prompt text always last
   contents.push(prompt)
 
   const imageConfig = {

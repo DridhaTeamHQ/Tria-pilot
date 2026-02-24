@@ -22,24 +22,38 @@ import { analyzeGarmentForensic, type GarmentAnalysis } from './face-analyzer'
 import { extractGarmentWithFidelity } from './garment-extractor'
 import { detectFaceCoordinates, type FaceCoordinates } from './face-coordinates'
 import { compositeFacePixels, extractFacePixels, type FaceBox } from './face-pixel-copy'
+import { runIntelligentPreAnalysis } from './intelligence/intelligent-pipeline'
+import { runIntelligentRAG } from './intelligent-rag-system'
+import { getWebResearchContext } from './web-research'
 
-// NEW MODULES
-// import { runIntelligentPreAnalysis } from './intelligence/intelligent-pipeline'
-// import { runSceneIntelligence, SceneIntelligenceOutput } from './intelligence/scene-intelligence-engine'
-// import { resolveAnchorZone, AnchorZoneResolution } from './intelligence/anchor-zone-resolver'
 import { generateWithNanoBananaPro } from './nano-banana-pro-renderer'
 
 const GARMENT_EXTRACT_MODEL = 'gemini-2.5-flash-image' as const
-// Disabled by default: pixel compositing can improve some failures but can also
-// create visible artifacts/identity mismatch when target alignment is imperfect.
-const ENABLE_DETERMINISTIC_FACE_LOCK = false
-const FACE_LOCK_DRIFT_THRESHOLD = 34
+const ENABLE_DETERMINISTIC_FACE_LOCK = process.env.TRYON_ENABLE_DETERMINISTIC_FACE_LOCK === 'true'
+const FACE_LOCK_DRIFT_THRESHOLD = 22
+const FACE_COMPOSITE_BLOCKED_PRESETS = new Set([
+  'studio_crimson_noir',
+  'golden_hour_bedroom',
+  'urban_gas_station_night',
+  'street_mcdonalds_bmw_night',
+  'outdoor_kerala_theyyam_gtr',
+  'editorial_night_garden_flash',
+  'editorial_newspaper_set',
+  'editorial_court_geometric_sun',
+  'editorial_dark_study_set',
+  'studio_green_red_gel_editorial',
+  'studio_red_seamless_profile',
+  'street_subway_fisheye',
+  'street_elevator_mirror_chic',
+  'studio_window_blind_portrait',
+])
 
 // ═══════════════════════════════════════════════════════════════
 // TYPES
 // ═══════════════════════════════════════════════════════════════
 
 export interface HybridTryOnInput {
+  userId?: string
   personImageBase64: string
   clothingImageBase64: string
   aspectRatio?: '1:1' | '4:5' | '3:4' | '9:16'
@@ -59,10 +73,19 @@ export interface HybridTryOnResult {
   image: string
   status: string
   warnings: string[]
-  debug: {
+    debug: {
     stages: any[]
     totalTimeMs: number
     faceOverwritten: boolean
+    intelligence?: {
+      preAnalysisEnabled: boolean
+      ragContextChars?: number
+      webResearchChars?: number
+      webResearchMode?: string
+      webResearchQuery?: string
+      webResearchCacheHit?: boolean
+      webResearchSourceCount?: number
+    }
     sceneIntelligence?: any
     promptUsed?: string
     rendererDebug?: any
@@ -210,7 +233,14 @@ function isPlausibleTargetFace(
   return true
 }
 
-async function applyDeterministicFaceLock(personImageBase64: string, generatedBase64: string): Promise<{
+async function applyDeterministicFaceLock(
+  personImageBase64: string,
+  generatedBase64: string,
+  detectedFaces?: {
+    sourceFace?: FaceCoordinates | null
+    targetFace?: FaceCoordinates | null
+  }
+): Promise<{
   image: string
   applied: boolean
   reason?: string
@@ -228,21 +258,33 @@ async function applyDeterministicFaceLock(personImageBase64: string, generatedBa
       return { image: generatedBase64, applied: false, reason: 'metadata_unavailable' }
     }
 
-    const [sourceFace, targetFace] = await Promise.all([
-      detectFaceCoordinates(personImageBase64, { allowHeuristicFallback: true }),
-      detectFaceCoordinates(generatedBase64),
-    ])
+    const sourceFace =
+      detectedFaces?.sourceFace !== undefined
+        ? detectedFaces.sourceFace
+        : await detectFaceCoordinates(personImageBase64, { allowHeuristicFallback: true })
+
+    // Distinguish "never attempted" (undefined) from "attempted and failed" (null).
+    // When the renderer already detected null, do NOT re-detect: a second blind attempt
+    // on a low-confidence generated image is exactly what causes the ghost-face stamp
+    // at wrong coordinates (e.g. top-left). Only re-detect when no attempt was made yet.
+    const targetFaceWasProvided = detectedFaces !== undefined && 'targetFace' in detectedFaces
+    const targetFace = targetFaceWasProvided
+      ? detectedFaces!.targetFace ?? null
+      : await detectFaceCoordinates(generatedBase64)
 
     // Never paste when we don't know where the face is in the generated image.
-    // Using a fallback (e.g. scaled source box) causes the "ghost face" — a face
-    // pasted at wrong coordinates (e.g. top-left). Only composite when we have
-    // reliable target face detection.
     if (!targetFace) {
       return { image: generatedBase64, applied: false, reason: 'target_face_not_detected' }
     }
 
     if (!sourceFace) {
       return { image: generatedBase64, applied: false, reason: 'source_face_not_detected' }
+    }
+
+    // Reject low-confidence target detections — these are the source of ghost-face stamps.
+    // Heuristic fallbacks have confidence=0.25; partial-parse results often land below 0.5.
+    if (targetFace.confidence < 0.5) {
+      return { image: generatedBase64, applied: false, reason: `target_face_low_confidence:${targetFace.confidence.toFixed(2)}` }
     }
 
     const sourceBox = normalizedFaceToBox(sourceFace, origMeta.width, origMeta.height)
@@ -299,7 +341,7 @@ async function resolveGarmentAssetLocal(params: {
   const garmentHash = hashImageForGarment(rawBase64)
 
   // Always run garment analysis (needed for description even if image is cached)
-  console.log('👕 Analyzing garment reference image...')
+  if (isDev) console.log('👕 Analyzing garment reference image...')
   let garmentAnalysis: GarmentAnalysis | null = null
   let garmentDescription = ''
   try {
@@ -319,9 +361,9 @@ async function resolveGarmentAssetLocal(params: {
     if (garmentAnalysis.fabricType) parts.push(`in ${garmentAnalysis.fabricType}`)
     garmentDescription = parts.join(' ') || 'garment from reference image'
     if (sampledColor && analyzedColor && sampledColor.toLowerCase() !== analyzedColor.toLowerCase()) {
-      console.log(`   Color fidelity: sampled="${sampledColor}", analyzed="${analyzedColor}" (using sampled)`)
+      if (isDev) console.log(`   Color fidelity: sampled="${sampledColor}", analyzed="${analyzedColor}" (using sampled)`)
     }
-    console.log(`   Description: "${garmentDescription}"`)
+    if (isDev) console.log(`   Description: "${garmentDescription}"`)
   } catch (analysisErr) {
     console.warn('⚠️ Garment analysis failed, using generic description:', analysisErr)
     garmentDescription = 'garment from reference image'
@@ -330,7 +372,7 @@ async function resolveGarmentAssetLocal(params: {
   // Check if we already have a clean extracted garment cached
   const existing = await getGarmentByHash(garmentHash)
   if (existing) {
-    console.log('👕 Using cached clean garment from DB')
+    if (isDev) console.log('👕 Using cached clean garment from DB')
     return {
       cleanGarmentBase64: await fetchImageAsBase64(existing.clean_garment_image_url),
       garmentDescription,
@@ -338,12 +380,12 @@ async function resolveGarmentAssetLocal(params: {
   }
 
   // Extract clean garment using Gemini 2.5 Flash Image (removes person, keeps garment)
-  console.log('👕 Extracting clean garment with Gemini 2.5 Flash Image...')
+  if (isDev) console.log('👕 Extracting clean garment with Gemini 2.5 Flash Image...')
   const extractedGarmentBase64 = await extractGarmentWithFlashGuard(
     params.clothingImageBase64,
     garmentAnalysis ?? undefined
   )
-  console.log('👕 Clean garment extracted successfully')
+  if (isDev) console.log('👕 Clean garment extracted successfully')
 
   // Save to storage and DB (for future cache hits)
   const cleanPath = `garments/${garmentHash}.png`
@@ -373,10 +415,12 @@ async function resolveGarmentAssetLocal(params: {
 // MAIN PIPELINE EXECUTION (SIMPLIFIED FOR STRICT FACE AUTHORITY)
 // ═══════════════════════════════════════════════════════════════
 
+const isDev = process.env.NODE_ENV !== 'production'
+
 export async function runHybridTryOnPipeline(
   input: HybridTryOnInput
 ): Promise<HybridTryOnResult> {
-  console.log('🚀 STARTED: Hybrid Try-On Pipeline (Strict Face Authority)')
+  if (isDev) console.log('🚀 STARTED: Hybrid Try-On Pipeline (Strict Face Authority)')
   const startTime = Date.now()
 
   // ═══════════════════════════════════════════════════════════════
@@ -391,7 +435,42 @@ export async function runHybridTryOnPipeline(
     productId: input.productId,
   })
 
-  console.log(`👕 Garment ready: "${garmentDescription}"`)
+  if (isDev) console.log(`👕 Garment ready: "${garmentDescription}"`)
+
+  let intelligenceContext: string | undefined
+  let webResearchContext: string | undefined
+  let webResearchMode: string | undefined
+  let webResearchQuery: string | undefined
+  let webResearchCacheHit: boolean | undefined
+  let webResearchSourceCount: number | undefined
+  let preAnalysisEnabled = false
+  try {
+    const preAnalysis = await runIntelligentPreAnalysis(
+      input.personImageBase64,
+      cleanGarmentBase64
+    )
+    preAnalysisEnabled = true
+    const [ragResult, webResearchResult] = await Promise.all([
+      runIntelligentRAG({
+        userAnalysis: preAnalysis.userAnalysis,
+        garmentClassification: preAnalysis.garmentClassification,
+      }),
+      getWebResearchContext({
+        userId: input.userId,
+        userRequest: input.userRequest,
+        presetId: input.preset?.id,
+        garmentDescription,
+      }),
+    ])
+    intelligenceContext = ragResult.combinedContext || undefined
+    webResearchContext = webResearchResult.context || undefined
+    webResearchMode = webResearchResult.profile.mode
+    webResearchQuery = webResearchResult.query
+    webResearchCacheHit = webResearchResult.cacheHit
+    webResearchSourceCount = webResearchResult.sourceCount
+  } catch (intelligenceError) {
+    console.warn('⚠️ Intelligent pre-analysis/RAG unavailable, continuing with base pipeline:', intelligenceError)
+  }
 
   // STEP 2: Nano Banana Pro Rendering
   // - Final image model is hard-locked to gemini-3-pro-image-preview
@@ -406,6 +485,8 @@ export async function runHybridTryOnPipeline(
     userRequest: input.userRequest,
     presetDescription: input.preset?.background_name || input.preset?.id,
     lightingDescription: input.preset?.lighting_name,
+    researchContext: intelligenceContext,
+    webResearchContext,
   })
 
   if (!renderResult.success) {
@@ -416,6 +497,7 @@ export async function runHybridTryOnPipeline(
   let faceOverwritten = false
   let faceLockReason: string | null = 'disabled'
   const warnings: string[] = []
+  const faceConsistencyGateFailed = Boolean(renderResult.debug?.faceConsistencyGate?.failed)
 
   const microDriftPercent = Number(renderResult.debug?.microDrift?.driftPercent)
   const shouldFaceLockForDrift =
@@ -423,16 +505,57 @@ export async function runHybridTryOnPipeline(
   const shouldFaceLockForUnknownFace =
     renderResult.debug?.driftAssessment?.reason === 'generated_face_unknown'
   const shouldApplyDeterministicFaceLock = shouldFaceLockForDrift || shouldFaceLockForUnknownFace
+  const presetId = (input.preset?.id || '').trim().toLowerCase()
+  const isFaceCompositeBlockedPreset = FACE_COMPOSITE_BLOCKED_PRESETS.has(presetId)
+  const debugSourceFace = renderResult.debug?.personFace as FaceCoordinates | null | undefined
+  const debugTargetFace = renderResult.debug?.finalDetectedFace as FaceCoordinates | null | undefined
 
-  if (ENABLE_DETERMINISTIC_FACE_LOCK && shouldApplyDeterministicFaceLock) {
-    const faceLock = await applyDeterministicFaceLock(input.personImageBase64, renderResult.image)
+  // Face pixel compositing (deterministic face lock) is disabled by default because
+  // it causes ghost-face artifacts: pasting source-lit face pixels onto a scene-lit
+  // generated image creates a visible double-face / sticker effect.
+  // The Gemini model handles identity through the face crop reference + forensic prompt.
+  // Only enable via TRYON_ENABLE_DETERMINISTIC_FACE_LOCK=true if you need it.
+  if (!ENABLE_DETERMINISTIC_FACE_LOCK) {
+    faceLockReason = 'deterministic_face_lock_disabled'
+    if (faceConsistencyGateFailed) {
+      warnings.push('Face consistency gate flagged drift but deterministic face lock is disabled. Returning AI-generated image as-is.')
+    }
+  } else if (isFaceCompositeBlockedPreset) {
+    faceLockReason = `blocked_for_preset:${presetId}`
+    if (faceConsistencyGateFailed) {
+      warnings.push(`Face consistency gate failed but face composite is blocked for preset "${presetId}". Returning AI-generated image as-is.`)
+    }
+  } else if (faceConsistencyGateFailed) {
+    const faceLock = await applyDeterministicFaceLock(
+      input.personImageBase64,
+      renderResult.image,
+      { sourceFace: debugSourceFace, targetFace: debugTargetFace }
+    )
+    finalImage = faceLock.image
+    faceOverwritten = faceLock.applied
+    faceLockReason = `emergency_gate:${faceLock.reason || 'applied'}`
+    if (!faceLock.applied) {
+      warnings.push(
+        `Face consistency gate failed and emergency face lock could not be applied: ${faceLock.reason || 'unknown'}`
+      )
+      faceLockReason = `emergency_gate_unresolved:${faceLock.reason || 'unknown'}`
+    }
+    if (faceLock.applied) {
+      warnings.push('Emergency identity lock applied after strict face consistency gate failure.')
+    }
+  } else if (shouldApplyDeterministicFaceLock) {
+    const faceLock = await applyDeterministicFaceLock(
+      input.personImageBase64,
+      renderResult.image,
+      { sourceFace: debugSourceFace, targetFace: debugTargetFace }
+    )
     finalImage = faceLock.image
     faceOverwritten = faceLock.applied
     faceLockReason = faceLock.reason || null
     if (!faceLock.applied) {
       warnings.push(`Face lock fallback: ${faceLock.reason || 'not applied'}`)
     }
-  } else if (ENABLE_DETERMINISTIC_FACE_LOCK) {
+  } else {
     faceLockReason = 'not_needed_low_drift'
   }
 
@@ -443,9 +566,18 @@ export async function runHybridTryOnPipeline(
     status: 'PASS',
     warnings,
     debug: {
-      stages: ['garment_extraction', 'strict_renderer'],
+      stages: ['garment_extraction', 'intelligence_pre_analysis', 'strict_renderer'],
       totalTimeMs: Date.now() - startTime,
       faceOverwritten,
+      intelligence: {
+        preAnalysisEnabled,
+        ragContextChars: intelligenceContext?.length || 0,
+        webResearchChars: webResearchContext?.length || 0,
+        webResearchMode,
+        webResearchQuery,
+        webResearchCacheHit,
+        webResearchSourceCount,
+      },
       promptUsed: renderResult.promptUsed,
       rendererDebug: {
         ...renderResult.debug,

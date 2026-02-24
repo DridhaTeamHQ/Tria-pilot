@@ -159,11 +159,11 @@ export function getPresetStrengthProfile(params: {
 
   // Production safety floor: face consistency must remain stable across ALL presets.
   profile = merge(profile, {
-    colorCleanliness: Math.max(profile.colorCleanliness, 0.78),
-    grainTexture: Math.min(profile.grainTexture, 0.55),
-    poseFreedom: Math.max(Math.min(profile.poseFreedom, 0.62), 0.4),
-    identityRigidity: Math.max(profile.identityRigidity, 0.98),
-    stylizationAllowance: Math.min(profile.stylizationAllowance, 0.26),
+    colorCleanliness: Math.max(profile.colorCleanliness, 0.82),
+    grainTexture: Math.min(profile.grainTexture, 0.48),
+    poseFreedom: Math.max(Math.min(profile.poseFreedom, 0.55), 0.35),
+    identityRigidity: Math.max(profile.identityRigidity, 0.99),
+    stylizationAllowance: Math.min(profile.stylizationAllowance, 0.22),
   })
 
   return profile

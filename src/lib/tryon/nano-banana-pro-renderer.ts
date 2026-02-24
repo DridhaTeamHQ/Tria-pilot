@@ -26,7 +26,10 @@ import { getPresetStrengthProfile } from './preset-strength-profile'
 
 const MAIN_RENDER_MODEL = 'gemini-3-pro-image-preview' as const
 const ENABLE_QUALITY_RETRY = process.env.TRYON_ENABLE_QUALITY_RETRY !== 'false'
-const MICRO_DRIFT_RETRY_THRESHOLD = 22
+const MICRO_DRIFT_RETRY_THRESHOLD = 18
+const FINAL_MICRO_DRIFT_MAX_DEFAULT = 24
+const FINAL_MICRO_DRIFT_MAX_COMPLEX = 20
+const FINAL_MICRO_DRIFT_MAX_ULTRA = 12
 const ULTRA_FACE_LOCK_IOU_MIN = 0.68
 const ULTRA_FACE_LOCK_CENTER_MAX = 55
 const ULTRA_FACE_LOCK_SIZE_DELTA_MAX = 0.14
@@ -84,6 +87,8 @@ export interface NanoBananaProInput {
   presetId?: string
   presetDescription?: string
   lightingDescription?: string
+  researchContext?: string
+  webResearchContext?: string
 }
 
 export interface NanoBananaProResult {
@@ -112,7 +117,7 @@ export async function generateWithNanoBananaPro(
 
     const presetNames = getAllPresetIds()
 
-    const [sceneConfig, personFace, forensicAnchor, faceCropResult] = await Promise.all([
+    const [sceneConfig, personFace, forensicAnchor] = await Promise.all([
       withTimeout(
         getStrictSceneConfig({
           userRequest: input.userRequest,
@@ -124,16 +129,16 @@ export async function generateWithNanoBananaPro(
         7000,
         buildSceneFallback(input)
       ),
-      detectFaceCoordinates(input.personImageBase64),
+      detectFaceCoordinates(input.personImageBase64, { allowHeuristicFallback: true }),
       withTimeout(
         buildForensicFaceAnchor({
           personImageBase64: input.personImageBase64,
           garmentDescription: input.garmentDescription,
         }),
-        5000,
+        10000,
         {
           faceAnchor:
-            'preserve exact eye geometry, nose bridge and tip, lip contour, jawline, skin texture, facial hair pattern, and eyewear geometry',
+            'preserve exact face shape width and fullness, eye geometry, nose bridge and tip, lip contour, jawline, skin texture with visible pores, facial hair density and pattern, and eyewear geometry',
           eyesAnchor:
             'almond eye shape, medium inter-eye spacing, dark brown iris color, forward gaze direction, stable eyelid crease and brow geometry',
           characterSummary: 'single subject from Image 1',
@@ -142,15 +147,18 @@ export async function generateWithNanoBananaPro(
           bodyAnchor:
             'preserve original body build, weight, shoulder width, torso mass, and limb proportions exactly as visible in Image 1',
           garmentOnPersonGuidance:
-            'garment follows original shoulder slope and torso drape from Image 1 — do not slim or reshape body',
+            'garment follows original shoulder slope and torso drape from Image 1 — do not slim or reshape body. Do NOT slim or narrow the face. Do NOT thin the beard.',
         }
       ),
-      withTimeout(
-        extractFaceCrop(input.personImageBase64),
-        3000,
-        { success: false, faceCropBase64: '' }
-      ),
     ])
+
+    // Extract face crop AFTER detection so we can use the detected face box for a tight crop.
+    // This adds ~50-100ms (sharp only) but produces a much better identity signal.
+    const faceCropResult = await withTimeout(
+      extractFaceCrop(input.personImageBase64, personFace),
+      3000,
+      { success: false, faceCropBase64: '' }
+    )
 
     if (isDev) {
       console.log(`   preset=${sceneConfig.preset}`)
@@ -213,6 +221,8 @@ export async function generateWithNanoBananaPro(
         presetOpticalGuard.cameraGuidance,
       ].filter(Boolean).join(' '),
       poseInferenceGuidance: sanitizeEnvironmentGuidance(exampleGuidance?.poseInference),
+      researchContext: input.researchContext,
+      webResearchContext: input.webResearchContext,
       additionalAvoidTerms: Array.from(
         new Set([
           ...(presetGuidance?.avoidTerms || []),
@@ -305,13 +315,16 @@ export async function generateWithNanoBananaPro(
     sceneAssessment = generatedSceneAssessment
     const firstPassImage = generatedImage
     const firstPassFace = generatedFace
+    let finalDetectedFace: FaceCoordinates | null = generatedFace
     const firstPassDriftAssessment = driftAssessment
     const firstPassSceneAssessment = sceneAssessment
-    const hasTrustedSourceFace = Boolean(faceSpatialLock)
+    // If a face was detected at all, we should still allow retry logic.
+    // Spatial lock quality only controls bbox lock strictness, not whether we retry.
+    const hasTrustedSourceFace = Boolean(personFace)
     const microDriftRetryThreshold = isUltraFaceLockPreset
-      ? 12
+      ? 8
       : isComplexBackgroundPreset
-        ? 16
+        ? 14
         : MICRO_DRIFT_RETRY_THRESHOLD
     try {
       const refBuffer = base64ToBuffer(input.personImageBase64)
@@ -444,9 +457,11 @@ export async function generateWithNanoBananaPro(
         driftAssessment = firstPassDriftAssessment
         sceneAssessment = firstPassSceneAssessment
         microDrift = firstPassMicroDrift
+        finalDetectedFace = firstPassFace
         console.warn('   ↩️ Keeping first pass output (retry did not improve identity).')
       } else {
         microDrift = retryMicroDrift
+        finalDetectedFace = retryFace
       }
     } else if (ENABLE_QUALITY_RETRY && hasRetrySignal && !canRetryInTime) {
       console.warn(
@@ -455,6 +470,34 @@ export async function generateWithNanoBananaPro(
     }
 
     const genTime = Date.now() - startTime
+    const finalMicroDrift = microDrift?.success ? microDrift.driftPercent : null
+    const finalDriftMax = isUltraFaceLockPreset
+      ? FINAL_MICRO_DRIFT_MAX_ULTRA
+      : isComplexBackgroundPreset
+        ? FINAL_MICRO_DRIFT_MAX_COMPLEX
+        : FINAL_MICRO_DRIFT_MAX_DEFAULT
+    const finalFaceFailure = Boolean(
+      hasTrustedSourceFace &&
+      (
+        driftAssessment.reason === 'generated_face_unknown' ||
+        driftAssessment.shouldRetry ||
+        (typeof finalMicroDrift === 'number' && finalMicroDrift >= finalDriftMax)
+      )
+    )
+    const faceConsistencyGate = finalFaceFailure
+      ? {
+          failed: true,
+          reason: driftAssessment.reason || 'unknown',
+          microDriftPercent: finalMicroDrift,
+          threshold: finalDriftMax,
+        }
+      : {
+          failed: false,
+          reason: 'passed',
+          microDriftPercent: finalMicroDrift,
+          threshold: finalDriftMax,
+        }
+
     if (isDev) {
       console.log(`   Generated in ${(genTime / 1000).toFixed(1)}s`)
       console.log('\n━━━ PIPELINE COMPLETE ━━━')
@@ -475,11 +518,15 @@ export async function generateWithNanoBananaPro(
         requestGuidance,
         forensicAnchor,
         personFace,
+        finalDetectedFace,
         retried,
         driftAssessment,
         microDrift,
         driftRetryParams,
         sceneAssessment,
+        faceConsistencyGate,
+        researchContextChars: input.researchContext?.length || 0,
+        webResearchContextChars: input.webResearchContext?.length || 0,
         faceCropUsed: Boolean(faceCropResult.success && faceCropResult.faceCropBase64),
         faceFreezeStatus: 'disabled',
         eyeCompositeStatus: 'disabled',
@@ -504,8 +551,9 @@ function isFaceBoxSafeForSpatialLock(face: FaceCoordinates): boolean {
   const aspect = h / w
   const edgeMargin = Math.min(face.xmin, face.ymin, 1000 - face.xmax, 1000 - face.ymax)
   if (face.confidence < 0.75) return false
-  if (area < 0.03 || area > 0.24) return false
-  if (aspect < 0.75 || aspect > 1.6) return false
+  // Allow large close-up faces (common in portrait/cropped influencer photos).
+  if (area < 0.02 || area > 0.7) return false
+  if (aspect < 0.58 || aspect > 1.8) return false
   if (edgeMargin < 15) return false
   return true
 }
@@ -517,8 +565,8 @@ function isFaceBoxUsableForSpatialLock(face: FaceCoordinates): boolean {
   const aspect = h / w
   const edgeMargin = Math.min(face.xmin, face.ymin, 1000 - face.xmax, 1000 - face.ymax)
   if (face.confidence < 0.62) return false
-  if (area < 0.015 || area > 0.32) return false
-  if (aspect < 0.65 || aspect > 1.8) return false
+  if (area < 0.01 || area > 0.78) return false
+  if (aspect < 0.5 || aspect > 2.0) return false
   if (edgeMargin < 6) return false
   return true
 }

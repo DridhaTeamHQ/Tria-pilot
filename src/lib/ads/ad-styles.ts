@@ -1,9 +1,9 @@
 /**
  * AD STYLE PRESETS — PRODUCTION GRADE
- *
+ * 
  * Categorized preset system for ad generation.
  * Brands select from these presets — GPT-4o crafts the final prompt.
- *
+ * 
  * Categories: UGC | Editorial | Commercial | Creative | Standalone | Indian Fashion
  */
 
@@ -139,13 +139,13 @@ export interface TextOverlayConfig {
 }
 
 export interface AdPreset {
-  id: AdPresetId
-  name: string
-  description: string
+    id: AdPresetId
+    name: string
+    description: string
   category: AdPresetCategory
   icon: string
-  whenToUse: string[]
-  platforms: Platform[]
+    whenToUse: string[]
+    platforms: Platform[]
   /** Scene, lighting, and composition guidance for the prompt builder */
   sceneGuide: string
   /** Lighting description for consistency */
@@ -196,14 +196,14 @@ export interface PresetTaxonomy {
 export type AdPresetDisplay = AdPreset & PresetTaxonomy
 
 export interface AdGenerationInput {
-  preset: AdPresetId
-  campaignId?: string
+    preset: AdPresetId
+    campaignId?: string
   stylePack?: StylePack
 
-  // Image inputs
+    // Image inputs
   productImage?: string
   influencerImage?: string
-  lockFaceIdentity?: boolean
+    lockFaceIdentity?: boolean
 
   // Character
   characterType?: CharacterType
@@ -221,21 +221,21 @@ export interface AdGenerationInput {
   // Camera angle (down, side, low, high, etc.) for pro composition
   cameraAngle?: CameraAngle
 
-  // Text controls
+    // Text controls
   headline?: string
-  ctaType: CtaType
-  captionTone?: CaptionTone
+    ctaType: CtaType
+    captionTone?: CaptionTone
 
-  // Platform selection
-  platforms: Platform[]
+    // Platform selection
+    platforms: Platform[]
 
   // Subject overrides (legacy, still supported)
-  subject?: {
-    gender?: 'male' | 'female' | 'unisex'
-    ageRange?: string
-    pose?: string
-    expression?: string
-  }
+    subject?: {
+        gender?: 'male' | 'female' | 'unisex'
+        ageRange?: string
+        pose?: string
+        expression?: string
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -244,12 +244,12 @@ export interface AdGenerationInput {
 
 export const AD_PRESETS: AdPreset[] = [
   // ─── UGC ───
-  {
-    id: 'UGC_CANDID',
-    name: 'UGC Candid',
+    {
+        id: 'UGC_CANDID',
+        name: 'UGC Candid',
     description: 'Authentic, relatable social media feel',
     category: 'ugc',
-    icon: 'Camera',
+        icon: 'Camera',
     whenToUse: ['Instagram ads', 'Influencer content', 'Casual brands'],
     platforms: ['instagram', 'facebook'],
     sceneGuide:
@@ -382,7 +382,7 @@ export const AD_PRESETS: AdPreset[] = [
     category: 'editorial',
     icon: 'Heart',
     whenToUse: ['Beauty brands', 'Skincare', 'Makeup', 'Close-up product'],
-    platforms: ['instagram', 'facebook'],
+        platforms: ['instagram', 'facebook'],
     sceneGuide:
       'Director brief: Tight beauty hero — face or detail shot. Product in application or held near face. Dewy skin, natural pores visible, minimal makeup. Clean backdrop. Every lash and highlight intentional. Magazine beauty spread quality.',
     lightingGuide:
@@ -441,14 +441,14 @@ export const AD_PRESETS: AdPreset[] = [
   },
 
   // ─── Commercial ───
-  {
-    id: 'PRODUCT_LIFESTYLE',
-    name: 'Product Lifestyle',
-    description: 'Product in a natural real-world setting',
+    {
+        id: 'PRODUCT_LIFESTYLE',
+        name: 'Product Lifestyle',
+        description: 'Product in a natural real-world setting',
     category: 'commercial',
-    icon: 'ShoppingBag',
-    whenToUse: ['D2C brands', 'Catalog ads', 'Product clarity matters'],
-    platforms: ['instagram', 'google'],
+        icon: 'ShoppingBag',
+        whenToUse: ['D2C brands', 'Catalog ads', 'Product clarity matters'],
+        platforms: ['instagram', 'google'],
     sceneGuide:
       'Director brief: Product in use or in context — minimal room, neutral interior, table surface. Product primary; model secondary if present. One frame that sells the lifestyle. Authentic, aspirational, campaign-ready.',
     lightingGuide:
@@ -456,10 +456,10 @@ export const AD_PRESETS: AdPreset[] = [
     cameraGuide:
       '50mm standard, f/2.8–4, clean framing, product centred. Shallow DoF optional. Professional e‑commerce clarity, 8K.',
     avoid: ['cluttered', 'dramatic lighting', 'artistic distortion', 'heavy stylisation'],
-  },
-  {
-    id: 'STUDIO_POSTER',
-    name: 'Studio Poster',
+    },
+    {
+        id: 'STUDIO_POSTER',
+        name: 'Studio Poster',
     description: 'Clean studio, text-friendly, campaign-ready',
     category: 'commercial',
     icon: 'Image',
@@ -494,7 +494,7 @@ export const AD_PRESETS: AdPreset[] = [
     name: 'Carousel Card',
     description: 'Single-frame carousel card, clean product focus',
     category: 'commercial',
-    icon: 'Image',
+        icon: 'Image',
     whenToUse: ['Carousel ads', 'Multi-product showcase', 'Swipeable content'],
     platforms: ['instagram', 'facebook', 'google'],
     sceneGuide:
@@ -741,7 +741,7 @@ export const AD_PRESETS: AdPreset[] = [
     category: 'creative',
     icon: 'Sparkles',
     whenToUse: ['Luxury product launches', 'Beauty/tech hero visuals', 'Premium surreal campaigns'],
-    platforms: ['instagram', 'facebook', 'google'],
+        platforms: ['instagram', 'facebook', 'google'],
     sceneGuide:
       'Director brief: Product and/or subject integrated with flowing liquid-chrome forms and mirror-metal ribbons. Surreal but physically plausible reflections. Clean composition with one dominant hero and negative space for premium ad feel.',
     lightingGuide:
@@ -804,7 +804,7 @@ export const AD_PRESETS: AdPreset[] = [
     name: 'Luxury Macro',
     description: 'Extreme close-up, texture-first, premium detail',
     category: 'standalone',
-    icon: 'Sparkles',
+        icon: 'Sparkles',
     whenToUse: ['Luxury brands', 'Jewelry', 'Watches', 'Leather goods', 'Premium detail'],
     platforms: ['instagram'],
     sceneGuide:
@@ -1004,7 +1004,7 @@ export const AD_PRESETS: AdPreset[] = [
     category: 'indian',
     icon: 'Zap',
     whenToUse: ['Youth Indian brands', 'Fusion fashion', 'Indo-western', 'Street culture'],
-    platforms: ['instagram'],
+        platforms: ['instagram'],
     sceneGuide:
       'Director brief: Fusion Indo-western — kurta with sneakers, saree with denim jacket, lehenga with bomber. Urban Indian backdrop: painted Mumbai wall, Delhi metro, Jaipur pink street. Attitude-first; cultural pride meets street swagger. One frame that could lead a Gen-Z Indian campaign.',
     lightingGuide:
@@ -1254,8 +1254,8 @@ export function validateAdInput(
   input: AdGenerationInput
 ): { valid: boolean; error?: string } {
   if (!AD_PRESETS.find((p) => p.id === input.preset)) {
-    return { valid: false, error: 'Invalid preset selected' }
-  }
+        return { valid: false, error: 'Invalid preset selected' }
+    }
 
   if (input.textOverlay?.headline) {
     const wordCount = input.textOverlay.headline.trim().split(/\s+/).length
@@ -1264,20 +1264,20 @@ export function validateAdInput(
     }
   }
 
-  if (!input.platforms || input.platforms.length === 0) {
-    return { valid: false, error: 'At least one platform must be selected' }
-  }
+    if (!input.platforms || input.platforms.length === 0) {
+        return { valid: false, error: 'At least one platform must be selected' }
+    }
 
-  const validCtas: CtaType[] = ['shop_now', 'learn_more', 'explore', 'buy_now']
-  if (!validCtas.includes(input.ctaType)) {
-    return { valid: false, error: 'Invalid CTA type' }
-  }
+    const validCtas: CtaType[] = ['shop_now', 'learn_more', 'explore', 'buy_now']
+    if (!validCtas.includes(input.ctaType)) {
+        return { valid: false, error: 'Invalid CTA type' }
+    }
 
   if (input.characterType === 'animal' && !input.animalType) {
     return { valid: false, error: 'Please select an animal type' }
   }
 
-  return { valid: true }
+    return { valid: true }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1285,16 +1285,16 @@ export function validateAdInput(
 // ═══════════════════════════════════════════════════════════════
 
 export const CTA_OPTIONS: { value: CtaType; label: string }[] = [
-  { value: 'shop_now', label: 'Shop Now' },
-  { value: 'learn_more', label: 'Learn More' },
-  { value: 'explore', label: 'Explore' },
-  { value: 'buy_now', label: 'Buy Now' },
+    { value: 'shop_now', label: 'Shop Now' },
+    { value: 'learn_more', label: 'Learn More' },
+    { value: 'explore', label: 'Explore' },
+    { value: 'buy_now', label: 'Buy Now' },
 ]
 
 export const TONE_OPTIONS: { value: CaptionTone; label: string }[] = [
-  { value: 'casual', label: 'Casual' },
-  { value: 'premium', label: 'Premium' },
-  { value: 'confident', label: 'Confident' },
+    { value: 'casual', label: 'Casual' },
+    { value: 'premium', label: 'Premium' },
+    { value: 'confident', label: 'Confident' },
 ]
 
 export const PLATFORM_OPTIONS: {
@@ -1302,10 +1302,10 @@ export const PLATFORM_OPTIONS: {
   label: string
   icon: string
 }[] = [
-  { value: 'instagram', label: 'Instagram', icon: 'Instagram' },
-  { value: 'facebook', label: 'Facebook', icon: 'Facebook' },
-  { value: 'google', label: 'Google Ads', icon: 'Globe' },
-  { value: 'influencer', label: 'Influencer', icon: 'Users' },
+    { value: 'instagram', label: 'Instagram', icon: 'Instagram' },
+    { value: 'facebook', label: 'Facebook', icon: 'Facebook' },
+    { value: 'google', label: 'Google Ads', icon: 'Globe' },
+    { value: 'influencer', label: 'Influencer', icon: 'Users' },
 ]
 
 export const CHARACTER_OPTIONS: {
