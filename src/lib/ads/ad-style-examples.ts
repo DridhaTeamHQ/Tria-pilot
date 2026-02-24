@@ -712,6 +712,70 @@ The woman wears a crisp white oversized button-down shirt layered under a rich b
     styleNotes:
       'Modern South Delhi male casting: contemporary urban retail look, premium commercial realism, non-stereotyped representation. Strong for high-street, performance, and editorial city presets.',
   },
+  {
+    id: 'editorial-liquid-metal-wave',
+    name: 'Editorial - Icy liquid-metal armor with frozen ocean wave',
+    prompt: `Low-angle full-body editorial portrait of a young woman with porcelain skin and near-white platinum hair, standing statuesque on wet rock in front of a massive curling ocean wave. She wears sculpted reflective metal bra elements with fine chain drape, ornate articulated forearm armor and metallic gloves, and oversized liquid-silver trousers with crisp specular fold highlights. A tiny dark tattoo is visible on the left ribcage. Dramatic high-key rim light from above and slightly behind creates bright edge highlights on hair and metal, with cool diffuse shadow falloff and subtle bloom halation. Palette is cold and desaturated: steel silver, slate gray, deep charcoal, and cool blue haze. Heroic centered composition from low wide perspective to exaggerate leg length and power stance. Moderate depth keeps subject and near-wave detail sharp while distant sea softens. Hyperreal editorial finish with polished retouching, clean skin detail, controlled sharpening, and cinematic tension between vulnerable skin and armor-like styling.`,
+    styleNotes:
+      'Heroic low-angle metallic editorial. Icy coastal environment, high-specular chrome surfaces, cool desaturated palette, cinematic rim lighting. Use for premium fashion armor, high-impact hero visuals, liquid-chrome or futuristic campaigns.',
+    imagePath: 'assets/ad-examples/editorial-liquid-metal-wave.png',
+  },
+  {
+    id: 'alpine-apres-ski-luxury',
+    name: 'Alpine Luxury - après-ski fashion under bright mountain daylight',
+    prompt: `Low-angle medium shot of a young woman in a snowy mountain setting under clear cobalt sky. She wears a textured earth-tone après-ski look: cable-knit jacket layered with faux-fur outerwear, fitted leggings, fluffy knee-high boots, cream knit cap, and oversized sunglasses. Pose is confident with one hand on hip, fashion-forward and poised. Natural midday alpine sunlight creates crisp contrast, clear edge definition, and hard-but-clean shadows across snow. Warm browns and creams of wardrobe contrast against cool whites and sky blues. Composition favors strong subject presence with mountain ridge as clean backdrop, delivering premium outdoor lifestyle campaign energy with high-resolution realism.`,
+    styleNotes:
+      'Alpine fashion lifestyle with bright daylight clarity and warm-vs-cool palette contrast. Use for winterwear, outdoor apparel, travel fashion, and premium sports-lifestyle ads.',
+    imagePath: 'assets/ad-examples/alpine-apres-ski-luxury.png',
+  },
+  {
+    id: 'overhead-rug-blush-editorial',
+    name: 'Overhead Blush Editorial - subject on ornate vintage rug',
+    prompt: `High-angle full-body fashion editorial composition of a South Asian woman with long dark hair spread naturally behind her while lying face-down on an ornate vintage-style rug. She wears a plush blush faux-fur cropped jacket over a ruched peach slip dress with white tulle trim and creamy taupe over-the-knee boots. Body is placed diagonally for asymmetry inside a centered overhead frame. Broad directional daylight from camera-right sculpts texture in fur, hair, and rug pattern while deep diffuse shadows curve through the scene. Color direction is muted blush, taupe, cream, dusty sage, and soft brown with subtle analog halation and light vignette. Image reads painterly but photoreal, with crisp focus and gently rolling contrast for a sumptuous editorial look.`,
+    styleNotes:
+      'Overhead composition with rich textile storytelling, painterly color harmonies, and directional daylight. Use for fashion editorials, campaign stills, and luxury soft-goods or beauty storytelling.',
+    imagePath: 'assets/ad-examples/overhead-rug-blush-editorial.png',
+  },
+  {
+    id: 'rustic-sunflare-car-denim',
+    name: 'Rustic Sunflare - denim portrait by weathered car',
+    prompt: `Straight-on medium outdoor portrait of a young woman beside a weathered black car in overgrown greenery. She wears a white cropped top and blue denim jeans, leaning subtly to one side. Natural sunlight from upper-left produces diffused glow, soft rim highlights, and lens flare scatter through foliage, creating a romantic but grounded rustic mood. Background vegetation is dense and imperfect, suggesting an abandoned or forgotten edge-of-town location. Composition balances subject and car body textures with dreamy sunbeam webbing and gentle haze. Deliver realistic skin and fabric texture while preserving the organic daylight imperfection.`,
+    styleNotes:
+      'Sunlit rustic lifestyle portrait with dreamy flare and authentic environmental texture. Use for denim, youth lifestyle, casual streetwear, and nostalgic summer campaign visuals.',
+    imagePath: 'assets/ad-examples/rustic-sunflare-car-denim.png',
+  },
+  {
+    id: 'industrial-blinds-digicam-grunge',
+    name: 'Industrial Digicam Grunge - harsh blinds, noisy CCD nostalgia',
+    prompt: `Candid medium shot from slight downward angle of a young woman seated on a low ledge inside a gritty industrial interior. She wears an oversized washed black graphic tee and sheer black stockings, with head lowered and hair falling forward. Hard sunlight slices through metal vertical blinds, creating diagonal overexposed streaks, geometric shadows, and uneven flare. Highlights clip aggressively while shadows compress into noisy yellow-gray and purple-blue artifacts, emulating early compact digital camera behavior. Frame feels imperfect and documentary: shallow dynamic range, sharpening halos, mild undersampling, and desaturated blacks. Keep mood melancholic, raw, and nostalgic with deliberate snapshot realism rather than polished studio perfection.`,
+    styleNotes:
+      'Raw point-and-shoot grunge aesthetic: harsh light streaks, sensor noise, compressed shadows, industrial geometry. Use for anti-gloss editorials, youth culture campaigns, underground streetwear, and nostalgic digicam looks.',
+    imagePath: 'assets/ad-examples/industrial-blinds-digicam-grunge.png',
+  },
+  {
+    id: 'tatar-parkbench-90s-tracksuit',
+    name: 'Autumn Park Bench - Tatar male confidence in vintage 90s tracksuit',
+    prompt: `Medium shot of a young man with Tatar features, sharp angular face, high cheekbones, dark almond-shaped eyes, short black hair, and light olive skin, sitting confidently on a park bench in autumn. He leans forward toward camera with elbows on widely spread knees, giving intense grounded confidence with a slight smirk. He wears a vintage 1990s shiny blue nylon tracksuit with white colorblock inserts and visible white swoosh marks on jacket and pants, high collar, front zipper half open. In his right hand he loosely holds a half-smoked cigarette. The park background is crisp and real: fallen orange-yellow leaves, bare trees, cool mist in distance, and soft golden sunlight filtering through branches. Photoreal, high detail, cinematic but natural light, ultra-realistic skin texture, sharp focus on face and upper body while preserving readable park context and object detail.`,
+    styleNotes:
+      'Masculine editorial street portrait with strong body language, autumn realism, and vintage tracksuit styling. Use for menswear, sportswear, attitude-led street campaigns, and high-fidelity character ads.',
+    imagePath: 'assets/ad-examples/tatar-parkbench-90s-tracksuit.png',
+  },
+  {
+    id: 'dawn-wet-beach-barefoot',
+    name: 'Dawn Wet Beach - barefoot subject on glass-like shoreline',
+    prompt: `The same subject from reference identity stands barefoot on a wet, glass-like beach as dawn breaks. Gentle waves glow faintly with cool pastel light and reflective shimmer under the first sunrise gradient. Keep stance natural and grounded, with realistic foot contact, wet sand reflections, and subtle waterline movement. Atmosphere is calm, cinematic, and photoreal with soft early-morning haze, cool-to-warm sky transition, and highly believable shoreline textures. Maintain strong facial and body realism while preserving environmental depth and readable coastal detail across foreground and background.`,
+    styleNotes:
+      'Ethereal coastal dawn look with identity continuity, reflective wet-sand realism, and calm cinematic atmosphere. Use for dreamy lifestyle, fragrance, fashion editorials, and premium hero portraits.',
+    imagePath: 'assets/ad-examples/dawn-wet-beach-barefoot.png',
+  },
+  {
+    id: 'iphone-tropical-tree-crouch',
+    name: 'iPhone Tropical Crouch - candid 4:5 trunk pose with locked hair detail',
+    prompt: `Ultra-realistic candid iPhone photo of an 18-19 year old girl crouching on a thick curved tropical tree trunk in lush greenery. Keep compact pose exact: elbows on knees, arms loosely crossed over shins, feet close together on the trunk, body slightly leaning forward. Eyes gently closed with soft relaxed smile reacting to bright natural sunlight through leaves. Large palm leaves radiate behind her head, layered green foliage fills the scene. Slight low angle, vertical 4:5 framing, natural midday HDR balance, authentic spontaneous capture feeling. Hair is precisely short to eyebrow level with controlled wet-gel texture, separated front strands, clean hairline, no length beyond eyebrows. Outfit: slightly oversized plain white t-shirt, old faded black athletic shorts with distressed cracked logo, thin gold necklace on collarbone, white Air Force style sneakers with natural creases, mid-calf scrunched white socks. Skin shows natural shine, fine imperfections, and heat realism. Keep background objects readable and realistic, no generic background blur wash.`,
+    styleNotes:
+      'High-fidelity smartphone candid with strict pose/hair lock and real tropical environment detail. Use for UGC lifestyle, youth fashion, creator ads, and realism-first vertical social campaigns.',
+    imagePath: 'assets/ad-examples/iphone-tropical-tree-crouch.png',
+  },
 
   // ═══ USER-PROVIDED PROMPTS (add your own examples below — they will be used as references for GPT-4o) ═══
   // Copy the block above and paste your prompt + name + styleNotes. Example:

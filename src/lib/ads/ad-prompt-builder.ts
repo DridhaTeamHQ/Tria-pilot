@@ -31,6 +31,14 @@ const PROMPT_BUILD_TIMEOUT_MS = 45_000
 /** Max prompt length we pass to image model (Gemini). Longer prompts are truncated with warning. */
 const MAX_PROMPT_LENGTH = 4000
 
+const STYLIZED_BLUR_PRESETS = new Set<string>([
+  'CREATIVE_FLASH_CHAOS',
+  'CREATIVE_RETRO_FILM',
+  'CREATIVE_DOUBLE_EXPOSURE',
+  'SPORTS_DYNAMIC',
+  'SPORTS_TUNNEL_HERO',
+])
+
 // ═══════════════════════════════════════════════════════════════
 // PRESET → STYLE EXAMPLE MAPPING
 // Each preset maps to the most relevant training examples so
@@ -39,19 +47,22 @@ const MAX_PROMPT_LENGTH = 4000
 
 const PRESET_EXAMPLE_MAP: Record<string, string[]> = {
   // UGC presets → UGC + lifestyle examples
-  UGC_CANDID: ['editorial-escalator-fit-check', 'digicam-neon-crosswalk', 'japandi-overpass-candid', 'street-high-angle-crosswalk', 'y2k-fisheye-bomber-street', 'italian-cafe-candid', 'tokyo-street-matcha-jersey', 'mediterranean-swim-editorial', 'creative-martin-parr-domestic'],
-  UGC_STORY: ['ugc-phone-sky', 'golden-hour-glamour-cafe', 'italian-cafe-candid'],
-  UGC_REEL: ['y2k-duo-white-studio-dynamic', 'y2k-red-studio-helmet', 'cinematic-motion-runners', 'creative-raw-analog-tennis', 'creative-follow-cam-snowboard'],
+  UGC_CANDID: ['editorial-escalator-fit-check', 'digicam-neon-crosswalk', 'japandi-overpass-candid', 'street-high-angle-crosswalk', 'y2k-fisheye-bomber-street', 'italian-cafe-candid', 'tokyo-street-matcha-jersey', 'mediterranean-swim-editorial', 'creative-martin-parr-domestic', 'rustic-sunflare-car-denim', 'industrial-blinds-digicam-grunge', 'iphone-tropical-tree-crouch'],
+  UGC_STORY: ['ugc-phone-sky', 'golden-hour-glamour-cafe', 'italian-cafe-candid', 'rustic-sunflare-car-denim', 'iphone-tropical-tree-crouch'],
+  UGC_REEL: ['y2k-duo-white-studio-dynamic', 'y2k-red-studio-helmet', 'cinematic-motion-runners', 'creative-raw-analog-tennis', 'creative-follow-cam-snowboard', 'industrial-blinds-digicam-grunge'],
   UGC_TESTIMONIAL: ['angle-high-soft-flattering', 'golden-hour-glamour-cafe', 'italian-cafe-candid', 'creative-beauty-close-up-cream'],
   UGC_FLAT_LAY: ['editorial-escalator-fit-check', 'angle-down-hero-product', 'standalone-clean-4k', 'food-office-product-in-hand', 'lifestyle-blank-tee-mockup'],
   UGC_GRWM: ['y2k-mirror-lip-gloss', 'italian-cafe-candid', 'golden-hour-glamour-cafe', 'creative-cyclorama-juice-portrait'],
+  UGC_TROPICAL_IPHONE: ['iphone-tropical-tree-crouch', 'rustic-sunflare-car-denim', 'japandi-overpass-candid', 'golden-hour-glamour-cafe'],
   // Editorial presets
-  EDITORIAL_PREMIUM: ['editorial-escalator-fit-check', 'editorial-amber-hoodie-headphones', 'editorial-tennis-court-spotlight', 'editorial-70s-staircase-jumpsuit', 'japandi-overpass-candid', 'editorial-kerala-bed', 'barbershop-kodachrome-trench', 'meadow-white-dress-contemplative', 'creative-surreal-horse-shadow', 'editorial-glow-blur-portrait', 'luxury-car-window-chiaroscuro', 'luxury-chain-maximal-portrait', 'luxury-baroque-lounge-duo', 'luxury-masthead-motion-blur'],
-  EDITORIAL_FASHION: ['editorial-escalator-fit-check', 'editorial-tennis-court-spotlight', 'y2k-duo-white-studio-dynamic', 'editorial-bw-low-angle-latex', 'editorial-70s-staircase-jumpsuit', 'angle-side-profile-editorial', 'creative-bold-color-studio', 'creative-reeded-glass-portrait', 'creative-raw-analog-tennis', 'minimal-monochrome-side-profile', 'minimal-seated-profile-studio'],
+  EDITORIAL_PREMIUM: ['editorial-escalator-fit-check', 'editorial-amber-hoodie-headphones', 'editorial-tennis-court-spotlight', 'editorial-70s-staircase-jumpsuit', 'japandi-overpass-candid', 'editorial-kerala-bed', 'barbershop-kodachrome-trench', 'meadow-white-dress-contemplative', 'creative-surreal-horse-shadow', 'editorial-glow-blur-portrait', 'luxury-car-window-chiaroscuro', 'luxury-chain-maximal-portrait', 'luxury-baroque-lounge-duo', 'luxury-masthead-motion-blur', 'editorial-liquid-metal-wave', 'overhead-rug-blush-editorial'],
+  EDITORIAL_FASHION: ['editorial-escalator-fit-check', 'editorial-tennis-court-spotlight', 'y2k-duo-white-studio-dynamic', 'editorial-bw-low-angle-latex', 'editorial-70s-staircase-jumpsuit', 'angle-side-profile-editorial', 'creative-bold-color-studio', 'creative-reeded-glass-portrait', 'creative-raw-analog-tennis', 'minimal-monochrome-side-profile', 'minimal-seated-profile-studio', 'overhead-rug-blush-editorial'],
   EDITORIAL_BEAUTY: ['editorial-amber-hoodie-headphones', 'beauty-ice-block-lipbalm', 'creative-beauty-close-up-cream', 'y2k-mirror-lip-gloss', 'editorial-glow-blur-portrait', 'creative-product-hands-motion-blur', 'monochrome-beauty-print-poster', 'clean-highkey-portrait-jewelry', 'luxury-submerged-golden-refraction'],
-  EDITORIAL_STREET: ['digicam-neon-crosswalk', 'y2k-fisheye-bomber-street', 'y2k-red-studio-helmet', 'street-high-angle-crosswalk', 'tokyo-street-matcha-jersey', 'y2k-varsity-studio', 'cinematic-motion-runners', 'creative-raw-analog-tennis', 'storefront-walkby-motion', 'retail-checkout-candid', 'backstage-phone-candid'],
+  EDITORIAL_STREET: ['digicam-neon-crosswalk', 'y2k-fisheye-bomber-street', 'y2k-red-studio-helmet', 'street-high-angle-crosswalk', 'tokyo-street-matcha-jersey', 'y2k-varsity-studio', 'cinematic-motion-runners', 'creative-raw-analog-tennis', 'storefront-walkby-motion', 'retail-checkout-candid', 'backstage-phone-candid', 'rustic-sunflare-car-denim', 'industrial-blinds-digicam-grunge', 'tatar-parkbench-90s-tracksuit'],
   EDITORIAL_FILM_NOIR: ['editorial-tennis-court-spotlight', 'barbershop-kodachrome-trench', 'creative-surreal-horse-shadow', 'sports-monochrome-typography', 'deconstructed-face-collage', 'luxury-baroque-lounge-duo', 'monochrome-beauty-print-poster'],
-  EDITORIAL_ETHEREAL: ['beach-sunset-satin-twirl', 'meadow-white-dress-contemplative', 'editorial-glow-blur-portrait', 'creative-beauty-close-up-cream', 'italian-cafe-candid'],
+  EDITORIAL_ETHEREAL: ['beach-sunset-satin-twirl', 'meadow-white-dress-contemplative', 'editorial-glow-blur-portrait', 'creative-beauty-close-up-cream', 'italian-cafe-candid', 'overhead-rug-blush-editorial', 'dawn-wet-beach-barefoot'],
+  EDITORIAL_AUTUMN_BENCH: ['tatar-parkbench-90s-tracksuit', 'barbershop-kodachrome-trench', 'tokyo-street-matcha-jersey', 'street-high-angle-crosswalk'],
+  EDITORIAL_DAWN_SHORELINE: ['dawn-wet-beach-barefoot', 'beach-sunset-satin-twirl', 'editorial-liquid-metal-wave', 'meadow-white-dress-contemplative'],
   // Commercial presets
   PRODUCT_LIFESTYLE: ['editorial-escalator-fit-check', 'japandi-overpass-candid', 'angle-high-soft-flattering', 'lifestyle-blank-tee-mockup', 'food-office-product-in-hand', 'ugc-phone-sky'],
   STUDIO_POSTER: ['studio-chrome-floral', 'sports-monochrome-typography', 'creative-bw-neon-cta', 'monochrome-beauty-print-poster', 'sale-poster-oversized-numeral', 'highstreet-poster-panel-layout'],
@@ -60,7 +71,7 @@ const PRESET_EXAMPLE_MAP: Record<string, string[]> = {
   COMMERCIAL_FLAT_POSTER: ['studio-chrome-floral', 'creative-bold-color-studio', 'text-based-dynamic-magenta', 'sale-poster-oversized-numeral', 'monochrome-beauty-print-poster', 'highstreet-poster-panel-layout'],
   // Creative presets
   CREATIVE_SURREAL: ['editorial-tennis-court-spotlight', 'surreal-red-dress-cubes', 'beauty-ice-block-lipbalm', 'surreal-magritte-picnic', 'standalone-surreal-installation', 'creative-surreal-horse-shadow'],
-  CREATIVE_CINEMATIC: ['tunnel-360-pastel-tracksuit', 'cinematic-motion-runners', 'cinematic-low-angle-flying', 'barbershop-kodachrome-trench', 'creative-follow-cam-snowboard'],
+  CREATIVE_CINEMATIC: ['tunnel-360-pastel-tracksuit', 'cinematic-motion-runners', 'cinematic-low-angle-flying', 'barbershop-kodachrome-trench', 'creative-follow-cam-snowboard', 'editorial-liquid-metal-wave'],
   CREATIVE_TEXT_DYNAMIC: ['text-based-dynamic-magenta', 'text-based-dynamic-green', 'text-based-dynamic-blue-white', 'text-based-air-jordan-explosion', 'sale-poster-oversized-numeral', 'luxury-chain-maximal-portrait', 'sports-brush-slogan-packshot'],
   CREATIVE_BOLD_COLOR: ['creative-bold-color-studio', 'creative-reeded-glass-portrait', 'text-based-pop-art'],
   CREATIVE_NEON_GRADIENT: ['text-based-dynamic-magenta', 'text-based-dynamic-green', 'text-based-dynamic-blue-white'],
@@ -71,8 +82,8 @@ const PRESET_EXAMPLE_MAP: Record<string, string[]> = {
   CREATIVE_GLASSMORPHISM: ['standalone-surreal-installation', 'product-hero-beauty-lipstick', 'creative-reeded-glass-portrait'],
   CREATIVE_WES_ANDERSON: ['italian-cafe-candid', 'creative-martin-parr-domestic', 'creative-cyclorama-juice-portrait'],
   CREATIVE_DECONSTRUCTED: ['surreal-red-dress-cubes', 'deconstructed-face-collage', 'text-based-air-jordan-explosion', 'standalone-surreal-installation'],
-  CREATIVE_FLASH_CHAOS: ['cinematic-motion-runners', 'creative-follow-cam-snowboard', 'y2k-fisheye-bomber-street', 'digicam-neon-crosswalk'],
-  CREATIVE_LIQUID_CHROME: ['studio-chrome-floral', 'product-hero-beauty-lipstick', 'standalone-surreal-installation', 'creative-bold-color-studio'],
+  CREATIVE_FLASH_CHAOS: ['cinematic-motion-runners', 'creative-follow-cam-snowboard', 'y2k-fisheye-bomber-street', 'digicam-neon-crosswalk', 'industrial-blinds-digicam-grunge'],
+  CREATIVE_LIQUID_CHROME: ['studio-chrome-floral', 'product-hero-beauty-lipstick', 'standalone-surreal-installation', 'creative-bold-color-studio', 'editorial-liquid-metal-wave'],
   CREATIVE_COSMIC_SURREAL: ['surreal-magritte-picnic', 'cinematic-low-angle-flying', 'creative-surreal-horse-shadow', 'standalone-surreal-installation'],
   // Standalone product
   STANDALONE_CLEAN: ['standalone-clean-4k', 'standalone-high-fashion-path'],
@@ -81,12 +92,12 @@ const PRESET_EXAMPLE_MAP: Record<string, string[]> = {
   STANDALONE_LEVITATION: ['text-based-air-jordan-explosion', 'product-hero-beauty-lipstick', 'standalone-surreal-installation'],
   // Performance / Conversion
   PERF_MINIMAL_CLEAN: ['standalone-clean-4k', 'standalone-high-fashion-path'],
-  PERF_BEST_QUALITY: ['editorial-escalator-fit-check', 'product-hero-beauty-lipstick', 'standalone-clean-4k', 'cinematic-low-angle-flying', 'minimal-seated-profile-studio', 'clean-highkey-portrait-jewelry', 'luxury-car-window-chiaroscuro', 'luxury-masthead-motion-blur'],
+  PERF_BEST_QUALITY: ['editorial-escalator-fit-check', 'product-hero-beauty-lipstick', 'standalone-clean-4k', 'cinematic-low-angle-flying', 'minimal-seated-profile-studio', 'clean-highkey-portrait-jewelry', 'luxury-car-window-chiaroscuro', 'luxury-masthead-motion-blur', 'editorial-liquid-metal-wave', 'alpine-apres-ski-luxury', 'tatar-parkbench-90s-tracksuit', 'dawn-wet-beach-barefoot'],
   PERF_SPLIT_COMPARE: ['creative-bold-color-studio', 'lifestyle-blank-tee-mockup'],
   PERF_OOH_BILLBOARD: ['placement-subway-billboard', 'ooh-billboard-dual-panel'],
   PERF_SOCIAL_PROOF: ['beach-sunset-satin-twirl', 'italian-cafe-candid', 'golden-hour-glamour-cafe', 'mediterranean-swim-editorial', 'retail-checkout-candid', 'backstage-phone-candid'],
   // Sports / Athletic
-  SPORTS_DYNAMIC: ['y2k-duo-white-studio-dynamic', 'tunnel-360-pastel-tracksuit', 'editorial-bw-low-angle-latex', 'angle-low-hero-dramatic', 'cinematic-motion-runners', 'creative-follow-cam-snowboard', 'creative-fashion-kick-identity', 'sports-brush-slogan-packshot', 'sports-handheld-vertical-type'],
+  SPORTS_DYNAMIC: ['y2k-duo-white-studio-dynamic', 'tunnel-360-pastel-tracksuit', 'editorial-bw-low-angle-latex', 'angle-low-hero-dramatic', 'cinematic-motion-runners', 'creative-follow-cam-snowboard', 'creative-fashion-kick-identity', 'sports-brush-slogan-packshot', 'sports-handheld-vertical-type', 'tatar-parkbench-90s-tracksuit'],
   SPORTS_MONOCHROME: ['sports-monochrome-typography', 'text-based-air-jordan-explosion', 'sports-brush-slogan-packshot'],
   SPORTS_TUNNEL_HERO: ['cinematic-motion-runners', 'cinematic-low-angle-flying', 'sports-monochrome-typography'],
   // Indian fashion
@@ -159,7 +170,9 @@ function getStyleExamplesForPreset(input: AdGenerationInput, hasCharacter: boole
     ids = [...textIds, ...ids]
   }
 
-  return ids
+  const uniqueIds = Array.from(new Set(ids))
+
+  return uniqueIds
     .map((id) => AD_STYLE_EXAMPLES.find((e) => e.id === id))
     .filter(Boolean)
     .slice(0, 6) as AdStyleExample[]
@@ -353,6 +366,49 @@ function buildFaceRealismLock(input: AdGenerationInput): string {
 - Expression and gaze must be human and grounded, not mannequin-like.`
 }
 
+function isStylizedBlurPreset(presetId: string): boolean {
+  return STYLIZED_BLUR_PRESETS.has(presetId)
+}
+
+function buildEnvironmentRealismLock(presetId: string): string {
+  const allowStylizedBlur = isStylizedBlurPreset(presetId)
+
+  return `ENVIRONMENT REALISM LOCK (CRITICAL):
+- Background must stay physically believable with readable environmental objects and textures.
+- Preserve scene geometry, object edges, and depth continuity (walls, trees, roads, furniture, skyline, props).
+- Do NOT default to generic blur wash or artificial bokeh soup behind the subject.
+- Use realistic depth behavior: medium depth of field by default (roughly f/4-f/8 look) so subject and key background context both read clearly.
+- ${allowStylizedBlur
+    ? 'Stylized blur is allowed only if motivated by motion, lens behavior, or the selected preset style. Keep background structure readable.'
+    : 'Avoid stylized blur, fake haze, or over-diffusion unless explicitly requested by the user.'}
+- Keep lighting and shadows coherent across subject and environment so it feels like a real location, not composited mush.`
+}
+
+function buildPhotographicRealismLock(): string {
+  return `PHOTOGRAPHIC REALISM LOCK (INFLUENCER-GRADE, CRITICAL):
+- Single coherent photograph: subject must be grounded in the scene with believable contact shadows and ambient occlusion where body/feet meet surfaces.
+- Enforce light physics: natural falloff (inverse-square behavior), no uniform brightness across face/body/background, and coherent shadow direction/softness.
+- Preserve camera realism: subtle natural sensor grain/noise (especially in shadow areas), mild lens imperfection, and no over-processed HDR polish.
+- Keep skin and hair human: visible pores, micro-texture, fine flyaways, natural asymmetry. No waxy/plastic/airbrushed finish.
+- Environment materials must remain lived-in and believable (micro-contrast, texture variation, natural imperfections), not CGI-smooth.
+- Avoid mannequin/catalog look unless explicitly requested: prioritize candid physical plausibility over synthetic perfection.`
+}
+
+function buildBrandMarkIntegrityLock(): string {
+  return `BRAND MARK INTEGRITY (NON-NEGOTIABLE):
+- Do NOT invent logos, letters, words, or brand marks that are not clearly visible in the input product image or explicitly provided by the user.
+- If brand text/mark is unclear, obscured, or not legible in the source, keep it minimal/neutral instead of hallucinating fake text.
+- No random sleeve print, fake wordmarks, or pseudo-brand typography on garments/products.
+- Preserve real visible product markings faithfully; never fabricate new branding.`
+}
+
+function buildDepthPolicyCameraOverride(presetId: string): string {
+  if (isStylizedBlurPreset(presetId)) {
+    return 'Depth policy: Controlled stylized blur is allowed for this preset only when motivated by action, lens physics, or atmosphere. Subject and primary environment geometry must remain readable.'
+  }
+  return 'Depth policy: Do NOT use generic shallow-DoF/bokeh backgrounds. Keep medium depth with readable environmental objects and realistic spatial continuity.'
+}
+
 function buildTextArtDirectionBlock(input: AdGenerationInput, preset: AdPreset): string {
   const textSystem = resolveTextSystemForPreset(input.preset)
   if (textSystem === 'sports_brush') {
@@ -408,7 +464,7 @@ async function buildPromptWithGPT(
       { role: 'system', content: systemMessage },
       { role: 'user', content: userContent },
     ],
-    temperature: 0.5,
+    temperature: 0.35,
     max_tokens: 1500,
   })
 
@@ -432,7 +488,7 @@ CRITICAL: Reference prompts can contain example brand words. Treat those words a
 YOUR JOB: Write ONE narrative-style prompt (NOT keyword stuffing) that generates a STUNNING, campaign-grade ad image. Think like a director calling the shot: "Key from 45° left, half-stop under; rim from behind right to separate from the drop; fill at 2:1 so we keep shape but don't flatten." Name the mood, the light quality, the palette, the lens.
 
 ═══ PRODUCTION-QUALITY LIGHTING (NON-NEGOTIABLE) ═══
-Every image must feel like a real photoshoot with a real lighting rig. Be specific: key light angle (e.g. 45° front-left), fill ratio (e.g. 2:1, 3:1), rim or backlight for separation, beauty dish vs softbox vs hard light, colour temperature (warm 3200K, cool 5600K, golden hour). Describe how light hits skin (sculpted cheekbones, catchlights in eyes, subtle rim on hair) and product (specular highlights, fabric weave, material truth). 8K resolution, tack-sharp where it matters, shallow DoF where it serves the story. No AI mush, no plastic skin, no flat single-source lighting. Specify lens (e.g. 85mm f/1.4), f-stop, and a clear lighting setup in your prompt. Anatomy correct, hands natural, proportions human.
+Every image must feel like a real photoshoot with a real lighting rig. Be specific: key light angle (e.g. 45° front-left), fill ratio (e.g. 2:1, 3:1), rim or backlight for separation, beauty dish vs softbox vs hard light, colour temperature (warm 3200K, cool 5600K, golden hour). Describe how light hits skin (sculpted cheekbones, catchlights in eyes, subtle rim on hair) and product (specular highlights, fabric weave, material truth). 8K resolution, tack-sharp where it matters. Default to realistic medium depth of field that preserves important background context; only use strong blur when the brief explicitly requires it. No AI mush, no plastic skin, no flat single-source lighting. Specify lens (e.g. 85mm f/1.4), f-stop, and a clear lighting setup in your prompt. Anatomy correct, hands natural, proportions human.
 
 ═══ CAMERA ANGLES ═══
 Use precise camera angle vocabulary so the image has impact:
@@ -462,7 +518,8 @@ Example of BAD keyword structure:
 1. OUTPUT ONLY THE PROMPT. No explanations, no JSON, no markdown.
 
 2. PRODUCT ACCURACY (NON-NEGOTIABLE).
-   LOOK AT the product image. Describe EXACTLY: brand, colourway (#hex if possible), material (mesh/leather/suede/canvas/satin), shape, distinctive features (logo placement, sole colour, stitching pattern, hardware). Be forensically specific.
+   LOOK AT the product image. Describe EXACTLY: visible brand, colourway (#hex if possible), material (mesh/leather/suede/canvas/satin), shape, distinctive features (logo placement, sole colour, stitching pattern, hardware). Be forensically specific.
+   If any logo/wordmark is unreadable or not visible, do NOT invent text/branding. Keep markings neutral rather than hallucinating fake letters.
 
 3. NARRATIVE DENSITY: 300–700 words of flowing visual description. Think like a director: what does the set smell like? Where does the light come from in the room? What's the one thing that makes this frame iconic?
    Include: lighting rig (key at 45°, fill ratio, rim angle, quality of light — soft/hard/feathered), camera (24/35/50/85mm, f/stop, shutter speed if motion), colour palette (use hex codes: "deep crimson #8B0000", "electric cyan #00E5FF"), texture (8K, film grain weight, dewy/matte skin, fabric weave), composition (rule of thirds, leading lines, negative space). Aim for the most amazing, memorable look possible — production-quality lighting and styling in every sentence.
@@ -496,6 +553,7 @@ function buildUserContent(
   faceAnchor?: string | null
 ): any[] {
   const content: any[] = []
+  const strictRealism = input.strictRealism !== false
 
   // Pass the product image directly to GPT-4o vision
   if (productImageBase64) {
@@ -586,14 +644,24 @@ ${exampleBlocks}
                     ? 'Camera angle: DUTCH / TILTED (mandatory). Tilted horizon for tension and energy. Use in prompt: "Dutch angle", "Tilted camera", "Canted horizon...".'
                     : 'Camera angle: Choose the most impactful angle and state it explicitly in your prompt.'
 
+  if (strictRealism && !isStylizedBlurPreset(input.preset)) {
+    avoidTerms = [...avoidTerms, 'generic blurry background', 'over-bokeh', 'background mush']
+  }
+
   sections.push(`CREATIVE BRIEF:
 Preset: ${preset.name} (${preset.category})
 Scene direction: ${sceneGuide}
 Lighting direction: ${preset.lightingGuide}
 Camera direction: ${preset.cameraGuide}
+${buildDepthPolicyCameraOverride(input.preset)}
 ${angleInstruction}
 Must avoid: ${avoidTerms.join(', ')}`)
   sections.push(buildStylePackDirective(input))
+  sections.push(buildEnvironmentRealismLock(input.preset))
+  if (strictRealism) {
+    sections.push(buildPhotographicRealismLock())
+    sections.push(buildBrandMarkIntegrityLock())
+  }
 
   const hasTextOverlay = !!(input.textOverlay && (input.textOverlay.headline || input.textOverlay.subline || input.textOverlay.tagline))
   sections.push(buildStrategicIntelligenceBlock(input, preset, hasCharacter, hasTextOverlay))
@@ -607,7 +675,8 @@ Every output decision should improve conversion readiness and perceived producti
   // ═══ 3. Product instruction ═══
   if (productImageBase64) {
     sections.push(`PRODUCT (attached image — LOOK AT IT):
-Describe the EXACT product you see: type (shoe/shirt/bag/accessory), brand (logo, name), specific colourway, materials (mesh/leather/suede/canvas/satin), shape/silhouette, sole, hardware, stitching, distinctive features. Be forensically specific — "red Nike Air Max 97 with white swoosh, translucent air bubble sole, mesh upper with reflective panels" NOT "a pair of red sneakers". The product in the generated image MUST be a precise visual match.`)
+Describe the EXACT product you see: type (shoe/shirt/bag/accessory), visible brand marks (only if clearly legible), specific colourway, materials (mesh/leather/suede/canvas/satin), shape/silhouette, sole, hardware, stitching, distinctive features. Be forensically specific — "red Nike Air Max 97 with white swoosh, translucent air bubble sole, mesh upper with reflective panels" NOT "a pair of red sneakers". The product in the generated image MUST be a precise visual match.
+If logo text or wordmarks are not clearly readable in the source image, do NOT invent brand letters; keep marks neutral/minimal.`)
   }
 
   // ═══ 4. Character (ALWAYS respected when user selects one) ═══
@@ -616,7 +685,7 @@ Describe the EXACT product you see: type (shoe/shirt/bag/accessory), brand (logo
       const animal = input.animalType || 'fox'
       const style = input.characterStyle || 'natural, photorealistic'
       sections.push(`CHARACTER (USER SELECTED — MUST INCLUDE):
-A photorealistic CGI 3D rendered ${animal} wearing or interacting with the product. ${style} style. Soft diffused studio lighting, shallow depth of field, surreal + comedic high-fashion editorial look. Ultra-high detail with sharp fur/feather textures. Bold saturated colors, contemporary luxury brand aesthetic — premium yet playfully absurd.
+A photorealistic CGI 3D rendered ${animal} wearing or interacting with the product. ${style} style. Soft diffused studio lighting with realistic scene depth and readable environment details (no generic background blur). Ultra-high detail with sharp fur/feather textures. Bold saturated colors, contemporary luxury brand aesthetic — premium yet playfully absurd.
 The ${animal} MUST be prominent in the image — not a background element. It is the model of this ad.`)
     } else {
       const gender = ct === 'human_male' ? 'man' : 'woman'
@@ -729,6 +798,8 @@ Your prompt must produce an image that looks like it was shot by a top creative 
 - Camera: lens mm, f-stop, shutter if motion, depth of field
 - Colour grading: cinematic LUT name or tone description
 - Texture quality: 8K, photorealistic, film grain if editorial, dewy/matte as appropriate
+- Background fidelity: environment objects must stay readable and realistic (avoid default background mush/over-bokeh unless stylistically required)
+- Physics fidelity: coherent contact shadows, realistic light falloff, no pasted-on subject look, no fake brand text/wordmarks
 - Realism guardrail: NO clay/wax/plastic/melted text, NO toy-like CGI letters, NO synthetic doll skin, NO over-smoothed faces.
 - End with AVOID line (MUST include${hasTextOverlay ? '' : ': "no text, no words, no letters, no numbers, no brand names, no typography"'})
 

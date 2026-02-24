@@ -47,6 +47,7 @@ const adGenerationSchema = z
     productImage: z.string().min(1).max(15_000_000).optional(),
     influencerImage: z.string().min(1).max(15_000_000).optional(),
     lockFaceIdentity: z.boolean().optional().default(false),
+    strictRealism: z.boolean().optional().default(true),
 
     // Character config
     characterType: z
@@ -232,6 +233,7 @@ export async function POST(request: Request) {
       productImage: input.productImage,
       influencerImage: input.influencerImage,
       lockFaceIdentity: input.lockFaceIdentity,
+      strictRealism: input.strictRealism,
       characterType: input.characterType as CharacterType,
       characterIdentity: input.characterIdentity,
       animalType: input.animalType,

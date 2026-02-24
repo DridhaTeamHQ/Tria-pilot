@@ -19,6 +19,7 @@ export const AD_PRESET_IDS = [
   'UGC_TESTIMONIAL',
   'UGC_FLAT_LAY',
   'UGC_GRWM',
+  'UGC_TROPICAL_IPHONE',
   // Editorial
   'EDITORIAL_PREMIUM',
   'EDITORIAL_FASHION',
@@ -26,6 +27,8 @@ export const AD_PRESET_IDS = [
   'EDITORIAL_STREET',
   'EDITORIAL_FILM_NOIR',
   'EDITORIAL_ETHEREAL',
+  'EDITORIAL_AUTUMN_BENCH',
+  'EDITORIAL_DAWN_SHORELINE',
   // Commercial
   'PRODUCT_LIFESTYLE',
   'STUDIO_POSTER',
@@ -203,7 +206,8 @@ export interface AdGenerationInput {
     // Image inputs
   productImage?: string
   influencerImage?: string
-    lockFaceIdentity?: boolean
+  lockFaceIdentity?: boolean
+  strictRealism?: boolean
 
   // Character
   characterType?: CharacterType
@@ -257,7 +261,7 @@ export const AD_PRESETS: AdPreset[] = [
     lightingGuide:
       'Production-quality natural light: soft directional window light or overcast daylight as key (45° to subject), minimal fill so shadows stay soft but shape the face. Skin texture and fabric weave visible — no plastic smoothing. Subtle rim from a practical (window, open door) to separate subject from background. Colour temperature warm (5500K daylight or 4500K overcast).',
     cameraGuide:
-      '35mm equivalent, f/2–2.8, slightly off-center framing, shallow depth of field with creamy bokeh behind. Eye-level or just above. Feels like premium smartphone or mirrorless — sharp where it matters, natural falloff.',
+      '35mm equivalent, f/4–5.6, slightly off-center framing, realistic depth with both subject and key background objects readable. Eye-level or just above. Feels like premium smartphone or mirrorless — sharp where it matters, natural falloff.',
     avoid: ['studio lighting', 'perfect symmetry', 'professional posing', 'dramatic shadows', 'flat on-camera flash'],
   },
   {
@@ -273,7 +277,7 @@ export const AD_PRESETS: AdPreset[] = [
     lightingGuide:
       'Single dominant source: soft window light from frame left/right (large, diffused) or warm ring-light style catchlights in eyes. Skin dewy, natural; no harsh nose shadow. Fill from environment (white wall, mirror) to keep 2:1 or softer ratio. Warm colour temp 4000–5000K. Production-quality “natural” — flattering but believable.',
     cameraGuide:
-      '26mm wide (phone front-cam feel), arm’s length, slight Dutch tilt or headroom for Stories. 9:16 vertical. Shallow DoF so background melts; subject tack-sharp. Subtle lens character okay (soft corners) for authenticity.',
+      '26mm wide (phone front-cam feel), arm’s length, slight Dutch tilt or headroom for Stories. 9:16 vertical. Keep environment readable with realistic smartphone depth, not heavy blur. Subject stays tack-sharp. Subtle lens character okay (soft corners) for authenticity.',
     avoid: ['studio backdrop', 'professional equipment visible', 'perfect symmetry', 'cold clinical light'],
   },
   {
@@ -289,7 +293,7 @@ export const AD_PRESETS: AdPreset[] = [
     lightingGuide:
       'Dramatic but natural: golden hour rim from behind, or neon/ambient urban glow (magenta/cyan) from one side. Key light sculpts face and product; fill keeps shadows from going black. Slight motion blur or wind in fabric acceptable. High saturation, punchy contrast. Think music-video meets campaign.',
     cameraGuide:
-      '24–35mm wide, low or Dutch angle for power. f/2.8, shallow DoF. Slight barrel distortion for energy. 9:16 or 1:1. Frozen motion where needed; sharp on subject, background can streak or bokeh.',
+      '24–35mm wide, low or Dutch angle for power. f/4–5.6 for realistic scene depth. Slight barrel distortion for energy. 9:16 or 1:1. Frozen motion where needed; sharp on subject with readable background structure (motion blur only when intentional).',
     avoid: ['static pose', 'studio setting', 'muted tones', 'flat lighting', 'slow feeling'],
   },
   {
@@ -305,7 +309,7 @@ export const AD_PRESETS: AdPreset[] = [
     lightingGuide:
       'Soft key from 30–45° (window or large softbox), fill at 2:1 so face has shape but no harsh shadows. Warm tone (4500–5000K). Optional subtle ring-light reflection in eyes for that “creator” feel. Skin real — pores, texture — not over-smoothed.',
     cameraGuide:
-      '35–50mm at eye level, f/2.8–4, subject centered or rule-of-thirds. Shallow DoF to soften background; product and face pin-sharp. Clean, flattering, conversion-ready.',
+      '35–50mm at eye level, f/4–5.6, subject centered or rule-of-thirds. Keep background context readable while face and product stay pin-sharp. Clean, flattering, conversion-ready.',
     avoid: ['dramatic poses', 'editorial styling', 'dark moody lighting', 'cold light'],
   },
 
@@ -338,11 +342,27 @@ export const AD_PRESETS: AdPreset[] = [
     lightingGuide:
       'Warm key from window or vanity (3200–4000K). Soft, flattering; no harsh nose shadow. Optional rim from mirror or second source. Skin dewy, natural texture. Golden morning or soft evening vibe.',
     cameraGuide:
-      '35mm or mirror POV, slightly imperfect framing for authenticity. f/2–2.8, shallow DoF. Warm tones. Eye-level or mirror reflection. Production-quality intimate.',
+      '35mm or mirror POV, slightly imperfect framing for authenticity. f/4–5.6 with realistic depth so room details remain believable. Warm tones. Eye-level or mirror reflection. Production-quality intimate.',
     avoid: ['studio setting', 'perfect posing', 'cold light', 'editorial stiffness'],
   },
 
   // ─── Editorial ───
+  {
+    id: 'UGC_TROPICAL_IPHONE',
+    name: 'Tropical iPhone Candid',
+    description: 'Natural 4:5 iPhone candid with lush environment detail',
+    category: 'ugc',
+    icon: 'Smartphone',
+    whenToUse: ['Creator ads', 'Youth lifestyle', 'Natural outdoor UGC', 'Vertical social campaigns'],
+    platforms: ['instagram', 'facebook'],
+    sceneGuide:
+      'Director brief: Authentic iPhone candid in a lush tropical outdoor setting. Subject captured in a spontaneous compact crouch on a curved tree trunk with dense layered greenery and palm leaves clearly readable in background. Feels like one frame from a real burst sequence, not a staged shoot.',
+    lightingGuide:
+      'Natural midday sunlight filtered through leaves from above-left. Keep realistic HDR balance with soft facial shadows, natural skin shine, and true environmental color. No stylized cinematic grading, no synthetic glow.',
+    cameraGuide:
+      'Vertical 4:5 frame, slight low-angle smartphone perspective, realistic medium depth (around f/4-f/5.6 look). Subject sharp, background objects and foliage still clearly readable.',
+    avoid: ['generic blurry background', 'over-bokeh', 'cinematic teal-orange grade', 'studio polish', 'plastic skin'],
+  },
   {
     id: 'EDITORIAL_PREMIUM',
     name: 'Premium Editorial',
@@ -440,8 +460,41 @@ export const AD_PRESETS: AdPreset[] = [
     avoid: ['harsh light', 'urban settings', 'sharp digital clarity', 'dark/moody', 'gritty textures'],
   },
 
-  // ─── Commercial ───
-    {
+  // �� Editorial (extended) ��
+  {
+    id: 'EDITORIAL_AUTUMN_BENCH',
+    name: 'Autumn Bench Portrait',
+    description: 'Confident menswear portrait in crisp autumn park realism',
+    category: 'editorial',
+    icon: 'MapPin',
+    whenToUse: ['Menswear campaigns', 'Street-sport editorials', 'Character-led hero ads'],
+    platforms: ['instagram', 'facebook'],
+    sceneGuide:
+      'Director brief: Medium portrait of a young man seated on a park bench in late autumn, leaning forward with strong confident posture. Vintage tracksuit styling, cigarette prop, intense expression. Park details must remain tangible: leaves, trees, mist, bench texture, and seasonal atmosphere.',
+    lightingGuide:
+      'Natural golden-hour side light with cool ambient fill from sky and environment. Keep realistic contrast, facial structure detail, and skin micro-texture. Light should feel physically coherent with leaves, bench, and background depth.',
+    cameraGuide:
+      '35-50mm medium framing, eye-level or slight low angle, realistic medium depth (f/4-f/5.6 look). Face and upper body sharp while preserving readable environmental detail.',
+    avoid: ['generic background blur', 'studio look', 'fashion-plastic skin', 'flat lighting', 'empty background'],
+  },
+  {
+    id: 'EDITORIAL_DAWN_SHORELINE',
+    name: 'Dawn Shoreline Hero',
+    description: 'Reflective wet-beach dawn portrait with calm cinematic realism',
+    category: 'editorial',
+    icon: 'Sparkles',
+    whenToUse: ['Fragrance and beauty hero ads', 'Dreamy lifestyle campaigns', 'Premium editorial key visuals'],
+    platforms: ['instagram', 'facebook'],
+    sceneGuide:
+      'Director brief: Subject standing barefoot on wet glass-like shoreline at dawn. Gentle glowing waves, subtle horizon haze, and reflective sand are core visual anchors. Mood is serene and elevated while staying physically realistic and location-grounded.',
+    lightingGuide:
+      'Soft dawn gradient light, cool-to-warm transition, low-contrast ambient illumination with subtle rim from horizon. Preserve wet-surface specular reflections and believable shadow softness.',
+    cameraGuide:
+      '35-70mm hero framing with medium depth and strong environmental readability. Keep reflective foreground and near-wave detail clear; avoid synthetic blur wash.',
+    avoid: ['background mush', 'over-bokeh', 'hard noon shadows', 'composite-looking water', 'unreal skin smoothing'],
+  },
+  // �� Commercial ��
+  {
         id: 'PRODUCT_LIFESTYLE',
         name: 'Product Lifestyle',
         description: 'Product in a natural real-world setting',

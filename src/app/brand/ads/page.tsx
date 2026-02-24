@@ -143,6 +143,7 @@ export default function AdsPage() {
   const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>(['instagram'])
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('1:1')
   const [cameraAngle, setCameraAngle] = useState<CameraAngle>('auto')
+  const [strictRealism, setStrictRealism] = useState(true)
   const [textOpen, setTextOpen] = useState(false)
   const [optionsOpen, setOptionsOpen] = useState(false)
 
@@ -207,6 +208,7 @@ export default function AdsPage() {
       productImage: productImage || undefined,
       influencerImage: influencerImage || undefined,
       lockFaceIdentity,
+      strictRealism,
       characterType,
       characterIdentity: isHuman ? characterIdentity : undefined,
       animalType: characterType === 'animal' ? (animalType || 'Fox') : undefined,
@@ -730,6 +732,27 @@ export default function AdsPage() {
                               </button>
                             ))}
                           </div>
+                        </div>
+                      </div>
+
+                      <div className="rounded-lg border-[3px] border-black bg-[#FFF8E6] p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-wider">Strict Realism (Anti-AI)</p>
+                            <p className="mt-1 text-[10px] font-semibold text-black/70">
+                              Enforces influencer-grade realism locks: camera physics, skin texture, and no invented brand text.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setStrictRealism((v) => !v)}
+                            className={cn(
+                              'inline-flex items-center gap-1 rounded-md border-2 border-black px-2 py-1 text-[10px] font-black uppercase',
+                              strictRealism ? 'bg-[#B4F056]' : 'bg-white'
+                            )}
+                          >
+                            {strictRealism ? 'ON' : 'OFF'}
+                          </button>
                         </div>
                       </div>
                     </div>
