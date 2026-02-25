@@ -46,6 +46,16 @@
   --color-peach: #FF8C69;
   --color-subtle: #E5E0D8;
   --font-serif: var(--font-playfair);
+  /* KIWIKOO landing */
+  --color-kblack: var(--kblack);
+  --color-kbg: var(--kbg);
+  --color-kborder: var(--kborder);
+  --color-kstrongborder: var(--kstrongborder);
+  --color-ktext: var(--ktext);
+  --color-kcoral: var(--kcoral);
+  --color-kkiwi: var(--kkiwi);
+  --color-kpurple: var(--kpurple);
+  --font-sans-landing: var(--font-plus-jakarta-sans), ui-sans-serif, sans-serif;
 }
 
 :root {
@@ -81,6 +91,22 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  /* Neo-brutal landing */
+  --brutal-border: 4px solid #000;
+  --brutal-shadow: 8px 8px 0 0 #000;
+  --brutal-shadow-sm: 4px 4px 0 0 #000;
+  --brutal-cream: #F9F8F4;
+  --brutal-coral: #FF8C69;
+  --brutal-lime: #B4F056;
+  /* KIWIKOO landing (design spec) */
+  --kblack: #111111;
+  --kbg: #faf9f6;
+  --kborder: #e5e5e5;
+  --kstrongborder: #111111;
+  --ktext: #111111;
+  --kcoral: #ff8a73;
+  --kkiwi: #caff33;
+  --kpurple: #d8b4fe;
 }
 
 .dark {
@@ -115,6 +141,82 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* KIWIKOO landing – grid overlay & structural borders */
+.grid-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-image:
+    linear-gradient(to right, rgba(17, 17, 17, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(17, 17, 17, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 40;
+}
+.grid-line-x { border-bottom: 1px solid rgba(17, 17, 17, 0.1); }
+.grid-line-y { border-right: 1px solid rgba(17, 17, 17, 0.1); }
+.grid-line-t { border-top: 1px solid rgba(17, 17, 17, 0.1); }
+.border-strong-b { border-bottom: 2px solid var(--kblack); }
+.border-strong-t { border-top: 2px solid var(--kblack); }
+.neo-btn {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.neo-btn:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 rgba(17, 17, 17, 1) !important;
+}
+
+.hero-bg-image {
+  background-image: url('https://images.unsplash.com/photo-1529139574466-a303027c028c?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80');
+  background-size: cover;
+  background-position: center 20%;
+}
+
+.footer-bg-image {
+  background-image: url('https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80');
+  background-size: cover;
+  background-position: center;
+  /* iOS Safari doesn't support background-attachment:fixed on non-body elements */
+  background-attachment: scroll;
+}
+
+@media (min-width: 768px) {
+  .footer-bg-image {
+    background-attachment: fixed;
+  }
+}
+
+/* Landing transparent stacking so K knockout blends with #global-bg */
+html.landing-transparent-bg,
+body.landing-transparent-bg {
+  background-color: transparent !important;
+}
+
+.landing-main-wrapper {
+  background-color: transparent !important;
+}
+
+.landing-main-wrapper,
+.landing-main-wrapper *,
+.landing-main-wrapper *::before,
+.landing-main-wrapper *::after {
+  box-sizing: border-box;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #faf9f6; }
+::-webkit-scrollbar-thumb { background: #d1d1d1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #111111; }
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  #global-bg { transform: none !important; }
+  .reveal-word { opacity: 1 !important; }
 }
 
 @layer base {
