@@ -219,7 +219,7 @@ function generatePdfHtml(campaign: Record<string, unknown>): string {
   <div class="section no-break">
     <div class="section-title">👥 Target Audience</div>
     <div class="grid-2">
-      ${(ageMin && ageMax) ? `<div class="card"><div class="card-label">Age Range</div><div class="card-value">${ageMin}–${ageMax}</div></div>` : ''}
+      ${(ageMin != null && ageMax != null) ? `<div class="card"><div class="card-label">Age Range</div><div class="card-value">${ageMin}–${ageMax}</div></div>` : ''}
       ${gender ? `<div class="card"><div class="card-label">Gender</div><div class="card-value">${gender}</div></div>` : ''}
       ${location ? `<div class="card"><div class="card-label">Location</div><div class="card-value">${location}</div></div>` : ''}
       ${interests.length > 0 ? `<div class="card"><div class="card-label">Interests</div><div class="card-value">${interests.join(', ')}</div></div>` : ''}
@@ -763,7 +763,7 @@ export default function CampaignDetailPage() {
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <p className="text-[10px] font-black uppercase tracking-wider text-black/40 mb-0.5">Age Range</p>
-                                    <p className="text-sm font-bold">{audienceAgeMin && audienceAgeMax ? `${audienceAgeMin}–${audienceAgeMax}` : '—'}</p>
+                                    <p className="text-sm font-bold">{audienceAgeMin != null && audienceAgeMax != null ? `${audienceAgeMin}–${audienceAgeMax}` : '—'}</p>
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-black uppercase tracking-wider text-black/40 mb-0.5">Gender</p>

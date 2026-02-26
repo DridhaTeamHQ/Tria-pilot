@@ -178,11 +178,36 @@ export async function POST(request: Request, { params }: RouteParams) {
             ...campaignUpdate,
         }
 
-        await service.from('campaigns').update(campaignPatch).eq('id', id)
+        const { error: campaignErr } = await service.from('campaigns').update(campaignPatch).eq('id', id)
+        if (campaignErr) {
+            console.error('Campaign update failed:', campaignErr.message)
+            return NextResponse.json({ error: 'Failed to save strategy updates' }, { status: 500 })
+        }
 
-        // Update creative if needed
-        if (Object.keys(creativeUpdate).length > 0 && creativeRow) {
-            await service.from('campaign_creatives').update(creativeUpdate).eq('campaign_id', id)
+        if (Object.keys(creativeUpdate).length > 0) {
+            if (creativeRow) {
+                const { error: creativeErr } = await service
+                    .from('campaign_creatives')
+                    .update(creativeUpdate)
+                    .eq('campaign_id', id)
+                if (creativeErr) {
+                    console.error('Creative update failed:', creativeErr.message)
+                }
+            } else {
+                const { error: insertErr } = await service
+                    .from('campaign_creatives')
+                    .insert({
+                        campaign_id: id,
+                        headline: null,
+                        description: null,
+                        cta_text: null,
+                        creative_assets: [],
+                        ...creativeUpdate,
+                    })
+                if (insertErr) {
+                    console.error('Creative insert failed:', insertErr.message)
+                }
+            }
         }
 
         return NextResponse.json({
