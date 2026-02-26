@@ -41,6 +41,7 @@ const adGenerationSchema = z
   .object({
     preset: z.enum(AD_PRESET_IDS as unknown as [string, ...string[]]),
     campaignId: z.string().max(100).optional(),
+    variationIndex: z.number().int().min(0).max(999).optional().default(0),
     stylePack: z.enum(['luxury', 'high_street', 'sports']).optional(),
 
     // Image inputs
@@ -229,6 +230,7 @@ export async function POST(request: Request) {
     const generationInput: AdGenerationInput = {
       preset: input.preset as AdPresetId,
       campaignId: input.campaignId,
+      variationIndex: input.variationIndex,
       stylePack: input.stylePack ?? resolveStylePackForPreset(input.preset as AdPresetId),
       productImage: input.productImage,
       influencerImage: input.influencerImage,
@@ -295,6 +297,7 @@ The result must be photoreal, commercial, and human-shot in style (not AI-lookin
 Use clean composition with a clear hero subject, natural anatomy, realistic hands, and physically correct lighting.
 Preserve micro details: skin texture, fabric weave, material reflections, and true-to-life color.
 Professional camera language: intentional framing, depth, and focus falloff with strong subject-product readability.
+Background realism lock: keep environment structure readable (architecture, roads, textures); avoid generic creamy blur or background mush unless physically motivated by motion.
 Output should feel editorial plus conversion-ready, suitable for top-tier social ads and landing pages.
 Avoid low-quality artifacts: blur mush, warped geometry, duplicate limbs, extra fingers, over-smoothing, posterization, and noisy edges.
 If humans are present, facial realism is non-negotiable: visible pores, natural asymmetry, realistic under-eye/skin texture, consistent skin tone across face and neck.

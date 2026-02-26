@@ -31,13 +31,7 @@ const PROMPT_BUILD_TIMEOUT_MS = 45_000
 /** Max prompt length we pass to image model (Gemini). Longer prompts are truncated with warning. */
 const MAX_PROMPT_LENGTH = 4000
 
-const STYLIZED_BLUR_PRESETS = new Set<string>([
-  'CREATIVE_FLASH_CHAOS',
-  'CREATIVE_RETRO_FILM',
-  'CREATIVE_DOUBLE_EXPOSURE',
-  'SPORTS_DYNAMIC',
-  'SPORTS_TUNNEL_HERO',
-])
+const STYLIZED_BLUR_PRESETS = new Set<string>(['CREATIVE_CINEMATIC', 'SPORTS_DYNAMIC'])
 
 // ═══════════════════════════════════════════════════════════════
 // PRESET → STYLE EXAMPLE MAPPING
@@ -46,77 +40,130 @@ const STYLIZED_BLUR_PRESETS = new Set<string>([
 // ═══════════════════════════════════════════════════════════════
 
 const PRESET_EXAMPLE_MAP: Record<string, string[]> = {
-  // UGC presets → UGC + lifestyle examples
-  UGC_CANDID: ['editorial-escalator-fit-check', 'digicam-neon-crosswalk', 'japandi-overpass-candid', 'street-high-angle-crosswalk', 'y2k-fisheye-bomber-street', 'italian-cafe-candid', 'tokyo-street-matcha-jersey', 'mediterranean-swim-editorial', 'creative-martin-parr-domestic', 'rustic-sunflare-car-denim', 'industrial-blinds-digicam-grunge', 'iphone-tropical-tree-crouch'],
-  UGC_STORY: ['ugc-phone-sky', 'golden-hour-glamour-cafe', 'italian-cafe-candid', 'rustic-sunflare-car-denim', 'iphone-tropical-tree-crouch'],
-  UGC_REEL: ['y2k-duo-white-studio-dynamic', 'y2k-red-studio-helmet', 'cinematic-motion-runners', 'creative-raw-analog-tennis', 'creative-follow-cam-snowboard', 'industrial-blinds-digicam-grunge'],
-  UGC_TESTIMONIAL: ['angle-high-soft-flattering', 'golden-hour-glamour-cafe', 'italian-cafe-candid', 'creative-beauty-close-up-cream'],
-  UGC_FLAT_LAY: ['editorial-escalator-fit-check', 'angle-down-hero-product', 'standalone-clean-4k', 'food-office-product-in-hand', 'lifestyle-blank-tee-mockup'],
-  UGC_GRWM: ['y2k-mirror-lip-gloss', 'italian-cafe-candid', 'golden-hour-glamour-cafe', 'creative-cyclorama-juice-portrait'],
-  UGC_TROPICAL_IPHONE: ['iphone-tropical-tree-crouch', 'rustic-sunflare-car-denim', 'japandi-overpass-candid', 'golden-hour-glamour-cafe'],
-  // Editorial presets
-  EDITORIAL_PREMIUM: ['editorial-escalator-fit-check', 'editorial-amber-hoodie-headphones', 'editorial-tennis-court-spotlight', 'editorial-70s-staircase-jumpsuit', 'japandi-overpass-candid', 'editorial-kerala-bed', 'barbershop-kodachrome-trench', 'meadow-white-dress-contemplative', 'creative-surreal-horse-shadow', 'editorial-glow-blur-portrait', 'luxury-car-window-chiaroscuro', 'luxury-chain-maximal-portrait', 'luxury-baroque-lounge-duo', 'luxury-masthead-motion-blur', 'editorial-liquid-metal-wave', 'overhead-rug-blush-editorial'],
-  EDITORIAL_FASHION: ['editorial-escalator-fit-check', 'editorial-tennis-court-spotlight', 'y2k-duo-white-studio-dynamic', 'editorial-bw-low-angle-latex', 'editorial-70s-staircase-jumpsuit', 'angle-side-profile-editorial', 'creative-bold-color-studio', 'creative-reeded-glass-portrait', 'creative-raw-analog-tennis', 'minimal-monochrome-side-profile', 'minimal-seated-profile-studio', 'overhead-rug-blush-editorial'],
-  EDITORIAL_BEAUTY: ['editorial-amber-hoodie-headphones', 'beauty-ice-block-lipbalm', 'creative-beauty-close-up-cream', 'y2k-mirror-lip-gloss', 'editorial-glow-blur-portrait', 'creative-product-hands-motion-blur', 'monochrome-beauty-print-poster', 'clean-highkey-portrait-jewelry', 'luxury-submerged-golden-refraction'],
-  EDITORIAL_STREET: ['digicam-neon-crosswalk', 'y2k-fisheye-bomber-street', 'y2k-red-studio-helmet', 'street-high-angle-crosswalk', 'tokyo-street-matcha-jersey', 'y2k-varsity-studio', 'cinematic-motion-runners', 'creative-raw-analog-tennis', 'storefront-walkby-motion', 'retail-checkout-candid', 'backstage-phone-candid', 'rustic-sunflare-car-denim', 'industrial-blinds-digicam-grunge', 'tatar-parkbench-90s-tracksuit'],
-  EDITORIAL_FILM_NOIR: ['editorial-tennis-court-spotlight', 'barbershop-kodachrome-trench', 'creative-surreal-horse-shadow', 'sports-monochrome-typography', 'deconstructed-face-collage', 'luxury-baroque-lounge-duo', 'monochrome-beauty-print-poster'],
-  EDITORIAL_ETHEREAL: ['beach-sunset-satin-twirl', 'meadow-white-dress-contemplative', 'editorial-glow-blur-portrait', 'creative-beauty-close-up-cream', 'italian-cafe-candid', 'overhead-rug-blush-editorial', 'dawn-wet-beach-barefoot'],
-  EDITORIAL_AUTUMN_BENCH: ['tatar-parkbench-90s-tracksuit', 'barbershop-kodachrome-trench', 'tokyo-street-matcha-jersey', 'street-high-angle-crosswalk'],
-  EDITORIAL_DAWN_SHORELINE: ['dawn-wet-beach-barefoot', 'beach-sunset-satin-twirl', 'editorial-liquid-metal-wave', 'meadow-white-dress-contemplative'],
-  // Commercial presets
-  PRODUCT_LIFESTYLE: ['editorial-escalator-fit-check', 'japandi-overpass-candid', 'angle-high-soft-flattering', 'lifestyle-blank-tee-mockup', 'food-office-product-in-hand', 'ugc-phone-sky'],
-  STUDIO_POSTER: ['studio-chrome-floral', 'sports-monochrome-typography', 'creative-bw-neon-cta', 'monochrome-beauty-print-poster', 'sale-poster-oversized-numeral', 'highstreet-poster-panel-layout'],
-  PRODUCT_HERO: ['beauty-ice-block-lipbalm', 'product-hero-beauty-lipstick', 'standalone-surreal-installation', 'text-based-air-jordan-explosion'],
-  COMMERCIAL_CAROUSEL: ['standalone-clean-4k', 'lifestyle-blank-tee-mockup', 'standalone-high-fashion-path'],
-  COMMERCIAL_FLAT_POSTER: ['studio-chrome-floral', 'creative-bold-color-studio', 'text-based-dynamic-magenta', 'sale-poster-oversized-numeral', 'monochrome-beauty-print-poster', 'highstreet-poster-panel-layout'],
-  // Creative presets
-  CREATIVE_SURREAL: ['editorial-tennis-court-spotlight', 'surreal-red-dress-cubes', 'beauty-ice-block-lipbalm', 'surreal-magritte-picnic', 'standalone-surreal-installation', 'creative-surreal-horse-shadow'],
-  CREATIVE_CINEMATIC: ['tunnel-360-pastel-tracksuit', 'cinematic-motion-runners', 'cinematic-low-angle-flying', 'barbershop-kodachrome-trench', 'creative-follow-cam-snowboard', 'editorial-liquid-metal-wave'],
-  CREATIVE_TEXT_DYNAMIC: ['text-based-dynamic-magenta', 'text-based-dynamic-green', 'text-based-dynamic-blue-white', 'text-based-air-jordan-explosion', 'sale-poster-oversized-numeral', 'luxury-chain-maximal-portrait', 'sports-brush-slogan-packshot'],
-  CREATIVE_BOLD_COLOR: ['creative-bold-color-studio', 'creative-reeded-glass-portrait', 'text-based-pop-art'],
-  CREATIVE_NEON_GRADIENT: ['text-based-dynamic-magenta', 'text-based-dynamic-green', 'text-based-dynamic-blue-white'],
-  CREATIVE_RETRO_FILM: ['editorial-amber-hoodie-headphones', 'digicam-neon-crosswalk', 'editorial-70s-staircase-jumpsuit', 'barbershop-kodachrome-trench', 'tokyo-street-matcha-jersey', 'cinematic-motion-runners', 'creative-raw-analog-tennis', 'creative-martin-parr-domestic'],
-  CREATIVE_3D_RENDER: ['product-hero-beauty-lipstick', 'standalone-surreal-installation', 'studio-chrome-floral'],
-  CREATIVE_VAPORWAVE: ['digicam-neon-crosswalk', 'y2k-red-studio-helmet', 'y2k-fisheye-bomber-street', 'y2k-varsity-studio', 'text-based-dynamic-magenta', 'text-based-pop-art'],
-  CREATIVE_DOUBLE_EXPOSURE: ['creative-surreal-horse-shadow', 'editorial-glow-blur-portrait', 'deconstructed-face-collage'],
-  CREATIVE_GLASSMORPHISM: ['standalone-surreal-installation', 'product-hero-beauty-lipstick', 'creative-reeded-glass-portrait'],
-  CREATIVE_WES_ANDERSON: ['italian-cafe-candid', 'creative-martin-parr-domestic', 'creative-cyclorama-juice-portrait'],
-  CREATIVE_DECONSTRUCTED: ['surreal-red-dress-cubes', 'deconstructed-face-collage', 'text-based-air-jordan-explosion', 'standalone-surreal-installation'],
-  CREATIVE_FLASH_CHAOS: ['cinematic-motion-runners', 'creative-follow-cam-snowboard', 'y2k-fisheye-bomber-street', 'digicam-neon-crosswalk', 'industrial-blinds-digicam-grunge'],
-  CREATIVE_LIQUID_CHROME: ['studio-chrome-floral', 'product-hero-beauty-lipstick', 'standalone-surreal-installation', 'creative-bold-color-studio', 'editorial-liquid-metal-wave'],
-  CREATIVE_COSMIC_SURREAL: ['surreal-magritte-picnic', 'cinematic-low-angle-flying', 'creative-surreal-horse-shadow', 'standalone-surreal-installation'],
-  // Standalone product
-  STANDALONE_CLEAN: ['standalone-clean-4k', 'standalone-high-fashion-path'],
-  STANDALONE_SURREAL: ['standalone-surreal-installation', 'standalone-high-fashion-path', 'product-hero-beauty-lipstick'],
-  STANDALONE_LUXURY_MACRO: ['beauty-ice-block-lipbalm', 'studio-chrome-floral', 'product-hero-beauty-lipstick', 'creative-product-hands-motion-blur'],
-  STANDALONE_LEVITATION: ['text-based-air-jordan-explosion', 'product-hero-beauty-lipstick', 'standalone-surreal-installation'],
-  // Performance / Conversion
-  PERF_MINIMAL_CLEAN: ['standalone-clean-4k', 'standalone-high-fashion-path'],
-  PERF_BEST_QUALITY: ['editorial-escalator-fit-check', 'product-hero-beauty-lipstick', 'standalone-clean-4k', 'cinematic-low-angle-flying', 'minimal-seated-profile-studio', 'clean-highkey-portrait-jewelry', 'luxury-car-window-chiaroscuro', 'luxury-masthead-motion-blur', 'editorial-liquid-metal-wave', 'alpine-apres-ski-luxury', 'tatar-parkbench-90s-tracksuit', 'dawn-wet-beach-barefoot'],
-  PERF_SPLIT_COMPARE: ['creative-bold-color-studio', 'lifestyle-blank-tee-mockup'],
-  PERF_OOH_BILLBOARD: ['placement-subway-billboard', 'ooh-billboard-dual-panel'],
-  PERF_SOCIAL_PROOF: ['beach-sunset-satin-twirl', 'italian-cafe-candid', 'golden-hour-glamour-cafe', 'mediterranean-swim-editorial', 'retail-checkout-candid', 'backstage-phone-candid'],
-  // Sports / Athletic
-  SPORTS_DYNAMIC: ['y2k-duo-white-studio-dynamic', 'tunnel-360-pastel-tracksuit', 'editorial-bw-low-angle-latex', 'angle-low-hero-dramatic', 'cinematic-motion-runners', 'creative-follow-cam-snowboard', 'creative-fashion-kick-identity', 'sports-brush-slogan-packshot', 'sports-handheld-vertical-type', 'tatar-parkbench-90s-tracksuit'],
-  SPORTS_MONOCHROME: ['sports-monochrome-typography', 'text-based-air-jordan-explosion', 'sports-brush-slogan-packshot'],
-  SPORTS_TUNNEL_HERO: ['cinematic-motion-runners', 'cinematic-low-angle-flying', 'sports-monochrome-typography'],
-  // Indian fashion
-  INDIAN_FESTIVE: ['vertical-lehenga-celebrate', 'vertical-sharara-twirl'],
-  INDIAN_ETHNIC: ['vertical-lehenga-celebrate', 'vertical-sharara-twirl', 'editorial-kerala-bed'],
-  INDIAN_STREET_FUSION: ['y2k-fisheye-bomber-street', 'y2k-varsity-studio', 'cinematic-motion-runners', 'creative-raw-analog-tennis'],
+  UGC_CANDID: [
+    'street-crosswalk-high-angle-candid',
+    'urban-crosswalk-sporty-streetwear-motion',
+    'high-angle-zebra-crossing-mens-casual',
+    'editorial-tropical-night-ruffled-collar',
+    'diptych-overpass-dusk-contemplative',
+    'lifestyle-gas-station-night-porsche-medellin',
+  ],
+  UGC_STREET: [
+    'editorial-skyscraper-low-angle-sneaker-hero',
+    'street-crosswalk-high-angle-candid',
+    'street-alley-bandana-crouch',
+    'urban-crosswalk-sporty-streetwear-motion',
+    'high-angle-zebra-crossing-mens-casual',
+    'editorial-denim-corset-faux-fur-wall',
+    'raw-analog-lacoste-tennis-court',
+    'editorial-warehouse-bucket-hat-sneaker',
+  ],
+  EDITORIAL_PREMIUM: [
+    'overhead-bed-editorial-contemplative',
+    'editorial-composite-leather-projected-face',
+    'editorial-side-profile-bouquet-minimal',
+    'editorial-winter-mountain-faux-fur',
+    'editorial-sheer-patent-red-backdrop',
+    'editorial-trench-directors-chair-red',
+    'editorial-vintage-academic-armchair',
+    'editorial-cloud-sky-contemplative',
+  ],
+  EDITORIAL_FASHION: [
+    'editorial-studio-extreme-kick-monochrome',
+    'editorial-denim-corset-faux-fur-wall',
+    'editorial-composite-leather-projected-face',
+    'editorial-low-angle-metal-jewelry-watch',
+    'editorial-split-gel-rust-checkerboard',
+    'editorial-white-studio-forced-perspective-hand',
+    'editorial-newspaper-set-neon-jacket',
+    'reeded-glass-neon-green-tracksuit',
+  ],
+  EDITORIAL_STREET: [
+    'street-crosswalk-high-angle-candid',
+    'street-alley-bandana-crouch',
+    'urban-crosswalk-sporty-streetwear-motion',
+    'editorial-denim-corset-faux-fur-wall',
+    'raw-analog-lacoste-tennis-court',
+    'high-angle-zebra-crossing-mens-casual',
+    'editorial-night-fisheye-car-crouch',
+  ],
+  EDITORIAL_RETRO: [
+    'editorial-vintage-doorway-flash-70s',
+    'editorial-office-flash-foot-foreground',
+    'raw-analog-lacoste-tennis-court',
+    'editorial-trench-directors-chair-red',
+    'editorial-vintage-academic-armchair',
+  ],
+  EDITORIAL_CONCEPTUAL: [
+    'street-city-crossing-stillness-daylight',
+    'metro-platform-stillness-motion-blur',
+    'reeded-glass-neon-green-tracksuit',
+    'editorial-composite-leather-projected-face',
+    'editorial-trio-bench-upward-gaze',
+    'diptych-overpass-dusk-contemplative',
+  ],
+  CREATIVE_CINEMATIC: [
+    'editorial-skyscraper-low-angle-sneaker-hero',
+    'follow-cam-snowboard-powder-jump',
+    'editorial-night-fisheye-car-crouch',
+    'urban-crosswalk-sporty-streetwear-motion',
+    'metro-platform-stillness-motion-blur',
+    'lifestyle-gas-station-night-porsche-medellin',
+    'diptych-overpass-dusk-contemplative',
+    'street-city-crossing-stillness-daylight',
+  ],
+  CREATIVE_SURREAL: [
+    'creative-sci-fi-cryogenic-helmet-portrait',
+    'editorial-trio-bench-upward-gaze',
+    'editorial-newspaper-set-neon-jacket',
+  ],
+  CREATIVE_BOLD_COLOR: [
+    'reeded-glass-neon-green-tracksuit',
+    'editorial-low-angle-metal-jewelry-watch',
+    'editorial-sheer-patent-red-backdrop',
+    'studio-red-backdrop-caesars-cap',
+    'editorial-split-gel-rust-checkerboard',
+    'editorial-white-studio-forced-perspective-hand',
+    'low-angle-yellow-blocks-bomber-sneaker',
+  ],
+  SPORTS_DYNAMIC: [
+    'editorial-studio-extreme-kick-monochrome',
+    'follow-cam-snowboard-powder-jump',
+    'editorial-warehouse-bucket-hat-sneaker',
+    'raw-analog-lacoste-tennis-court',
+    'urban-crosswalk-sporty-streetwear-motion',
+    'low-angle-yellow-blocks-bomber-sneaker',
+    'studio-high-angle-hands-frame-face',
+  ],
+  PRODUCT_LIFESTYLE: [
+    'lifestyle-gas-station-night-porsche-medellin',
+    'editorial-winter-mountain-faux-fur',
+    'urban-crosswalk-sporty-streetwear-motion',
+    'editorial-vintage-academic-armchair',
+    'editorial-trench-directors-chair-red',
+  ],
+  PERF_BEST_QUALITY: [
+    'street-city-crossing-stillness-daylight',
+    'overhead-bed-editorial-contemplative',
+    'editorial-composite-leather-projected-face',
+    'editorial-side-profile-bouquet-minimal',
+    'editorial-sheer-patent-red-backdrop',
+    'editorial-trench-directors-chair-red',
+    'lifestyle-gas-station-night-porsche-medellin',
+  ],
 }
 
 const IDENTITY_EXAMPLE_MAP: Partial<Record<CharacterIdentity, string[]>> = {
-  indian_woman_modern: ['south-delhi-modern-woman-cafe', 'south-delhi-modern-man-street', 'storefront-walkby-motion'],
-  indian_man_modern: ['south-delhi-modern-man-street', 'south-delhi-modern-woman-cafe', 'storefront-walkby-motion'],
-  south_asian_modern: ['south-delhi-modern-woman-cafe', 'south-delhi-modern-man-street'],
+  indian_woman_modern: ['editorial-tropical-night-ruffled-collar', 'editorial-side-profile-bouquet-minimal', 'street-crosswalk-high-angle-candid'],
+  indian_man_modern: ['editorial-trench-directors-chair-red', 'high-angle-zebra-crossing-mens-casual', 'editorial-dark-blue-bape-sweater'],
+  south_asian_modern: ['editorial-tropical-night-ruffled-collar', 'editorial-cloud-sky-contemplative', 'street-crosswalk-high-angle-candid'],
 }
 
 const NON_INDIAN_BIASED_EXAMPLES = new Set<string>([
-  'golden-hour-glamour-cafe',
-  'italian-cafe-candid',
-  'editorial-amber-hoodie-headphones',
-  'editorial-tennis-court-spotlight',
+  'editorial-trench-directors-chair-red',
+  'editorial-cloud-sky-contemplative',
+  'street-crosswalk-high-angle-candid',
+  'studio-red-backdrop-caesars-cap',
 ])
 
 const TEXT_SYSTEM_EXAMPLES: Record<string, string[]> = {
@@ -377,11 +424,70 @@ function buildEnvironmentRealismLock(presetId: string): string {
 - Background must stay physically believable with readable environmental objects and textures.
 - Preserve scene geometry, object edges, and depth continuity (walls, trees, roads, furniture, skyline, props).
 - Do NOT default to generic blur wash or artificial bokeh soup behind the subject.
-- Use realistic depth behavior: medium depth of field by default (roughly f/4-f/8 look) so subject and key background context both read clearly.
+- Use realistic depth behavior: medium/deep depth by default (roughly f/5.6-f/11 look) so subject and key background context both read clearly.
+- Keep architectural lines, horizon edges, and environmental textures legible; avoid watercolor-like smear in distant regions.
+- If motion blur is used, it must be directional and physically motivated (moving crowd, moving vehicle, shutter drag). Never blur the entire background uniformly.
 - ${allowStylizedBlur
-    ? 'Stylized blur is allowed only if motivated by motion, lens behavior, or the selected preset style. Keep background structure readable.'
-    : 'Avoid stylized blur, fake haze, or over-diffusion unless explicitly requested by the user.'}
+    ? 'Stylized blur is allowed only if motivated by motion, lens behavior, or the selected preset style. Keep background structure and scene depth readable.'
+    : 'Avoid stylized blur, fake haze, over-diffusion, and excessive bokeh unless explicitly requested by the user.'}
 - Keep lighting and shadows coherent across subject and environment so it feels like a real location, not composited mush.`
+}
+
+function buildAutoDirectorModeBlock(input: AdGenerationInput, hasCharacter: boolean): string {
+  const cameraAuto = (input.cameraAngle || 'auto') === 'auto'
+  const poseAuto = !input.subject?.pose
+  const expressionAuto = !input.subject?.expression
+  if (!cameraAuto && !poseAuto && !expressionAuto) return ''
+
+  const variationIndex = Number(input.variationIndex || 0)
+  const angleCycle = ['low', 'down/overhead', 'side profile', 'three-quarter', 'high', 'eye-level']
+  const poseCycle = [
+    'low-angle crouch with product-forward framing',
+    'strong forward step with one limb/foot advancing toward lens',
+    'side-profile stance with clean silhouette',
+    'relaxed seated lean with asymmetrical body line',
+    'dynamic stride with natural limb motion',
+    'three-quarter standing fashion posture',
+  ]
+  const expressionCycle = [
+    'confident direct gaze',
+    'calm serious focus',
+    'cool detached attitude',
+    'subtle rebellious smirk',
+    'introspective contemplative mood',
+    'energetic playful confidence',
+  ]
+
+  const angleHint = angleCycle[variationIndex % angleCycle.length]
+  const poseHint = poseCycle[variationIndex % poseCycle.length]
+  const expressionHint = expressionCycle[variationIndex % expressionCycle.length]
+
+  const lines: string[] = []
+  if (cameraAuto) {
+    lines.push(
+      'Camera angle is AUTO: intelligently choose ONE dominant angle based on scene geometry and product salience from this set: low, high, down/overhead, side profile, three-quarter, eye-level, dutch.'
+    )
+    lines.push(
+      'Do not default repeatedly to eye-level framing. Prefer stronger perspective when it improves fashion impact (e.g., low-angle sneaker hero, overhead street grid, side-profile silhouette).'
+    )
+    lines.push(
+      `Variation index ${variationIndex}: bias this generation toward "${angleHint}" while keeping scene realism and preset fidelity.`
+    )
+  }
+  if (hasCharacter && poseAuto) {
+    lines.push(
+      'Pose is AUTO: select a physically natural but editorial pose that matches camera angle and product type (crouch, forward step, seated lean, side-profile stance, dynamic stride).'
+    )
+    lines.push(`Variation index ${variationIndex}: prefer pose family "${poseHint}" for this render.`)
+  }
+  if (hasCharacter && expressionAuto) {
+    lines.push(
+      'Expression is AUTO: select an intentional expression that matches narrative mood (confident, calm serious, cool detached, subtle smirk, introspective), never blank/mannequin.'
+    )
+    lines.push(`Variation index ${variationIndex}: prefer expression family "${expressionHint}" for this render.`)
+  }
+
+  return `AUTO DIRECTOR MODE (MANDATORY):\n- ${lines.join('\n- ')}`
 }
 
 function buildPhotographicRealismLock(): string {
@@ -581,7 +687,7 @@ function buildUserContent(
   const examples = getStyleExamplesForPreset(input, hasCharacter)
   if (examples.length > 0) {
     const exampleBlocks = examples
-      .slice(0, 3) // max 3 references to keep token budget
+      .slice(0, 5) // include more angle/expression references for stronger style transfer
       .map(
         (ex, i) =>
           `REFERENCE ${i + 1}: "${ex.name}"\nPROMPT: ${ex.prompt}\nSTYLE NOTES: ${ex.styleNotes}`
@@ -609,12 +715,8 @@ ${exampleBlocks}
       .replace(/product is the hero/gi, 'product is prominently featured')
 
     // Adapt the scene to include a character
-    if (input.preset === 'PRODUCT_HERO') {
-      sceneGuide = `Dynamic ad composition: ${ct === 'animal' ? 'a photorealistic animal' : 'a model'} interacts with the product against a dramatic gradient background with abstract shapes and premium lighting. Product is prominently featured and clearly visible. Premium, futuristic, campaign-quality.`
-    } else if (input.preset === 'STANDALONE_CLEAN') {
-      sceneGuide = `Clean studio setting with ${ct === 'animal' ? 'a photorealistic animal' : 'a model'} presenting the product. Neutral background, professional lighting, product clearly visible and prominent.`
-    } else if (input.preset === 'STANDALONE_SURREAL') {
-      sceneGuide = `Surreal dreamlike scene with ${ct === 'animal' ? 'a photorealistic animal' : 'a model'} and the product in an installation-art setting. Floating elements, gradient sky, warm tones, poster-worthy. Product clearly visible.`
+    if (input.preset === 'PRODUCT_LIFESTYLE') {
+      sceneGuide = `Lifestyle ad with ${ct === 'animal' ? 'a photorealistic animal' : 'a model'} and the product in a real-world context (minimal room, gas station, urban night, or neutral interior). Product primary and clearly visible; model secondary. Premium lighting, campaign-quality.`
     }
 
     // Remove "model/person" from the avoid list since user wants one
@@ -627,7 +729,7 @@ ${exampleBlocks}
   const cameraAngle = input.cameraAngle || 'auto'
   const angleInstruction =
     cameraAngle === 'auto'
-      ? 'Camera angle: Choose the most impactful angle (down, high, low, side, or three-quarter) for this preset and product. State it explicitly in your prompt (e.g. "Shot from a low angle...", "Overhead down-angle flat lay...").'
+      ? 'Camera angle: AUTO-DIRECTED. Choose the most impactful angle for this preset and product; explicitly state the chosen angle in the prompt (e.g. "Shot from a low angle...", "Overhead down-angle...", "Side profile composition...").'
       : cameraAngle === 'down'
         ? 'Camera angle: DOWN ANGLE (mandatory). Camera above, looking down at subject or product. Describe it in the prompt: e.g. "Shot from directly above", "Overhead down-angle view", "Camera looking down at...".'
         : cameraAngle === 'high'
@@ -657,6 +759,8 @@ ${buildDepthPolicyCameraOverride(input.preset)}
 ${angleInstruction}
 Must avoid: ${avoidTerms.join(', ')}`)
   sections.push(buildStylePackDirective(input))
+  const autoDirectorMode = buildAutoDirectorModeBlock(input, hasCharacter)
+  if (autoDirectorMode) sections.push(autoDirectorMode)
   sections.push(buildEnvironmentRealismLock(input.preset))
   if (strictRealism) {
     sections.push(buildPhotographicRealismLock())

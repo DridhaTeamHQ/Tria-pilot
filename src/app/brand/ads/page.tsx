@@ -56,6 +56,7 @@ import {
   ASPECT_RATIO_OPTIONS,
   CAMERA_ANGLE_OPTIONS,
   getPresetsByCategory,
+  getAdPresetList,
   resolveStylePackForPreset,
   validateAdInput,
   type AdPresetId,
@@ -126,7 +127,7 @@ const ICON_MAP: Record<string, ReactNode> = {
 export default function AdsPage() {
   // Form
   const [selectedPreset, setSelectedPreset] = useState<AdPresetId | null>(null)
-  const [activeCategory, setActiveCategory] = useState<AdPresetCategory>('ugc')
+  const [activeCategory, setActiveCategory] = useState<AdPresetCategory | 'all'>('all')
   const [productImage, setProductImage] = useState('')
   const [influencerImage, setInfluencerImage] = useState('')
   const [lockFaceIdentity, setLockFaceIdentity] = useState(false)
@@ -135,6 +136,8 @@ export default function AdsPage() {
   const [animalType, setAnimalType] = useState('')
   const [characterStyle, setCharacterStyle] = useState('')
   const [characterAge, setCharacterAge] = useState('')
+  const [subjectPose, setSubjectPose] = useState('auto')
+  const [subjectExpression, setSubjectExpression] = useState('auto')
   const [textHeadline, setTextHeadline] = useState('')
   const [textSubline, setTextSubline] = useState('')
   const [textTagline, setTextTagline] = useState('')
@@ -143,9 +146,9 @@ export default function AdsPage() {
   const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>(['instagram'])
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('1:1')
   const [cameraAngle, setCameraAngle] = useState<CameraAngle>('auto')
-  const [strictRealism, setStrictRealism] = useState(true)
-  const [textOpen, setTextOpen] = useState(false)
-  const [optionsOpen, setOptionsOpen] = useState(false)
+  const strictRealism = true
+  const [textOpen, setTextOpen] = useState(true)
+  const [optionsOpen, setOptionsOpen] = useState(true)
 
   // UI
   const [loading, setLoading] = useState(false)
@@ -153,6 +156,7 @@ export default function AdsPage() {
   const [retryAfterSeconds, setRetryAfterSeconds] = useState(0)
   const [generationStatus, setGenerationStatus] = useState<'idle' | 'submitting' | 'rate_limited' | 'busy' | 'error' | 'success'>('idle')
   const [generationStatusText, setGenerationStatusText] = useState('')
+  const [generationAttempt, setGenerationAttempt] = useState(0)
 
   const hasText = !!(textHeadline || textSubline || textTagline)
   const canSubmit = selectedPreset && selectedPlatforms.length > 0 && !loading && retryAfterSeconds <= 0
@@ -200,10 +204,13 @@ export default function AdsPage() {
 
   const handleGenerate = async () => {
     if (!selectedPreset) { toast.error('Select an ad style'); return }
+    const nextAttempt = generationAttempt + 1
+    setGenerationAttempt(nextAttempt)
 
     const isHuman = characterType === 'human_female' || characterType === 'human_male'
     const input: any = {
       preset: selectedPreset,
+      variationIndex: nextAttempt,
       stylePack: resolveStylePackForPreset(selectedPreset),
       productImage: productImage || undefined,
       influencerImage: influencerImage || undefined,
@@ -214,6 +221,12 @@ export default function AdsPage() {
       animalType: characterType === 'animal' ? (animalType || 'Fox') : undefined,
       characterStyle: isHuman ? (characterStyle || undefined) : undefined,
       characterAge: isHuman ? (characterAge || undefined) : undefined,
+      subject: isHuman
+        ? {
+            pose: subjectPose && subjectPose !== 'auto' ? subjectPose : undefined,
+            expression: subjectExpression && subjectExpression !== 'auto' ? subjectExpression : undefined,
+          }
+        : undefined,
       aspectRatio,
       cameraAngle,
       textOverlay: hasText ? {
@@ -286,7 +299,8 @@ export default function AdsPage() {
     a.click()
   }
 
-  const filteredPresets = getPresetsByCategory(activeCategory)
+  const visiblePresets =
+    activeCategory === 'all' ? getAdPresetList() : getPresetsByCategory(activeCategory)
 
   return (
     <motion.div
@@ -343,6 +357,18 @@ export default function AdsPage() {
                 <h2 className="text-lg md:text-xl font-black uppercase">Choose Style</h2>
               </div>
               <div className="flex flex-wrap gap-2 border-b-2 border-black pb-4">
+                <button
+                  onClick={() => setActiveCategory('all')}
+                  className={cn(
+                    'inline-flex items-center gap-2 rounded-lg border-2 border-black px-3 py-2 text-xs font-black uppercase transition-all duration-200',
+                    activeCategory === 'all'
+                      ? 'bg-black text-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                      : 'bg-[#FFF8E6] text-black hover:-translate-y-0.5 hover:bg-[#FFD93D]'
+                  )}
+                >
+                  <Sparkles className="h-4 w-4" />
+                  All Cinematic
+                </button>
                 {AD_PRESET_CATEGORIES.map((cat) => (
                   <button
                     key={cat.id}
@@ -367,7 +393,7 @@ export default function AdsPage() {
                 key={activeCategory}
                 className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
               >
-                {filteredPresets.map((preset) => (
+                {visiblePresets.map((preset) => (
                   <motion.button
                     key={preset.id}
                     variants={staggerItem}
@@ -391,6 +417,9 @@ export default function AdsPage() {
                       <div>
                         <p className="text-sm font-black uppercase leading-tight">{preset.name}</p>
                         <p className="mt-1 text-xs font-medium text-black/70">{preset.description}</p>
+                        <p className="mt-1 text-[10px] font-black uppercase tracking-wide text-black/75">
+                          Cinematic Production Quality
+                        </p>
                         <div className="mt-2 flex flex-wrap gap-1">
                           <span
                             className={cn(
@@ -482,6 +511,8 @@ export default function AdsPage() {
                           if (opt.value !== 'human_female' && opt.value !== 'human_male') {
                             setCharacterIdentity('global_modern')
                             setCharacterStyle('')
+                            setSubjectPose('auto')
+                            setSubjectExpression('auto')
                           }
                         }}
                         className={cn(
@@ -542,6 +573,46 @@ export default function AdsPage() {
                             ))}
                           </select>
                           <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-black" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                        <div className="rounded-md border-2 border-black bg-white p-2">
+                          <p className="mb-1 text-[9px] font-black uppercase tracking-wider text-black/60">Pose Direction</p>
+                          <div className="relative">
+                            <select
+                              value={subjectPose}
+                              onChange={(e) => setSubjectPose(e.target.value)}
+                              className="h-9 w-full cursor-pointer appearance-none rounded-md border-2 border-black bg-[#FFFDF5] pl-3 pr-8 py-1.5 text-[10px] font-black uppercase tracking-wide outline-none focus:ring-2 focus:ring-black/20"
+                            >
+                              <option value="auto">Auto (Intelligent)</option>
+                              <option value="dynamic, editorial">Dynamic Editorial</option>
+                              <option value="low-angle crouch, sneaker-forward">Low-Angle Crouch</option>
+                              <option value="strong forward step, one foot toward lens">Forward Step Hero</option>
+                              <option value="relaxed seated, lifestyle candid">Relaxed Seated</option>
+                              <option value="three-quarter standing, fashion posture">Three-Quarter Standing</option>
+                              <option value="side profile with clean silhouette">Side Profile</option>
+                            </select>
+                            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-black" />
+                          </div>
+                        </div>
+                        <div className="rounded-md border-2 border-black bg-white p-2">
+                          <p className="mb-1 text-[9px] font-black uppercase tracking-wider text-black/60">Expression</p>
+                          <div className="relative">
+                            <select
+                              value={subjectExpression}
+                              onChange={(e) => setSubjectExpression(e.target.value)}
+                              className="h-9 w-full cursor-pointer appearance-none rounded-md border-2 border-black bg-[#FFFDF5] pl-3 pr-8 py-1.5 text-[10px] font-black uppercase tracking-wide outline-none focus:ring-2 focus:ring-black/20"
+                            >
+                              <option value="auto">Auto (Intelligent)</option>
+                              <option value="confident, direct gaze">Confident Direct Gaze</option>
+                              <option value="calm, serious expression">Calm Serious</option>
+                              <option value="cool, detached attitude">Cool Detached</option>
+                              <option value="subtle smirk, rebellious">Subtle Smirk</option>
+                              <option value="energetic, playful confidence">Energetic Playful</option>
+                              <option value="introspective, thoughtful">Introspective</option>
+                            </select>
+                            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-black" />
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -740,18 +811,18 @@ export default function AdsPage() {
                           <div>
                             <p className="text-[10px] font-black uppercase tracking-wider">Strict Realism (Anti-AI)</p>
                             <p className="mt-1 text-[10px] font-semibold text-black/70">
-                              Enforces influencer-grade realism locks: camera physics, skin texture, and no invented brand text.
+                              Locked ON for cinematic production quality across all presets.
                             </p>
                           </div>
                           <button
                             type="button"
-                            onClick={() => setStrictRealism((v) => !v)}
                             className={cn(
                               'inline-flex items-center gap-1 rounded-md border-2 border-black px-2 py-1 text-[10px] font-black uppercase',
-                              strictRealism ? 'bg-[#B4F056]' : 'bg-white'
+                              'bg-[#B4F056]'
                             )}
+                            disabled
                           >
-                            {strictRealism ? 'ON' : 'OFF'}
+                            ON
                           </button>
                         </div>
                       </div>
