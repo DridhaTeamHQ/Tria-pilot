@@ -69,10 +69,11 @@ export function useCreateCampaign() {
   })
 }
 
-export function useUpdateCampaign(id: string) {
+export function useUpdateCampaign(id: string | null) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (payload: Partial<Campaign> & { audience?: Record<string, unknown>; creative?: Record<string, unknown> }) => {
+      if (!id) throw new Error('Campaign ID is required')
       const res = await fetch(`/api/campaigns/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },

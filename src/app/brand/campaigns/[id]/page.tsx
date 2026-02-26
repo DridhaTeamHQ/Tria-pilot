@@ -586,7 +586,7 @@ function RefineChatPanel({ campaignId, onStrategyUpdated, onClose }: {
 /* ━━━━━━━━━━━━━ MAIN PAGE ━━━━━━━━━━━━━ */
 export default function CampaignDetailPage() {
     const params = useParams<{ id: string }>()
-    const id = typeof params?.id === 'string' ? params.id : undefined
+    const id = typeof params?.id === 'string' ? params.id : null
     const router = useRouter()
     const { data: campaign, isLoading, error, refetch } = useCampaign(id)
     const updateMutation = useUpdateCampaign(id)
@@ -608,6 +608,7 @@ export default function CampaignDetailPage() {
     const handleDelete = useCallback(async () => {
         if (!confirm('Are you sure you want to delete this campaign? This cannot be undone.')) return
         setDeleting(true)
+        if (!id) return
         deleteMutation.mutate(id, {
             onSuccess: () => { toast.success('Campaign deleted'); router.push('/brand/campaigns') },
             onError: () => { toast.error('Failed to delete'); setDeleting(false) },
