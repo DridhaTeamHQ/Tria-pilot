@@ -2,21 +2,21 @@ import Link from "next/link";
 
 export default function Footer() {
     return (
-        <footer className="bg-[#F9F8F4] border-t-[3px] border-black py-16 md:py-20">
+        <footer className="bg-[var(--brutal-cream)]">
             <div className="mx-auto max-w-7xl px-6 md:px-8">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-10 md:gap-12">
                     <div className="space-y-4">
-                        <h3 className="text-xl font-black text-black tracking-tight">Kiwikoo</h3>
-                        <p className="text-sm text-black/70 font-medium leading-relaxed">
+                        <h3 className="text-xl font-black text-black uppercase tracking-tight">Kiwikoo</h3>
+                        <p className="text-sm text-black/70 font-bold leading-relaxed max-w-xs">
                             AI-powered fashion try-on marketplace connecting influencers and brands.
                         </p>
                     </div>
 
                     <div>
-                        <h4 className="font-bold mb-4 text-black uppercase tracking-wide text-sm">
+                        <h4 className="font-black mb-4 text-black uppercase tracking-wider text-xs">
                             Company
                         </h4>
-                        <ul className="space-y-2 text-sm font-medium text-black/70">
+                        <ul className="space-y-2 text-sm font-bold text-black/70">
                             <li>
                                 <Link href="/about" className="hover:text-black hover:underline">
                                     About Us
@@ -46,15 +46,12 @@ export default function Footer() {
                     </div>
 
                     <div>
-                        <h4 className="font-bold mb-4 text-black uppercase tracking-wide text-sm">
+                        <h4 className="font-black mb-4 text-black uppercase tracking-wider text-xs">
                             Features
                         </h4>
-                        <ul className="space-y-2 text-sm font-medium text-black/70">
+                        <ul className="space-y-2 text-sm font-bold text-black/70">
                             <li>
-                                <Link
-                                    href="/influencer/try-on"
-                                    className="hover:text-black hover:underline"
-                                >
+                                <Link href="/influencer/try-on" className="hover:text-black hover:underline">
                                     Virtual Try-On
                                 </Link>
                             </li>
@@ -64,18 +61,12 @@ export default function Footer() {
                                 </Link>
                             </li>
                             <li>
-                                <Link
-                                    href="/brand/campaigns"
-                                    className="hover:text-black hover:underline"
-                                >
+                                <Link href="/brand/campaigns" className="hover:text-black hover:underline">
                                     Campaigns
                                 </Link>
                             </li>
                             <li>
-                                <Link
-                                    href="/influencer/dashboard"
-                                    className="hover:text-black hover:underline"
-                                >
+                                <Link href="/influencer/dashboard" className="hover:text-black hover:underline">
                                     Dashboard
                                 </Link>
                             </li>
@@ -83,10 +74,10 @@ export default function Footer() {
                     </div>
 
                     <div>
-                        <h4 className="font-bold mb-4 text-black uppercase tracking-wide text-sm">
+                        <h4 className="font-black mb-4 text-black uppercase tracking-wider text-xs">
                             Legal
                         </h4>
-                        <ul className="space-y-2 text-sm font-medium text-black/70">
+                        <ul className="space-y-2 text-sm font-bold text-black/70">
                             <li>
                                 <Link href="/privacy" className="hover:text-black hover:underline">
                                     Privacy Policy
@@ -106,7 +97,7 @@ export default function Footer() {
                     </div>
                 </div>
 
-                <div className="mt-16 pt-8 border-t-[3px] border-black flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-medium text-black/60">
+                <div className="mt-16 pt-8 border-t-[4px] border-black flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-bold text-black/60">
                     <p>&copy; 2026 Kiwikoo. All rights reserved.</p>
                     <div className="flex gap-4">
                         <span>English (US)</span>

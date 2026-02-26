@@ -1,7 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import {
     Sparkles,
     Users,
@@ -11,6 +12,8 @@ import {
     User,
     LogOut,
     ImageIcon,
+    Menu,
+    X,
 } from 'lucide-react'
 
 const navItems = [
@@ -29,7 +32,7 @@ interface BrandNavbarProps {
 
 export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
     const pathname = usePathname()
-    const router = useRouter()
+    const [mobileOpen, setMobileOpen] = useState(false)
 
     const handleLogout = async () => {
         window.location.href = '/api/auth/logout'
@@ -37,8 +40,8 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
 
     return (
         <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b-[3px] border-black">
-            <div className="container mx-auto px-6">
-                <div className="flex items-center justify-between h-16">
+            <div className="container mx-auto px-4 sm:px-6">
+                <div className="flex items-center justify-between h-14 md:h-16">
                     {/* Logo */}
                     <Link
                         href="/brand/dashboard"
@@ -47,7 +50,7 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
                         <span>Kiwikoo</span>
                     </Link>
 
-                    {/* Navigation Links */}
+                    {/* Desktop Navigation Links */}
                     <div className="hidden md:flex items-center gap-2">
                         {navItems.map((item) => {
                             const isActive = pathname === item.href ||
@@ -73,8 +76,8 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
                         })}
                     </div>
 
-                    {/* User Section */}
-                    <div className="flex items-center gap-3">
+                    {/* Desktop User Section */}
+                    <div className="hidden md:flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-[#B4F056] border-2 border-black flex items-center justify-center font-bold text-sm">
                             {brandName?.charAt(0)?.toUpperCase() || 'B'}
                         </div>
@@ -87,34 +90,61 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
                             <span>Logout</span>
                         </button>
                     </div>
-                </div>
 
-                {/* Mobile Navigation */}
-                <div className="md:hidden flex items-center gap-2 pb-3 overflow-x-auto">
-                    {navItems.map((item) => {
-                        const isActive = pathname === item.href ||
-                            pathname?.startsWith(item.href + '/')
-
-                        return (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                className={`
-                                    flex items-center gap-1.5 px-3 py-1.5 font-medium text-xs whitespace-nowrap
-                                    rounded-full border-2 border-black transition-all
-                                    ${isActive
-                                        ? 'bg-[#B4F056]'
-                                        : 'bg-white'
-                                    }
-                                `}
-                            >
-                                <item.icon className="w-3.5 h-3.5" strokeWidth={2} />
-                                <span>{item.label}</span>
-                            </Link>
-                        )
-                    })}
+                    {/* Mobile hamburger */}
+                    <button
+                        className="md:hidden p-2 rounded-xl border-2 border-black bg-white hover:bg-gray-50 transition-colors"
+                        onClick={() => setMobileOpen(!mobileOpen)}
+                    >
+                        {mobileOpen
+                            ? <X className="w-5 h-5 text-black" />
+                            : <Menu className="w-5 h-5 text-black" />
+                        }
+                    </button>
                 </div>
             </div>
+
+            {/* Mobile Menu */}
+            {mobileOpen && (
+                <div className="md:hidden bg-white border-t-2 border-black animate-[slideDown_0.2s_ease-out]">
+                    <style>{`@keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+                    <div className="container mx-auto px-4 py-3 space-y-1.5">
+                        {navItems.map((item) => {
+                            const isActive = pathname === item.href ||
+                                pathname?.startsWith(item.href + '/')
+
+                            return (
+                                <Link
+                                    key={item.href}
+                                    href={item.href}
+                                    onClick={() => setMobileOpen(false)}
+                                    className={`
+                                        flex items-center gap-3 px-4 py-2.5 font-medium text-sm
+                                        rounded-xl border-2 border-black transition-all
+                                        ${isActive
+                                            ? 'bg-[#B4F056] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                                            : 'bg-white hover:bg-gray-50'
+                                        }
+                                    `}
+                                >
+                                    <item.icon className="w-4 h-4" strokeWidth={2} />
+                                    <span>{item.label}</span>
+                                </Link>
+                            )
+                        })}
+
+                        <div className="pt-2 border-t-2 border-black mt-2">
+                            <button
+                                onClick={() => { setMobileOpen(false); handleLogout() }}
+                                className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-red-600 bg-white border-2 border-black hover:bg-red-50 transition-colors font-medium text-sm"
+                            >
+                                <LogOut className="w-4 h-4" strokeWidth={2} />
+                                Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </nav>
     )
 }

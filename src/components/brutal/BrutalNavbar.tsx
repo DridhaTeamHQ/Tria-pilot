@@ -29,7 +29,7 @@ export default function BrutalNavbar() {
     const { data: user, isLoading } = useUser();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-    // Hide on auth/utility pages, admin routes, onboarding, and pending approval
+    // Hide on auth/utility pages, admin routes, onboarding, pending approval, and brand pages (BrandNavbar handles those)
     const isAuthPage =
         pathname?.startsWith("/login") ||
         pathname?.startsWith("/register") ||
@@ -40,7 +40,8 @@ export default function BrutalNavbar() {
         pathname?.startsWith("/complete-profile") ||
         pathname?.startsWith("/onboarding") ||
         pathname?.startsWith("/influencer/pending") ||
-        pathname?.startsWith("/admin");
+        pathname?.startsWith("/admin") ||
+        pathname?.startsWith("/brand");
 
     const handleLogout = useCallback(async () => {
         try {
