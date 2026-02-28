@@ -35,7 +35,8 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
     const [mobileOpen, setMobileOpen] = useState(false)
 
     const handleLogout = async () => {
-        window.location.href = '/api/auth/logout'
+        await fetch('/api/auth/logout', { method: 'POST' })
+        window.location.href = '/login'
     }
 
     return (

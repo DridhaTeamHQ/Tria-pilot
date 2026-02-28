@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "typecheck": "tsc --noEmit",
-    "worker:tryon": "tsx src/workers/tryon-worker.ts"
+    "worker:tryon": "tsx src/workers/tryon-worker.ts",
+    "check:ad-presets": "node scripts/check-ad-presets.js"
   },
   "dependencies": {
     "@google/genai": "^1.30.0",

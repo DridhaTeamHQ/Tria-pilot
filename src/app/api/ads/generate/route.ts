@@ -294,14 +294,16 @@ export async function POST(request: Request) {
     const noTextRule = hasTextContent ? '' : ' CRITICAL: Do NOT include any text, letters, numbers, logos, watermarks, UI, or typography anywhere in the image.'
     const QUALITY_PREAMBLE = `Create one single, production-grade ad photograph for a premium brand campaign.
 The result must be photoreal, commercial, and human-shot in style (not AI-looking, not illustration, not 3D render).
-Use clean composition with a clear hero subject, natural anatomy, realistic hands, and physically correct lighting.
-Preserve micro details: skin texture, fabric weave, material reflections, and true-to-life color.
+Use clean composition with a clear hero subject, natural anatomy, realistic hands with correct finger count, and physically correct lighting.
+Preserve micro details: skin pores, vellus hair (peach fuzz), fabric weave, material reflections, and true-to-life color.
 Professional camera language: intentional framing, depth, and focus falloff with strong subject-product readability.
 Background realism lock: keep environment structure readable (architecture, roads, textures); avoid generic creamy blur or background mush unless physically motivated by motion.
+POSE MANDATE: If a human is present, they must be in a DYNAMIC, ASYMMETRIC pose - NOT standing straight with arms at sides. Body must show weight distribution, one hand must be engaged (touching hair, gripping fabric, adjusting accessory), and the body must show natural gravitational pull. NO static catalog poses, NO symmetrical stiffness.
+EXPRESSION MANDATE: If a human is present, the face must express a SPECIFIC EMOTION with micro-muscle engagement - crinkled eyes, lifted cheek, parted lips, furrowed brow, jaw tension. NO blank stares, NO flat neutral faces, NO dead mannequin eyes.
 Output should feel editorial plus conversion-ready, suitable for top-tier social ads and landing pages.
 Avoid low-quality artifacts: blur mush, warped geometry, duplicate limbs, extra fingers, over-smoothing, posterization, and noisy edges.
-If humans are present, facial realism is non-negotiable: visible pores, natural asymmetry, realistic under-eye/skin texture, consistent skin tone across face and neck.
-Do NOT output waxy/plastic/clay skin, porcelain beauty-filter faces, mannequin-like expressions, or CGI facial surfaces.
+If humans are present, facial realism is non-negotiable: visible pores, natural asymmetry, realistic under-eye texture with fine creases and slight puffiness, consistent skin tone across face and neck, natural sebaceous shine on forehead and nose, individual eyelash strands at varying angles.
+Do NOT output waxy/plastic/clay skin, porcelain beauty-filter faces, mannequin-like expressions, CGI facial surfaces, or perfectly symmetrical features.
 Return exactly one final ad image.${noTextRule}
 
 `

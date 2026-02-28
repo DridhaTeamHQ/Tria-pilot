@@ -50,8 +50,7 @@ import {
   CHARACTER_IDENTITY_OPTIONS,
   ANIMAL_OPTIONS,
   CHARACTER_STYLE_OPTIONS,
-  FONT_STYLE_OPTIONS,
-  TEXT_PLACEMENT_OPTIONS,
+
   PLATFORM_OPTIONS,
   ASPECT_RATIO_OPTIONS,
   CAMERA_ANGLE_OPTIONS,
@@ -65,8 +64,7 @@ import {
   type CtaType,
   type CharacterType,
   type CharacterIdentity,
-  type FontStyle,
-  type TextPlacement,
+
   type AspectRatio,
   type CameraAngle,
 } from '@/lib/ads/ad-styles'
@@ -141,8 +139,7 @@ export default function AdsPage() {
   const [textHeadline, setTextHeadline] = useState('')
   const [textSubline, setTextSubline] = useState('')
   const [textTagline, setTextTagline] = useState('')
-  const [textPlacement, setTextPlacement] = useState<TextPlacement>('center')
-  const [textFontStyle, setTextFontStyle] = useState<FontStyle>('bold-display')
+
   const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>(['instagram'])
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('1:1')
   const [cameraAngle, setCameraAngle] = useState<CameraAngle>('auto')
@@ -163,8 +160,8 @@ export default function AdsPage() {
   const visibleIdentityOptions =
     characterType === 'human_female' || characterType === 'human_male'
       ? CHARACTER_IDENTITY_OPTIONS.filter((opt) =>
-          !opt.forCharacter || opt.forCharacter.includes(characterType)
-        )
+        !opt.forCharacter || opt.forCharacter.includes(characterType)
+      )
       : CHARACTER_IDENTITY_OPTIONS
 
   // Countdown for rate limit / in-flight wait
@@ -223,9 +220,9 @@ export default function AdsPage() {
       characterAge: isHuman ? (characterAge || undefined) : undefined,
       subject: isHuman
         ? {
-            pose: subjectPose && subjectPose !== 'auto' ? subjectPose : undefined,
-            expression: subjectExpression && subjectExpression !== 'auto' ? subjectExpression : undefined,
-          }
+          pose: subjectPose && subjectPose !== 'auto' ? subjectPose : undefined,
+          expression: subjectExpression && subjectExpression !== 'auto' ? subjectExpression : undefined,
+        }
         : undefined,
       aspectRatio,
       cameraAngle,
@@ -233,8 +230,7 @@ export default function AdsPage() {
         headline: textHeadline || undefined,
         subline: textSubline || undefined,
         tagline: textTagline || undefined,
-        placement: textPlacement,
-        fontStyle: textFontStyle,
+
       } : undefined,
       ctaType: 'shop_now' as CtaType,
       platforms: selectedPlatforms,
@@ -351,486 +347,469 @@ export default function AdsPage() {
         <div className="grid items-start gap-5 lg:grid-cols-[1fr_420px] lg:gap-6">
           <div className="space-y-6">
             <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.35 }}>
-            <BrutalCard className="rounded-2xl p-4 md:p-6">
-              <div className="mb-4 flex items-center gap-3">
-                <span className="flex h-8 w-8 items-center justify-center border-2 border-black bg-black text-xs font-black text-white">1</span>
-                <h2 className="text-lg md:text-xl font-black uppercase">Choose Style</h2>
-              </div>
-              <div className="flex flex-wrap gap-2 border-b-2 border-black pb-4">
-                <button
-                  onClick={() => setActiveCategory('all')}
-                  className={cn(
-                    'inline-flex items-center gap-2 rounded-lg border-2 border-black px-3 py-2 text-xs font-black uppercase transition-all duration-200',
-                    activeCategory === 'all'
-                      ? 'bg-black text-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
-                      : 'bg-[#FFF8E6] text-black hover:-translate-y-0.5 hover:bg-[#FFD93D]'
-                  )}
-                >
-                  <Sparkles className="h-4 w-4" />
-                  All Cinematic
-                </button>
-                {AD_PRESET_CATEGORIES.map((cat) => (
+              <BrutalCard className="rounded-2xl p-4 md:p-6">
+                <div className="mb-4 flex items-center gap-3">
+                  <span className="flex h-8 w-8 items-center justify-center border-2 border-black bg-black text-xs font-black text-white">1</span>
+                  <h2 className="text-lg md:text-xl font-black uppercase">Choose Style</h2>
+                </div>
+                <div className="flex flex-wrap gap-2 border-b-2 border-black pb-4">
                   <button
-                    key={cat.id}
-                    onClick={() => setActiveCategory(cat.id)}
+                    onClick={() => setActiveCategory('all')}
                     className={cn(
                       'inline-flex items-center gap-2 rounded-lg border-2 border-black px-3 py-2 text-xs font-black uppercase transition-all duration-200',
-                      activeCategory === cat.id
+                      activeCategory === 'all'
                         ? 'bg-black text-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
                         : 'bg-[#FFF8E6] text-black hover:-translate-y-0.5 hover:bg-[#FFD93D]'
                     )}
                   >
-                    {ICON_MAP[cat.icon]}
-                    {cat.label}
+                    <Sparkles className="h-4 w-4" />
+                    All Cinematic
                   </button>
-                ))}
-              </div>
+                  {AD_PRESET_CATEGORIES.map((cat) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => setActiveCategory(cat.id)}
+                      className={cn(
+                        'inline-flex items-center gap-2 rounded-lg border-2 border-black px-3 py-2 text-xs font-black uppercase transition-all duration-200',
+                        activeCategory === cat.id
+                          ? 'bg-black text-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                          : 'bg-[#FFF8E6] text-black hover:-translate-y-0.5 hover:bg-[#FFD93D]'
+                      )}
+                    >
+                      {ICON_MAP[cat.icon]}
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
 
-              <motion.div
-                variants={staggerContainer}
-                initial="initial"
-                animate="animate"
-                key={activeCategory}
-                className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
-              >
-                {visiblePresets.map((preset) => (
-                  <motion.button
-                    key={preset.id}
-                    variants={staggerItem}
-                    whileHover={{ y: -3, scale: 1.01 }}
-                    transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-                    onClick={() => setSelectedPreset(preset.id)}
-                    className={cn(
-                      'relative rounded-xl border-[3px] border-black p-4 text-left transition-all',
-                      selectedPreset === preset.id
-                        ? 'bg-[#FFD93D] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
-                        : 'bg-white hover:bg-[#FFF3BF] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
-                    )}
-                  >
-                    <div className="flex items-start gap-3">
-                      <span className={cn(
-                        'inline-flex h-9 w-9 items-center justify-center border-2 border-black',
-                        selectedPreset === preset.id ? 'bg-black text-white' : 'bg-[#B4F056] text-black'
-                      )}>
-                        {ICON_MAP[preset.icon] ?? <Sparkles className="h-4 w-4" />}
-                      </span>
-                      <div>
-                        <p className="text-sm font-black uppercase leading-tight">{preset.name}</p>
-                        <p className="mt-1 text-xs font-medium text-black/70">{preset.description}</p>
-                        <p className="mt-1 text-[10px] font-black uppercase tracking-wide text-black/75">
-                          Cinematic Production Quality
-                        </p>
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          <span
-                            className={cn(
-                              'rounded-md border border-black px-1.5 py-0.5 text-[9px] font-black uppercase',
-                              preset.tier === 'safe'
-                                ? 'bg-[#B4F056]'
-                                : preset.tier === 'bold'
-                                  ? 'bg-[#FFD93D]'
-                                  : 'bg-[#FF8C69]'
+                <motion.div
+                  variants={staggerContainer}
+                  initial="initial"
+                  animate="animate"
+                  key={activeCategory}
+                  className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+                >
+                  {visiblePresets.map((preset) => {
+                    const isCinematic = preset.category === 'cinematic'
+                    return (
+                      <motion.button
+                        key={preset.id}
+                        variants={staggerItem}
+                        whileHover={{ y: -3, scale: 1.01 }}
+                        transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+                        onClick={() => setSelectedPreset(preset.id)}
+                        className={cn(
+                          'relative rounded-xl border-[3px] border-black p-4 text-left transition-all',
+                          selectedPreset === preset.id
+                            ? isCinematic
+                              ? 'bg-gradient-to-br from-[#E8D5F5] to-[#FFD93D] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+                              : 'bg-[#FFD93D] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+                            : isCinematic
+                              ? 'bg-gradient-to-br from-[#FAF5FF] to-white hover:from-[#F3E8FF] hover:to-[#FFF3BF] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                              : 'bg-white hover:bg-[#FFF3BF] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                        )}
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className={cn(
+                            'inline-flex h-9 w-9 items-center justify-center border-2 border-black',
+                            selectedPreset === preset.id
+                              ? 'bg-black text-white'
+                              : isCinematic
+                                ? 'bg-[#D8B4FE] text-black'
+                                : 'bg-[#B4F056] text-black'
+                          )}>
+                            {ICON_MAP[preset.icon] ?? <Sparkles className="h-4 w-4" />}
+                          </span>
+                          <div>
+                            <p className="text-sm font-black uppercase leading-tight">{preset.name}</p>
+                            <p className="mt-1 text-xs font-medium text-black/70">{preset.description}</p>
+                            {isCinematic && (
+                              <p className="mt-1 text-[10px] font-black uppercase tracking-wide text-purple-700">
+                                ✦ Cinematic Production Quality
+                              </p>
                             )}
-                          >
-                            {preset.tier}
-                          </span>
-                          <span className="rounded-md border border-black bg-white px-1.5 py-0.5 text-[9px] font-black uppercase">
-                            {preset.stability}
-                          </span>
-                          <span className="rounded-md border border-black bg-[#FFF8E6] px-1.5 py-0.5 text-[9px] font-black uppercase">
-                            {preset.pack}
-                          </span>
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {isCinematic && (
+                                <span className="rounded-md border border-purple-800 bg-purple-100 px-1.5 py-0.5 text-[9px] font-black uppercase text-purple-800">
+                                  Cinematic
+                                </span>
+                              )}
+                              <span
+                                className={cn(
+                                  'rounded-md border border-black px-1.5 py-0.5 text-[9px] font-black uppercase',
+                                  preset.tier === 'safe'
+                                    ? 'bg-[#B4F056]'
+                                    : preset.tier === 'bold'
+                                      ? 'bg-[#FFD93D]'
+                                      : 'bg-[#FF8C69]'
+                                )}
+                              >
+                                {preset.tier}
+                              </span>
+                              <span className="rounded-md border border-black bg-white px-1.5 py-0.5 text-[9px] font-black uppercase">
+                                {preset.stability}
+                              </span>
+                              <span className="rounded-md border border-black bg-[#FFF8E6] px-1.5 py-0.5 text-[9px] font-black uppercase">
+                                {preset.pack}
+                              </span>
+                            </div>
+                            <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-black/55">
+                              Best for: {preset.platforms.map((p) => (p === 'google' ? 'Google' : p)).join(' / ')}
+                            </p>
+                          </div>
                         </div>
-                        <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-black/55">
-                          Best for: {preset.platforms.map((p) => (p === 'google' ? 'Google' : p)).join(' / ')}
-                        </p>
-                      </div>
-                    </div>
-                    {selectedPreset === preset.id && (
-                      <span className="absolute right-2 top-2 inline-flex h-5 w-5 items-center justify-center rounded-md border-2 border-black bg-white">
-                        <Check className="h-3 w-3" />
-                      </span>
-                    )}
-                  </motion.button>
-                ))}
-              </motion.div>
-            </BrutalCard>
+                        {selectedPreset === preset.id && (
+                          <span className="absolute right-2 top-2 inline-flex h-5 w-5 items-center justify-center rounded-md border-2 border-black bg-white">
+                            <Check className="h-3 w-3" />
+                          </span>
+                        )}
+                      </motion.button>
+                    )
+                  })}
+                </motion.div>
+              </BrutalCard>
             </motion.div>
 
             <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.35, delay: 0.04 }}>
-            <BrutalCard className="rounded-2xl p-4 md:p-6">
-              <div className="mb-4 flex items-center gap-3">
-                <span className="flex h-8 w-8 items-center justify-center border-2 border-black bg-black text-xs font-black text-white">2</span>
-                <h2 className="text-lg md:text-xl font-black uppercase">Assets & Model</h2>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="flex flex-col gap-3 rounded-xl border-[3px] border-black bg-[#FFF3BF] p-3">
-                  <p className="text-[11px] font-black uppercase tracking-wider">Product Image</p>
-                  {productImage ? (
-                    <div className="relative aspect-[4/3] overflow-hidden rounded-lg border-2 border-black">
-                      <img src={productImage} alt="Product" className="h-full w-full object-cover" />
-                      <button
-                        onClick={() => setProductImage('')}
-                        className="absolute top-2 right-2 inline-flex h-7 w-7 items-center justify-center rounded-md border-2 border-black bg-white"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="flex aspect-[4/3] cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-[3px] border-dashed border-black bg-white p-4 text-center transition-colors hover:bg-[#FFD93D]/80">
-                      <Upload className="h-6 w-6" />
-                      <span className="text-xs font-black uppercase">Upload Product</span>
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'product')} />
-                    </label>
-                  )}
+              <BrutalCard className="rounded-2xl p-4 md:p-6">
+                <div className="mb-4 flex items-center gap-3">
+                  <span className="flex h-8 w-8 items-center justify-center border-2 border-black bg-black text-xs font-black text-white">2</span>
+                  <h2 className="text-lg md:text-xl font-black uppercase">Assets & Model</h2>
                 </div>
-
-                <div className="flex flex-col gap-3 rounded-xl border-[3px] border-black bg-[#FFE1D6] p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[11px] font-black uppercase tracking-wider">Model / Character</p>
-                    {influencerImage && (
-                      <button
-                        onClick={() => setLockFaceIdentity(!lockFaceIdentity)}
-                        className={cn(
-                          'inline-flex items-center gap-1 rounded-md border-2 border-black px-2 py-1 text-[10px] font-black uppercase',
-                          lockFaceIdentity ? 'bg-[#FFD93D]' : 'bg-white'
-                        )}
-                      >
-                        {lockFaceIdentity ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
-                        {lockFaceIdentity ? 'Locked' : 'Lock Face'}
-                      </button>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="flex flex-col gap-3 rounded-xl border-[3px] border-black bg-[#FFF3BF] p-3">
+                    <p className="text-[11px] font-black uppercase tracking-wider">Product Image</p>
+                    {productImage ? (
+                      <div className="relative aspect-[4/3] overflow-hidden rounded-lg border-2 border-black">
+                        <img src={productImage} alt="Product" className="h-full w-full object-cover" />
+                        <button
+                          onClick={() => setProductImage('')}
+                          className="absolute top-2 right-2 inline-flex h-7 w-7 items-center justify-center rounded-md border-2 border-black bg-white"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex aspect-[4/3] cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-[3px] border-dashed border-black bg-white p-4 text-center transition-colors hover:bg-[#FFD93D]/80">
+                        <Upload className="h-6 w-6" />
+                        <span className="text-xs font-black uppercase">Upload Product</span>
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'product')} />
+                      </label>
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    {CHARACTER_OPTIONS.map((opt) => (
-                      <button
-                        key={opt.value}
-                        onClick={() => {
-                          setCharacterType(opt.value as CharacterType)
-                          if (opt.value !== 'animal') setAnimalType('')
-                          if (opt.value !== 'human_female' && opt.value !== 'human_male') {
-                            setCharacterIdentity('global_modern')
-                            setCharacterStyle('')
-                            setSubjectPose('auto')
-                            setSubjectExpression('auto')
-                          }
-                        }}
-                        className={cn(
-                          'rounded-md border-2 border-black px-2 py-1.5 text-[10px] font-black uppercase transition-transform hover:-translate-y-0.5',
-                          characterType === opt.value ? 'bg-black text-white' : 'bg-white text-black'
-                        )}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {characterType === 'animal' && (
-                    <div className="flex flex-wrap gap-1">
-                      {ANIMAL_OPTIONS.slice(0, 6).map((a) => (
+                  <div className="flex flex-col gap-3 rounded-xl border-[3px] border-black bg-[#FFE1D6] p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[11px] font-black uppercase tracking-wider">Model / Character</p>
+                      {influencerImage && (
                         <button
-                          key={a}
-                          onClick={() => setAnimalType(a)}
+                          onClick={() => setLockFaceIdentity(!lockFaceIdentity)}
                           className={cn(
-                            'rounded-md border-2 border-black px-2 py-1 text-[10px] font-black uppercase',
-                            animalType === a ? 'bg-black text-white' : 'bg-white'
+                            'inline-flex items-center gap-1 rounded-md border-2 border-black px-2 py-1 text-[10px] font-black uppercase',
+                            lockFaceIdentity ? 'bg-[#FFD93D]' : 'bg-white'
                           )}
                         >
-                          {a}
+                          {lockFaceIdentity ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
+                          {lockFaceIdentity ? 'Locked' : 'Lock Face'}
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      {CHARACTER_OPTIONS.map((opt) => (
+                        <button
+                          key={opt.value}
+                          onClick={() => {
+                            setCharacterType(opt.value as CharacterType)
+                            if (opt.value !== 'animal') setAnimalType('')
+                            if (opt.value !== 'human_female' && opt.value !== 'human_male') {
+                              setCharacterIdentity('global_modern')
+                              setCharacterStyle('')
+                              setSubjectPose('auto')
+                              setSubjectExpression('auto')
+                            }
+                          }}
+                          className={cn(
+                            'rounded-md border-2 border-black px-2 py-1.5 text-[10px] font-black uppercase transition-transform hover:-translate-y-0.5',
+                            characterType === opt.value ? 'bg-black text-white' : 'bg-white text-black'
+                          )}
+                        >
+                          {opt.label}
                         </button>
                       ))}
                     </div>
-                  )}
 
-                  {(characterType === 'human_female' || characterType === 'human_male') && (
-                    <div className="space-y-2">
+                    {characterType === 'animal' && (
                       <div className="flex flex-wrap gap-1">
-                        {CHARACTER_STYLE_OPTIONS.slice(0, 6).map((s) => (
+                        {ANIMAL_OPTIONS.slice(0, 6).map((a) => (
                           <button
-                            key={s}
-                            onClick={() => setCharacterStyle(characterStyle === s ? '' : s)}
+                            key={a}
+                            onClick={() => setAnimalType(a)}
                             className={cn(
                               'rounded-md border-2 border-black px-2 py-1 text-[10px] font-black uppercase',
-                              characterStyle === s ? 'bg-black text-white' : 'bg-white'
+                              animalType === a ? 'bg-black text-white' : 'bg-white'
                             )}
                           >
-                            {s}
+                            {a}
                           </button>
                         ))}
                       </div>
-                      <div className="rounded-md border-2 border-black bg-white p-2">
-                        <p className="mb-1 text-[9px] font-black uppercase tracking-wider text-black/60">People Type</p>
-                        <div className="relative">
-                          <select
-                            value={characterIdentity}
-                            onChange={(e) => setCharacterIdentity(e.target.value as CharacterIdentity)}
-                            className="h-9 w-full cursor-pointer appearance-none rounded-md border-2 border-black bg-[#FFFDF5] pl-3 pr-8 py-1.5 text-[10px] font-black uppercase tracking-wide outline-none focus:ring-2 focus:ring-black/20"
-                          >
-                            {visibleIdentityOptions.map((opt) => (
-                              <option key={opt.value} value={opt.value}>
-                                {opt.label}
-                              </option>
-                            ))}
-                          </select>
-                          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-black" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                        <div className="rounded-md border-2 border-black bg-white p-2">
-                          <p className="mb-1 text-[9px] font-black uppercase tracking-wider text-black/60">Pose Direction</p>
-                          <div className="relative">
-                            <select
-                              value={subjectPose}
-                              onChange={(e) => setSubjectPose(e.target.value)}
-                              className="h-9 w-full cursor-pointer appearance-none rounded-md border-2 border-black bg-[#FFFDF5] pl-3 pr-8 py-1.5 text-[10px] font-black uppercase tracking-wide outline-none focus:ring-2 focus:ring-black/20"
-                            >
-                              <option value="auto">Auto (Intelligent)</option>
-                              <option value="dynamic, editorial">Dynamic Editorial</option>
-                              <option value="low-angle crouch, sneaker-forward">Low-Angle Crouch</option>
-                              <option value="strong forward step, one foot toward lens">Forward Step Hero</option>
-                              <option value="relaxed seated, lifestyle candid">Relaxed Seated</option>
-                              <option value="three-quarter standing, fashion posture">Three-Quarter Standing</option>
-                              <option value="side profile with clean silhouette">Side Profile</option>
-                            </select>
-                            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-black" />
-                          </div>
-                        </div>
-                        <div className="rounded-md border-2 border-black bg-white p-2">
-                          <p className="mb-1 text-[9px] font-black uppercase tracking-wider text-black/60">Expression</p>
-                          <div className="relative">
-                            <select
-                              value={subjectExpression}
-                              onChange={(e) => setSubjectExpression(e.target.value)}
-                              className="h-9 w-full cursor-pointer appearance-none rounded-md border-2 border-black bg-[#FFFDF5] pl-3 pr-8 py-1.5 text-[10px] font-black uppercase tracking-wide outline-none focus:ring-2 focus:ring-black/20"
-                            >
-                              <option value="auto">Auto (Intelligent)</option>
-                              <option value="confident, direct gaze">Confident Direct Gaze</option>
-                              <option value="calm, serious expression">Calm Serious</option>
-                              <option value="cool, detached attitude">Cool Detached</option>
-                              <option value="subtle smirk, rebellious">Subtle Smirk</option>
-                              <option value="energetic, playful confidence">Energetic Playful</option>
-                              <option value="introspective, thoughtful">Introspective</option>
-                            </select>
-                            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-black" />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                    )}
 
-                  {influencerImage ? (
-                    <div className="relative mt-auto aspect-[4/3] overflow-hidden rounded-lg border-2 border-black">
-                      <img src={influencerImage} alt="Model" className="h-full w-full object-cover" />
-                      <button
-                        onClick={() => {
-                          setInfluencerImage('')
-                          setLockFaceIdentity(false)
-                        }}
-                        className="absolute top-2 right-2 inline-flex h-7 w-7 items-center justify-center rounded-md border-2 border-black bg-white"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="mt-auto flex aspect-[4/3] cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-[3px] border-dashed border-black bg-white p-4 text-center transition-colors hover:bg-[#FF8C69]/75">
-                      <User className="h-6 w-6" />
-                      <span className="text-xs font-black uppercase">Reference Face</span>
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'influencer')} />
-                    </label>
-                  )}
-                </div>
-              </div>
-            </BrutalCard>
-            </motion.div>
-
-            <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.35, delay: 0.06 }}>
-            <BrutalCard className="overflow-hidden rounded-2xl">
-              <button
-                onClick={() => setTextOpen(!textOpen)}
-                className="flex w-full items-center justify-between border-b-[3px] border-black bg-[#B4F056] px-4 py-4 md:px-5"
-              >
-                <span className="text-sm font-black uppercase flex items-center gap-2">
-                  <Type className="h-4 w-4" />
-                  Typography
-                  {hasText && <span className="border-2 border-black bg-white px-2 py-0.5 text-[10px]">Active</span>}
-                </span>
-                {textOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              </button>
-              <AnimatePresence>
-                {textOpen && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="space-y-4 bg-white p-4 md:p-5">
-                      <Input
-                        placeholder="Headline (e.g. JUST DO IT)"
-                        value={textHeadline}
-                        onChange={(e) => setTextHeadline(e.target.value)}
-                        className="h-11 rounded-lg border-[2px] border-black text-sm font-bold placeholder:text-black/40"
-                      />
-                      <Input
-                        placeholder="Subline (optional)"
-                        value={textSubline}
-                        onChange={(e) => setTextSubline(e.target.value)}
-                        className="h-11 rounded-lg border-[2px] border-black text-sm font-semibold placeholder:text-black/40"
-                      />
-                      <Input
-                        placeholder="Tagline / CTA"
-                        value={textTagline}
-                        onChange={(e) => setTextTagline(e.target.value)}
-                        className="h-11 rounded-lg border-[2px] border-black text-sm font-semibold placeholder:text-black/40"
-                      />
-
-                      <div className="grid gap-4 pt-1 md:grid-cols-2">
-                        <div>
-                          <p className="mb-2 text-[10px] font-black uppercase tracking-wider">Text Position</p>
-                          <div className="flex flex-wrap gap-1">
-                            {TEXT_PLACEMENT_OPTIONS.map((o) => (
-                              <button
-                                key={o.value}
-                                onClick={() => setTextPlacement(o.value as TextPlacement)}
-                                className={cn(
-                                  'rounded-md border-2 border-black px-2 py-1 text-[10px] font-black uppercase',
-                                  textPlacement === o.value ? 'bg-black text-white' : 'bg-white'
-                                )}
-                              >
-                                {o.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        <div>
-                          <p className="mb-2 text-[10px] font-black uppercase tracking-wider">Font Style</p>
-                          <div className="flex flex-wrap gap-1">
-                            {FONT_STYLE_OPTIONS.map((o) => (
-                              <button
-                                key={o.value}
-                                onClick={() => setTextFontStyle(o.value as FontStyle)}
-                                className={cn(
-                                  'rounded-md border-2 border-black px-2 py-1 text-[10px] font-black uppercase',
-                                  textFontStyle === o.value ? 'bg-black text-white' : 'bg-white'
-                                )}
-                              >
-                                {o.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </BrutalCard>
-            </motion.div>
-
-            <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.35, delay: 0.08 }}>
-            <BrutalCard className="overflow-hidden rounded-2xl">
-              <button
-                onClick={() => setOptionsOpen(!optionsOpen)}
-                className="flex w-full items-center justify-between border-b-[3px] border-black bg-[#FFD93D] px-4 py-4 md:px-5"
-              >
-                <span className="text-sm font-black uppercase flex items-center gap-2">
-                  <Wand2 className="h-4 w-4" />
-                  Configuration
-                </span>
-                {optionsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              </button>
-              <AnimatePresence>
-                {optionsOpen && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="space-y-5 bg-white p-4 md:p-5">
-                      <div>
-                        <p className="mb-2 text-[10px] font-black uppercase tracking-wider">Aspect Ratio</p>
-                        <div className="flex flex-wrap gap-2">
-                          {ASPECT_RATIO_OPTIONS.map((opt) => (
+                    {(characterType === 'human_female' || characterType === 'human_male') && (
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap gap-1">
+                          {CHARACTER_STYLE_OPTIONS.slice(0, 6).map((s) => (
                             <button
-                              key={opt.value}
-                              onClick={() => setAspectRatio(opt.value)}
+                              key={s}
+                              onClick={() => setCharacterStyle(characterStyle === s ? '' : s)}
                               className={cn(
-                                'rounded-md border-2 border-black px-3 py-2 text-xs font-black uppercase',
-                                aspectRatio === opt.value ? 'bg-black text-white' : 'bg-white'
+                                'rounded-md border-2 border-black px-2 py-1 text-[10px] font-black uppercase',
+                                characterStyle === s ? 'bg-black text-white' : 'bg-white'
                               )}
                             >
-                              {opt.label}
+                              {s}
                             </button>
                           ))}
                         </div>
+                        <div className="rounded-md border-2 border-black bg-white p-2">
+                          <p className="mb-1 text-[9px] font-black uppercase tracking-wider text-black/60">People Type</p>
+                          <div className="relative">
+                            <select
+                              value={characterIdentity}
+                              onChange={(e) => setCharacterIdentity(e.target.value as CharacterIdentity)}
+                              className="h-9 w-full cursor-pointer appearance-none rounded-md border-2 border-black bg-[#FFFDF5] pl-3 pr-8 py-1.5 text-[10px] font-black uppercase tracking-wide outline-none focus:ring-2 focus:ring-black/20"
+                            >
+                              {visibleIdentityOptions.map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </option>
+                              ))}
+                            </select>
+                            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-black" />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                          <div className="rounded-md border-2 border-black bg-white p-2">
+                            <p className="mb-1 text-[9px] font-black uppercase tracking-wider text-black/60">Pose Direction</p>
+                            <div className="relative">
+                              <select
+                                value={subjectPose}
+                                onChange={(e) => setSubjectPose(e.target.value)}
+                                className="h-9 w-full cursor-pointer appearance-none rounded-md border-2 border-black bg-[#FFFDF5] pl-3 pr-8 py-1.5 text-[10px] font-black uppercase tracking-wide outline-none focus:ring-2 focus:ring-black/20"
+                              >
+                                <option value="auto">Auto (Intelligent)</option>
+                                <option value="dynamic, editorial">Dynamic Editorial</option>
+                                <option value="low-angle crouch, sneaker-forward">Low-Angle Crouch</option>
+                                <option value="strong forward step, one foot toward lens">Forward Step Hero</option>
+                                <option value="relaxed seated, lifestyle candid">Relaxed Seated</option>
+                                <option value="three-quarter standing, fashion posture">Three-Quarter Standing</option>
+                                <option value="side profile with clean silhouette">Side Profile</option>
+                              </select>
+                              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-black" />
+                            </div>
+                          </div>
+                          <div className="rounded-md border-2 border-black bg-white p-2">
+                            <p className="mb-1 text-[9px] font-black uppercase tracking-wider text-black/60">Expression</p>
+                            <div className="relative">
+                              <select
+                                value={subjectExpression}
+                                onChange={(e) => setSubjectExpression(e.target.value)}
+                                className="h-9 w-full cursor-pointer appearance-none rounded-md border-2 border-black bg-[#FFFDF5] pl-3 pr-8 py-1.5 text-[10px] font-black uppercase tracking-wide outline-none focus:ring-2 focus:ring-black/20"
+                              >
+                                <option value="auto">Auto (Intelligent)</option>
+                                <option value="confident, direct gaze">Confident Direct Gaze</option>
+                                <option value="calm, serious expression">Calm Serious</option>
+                                <option value="cool, detached attitude">Cool Detached</option>
+                                <option value="subtle smirk, rebellious">Subtle Smirk</option>
+                                <option value="energetic, playful confidence">Energetic Playful</option>
+                                <option value="introspective, thoughtful">Introspective</option>
+                              </select>
+                              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-black" />
+                            </div>
+                          </div>
+                        </div>
                       </div>
+                    )}
 
-                      <div className="grid gap-4 md:grid-cols-2">
+                    {influencerImage ? (
+                      <div className="relative mt-auto aspect-[4/3] overflow-hidden rounded-lg border-2 border-black">
+                        <img src={influencerImage} alt="Model" className="h-full w-full object-cover" />
+                        <button
+                          onClick={() => {
+                            setInfluencerImage('')
+                            setLockFaceIdentity(false)
+                          }}
+                          className="absolute top-2 right-2 inline-flex h-7 w-7 items-center justify-center rounded-md border-2 border-black bg-white"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="mt-auto flex aspect-[4/3] cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-[3px] border-dashed border-black bg-white p-4 text-center transition-colors hover:bg-[#FF8C69]/75">
+                        <User className="h-6 w-6" />
+                        <span className="text-xs font-black uppercase">Reference Face</span>
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'influencer')} />
+                      </label>
+                    )}
+                  </div>
+                </div>
+              </BrutalCard>
+            </motion.div>
+
+            <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.35, delay: 0.06 }}>
+              <BrutalCard className="overflow-hidden rounded-2xl">
+                <button
+                  onClick={() => setTextOpen(!textOpen)}
+                  className="flex w-full items-center justify-between border-b-[3px] border-black bg-[#B4F056] px-4 py-4 md:px-5"
+                >
+                  <span className="text-sm font-black uppercase flex items-center gap-2">
+                    <Type className="h-4 w-4" />
+                    Typography
+                    {hasText && <span className="border-2 border-black bg-white px-2 py-0.5 text-[10px]">Active</span>}
+                  </span>
+                  {textOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </button>
+                <AnimatePresence>
+                  {textOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="space-y-4 bg-white p-4 md:p-5">
+                        <Input
+                          placeholder="Headline (e.g. JUST DO IT)"
+                          value={textHeadline}
+                          onChange={(e) => setTextHeadline(e.target.value)}
+                          className="h-11 rounded-lg border-[2px] border-black text-sm font-bold placeholder:text-black/40"
+                        />
+                        <Input
+                          placeholder="Subline (optional)"
+                          value={textSubline}
+                          onChange={(e) => setTextSubline(e.target.value)}
+                          className="h-11 rounded-lg border-[2px] border-black text-sm font-semibold placeholder:text-black/40"
+                        />
+                        <Input
+                          placeholder="Tagline / CTA"
+                          value={textTagline}
+                          onChange={(e) => setTextTagline(e.target.value)}
+                          className="h-11 rounded-lg border-[2px] border-black text-sm font-semibold placeholder:text-black/40"
+                        />
+
+
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </BrutalCard>
+            </motion.div>
+
+            <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.35, delay: 0.08 }}>
+              <BrutalCard className="overflow-hidden rounded-2xl">
+                <button
+                  onClick={() => setOptionsOpen(!optionsOpen)}
+                  className="flex w-full items-center justify-between border-b-[3px] border-black bg-[#FFD93D] px-4 py-4 md:px-5"
+                >
+                  <span className="text-sm font-black uppercase flex items-center gap-2">
+                    <Wand2 className="h-4 w-4" />
+                    Configuration
+                  </span>
+                  {optionsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </button>
+                <AnimatePresence>
+                  {optionsOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="space-y-5 bg-white p-4 md:p-5">
                         <div>
-                          <p className="mb-2 text-[10px] font-black uppercase tracking-wider">Platforms</p>
+                          <p className="mb-2 text-[10px] font-black uppercase tracking-wider">Aspect Ratio</p>
                           <div className="flex flex-wrap gap-2">
-                            {PLATFORM_OPTIONS.map((opt) => (
+                            {ASPECT_RATIO_OPTIONS.map((opt) => (
                               <button
                                 key={opt.value}
-                                onClick={() => togglePlatform(opt.value)}
+                                onClick={() => setAspectRatio(opt.value)}
                                 className={cn(
-                                  'inline-flex items-center gap-1 rounded-md border-2 border-black px-2 py-1.5 text-[10px] font-black uppercase',
-                                  selectedPlatforms.includes(opt.value) ? 'bg-[#B4F056]' : 'bg-white'
+                                  'rounded-md border-2 border-black px-3 py-2 text-xs font-black uppercase',
+                                  aspectRatio === opt.value ? 'bg-black text-white' : 'bg-white'
                                 )}
                               >
-                                {opt.value === 'instagram' && <Instagram className="h-3 w-3" />}
-                                {opt.value === 'facebook' && <Facebook className="h-3 w-3" />}
-                                {opt.value !== 'instagram' && opt.value !== 'facebook' && <Globe className="h-3 w-3" />}
                                 {opt.label}
                               </button>
                             ))}
                           </div>
                         </div>
-                        <div>
-                          <p className="mb-2 text-[10px] font-black uppercase tracking-wider">Camera Angle</p>
-                          <div className="flex flex-wrap gap-2">
-                            {CAMERA_ANGLE_OPTIONS.map((opt) => (
-                              <button
-                                key={opt.value}
-                                onClick={() => setCameraAngle(opt.value)}
-                                className={cn(
-                                  'rounded-md border-2 border-black px-2 py-1.5 text-[10px] font-black uppercase',
-                                  cameraAngle === opt.value ? 'bg-black text-white' : 'bg-white'
-                                )}
-                              >
-                                {opt.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
 
-                      <div className="rounded-lg border-[3px] border-black bg-[#FFF8E6] p-3">
-                        <div className="flex items-center justify-between gap-3">
+                        <div className="grid gap-4 md:grid-cols-2">
                           <div>
-                            <p className="text-[10px] font-black uppercase tracking-wider">Strict Realism (Anti-AI)</p>
-                            <p className="mt-1 text-[10px] font-semibold text-black/70">
-                              Locked ON for cinematic production quality across all presets.
-                            </p>
+                            <p className="mb-2 text-[10px] font-black uppercase tracking-wider">Platforms</p>
+                            <div className="flex flex-wrap gap-2">
+                              {PLATFORM_OPTIONS.map((opt) => (
+                                <button
+                                  key={opt.value}
+                                  onClick={() => togglePlatform(opt.value)}
+                                  className={cn(
+                                    'inline-flex items-center gap-1 rounded-md border-2 border-black px-2 py-1.5 text-[10px] font-black uppercase',
+                                    selectedPlatforms.includes(opt.value) ? 'bg-[#B4F056]' : 'bg-white'
+                                  )}
+                                >
+                                  {opt.value === 'instagram' && <Instagram className="h-3 w-3" />}
+                                  {opt.value === 'facebook' && <Facebook className="h-3 w-3" />}
+                                  {opt.value !== 'instagram' && opt.value !== 'facebook' && <Globe className="h-3 w-3" />}
+                                  {opt.label}
+                                </button>
+                              ))}
+                            </div>
                           </div>
-                          <button
-                            type="button"
-                            className={cn(
-                              'inline-flex items-center gap-1 rounded-md border-2 border-black px-2 py-1 text-[10px] font-black uppercase',
-                              'bg-[#B4F056]'
-                            )}
-                            disabled
-                          >
-                            ON
-                          </button>
+                          <div>
+                            <p className="mb-2 text-[10px] font-black uppercase tracking-wider">Camera Angle</p>
+                            <div className="flex flex-wrap gap-2">
+                              {CAMERA_ANGLE_OPTIONS.map((opt) => (
+                                <button
+                                  key={opt.value}
+                                  onClick={() => setCameraAngle(opt.value)}
+                                  className={cn(
+                                    'rounded-md border-2 border-black px-2 py-1.5 text-[10px] font-black uppercase',
+                                    cameraAngle === opt.value ? 'bg-black text-white' : 'bg-white'
+                                  )}
+                                >
+                                  {opt.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="rounded-lg border-[3px] border-black bg-[#FFF8E6] p-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="text-[10px] font-black uppercase tracking-wider">Strict Realism (Anti-AI)</p>
+                              <p className="mt-1 text-[10px] font-semibold text-black/70">
+                                Locked ON for cinematic production quality across all presets.
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              className={cn(
+                                'inline-flex items-center gap-1 rounded-md border-2 border-black px-2 py-1 text-[10px] font-black uppercase',
+                                'bg-[#B4F056]'
+                              )}
+                              disabled
+                            >
+                              ON
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </BrutalCard>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </BrutalCard>
             </motion.div>
 
             <motion.button
@@ -866,7 +845,7 @@ export default function AdsPage() {
                   'mt-3 rounded-lg border-2 px-3 py-2 text-[11px] font-black uppercase tracking-wide',
                   generationStatus === 'success' ? 'border-black bg-[#B4F056] text-black'
                     : generationStatus === 'error' ? 'border-black bg-[#FFE1D6] text-black'
-                    : 'border-black bg-[#FFF3BF] text-black'
+                      : 'border-black bg-[#FFF3BF] text-black'
                 )}
               >
                 {generationStatusText}

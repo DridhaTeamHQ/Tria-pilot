@@ -25,6 +25,18 @@ export const AD_PRESET_IDS = [
   'SPORTS_DYNAMIC',
   'PRODUCT_LIFESTYLE',
   'PERF_BEST_QUALITY',
+  'CINEMATIC_NEO_NOIR',
+  'CINEMATIC_STREET_CULTURE',
+  'CINEMATIC_JEWELRY_CLOSEUP',
+  'CINEMATIC_MINECRAFT_HYBRID',
+  'CINEMATIC_STUDIO_EDITORIAL',
+  'CINEMATIC_RETRO_FLIRTY',
+  'CINEMATIC_IPHONE_STREET',
+  'CINEMATIC_GOLDEN_GARDEN',
+  'UGC_POV_INFLUENCER',
+  'CREATIVE_BERAW_GLITCH',
+  'SPORTS_BOXING_ACTION',
+  'CINEMATIC_DARK_NEO_NOIR',
 ] as const
 
 export type AdPresetId = (typeof AD_PRESET_IDS)[number]
@@ -38,6 +50,7 @@ export type AdPresetCategory =
   | 'performance'
   | 'sports'
   | 'indian'
+  | 'cinematic'
 
 export type Platform = 'instagram' | 'facebook' | 'google' | 'influencer'
 
@@ -65,7 +78,7 @@ export type CharacterIdentity =
   | 'pacific_islander_modern'
 
 export type StylePack = 'luxury' | 'high_street' | 'sports'
-export type PresetTextSystem = 'luxury_masthead' | 'highstreet_panel' | 'sports_brush'
+export type PresetTextSystem = 'luxury_masthead' | 'highstreet_panel' | 'sports_brush' | 'cinematic_film_poster' | 'cinematic_bold_statement' | 'cinematic_magazine_editorial' | 'cinematic_street_poster' | 'cinematic_minimal_concept'
 
 export type FontStyle = 'serif' | 'sans-serif' | 'handwritten' | 'bold-display'
 
@@ -98,13 +111,13 @@ export interface TextOverlayConfig {
 }
 
 export interface AdPreset {
-    id: AdPresetId
-    name: string
-    description: string
+  id: AdPresetId
+  name: string
+  description: string
   category: AdPresetCategory
   icon: string
-    whenToUse: string[]
-    platforms: Platform[]
+  whenToUse: string[]
+  platforms: Platform[]
   /** Scene, lighting, and composition guidance for the prompt builder */
   sceneGuide: string
   /** Lighting description for consistency */
@@ -115,6 +128,35 @@ export interface AdPreset {
   avoid: string[]
 }
 
+function sanitizePresetCopy(text: string): string {
+  const replacements: Array<[RegExp, string]> = [
+    [/\bpaparazzi\b/gi, 'direct flash editorial'],
+    [/\bstreet surveillance footage\b/gi, 'candid documentary street photography'],
+    [/\bsurveillance\b/gi, 'documentary'],
+    [/\bperfectly mirroring the real human'?s pose\b/gi, 'standing in the same pose'],
+    [/\banatomically correct\b/gi, 'anatomically plausible'],
+    [/\bthrowing a powerful punch\b/gi, 'extending a boxing glove in a dynamic fitness pose'],
+    [/\bchopsticks aimed at face\b/gi, 'chopsticks held up near camera'],
+    [/\bMinecraft-style\b/gi, 'retro voxel style'],
+  ]
+
+  let out = text
+  for (const [pattern, replacement] of replacements) {
+    out = out.replace(pattern, replacement)
+  }
+  return out.replace(/\s{2,}/g, ' ').trim()
+}
+
+function sanitizePreset(preset: AdPreset): AdPreset {
+  return {
+    ...preset,
+    sceneGuide: sanitizePresetCopy(preset.sceneGuide),
+    lightingGuide: sanitizePresetCopy(preset.lightingGuide),
+    cameraGuide: sanitizePresetCopy(preset.cameraGuide),
+    avoid: Array.from(new Set(preset.avoid.map((t) => sanitizePresetCopy(t)).filter(Boolean))),
+  }
+}
+
 const PRESET_STYLE_PACK_OVERRIDES: Partial<Record<AdPresetId, StylePack>> = {
   EDITORIAL_PREMIUM: 'luxury',
   EDITORIAL_FASHION: 'luxury',
@@ -122,12 +164,44 @@ const PRESET_STYLE_PACK_OVERRIDES: Partial<Record<AdPresetId, StylePack>> = {
   PERF_BEST_QUALITY: 'luxury',
   SPORTS_DYNAMIC: 'sports',
   CREATIVE_CINEMATIC: 'sports',
+  CINEMATIC_NEO_NOIR: 'luxury',
+  CINEMATIC_JEWELRY_CLOSEUP: 'luxury',
+  CINEMATIC_STUDIO_EDITORIAL: 'luxury',
+  CINEMATIC_GOLDEN_GARDEN: 'luxury',
+  UGC_POV_INFLUENCER: 'high_street',
+  CREATIVE_BERAW_GLITCH: 'high_street',
+  SPORTS_BOXING_ACTION: 'sports',
+  CINEMATIC_DARK_NEO_NOIR: 'luxury',
 }
 
 const PRESET_TEXT_SYSTEM_OVERRIDES: Partial<Record<AdPresetId, PresetTextSystem>> = {
+  // ── Core presets ──
   EDITORIAL_PREMIUM: 'luxury_masthead',
   EDITORIAL_FASHION: 'luxury_masthead',
+  EDITORIAL_RETRO: 'luxury_masthead',
+  EDITORIAL_STREET: 'cinematic_bold_statement',
+  EDITORIAL_CONCEPTUAL: 'cinematic_minimal_concept',
   SPORTS_DYNAMIC: 'sports_brush',
+  CREATIVE_CINEMATIC: 'cinematic_street_poster',
+  CREATIVE_SURREAL: 'cinematic_film_poster',
+  CREATIVE_BOLD_COLOR: 'cinematic_bold_statement',
+  UGC_CANDID: 'cinematic_street_poster',
+  UGC_STREET: 'cinematic_bold_statement',
+  PRODUCT_LIFESTYLE: 'cinematic_minimal_concept',
+  PERF_BEST_QUALITY: 'luxury_masthead',
+  // ── Cinematic presets ──
+  CINEMATIC_NEO_NOIR: 'cinematic_film_poster',
+  CINEMATIC_STREET_CULTURE: 'cinematic_bold_statement',
+  CINEMATIC_JEWELRY_CLOSEUP: 'cinematic_magazine_editorial',
+  CINEMATIC_MINECRAFT_HYBRID: 'cinematic_street_poster',
+  CINEMATIC_STUDIO_EDITORIAL: 'cinematic_minimal_concept',
+  CINEMATIC_RETRO_FLIRTY: 'cinematic_magazine_editorial',
+  CINEMATIC_IPHONE_STREET: 'cinematic_street_poster',
+  CINEMATIC_GOLDEN_GARDEN: 'cinematic_film_poster',
+  UGC_POV_INFLUENCER: 'cinematic_bold_statement',
+  CREATIVE_BERAW_GLITCH: 'sports_brush',
+  SPORTS_BOXING_ACTION: 'sports_brush',
+  CINEMATIC_DARK_NEO_NOIR: 'cinematic_film_poster',
 }
 
 export type PresetTier = 'safe' | 'bold' | 'experimental'
@@ -143,12 +217,12 @@ export interface PresetTaxonomy {
 export type AdPresetDisplay = AdPreset & PresetTaxonomy
 
 export interface AdGenerationInput {
-    preset: AdPresetId
-    campaignId?: string
+  preset: AdPresetId
+  campaignId?: string
   variationIndex?: number
   stylePack?: StylePack
 
-    // Image inputs
+  // Image inputs
   productImage?: string
   influencerImage?: string
   lockFaceIdentity?: boolean
@@ -170,21 +244,21 @@ export interface AdGenerationInput {
   // Camera angle (down, side, low, high, etc.) for pro composition
   cameraAngle?: CameraAngle
 
-    // Text controls
+  // Text controls
   headline?: string
-    ctaType: CtaType
-    captionTone?: CaptionTone
+  ctaType: CtaType
+  captionTone?: CaptionTone
 
-    // Platform selection
-    platforms: Platform[]
+  // Platform selection
+  platforms: Platform[]
 
   // Subject overrides (legacy, still supported)
-    subject?: {
-        gender?: 'male' | 'female' | 'unisex'
-        ageRange?: string
-        pose?: string
-        expression?: string
-    }
+  subject?: {
+    gender?: 'male' | 'female' | 'unisex'
+    ageRange?: string
+    pose?: string
+    expression?: string
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -192,6 +266,70 @@ export interface AdGenerationInput {
 // ═══════════════════════════════════════════════════════════════
 
 export const AD_PRESETS: AdPreset[] = [
+  {
+    id: 'UGC_POV_INFLUENCER',
+    name: 'POV Influencer',
+    description: 'Playful, candid snapshot in a casual Asian restaurant',
+    category: 'ugc',
+    icon: 'Camera',
+    whenToUse: ['Influencer content', 'Food/Beverage', 'Casual fashion'],
+    platforms: ['instagram', 'influencer'],
+    sceneGuide:
+      `A playful, candid snapshot taken in a dimly lit, casual Asian restaurant. The subject is leaning forward over a dark wooden table. The subject MUST be wearing the uploaded product. They are looking directly into the camera with a playful expression. The foreground is dominated by a hand holding a pair of wooden chopsticks, held up near the camera. Plates of prepared food (gyoza, fried chicken) are visible on the table.`,
+    lightingGuide:
+      `Mixed artificial indoor lighting. Overhead key light creating strong highlights, bright catchlights in the eyes. Slightly warm color temperature. Soft, slightly low contrast, muted shadows.`,
+    cameraGuide:
+      `Smartphone photography (iPhone aesthetic). Extreme Close-up (ECU) / Point-of-View (POV). Very low angle, shooting sharply upward from table level toward the subject's face. Ultra-Wide Angle lens. Emphasize distortion, making the subject's head and the foreground chopsticks appear disproportionately large. Shallow depth of field, focusing sharply on the subject's eyes and the foreground chopsticks, allowing the background to remain soft. Subtle digital noise (grain).`,
+    avoid: ['oversharpening', 'HDR effects', 'studio lighting', 'perfect symmetry'],
+  },
+  {
+    id: 'CREATIVE_BERAW_GLITCH',
+    name: 'BeRaw Digital Glitch',
+    description: 'Digital art mixed with reality: a human and their retro 8-bit voxel alter-ego',
+    category: 'creative',
+    icon: 'Sparkles',
+    whenToUse: ['Gaming drops', 'Metaverse streetwear', 'Digital campaigns'],
+    platforms: ['instagram', 'facebook'],
+    sceneGuide:
+      `Two subjects side-by-side in symmetry on a bright Miami street. Subject 1 is a human, looking down, standing casually with hands resting near their hips. Subject 1 MUST be wearing the uploaded product. Subject 2 is a retro 3D voxel video-game character standing in the same pose. Subject 2 MUST also be wearing a pixelated, blocky version of the EXACT SAME uploaded product (matching the color and style precisely). Street setting with a pastel pink/mint stucco wall and abstract geometric graffiti. A retro pastel car in the blurry background.`,
+    lightingGuide:
+      `Bright, clean, almost shadowless Miami daylight. Direct but not harsh light (slight haze). Uniform illumination across both the organic human skin and the flat digital facets of the voxel character. Identical lighting reinforces the identical poses.`,
+    cameraGuide:
+      `Smartphone iPhone 16 Pro simulation. Main wide camera (24mm eq). Portrait mode depth-effect on. Full-body portrait capturing them from the knees up. Eye-level or slightly below chest height. Shallow depth of field keeping both subjects sharp with the background blurred. Typical iPhone processing: warm white balance (6500K), lifted shadows, slight saturation boost on blues/greens.`,
+    avoid: ['dramatic shadows', 'dark backgrounds', 'over-smoothed skin', 'HDR artifacts', 'different poses', 'strong blur on the voxel character'],
+  },
+  {
+    id: 'SPORTS_BOXING_ACTION',
+    name: 'Action Boxing',
+    description: 'High-energy sports portrait with dynamic motion blur',
+    category: 'sports',
+    icon: 'Activity',
+    whenToUse: ['Athletic wear', 'Sports campaigns', 'High-energy apparel'],
+    platforms: ['instagram', 'google'],
+    sceneGuide:
+      `Intense athletic sports action shot. Subject MUST be wearing the exact uploaded product. Subject is extending a red boxing glove directly toward the camera in a dynamic fitness pose. High editorial sports model pose. Solid crimson red background with subtle texture.`,
+    lightingGuide:
+      `Neutral studio lighting. Soft frontal light with slight shadowing. Dramatic and intense tone. Dominant red and black color palette with natural flesh tones.`,
+    cameraGuide:
+      `Close-up with dynamic angle focused on the extended boxing glove. Slight wide angle lens to distort and enlarge the incoming glove. ISO 200, f/4.5, 1/160s. Sharp focus on the face, but shallow depth of field rendering the glove and background blurred. Motion blur on hair and glove indicating swift movement. Moderate cinematic 35mm film grain.`,
+    avoid: ['static poses', 'flat lighting', 'deep depth of field', 'bright cheerful colors', 'distorted anatomy'],
+  },
+  {
+    id: 'CINEMATIC_DARK_NEO_NOIR',
+    name: 'Cinematic Neo-Noir',
+    description: 'Deep crimson monochromatic neo-noir editorial portrait',
+    category: 'cinematic',
+    icon: 'Film',
+    whenToUse: ['Premium menswear', 'High-end watches', 'Luxury lifestyle'],
+    platforms: ['instagram', 'facebook'],
+    sceneGuide:
+      `Introspective, powerful, silent authority mood. Subject MUST be wearing the exact uploaded product, separated clearly from a strong deep crimson red monochromatic background. Editorial cinematic framing.`,
+    lightingGuide:
+      `Low-key cinematic lighting. Dramatic side light coming slightly from below. Subtle rim light outlining the jawline, hair, and any accessories. High contrast with deep shadows.`,
+    cameraGuide:
+      `Slightly low-angle portrait. Close-up or medium close-up. Shallow depth of field. Ultra high detail photorealistic photography. Sharp focus on the face showing hyper-realistic skin texture and visible pores. Clean background with no artifacts.`,
+    avoid: ['stylization', 'anime', 'CGI', 'painterly look', 'soft beauty lighting', 'wide angle distortion', 'smiling', 'exaggerated expressions', 'blur artifacts'],
+  },
   {
     id: 'UGC_CANDID',
     name: 'UGC Candid',
@@ -217,7 +355,7 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Streetwear', 'Sneaker ads', 'Urban brands'],
     platforms: ['instagram', 'facebook'],
     sceneGuide:
-      'Director brief: Subject on a real pedestrian crosswalk with clear white zebra lines on textured asphalt, or standing confidently on a metro overpass, or walking through an urban intersection. Natural stride or relaxed stance with weight on one leg — one hand in pocket, the other holding a coffee or phone. Expression: cool confidence, slight head tilt, direct gaze upward at camera or looking away with purpose. Sneakers, watch, chain, and sunglasses must read clearly. Background shows real urban texture: cracked asphalt, painted road markings, concrete, steel guardrails. Feels like genuine street surveillance footage upgraded to fashion-campaign quality.',
+      'Director brief: Subject on a real pedestrian crosswalk with clear white zebra lines on textured asphalt, or standing confidently on a metro overpass, or walking through an urban intersection. Natural stride or relaxed stance with weight on one leg — one hand in pocket, the other holding a coffee or phone. Expression: cool confidence, slight head tilt, direct gaze upward at camera or looking away with purpose. Sneakers, watch, chain, and sunglasses must read clearly. Background shows real urban texture: cracked asphalt, painted road markings, concrete, steel guardrails. Feels like genuine candid street documentary footage upgraded to fashion-campaign quality.',
     lightingGuide:
       'Natural daylight — bright overcast for even exposure with soft minimal shadows, or harsh noon sun creating strong directional shadows on asphalt for graphic effect. Realistic exposure as in genuine street photography. No artificial fill. Skin shows natural shine, slight sweat. Fabric shows realistic wrinkles and wear. Optional: dusk city lighting with warm street lamps and cool blue sky for cinematic split-tone mood.',
     cameraGuide:
@@ -267,9 +405,9 @@ export const AD_PRESETS: AdPreset[] = [
     sceneGuide:
       'Director brief: Urban fashion in real context — graffiti wall, concrete overpass, weathered distressed wall with visible cracks and wires, storefront glass, wet asphalt reflecting city lights, gas station at night, or metro railing. Subject has ATTITUDE: leaning against wall with arms crossed, walking mid-stride with hair in motion, crouching with wide stance, or standing with defiant hip-cock and direct gaze. Expression is alive — rebellious smirk, cool indifference, caught mid-laugh, or intense contemplative stare. Wardrobe is street-fashion-forward: denim corset with oversized hoop earrings, bomber jacket with varsity patches over joggers, black leather head-to-toe, or baggy cargo pants with a fitted tank. Accessories must POP: chunky chains, statement sunglasses, visible sneaker details, oversized rings. Raw but lit like a campaign — one frame that could lead a streetwear drop. Martin Parr meets high fashion.',
     lightingGuide:
-      'Natural urban light: harsh directional daylight creating strong graphic shadows on concrete, or overcast soft key preserving detail everywhere. For night: moody mixed sources — warm neon signs, cool blue ambient, wet-surface reflections creating orange-teal color separation. Optional: paparazzi-style surrounded by phone flashlights for a red-carpet chaos editorial feel. Film grain and slight desaturation for edge. No clinical studio look — environment-driven shadows and color casts. Skin texture real: shine from humidity, visible pores.',
+      'Natural urban light: harsh directional daylight creating strong graphic shadows on concrete, or overcast soft key preserving detail everywhere. For night: moody mixed sources — warm neon signs, cool blue ambient, wet-surface reflections creating orange-teal color separation. Optional: prominent direct flash surrounded by phone flashlights for a red-carpet chaos editorial feel. Film grain and slight desaturation for edge. No clinical studio look — environment-driven shadows and color casts. Skin texture real: shine from humidity, visible pores.',
     cameraGuide:
-      '35mm wide or 50mm standard, street framing, slight Dutch tilt for energy. f/2.8–4. Documentary-meets-campaign: slightly imperfect framing that feels alive. High-angle looking down for surveillance/power feel, or low-angle for heroic energy. Subtle motion blur on hand or fabric if subject is mid-action. Film grain overlay acceptable. Background objects readable — not generic blur wash. 8K.',
+      '35mm wide or 50mm standard, street framing, slight Dutch tilt for energy. f/2.8–4. Documentary-meets-campaign: slightly imperfect framing that feels alive. High-angle looking down for wide scale power feel, or low-angle for heroic energy. Subtle motion blur on hand or fabric if subject is mid-action. Film grain overlay acceptable. Background objects readable — not generic blur wash. 8K.',
     avoid: ['studio', 'perfect lighting', 'clean backgrounds', 'posed perfection', 'bland expression', 'static symmetry', 'over-smooth AI skin'],
   },
   {
@@ -283,7 +421,7 @@ export const AD_PRESETS: AdPreset[] = [
     sceneGuide:
       'Director brief: One frame from a vintage 70s fashion magazine shoot. Subject tightly framed in a weathered architectural doorway with peeling paint and aged wood, deep stairwell fading into darkness behind, OR on an outdoor tennis court with scattered balls and analog imperfection, OR seated in a director\'s chair against a solid red backdrop. Wardrobe is retro-meets-modern: oversized charcoal-gray suit with pale blue shirt, heavy dark-frame eyeglasses; or all-white tennis outfit with retro headband and wooden racket; or classic trench coat with crisp white shirt and black tie. Pose is CONFRONTATIONAL yet relaxed — hands in pockets leaning forward, lounging with crossed legs, or mid-casual-action with playful rebellion. Expression: commanding presence with slight smirk, or deadpan cool that dares you to look away. Strong body language — the subject owns the frame.',
     lightingGuide:
-      'Direct frontal fill flash, slightly harsh and iconic of vintage paparazzi/editorial style — strong highlight on face, deep shadows behind. Strong analog film grain emulating Kodachrome or Ektachrome stock: visible grain structure, NOT digital noise. Gray fade treatment with subtle optical vignette at edges. Warm amber-teal color shifts. For outdoor: natural daylight with slight overexposure for washed film look, warm (4500–5000K). Matte finish, not glossy digital. Production-quality "vintage" — rich and dimensional, never muddy.',
+      'Direct frontal fill flash, slightly harsh and iconic of vintage 70s flash/editorial style — strong highlight on face, deep shadows behind. Strong analog film grain emulating Kodachrome or Ektachrome stock: visible grain structure, NOT digital noise. Gray fade treatment with subtle optical vignette at edges. Warm amber-teal color shifts. For outdoor: natural daylight with slight overexposure for washed film look, warm (4500–5000K). Matte finish, not glossy digital. Production-quality "vintage" — rich and dimensional, never muddy.',
     cameraGuide:
       'ISO 640, f/4, 1/100s feel. 35–50mm prime. Crisp editorial sharpness on eyes and wardrobe with vintage optical softness at edges. Slight vignetting. Analog color shifts (warm shadows, cool highlights). Film grain prominent and organic, not synthetic. Slightly tilted or perfectly frontal for editorial impact. 8K base resolution with convincing film treatment overlay.',
     avoid: ['modern clean digital look', 'soft diffused beauty lighting', 'no grain/texture', 'generic pose', 'blank expression', 'smartphone aesthetic'],
@@ -313,7 +451,7 @@ export const AD_PRESETS: AdPreset[] = [
     whenToUse: ['Sports', 'Athletic brands', 'Energy/action', 'Nightlife'],
     platforms: ['instagram', 'facebook'],
     sceneGuide:
-      'Director brief: Freeze a moment of KINETIC ENERGY — the best frame from an action sequence. Options: (A) Runner mid-stride against deep orange/red backdrop, full body in motion blur with limbs streaking, backpack and fabric caught in wind, captured with slow shutter for kinetic effect. (B) Snowboarder carving through powder from behind — follow-cam perspective, snow spraying outward, massive jump in distance, clear blue sky above. (C) Dusk overpass: subject leaning on railing, head tilted back, city lights and traffic below creating warm bokeh — cinematic calm amid urban motion. (D) Subject surrounded by phone flashlights — paparazzi chaos, harsh multiple flashes creating dramatic highlights and deep shadows, red-carpet energy. Expression matches the energy: fierce determination while running, serene joy while snowboarding, contemplative wonder looking at city, cool composure amid camera flashes.',
+      'Director brief: Freeze a moment of KINETIC ENERGY — the best frame from an action sequence. Options: (A) Runner mid-stride against deep orange/red backdrop, full body in motion blur with limbs streaking, backpack and fabric caught in wind, captured with slow shutter for kinetic effect. (B) Snowboarder carving through powder from behind — follow-cam perspective, snow spraying outward, massive jump in distance, clear blue sky above. (C) Dusk overpass: subject leaning on railing, head tilted back, city lights and traffic below creating warm bokeh — cinematic calm amid urban motion. (D) Subject surrounded by phone flashlights — direct-flash editorial chaos, harsh multiple flashes creating dramatic highlights and deep shadows, red-carpet energy. Expression matches the energy: fierce determination while running, serene joy while snowboarding, contemplative wonder looking at city, cool composure amid camera flashes.',
     lightingGuide:
       'Dramatic and directional: (A) Golden hour rim from behind creating silhouette edge, or warm-cool contrast (orange rim, blue fill). 35mm film grain, vintage documentary glow. (B) Bright natural snow-reflected light, clear blue sky, white surfaces bouncing fill everywhere. (C) Mixed urban practicals: warm tungsten from streetlamps, cool blue from twilight sky, car headlights creating bokeh circles. (D) Multiple harsh flash bursts from different angles, creating specular pops on skin, jewelry, sunglasses — deep dramatic shadows between sources, slight lens flare. All: high contrast, cinematic color grade, production-quality dynamic lighting.',
     cameraGuide:
@@ -400,12 +538,163 @@ export const AD_PRESETS: AdPreset[] = [
       '50–85mm commercial portrait lens, precise focus placement on eyes and hero product detail. Shallow-to-medium DoF (f/2–4) depending on product readability needs. Cinematic composition: strong rule-of-thirds, or overhead orthogonal, or centered symmetric, or side-profile with expansive negative space. 8K sharpness on all hero details. Smooth natural falloff in bokeh areas. No digital artifacts, no edge compression, no vignette unless intentional.',
     avoid: ['over-stylized chaos', 'low-contrast haze', 'blurry hero subject', 'artifact-heavy post effects', 'blank mannequin expression', 'dead eyes', 'AI-smoothed plastic skin', 'generic standing pose', 'flat featureless lighting'],
   },
+  // ── CINEMATIC PRESETS ─────────────────────────────────────────
+  {
+    id: 'CINEMATIC_NEO_NOIR',
+    name: 'Neo-Noir Portrait',
+    description: 'Moody rooftop night portrait, neon-lit, raw and visceral',
+    category: 'cinematic',
+    icon: 'Film',
+    whenToUse: ['Night campaigns', 'Edgy brands', 'Streetwear drops', 'Neo-noir editorial'],
+    platforms: ['instagram', 'facebook'],
+    sceneGuide:
+      'Director brief: Centered close-up portrait on a rooftop at night. Subject\'s face framed tightly with an intense upward gaze toward the sky, head tilted slightly back with fixed intensity. Urban rooftop background with blurred city lights in deep purples and cool blues glowing softly behind the subject — indistinct urban environment creating a stark, cinematic neo-noir ambience. Subject wears the EXACT product garment from the uploaded reference image — preserve every detail of the product (color, material, fit, logos, pattern). Style it with dark, minimal complementary pieces that don\'t compete with the hero product. Subject may have raw details like damp hair clinging to forehead, visible fresh marks or textures on skin that add visceral rawness. Pose is upright and commanding — not relaxed, not posed — frozen in a moment of raw intensity. The frame should feel like a still from a neo-noir film: one person alone on a rooftop, looking up, surrounded by the glow of a sleeping city. Every element serves the mood — raw, visceral, cinematic editorial portrait.',
+    lightingGuide:
+      'ISO 800, f/2.8, 1/60s feel — tuned for low-light neon atmosphere. No flash — lit ONLY by ambient neon and city light. Low fill light sculpting facial contours with deep purple and cool blue reflections from neon sources accentuating skin texture. Strong sculpting shadows under jawline and jacket folds, softer gradients across face creating dimensional depth. Skin must show wet sheen and real texture — pores, micro-imperfections, natural subsurface scattering. Color temperature split: cool blue-purple ambient from sky and city, warm accents from distant neon signs. Production-quality neo-noir lighting — moody, dimensional, never flat.',
+    cameraGuide:
+      'Close-up portrait framing, centered composition with subject\'s face filling the frame. Slight vignette framing subject against the blurred rooftop background. Shallow depth of field — subject crisp and sharp, urban background details softly obscured into bokeh circles of purple and blue city lights. Subtle neon lens flare shimmering across jacket surface adds cinematic artifact. Medium film grain overlay for gritty cinematic tone — NOT digital noise, organic grain structure. 85mm equivalent portrait lens feel. Tack-sharp on eyes and facial texture. 8K resolution with convincing film grain treatment.',
+    avoid: ['bright daylight', 'studio lighting', 'flat flash', 'happy expressions', 'clean polished look', 'beauty filter smoothing', 'plastic AI skin', 'generic backgrounds', 'cluttered frame'],
+  },
+  {
+    id: 'CINEMATIC_STREET_CULTURE',
+    name: 'Street Culture Raw',
+    description: 'Raw 90s street culture, park bench confidence, film grain',
+    category: 'cinematic',
+    icon: 'MapPin',
+    whenToUse: ['Streetwear brands', 'Retro campaigns', '90s aesthetic', 'Youth culture'],
+    platforms: ['instagram', 'facebook'],
+    sceneGuide:
+      'Director brief: Medium shot of a young person sitting confidently on a park bench in autumn. Subject leans forward toward the camera, elbows resting on widely spread knees, exuding strong, raw confidence with a smirking, intense expression — rebellious attitude. Subject wears the EXACT product garment from the uploaded reference image — preserve every detail of the product (color, material, fit, logos, pattern, brand marks). Style the rest of the outfit with complementary streetwear pieces that don\'t compete with the hero product. Background: crisp fall park with orange-yellow leaves scattered on ground, bare trees, soft golden sunlight filtering through branches, cool misty autumn atmosphere. The scene should feel like an authentic moment captured in street culture — raw, unpolished, real. Dynamic pose with weight leaning aggressively forward, hands expressive and natural. Ultra-realistic skin texture: visible pores, natural shine, imperfections. The frame should make you feel the cold autumn air and hear leaves crunching.',
+    lightingGuide:
+      'Natural autumn daylight: soft golden sunlight filtering through bare tree branches creating dappled warm-cool light patterns. Cinematic lighting with sharp focus on face and upper body. Color temperature warm (4500–5200K golden hour autumn feel). Slight overexposure on highlights for that vintage film look. Warm amber tones on skin from filtered sunlight, cool blue-green in shadow areas. No artificial fill — pure natural light with cinematic quality. Skin shows natural shine and texture from cold weather. Fabric shows realistic nylon sheen and wrinkles. Cool misty atmosphere visible in background adding depth layers.',
+    cameraGuide:
+      'Medium shot, slightly below eye level for power dynamic. 35–50mm equivalent for environmental context while keeping subject dominant. f/2.8–4 for moderate depth — subject sharp, background readable but with soft fall-off. Photorealistic detail: ultra-realistic skin texture, fabric weave on nylon, leaf textures on ground, wood grain on bench. Dynamic pose composition with subject leaning forward creates natural leading lines. Film grain overlay: medium-heavy vintage film stock feel (Kodak Gold 200 / Fuji Superia vibes). Slight warm color shift in shadows. 8K resolution base with convincing analog film treatment. Captures the raw, confrontational energy of 90s street photography.',
+    avoid: ['studio setting', 'clean modern aesthetic', 'beauty filter', 'over-stylized', 'passive expression', 'stiff pose', 'digital clean look', 'AI smoothing', 'generic western suburban park'],
+  },
+  {
+    id: 'CINEMATIC_JEWELRY_CLOSEUP',
+    name: 'Intimate Close-Up',
+    description: 'Macro jewelry & accessory editorial, hand-face composition',
+    category: 'cinematic',
+    icon: 'Heart',
+    whenToUse: ['Jewelry brands', 'Accessories', 'Beauty editorial', 'Luxury close-ups'],
+    platforms: ['instagram'],
+    sceneGuide:
+      'Director brief: Extreme close-up captured with iPhone intimacy — hand pressed near face, fingers adorned with the EXACT product accessories from the uploaded reference image (preserve every detail: material, color, brand marks, design). Hair escaping in golden or natural strands from a messy bun. Subject pressing fingertips near frosted lips where subtle gloss barely catches light. The frame slants just enough to feel unstudied and spontaneous — a stolen intimate moment, not a posed shoot. The uploaded product is the hero — featured prominently in the hand-face composition. Tiny skin pores texture visible on cheek, contrasting with metallic/product surfaces. Background is soft and environmental — ocean rocks with water shimmer, stairwell, or brushed metal — always secondary to the hand-face-product triangle. Every element serves this composition: the product, the skin, the lips, the hair, the light. Modern muse editorial feel — effortless luxury captured in a candid moment.',
+    lightingGuide:
+      'Natural ambient light with soft directional quality — midday sunlight, cold fluorescent glow, or golden hour warmth depending on environment. Light must catch and dance on jewelry surfaces: sharp specular highlights on silver/gold rings, soft diffused glow on matte skin, subtle gloss reflection on lips. Sun-kissed quality on skin with warm subsurface scattering. Color temperature natural (5500K daylight or warm golden hour). Visible light interaction with every surface: metal reflections, skin luminosity, hair translucency, fabric matte. No harsh shadows — soft wraparound light that reveals texture without drama. iPhone camera light quality — honest, intimate, real.',
+    cameraGuide:
+      'Extreme close-up, hand-face jewelry focus. iPhone-captured aesthetic: slightly tilted frame (2–5° dutch angle) for natural spontaneity. Very shallow depth of field — sharp focus on jewelry and nearest skin, soft fall-off on background. Macro-level detail: individual skin pores, ring engravings, chain link detail, nail texture, lip gloss sheen, hair strand separation. f/1.8–2.4 equivalent. The composition is the hand-face triangle — rings near lips, fingers touching face, jewelry as the bridge between person and viewer. Lens may pick up subtle reflections in jewelry surfaces (phone screen, environment). No heavy processing — clean, intimate, modern editorial captured on mobile. 8K detail on jewelry and skin texture.',
+    avoid: ['wide shots', 'full body', 'studio backdrop', 'heavy makeup', 'over-processed', 'flat lighting on jewelry', 'generic product photography', 'stiff posed hands', 'AI-smoothed skin', 'fake bokeh'],
+  },
+  {
+    id: 'CINEMATIC_MINECRAFT_HYBRID',
+    name: 'Minecraft Hybrid',
+    description: 'Photorealistic subject in voxel Minecraft world',
+    category: 'cinematic',
+    icon: 'Box',
+    whenToUse: ['Gaming collabs', 'Gen Z campaigns', 'Viral content', 'Mixed-media editorial'],
+    platforms: ['instagram', 'facebook'],
+    sceneGuide:
+      'Director brief: High-quality cinematic Minecraft screenshot — mixed-media composition where the human subject remains COMPLETELY photorealistic and unchanged (no pixelation or block filters on their body, clothing, or face) but is embedded in a voxel-based Minecraft environment. CRITICAL: Any non-human object in direct physical contact with or nearby the subject (pets, props, items) MUST be converted into Minecraft block models or mobs — a real dog becomes a Minecraft wolf, a real tree becomes blocky voxel tree. Background analysis: take the reference image\'s background structure and recreate it entirely out of Minecraft voxel blocks. Trees, terrain, paths, foliage — all cubic blocks with pixel art textures. Atmosphere should replicate the original mood (foggy forest, sunny park, urban street) using blocky volumetric fog layers and Minecraft-appropriate atmospheric effects. The human is a portal between real and virtual — photorealistic person standing naturally in a world made of blocks. This creates a surreal, shareable, viral-ready image that bridges gaming culture and fashion.',
+    lightingGuide:
+      'Minecraft daylight with gentle haze and consistent block-based shadows. The lighting on the photorealistic subject must match the Minecraft world lighting direction and color temperature — seamless integration is critical. Soft ambient from Minecraft sky, directional sun creating blocky shadow patterns on voxel ground that naturally extend to the subject\'s feet. Subject retains photorealistic skin lighting: pores, subsurface scattering, material reflections — all at camera-ready quality. The voxel environment uses Minecraft\'s characteristic flat-lit surfaces with sharp shadow edges on block faces. Color temperature unified between both worlds: warm golden for daytime, cool blue-purple for night/overcast. No lighting discontinuity between real subject and voxel world.',
+    cameraGuide:
+      'Maintain the exact camera angle and framing from the reference composition. Third-person game camera feel with cinematic quality — slightly elevated or at character eye level. Depth of field should bridge both worlds: subject sharp, voxel environment with natural depth falloff. The voxel blocks should have clean pixel-art textures with visible block edges and faces. Subject\'s clothing, skin, and accessories at 8K photorealistic detail contrasting beautifully with the lo-fi voxel world. Composition follows gaming screenshot conventions but with campaign-level polish. No UI elements, no HUD, no inventory bars — pure cinematic game screenshot aesthetic.',
+    avoid: ['pixelated subject', 'block filter on human', 'realistic background', 'UI elements', 'HUD overlay', 'low quality', 'inconsistent lighting between subject and world', 'cartoon style on human', 'flat 2D look', 'generic 3D render'],
+  },
+  {
+    id: 'CINEMATIC_STUDIO_EDITORIAL',
+    name: 'Studio Editorial',
+    description: 'Full-body fashion studio portrait, editorial confidence, minimal background',
+    category: 'cinematic',
+    icon: 'Sparkles',
+    whenToUse: ['Fashion e-commerce', 'Lookbook', 'Studio campaigns', 'Brand identity'],
+    platforms: ['instagram', 'facebook', 'google'],
+    sceneGuide:
+      'Director brief: Full-body fashion portrait in a professional fashion studio. Subject stands in a confident, slightly dominant editorial fashion pose — torso slightly leaned forward and angled, legs positioned apart with a relaxed stance. One hand placed naturally on the upper thigh while the other grips the waistband or belt area. The posture must appear natural, relaxed, and editorial — NOT stiff catalog posing. Subject wears the EXACT product garment from the uploaded reference image — preserve every detail of the product (color, material, fit, logos, pattern, stitching, texture). Style the rest of the outfit with minimal complementary pieces that don\'t compete with the hero product. Clothing must look realistic with natural fabric stretching, wrinkles, and lighting response. Expression is serious, confident, slightly seductive editorial fashion — natural lips, relaxed eyebrows, subtle gaze directly toward the camera. The entire frame should feel like it came from a fashion lookbook — minimal, clean, powerful.',
+    lightingGuide:
+      'Professional fashion studio lighting: soft key light from 45° front-left (large softbox or beauty dish), fill at 2:1 ratio for sculpted but not harsh dimensionality. Subtle shadows that define jawline, collarbone, and fabric folds without being dramatic. Balanced contrast with realistic skin rendering — slight natural skin texture, visible pores, very subtle sun pigmentation. Background is minimalistic light neutral or gray with subtle tonal gradation. No harsh edge shadows. Color temperature neutral 5500–5600K. Avoid artificial or over-smoothed AI skin look — skin must read as REAL with micro-texture and natural luminosity. Fabric lighting response must be truthful: matte cotton absorbs, denim shows weave, hair catches specular highlights.',
+    cameraGuide:
+      'Full body shot, centered composition, vertical portrait format, fashion magazine editorial style. 50–85mm portrait lens equivalent, f/4–5.6 for moderate depth keeping entire subject sharp from head to shoes. Ultra photorealistic rendering, high detail, cinematic fashion photography quality. Sharp focus throughout with natural depth of field falloff only on background. 8K resolution. Framing leaves breathing room above head and below feet. Clean composition with no distracting elements. The pose, the clothes, and the expression tell the entire story.',
+    avoid: ['busy backgrounds', 'heavy color grading', 'dramatic shadows', 'cartoon or stylized look', 'over-smoothed AI skin', 'stiff catalog pose', 'exaggerated body proportions', 'logos or prints on clothing', 'cluttered accessories', 'beauty filter'],
+  },
+  {
+    id: 'CINEMATIC_RETRO_FLIRTY',
+    name: 'Retro Flirty Editorial',
+    description: 'High-angle 50mm, flirtatious candid, Italian retro vibes',
+    category: 'cinematic',
+    icon: 'Heart',
+    whenToUse: ['Fashion brands', 'Retro campaigns', 'Sportswear editorial', 'European aesthetic'],
+    platforms: ['instagram'],
+    sceneGuide:
+      'Director brief: High-angle shot looking down at a young woman in her early 20s. She looks UP at the camera in a flirtatious, candid way — the angle creates intimacy and playful power dynamic. Her left arm reaches behind holding her right arm along her body, legs crossed in an almost innocent but provocative posture. The setting is a warm retro interior — think mid-century modern room with dark wood paneling, leather armchairs, herringbone parquet floor, vintage rug, scattered magazines. Subject wears the EXACT product garment from the uploaded reference image — preserve every detail of the product (color, material, fit, logos, pattern). Style the rest of the outfit with complementary retro-inspired pieces that don\'t compete with the hero product. Makeup is intentional: soft enhanced features with natural volumized lashes, cat-eye black liner, pink gloss lips, natural soft cheek contour. The entire scene should feel like a 1970s Italian fashion editorial brought into the modern day — warm, intimate, confident, with the model owning the frame from below the camera.',
+    lightingGuide:
+      'Warm practical interior lighting: overhead ambient creating the high-angle illumination, supplemented by warm practical sources (table lamps, window light) at 3200–4500K for that golden retro warmth. Slight overexposure on highlights for vintage film quality. Color palette is warm earth tones: brown wood, cognac leather, cream rug, warm skin tones. Film grain: medium analog grain structure (Kodak Portra 400 / Fuji Pro 400H vibes). Matte finish, not glossy digital. Skin shows natural texture with warm subsurface scattering, realistic pores and imperfections. Hair catches warm highlights with natural shine. Fabric shows realistic texture — pattern weave, sock ribbing, shoe leather grain.',
+    cameraGuide:
+      'High angle 50mm camera, shooting downward at the seated subject. f/2.8–4 for shallow-to-moderate depth — subject sharp, environment readable but with warm falloff. The high angle emphasizes the upward gaze and creates the flirtatious candid dynamic. Composition has the subject filling roughly 2/3 of the frame with environment context visible around her. Vintage film color science: warm shadows, slightly desaturated highlights, amber-teal color shifts. Film grain prominent and organic. Slightly warm color cast throughout. The framing should feel like a behind-the-scenes shot from a vintage Italian fashion house — intimate, unguarded, magnetic. 8K base resolution with convincing analog film treatment.',
+    avoid: ['clean digital look', 'cold color temperature', 'studio backdrop', 'modern minimalist setting', 'blank expression', 'stiff pose', 'over-retouched skin', 'harsh flash', 'low-angle', 'generic background'],
+  },
+  {
+    id: 'CINEMATIC_IPHONE_STREET',
+    name: 'iPhone Street Candid',
+    description: 'Wide-angle iPhone snapshot, urban playful, spontaneous energy',
+    category: 'cinematic',
+    icon: 'Camera',
+    whenToUse: ['Streetwear brands', 'Gen Z campaigns', 'Casual brands', 'Social-first content'],
+    platforms: ['instagram', 'facebook'],
+    sceneGuide:
+      'Director brief: Natural, dynamically playful wide-angle iPhone-style photograph of a person standing on a lively city street corner, looking directly upward into the camera with a genuine neutral expression and relaxed posture. Hair is casually tousled with subtle natural waves. Subject wears the EXACT product garment from the uploaded reference image — preserve every detail of the product (color, material, fit, logos, pattern). Style the rest of the outfit with layered urban pieces that complement the hero product without competing. Accessories: minimalistic canvas crossbody bag in warm taupe, sleek silver chain bracelet adding subtle edge. The urban backdrop vividly captures textured brick storefronts with diverse signage, scattered pedestrians engaged in casual activities, glimpses of parked bicycles, and subtle blur of city traffic. The entire image must feel like an authentic iPhone snapshot from a friend — spontaneous, unposed, a moment captured amid everyday city life, but with the styling of a campaign lookbook.',
+    lightingGuide:
+      'Soft natural afternoon sunlight filtering through nearby trees casting delicate shadows and highlights. The light accentuates realistic fabric textures including creases on jacket sleeves, varied hair strands, and detailed skin pores. Warm afternoon color temperature (5000–5500K) with golden quality in highlights and cool blue in shadows. No artificial fill — pure natural urban daylight. Brick and stone surfaces show warm reflected light. Glass storefronts catch sky reflections. Skin shows natural shine from outdoor warmth, visible pores, realistic texture. iPhone camera light quality — honest, direct, slightly contrasty with natural HDR feel.',
+    cameraGuide:
+      'Wide-angle iPhone-style: 24–26mm equivalent with pronounced wide-angle lens distortion. Elevated camera angle (shot from above, looking down at the subject). The wide-angle distortion emphasizes upper body prominently with slight foreshortening of legs, creating the engaging spontaneous feel typical of an authentic iPhone snapshot. f/1.8–2.4 with natural iPhone depth effect. Subject sharp with slight natural background softening (not heavy bokeh — computational photography style). Visible environmental context: readable signage, brick textures, pedestrian motion. Hyper-detailed textures: skin pores, fabric weave, sneaker stitching, bag canvas grain, bracelet links. The composition reinforces effortlessly stylish, playful yet genuine urban aesthetic with clear authenticity. 8K resolution with iPhone processing aesthetic.',
+    avoid: ['professional studio look', 'DSLR bokeh', 'flat lighting', 'stiff pose', 'blank expression', 'over-processed', 'beauty filter', 'generic background', 'heavy color grading', 'artificial depth of field'],
+  },
+  {
+    id: 'CINEMATIC_GOLDEN_GARDEN',
+    name: 'Golden Garden Reverie',
+    description: 'Golden hour garden setting, timeless calm, flowing fabrics',
+    category: 'cinematic',
+    icon: 'Star',
+    whenToUse: ['Luxury brands', 'Romantic campaigns', 'Timeless editorial', 'Organic/natural brands'],
+    platforms: ['instagram'],
+    sceneGuide:
+      'Director brief: Golden afternoon sunlight filters through the sprawling branches of a centuries-old oak tree, casting intricate lacework shadows upon a weathered stone bench nestled in a peaceful garden. A young woman with hair cascading in soft waves sits in tranquil contemplation, wearing the EXACT product garment from the uploaded reference image — preserve every detail of the product (color, material, fit, logos, pattern). Style the rest of the outfit with minimal complementary pieces that suit the garden setting. Her fingers lightly trace the edge of a delicate porcelain teacup. The gentle rustle of leaves mingles with the subtle warmth of late-day light. The composition captures a quiet moment of stillness from a gentle eye-level perspective, evoking a timeless sense of calm and introspection. The garden is lush with green grass, scattered autumn leaves at the base of the oak, and a sense of vast peaceful landscape behind. Every element tells a story of unhurried elegance — the worn stone of the bench, the delicate porcelain, the product garment catching the golden light, the ancient tree. This is a moment frozen in golden time.',
+    lightingGuide:
+      'Golden hour magic light: late afternoon sun low in the sky creating long warm shadows and backlighting through oak tree branches. Strong warm color temperature (4000—4800K golden hour). The light illuminates the fine texture of dress fabric and reveals subtle freckles across skin. Rim light from behind catches hair edges creating a golden halo effect. Lens flare from direct sunlight filtering through leaves is welcome and adds to the ethereal quality. Fill comes naturally from green grass reflecting warm ambient light upward onto the subject. Skin shows warm subsurface scattering, natural freckles, subtle texture. Fabric catches and flows with the light — cream dress becomes luminous and translucent at edges. The stone bench shows worn texture in the golden wash. Deep shadows in the tree canopy contrast with the bright golden light creating dramatic natural chiaroscuro.',
+    cameraGuide:
+      'Eye-level or slightly below, gentle composition maintaining intimacy with the subject. 50–85mm portrait lens, f/2.8–4 for moderate depth — subject and immediate environment sharp, distant garden falling into soft golden bokeh. The oak tree branches create natural framing above. Vertical portrait format preferred. Tack-sharp on subject\'s hands, teacup, and face details. Natural lens flare from sun acceptable. Film-like color rendition with warm golden tones throughout. Fine detail: hair strand separation in backlight, porcelain teacup translucency, fabric drape and fold shadows, stone bench weathering texture, leaf veins on ground. The composition evokes classic oil painting aesthetics combined with photographic realism. 8K resolution with warm cinematic color science.',
+    avoid: ['harsh midday light', 'cold color temperature', 'urban setting', 'modern architecture', 'busy backgrounds', 'action poses', 'intense expressions', 'heavy contrast', 'over-saturated colors', 'AI-smoothed skin', 'plastic fabric look'],
+  },
 ]
 
 // Production guard: every AD_PRESET_IDS must have a matching preset (fail fast on misconfig)
 const _definedPresetIds = new Set(AD_PRESETS.map((p) => p.id))
 for (const id of AD_PRESET_IDS) {
   if (!_definedPresetIds.has(id)) throw new Error(`Ad preset missing definition: ${id}`)
+}
+if (_definedPresetIds.size !== AD_PRESETS.length) {
+  throw new Error('Duplicate ad preset IDs detected')
+}
+
+const SANITIZED_AD_PRESETS: AdPreset[] = AD_PRESETS.map(sanitizePreset)
+
+for (const preset of SANITIZED_AD_PRESETS) {
+  if (!preset.sceneGuide || !preset.lightingGuide || !preset.cameraGuide) {
+    throw new Error(`Preset "${preset.id}" has empty guide fields`)
+  }
+}
+
+for (const presetId of Object.keys(PRESET_STYLE_PACK_OVERRIDES) as AdPresetId[]) {
+  if (!AD_PRESET_IDS.includes(presetId)) {
+    throw new Error(`Invalid style pack override key: ${presetId}`)
+  }
+}
+for (const presetId of Object.keys(PRESET_TEXT_SYSTEM_OVERRIDES) as AdPresetId[]) {
+  if (!AD_PRESET_IDS.includes(presetId)) {
+    throw new Error(`Invalid text system override key: ${presetId}`)
+  }
 }
 
 const TIER_SORT: Record<PresetTier, number> = {
@@ -423,6 +712,7 @@ const CATEGORY_DEFAULT_TAXONOMY: Record<AdPresetCategory, PresetTaxonomy> = {
   performance: { tier: 'safe', stability: 'high', pack: 'performance' },
   sports: { tier: 'bold', stability: 'medium', pack: 'sports' },
   indian: { tier: 'bold', stability: 'high', pack: 'heritage' },
+  cinematic: { tier: 'bold', stability: 'medium', pack: 'fashion' },
 }
 
 const PRESET_TAXONOMY_OVERRIDES: Partial<Record<AdPresetId, PresetTaxonomy>> = {
@@ -449,18 +739,19 @@ export const AD_PRESET_CATEGORIES: {
   label: string
   icon: string
 }[] = [
-  { id: 'ugc', label: 'UGC', icon: 'Camera' },
-  { id: 'editorial', label: 'Editorial', icon: 'BookOpen' },
-  { id: 'commercial', label: 'Commercial', icon: 'ShoppingBag' },
-  { id: 'creative', label: 'Creative', icon: 'Wand2' },
-  { id: 'standalone', label: 'Standalone', icon: 'Box' },
-  { id: 'performance', label: 'Performance', icon: 'Zap' },
-  { id: 'sports', label: 'Sports', icon: 'Star' },
-  { id: 'indian', label: 'Indian Fashion', icon: 'Crown' },
-]
+    { id: 'cinematic', label: 'Cinematic', icon: 'Film' },
+    { id: 'ugc', label: 'UGC', icon: 'Camera' },
+    { id: 'editorial', label: 'Editorial', icon: 'BookOpen' },
+    { id: 'commercial', label: 'Commercial', icon: 'ShoppingBag' },
+    { id: 'creative', label: 'Creative', icon: 'Wand2' },
+    { id: 'standalone', label: 'Standalone', icon: 'Box' },
+    { id: 'performance', label: 'Performance', icon: 'Zap' },
+    { id: 'sports', label: 'Sports', icon: 'Star' },
+    { id: 'indian', label: 'Indian Fashion', icon: 'Crown' },
+  ]
 
 export function getPresetsByCategory(category: AdPresetCategory): AdPresetDisplay[] {
-  return AD_PRESETS
+  return SANITIZED_AD_PRESETS
     .filter((p) => p.category === category)
     .map(withTaxonomy)
     .sort((a, b) => TIER_SORT[a.tier] - TIER_SORT[b.tier])
@@ -481,7 +772,7 @@ No surreal elements (unless preset requires it), no fantasy effects, no glitch a
 const PRODUCT_ONLY_PRESET_IDS: Set<string> = new Set(['PRODUCT_LIFESTYLE'])
 
 export function buildFallbackPrompt(input: AdGenerationInput): string {
-  const preset = AD_PRESETS.find((p) => p.id === input.preset)
+  const preset = SANITIZED_AD_PRESETS.find((p) => p.id === input.preset)
   if (!preset) throw new Error(`Unknown preset: ${input.preset}`)
 
   const character = resolveCharacterDescription(input)
@@ -567,11 +858,11 @@ function resolveCharacterDescription(input: AdGenerationInput): string {
                               ? 'Central Asian modern identity with contemporary styling and realistic urban context.'
                               : input.characterIdentity === 'pacific_islander_modern'
                                 ? 'Pacific Islander modern identity with contemporary styling and realistic urban context.'
-                    : input.characterIdentity === 'mixed_heritage_modern'
-                      ? 'Mixed-heritage modern identity with contemporary styling and realistic urban context.'
-                      : 'Global modern look with contemporary styling and non-stereotyped representation.'
+                                : input.characterIdentity === 'mixed_heritage_modern'
+                                  ? 'Mixed-heritage modern identity with contemporary styling and realistic urban context.'
+                                  : 'Global modern look with contemporary styling and non-stereotyped representation.'
 
-  return `A young ${gender} (${age}), ${style} style, ${pose} pose, ${expression} expression. ${identityDirective} Body proportions and facial features are realistic and anatomically correct.`
+  return `A young ${gender} (${age}), ${style} style, ${pose} pose, ${expression} expression. ${identityDirective} Body proportions and facial features are realistic and anatomically plausible.`
 }
 
 function resolveTextOverlay(overlay?: TextOverlayConfig): string {
@@ -590,19 +881,19 @@ function resolveTextOverlay(overlay?: TextOverlayConfig): string {
 // ═══════════════════════════════════════════════════════════════
 
 export function getAdPreset(id: AdPresetId): AdPresetDisplay | undefined {
-  const preset = AD_PRESETS.find((p) => p.id === id)
+  const preset = SANITIZED_AD_PRESETS.find((p) => p.id === id)
   return preset ? withTaxonomy(preset) : undefined
 }
 
 export function getAdPresetList(): AdPresetDisplay[] {
-  return AD_PRESETS.map(withTaxonomy)
+  return SANITIZED_AD_PRESETS.map(withTaxonomy)
 }
 
 export function resolveStylePackForPreset(presetId: AdPresetId): StylePack {
   const override = PRESET_STYLE_PACK_OVERRIDES[presetId]
   if (override) return override
 
-  const preset = AD_PRESETS.find((p) => p.id === presetId)
+  const preset = SANITIZED_AD_PRESETS.find((p) => p.id === presetId)
   if (!preset) return 'high_street'
 
   if (preset.category === 'sports') return 'sports'
@@ -623,9 +914,9 @@ export function resolveTextSystemForPreset(presetId: AdPresetId): PresetTextSyst
 export function validateAdInput(
   input: AdGenerationInput
 ): { valid: boolean; error?: string } {
-  if (!AD_PRESETS.find((p) => p.id === input.preset)) {
-        return { valid: false, error: 'Invalid preset selected' }
-    }
+  if (!SANITIZED_AD_PRESETS.find((p) => p.id === input.preset)) {
+    return { valid: false, error: 'Invalid preset selected' }
+  }
 
   if (input.textOverlay?.headline) {
     const wordCount = input.textOverlay.headline.trim().split(/\s+/).length
@@ -634,20 +925,20 @@ export function validateAdInput(
     }
   }
 
-    if (!input.platforms || input.platforms.length === 0) {
-        return { valid: false, error: 'At least one platform must be selected' }
-    }
+  if (!input.platforms || input.platforms.length === 0) {
+    return { valid: false, error: 'At least one platform must be selected' }
+  }
 
-    const validCtas: CtaType[] = ['shop_now', 'learn_more', 'explore', 'buy_now']
-    if (!validCtas.includes(input.ctaType)) {
-        return { valid: false, error: 'Invalid CTA type' }
-    }
+  const validCtas: CtaType[] = ['shop_now', 'learn_more', 'explore', 'buy_now']
+  if (!validCtas.includes(input.ctaType)) {
+    return { valid: false, error: 'Invalid CTA type' }
+  }
 
   if (input.characterType === 'animal' && !input.animalType) {
     return { valid: false, error: 'Please select an animal type' }
   }
 
-    return { valid: true }
+  return { valid: true }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -655,16 +946,16 @@ export function validateAdInput(
 // ═══════════════════════════════════════════════════════════════
 
 export const CTA_OPTIONS: { value: CtaType; label: string }[] = [
-    { value: 'shop_now', label: 'Shop Now' },
-    { value: 'learn_more', label: 'Learn More' },
-    { value: 'explore', label: 'Explore' },
-    { value: 'buy_now', label: 'Buy Now' },
+  { value: 'shop_now', label: 'Shop Now' },
+  { value: 'learn_more', label: 'Learn More' },
+  { value: 'explore', label: 'Explore' },
+  { value: 'buy_now', label: 'Buy Now' },
 ]
 
 export const TONE_OPTIONS: { value: CaptionTone; label: string }[] = [
-    { value: 'casual', label: 'Casual' },
-    { value: 'premium', label: 'Premium' },
-    { value: 'confident', label: 'Confident' },
+  { value: 'casual', label: 'Casual' },
+  { value: 'premium', label: 'Premium' },
+  { value: 'confident', label: 'Confident' },
 ]
 
 export const PLATFORM_OPTIONS: {
@@ -676,18 +967,18 @@ export const PLATFORM_OPTIONS: {
     { value: 'facebook', label: 'Facebook', icon: 'Facebook' },
     { value: 'google', label: 'Google Ads', icon: 'Globe' },
     { value: 'influencer', label: 'Influencer', icon: 'Users' },
-]
+  ]
 
 export const CHARACTER_OPTIONS: {
   value: CharacterType
   label: string
   icon: string
 }[] = [
-  { value: 'human_female', label: 'Woman', icon: 'User' },
-  { value: 'human_male', label: 'Man', icon: 'User' },
-  { value: 'animal', label: 'Animal', icon: 'Cat' },
-  { value: 'none', label: 'No Character', icon: 'Ban' },
-]
+    { value: 'human_female', label: 'Woman', icon: 'User' },
+    { value: 'human_male', label: 'Man', icon: 'User' },
+    { value: 'animal', label: 'Animal', icon: 'Cat' },
+    { value: 'none', label: 'No Character', icon: 'Ban' },
+  ]
 
 export const ANIMAL_OPTIONS: string[] = [
   'Polar Bear',
@@ -718,23 +1009,23 @@ export const CHARACTER_IDENTITY_OPTIONS: {
   label: string
   forCharacter?: Array<'human_female' | 'human_male'>
 }[] = [
-  { value: 'global_modern', label: 'Global Modern' },
-  { value: 'indian_woman_modern', label: 'Indian Woman (South Delhi Modern)', forCharacter: ['human_female'] },
-  { value: 'indian_man_modern', label: 'Indian Man (South Delhi Modern)', forCharacter: ['human_male'] },
-  { value: 'south_asian_modern', label: 'South Asian Modern' },
-  { value: 'south_east_asian_modern', label: 'South East Asian Modern' },
-  { value: 'east_asian_modern', label: 'East Asian Modern' },
-  { value: 'central_asian_modern', label: 'Central Asian Modern' },
-  { value: 'middle_eastern_modern', label: 'Middle Eastern Modern' },
-  { value: 'mediterranean_modern', label: 'Mediterranean Modern' },
-  { value: 'african_modern', label: 'African Modern' },
-  { value: 'latina_modern', label: 'Latina Modern', forCharacter: ['human_female'] },
-  { value: 'latin_american_modern', label: 'Latin American Modern' },
-  { value: 'north_american_modern', label: 'North American Modern' },
-  { value: 'european_modern', label: 'European Modern' },
-  { value: 'pacific_islander_modern', label: 'Pacific Islander Modern' },
-  { value: 'mixed_heritage_modern', label: 'Mixed Heritage Modern' },
-]
+    { value: 'global_modern', label: 'Global Modern' },
+    { value: 'indian_woman_modern', label: 'Indian Woman (South Delhi Modern)', forCharacter: ['human_female'] },
+    { value: 'indian_man_modern', label: 'Indian Man (South Delhi Modern)', forCharacter: ['human_male'] },
+    { value: 'south_asian_modern', label: 'South Asian Modern' },
+    { value: 'south_east_asian_modern', label: 'South East Asian Modern' },
+    { value: 'east_asian_modern', label: 'East Asian Modern' },
+    { value: 'central_asian_modern', label: 'Central Asian Modern' },
+    { value: 'middle_eastern_modern', label: 'Middle Eastern Modern' },
+    { value: 'mediterranean_modern', label: 'Mediterranean Modern' },
+    { value: 'african_modern', label: 'African Modern' },
+    { value: 'latina_modern', label: 'Latina Modern', forCharacter: ['human_female'] },
+    { value: 'latin_american_modern', label: 'Latin American Modern' },
+    { value: 'north_american_modern', label: 'North American Modern' },
+    { value: 'european_modern', label: 'European Modern' },
+    { value: 'pacific_islander_modern', label: 'Pacific Islander Modern' },
+    { value: 'mixed_heritage_modern', label: 'Mixed Heritage Modern' },
+  ]
 
 export const STYLE_PACK_OPTIONS: { value: StylePack; label: string }[] = [
   { value: 'luxury', label: 'Luxury' },
