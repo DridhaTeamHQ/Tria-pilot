@@ -6,8 +6,8 @@ interface FaceCropOutput {
     faceCropBase64: string
 }
 
-const MIN_FACE_CROP_SIZE = 384
-const FACE_CROP_PADDING = 0.45
+const MIN_FACE_CROP_SIZE = 640
+const FACE_CROP_PADDING = 0.22
 
 /**
  * Extracts a tight face crop from the person image using Gemini face detection.
@@ -75,8 +75,9 @@ export async function extractFaceCrop(
         const croppedBuffer = await sharp(buffer)
             .extract({ left, top, width: cropWidth, height: cropHeight })
             .resize(outputWidth, outputHeight, { fit: 'inside', withoutEnlargement: false })
-            .sharpen({ sigma: 0.8 })
-            .toFormat('jpeg', { quality: 92 })
+            .normalize()
+            .sharpen({ sigma: 1.1, m1: 1.2, m2: 2.2 })
+            .toFormat('jpeg', { quality: 96 })
             .toBuffer()
 
         return {

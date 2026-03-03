@@ -143,6 +143,19 @@ export function getPresetStrengthProfile(params: {
     })
   }
 
+  if (id === 'paris_eiffel_flash_night') {
+    profile = merge(profile, {
+      framingDiscipline: Math.max(profile.framingDiscipline, 0.9),
+      colorCleanliness: Math.max(profile.colorCleanliness, 0.92),
+      moodIntensity: Math.max(profile.moodIntensity, 0.84),
+      grainTexture: Math.min(profile.grainTexture, 0.4),
+      iphoneRealism: Math.max(profile.iphoneRealism, 0.72),
+      poseFreedom: Math.min(profile.poseFreedom, 0.36),
+      identityRigidity: Math.max(profile.identityRigidity, 0.995),
+      stylizationAllowance: Math.min(profile.stylizationAllowance, 0.14),
+    })
+  }
+
   // Low-key + blind-shadow presets can over-style faces if unrestricted.
   if (id === 'studio_crimson_noir' || id === 'golden_hour_bedroom') {
     profile = merge(profile, {
@@ -161,9 +174,9 @@ export function getPresetStrengthProfile(params: {
   profile = merge(profile, {
     colorCleanliness: Math.max(profile.colorCleanliness, 0.82),
     grainTexture: Math.min(profile.grainTexture, 0.48),
-    poseFreedom: Math.max(Math.min(profile.poseFreedom, 0.55), 0.35),
+    poseFreedom: Math.max(Math.min(profile.poseFreedom, 0.46), 0.32),
     identityRigidity: Math.max(profile.identityRigidity, 0.99),
-    stylizationAllowance: Math.min(profile.stylizationAllowance, 0.22),
+    stylizationAllowance: Math.min(profile.stylizationAllowance, 0.18),
   })
 
   return profile

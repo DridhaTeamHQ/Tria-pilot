@@ -11,7 +11,7 @@
  * - No "portrait", "model", "fashion", "cinematic" language.
  * - lightingMode is ALWAYS "environment_coherent" (scene-consistent harmonization).
  * - facePolicy is ALWAYS "immutable".
- * - posePolicy is ALWAYS "inherit" (inherit from Image 1).
+ * - posePolicy stays source-compatible while allowing safe preset-driven variation.
  */
 
 import 'server-only'
@@ -34,7 +34,7 @@ export interface SceneIntelOutput {
   anchorZone: string
   /** Lighting mode – ALWAYS "environment_coherent" (scene-consistent harmonization) */
   lightingMode: 'environment_coherent'
-  /** Pose policy – ALWAYS "inherit" (from Image 1) */
+  /** Pose policy – source-compatible with safe preset-driven variation */
   posePolicy: 'inherit'
   /** Face policy – ALWAYS "immutable" */
   facePolicy: 'immutable'
@@ -44,6 +44,12 @@ export interface SceneIntelOutput {
   realismGuidance?: string
   /** Explicit lighting blueprint for subject-scene harmonization */
   lightingBlueprint?: string
+  /** Camera treatment inferred from preset + source image */
+  cameraGuidance?: string
+  /** Safe pose envelope inferred from preset + source image */
+  poseGuidance?: string
+  /** Additional scene-level realism cues from vision analysis */
+  sceneGuidance?: string
   /** Preset-specific elements to avoid (from curated preset metadata) */
   presetAvoid?: string
   /** Fallback info if preset was rejected */
@@ -72,65 +78,70 @@ interface PresetPolicy {
 // SYSTEM PROMPT (GPT-4o)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const SYSTEM_PROMPT = `You are a strict Scene Intelligence Engine for a virtual try-on system.
+const SYSTEM_PROMPT = [
+  'You are a scene intelligence engine for a virtual try-on system.',
+  'Return one JSON object that describes the empty environment only.',
+  '',
+  'Rules:',
+  '- Never describe a person, face, body, pose, expression, or gaze.',
+  '- Do not use portrait, model, fashion, cinematic, editorial, stunning, beautiful, or elegant.',
+  '- Presets describe empty locations only.',
+  '- lightingMode must always be "environment_coherent".',
+  '- posePolicy must always be "inherit".',
+  '- facePolicy must always be "immutable".',
+  '- cameraPolicy must always be "inherit".',
+  '- If the request is unsafe or cannot be resolved, use the studio_gradient fallback.',
+  '',
+  'Return JSON only:',
+  '{',
+  '  "preset": "<preset_id>",',
+  '  "scenarioVariant": "<brief variant name>",',
+  '  "anchorZone": "<1-2 sentence description of the empty environment>",',
+  '  "lightingMode": "environment_coherent",',
+  '  "posePolicy": "inherit",',
+  '  "facePolicy": "immutable",',
+  '  "cameraPolicy": "inherit"',
+  '}',
+  '',
+  'Fallback shape:',
+  '{',
+  '  "preset": "studio_gradient",',
+  '  "scenarioVariant": "fallback",',
+  '  "anchorZone": "Clean gradient studio backdrop with soft even lighting.",',
+  '  "lightingMode": "environment_coherent",',
+  '  "posePolicy": "inherit",',
+  '  "facePolicy": "immutable",',
+  '  "cameraPolicy": "inherit",',
+  '  "fallback": { "preset": "studio_gradient", "reason": "<reason>" }',
+  '}',
+].join('\n')
 
-Your job: Given a user request (or preset name), output a JSON object describing the EMPTY ENVIRONMENT only.
-
-ABSOLUTE RULES:
-1. NEVER describe a person, face, body, pose, expression, or gaze.
-2. NEVER use words: "portrait", "model", "fashion", "cinematic", "editorial", "stunning", "beautiful", "elegant".
-3. Presets describe EMPTY locations — no people in them.
-4. Lighting policy is "environment_coherent": describe physically plausible scene lighting that can harmonize subject + background as one photo.
-5. posePolicy is ALWAYS "inherit" — the person's pose comes from Image 1, not from you.
-6. facePolicy is ALWAYS "immutable" — the face is never altered.
-7. cameraPolicy is ALWAYS "inherit" — camera angle comes from Image 1.
-8. If you cannot resolve the user request to a safe environment, use fallback: { preset: "studio_gradient", reason: "<why>" }.
-
-OUTPUT FORMAT (JSON only, no markdown, no explanation):
-{
-  "preset": "<preset_id>",
-  "scenarioVariant": "<brief variant name>",
-  "anchorZone": "<1-2 sentence description of the EMPTY environment>",
-  "lightingMode": "environment_coherent",
-  "posePolicy": "inherit",
-  "facePolicy": "immutable",
-  "cameraPolicy": "inherit"
-}
-
-Or with fallback:
-{
-  "preset": "studio_gradient",
-  "scenarioVariant": "fallback",
-  "anchorZone": "Clean gradient studio backdrop with soft even lighting",
-  "lightingMode": "environment_coherent",
-  "posePolicy": "inherit",
-  "facePolicy": "immutable",
-  "cameraPolicy": "inherit",
-  "fallback": { "preset": "studio_gradient", "reason": "<reason>" }
-}`
-
-const VISION_REALISM_SYSTEM_PROMPT = `You are a realism cinematography planner for virtual try-on.
-You must output JSON only:
-{
-  "anchorZone": "<empty environment description>",
-  "realismGuidance": "<single sentence with camera realism + physically plausible lighting/depth>",
-  "lightingBlueprint": "<single sentence with practical lighting blueprint: key/fill/rim direction, color temperature tendency, shadow softness>",
-  "scenarioVariant": "<short variant name>"
-}
-
-Rules:
-- Never describe person identity.
-- No face/eye/gaze instructions.
-- Keep camera realism practical (e.g. handheld smartphone or natural camera capture).
-- Lighting must be physically plausible and the SAME for subject and background: subject must appear lit by the scene (e.g. same sky, same ambient or key lights), not as a cut-out.
-- realismGuidance must explicitly state that the subject is grounded in the environment with coherent lighting and shadows (no pasted-on look).
-- Include harmonization cues: ambient color spill, contact shadows, and subtle light wrap at subject edges.
-- Mention depth layering (foreground/midground/background) briefly.
-- Keep perspective and focal plane consistent with the uploaded person image.
-- Avoid exaggerated blur, fake HDR glow, and over-processed backgrounds.
-- Keep the environment photoreal, lived-in, and materially believable (real textures, natural micro-contrast, no plastic/CGI look).
-- Preserve camera realism: natural lens rendering, subtle sensor noise/grain consistency, and no airbrushed surfaces.
-- Keep wording concise and production-safe.`
+const VISION_REALISM_SYSTEM_PROMPT = [
+  'You are a realism planner for virtual try-on scene construction.',
+  'Return JSON only:',
+  '{',
+  '  "anchorZone": "<empty environment description>",',
+  '  "realismGuidance": "<single sentence about camera realism and physically plausible integration>",',
+  '  "lightingBlueprint": "<single sentence about practical lighting direction, color temperature, and shadow softness>",',
+  '  "cameraGuidance": "<single sentence about practical camera angle, focal behavior, and depth rendering>",',
+  '  "poseGuidance": "<single sentence about safe preset-compatible posture variation without changing identity or body proportions>",',
+  '  "sceneGuidance": "<single sentence about material realism, background detail, and scene grounding>",',
+  '  "scenarioVariant": "<short variant name>"',
+  '}',
+  '',
+  'Rules:',
+  '- Never describe person identity.',
+  '- Do not include face, eye, or gaze instructions.',
+  '- Keep camera language practical and production-safe.',
+  '- The subject must appear lit by the same environment as the background.',
+  '- Explicitly ground the subject with coherent lighting, shadows, ambient spill, and subtle edge wrap.',
+  '- Mention depth layering briefly.',
+  '- Keep perspective and focal plane consistent with the uploaded person image.',
+  '- Infer a safe pose envelope from the uploaded person image and preset: allow natural scene-compatible variation, but never alter body proportions, identity, or recognizability.',
+  '- Camera guidance may adapt angle and depth behavior to the preset, but must stay compatible with the uploaded person image.',
+  '- Avoid exaggerated blur, fake HDR glow, plastic textures, and over-processed backgrounds.',
+  '- Keep the environment photoreal, materially believable, and naturally captured.',
+].join('\n')
 
 function toDataUrl(base64: string): string {
   if (base64.startsWith('data:image/')) return base64
@@ -197,13 +208,26 @@ async function buildVisionRealismGuidance(params: {
   personImageBase64?: string
   presetDescription: string
   userRequest?: string
-}): Promise<{ anchorZone: string; realismGuidance: string; lightingBlueprint: string; scenarioVariant: string }> {
+}): Promise<{
+  anchorZone: string
+  realismGuidance: string
+  lightingBlueprint: string
+  cameraGuidance: string
+  poseGuidance: string
+  sceneGuidance: string
+  scenarioVariant: string
+}> {
   const openai = getOpenAI()
 
-  const userText = `Selected environment preset: ${params.presetDescription}
-Optional user request: ${params.userRequest || 'none'}
-
-Refine the environment for photorealism. The person must appear lit by and grounded in this same environment (coherent lighting and shadows, no pasted-on look). Describe only environment and camera realism; do not describe the person.`
+  const userText = [
+    `Selected environment preset: ${params.presetDescription}`,
+    `Optional user request: ${params.userRequest || 'none'}`,
+    '',
+    'Refine this environment for photorealism.',
+    'The subject must look lit by and grounded in the same environment.',
+    'Describe only environment and camera realism.',
+    'Do not describe the person.',
+  ].join('\n')
 
   const content: any[] = [{ type: 'text', text: userText }]
   if (params.personImageBase64) {
@@ -232,6 +256,9 @@ Refine the environment for photorealism. The person must appear lit by and groun
     anchorZone?: string
     realismGuidance?: string
     lightingBlueprint?: string
+    cameraGuidance?: string
+    poseGuidance?: string
+    sceneGuidance?: string
     scenarioVariant?: string
   }
 
@@ -244,6 +271,18 @@ Refine the environment for photorealism. The person must appear lit by and groun
     lightingBlueprint: (
       parsed.lightingBlueprint ||
       'Match scene lighting on subject: natural key and fill from visible environment sources, coherent shadow direction and softness, and consistent color temperature between subject and background.'
+    ).trim(),
+    cameraGuidance: (
+      parsed.cameraGuidance ||
+      'Keep camera angle and focal behavior compatible with the source image while adapting framing and depth naturally to the preset. Avoid synthetic portrait blur and preserve believable lens response.'
+    ).trim(),
+    poseGuidance: (
+      parsed.poseGuidance ||
+      'Allow only safe preset-compatible posture variation from the source image: natural body angle shifts, relaxed hand placement, and environment-fit seated or standing behavior without changing body proportions or recognizability.'
+    ).trim(),
+    sceneGuidance: (
+      parsed.sceneGuidance ||
+      'Keep background materials sharp enough to feel real, preserve natural texture variation, and ground the subject with coherent scale, depth, and surface interaction.'
     ).trim(),
     scenarioVariant: (parsed.scenarioVariant || 'preset_refined').trim(),
   }
@@ -291,6 +330,9 @@ export async function getStrictSceneConfig(
           cameraPolicy: 'inherit',
           realismGuidance: mergeGuidance(presetPolicy.realismGuidance, refined.realismGuidance),
           lightingBlueprint: mergeGuidance(presetPolicy.lightingBlueprint, refined.lightingBlueprint),
+          cameraGuidance: refined.cameraGuidance,
+          poseGuidance: refined.poseGuidance,
+          sceneGuidance: refined.sceneGuidance,
           presetAvoid: [presetPolicy.presetAvoid, ...(requestGuidance?.avoidTerms || [])]
             .filter(Boolean)
             .join('; ') || undefined,
@@ -316,6 +358,12 @@ export async function getStrictSceneConfig(
               ? `Reference lighting hints: ${requestGuidance.lighting}.`
               : undefined
           ),
+          cameraGuidance:
+            'Keep camera angle compatible with the source image and preset. Preserve believable lens response and avoid synthetic blur or over-stylized depth effects.',
+          poseGuidance:
+            'Allow safe preset-compatible posture variation only when needed by the environment. Preserve recognizability, body proportions, and natural anatomy.',
+          sceneGuidance:
+            'Keep the subject grounded in the environment with realistic material texture, contact cues, and coherent depth.',
           presetAvoid: [presetPolicy.presetAvoid, ...(requestGuidance?.avoidTerms || [])]
             .filter(Boolean)
             .join('; ') || undefined,
@@ -329,11 +377,17 @@ export async function getStrictSceneConfig(
       ? `\nReference style hints from successful examples:\n- vibe: ${requestGuidance.vibe}\n- scene cues: ${requestGuidance.scene}\n- lighting cues: ${requestGuidance.lighting}`
       : ''
 
-    const userMessage = `User request: "${userRequest || 'clean studio'}"
-Available presets: ${input.availablePresets.join(', ')}
-${requestHint}
-
-Resolve this to a strict scene config. Remember: describe the EMPTY environment only. No people. No face. No pose.`
+    const userMessage = [
+      `User request: "${userRequest || 'clean studio'}"`,
+      `Available presets: ${input.availablePresets.join(', ')}`,
+      requestHint.trim(),
+      '',
+      'Resolve this to a strict scene config.',
+      'Describe the empty environment only.',
+      'No people, no face, no pose.',
+    ]
+      .filter(Boolean)
+      .join('\n')
 
     const response = await openai.chat.completions.create({
       model: PROMPT_INTEL_MODEL,
@@ -384,6 +438,18 @@ Resolve this to a strict scene config. Remember: describe the EMPTY environment 
         parsed.lightingBlueprint
       )
     }
+    if (!parsed.cameraGuidance) {
+      parsed.cameraGuidance =
+        'Keep camera angle compatible with the source image and preset. Preserve believable lens response and avoid synthetic blur or over-stylized depth effects.'
+    }
+    if (!parsed.poseGuidance) {
+      parsed.poseGuidance =
+        'Allow safe preset-compatible posture variation only when needed by the environment. Preserve recognizability, body proportions, and natural anatomy.'
+    }
+    if (!parsed.sceneGuidance) {
+      parsed.sceneGuidance =
+        'Keep the subject grounded in the environment with realistic material texture, contact cues, and coherent depth.'
+    }
     const fallbackPresetAvoid = resolvedPresetPolicy?.presetAvoid ||
       (presetId ? buildPresetPolicy(presetId, presetDescription).presetAvoid : undefined)
     parsed.presetAvoid = [fallbackPresetAvoid, parsed.presetAvoid, ...(requestGuidance?.avoidTerms || [])]
@@ -409,6 +475,12 @@ Resolve this to a strict scene config. Remember: describe the EMPTY environment 
         'Single coherent photograph: subject lit by and grounded in the same environment; shadows and highlights on the subject consistent with the scene; consistent perspective and depth; no pasted-on or cut-out look. Keep realistic background texture and camera grain consistency.',
       lightingBlueprint:
         'Match scene lighting on subject: natural key and fill from visible environment sources, coherent shadow direction and softness, and consistent color temperature between subject and background.',
+      cameraGuidance:
+        'Keep camera angle compatible with the source image and preset. Preserve believable lens response and avoid synthetic blur or over-stylized depth effects.',
+      poseGuidance:
+        'Allow safe preset-compatible posture variation only when needed by the environment. Preserve recognizability, body proportions, and natural anatomy.',
+      sceneGuidance:
+        'Keep the subject grounded in the environment with realistic material texture, contact cues, and coherent depth.',
       presetAvoid: 'No hard flash, no exaggerated color cast, no cut-out edges, no pasted subject appearance.',
       fallback: {
         preset: 'studio_gradient',

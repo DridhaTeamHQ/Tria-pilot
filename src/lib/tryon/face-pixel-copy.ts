@@ -72,6 +72,16 @@ export const FACE_MAX_BOTTOM_FRACTION = 0.45
 export const MAX_FACE_SCALE_UP = 1.35
 
 /**
+ * In strict mode, protect the central face features only:
+ * eyes, nose, philtrum, mouth, and immediate cheek area.
+ * This avoids sticker-like hair/jaw overlays while preserving the
+ * features users notice most when identity drifts.
+ */
+const STRICT_CORE_MASK_WIDTH_RATIO = 0.64
+const STRICT_CORE_MASK_HEIGHT_RATIO = 0.74
+const STRICT_CORE_MASK_CENTER_Y_RATIO = 0.54
+
+/**
  * Default face estimation when no detection available
  * Assumes face is in upper portion of portrait image
  */
@@ -224,6 +234,49 @@ async function createFeatheredMask(
         .toBuffer()
 }
 
+async function createStrictFeatureMask(
+    width: number,
+    height: number
+): Promise<Buffer> {
+    const rx = Math.max(10, Math.floor((width * STRICT_CORE_MASK_WIDTH_RATIO) / 2))
+    const ry = Math.max(12, Math.floor((height * STRICT_CORE_MASK_HEIGHT_RATIO) / 2))
+    const innerRx = Math.max(8, Math.floor(rx * 0.72))
+    const innerRy = Math.max(10, Math.floor(ry * 0.7))
+    const cx = Math.floor(width / 2)
+    const cy = Math.floor(height * STRICT_CORE_MASK_CENTER_Y_RATIO)
+    const blur = Math.max(4, Math.floor(Math.min(width, height) * 0.045))
+
+    const svg = `
+        <svg width="${width}" height="${height}">
+            <defs>
+                <filter id="core-soft-edge">
+                    <feGaussianBlur stdDeviation="${blur}" />
+                </filter>
+            </defs>
+            <ellipse
+                cx="${cx}"
+                cy="${cy}"
+                rx="${rx}"
+                ry="${ry}"
+                fill="white"
+                filter="url(#core-soft-edge)"
+            />
+            <ellipse
+                cx="${cx}"
+                cy="${cy}"
+                rx="${innerRx}"
+                ry="${innerRy}"
+                fill="white"
+            />
+        </svg>
+    `
+
+    return sharp(Buffer.from(svg))
+        .ensureAlpha()
+        .png()
+        .toBuffer()
+}
+
 /**
  * STEP 3: Composite original face onto generated image
  * 
@@ -266,7 +319,7 @@ export async function compositeFacePixels(
 
         if (faceData.maskBuffer) {
             const effectiveMask = strictFaceMode
-                ? await createFeatheredMask(faceData.box.width, faceData.box.height, 14)
+                ? await createStrictFeatureMask(faceData.box.width, faceData.box.height)
                 : faceData.maskBuffer
 
             // Create face with alpha channel from mask
@@ -279,7 +332,7 @@ export async function compositeFacePixels(
                 .png()
                 .toBuffer()
 
-            console.log(`   🎭 Applied ${strictFaceMode ? 'strict' : 'standard'} feather mask to face`)
+            console.log(`   🎭 Applied ${strictFaceMode ? 'strict core-feature' : 'standard'} mask to face`)
         }
 
         // If target box differs from source extraction, resize for geometric alignment.

@@ -45,44 +45,6 @@ function TryOnPageContent() {
     const { data: user } = useUser()
     const searchParams = useSearchParams()
     const productId = searchParams.get('productId')
-    const [approvalChecked, setApprovalChecked] = useState(false)
-
-    // Check influencer approval status
-    // Check influencer approval status
-    useEffect(() => {
-        if (!user) return
-
-        if (user.role === 'INFLUENCER') {
-            // If user has status, use it. If missing (legacy), assume approved or handle gracefully.
-            // Also checking if status is explictly suspended or rejected.
-            if (user.status && user.status !== 'APPROVED' && user.status !== 'PENDING') {
-                // If REJECTED or SUSPENDED, maybe redirect?
-                // For now, based on user request "we have been approved", we assume if they are here with INFLUENCER role, they should be approved
-                // unless explicitly blocked.
-                // However, let's stick to the requirement: "checking approval status".
-
-                if (user.status === 'APPROVED') {
-                    setApprovalChecked(true)
-                } else if (user.status === 'PENDING') {
-                    // If pending, technically they shouldn't be here? 
-                    // But user says they are approved. 
-                    // Let's trust the role if status is ambiguious, or just check 'approved'.
-                    // Actually, if we just setApprovalChecked(true) immediately if role is influencer, 
-                    // and rely on middleware/other layout guards for strict status checks if needed.
-                    // For this specific bug "stuck on checking", the issue was the bad code.
-                    // I will make it pass if role is influencer.
-                    setApprovalChecked(true)
-                } else {
-                    // Rejected/Suspended
-                    setApprovalChecked(true) // Let them see the UI or maybe show error? 
-                    // For safety against infinite loading, we set checked=true.
-                }
-            } else {
-                // Default to true if user is loaded and is influencer
-                setApprovalChecked(true)
-            }
-        }
-    }, [user])
 
     const [personImage, setPersonImage] = useState<string>('')
     const [personImageBase64, setPersonImageBase64] = useState<string>('')
@@ -129,6 +91,7 @@ function TryOnPageContent() {
     const [presets, setPresets] = useState<TryOnPreset[]>([])
     const [presetsLoading, setPresetsLoading] = useState(true)
     const [presetCategories, setPresetCategories] = useState<string[]>([])
+    const activePreset = presets.find((preset) => preset.id === selectedPreset)
 
     // Fetch presets
     useEffect(() => {
@@ -811,18 +774,6 @@ function TryOnPageContent() {
         }
     }
 
-    // Show loading while checking approval (must be after all hooks are declared)
-    if (!approvalChecked && user?.role === 'INFLUENCER') {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-[#FDFBF7]">
-                <div className="text-center">
-                    <BrutalLoader size="lg" className="mx-auto mb-6" />
-                    <p className="text-black font-bold uppercase tracking-widest">Checking status...</p>
-                </div>
-            </div>
-        )
-    }
-
     const hasPersonInput = Boolean(personImageBase64 || personImage)
     const hasClothingInput = Boolean(clothingImageBase64 || clothingImage)
     const hasBackgroundInput = Boolean(backgroundImageBase64 || backgroundImage)
@@ -1293,7 +1244,7 @@ function TryOnPageContent() {
                                     <span className="text-xs font-normal text-charcoal/40">(auto scene + lighting)</span>
                                 </h3>
                                 <div className="text-[11px] text-charcoal/50">
-                                    Tip: presets marked “Face Lock: Max” are safest for strict identity consistency in moody/night scenes.
+                                    Tip: presets change scene, lighting, and composition. Face identity stays locked to the uploaded reference.
                                 </div>
                                 <div className="flex gap-2 flex-wrap">
                                     <button
@@ -1363,7 +1314,7 @@ function TryOnPageContent() {
                                         <button
                                             onClick={() => setSelectedPreset('')}
                                             className={`
-                                                flex-shrink-0 group relative p-3 border-[3px] border-black text-left transition-all duration-200 overflow-hidden h-32 w-40 bg-white
+                                                flex-shrink-0 group relative p-3 border-[3px] border-black text-left transition-all duration-200 overflow-hidden h-36 w-44 bg-white
                                                 ${selectedPreset === ''
                                                     ? 'bg-[#FFD93D] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] translate-x-[2px] translate-y-[2px]'
                                                     : 'hover:bg-gray-50 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[2px] hover:-translate-y-[2px]'}
@@ -1376,6 +1327,7 @@ function TryOnPageContent() {
                                                 <div>
                                                     <div className="font-serif text-sm">Clothing Only</div>
                                                     <div className="text-[10px] opacity-60">No scene change</div>
+                                                    <div className="text-[9px] font-bold uppercase opacity-50 mt-1">Face and framing stay source-led</div>
                                                 </div>
                                             </div>
                                         </button>
@@ -1402,7 +1354,7 @@ function TryOnPageContent() {
                                                         key={preset.id}
                                                         onClick={() => setSelectedPreset(preset.id)}
                                                         className={`
-                                                            flex-shrink-0 group relative p-3 border-[3px] border-black text-left transition-all duration-200 overflow-hidden h-32 w-40
+                                                            flex-shrink-0 group relative p-3 border-[3px] border-black text-left transition-all duration-200 overflow-hidden h-36 w-44
                                                             ${selectedPreset === preset.id
                                                                 ? 'ring-4 ring-[#FFD93D] ring-offset-2 ring-offset-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
                                                                 : 'border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1'}
@@ -1452,6 +1404,11 @@ function TryOnPageContent() {
                                                                         Light: {preset.lightingHint}
                                                                     </div>
                                                                 )}
+                                                                {preset.sceneObjects && (
+                                                                    <div className="text-[8px] font-bold uppercase tracking-wide text-black/45 line-clamp-1 mt-1">
+                                                                        Scene: {preset.sceneObjects.split(/[.;]/)[0]}
+                                                                    </div>
+                                                                )}
                                                                 {(preset.styleTags?.length || preset.framingHint || preset.poseHint) && (
                                                                     <div className="mt-1 flex flex-wrap gap-1">
                                                                         {preset.framingHint ? (
@@ -1474,6 +1431,16 @@ function TryOnPageContent() {
                                                     </button>
                                                 )
                                             })}
+                                    </div>
+                                    <div className="mt-3 border-[3px] border-black bg-[#FFF9D9] px-4 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                                        <div className="text-[11px] font-black uppercase tracking-wide text-black">
+                                            {activePreset ? `${activePreset.name}: realism active` : 'Preset realism rules'}
+                                        </div>
+                                        <div className="text-xs text-black/75 mt-1">
+                                            {activePreset
+                                                ? `${activePreset.description} Face lock stays source-led while scene lighting, depth, reflections, and background detail are matched to the preset.`
+                                                : 'Presets change the scene, lighting, and composition style. Face identity stays locked to the uploaded reference.'}
+                                        </div>
                                     </div>
                                 </div>
                             )}

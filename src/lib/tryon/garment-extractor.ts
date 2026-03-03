@@ -44,83 +44,36 @@ export interface GarmentExtractionResult {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function buildExtractionPrompt(garmentAnalysis?: GarmentAnalysis): string {
-  // Base garment info if analysis was provided
   const garmentTypeHint = garmentAnalysis
     ? `The garment is: ${garmentAnalysis.summary}`
     : 'Analyze the garment type from the image.'
 
-  return `GARMENT EXTRACTION — TECHNICAL ASSET GENERATION
-
-${garmentTypeHint}
-
-══════════════════════════════════════════════════════════════════════════════
-TASK: Create a GARMENT-ONLY flat-lay image from this clothing photo.
-══════════════════════════════════════════════════════════════════════════════
-
-1️⃣ REMOVE ALL HUMAN ANATOMY (MANDATORY):
-   ✗ NO head
-   ✗ NO neck
-   ✗ NO face
-   ✗ NO arms
-   ✗ NO hands
-   ✗ NO legs
-   ✗ NO feet
-   ✗ NO torso silhouette
-   ✗ NO body pose cues
-   ✗ NO skin visible
-   ✗ NO mannequin parts
-
-   The output must contain ONLY THE GARMENT.
-
-2️⃣ PRESERVE GARMENT FIDELITY (CRITICAL — DO NOT ALTER):
-   
-   COLOR PRESERVATION:
-   ✓ EXACT hue — no shifting towards warmer/cooler
-   ✓ EXACT saturation — no boosting or muting
-   ✓ EXACT brightness — no lightening or darkening
-   ✓ EXACT color gradients if present
-   
-   FABRIC PRESERVATION:
-   ✓ EXACT texture (silk sheen, cotton matte, velvet pile, etc.)
-   ✓ EXACT weave pattern (visible threads, knit patterns)
-   ✓ EXACT fabric weight appearance (floaty, structured, heavy)
-   ✓ EXACT light reflection properties
-   
-   PATTERN PRESERVATION:
-   ✓ EXACT print patterns (florals, geometrics, stripes)
-   ✓ EXACT embroidery details
-   ✓ EXACT embellishments (sequins, beads, mirrors)
-   ✓ EXACT print scale and placement
-   
-   CONSTRUCTION PRESERVATION:
-   ✓ EXACT sleeve length and style
-   ✓ EXACT neckline shape
-   ✓ EXACT hem shape and length
-   ✓ EXACT buttons, zippers, closures
-   ✓ EXACT seams and stitching
-   ✓ EXACT design details (pleats, ruffles, pockets)
-
-3️⃣ OUTPUT FORMAT REQUIREMENTS:
-   • Floating garment (as if on invisible form)
-   • Clean white or light grey background (no gradients)
-   • Front-facing presentation
-   • Slight natural drape (gravity effect only)
-   • All design details clearly visible
-   • No harsh shadows
-   • No artificial lighting effects added
-
-❌ ABSOLUTELY FORBIDDEN:
-   • Simplifying fabric texture
-   • Smoothing or blurring patterns
-   • Hallucinating new folds or drape
-   • Changing any colors
-   • Adding or removing details
-   • Stylizing or beautifying
-   • Adding artistic effects
-   • Cropping out garment parts
-
-This is a TECHNICAL GARMENT ASSET for a virtual try-on system.
-NOT a fashion photo. NOT stylized. EXACT reproduction only.`
+  return [
+    'Create a garment-only technical asset from this clothing image.',
+    garmentTypeHint,
+    '',
+    'Task:',
+    '- Remove all human anatomy, mannequin parts, skin, and body pose cues.',
+    '- Keep only the garment.',
+    '',
+    'Preserve garment fidelity:',
+    '- Keep exact hue, saturation, brightness, and any color gradients.',
+    '- Keep exact fabric texture, weave, weight, and reflectance.',
+    '- Keep exact prints, embroidery, embellishments, and pattern placement.',
+    '- Keep exact sleeve length, neckline, hem shape, seams, closures, and design details.',
+    '',
+    'Output requirements:',
+    '- Front-facing floating garment on a clean white or light gray background.',
+    '- Slight natural drape only.',
+    '- All garment edges and details fully visible.',
+    '- No harsh shadows and no stylized lighting.',
+    '',
+    'Forbidden:',
+    '- Do not recolor, smooth, simplify, beautify, crop, or hallucinate new folds or details.',
+    '- Do not add artistic effects.',
+    '',
+    'Return a technical garment asset, not a fashion photo.',
+  ].join('\n')
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -238,3 +191,4 @@ export function logGarmentExtractionStatus(sessionId: string, result: GarmentExt
   console.log(`   ✓ Time: ${result.processingTimeMs}ms`)
   console.log(`   ═══════════════════════════════════════════════`)
 }
+

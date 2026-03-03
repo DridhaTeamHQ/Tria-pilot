@@ -148,6 +148,17 @@ export const BUILTIN_PRESET_RESEARCH_OVERRIDES: Record<string, PresetResearchPro
       'car body reflection portrait realism',
     ],
   },
+  street_porsche_panamera_residential: {
+    mode: 'deep',
+    timeoutMs: 3000,
+    maxSnippets: 5,
+    maxContextChars: 1000,
+    focusTerms: [
+      'late afternoon residential street portrait',
+      'black car paint reflections photography',
+      'automotive portrait grounding realism',
+    ],
+  },
   studio_crimson_noir: {
     mode: 'balanced',
     timeoutMs: 2200,
@@ -168,6 +179,50 @@ export const BUILTIN_PRESET_RESEARCH_OVERRIDES: Record<string, PresetResearchPro
       'golden hour window light portrait',
       'window blind shadow portrait',
       'indoor warm daylight color temperature',
+    ],
+  },
+  night_beach_streetwear: {
+    mode: 'deep',
+    timeoutMs: 2800,
+    maxSnippets: 5,
+    maxContextChars: 980,
+    focusTerms: [
+      'night beach portrait low light',
+      'shoreline ambient lighting realism',
+      'dark clothing low-light texture retention',
+    ],
+  },
+  garden_oak_bench_golden_hour: {
+    mode: 'balanced',
+    timeoutMs: 2200,
+    maxSnippets: 4,
+    maxContextChars: 820,
+    focusTerms: [
+      'golden hour garden portrait',
+      'tree shadow pattern portrait realism',
+      'stone bench natural light texture',
+    ],
+  },
+  street_ramen_booth_snapshot: {
+    mode: 'deep',
+    timeoutMs: 3000,
+    maxSnippets: 5,
+    maxContextChars: 980,
+    focusTerms: [
+      'restaurant booth ambient lighting portrait',
+      'food and subject realism low light phone photo',
+      'mixed warm practical restaurant lighting',
+    ],
+  },
+  paris_eiffel_flash_night: {
+    mode: 'deep',
+    timeoutMs: 3200,
+    maxSnippets: 6,
+    maxContextChars: 1100,
+    focusTerms: [
+      'night paris flash portrait',
+      'eiffel tower background compression 85mm',
+      'flash and ambient night balance river reflections',
     ],
   },
   street_subway_fisheye: {
@@ -201,6 +256,39 @@ export const BUILTIN_PRESET_RESEARCH_OVERRIDES: Record<string, PresetResearchPro
       'night garden flash portrait',
       'on-camera flash ambient balance',
       'flash falloff and background exposure',
+    ],
+  },
+  studio_white_wall_saree_shadow: {
+    mode: 'balanced',
+    timeoutMs: 2200,
+    maxSnippets: 4,
+    maxContextChars: 760,
+    focusTerms: [
+      'directional sunlight fashion portrait',
+      'white wall editorial shadow geometry',
+      'yellow fabric highlight control',
+    ],
+  },
+  indian_influencer_daylight_fullbody: {
+    mode: 'balanced',
+    timeoutMs: 2200,
+    maxSnippets: 4,
+    maxContextChars: 760,
+    focusTerms: [
+      'full body lifestyle portrait daylight',
+      'natural skin tone rendering indian portrait',
+      '85mm influencer photography realism',
+    ],
+  },
+  studio_industrial_window_chair: {
+    mode: 'balanced',
+    timeoutMs: 2400,
+    maxSnippets: 4,
+    maxContextChars: 820,
+    focusTerms: [
+      'industrial studio window light editorial',
+      'daylight geometric shadow portrait',
+      'satin fabric daylight rendering',
     ],
   },
   street_elevator_mirror_chic: {

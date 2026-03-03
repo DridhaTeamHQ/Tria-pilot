@@ -68,7 +68,8 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     'almond eye shape, medium inter-eye spacing, dark brown iris color, forward gaze direction, stable eyelid crease and brow geometry'
   const characterSummary = input.characterSummary?.trim() || 'single subject from Image 1'
   const poseSummary = input.poseSummary?.trim() || 'inherit pose and head angle from Image 1'
-  const appearanceSummary = input.appearanceSummary?.trim() || 'preserve stable hairstyle and accessories from Image 1'
+  const appearanceSummary =
+    input.appearanceSummary?.trim() || 'preserve stable hairstyle and accessories from Image 1'
   const aspectRatio = input.aspectRatio || '1:1'
   const retryMode = Boolean(input.retryMode)
   const sceneCorrectionGuidance = input.sceneCorrectionGuidance?.trim()
@@ -89,19 +90,23 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     input.bodyAnchor?.trim() ||
     'preserve original body build, weight, shoulder width, torso mass, and limb proportions exactly as visible in Image 1'
   const identityCorrectionGuidance = input.identityCorrectionGuidance?.trim()
-  const styleGuidance = input.styleGuidance?.trim() ? clamp(input.styleGuidance.trim(), 360) : undefined
+  const styleGuidance = input.styleGuidance?.trim()
+    ? clamp(input.styleGuidance.trim(), 360)
+    : undefined
   const colorGradingGuidance = input.colorGradingGuidance?.trim()
     ? clamp(input.colorGradingGuidance.trim(), 220)
     : undefined
-  const cameraGuidance = input.cameraGuidance?.trim() ? clamp(input.cameraGuidance.trim(), 180) : undefined
+  const cameraGuidance = input.cameraGuidance?.trim()
+    ? clamp(input.cameraGuidance.trim(), 180)
+    : undefined
   const poseInferenceGuidance = input.poseInferenceGuidance?.trim()
     ? clamp(input.poseInferenceGuidance.trim(), 260)
     : undefined
   const researchContext = input.researchContext?.trim()
-    ? clamp(input.researchContext.trim(), 1400)
+    ? clamp(input.researchContext.trim(), 450)
     : undefined
   const webResearchContext = input.webResearchContext?.trim()
-    ? clamp(input.webResearchContext.trim(), 700)
+    ? clamp(input.webResearchContext.trim(), 220)
     : undefined
   const identityPriorityRules = (input.identityPriorityRules || [])
     .map(rule => rule.trim())
@@ -147,10 +152,6 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     'no illustrated style',
   ]
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // LEAN CONTROL JSON — identity + task only, NO integration rules here.
-  // Integration rules go in plain text where the model weights them higher.
-  // ═══════════════════════════════════════════════════════════════════════════
   const control = {
     mode: 'PIXEL_PRIORITY',
     identity_lock: 'ABSOLUTE',
@@ -170,7 +171,7 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
       edit_scope: isSceneChange
         ? 'change_garment_AND_background_preserve_face_and_body_geometry'
         : 'replace_garment_only_preserve_head_face_body_geometry',
-      garment: garment,
+      garment,
       fit: garmentFit,
       environment,
       lighting_blueprint: lightingBlueprint,
@@ -180,14 +181,17 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
       'preserve_exact_face_geometry_and_pixels',
       'preserve_gaze_eye_alignment_nose_lips_jawline',
       'preserve_exact_eye_shape_spacing_iris_and_gaze_from_Image_1',
+      'preserve_exact_eye_aperture_and_brow_eye_distance_from_Image_1',
+      'preserve_exact_cheek_volume_midface_width_and_facial_fullness_from_Image_1',
       'no_eye_resize_recolor_reposition_or_expression_change',
-      'no_face_relight_reshape_beautify_smooth',
+      'allow_face_relight_to_match_scene_while_preserving_identity',
       'no_bone_structure_change_or_facial_proportion_reinterpretation',
+      'no_face_beautify_airbrush_or_smoothing_filter',
       'keep_face_position_and_scale_locked',
       'no_double_face_ghosting_extra_person',
     ],
     body_rules: [
-      'keep_pose_body_hands_from_Image_1',
+      'keep_pose_behavior_compatible_with_Image_1_and_preset',
       'preserve_exact_body_proportions_weight_and_silhouette',
       'no_slimming_elongating_or_reshaping',
       'allow_body_and_clothing_relight_to_match_scene',
@@ -209,11 +213,18 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
       'eye enlargement', 'jawline slimming', 'cheekbone enhancement', 'digital makeup look',
       'de-aged face', 'younger-looking face', 'wrinkle removal', 'skin whitening',
       'skin brightening on face', 'fairness filter look', 'complexion shift',
+      'puffier cheeks', 'fuller face', 'wider midface', 'inflated face volume',
+      'changed eye aperture', 'rounder eyes', 'larger eye opening', 'altered brow-eye spacing',
       'pasted on background', 'cut-out look', 'floating subject',
       'mismatched lighting', 'sticker effect', 'flat subject on background',
+      'blurred background haze', 'mushy background', 'smudged background textures',
+      'portrait mode cutout blur', 'gaussian background blur', 'fake bokeh circles',
+      'halo around subject edges', 'edge matte halo', 'subject cutout outline',
+      'mismatched perspective', 'disconnected foreground', 'weak depth layering',
       'slimmed body', 'thinned waist', 'elongated torso', 'narrowed shoulders',
       'idealized proportions', 'model body type', 'beauty-standard reshape',
       ...mergedAvoidTerms,
+      ...hardSafetySuffix,
     ],
     ...(retryMode
       ? {
@@ -224,17 +235,14 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
               'exact_eyes_from_image_1',
               'no_eye_change',
               'no_gaze_change',
-              'no_face_relight',
+              'no_face_reshape',
+              'no_face_beautify',
             ],
           },
         }
       : {}),
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // PROMPT STRUCTURE: plain-text integration > lean JSON > plain-text close
-  // Integration in PLAIN TEXT so the model can't deprioritize it.
-  // ═══════════════════════════════════════════════════════════════════════════
   const integrationBlock = [
     `EDIT SCOPE:`,
     isSceneChange
@@ -247,12 +255,16 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     isSceneChange
       ? `Generate a completely new scene: "${environment}". The person must look like they were PHOTOGRAPHED in this environment — not pasted onto it.`
       : `Keep the original background from Image 1. Only change the garment.`,
-    `Relight the body, arms, and clothing to match the scene light direction and color temperature. ${lightingBlueprint}`,
-    `If lighting or scene changes, adjust shading naturally on environment/body only; preserve exact facial proportions and do not modify facial geometry.`,
+    `Allow the face and body to naturally inherit the scene's lighting, shadows, and color temperature. ${lightingBlueprint}`,
+    `Relight the face, skin, body, arms, and clothing so the subject feels photographed inside the environment, while preserving exact facial proportions and geometry.`,
     `Add ambient color spill from the environment onto the subject's skin and clothing edges.`,
     `Add subtle light wrap where the subject outline meets bright background areas.`,
     `Add realistic contact shadows and ambient occlusion where the body meets nearby surfaces.`,
     `Match the subject's sharpness, noise grain, and depth-of-field to the background.`,
+    `Build the image as a coherent depth stack with believable foreground cues, the subject grounded in the true midground focus plane, and background elements receding naturally.`,
+    `Keep foreground, subject, and background composition physically connected with consistent scale, perspective, and optical depth.`,
+    `Avoid the typical AI blurred-background look: no smeared walls, no mushy textures, no fake portrait-mode masking, and no generic haze behind the subject.`,
+    `If shallow depth of field is used, it must look optically plausible with gradual falloff and readable material detail, not a cut-out blur halo around the subject.`,
     `Keep background materials naturally textured and non-plastic (real micro-contrast, no CGI-like smoothing).`,
     `The subject and background must share the same color temperature, dynamic range, and optical characteristics.`,
     `Do NOT produce a flat, pasted, or sticker look. The person must be IN the scene, not placed ON it.`,
@@ -269,10 +281,10 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
       ? `STYLE TARGET (from high-performing references): ${styleGuidance}. Keep this mood while preserving exact identity and body geometry. Apply style cues to scene/background/garment only; never to facial geometry or face skin texture.`
       : '',
     colorGradingGuidance
-      ? `Color treatment target: ${colorGradingGuidance}. Keep skin tones natural and identity-faithful. Face region grading must stay neutral and source-faithful (no heavy contrast, no beauty grade, no skin blur).`
+      ? `Color treatment target: ${colorGradingGuidance}. Keep skin tones natural and identity-faithful. Let the face share the scene grade, color temperature, and shadow falloff, but avoid beautification, airbrushing, or geometry changes.`
       : '',
     cameraGuidance
-      ? `Camera treatment target: ${cameraGuidance}. Camera look adjustments apply to scene integration and garment rendering only, never to face structure or face texture.`
+      ? `Camera treatment target: ${cameraGuidance}. Camera look adjustments apply to scene integration and garment rendering only, never to face structure or face texture. Preserve believable foreground, subject, and background separation without synthetic blur or masking artifacts.`
       : '',
     poseInferenceGuidance
       ? `Pose intelligence: infer a natural scene-appropriate pose and posture from styling cues (${poseInferenceGuidance}) while avoiding mannequin stiffness and preserving anatomy.`
@@ -283,7 +295,7 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     webResearchContext
       ? `LIVE WEB RESEARCH (preset-tuned realism hints): ${webResearchContext}`
       : '',
-    `Pose realism rule: preserve original pose from Image 1 while keeping natural body micro-asymmetry (shoulders, hands, spine, and neck) and avoiding rigid mannequin-like posture.`,
+    `Pose realism rule: preserve the source person's recognizable body language and anatomy while allowing safe preset-compatible posture variation. Small changes in body angle, seated/standing adaptation, hand placement, or weight shift are allowed only if required by the preset and must never change body proportions, limb length, or facial identity.`,
     realism,
     sceneCorrectionGuidance ? `Scene fix: ${sceneCorrectionGuidance}` : '',
   ].filter(Boolean).join('\n')
@@ -291,11 +303,11 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   const faceBlock = [
     `FACE LOCK (non-negotiable):`,
     `The face from Image 1 is immutable. Do not reshape, slim, narrow, beautify, smooth, or reposition it.`,
-    `FACE GEOMETRY ANCHOR: this person has ${faceAnchor}. The generated face MUST match these exact proportions — do not slim the face, do not narrow the jaw, do not reduce cheek volume, do not thin the beard.`,
-    `Do NOT apply cinematic grade, heavy contrast, or stylization to the face region. Style treatment applies to scene and non-face regions only.`,
+    `FACE GEOMETRY ANCHOR: this person has ${faceAnchor}. The generated face MUST match these exact proportions — do not slim the face, do not narrow the jaw, do not widen the midface, do not make the face fuller or puffier, do not alter cheek volume, and do not thin the beard.`,
+    `Allow the face to inherit scene lighting, shadow direction, white balance, and color temperature so it integrates naturally with the environment.`,
+    `Ensure the lighting on the face fully integrates with the background while preserving bone structure, facial geometry, and recognizable identity.`,
     `Face texture lock: preserve pore detail, beard strands, and natural micro-contrast from Image 1. Do not denoise, airbrush, or smooth facial skin.`,
-    `Do not use beauty filter behavior on face: no bilateral smoothing, no skin blur, no tone-evening, and no complexion homogenization.`,
-    `Keep face exposure and tone mapping identity-faithful: no youth-enhancing relight, no skin brightening, and no complexion shift relative to Image 1.`,
+    `Avoid beauty-filter behavior or complexion cleanup on the face. Preserve natural skin texture and undertone while allowing realistic scene-driven relighting and exposure adaptation.`,
     identityCorrectionGuidance ? `Identity correction priority: ${identityCorrectionGuidance}` : '',
   ].filter(Boolean).join('\n')
 
@@ -309,7 +321,7 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     `Preserve perceived age exactly as in Image 1. No de-aging, no youthification, no wrinkle removal, and no age reinterpretation.`,
     `Preserve original skin luminance and undertone from Image 1. No skin whitening/brightening, no fairness shift, and no beauty skin cleanup.`,
     `Do NOT beautify, enhance, smooth skin, alter bone structure, or reinterpret facial proportions.`,
-    `Expression and head pose must be inherited from Image 1.`,
+    `Facial identity and overall recognizability must stay inherited from Image 1. Pose may adapt naturally to the preset as long as face geometry, body proportions, and identity remain unchanged.`,
     ...identityPriorityRules.map(rule => `Identity priority: ${rule}`),
   ].filter(Boolean).join('\n')
 
@@ -325,7 +337,7 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   const eyesBlock = [
     `EYES LOCK (non-negotiable):`,
     `Preserve EXACT eye shape, inter-eye spacing, iris color, gaze direction, eyelid crease, and brow-eye geometry from Image 1.`,
-    `Do NOT change eye size, spacing, iris color, gaze, eyelid fold, or brow-eye relation.`,
+    `Do NOT change eye size, spacing, iris color, gaze, eyelid fold, brow-eye relation, or eye aperture/opening.`,
     `Preserve natural sclera tone, pupil size ratio, eyelid thickness, and catchlight direction from Image 1.`,
     `Avoid lazy eye drift, mismatched pupils, or asymmetric eyelid deformation.`,
     `Eyes anchor: ${eyesAnchor}`,
@@ -339,7 +351,6 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     `Shoulder width, torso mass, waist, hip width, arm thickness, and overall weight must match Image 1 exactly.`,
     `The garment must conform to the body as-is — the body does NOT conform to the garment.`,
     `No idealization, no beauty-standard correction, no fitness-model adjustment.`,
-    identityCorrectionGuidance ? `Correction note: ${identityCorrectionGuidance}` : '',
   ].join('\n')
 
   return [
@@ -357,7 +368,7 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     '',
     `CONTROL=${JSON.stringify(control)}`,
     '',
-    'OUTPUT: single photorealistic composite with natural skin detail and coherent scene integration. Keep identity exact; allow preset-guided style without altering facial structure or body proportions.',
+    'OUTPUT: single photorealistic composite with natural skin detail, coherent scene integration, realistic foreground-midground-background composition, and face lighting that fully matches the environment. Keep identity exact; allow preset-guided style without altering facial structure or body proportions.',
     hasFaceReference
       ? 'VERIFICATION: Before finalizing, compare the face you generated against Image 3 (face crop). The eye spacing, nose shape, jawline, beard pattern, and skin texture must match Image 3 exactly. If they do not match, regenerate the face region to match Image 3.'
       : '',

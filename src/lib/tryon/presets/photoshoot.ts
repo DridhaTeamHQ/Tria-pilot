@@ -106,6 +106,19 @@ const OUTDOOR_PRESETS: ScenePreset[] = [
     negative_bias: 'No beach crowd clutter, no umbrellas near subject, no harsh direct noon sun, no unrealistic teal-orange push.'
   },
   {
+    id: 'night_beach_streetwear',
+    label: 'Night Beach Streetwear',
+    category: 'outdoor',
+    region: 'global',
+    scene: 'Night beach shoreline with dark sand, low surf, sparse distant practical light, and open black sky with natural horizon separation.',
+    lighting: 'Key: low mixed night ambient from nearby practicals or soft sky glow. Fill: weak sand and water bounce preserving legibility in clothing and skin without flattening the scene. Rim: subtle edge separation from shoreline reflections or distant practicals. Cool-neutral night balance with controlled blacks and realistic low-light noise.',
+    camera: 'Smartphone-style full-body to three-quarter night framing with natural perspective, crisp subject detail, and readable shoreline depth without fake portrait blur.',
+    motion: 'subtle motion',
+    mood: 'candid',
+    style: 'realism',
+    negative_bias: 'No daylight beach look, no teal-orange blockbuster grade, no fake moonbeam spotlight, no mushy background, no synthetic bokeh, no pasted subject edges.'
+  },
+  {
     id: 'outdoor_park',
     label: 'Morning Park',
     category: 'outdoor',
@@ -117,6 +130,19 @@ const OUTDOOR_PRESETS: ScenePreset[] = [
     mood: 'candid',
     style: 'realism',
     negative_bias: 'No crowded pathways, no neon greens, no hard midday overhead, no synthetic CGI foliage texture.'
+  },
+  {
+    id: 'garden_oak_bench_golden_hour',
+    label: 'Oak Garden Bench Golden Hour',
+    category: 'outdoor',
+    region: 'global',
+    scene: 'Peaceful garden under a sprawling old oak tree with a weathered stone bench, soft ground cover, layered foliage, and calm late-day atmosphere.',
+    lighting: 'Key: golden afternoon sunlight filtering through oak branches. Fill: soft garden bounce from stone, ground, and foliage preserving skin texture and dress detail. Rim: delicate warm edge where sun breaks through leaves. Warm 3600-4500K with intricate branch-shadow lacework and gentle contrast.',
+    camera: 'Eye-level seated environmental portrait with medium framing, natural perspective, and crisp bench, dress, and garden texture without synthetic blur haze.',
+    motion: 'static',
+    mood: 'candid',
+    style: 'realism',
+    negative_bias: 'No fantasy-glow foliage, no overcooked golden filter, no fake haze, no sticker edges, no artificial blur wall background.'
   },
 ]
 
@@ -146,6 +172,19 @@ const URBAN_PRESETS: ScenePreset[] = [
     mood: 'candid',
     style: 'realism',
     negative_bias: 'No heavy traffic dominance, no messy signage clutter, no muddy mixed white balance, no oversaturated neon cast.'
+  },
+  {
+    id: 'paris_eiffel_flash_night',
+    label: 'Paris Eiffel Flash Night',
+    category: 'street',
+    region: 'global',
+    scene: 'Night Paris riverfront with stone parapet seating, Eiffel Tower brightly illuminated in the background, dark water with boat reflections, and open night sky.',
+    lighting: 'Key: hard direct on-camera flash shaping the seated subject. Fill: low ambient night spill from the riverfront and surrounding city light. Rim: warm side light for silhouette volume against the dark scene. Mixed warm tower glow and cool night ambient with preserved black depth and realistic reflection behavior.',
+    camera: 'Canon EOS R5 style 85mm telephoto portrait framing with seated subject facing camera, compressed background perspective, crisp tower detail, and no synthetic bokeh artifacts.',
+    motion: 'static',
+    mood: 'candid',
+    style: 'realism',
+    negative_bias: 'No fake postcard Paris look, no overdone HDR halos, no sticker compositing, no artificial blur wash, no warped tower geometry, no plastic skin.'
   },
 ]
 
@@ -191,6 +230,19 @@ const CASUAL_PRESETS: ScenePreset[] = [
     mood: 'candid',
     style: 'realism',
     negative_bias: 'No fashion-runway posing, no dramatic theatrical lighting, no HDR halos, no over-smoothed street textures.'
+  },
+  {
+    id: 'indian_influencer_daylight_fullbody',
+    label: 'Indian Influencer Daylight',
+    category: 'lifestyle',
+    region: 'india',
+    scene: 'Clean outdoor or lifestyle location with uncluttered background depth, natural urban or garden context, and premium but believable influencer-photo spacing.',
+    lighting: 'Key: soft natural daylight. Fill: open-sky and ground bounce maintaining realistic facial detail and clean clothing separation. Rim: subtle daylight edge when available. Neutral-warm daylight with gentle shadows and natural highlights.',
+    camera: '85mm DSLR-style full-body portrait framing with shallow but believable depth, sharp subject detail, and no fake bokeh cutout.',
+    motion: 'static',
+    mood: 'candid',
+    style: 'realism',
+    negative_bias: 'No plastic skin, no body reshaping, no beauty-filter symmetry, no HDR haloing, no fake blur gradient, no CGI influencer look.'
   },
 ]
 
@@ -337,6 +389,32 @@ const EXTENDED_PRESETS: ScenePreset[] = [
     mood: 'candid',
     style: 'realism',
     negative_bias: 'No daylight elements, no incorrect vehicle class look, no blown signage, no face beautification or aggressive face grading, no artificial background blur or bokeh blobs.'
+  },
+  {
+    id: 'street_porsche_panamera_residential',
+    label: 'Residential Porsche Street',
+    category: 'street',
+    region: 'global',
+    scene: 'Residential street with a sleek black Porsche Panamera parked curbside, scattered pine needles on the pavement, modest homes, a white van and dark sedan in the background, and natural lived-in neighborhood spacing.',
+    lighting: 'Key: soft warm late-afternoon sun from high side angle. Fill: open-sky ambient and pavement bounce to keep face and black clothing readable without flattening contrast. Rim: subtle warm edge on jacket, hair, and car contours from sun reflection and sky wrap. Warm-neutral 4300-5200K with realistic car-paint reflections and natural shadow falloff.',
+    camera: 'High-angle full-body urban street framing with moderate-deep focus; keep the car body, hood reflections, and background vehicles readable without synthetic blur haze.',
+    motion: 'static',
+    mood: 'candid',
+    style: 'realism',
+    negative_bias: 'No showroom CGI gloss, no incorrect Porsche body shape, no warped car reflections, no sticker-edge compositing, no fake portrait-mode blur, no exaggerated orange sunset grade.'
+  },
+  {
+    id: 'street_ramen_booth_snapshot',
+    label: 'Retro Ramen Booth Snapshot',
+    category: 'lifestyle',
+    region: 'global',
+    scene: 'Dim retro Japanese restaurant booth with deep teal tufted seating, illuminated calligraphy panels, cluttered side-shelf details, green or marble tabletop, ramen bowl, drink glass, napkin, and natural table clutter.',
+    lighting: 'Key: warm amber practical glow from illuminated wall panels behind and beside the booth. Fill: soft table bounce and ambient interior spill preserving skin texture, food detail, and booth color. Rim: subtle practical edge on hair, sunglasses, and chopsticks. Mixed 2800-4200K restaurant lighting with low-contrast phone-camera realism.',
+    camera: 'Slightly high-angle medium close-up smartphone framing around chest-up with ramen bowl prominent in the lower frame, sharp subject-and-food focus, and softly diffused background detail.',
+    motion: 'subtle motion',
+    mood: 'candid',
+    style: 'realism',
+    negative_bias: 'No beauty-dish studio light, no clean minimalist restaurant look, no fake food-ad photography polish, no neon over-saturation, no sticker compositing, no artificial blur haze.'
   },
   {
     id: 'outdoor_kerala_theyyam_gtr',
@@ -506,6 +584,32 @@ const EXTENDED_PRESETS: ScenePreset[] = [
     mood: 'candid',
     style: 'realism',
     negative_bias: 'No oversaturated clipping, no background banding, no synthetic depth blur, no plastic skin.'
+  },
+  {
+    id: 'studio_white_wall_saree_shadow',
+    label: 'White Wall Saree Shadow',
+    category: 'lifestyle',
+    region: 'global',
+    scene: 'Minimal solid white wall with clean floor-to-wall meeting line, empty set, and space for strong diagonal shadow geometry around the subject.',
+    lighting: 'Key: strong directional sunlight-style source from upper left creating crisp dramatic shadows on the wall and defined fabric sheen. Fill: restrained wall bounce preserving contrast and facial structure. Rim: subtle edge lift from ambient room return only. Warm-neutral daylight with bright highlights and deep controlled shadow shape.',
+    camera: 'Editorial full-body to three-quarter framing with sharp saree texture, braid detail, and wall-shadow geometry; no synthetic blur or background haze.',
+    motion: 'subtle motion',
+    mood: 'candid',
+    style: 'realism',
+    negative_bias: 'No glamour studio softbox wash, no beauty-retouch skin, no random props, no fake wind simulation artifacts, no oversaturated yellow clipping, no sticker edges.'
+  },
+  {
+    id: 'studio_industrial_window_chair',
+    label: 'Industrial Window Chair Editorial',
+    category: 'lifestyle',
+    region: 'global',
+    scene: 'Minimal industrial studio with matte white wall corner seam, raw gray concrete floor, vintage brown office chair with metal caster base, and large negative space.',
+    lighting: 'Key: strong left-side window daylight creating crisp geometric wall shadows and diagonal light streaks across the floor. Fill: soft concrete and wall bounce preserving skin texture and satin folds. Rim: minimal ambient edge on the shadow side. Neutral daylight with lifted blacks and restrained saturation.',
+    camera: 'Wide editorial composition with subject placed on the right third, sharp focus on subject and chair, deep set readability, and no softbox-beauty look or fake blur.',
+    motion: 'static',
+    mood: 'candid',
+    style: 'realism',
+    negative_bias: 'No extra props, no wrong chair type, no glossy CGI floor, no heavy vignette, no fake bokeh, no softbox studio wash, no oversharpening.'
   },
   {
     id: 'studio_green_red_gel_editorial',

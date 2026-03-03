@@ -32,48 +32,54 @@ export async function buildForensicFaceAnchor(params: {
   const content: any[] = [
     {
       type: 'text',
-      text: `Analyze this person's face and body for identity locking in a virtual try-on system.
-I need SPECIFIC, MEASURABLE descriptions — not generic phrases. Describe what you ACTUALLY SEE.
-
-Return JSON only:
-{
-  "faceShape": "<round/oval/square/heart/oblong/diamond — pick the closest>",
-  "faceWidth": "<narrow/medium/wide/very wide — relative to face height>",
-  "cheekVolume": "<hollow/flat/medium/full/prominent — describe the actual cheek fullness>",
-  "jawlineType": "<sharp/angular/soft/rounded/square/tapered — be specific>",
-  "chinShape": "<pointed/rounded/square/cleft — what you actually see>",
-  "foreheadHeight": "<low/medium/high>",
-  "noseDescription": "<short phrase: bridge width + tip shape, e.g. 'medium-wide bridge with rounded bulbous tip'>",
-  "lipDescription": "<short phrase: lip fullness + shape, e.g. 'medium-full lips with defined cupid's bow'>",
-  "skinTexture": "<smooth/lightly textured/visibly porous/rough — describe actual skin surface quality>",
-  "beardDescription": "<short phrase: density + style + coverage + edge sharpness, e.g. 'dense full beard with sharp cheek lines and thick neck coverage'. Say 'clean-shaven' if no beard>",
-  "eyeShape": "<almond/round/hooded/deep-set/monolid/etc>",
-  "eyeSpacing": "<narrow/medium/wide>",
-  "irisColor": "<dark brown/light brown/hazel/blue/green/etc>",
-  "gazeDirection": "<straight/slight left/slight right/down/up>",
-  "eyelidBrow": "<short phrase: eyelid crease type + brow thickness and arch>",
-  "eyewearDescription": "<describe frame shape and style if wearing glasses, or 'none'>",
-  "characterSummary": "<single sentence describing overall look and distinguishing features>",
-  "poseSummary": "<single sentence describing current pose/head angle/expression>",
-  "appearanceSummary": "<single sentence: hairstyle, facial hair, accessories, clothing context>",
-  "bodyAnchor": "<single sentence: shoulder width, torso build, arm thickness, overall mass — describe the ACTUAL proportions, do not idealize>",
-  "garmentOnPersonGuidance": "<how the garment should sit on this body naturally without any reshaping>"
-}
-
-Rules:
-- Describe what you ACTUALLY SEE, not what looks average or typical.
-- Be specific about face width and fullness — this is the #1 drift in AI generation.
-- If the face is round and wide, say so explicitly. If cheeks are full, say full.
-- If the beard is dense and thick, say dense and thick. Do not downplay it.
-- Do not infer name, age, ethnicity, or sensitive attributes.
-- Keep each field concise but precise.
-- Garment context: ${params.garmentDescription || 'garment from Image 2'}.`,
+      text: [
+        'Analyze this person for identity locking in a virtual try-on system.',
+        'Describe only what is visually present. Be specific and measurable.',
+        '',
+        'Return JSON only:',
+        '{',
+        '  "faceShape": "<round/oval/square/heart/oblong/diamond>",',
+        '  "faceWidth": "<narrow/medium/wide/very wide>",',
+        '  "cheekVolume": "<hollow/flat/medium/full/prominent>",',
+        '  "jawlineType": "<sharp/angular/soft/rounded/square/tapered>",',
+        '  "chinShape": "<pointed/rounded/square/cleft>",',
+        '  "foreheadHeight": "<low/medium/high>",',
+        '  "noseDescription": "<bridge width + tip shape>",',
+        '  "lipDescription": "<lip fullness + shape>",',
+        '  "skinTexture": "<smooth/lightly textured/visibly porous/rough>",',
+        '  "beardDescription": "<density + style + coverage + edge sharpness, or clean-shaven>",',
+        '  "eyeShape": "<almond/round/hooded/deep-set/monolid/etc>",',
+        '  "eyeAperture": "<narrow/medium/open/wide>",',
+        '  "eyeSpacing": "<narrow/medium/wide>",',
+        '  "irisColor": "<dark brown/light brown/hazel/blue/green/etc>",',
+        '  "gazeDirection": "<straight/slight left/slight right/down/up>",',
+        '  "eyelidBrow": "<eyelid crease type + brow thickness and arch>",',
+        '  "browEyeDistance": "<short/medium/long>",',
+        '  "underEyeContour": "<flat/soft/defined/hollow>",',
+        '  "eyewearDescription": "<frame shape and style, or none>",',
+        '  "characterSummary": "<one sentence>",',
+        '  "poseSummary": "<one sentence>",',
+        '  "appearanceSummary": "<one sentence>",',
+        '  "bodyAnchor": "<one sentence about actual proportions>",',
+        '  "garmentOnPersonGuidance": "<how the garment should sit naturally without reshaping>"',
+        '}',
+        '',
+        'Rules:',
+        '- Describe what you actually see, not what is average or typical.',
+        '- Be explicit about face width, fullness, beard density, and skin texture.',
+        '- If the face is round and wide, say round and wide.',
+        '- If cheeks are full, say full.',
+        '- If the beard is dense or thick, say dense or thick.',
+        '- Do not infer name, age, ethnicity, or other sensitive attributes.',
+        '- Keep each field concise but precise.',
+        `- Garment context: ${params.garmentDescription || 'garment from Image 2'}.`,
+      ].join('\n'),
     },
     {
       type: 'image_url',
       image_url: {
         url: toDataUrl(params.personImageBase64),
-        detail: 'low',
+        detail: 'high',
       },
     },
   ]
@@ -99,10 +105,13 @@ Rules:
     skinTexture?: string
     beardDescription?: string
     eyeShape?: string
+    eyeAperture?: string
     eyeSpacing?: string
     irisColor?: string
     gazeDirection?: string
     eyelidBrow?: string
+    browEyeDistance?: string
+    underEyeContour?: string
     eyewearDescription?: string
     characterSummary?: string
     poseSummary?: string
@@ -135,10 +144,13 @@ Rules:
 
   const composedEyesAnchor = [
     parsed.eyeShape?.trim(),
+    parsed.eyeAperture ? `${parsed.eyeAperture} eye aperture` : null,
     parsed.eyeSpacing ? `${parsed.eyeSpacing} inter-eye spacing` : null,
     parsed.irisColor ? `${parsed.irisColor} iris color` : null,
     parsed.gazeDirection ? `${parsed.gazeDirection} gaze direction` : null,
     parsed.eyelidBrow?.trim(),
+    parsed.browEyeDistance ? `${parsed.browEyeDistance} brow-eye distance` : null,
+    parsed.underEyeContour ? `${parsed.underEyeContour} under-eye contour` : null,
   ]
     .filter(Boolean)
     .join(', ')
@@ -151,8 +163,14 @@ Rules:
   if (parsed.faceShape === 'round') {
     antiDriftParts.push('Do NOT elongate or angularize the face — it must remain round.')
   }
-  if (parsed.cheekVolume === 'full' || parsed.cheekVolume === 'prominent') {
-    antiDriftParts.push('Do NOT reduce cheek volume — cheeks must remain full.')
+  if (parsed.cheekVolume) {
+    antiDriftParts.push(`Keep cheek volume exactly ${parsed.cheekVolume}; do NOT make cheeks puffier, fuller, hollower, or flatter than the source.`)
+  }
+  if (parsed.faceWidth) {
+    antiDriftParts.push(`Keep face width exactly ${parsed.faceWidth}; do NOT widen or narrow the midface.`)
+  }
+  if (parsed.eyeShape || parsed.eyeAperture || parsed.browEyeDistance) {
+    antiDriftParts.push('Do NOT alter eye aperture, eyelid opening, brow-to-eye spacing, or overall eye shape from the source.')
   }
   if (parsed.beardDescription && /dense|thick|full|heavy/i.test(parsed.beardDescription)) {
     antiDriftParts.push(`Do NOT thin or trim the beard — it must remain ${parsed.beardDescription}.`)

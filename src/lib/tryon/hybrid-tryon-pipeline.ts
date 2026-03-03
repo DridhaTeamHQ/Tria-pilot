@@ -30,23 +30,8 @@ import { generateWithNanoBananaPro } from './nano-banana-pro-renderer'
 
 const GARMENT_EXTRACT_MODEL = 'gemini-2.5-flash-image' as const
 const ENABLE_DETERMINISTIC_FACE_LOCK = process.env.TRYON_ENABLE_DETERMINISTIC_FACE_LOCK === 'true'
-const FACE_LOCK_DRIFT_THRESHOLD = 22
-const FACE_COMPOSITE_BLOCKED_PRESETS = new Set([
-  'studio_crimson_noir',
-  'golden_hour_bedroom',
-  'urban_gas_station_night',
-  'street_mcdonalds_bmw_night',
-  'outdoor_kerala_theyyam_gtr',
-  'editorial_night_garden_flash',
-  'editorial_newspaper_set',
-  'editorial_court_geometric_sun',
-  'editorial_dark_study_set',
-  'studio_green_red_gel_editorial',
-  'studio_red_seamless_profile',
-  'street_subway_fisheye',
-  'street_elevator_mirror_chic',
-  'studio_window_blind_portrait',
-])
+const FACE_LOCK_DRIFT_THRESHOLD = 18
+const FACE_COMPOSITE_BLOCKED_PRESETS = new Set<string>()
 
 // ═══════════════════════════════════════════════════════════════
 // TYPES
@@ -73,7 +58,7 @@ export interface HybridTryOnResult {
   image: string
   status: string
   warnings: string[]
-    debug: {
+  debug: {
     stages: any[]
     totalTimeMs: number
     faceOverwritten: boolean
@@ -216,6 +201,12 @@ function isPlausibleTargetFace(
   const targetWidthRatio = targetBox.width / Math.max(1, targetW)
   const sourceHeightRatio = sourceBox.height / Math.max(1, sourceH)
   const targetHeightRatio = targetBox.height / Math.max(1, targetH)
+  const sourceCenterX = (sourceBox.x + sourceBox.width / 2) / Math.max(1, sourceW)
+  const sourceCenterY = (sourceBox.y + sourceBox.height / 2) / Math.max(1, sourceH)
+  const targetCenterX = (targetBox.x + targetBox.width / 2) / Math.max(1, targetW)
+  const targetCenterY = (targetBox.y + targetBox.height / 2) / Math.max(1, targetH)
+  const centerDx = Math.abs(sourceCenterX - targetCenterX)
+  const centerDy = Math.abs(sourceCenterY - targetCenterY)
 
   // Reject tiny detections (common when model invents a small face thumbnail in corner).
   if (targetAreaRatio < 0.015 || targetWidthRatio < 0.08 || targetHeightRatio < 0.08) {
@@ -226,9 +217,13 @@ function isPlausibleTargetFace(
   const widthScale = targetWidthRatio / Math.max(0.0001, sourceWidthRatio)
   const heightScale = targetHeightRatio / Math.max(0.0001, sourceHeightRatio)
   const areaScale = targetAreaRatio / Math.max(0.0001, sourceAreaRatio)
-  if (widthScale < 0.35 || widthScale > 2.8) return false
-  if (heightScale < 0.35 || heightScale > 2.8) return false
-  if (areaScale < 0.15 || areaScale > 6.5) return false
+  if (widthScale < 0.55 || widthScale > 1.85) return false
+  if (heightScale < 0.55 || heightScale > 1.85) return false
+  if (areaScale < 0.35 || areaScale > 3.2) return false
+
+  // Reject center drift: if the generated face sits too far from the source face's
+  // normalized position, compositing usually produces a visible double-face.
+  if (centerDx > 0.08 || centerDy > 0.08) return false
 
   return true
 }
@@ -489,8 +484,26 @@ export async function runHybridTryOnPipeline(
     webResearchContext,
   })
 
-  if (!renderResult.success) {
-    throw new Error('Nano Banana Pro rendering failed: ' + (renderResult.debug?.error || 'Unknown error'))
+  const hasCandidateImage = Boolean(renderResult.image?.trim())
+  const recoverableIdentityFailure =
+    !renderResult.success &&
+    hasCandidateImage &&
+    (
+      (
+        renderResult.debug?.failureReason === 'identity_preservation_gate_failed' &&
+        renderResult.debug?.recoverable === true
+      ) ||
+      renderResult.debug?.faceConsistencyGate?.failed === true ||
+      renderResult.debug?.globalIdentityGate?.failed === true
+    )
+
+  if (!renderResult.success && !recoverableIdentityFailure) {
+    const failureDetail =
+      renderResult.debug?.error ||
+      renderResult.debug?.failureReason ||
+      (hasCandidateImage ? 'renderer returned a candidate image without recoverable metadata' : '') ||
+      'Unknown error'
+    throw new Error('Nano Banana Pro rendering failed: ' + failureDetail)
   }
 
   let finalImage = renderResult.image
@@ -498,6 +511,11 @@ export async function runHybridTryOnPipeline(
   let faceLockReason: string | null = 'disabled'
   const warnings: string[] = []
   const faceConsistencyGateFailed = Boolean(renderResult.debug?.faceConsistencyGate?.failed)
+
+  if (recoverableIdentityFailure) {
+    const failureReason = renderResult.debug?.failureReason || 'identity_quality_gate_failed'
+    warnings.push(`Renderer returned a best-effort candidate after ${failureReason}. Returning the image instead of failing the request.`)
+  }
 
   const microDriftPercent = Number(renderResult.debug?.microDrift?.driftPercent)
   const shouldFaceLockForDrift =
@@ -563,7 +581,7 @@ export async function runHybridTryOnPipeline(
   return {
     success: true,
     image: finalImage,
-    status: 'PASS',
+    status: recoverableIdentityFailure ? 'SOFT_PASS' : 'PASS',
     warnings,
     debug: {
       stages: ['garment_extraction', 'intelligence_pre_analysis', 'strict_renderer'],

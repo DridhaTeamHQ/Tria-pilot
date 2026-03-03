@@ -35,12 +35,15 @@ function isImplausibleFaceBox(ymin: number, xmin: number, ymax: number, xmax: nu
   return false
 }
 
-const DETECT_PROMPT = `Detect the single most prominent human face in this image.
-Output ONLY a raw JSON object — no explanation, no markdown, no preamble, no trailing text.
-The JSON must be the very first character of your response.
-Format: {"ymin": <0-1000>, "xmin": <0-1000>, "ymax": <0-1000>, "xmax": <0-1000>, "confidence": <0-1>}
-Coordinates are normalised to 0..1000 (top-left origin).
-If no face is found, output: {"ymin": 0, "xmin": 0, "ymax": 0, "xmax": 0, "confidence": 0}`
+const DETECT_PROMPT = [
+  'Detect the single most prominent human face in this image.',
+  'Return only one raw JSON object.',
+  'No markdown, no explanation, no preamble, and no trailing text.',
+  'The first character of your response must be "{".',
+  'Format: {"ymin": <0-1000>, "xmin": <0-1000>, "ymax": <0-1000>, "xmax": <0-1000>, "confidence": <0-1>}',
+  'Coordinates are normalized to 0..1000 with top-left origin.',
+  'If no face is found, return {"ymin": 0, "xmin": 0, "ymax": 0, "xmax": 0, "confidence": 0}.',
+].join('\n')
 
 async function getImageDimensions(base64: string): Promise<{ width: number; height: number } | null> {
   try {

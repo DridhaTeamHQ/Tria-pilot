@@ -18,6 +18,7 @@ import { detectFaceCoordinates, type FaceCoordinates } from './face-coordinates'
 import { buildForensicFaceAnchor } from './face-forensics'
 import { getStrictSceneConfig } from './scene-intel-adapter'
 import { assessSceneRealism, type SceneQualityAssessment } from './scene-quality-check'
+import { assessIdentityAndComposition, type IdentityCompositionAssessment } from './identity-composition-check'
 import { getAllPresetIds, getPresetById } from './presets/index'
 import { extractFaceCrop } from './face-crop'
 import { computeMicroFaceDrift, getDriftRetryParams } from './micro-face-drift'
@@ -26,22 +27,35 @@ import { getPresetStrengthProfile } from './preset-strength-profile'
 
 const MAIN_RENDER_MODEL = 'gemini-3-pro-image-preview' as const
 const ENABLE_QUALITY_RETRY = process.env.TRYON_ENABLE_QUALITY_RETRY !== 'false'
-const MICRO_DRIFT_RETRY_THRESHOLD = 18
-const FINAL_MICRO_DRIFT_MAX_DEFAULT = 24
-const FINAL_MICRO_DRIFT_MAX_COMPLEX = 20
-const FINAL_MICRO_DRIFT_MAX_ULTRA = 12
+const GLOBAL_FACE_IDENTITY_MIN = 90
+const GLOBAL_BODY_CONSISTENCY_MIN = 86
+const GLOBAL_COMPOSITION_MIN = 74
+const GLOBAL_BACKGROUND_MIN = 74
+const MICRO_DRIFT_RETRY_THRESHOLD = 14
+const FINAL_MICRO_DRIFT_MAX_DEFAULT = 18
+const FINAL_MICRO_DRIFT_MAX_COMPLEX = 15
+const FINAL_MICRO_DRIFT_MAX_ULTRA = 10
 const ULTRA_FACE_LOCK_IOU_MIN = 0.68
 const ULTRA_FACE_LOCK_CENTER_MAX = 55
 const ULTRA_FACE_LOCK_SIZE_DELTA_MAX = 0.14
 const ULTRA_FACE_LOCK_PRESETS = new Set([
   'urban_gas_station_night',
   'street_mcdonalds_bmw_night',
+  'street_porsche_panamera_residential',
+  'street_ramen_booth_snapshot',
+  'night_beach_streetwear',
+  'garden_oak_bench_golden_hour',
+  'paris_eiffel_flash_night',
+  'indian_influencer_daylight_fullbody',
+  'studio_white_wall_saree_shadow',
+  'studio_industrial_window_chair',
   'studio_crimson_noir',
   'golden_hour_bedroom',
 ])
 const COMPLEX_BACKGROUND_PRESETS = new Set([
   'urban_gas_station_night',
   'street_mcdonalds_bmw_night',
+  'paris_eiffel_flash_night',
   'studio_crimson_noir',
   'golden_hour_bedroom',
   'outdoor_kerala_theyyam_gtr',
@@ -55,6 +69,11 @@ const COMPLEX_BACKGROUND_PRESETS = new Set([
 const NO_SYNTHETIC_BLUR_PRESETS = new Set([
   'urban_gas_station_night',
   'street_mcdonalds_bmw_night',
+  'street_porsche_panamera_residential',
+  'night_beach_streetwear',
+  'garden_oak_bench_golden_hour',
+  'street_ramen_booth_snapshot',
+  'paris_eiffel_flash_night',
   'studio_crimson_noir',
   'golden_hour_bedroom',
   'outdoor_kerala_theyyam_gtr',
@@ -62,16 +81,44 @@ const NO_SYNTHETIC_BLUR_PRESETS = new Set([
   'home_cozy_teddy_selfie',
   'travel_scene_lock_realism',
   'street_elevator_mirror_chic',
+  'indian_influencer_daylight_fullbody',
   'editorial_sky_negative_space',
   'editorial_night_garden_flash',
+  'studio_white_wall_saree_shadow',
   'studio_white_brick_bench',
   'editorial_newspaper_set',
   'editorial_court_geometric_sun',
   'studio_window_blind_portrait',
   'editorial_dark_study_set',
+  'studio_industrial_window_chair',
   'studio_orange_director_chair',
   'studio_green_red_gel_editorial',
   'studio_red_seamless_profile',
+])
+const GLOBAL_OPTICAL_AVOID_TERMS = [
+  'gaussian background blur',
+  'fake bokeh circles',
+  'portrait mode cutout blur',
+  'blur wall background',
+  'depth blur artifacts',
+  'smudged background textures',
+  'mushy background',
+  'background haze behind subject',
+  'generative depth fog',
+  'lens blur smear',
+  'halo around subject edges',
+  'edge matte halo',
+  'mismatched perspective',
+  'disconnected foreground',
+  'fake reflective surfaces',
+  'warped vehicle reflections',
+]
+
+const REFLECTIVE_SURFACE_PRESETS = new Set([
+  'urban_gas_station_night',
+  'street_mcdonalds_bmw_night',
+  'street_porsche_panamera_residential',
+  'outdoor_kerala_theyyam_gtr',
 ])
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -187,6 +234,19 @@ export async function generateWithNanoBananaPro(
       category: resolvedPreset?.category,
     })
     const faceSpatialLock = getFaceSpatialLock(personFace)
+    const presetLightingGuidance = buildPresetLightingGuidance(
+      input.lightingDescription,
+      resolvedPreset?.lighting
+    )
+    const presetColorGuidance = buildPresetColorGuidance(
+      exampleGuidance?.colorGrading,
+      input.lightingDescription,
+      resolvedPreset?.scene
+    )
+    const presetSurfaceGuidance = buildPresetSurfaceGuidance(
+      resolvedPresetId,
+      resolvedPreset?.scene
+    )
     const identityCorrectionGuidance = [
       presetFaceGuard.identityCorrectionGuidance,
       !faceSpatialLock
@@ -200,8 +260,14 @@ export async function generateWithNanoBananaPro(
       garmentDescription: input.garmentDescription,
       preset: sceneConfig.anchorZone,
       lighting: sceneConfig.lightingMode,
-      realismGuidance: sceneConfig.realismGuidance,
-      lightingBlueprint: sceneConfig.lightingBlueprint,
+      realismGuidance: [
+        sceneConfig.realismGuidance,
+        sceneConfig.sceneGuidance,
+        'The face must share the same scene lighting, shadow falloff, color temperature, and lens response as the body and background so there is no sticker or cut-out effect.',
+        'Foreground, subject, and background must read as one coherent photograph with stable perspective, believable depth layering, and no generic Gemini blur haze.',
+        presetSurfaceGuidance,
+      ].join(' '),
+      lightingBlueprint: [sceneConfig.lightingBlueprint, presetLightingGuidance].filter(Boolean).join(' '),
       presetAvoid: sceneConfig.presetAvoid,
       garmentOnPersonGuidance: forensicAnchor.garmentOnPersonGuidance,
       faceForensicAnchor: forensicAnchor.faceAnchor,
@@ -213,20 +279,25 @@ export async function generateWithNanoBananaPro(
       styleGuidance: sanitizeEnvironmentGuidance(
         exampleGuidance
           ? `${exampleGuidance.vibe} ${exampleGuidance.scene} Lighting intent: ${exampleGuidance.lighting}.`
-          : undefined
+          : presetLightingGuidance
       ),
-      colorGradingGuidance: sanitizeEnvironmentGuidance(exampleGuidance?.colorGrading),
+      colorGradingGuidance: presetColorGuidance,
       cameraGuidance: [
+        sanitizeEnvironmentGuidance(sceneConfig.cameraGuidance),
         sanitizeEnvironmentGuidance(exampleGuidance?.camera),
         presetOpticalGuard.cameraGuidance,
       ].filter(Boolean).join(' '),
-      poseInferenceGuidance: sanitizeEnvironmentGuidance(exampleGuidance?.poseInference),
+      poseInferenceGuidance: [
+        sanitizeEnvironmentGuidance(sceneConfig.poseGuidance),
+        sanitizeEnvironmentGuidance(exampleGuidance?.poseInference),
+      ].filter(Boolean).join(' '),
       researchContext: input.researchContext,
       webResearchContext: input.webResearchContext,
       additionalAvoidTerms: Array.from(
         new Set([
           ...(presetGuidance?.avoidTerms || []),
           ...(requestGuidance?.avoidTerms || []),
+          ...GLOBAL_OPTICAL_AVOID_TERMS,
           ...presetFaceGuard.additionalAvoidTerms,
           ...presetOpticalGuard.additionalAvoidTerms,
         ])
@@ -292,8 +363,9 @@ export async function generateWithNanoBananaPro(
     let microDrift: Awaited<ReturnType<typeof computeMicroFaceDrift>> | null = null
     let driftRetryParams = { temperatureAdjust: 0, realismBias: 0, emphasis: '' }
     let sceneAssessment: SceneQualityAssessment = buildSceneAssessmentFallback()
+    let identityCompositionAssessment: IdentityCompositionAssessment = buildIdentityCompositionFallback()
 
-    const [generatedFace, generatedSceneAssessment] = await Promise.all([
+    const [generatedFace, generatedSceneAssessment, generatedIdentityCompositionAssessment] = await Promise.all([
       detectFaceCoordinates(generatedImage),
       withTimeout(
         assessSceneRealism({
@@ -306,6 +378,17 @@ export async function generateWithNanoBananaPro(
         5000,
         buildSceneAssessmentFallback()
       ),
+      withTimeout(
+        assessIdentityAndComposition({
+          sourceImageBase64: input.personImageBase64,
+          generatedImageBase64: generatedImage,
+          faceCropBase64: faceCropResult.success ? faceCropResult.faceCropBase64 : undefined,
+          presetId: resolvedPresetId,
+          anchorZone: sceneConfig.anchorZone,
+        }),
+        6000,
+        buildIdentityCompositionFallback()
+      ),
     ])
     driftAssessment = assessFaceDrift(personFace, generatedFace)
     driftAssessment = tightenDriftAssessmentForUltraFaceLock(
@@ -313,6 +396,7 @@ export async function generateWithNanoBananaPro(
       isUltraFaceLockPreset
     )
     sceneAssessment = generatedSceneAssessment
+    identityCompositionAssessment = generatedIdentityCompositionAssessment
     const firstPassImage = generatedImage
     const firstPassFace = generatedFace
     let finalDetectedFace: FaceCoordinates | null = generatedFace
@@ -362,6 +446,7 @@ export async function generateWithNanoBananaPro(
       firstPassMicroDrift.driftPercent >= microDriftRetryThreshold
     )
     const hasRetrySignal = hardFaceFailure || geometryRetrySignal || microOnlyRetrySignal
+      || identityCompositionAssessment.shouldRetry
     const elapsedBeforeRetryMs = Date.now() - startTime
     // Keep production reliable: avoid second full model pass when we're already near timeout.
     const retryBudgetMs = process.env.NODE_ENV === 'production' ? 45_000 : 120_000
@@ -376,6 +461,7 @@ export async function generateWithNanoBananaPro(
       const retryReasons = [
         driftAssessment.shouldRetry ? `face:${driftAssessment.reason}` : null,
         sceneAssessment.shouldRetry ? `scene:${sceneAssessment.reason}` : null,
+        identityCompositionAssessment.shouldRetry ? `identity:${identityCompositionAssessment.reason}` : null,
         driftRetryParams.emphasis ? `micro-face:${driftRetryParams.emphasis}` : null,
       ]
         .filter(Boolean)
@@ -386,9 +472,11 @@ export async function generateWithNanoBananaPro(
         microDriftEmphasis: driftRetryParams.emphasis,
         hasHardFaceFailure: hardFaceFailure,
         isComplexBackgroundPreset,
+        identityCompositionGuidance: identityCompositionAssessment.identityCorrectionGuidance,
       })
       const retrySceneCorrectionGuidance = [
         sceneAssessment.correctionGuidance,
+        identityCompositionAssessment.compositionCorrectionGuidance,
         isComplexBackgroundPreset
           ? 'When scene complexity conflicts with identity, simplify distant background detail and preserve legible real textures instead of adding stylized blur or glow.'
           : undefined,
@@ -412,7 +500,7 @@ export async function generateWithNanoBananaPro(
         resolution: '2K',
       })
 
-      const [retryFace, retrySceneAssessment] = await Promise.all([
+      const [retryFace, retrySceneAssessment, retryIdentityCompositionAssessment] = await Promise.all([
         detectFaceCoordinates(generatedImage),
         withTimeout(
           assessSceneRealism({
@@ -425,6 +513,17 @@ export async function generateWithNanoBananaPro(
           5000,
           buildSceneAssessmentFallback()
         ),
+        withTimeout(
+          assessIdentityAndComposition({
+            sourceImageBase64: input.personImageBase64,
+            generatedImageBase64: generatedImage,
+            faceCropBase64: faceCropResult.success ? faceCropResult.faceCropBase64 : undefined,
+            presetId: resolvedPresetId,
+            anchorZone: sceneConfig.anchorZone,
+          }),
+          6000,
+          buildIdentityCompositionFallback()
+        ),
       ])
       driftAssessment = assessFaceDrift(personFace, retryFace)
       driftAssessment = tightenDriftAssessmentForUltraFaceLock(
@@ -432,6 +531,7 @@ export async function generateWithNanoBananaPro(
         isUltraFaceLockPreset
       )
       sceneAssessment = retrySceneAssessment
+      identityCompositionAssessment = retryIdentityCompositionAssessment
       let retryMicroDrift: Awaited<ReturnType<typeof computeMicroFaceDrift>> | null = null
       try {
         const refBuffer = base64ToBuffer(input.personImageBase64)
@@ -446,16 +546,19 @@ export async function generateWithNanoBananaPro(
         firstDriftAssessment: firstPassDriftAssessment,
         firstMicroDrift: firstPassMicroDrift,
         firstSceneAssessment: firstPassSceneAssessment,
+        firstIdentityCompositionAssessment: generatedIdentityCompositionAssessment,
         retryFace,
         retryDriftAssessment: driftAssessment,
         retryMicroDrift,
         retrySceneAssessment: sceneAssessment,
+        retryIdentityCompositionAssessment,
       })
 
       if (!useRetry) {
         generatedImage = firstPassImage
         driftAssessment = firstPassDriftAssessment
         sceneAssessment = firstPassSceneAssessment
+        identityCompositionAssessment = generatedIdentityCompositionAssessment
         microDrift = firstPassMicroDrift
         finalDetectedFace = firstPassFace
         console.warn('   ↩️ Keeping first pass output (retry did not improve identity).')
@@ -484,6 +587,11 @@ export async function generateWithNanoBananaPro(
         (typeof finalMicroDrift === 'number' && finalMicroDrift >= finalDriftMax)
       )
     )
+    const identityCompositionGateFailed =
+      identityCompositionAssessment.scores.faceIdentity < GLOBAL_FACE_IDENTITY_MIN ||
+      identityCompositionAssessment.scores.bodyConsistency < GLOBAL_BODY_CONSISTENCY_MIN ||
+      identityCompositionAssessment.scores.compositionQuality < GLOBAL_COMPOSITION_MIN ||
+      identityCompositionAssessment.scores.backgroundIntegrity < GLOBAL_BACKGROUND_MIN
     const faceConsistencyGate = finalFaceFailure
       ? {
           failed: true,
@@ -497,6 +605,49 @@ export async function generateWithNanoBananaPro(
           microDriftPercent: finalMicroDrift,
           threshold: finalDriftMax,
         }
+
+    const globalIdentityGate = {
+      failed: identityCompositionGateFailed,
+      thresholds: {
+        faceIdentity: GLOBAL_FACE_IDENTITY_MIN,
+        bodyConsistency: GLOBAL_BODY_CONSISTENCY_MIN,
+        compositionQuality: GLOBAL_COMPOSITION_MIN,
+        backgroundIntegrity: GLOBAL_BACKGROUND_MIN,
+      },
+      scores: identityCompositionAssessment.scores,
+      reason: identityCompositionGateFailed ? 'identity_composition_below_global_floor' : 'passed',
+    }
+
+    if (finalFaceFailure || identityCompositionGateFailed) {
+      return {
+        success: false,
+        image: generatedImage,
+        generationTimeMs: Date.now() - startTime,
+        promptUsed: prompt,
+        debug: {
+          model: MAIN_RENDER_MODEL,
+          sceneConfig,
+          exampleGuidance,
+          strengthProfile,
+          presetGuidance,
+          requestGuidance,
+          forensicAnchor,
+          personFace,
+          finalDetectedFace,
+          retried,
+          driftAssessment,
+          microDrift,
+          driftRetryParams,
+          sceneAssessment,
+          identityCompositionAssessment,
+          faceConsistencyGate,
+          globalIdentityGate,
+          failureReason: 'identity_preservation_gate_failed',
+          recoverable: true,
+          faceCropUsed: Boolean(faceCropResult.success && faceCropResult.faceCropBase64),
+        },
+      }
+    }
 
     if (isDev) {
       console.log(`   Generated in ${(genTime / 1000).toFixed(1)}s`)
@@ -524,7 +675,9 @@ export async function generateWithNanoBananaPro(
         microDrift,
         driftRetryParams,
         sceneAssessment,
+        identityCompositionAssessment,
         faceConsistencyGate,
+        globalIdentityGate,
         researchContextChars: input.researchContext?.length || 0,
         webResearchContextChars: input.webResearchContext?.length || 0,
         faceCropUsed: Boolean(faceCropResult.success && faceCropResult.faceCropBase64),
@@ -634,20 +787,24 @@ function shouldUseRetryCandidate(args: {
   firstDriftAssessment: ReturnType<typeof assessFaceDrift>
   firstMicroDrift: Awaited<ReturnType<typeof computeMicroFaceDrift>> | null
   firstSceneAssessment: SceneQualityAssessment
+  firstIdentityCompositionAssessment: IdentityCompositionAssessment
   retryFace: FaceCoordinates | null
   retryDriftAssessment: ReturnType<typeof assessFaceDrift>
   retryMicroDrift: Awaited<ReturnType<typeof computeMicroFaceDrift>> | null
   retrySceneAssessment: SceneQualityAssessment
+  retryIdentityCompositionAssessment: IdentityCompositionAssessment
 }): boolean {
   const {
     firstFace,
     firstDriftAssessment,
     firstMicroDrift,
     firstSceneAssessment,
+    firstIdentityCompositionAssessment,
     retryFace,
     retryDriftAssessment,
     retryMicroDrift,
     retrySceneAssessment,
+    retryIdentityCompositionAssessment,
   } = args
 
   // Never replace a valid detected face with an undetected one.
@@ -670,6 +827,21 @@ function shouldUseRetryCandidate(args: {
     return !retryDriftAssessment.shouldRetry
   }
 
+  const firstIdentityMin = Math.min(
+    firstIdentityCompositionAssessment.scores.faceIdentity,
+    firstIdentityCompositionAssessment.scores.bodyConsistency,
+    firstIdentityCompositionAssessment.scores.compositionQuality,
+    firstIdentityCompositionAssessment.scores.backgroundIntegrity
+  )
+  const retryIdentityMin = Math.min(
+    retryIdentityCompositionAssessment.scores.faceIdentity,
+    retryIdentityCompositionAssessment.scores.bodyConsistency,
+    retryIdentityCompositionAssessment.scores.compositionQuality,
+    retryIdentityCompositionAssessment.scores.backgroundIntegrity
+  )
+  if (retryIdentityMin >= firstIdentityMin + 4 && !retryDriftAssessment.shouldRetry) return true
+  if (retryIdentityMin <= firstIdentityMin - 1) return false
+
   // Default to preserving first pass identity.
   return false
 }
@@ -679,10 +851,12 @@ function buildRetryIdentityCorrectionGuidance(args: {
   microDriftEmphasis?: string
   hasHardFaceFailure: boolean
   isComplexBackgroundPreset: boolean
+  identityCompositionGuidance?: string
 }): string {
   return [
     args.baseIdentityCorrectionGuidance,
     args.microDriftEmphasis,
+    args.identityCompositionGuidance,
     args.hasHardFaceFailure
       ? 'Hard identity correction: lock face age, skin luminance, and facial geometry to source exactly; no beautification or complexion shift.'
       : undefined,
@@ -783,6 +957,65 @@ function sanitizeEnvironmentGuidance(value?: string): string | undefined {
   return safe.join(' ').trim() || undefined
 }
 
+function buildIdentityCompositionFallback(): IdentityCompositionAssessment {
+  return {
+    shouldRetry: false,
+    reason: 'identity_composition_check_timeout',
+    scores: {
+      faceIdentity: 85,
+      bodyConsistency: 85,
+      compositionQuality: 85,
+      backgroundIntegrity: 85,
+    },
+  }
+}
+
+function buildPresetLightingGuidance(
+  lightingDescription?: string,
+  fallbackLighting?: string
+): string | undefined {
+  const source = sanitizeEnvironmentGuidance(lightingDescription || fallbackLighting)
+  if (!source) return undefined
+  return `Preset lighting priority: ${source}. Apply this lighting logic across face, skin, clothing, and background with consistent direction, shadow softness, and color temperature.`
+}
+
+function buildPresetColorGuidance(
+  exampleColorGuidance?: string,
+  lightingDescription?: string,
+  sceneDescription?: string
+): string | undefined {
+  const parts = [
+    sanitizeEnvironmentGuidance(exampleColorGuidance),
+    sanitizeEnvironmentGuidance(lightingDescription)
+      ? `Use the selected preset's lighting palette and white-balance behavior: ${sanitizeEnvironmentGuidance(lightingDescription)}.`
+      : undefined,
+    sanitizeEnvironmentGuidance(sceneDescription)
+      ? `Scene palette should feel native to this environment: ${sanitizeEnvironmentGuidance(sceneDescription)}.`
+      : undefined,
+    'Keep the image photorealistic with natural skin tones, controlled contrast, believable ambient color spill, cohesive highlight-shadow color separation, and readable foreground/background material detail.'
+  ].filter(Boolean)
+
+  return parts.join(' ')
+}
+
+function buildPresetSurfaceGuidance(
+  presetId?: string,
+  sceneDescription?: string
+): string | undefined {
+  const id = (presetId || '').trim().toLowerCase()
+  const scene = sanitizeEnvironmentGuidance(sceneDescription)
+
+  if (REFLECTIVE_SURFACE_PRESETS.has(id)) {
+    return 'Reflective materials must behave physically correctly: preserve believable car-paint, glass, asphalt, and metal reflections, keep contour lines straight, and avoid warped mirror-like artifacts or showroom CGI sheen.'
+  }
+
+  if (scene && /(car|vehicle|glass|window|wet|metal)/i.test(scene)) {
+    return 'Surfaces in the scene must keep readable real-world reflections and material texture. Avoid plastic gloss, warped highlights, and disconnected reflections.'
+  }
+
+  return 'Keep material response physically plausible across foreground and background surfaces, with readable texture and no smeared edge transitions.'
+}
+
 function sanitizeIdentityRules(rules: string[]): string[] {
   const forbidden = ['replace face', 'swap face', 'face from image 3', 'change identity']
   return rules
@@ -811,6 +1044,7 @@ function getPresetFaceGuard(presetId?: string): {
     'Ultra face-lock preset: preserve face geometry exactly at source proportions and pixel-level texture fidelity.',
     'Do not apply mood grade or stylization to eyes, nose, lips, cheeks, jawline, or brow shape.',
     'Keep natural pore detail and facial micro-contrast from source; do not smooth, contour, or beautify.',
+    'Preserve original body proportions, shoulder width, torso width, limb thickness, and natural weight distribution exactly as seen in the source image.',
   ]
   const sharedAvoid = [
     'face reshape',
@@ -819,6 +1053,8 @@ function getPresetFaceGuard(presetId?: string): {
     'beauty retouch',
     'skin denoise face',
     'face tone remap',
+    'body slimming',
+    'limb reshaping',
   ]
 
   if (id === 'golden_hour_bedroom') {
@@ -845,6 +1081,24 @@ function getPresetFaceGuard(presetId?: string): {
     }
   }
 
+  if (id === 'paris_eiffel_flash_night') {
+    return {
+      identityPriorityRules: [
+        ...sharedRules,
+        'For Paris flash-night scenes, keep the flash effect on skin and hoodie realistic but do not let flash contrast sharpen or stylize facial anatomy.',
+        'Preserve exact face topology under hard flash: no jaw tightening, no cheek hollowing, no brow-eye restyling, and no skin cleanup.',
+      ],
+      additionalAvoidTerms: [
+        ...sharedAvoid,
+        'hard flash face stylization',
+        'paris night identity drift',
+        'flash sharpened jawline',
+      ],
+      identityCorrectionGuidance:
+        'Hard flash and warm night practicals may change exposure, but face geometry, skin texture, and perceived identity must remain source-identical.',
+    }
+  }
+
   return {
     identityPriorityRules: sharedRules,
     additionalAvoidTerms: sharedAvoid,
@@ -866,7 +1120,7 @@ function getPresetOpticalGuard(presetId?: string): {
 
   return {
     cameraGuidance:
-      'Optical behavior: maintain medium-to-deep focus with legible background materials and edges; avoid synthetic portrait-mode blur.',
+      'Optical behavior: maintain medium-to-deep focus with legible foreground and background materials, realistic depth transitions, and no synthetic portrait-mode blur.',
     additionalAvoidTerms: [
       'gaussian background blur',
       'fake bokeh circles',
@@ -874,6 +1128,9 @@ function getPresetOpticalGuard(presetId?: string): {
       'blur wall background',
       'depth blur artifacts',
       'smudged background textures',
+      'mushy background',
+      'background haze behind subject',
+      'halo around subject edges',
     ],
   }
 }
@@ -889,7 +1146,7 @@ function buildSceneFallback(input: NanoBananaProInput) {
     facePolicy: 'immutable' as const,
     cameraPolicy: 'inherit' as const,
     realismGuidance:
-      'Single coherent photograph: subject lit by and grounded in the same environment; shadows and highlights on the subject consistent with the scene; consistent perspective and depth; no pasted-on or cut-out look.',
+      'Single coherent photograph: subject lit by and grounded in the same environment; shadows and highlights on the subject consistent with the scene; consistent perspective and depth; no pasted-on or cut-out look; no generic blurred-background haze; clear foreground-midground-background composition.',
     lightingBlueprint:
       'Match scene lighting on subject: natural key and fill from visible environment sources, coherent shadow direction and softness, and consistent color temperature between subject and background.',
     presetAvoid: 'No hard flash, no exaggerated color cast, no cut-out edges, no pasted subject appearance.',

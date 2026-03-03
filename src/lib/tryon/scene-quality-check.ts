@@ -43,34 +43,40 @@ export async function assessSceneRealism(params: {
     messages: [
       {
         role: 'system',
-        content: `You are a strict realism quality checker for virtual try-on images.
-Return JSON only:
-{
-  "scores": {
-    "poseNaturalness": <0-100>,
-    "lightingCoherence": <0-100>,
-    "backgroundQuality": <0-100>,
-    "compositionBalance": <0-100>
-  },
-  "majorIssues": ["<short issue>", "..."],
-  "correctionGuidance": "<single sentence correction focused on realism only>"
-}
-
-Rules:
-- Focus only on realism quality: pose naturalness, coherent lighting, background quality, composition.
-- Do not mention identity, face geometry, or clothing replacement correctness.
-- correctionGuidance must be practical and concise, no artistic wording.`,
+        content: [
+          'You are a realism quality checker for virtual try-on images.',
+          'Return JSON only:',
+          '{',
+          '  "scores": {',
+          '    "poseNaturalness": <0-100>,',
+          '    "lightingCoherence": <0-100>,',
+          '    "backgroundQuality": <0-100>,',
+          '    "compositionBalance": <0-100>',
+          '  },',
+          '  "majorIssues": ["<short issue>", "..."],',
+          '  "correctionGuidance": "<single sentence correction focused on realism only>"',
+          '}',
+          '',
+          'Rules:',
+          '- Evaluate realism only: pose naturalness, lighting coherence, background quality, and composition.',
+          '- Do not mention identity, face geometry, or clothing replacement accuracy.',
+          '- Keep correctionGuidance practical, concise, and non-artistic.',
+          '- Check specifically for sticker look, cut-out edges, fake portrait-mode blur, mushy backgrounds, weak depth layering, disconnected foreground/background composition, and generic Gemini-style background haze or smearing.',
+        ].join('\n'),
       },
       {
         role: 'user',
         content: [
           {
             type: 'text',
-            text: `Target environment: ${params.anchorZone || 'not provided'}
-Existing realism guidance: ${params.realismGuidance || 'not provided'}
-Expected lighting blueprint: ${params.expectedLightingBlueprint || 'not provided'}
-Expected preset avoid list: ${params.expectedPresetAvoid || 'not provided'}
-Evaluate if image needs one corrective regeneration pass for realism.`,
+            text: [
+              `Target environment: ${params.anchorZone || 'not provided'}`,
+              `Existing realism guidance: ${params.realismGuidance || 'not provided'}`,
+              `Expected lighting blueprint: ${params.expectedLightingBlueprint || 'not provided'}`,
+              `Expected preset avoid list: ${params.expectedPresetAvoid || 'not provided'}`,
+              'Look for typical Gemini failures: blurred background haze, smeared materials, sticker-like subject separation, weak contact with the scene, and poor foreground-midground-background composition.',
+              'Decide whether the image needs one corrective regeneration pass for realism.',
+            ].join('\n'),
           },
           {
             type: 'image_url',
@@ -116,8 +122,8 @@ Evaluate if image needs one corrective regeneration pass for realism.`,
     (scores.poseNaturalness + scores.lightingCoherence + scores.backgroundQuality + scores.compositionBalance) / 4
 
   const majorIssues = (parsed.majorIssues || []).filter(Boolean)
-  // Only retry when clearly bad — avoid unnecessary double calls and "model dead" perception.
-  const shouldRetry = minScore < 55 || (avgScore < 65 && majorIssues.length >= 2)
+  // Retry more aggressively on blur / sticker failures so weak generations do not pass.
+  const shouldRetry = minScore < 68 || (avgScore < 74 && majorIssues.length >= 1)
 
   return {
     shouldRetry,
