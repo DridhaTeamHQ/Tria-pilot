@@ -20,6 +20,10 @@ export default async function ProductDetailPage({ params }: any) {
     redirect('/login')
   }
 
+  if (!auth.identity) {
+    redirect('/complete-profile')
+  }
+
   const { identity } = auth
 
   // Only influencers can view product details

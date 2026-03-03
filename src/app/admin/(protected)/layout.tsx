@@ -26,6 +26,10 @@ export default async function AdminProtectedLayout({
     redirect('/admin/login')
   }
 
+  if (!auth.identity) {
+    redirect('/admin/login?error=not_admin')
+  }
+
   const { identity } = auth
 
   // Must be admin

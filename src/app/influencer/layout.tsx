@@ -29,6 +29,10 @@ export default async function InfluencerLayout({
     redirect('/login')
   }
 
+  if (!auth.identity) {
+    redirect('/complete-profile')
+  }
+
   const { identity } = auth
 
   // Must be influencer

@@ -29,10 +29,14 @@ export async function enforceRouting(currentPath: string): Promise<void> {
  * @deprecated Use getIdentity() directly
  * Require authentication - returns auth result or redirects to login
  */
-export async function requireAuth(): Promise<AuthResult & { authenticated: true }> {
+export async function requireAuth(): Promise<Extract<AuthResult, { authenticated: true }> & { identity: NonNullable<Extract<AuthResult, { authenticated: true }>['identity']> }> {
   const auth = await getIdentity()
   if (!auth.authenticated) {
     redirect('/login')
   }
-  return auth as AuthResult & { authenticated: true }
+  if (!auth.identity) {
+    // If they have a session but NO profile, they must complete onboarding
+    redirect('/complete-profile')
+  }
+  return auth as Extract<AuthResult, { authenticated: true }> & { identity: NonNullable<Extract<AuthResult, { authenticated: true }>['identity']> }
 }

@@ -33,7 +33,7 @@ export interface UserIdentity {
 
 export type AuthResult =
   | { authenticated: false }
-  | { authenticated: true; identity: UserIdentity }
+  | { authenticated: true; identity: UserIdentity | null }
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CORE FUNCTIONS
@@ -94,9 +94,9 @@ export async function getIdentity(): Promise<AuthResult> {
 
     if (!identity) {
       // User exists in auth but no profile → edge case
-      // This should not happen if trigger is set up correctly
+      // E.g. Google Sign in without ?role 
       console.warn('getIdentity: User has auth but no profile:', user.id)
-      return { authenticated: false }
+      return { authenticated: true, identity: null }
     }
 
     return { authenticated: true, identity }
@@ -115,7 +115,7 @@ export async function getIdentity(): Promise<AuthResult> {
 export async function getAuthState() {
   const result = await getIdentity()
 
-  if (!result.authenticated) {
+  if (!result.authenticated || !result.identity) {
     return { type: 'unauthenticated' as const }
   }
 

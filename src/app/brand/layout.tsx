@@ -30,6 +30,10 @@ export default async function BrandLayout({
     redirect('/login?from=brand')
   }
 
+  if (!auth.identity) {
+    redirect('/complete-profile')
+  }
+
   const { identity } = auth
 
   // Must be brand

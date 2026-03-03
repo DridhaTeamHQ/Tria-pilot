@@ -14,7 +14,7 @@ export async function getAuthContext(_request: NextRequest): Promise<AuthContext
   try {
     const auth = await getIdentity()
 
-    if (!auth.authenticated) {
+    if (!auth.authenticated || !auth.identity) {
       return null
     }
 
