@@ -1,0 +1,722 @@
+﻿|--- database
+|   |--- migrations
+|   |   |--- add_brand_data_column.sql
+|   |   |--- brand_campaign_system.sql
+|   |   |--- brand_portal_tables.sql
+|   |   |--- collaborations_and_notifications.sql
+|   |   |--- create_profile_trigger.sql
+|   |   |--- fix_profiles_table.sql
+|   |   +--- tryon_feedback_schema.sql
+|   +--- scripts
+|       +--- fix_approval_status_case.sql
+|--- docs
+|   |--- FACE_CONSISTENCY_PLAN.md
+|   |--- IMAGE_GENERATION_ARCHITECTURE_ANALYSIS.md
+|   |--- REDIS_SETUP.md
+|   +--- TRYON_QUEUE_WORKER_ARCHITECTURE.md
+|--- prisma
+|   |--- migrations
+|   |   |--- add_influencer_metrics_badges.sql
+|   |   |--- enable_rls_security.sql
+|   |   +--- README_RLS_FIX.md
+|   +--- schema.prisma
+|--- public
+|   |--- assests
+|   |   |--- login brand background image.png
+|   |   |--- login influncer background image.png
+|   |   |--- sign in brand new.png
+|   |   |--- sign in influncer new.png
+|   |   |--- sign up brand background.png
+|   |   |--- sign up influncer background.png
+|   |   +--- signup sign in background image.png
+|   |--- assets
+|   |   |--- auth-bg-brand.png
+|   |   |--- auth-bg-influencer.png
+|   |   |--- login-brand-background.jpg
+|   |   |--- login-influencer-background.png
+|   |   |--- signup-brand-background.png
+|   |   +--- signup-influencer-background.png
+|   |--- bannervideo
+|   |   +--- Video Project 6.mp4
+|   |--- mascot
+|   |   |--- analyzing.mp4
+|   |   |--- loading.mp4
+|   |   |--- success.mp4
+|   |   +--- thinking.mp4
+|   |--- file.svg
+|   |--- globe.svg
+|   |--- mascot.png
+|   |--- next.svg
+|   |--- vercel.svg
+|   +--- window.svg
+|--- scripts
+|   |--- migrate-products.js
+|   +--- verify-api.js
+|--- src
+|   |--- app
+|   |   |--- (auth)
+|   |   |   |--- login
+|   |   |   |   +--- page.tsx
+|   |   |   |--- register
+|   |   |   |   +--- page.tsx
+|   |   |   +--- layout.tsx
+|   |   |--- (influencer)
+|   |   |   +--- layout.tsx
+|   |   |--- about
+|   |   |   +--- page.tsx
+|   |   |--- admin
+|   |   |   |--- (auth)
+|   |   |   |   |--- login
+|   |   |   |   |   +--- page.tsx
+|   |   |   |   +--- register
+|   |   |   |       +--- page.tsx
+|   |   |   |--- (protected)
+|   |   |   |   |--- cost-monitor
+|   |   |   |   |   +--- page.tsx
+|   |   |   |   |--- influencer-rankings
+|   |   |   |   |   +--- page.tsx
+|   |   |   |   |--- layout.tsx
+|   |   |   |   +--- page.tsx
+|   |   |   |--- dashboard
+|   |   |   |   +--- page.tsx
+|   |   |   |--- AdminDashboardClient.tsx
+|   |   |   +--- error.tsx
+|   |   |--- ads
+|   |   |   |--- creatives
+|   |   |   |   +--- page.tsx
+|   |   |   +--- page.tsx
+|   |   |--- api
+|   |   |   |--- admin
+|   |   |   |   |--- clear-auth
+|   |   |   |   |   +--- route.ts
+|   |   |   |   |--- grant
+|   |   |   |   |   +--- route.ts
+|   |   |   |   |--- influencers
+|   |   |   |   |   +--- route.ts
+|   |   |   |   +--- pending-users
+|   |   |   |       +--- route.ts
+|   |   |   |--- ads
+|   |   |   |   |--- creatives
+|   |   |   |   |   +--- route.ts
+|   |   |   |   |--- generate
+|   |   |   |   |   +--- route.ts
+|   |   |   |   |--- improve
+|   |   |   |   |   +--- route.ts
+|   |   |   |   |--- rate
+|   |   |   |   |   +--- route.ts
+|   |   |   |   +--- [id]
+|   |   |   |--- analytics
+|   |   |   |   |--- brand
+|   |   |   |   |   +--- route.ts
+|   |   |   |   +--- influencer
+|   |   |   |       +--- route.ts
+|   |   |   |--- auth
+|   |   |   |   |--- change-email
+|   |   |   |   |   +--- route.ts
+|   |   |   |   |--- diagnose
+|   |   |   |   |   +--- route.ts
+|   |   |   |   |--- login
+|   |   |   |   |   +--- route.ts
+|   |   |   |   |--- logout
+|   |   |   |   |   +--- route.ts
+|   |   |   |   |--- me
+|   |   |   |   |   +--- route.ts
+|   |   |   |   |--- migrate-user
+|   |   |   |   |   +--- route.ts
+|   |   |   |   |--- profile-status
+|   |   |   |   |   +--- route.ts
+|   |   |   |   |--- resend-confirmation
+|   |   |   |   |   +--- route.ts
+|   |   |   |   |--- reset-password
+|   |   |   |   |   +--- route.ts
+|   |   |   |   +--- test-email
+|   |   |   |       +--- route.ts
+|   |   |   |--- brand
+|   |   |   |   |--- influencers
+|   |   |   |   |   +--- route.ts
+|   |   |   |   +--- products
+|   |   |   |       |--- [id]
+|   |   |   |       +--- route.ts
+|   |   |   |--- campaigns
+|   |   |   |   |--- chat
+|   |   |   |   |   +--- route.ts
+|   |   |   |   |--- [id]
+|   |   |   |   +--- route.ts
+|   |   |   |--- collaborations
+|   |   |   |   +--- route.ts
+|   |   |   |--- contact
+|   |   |   |   +--- route.ts
+|   |   |   |--- conversations
+|   |   |   |   |--- [conversationId]
+|   |   |   |   +--- route.ts
+|   |   |   |--- debug
+|   |   |   |   +--- check-data
+|   |   |   |       +--- route.ts
+|   |   |   |--- fashion-buddy
+|   |   |   |   |--- analyze
+|   |   |   |   |   +--- route.ts
+|   |   |   |   +--- chat
+|   |   |   |       +--- route.ts
+|   |   |   |--- favorites
+|   |   |   |   +--- route.ts
+|   |   |   |--- garment-extraction
+|   |   |   |--- generations
+|   |   |   |   |--- [id]
+|   |   |   |   +--- route.ts
+|   |   |   |--- health
+|   |   |   |   +--- db
+|   |   |   |       +--- route.ts
+|   |   |   |--- identity-images
+|   |   |   |   +--- route.ts
+|   |   |   |--- image-proxy
+|   |   |   |   +--- route.ts
+|   |   |   |--- images
+|   |   |   |   +--- proxy
+|   |   |   |       +--- route.ts
+|   |   |   |--- influencers
+|   |   |   |   +--- route.ts
+|   |   |   |--- links
+|   |   |   |   +--- product
+|   |   |   |       +--- [productId]
+|   |   |   |--- notifications
+|   |   |   |   |--- read-all
+|   |   |   |   |   +--- route.ts
+|   |   |   |   |--- [id]
+|   |   |   |   +--- route.ts
+|   |   |   |--- onboarding
+|   |   |   |   |--- brand
+|   |   |   |   |   +--- route.ts
+|   |   |   |   +--- influencer
+|   |   |   |       +--- route.ts
+|   |   |   |--- presets
+|   |   |   |   +--- route.ts
+|   |   |   |--- products
+|   |   |   |   |--- recommend
+|   |   |   |   |   +--- route.ts
+|   |   |   |   +--- route.ts
+|   |   |   |--- profile
+|   |   |   |   |--- metrics
+|   |   |   |   |   +--- route.ts
+|   |   |   |   |--- socials
+|   |   |   |   |   +--- route.ts
+|   |   |   |   |--- stats
+|   |   |   |   |   +--- route.ts
+|   |   |   |   +--- route.ts
+|   |   |   |--- profile-images
+|   |   |   |   +--- route.ts
+|   |   |   |--- setup
+|   |   |   |   +--- admin
+|   |   |   |       +--- route.ts
+|   |   |   |--- storage
+|   |   |   |   +--- upload
+|   |   |   |       +--- route.ts
+|   |   |   +--- tryon
+|   |   |       |--- jobs
+|   |   |       |   |--- active
+|   |   |       |   |   +--- route.ts
+|   |   |       |   +--- [id]
+|   |   |       +--- route.ts
+|   |   |--- auth
+|   |   |   +--- confirm
+|   |   |       +--- route.ts
+|   |   |--- brand
+|   |   |   |--- ads
+|   |   |   |   |--- creatives
+|   |   |   |   |   +--- page.tsx
+|   |   |   |   +--- page.tsx
+|   |   |   |--- campaigns
+|   |   |   |   |--- new
+|   |   |   |   |   +--- page.tsx
+|   |   |   |   +--- page.tsx
+|   |   |   |--- collaborations
+|   |   |   |   |--- request
+|   |   |   |   |   +--- page.tsx
+|   |   |   |   +--- page.tsx
+|   |   |   |--- dashboard
+|   |   |   |   +--- page.tsx
+|   |   |   |--- inbox
+|   |   |   |   +--- page.tsx
+|   |   |   |--- influencers
+|   |   |   |   |--- [influencerId]
+|   |   |   |   +--- page.tsx
+|   |   |   |--- marketplace
+|   |   |   |   +--- page.tsx
+|   |   |   |--- products
+|   |   |   |   +--- page.tsx
+|   |   |   |--- profile
+|   |   |   |   +--- page.tsx
+|   |   |   |--- error.tsx
+|   |   |   +--- layout.tsx
+|   |   |--- campaigns
+|   |   |   +--- page.tsx
+|   |   |--- complete-profile
+|   |   |   +--- page.tsx
+|   |   |--- contact
+|   |   |   +--- page.tsx
+|   |   |--- dashboard
+|   |   |   +--- page.tsx
+|   |   |--- favorites
+|   |   |   +--- page.tsx
+|   |   |--- forgot-password
+|   |   |   +--- page.tsx
+|   |   |--- help
+|   |   |   +--- page.tsx
+|   |   |--- inbox
+|   |   |   +--- page.tsx
+|   |   |--- influencer
+|   |   |   |--- analytics
+|   |   |   |   +--- page.tsx
+|   |   |   |--- collaborations
+|   |   |   |   +--- page.tsx
+|   |   |   |--- dashboard
+|   |   |   |   |--- ApprovalGuard.tsx
+|   |   |   |   +--- page.tsx
+|   |   |   |--- generations
+|   |   |   |   +--- page.tsx
+|   |   |   |--- pending
+|   |   |   |   |--- layout.tsx
+|   |   |   |   |--- page.tsx
+|   |   |   |   +--- route-guard.ts
+|   |   |   |--- try-on
+|   |   |   |   +--- page.tsx
+|   |   |   |--- layout.tsx
+|   |   |   +--- page.tsx
+|   |   |--- l
+|   |   |   +--- [linkCode]
+|   |   |--- marketplace
+|   |   |   |--- [productId]
+|   |   |   +--- page.tsx
+|   |   |--- onboarding
+|   |   |   |--- brand
+|   |   |   |   +--- page.tsx
+|   |   |   |--- influencer
+|   |   |   |   +--- page.tsx
+|   |   |   +--- layout.tsx
+|   |   |--- privacy
+|   |   |   +--- page.tsx
+|   |   |--- products
+|   |   |   +--- page.tsx
+|   |   |--- profile
+|   |   |   +--- page.tsx
+|   |   |--- reset-password
+|   |   |   |--- page.tsx
+|   |   |   +--- reset-password-client.tsx
+|   |   |--- settings
+|   |   |   |--- profile
+|   |   |   |   +--- page.tsx
+|   |   |   +--- page.tsx
+|   |   |--- signup
+|   |   |   +--- [role]
+|   |   |--- terms
+|   |   |   +--- page.tsx
+|   |   |--- error.tsx
+|   |   |--- favicon.ico
+|   |   |--- global-error.tsx
+|   |   |--- globals.css
+|   |   |--- layout.tsx
+|   |   |--- not-found.tsx
+|   |   +--- page.tsx
+|   |--- components
+|   |   |--- brand
+|   |   |   |--- BrandNavbar.tsx
+|   |   |   |--- CreateCampaignWizard.tsx
+|   |   |   +--- ProductsClient.tsx
+|   |   |--- brutal
+|   |   |   |--- onboarding
+|   |   |   |   |--- BrutalInput.tsx
+|   |   |   |   |--- ChoiceChip.tsx
+|   |   |   |   |--- DecorativeShapes.tsx
+|   |   |   |   +--- OnboardingCard.tsx
+|   |   |   |--- BrutalButton.tsx
+|   |   |   |--- BrutalCard.tsx
+|   |   |   |--- BrutalNavbar.tsx
+|   |   |   |--- FadeInSection.tsx
+|   |   |   |--- HeroTryOn.tsx
+|   |   |   |--- OutfitCard.tsx
+|   |   |   |--- ParallaxWrapper.tsx
+|   |   |   +--- Section.tsx
+|   |   |--- campaigns
+|   |   |   +--- CampaignChatbot.tsx
+|   |   |--- collaborations
+|   |   |   |--- RequestCollaborationButton.tsx
+|   |   |   +--- RequestModal.tsx
+|   |   |--- home
+|   |   |   |--- CTASection.tsx
+|   |   |   |--- FeaturesGrid.tsx
+|   |   |   |--- Hero.tsx
+|   |   |   |--- PlatformSection.tsx
+|   |   |   +--- ValuesSection.tsx
+|   |   |--- influencer
+|   |   |   |--- BadgeDisplay.tsx
+|   |   |   |--- InfluencerFilters.tsx
+|   |   |   +--- InfluencerMarketplaceClient.tsx
+|   |   |--- marketplace
+|   |   |   |--- MarketplaceClient.tsx
+|   |   |   +--- ProductCard.tsx
+|   |   |--- product
+|   |   |   |--- FavoriteButton.tsx
+|   |   |   |--- ImageCarousel.tsx
+|   |   |   +--- ProductRecommendations.tsx
+|   |   |--- providers
+|   |   |   +--- realtime-listener.tsx
+|   |   |--- transitions
+|   |   |   +--- PageTransition.tsx
+|   |   |--- tryon
+|   |   |   |--- GeneratingOverlay.tsx
+|   |   |   +--- ShareModal.tsx
+|   |   |--- ui
+|   |   |   |--- AnimatedButton.tsx
+|   |   |   |--- badge.tsx
+|   |   |   |--- BrutalLoader.tsx
+|   |   |   |--- button.tsx
+|   |   |   |--- card.tsx
+|   |   |   |--- dialog.tsx
+|   |   |   |--- dropdown-menu.tsx
+|   |   |   |--- form.tsx
+|   |   |   |--- input.tsx
+|   |   |   |--- label.tsx
+|   |   |   |--- PortalModal.tsx
+|   |   |   |--- radio-group.tsx
+|   |   |   |--- select.tsx
+|   |   |   |--- skeleton.tsx
+|   |   |   +--- sonner.tsx
+|   |   |--- Footer.tsx
+|   |   |--- Header.tsx
+|   |   |--- Hero.tsx
+|   |   |--- image-viewer.tsx
+|   |   |--- Locations.tsx
+|   |   |--- Masonry.css
+|   |   |--- Masonry.tsx
+|   |   |--- NewsGrid.tsx
+|   |   |--- ProductSwitcher.tsx
+|   |   |--- ProfileCompletionGate.tsx
+|   |   +--- ValuesScroll.tsx
+|   |--- lib
+|   |   |--- ads
+|   |   |   |--- ad-prompt-builder.ts
+|   |   |   |--- ad-style-examples.ts
+|   |   |   +--- ad-styles.ts
+|   |   |--- campaigns
+|   |   |   +--- types.ts
+|   |   |--- config
+|   |   |   +--- api-keys.ts
+|   |   |--- email
+|   |   |   |--- supabase-email.ts
+|   |   |   +--- templates.ts
+|   |   |--- gemini
+|   |   |   +--- executor.ts
+|   |   |--- hooks
+|   |   |   |--- useCampaigns.ts
+|   |   |   |--- useProductLink.ts
+|   |   |   +--- useProducts.ts
+|   |   |--- identity
+|   |   |   +--- types.ts
+|   |   |--- influencer
+|   |   |   |--- approval-guard.ts
+|   |   |   +--- badge-calculator.ts
+|   |   |--- links
+|   |   |   |--- generator.ts
+|   |   |   |--- tracker.ts
+|   |   |   +--- utils.ts
+|   |   |--- prompts
+|   |   |   |--- edit-templates.ts
+|   |   |   |--- nano-banana-presets.ts
+|   |   |   |--- prompt-manager.ts
+|   |   |   |--- reference-prompts.ts
+|   |   |   +--- try-on-presets.ts
+|   |   |--- queue
+|   |   |   |--- redis.ts
+|   |   |   +--- tryon-queue.ts
+|   |   |--- react-query
+|   |   |   |--- collaborations.ts
+|   |   |   |--- hooks.ts
+|   |   |   +--- provider.tsx
+|   |   |--- security
+|   |   |   +--- rate-limit-middleware.ts
+|   |   |--- tryon
+|   |   |   |--- intelligence
+|   |   |   |   |--- anchor-zone-resolver.ts
+|   |   |   |   |--- chain-of-thought.ts
+|   |   |   |   |--- face-guardrail.ts
+|   |   |   |   |--- garment-classifier.ts
+|   |   |   |   |--- garment-guardrail.ts
+|   |   |   |   |--- index.ts
+|   |   |   |   |--- intelligent-pipeline.ts
+|   |   |   |   |--- photographic-realism.ts
+|   |   |   |   |--- retry-orchestrator.ts
+|   |   |   |   |--- scene-intelligence-engine.ts
+|   |   |   |   +--- user-analyzer.ts
+|   |   |   |--- presets
+|   |   |   |   |--- diverse-presets.ts
+|   |   |   |   |--- example-prompts-reference.ts
+|   |   |   |   |--- global.ts
+|   |   |   |   |--- index.ts
+|   |   |   |   |--- india.ts
+|   |   |   |   |--- json-preset-builder.ts
+|   |   |   |   |--- photoshoot.ts
+|   |   |   |   |--- premium.ts
+|   |   |   |   |--- preset-loader.ts
+|   |   |   |   +--- scene_presets.json
+|   |   |   |--- rag
+|   |   |   |   |--- context-builder.ts
+|   |   |   |   |--- embeddings.ts
+|   |   |   |   |--- index.ts
+|   |   |   |   |--- photography-seed-data.ts
+|   |   |   |   |--- rag-pipeline.ts
+|   |   |   |   |--- real-world-data.ts
+|   |   |   |   |--- retrieval.ts
+|   |   |   |   |--- seed-data.ts
+|   |   |   |   +--- storage.ts
+|   |   |   |--- validators
+|   |   |   |   +--- index.ts
+|   |   |   |--- advanced-prompting.ts
+|   |   |   |--- anchor-core.ts
+|   |   |   |--- anchor-zone-resolver.ts
+|   |   |   |--- anti-ai-look.ts
+|   |   |   |--- anti-hallucination.ts
+|   |   |   |--- background-physics.ts
+|   |   |   |--- body-authority.ts
+|   |   |   |--- body-inference.ts
+|   |   |   |--- body-lock.ts
+|   |   |   |--- body-preservation.ts
+|   |   |   |--- body-proportion-validator.ts
+|   |   |   |--- body-scan.ts
+|   |   |   |--- cbn-safetensor.ts
+|   |   |   |--- cinematic-grading.ts
+|   |   |   |--- complexity-analyzer.ts
+|   |   |   |--- composition-blending.ts
+|   |   |   |--- consistency-lock.ts
+|   |   |   |--- cross-variant-face-consistency.ts
+|   |   |   |--- director.ts
+|   |   |   |--- dual-engine.ts
+|   |   |   |--- enhanced-face-naturalism.ts
+|   |   |   |--- environment-refinement.ts
+|   |   |   |--- eye-compositor.ts
+|   |   |   |--- fabric-physics.ts
+|   |   |   |--- face-analyzer.ts
+|   |   |   |--- face-compositor.ts
+|   |   |   |--- face-coordinates.ts
+|   |   |   |--- face-crop.ts
+|   |   |   |--- face-extractor.ts
+|   |   |   |--- face-first-identity.ts
+|   |   |   |--- face-forensics.ts
+|   |   |   |--- face-freeze-absolute.ts
+|   |   |   |--- face-freeze-concise.ts
+|   |   |   |--- face-freeze-emergency.ts
+|   |   |   |--- face-freeze.ts
+|   |   |   |--- face-garment-ultra-lock.ts
+|   |   |   |--- face-invariant.ts
+|   |   |   |--- face-lock-zone.ts
+|   |   |   |--- face-lock.ts
+|   |   |   |--- face-pixel-copy.ts
+|   |   |   |--- face-pixel-freeze.ts
+|   |   |   |--- face-realism-garment-master.ts
+|   |   |   |--- face-region-mask.ts
+|   |   |   |--- face-reintegrator.ts
+|   |   |   |--- face-shape-lock.ts
+|   |   |   |--- face-similarity.ts
+|   |   |   |--- face-stability-guidance.ts
+|   |   |   |--- flash-pipeline.ts
+|   |   |   |--- flash-renderer.ts
+|   |   |   |--- forensic-prompt.ts
+|   |   |   |--- garment-analyzer.ts
+|   |   |   |--- garment-boundary-validator.ts
+|   |   |   |--- garment-differentiation.ts
+|   |   |   |--- garment-extraction.ts
+|   |   |   |--- garment-extractor.ts
+|   |   |   |--- garment-face-mask.ts
+|   |   |   |--- garment-preprocessor.ts
+|   |   |   |--- garment-scan.ts
+|   |   |   |--- garment-strict-schema.ts
+|   |   |   |--- garment-topology-classifier.ts
+|   |   |   |--- garment-topology-prompt.ts
+|   |   |   |--- generation-validator.ts
+|   |   |   |--- gpt-face-analyzer.ts
+|   |   |   |--- gpt-image-generator.ts
+|   |   |   |--- hair-freeze.ts
+|   |   |   |--- hardened-constraints.ts
+|   |   |   |--- hardened-face-overwrite.ts
+|   |   |   |--- head-neck-anchor.ts
+|   |   |   |--- hip-line-detector.ts
+|   |   |   |--- human-body-detector.ts
+|   |   |   |--- human-lock.ts
+|   |   |   |--- hybrid-tryon-pipeline.ts
+|   |   |   |--- hyper-realism.ts
+|   |   |   |--- hyper-realistic.ts
+|   |   |   |--- identity-anchor.ts
+|   |   |   |--- identity-cache.ts
+|   |   |   |--- identity-cropper.ts
+|   |   |   |--- identity-enforcement-strict.ts
+|   |   |   |--- identity-face-lock.ts
+|   |   |   |--- identity-garment-realism-constraints.ts
+|   |   |   |--- identity-layers.ts
+|   |   |   |--- identity-morphology-lock.ts
+|   |   |   |--- input-coverage-detector.ts
+|   |   |   |--- input-coverage-prompt.ts
+|   |   |   |--- input-quality-gate.ts
+|   |   |   |--- intelligent-rag-system.ts
+|   |   |   |--- intelligent-renderer.ts
+|   |   |   |--- intelligent-scene-analyzer.ts
+|   |   |   |--- intelligent-scene-controller.ts
+|   |   |   |--- landmark-warp-alignment.ts
+|   |   |   |--- lighting-modes.ts
+|   |   |   |--- lighting-realism.ts
+|   |   |   |--- master-constraints.ts
+|   |   |   |--- master-prompt.ts
+|   |   |   |--- master-spec.ts
+|   |   |   |--- micro-face-drift.ts
+|   |   |   |--- model-agnostic-face-freeze.ts
+|   |   |   |--- multi-variant.ts
+|   |   |   |--- nano-banana-generator.ts
+|   |   |   |--- nano-banana-injection.ts
+|   |   |   |--- nano-banana-pro-renderer.ts
+|   |   |   |--- naturalism-enforcement.ts
+|   |   |   |--- orchestrated-pipeline.ts
+|   |   |   |--- output-validator.ts
+|   |   |   |--- over-correction-guard.ts
+|   |   |   |--- perceptual-locks.ts
+|   |   |   |--- perceptual-polish.ts
+|   |   |   |--- person-anchor.ts
+|   |   |   |--- photo-analyzer.ts
+|   |   |   |--- photographic-compositor-constraints.ts
+|   |   |   |--- photography-knowledge.ts
+|   |   |   |--- photorealism-polish.ts
+|   |   |   |--- photoshoot-realism.ts
+|   |   |   |--- pipeline-v4.ts
+|   |   |   |--- pipeline.ts
+|   |   |   |--- pose-guard.ts
+|   |   |   |--- pose-naturalism.ts
+|   |   |   |--- pose-preservation.ts
+|   |   |   |--- preset-strength-profile.ts
+|   |   |   |--- presets.ts
+|   |   |   |--- pro-compositor.ts
+|   |   |   |--- pro-layers.ts
+|   |   |   |--- pro-pipeline.ts
+|   |   |   |--- pro-semantic.ts
+|   |   |   |--- production-pipeline.ts
+|   |   |   |--- production-tryon-pipeline.ts
+|   |   |   |--- prompt-composer.ts
+|   |   |   |--- real-world-presets.ts
+|   |   |   |--- realism-dataset.json
+|   |   |   |--- realism-selector.ts
+|   |   |   |--- renderer.ts
+|   |   |   |--- safety-constraints.ts
+|   |   |   |--- scene-authority-resolver.ts
+|   |   |   |--- scene-authority.schema.ts
+|   |   |   |--- scene-consistency-validator.ts
+|   |   |   |--- scene-construction.ts
+|   |   |   |--- scene-detector.ts
+|   |   |   |--- scene-graph.ts
+|   |   |   |--- scene-intel-adapter.ts
+|   |   |   |--- scene-prompts.ts
+|   |   |   |--- scene-quality-check.ts
+|   |   |   |--- scene-spec.ts
+|   |   |   |--- simplified-prompt.ts
+|   |   |   |--- simplified-renderer.ts
+|   |   |   |--- strict-prompt-generator.ts
+|   |   |   |--- style-diversity-engine.ts
+|   |   |   |--- style-presets.ts
+|   |   |   |--- success-memory.ts
+|   |   |   |--- texture-realism.ts
+|   |   |   |--- tier-config.ts
+|   |   |   |--- types.ts
+|   |   |   |--- ultra-fidelity.ts
+|   |   |   |--- unified-generation.ts
+|   |   |   |--- unified-identity-system.ts
+|   |   |   |--- validation-system.ts
+|   |   |   |--- variant-intelligence.ts
+|   |   |   |--- variant-quality-baseline.ts
+|   |   |   |--- variant-specs.ts
+|   |   |   |--- verifier.ts
+|   |   |   |--- visible-issues-fix.ts
+|   |   |   |--- web-research.ts
+|   |   |   +--- women-facial-complexity.ts
+|   |   |--- utils
+|   |   |   +--- debounce.ts
+|   |   |--- animations.ts
+|   |   |--- api-utils.ts
+|   |   |--- auth-client.ts
+|   |   |--- auth-router.ts
+|   |   |--- auth-state.ts
+|   |   |--- auth.ts
+|   |   |--- error-codes.ts
+|   |   |--- garments.ts
+|   |   |--- gemini.ts
+|   |   |--- generation-limiter.ts
+|   |   |--- image-processing.ts
+|   |   |--- influencer-approval.ts
+|   |   |--- lenis.tsx
+|   |   |--- middleware-auth.ts
+|   |   |--- middleware.ts
+|   |   |--- nanobanana.ts
+|   |   |--- openai.ts
+|   |   |--- rate-limit.ts
+|   |   |--- site-url.ts
+|   |   |--- storage.ts
+|   |   |--- traffic-guard.ts
+|   |   |--- utils.ts
+|   |   +--- validation.ts
+|   |--- scripts
+|   |   |--- check-legacy-data.ts
+|   |   |--- simple-check.ts
+|   |   +--- verify-lookup-logic.ts
+|   |--- workers
+|   |   +--- tryon-worker.ts
+|   +--- proxy.ts
+|--- .env
+|--- .env.example
+|--- .env.local
+|--- .eslintrc.json
+|--- .gitignore
+|--- ADMIN_SETUP_TROUBLESHOOTING.md
+|--- AI_MODELS_GUIDE.md
+|--- API_DIAGNOSTIC_REPORT.md
+|--- AUTHENTICATION_COMPLETE_FIX.md
+|--- AUTH_ERRORS_FIX.md
+|--- AUTH_FIX_COMPLETE.md
+|--- AUTH_ONBOARDING_ADMIN_FIXES_COMPLETE.md
+|--- AUTH_ONBOARDING_APPROVAL_PIPELINE_FIX.md
+|--- AUTH_REWRITE_COMPLETE.md
+|--- AUTH_SYSTEM_AUDIT.md
+|--- AUTH_SYSTEM_FIXES_COMPLETE.md
+|--- build_log.txt
+|--- CLEAR_AUTH_DATA.md
+|--- COLLABORATION_FLOW.md
+|--- COLLABORATION_SYSTEM_SUMMARY.md
+|--- COMPLETE_SYSTEM_OVERVIEW.md
+|--- components.json
+|--- DATABASE_POOL_FIX.md
+|--- DEPLOYMENT_GUIDE.md
+|--- DEPLOYMENT_INSTRUCTIONS.md
+|--- DEPLOY_NOW.md
+|--- DOMAIN_SETUP_GUIDE.md
+|--- EMAIL_SETUP_FIX.md
+|--- EMAIL_SETUP_GUIDE.md
+|--- get_tree.ps1
+|--- INFLUENCER_LIFECYCLE_FIXES_COMPLETE.md
+|--- LATENCY_FIXES_SUMMARY.md
+|--- LATENCY_OPTIMIZATIONS_APPLIED.md
+|--- MASTER_FIX_COMPLETE.md
+|--- next-env.d.ts
+|--- next.config.ts
+|--- ONBOARDING_APPROVAL_PIPELINE_COMPLETE.md
+|--- ONBOARDING_LOOP_FIX.md
+|--- package-lock.json
+|--- package.json
+|--- PERFORMANCE_ANIMATIONS_SUMMARY.md
+|--- PERFORMANCE_OPTIMIZATIONS.md
+|--- PERFORMANCE_OPTIMIZATIONS_APPLIED.md
+|--- PERFORMANCE_OPTIMIZATION_SUMMARY.md
+|--- postcss.config.mjs
+|--- PRODUCTION_READINESS_FIXES.md
+|--- PROJECT_SUMMARY.md
+|--- QUICK_START.md
+|--- README.md
+|--- ROUTE_VERIFICATION.md
+|--- SETUP_GUIDE.md
+|--- tree_output.txt
+|--- TRY_ON_AGENT_SUMMARY.md
+|--- TRY_ON_IMPROVEMENT_PROMPT.md
+|--- TRY_ON_SYSTEM_DESIGN.md
+|--- tsconfig.json
++--- tsconfig.tsbuildinfo
