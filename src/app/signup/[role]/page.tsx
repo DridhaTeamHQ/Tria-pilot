@@ -119,12 +119,11 @@ export default function SignupPage() {
         try {
             const supabase = createClient()
             const siteUrl = getPublicSiteUrlClient()
-            const redirectUrl = buildAuthConfirmUrl(siteUrl, `/auth/callback?role=${role}`)
 
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    redirectTo: redirectUrl,
+                    redirectTo: `${siteUrl}/auth/callback?role=${role}`,
                     queryParams: {
                         prompt: 'select_account'
                     }
