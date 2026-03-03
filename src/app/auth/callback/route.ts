@@ -8,9 +8,12 @@ export async function GET(request: Request) {
   const next = searchParams.get('next') ?? '/dashboard'
   const role = searchParams.get('role')
 
+  console.log('[AUTH CALLBACK] Hit callback route. code exists:', !!code, 'next:', next, 'role:', role, 'origin:', origin)
+
   if (code) {
     const supabase = await createClient()
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+    console.log('[AUTH CALLBACK] exchangeCodeForSession result:', error ? `ERROR: ${error.message}` : `SUCCESS user=${data?.user?.id}`)
 
     if (!error && data?.user) {
       const fullName = data.user.user_metadata?.full_name || data.user.user_metadata?.name || ''
@@ -39,6 +42,7 @@ export async function GET(request: Request) {
 
       // Upon successful login, redirect to the dashboard (or appropriate page).
       // The dashboard route handles onboarding redirect if needed.
+      console.log('[AUTH CALLBACK] SUCCESS - redirecting to:', `${origin}${next}`)
       return NextResponse.redirect(`${origin}${next}`)
     } else {
       console.error('OAuth Callback Error:', error)

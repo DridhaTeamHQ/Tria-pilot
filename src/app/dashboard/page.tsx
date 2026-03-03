@@ -26,8 +26,11 @@ export default async function Dashboard() {
     data: { user: authUser },
   } = await supabase.auth.getUser()
 
+  console.log('[DASHBOARD] getUser result:', authUser ? `authenticated uid=${authUser.id}` : 'NOT authenticated')
+
   // Not authenticated → login
   if (!authUser) {
+    console.log('[DASHBOARD] Redirecting to /login (not authenticated)')
     redirect('/login')
   }
 
