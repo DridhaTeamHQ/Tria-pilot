@@ -13,6 +13,8 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error && data?.user) {
+      const fullName = data.user.user_metadata?.full_name || data.user.user_metadata?.name || ''
+
       // If a role is specified (from Google Signup), explicitly set it in profiles
       if (role && (role === 'brand' || role === 'influencer')) {
         const approvalStatus = role === 'influencer' ? 'none' : 'approved'
@@ -20,12 +22,18 @@ export async function GET(request: Request) {
           id: data.user.id,
           email: data.user.email,
           role: role,
+          full_name: fullName,
           onboarding_completed: false,
           approval_status: approvalStatus,
         }, { onConflict: 'id' })
 
         if (profileError) {
           console.error('Profile upsert error:', profileError)
+        }
+      } else {
+        // If login without role, just ensure their name is updated if it was missing
+        if (fullName) {
+          await supabase.from('profiles').update({ full_name: fullName }).eq('id', data.user.id).is('full_name', null)
         }
       }
 

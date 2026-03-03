@@ -91,6 +91,7 @@ export default function SignupPage() {
                 .upsert({
                     id: authData.user.id,
                     email: formData.email.trim().toLowerCase(),
+                    full_name: formData.name.trim(),
                     role: roleLowercase,
                     onboarding_completed: false,
                     approval_status: approvalStatus,
