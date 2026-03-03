@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/auth'
+import { createClient, createServiceClient } from '@/lib/auth'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -17,11 +17,15 @@ export async function GET(request: Request) {
 
     if (!error && data?.user) {
       const fullName = data.user.user_metadata?.full_name || data.user.user_metadata?.name || ''
+      console.log('[AUTH CALLBACK] Extracted name:', fullName, 'from metadata:', JSON.stringify(data.user.user_metadata))
+
+      // Use service client for profile operations (bypasses RLS)
+      const service = createServiceClient()
 
       // If a role is specified (from Google Signup), explicitly set it in profiles
       if (role && (role === 'brand' || role === 'influencer')) {
         const approvalStatus = role === 'influencer' ? 'none' : 'approved'
-        const { error: profileError } = await supabase.from('profiles').upsert({
+        const { error: profileError } = await service.from('profiles').upsert({
           id: data.user.id,
           email: data.user.email,
           role: role,
@@ -31,12 +35,17 @@ export async function GET(request: Request) {
         }, { onConflict: 'id' })
 
         if (profileError) {
-          console.error('Profile upsert error:', profileError)
+          console.error('[AUTH CALLBACK] Profile upsert error:', profileError)
+        } else {
+          console.log('[AUTH CALLBACK] Profile upserted successfully with role:', role, 'name:', fullName)
         }
       } else {
         // If login without role, just ensure their name is updated if it was missing
         if (fullName) {
-          await supabase.from('profiles').update({ full_name: fullName }).eq('id', data.user.id).is('full_name', null)
+          const { error: updateError } = await service.from('profiles').update({ full_name: fullName }).eq('id', data.user.id).is('full_name', null)
+          if (updateError) {
+            console.error('[AUTH CALLBACK] Name update error:', updateError)
+          }
         }
       }
 
@@ -54,3 +63,4 @@ export async function GET(request: Request) {
   // return the user to an error page with instructions
   return NextResponse.redirect(`${origin}/login?error=missing_code`)
 }
+
