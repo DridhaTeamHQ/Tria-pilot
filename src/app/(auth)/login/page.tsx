@@ -50,10 +50,11 @@ function LoginContent() {
   useEffect(() => {
     const confirmed = searchParams.get('confirmed')
     const error = searchParams.get('error')
+    const details = searchParams.get('details')
     if (confirmed === 'true') {
       toast.success('Email confirmed! You can now sign in.')
     } else if (error) {
-      toast.error('Authentication error. Please try again.')
+      toast.error(`Authentication error: ${details || 'Please try again.'}`)
     }
   }, [searchParams])
 

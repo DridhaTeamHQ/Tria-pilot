@@ -19,7 +19,6 @@ import { applyApiRateLimit } from '@/lib/security/rate-limit-middleware'
  * Authorization is handled at the ROUTE/LAYOUT level.
  */
 
-// Public paths that don't require authentication
 const PUBLIC_PATHS = new Set([
     '/',
     '/login',
@@ -33,6 +32,7 @@ const PUBLIC_PATHS = new Set([
     '/about',
     '/privacy',
     '/terms',
+    '/complete-profile',
 ])
 
 // Public path prefixes

@@ -40,9 +40,13 @@ export async function GET(request: Request) {
       // Upon successful login, redirect to the dashboard (or appropriate page).
       // The dashboard route handles onboarding redirect if needed.
       return NextResponse.redirect(`${origin}${next}`)
+    } else {
+      console.error('OAuth Callback Error:', error)
+      const errorMsg = error?.message || 'unknown_error'
+      return NextResponse.redirect(`${origin}/login?error=oauth_failed&details=${encodeURIComponent(errorMsg)}`)
     }
   }
 
   // return the user to an error page with instructions
-  return NextResponse.redirect(`${origin}/login?error=oauth_failed`)
+  return NextResponse.redirect(`${origin}/login?error=missing_code`)
 }
