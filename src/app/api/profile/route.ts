@@ -27,20 +27,34 @@ export async function PATCH(request: Request) {
 
     const service = createServiceClient()
     const body = await request.json().catch(() => null)
+
+    if (!body) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+    }
+
     const { name } = updateProfileSchema.parse(body)
+
+    console.log('[PROFILE PATCH] Updating name for user:', authUser.id, 'to:', name.trim())
 
     // Update profile in Supabase
     const { data: updated, error } = await service
       .from('profiles')
-      .update({ full_name: name.trim(), updated_at: new Date().toISOString() })
+      .update({ full_name: name.trim() })
       .eq('id', authUser.id)
       .select()
       .single()
 
     if (error) {
-      console.error('Profile update error:', error)
-      return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })
+      console.error('[PROFILE PATCH] Update error:', error)
+      return NextResponse.json({ error: `Failed to update profile: ${error.message}` }, { status: 500 })
     }
+
+    if (!updated) {
+      console.error('[PROFILE PATCH] No profile found for user:', authUser.id)
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    }
+
+    console.log('[PROFILE PATCH] Success, updated name to:', updated.full_name)
 
     return NextResponse.json({
       user: {
@@ -51,7 +65,7 @@ export async function PATCH(request: Request) {
       }
     })
   } catch (error) {
-    console.error('Profile update error:', error)
+    console.error('[PROFILE PATCH] Error:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }

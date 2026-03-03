@@ -93,18 +93,21 @@ export default function ProfilePage() {
       const res = await fetch('/api/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ name: name.trim() })
       })
       if (res.ok) {
         // Invalidate query to trigger real-time update
         await queryClient.invalidateQueries({ queryKey: ['full-profile'] })
         setEditing(false)
-        toast.success('Name updated')
+        toast.success('Name updated!')
       } else {
-        throw new Error('Failed')
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed to update name')
       }
-    } catch {
-      toast.error('Failed to update name')
+    } catch (err) {
+      console.error('Name update error:', err)
+      toast.error(err instanceof Error ? err.message : 'Failed to update name')
     } finally {
       setSaving(false)
     }
