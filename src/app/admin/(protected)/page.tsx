@@ -21,9 +21,11 @@ export default async function AdminPage() {
     .order('created_at', { ascending: false })
 
   if (error || !profiles) {
+    console.error("ADMIN PAGE ERROR:", error)
     return (
-      <div className="min-h-screen bg-cream flex items-center justify-center">
+      <div className="min-h-screen bg-cream flex flex-col items-center justify-center">
         <p>Failed to load admin dashboard.</p>
+        <pre className="text-red-500 mt-4 text-xs font-mono">{JSON.stringify(error, null, 2)}</pre>
       </div>
     )
   }

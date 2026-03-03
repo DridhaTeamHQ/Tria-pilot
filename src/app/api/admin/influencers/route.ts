@@ -127,7 +127,7 @@ export async function PATCH(request: Request) {
 
     if (typeof body?.status === 'string') {
       const { user_id, status } = updateSchema.parse(body)
-      const approvalStatus = status === 'approved' ? 'APPROVED' : 'REJECTED'
+      const approvalStatus = status === 'approved' ? 'approved' : 'rejected'
 
       const { data, error } = await service
         .from('profiles')

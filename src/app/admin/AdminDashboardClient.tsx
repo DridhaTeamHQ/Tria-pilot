@@ -74,18 +74,22 @@ export default function AdminDashboardClient({ initialApplications, dataSource =
   })
 
   useEffect(() => {
-    const nextDrafts: Record<string, MetricsDraft> = {}
-    for (const app of applications) {
-      nextDrafts[app.user_id] = {
-        followers: app.onboarding?.followers != null ? String(app.onboarding.followers) : '',
-        engagementRatePercent:
-          app.onboarding?.engagementRate != null ? String((Number(app.onboarding.engagementRate) * 100).toFixed(2)) : '',
-        audienceRate: app.onboarding?.audienceRate != null ? String(app.onboarding.audienceRate) : '',
-        retentionRate: app.onboarding?.retentionRate != null ? String(app.onboarding.retentionRate) : '',
-        badgeTier: ((app.onboarding?.badgeTier || '') as MetricsDraft['badgeTier']),
+    setMetricsDrafts((prev) => {
+      const next: Record<string, MetricsDraft> = { ...prev }
+      for (const app of applications) {
+        if (!next[app.user_id]) {
+          next[app.user_id] = {
+            followers: app.onboarding?.followers != null ? String(app.onboarding.followers) : '',
+            engagementRatePercent:
+              app.onboarding?.engagementRate != null ? String((Number(app.onboarding.engagementRate) * 100).toFixed(2)) : '',
+            audienceRate: app.onboarding?.audienceRate != null ? String(app.onboarding.audienceRate) : '',
+            retentionRate: app.onboarding?.retentionRate != null ? String(app.onboarding.retentionRate) : '',
+            badgeTier: ((app.onboarding?.badgeTier || '') as MetricsDraft['badgeTier']),
+          }
+        }
       }
-    }
-    setMetricsDrafts(nextDrafts)
+      return next
+    })
   }, [applications])
 
   // Realtime: refetch when profiles change. Enable in Supabase: Database → Replication → add table "profiles".
