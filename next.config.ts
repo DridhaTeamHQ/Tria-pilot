@@ -46,6 +46,13 @@ const nextConfig = {
     proxyClientMaxBodySize: '20mb',
   },
 
-};
+  webpack: (config: any) => {
+    config.module.rules.push({
+      test: /\.glb$/,
+      type: 'asset/resource',
+    });
+    return config;
+  },
+};
 
 export default nextConfig;

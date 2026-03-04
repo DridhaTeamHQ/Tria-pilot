@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import {
   User,
@@ -24,11 +25,14 @@ import {
   ExternalLink,
   MapPin,
   Briefcase,
-  Users
+  Users,
+  Upload
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import BadgeDisplay, { type BadgeTier } from '@/components/influencer/BadgeDisplay'
+
+const Lanyard = dynamic(() => import('@/components/Lanyard'), { ssr: false })
 import { useQueryClient, useQuery } from '@tanstack/react-query'
 
 // Neo-Brutalist Card Component
@@ -65,6 +69,9 @@ export default function ProfilePage() {
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState('')
   const [saving, setSaving] = useState(false)
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const queryClient = useQueryClient()
 
@@ -85,6 +92,67 @@ export default function ProfilePage() {
 
   const user = data?.user
   const profile = user?.influencerProfile
+
+  // Fetch primary profile image
+  useEffect(() => {
+    async function fetchProfileImage() {
+      try {
+        const res = await fetch('/api/profile-images')
+        if (res.ok) {
+          const data = await res.json()
+          const primary = data.images?.find((img: any) => img.isPrimary) || data.images?.[0]
+          if (primary?.imageUrl) {
+            setProfileImageUrl(primary.imageUrl)
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch profile image:', err)
+      }
+    }
+    fetchProfileImage()
+  }, [])
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file')
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB')
+      return
+    }
+
+    setUploadingPhoto(true)
+    try {
+      const reader = new FileReader()
+      reader.onloadend = async () => {
+        const base64 = reader.result as string
+        const res = await fetch('/api/profile-images', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ imageBase64: base64, label: 'profile-avatar' })
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setProfileImageUrl(data.image?.imageUrl || base64)
+          toast.success('Profile photo updated!')
+        } else {
+          throw new Error('Upload failed')
+        }
+        setUploadingPhoto(false)
+      }
+      reader.readAsDataURL(file)
+    } catch (err) {
+      console.error('Photo upload error:', err)
+      toast.error('Failed to upload photo')
+      setUploadingPhoto(false)
+    }
+  }
 
   const handleSaveName = async () => {
     if (!name.trim()) return
@@ -167,10 +235,31 @@ export default function ProfilePage() {
 
             {/* Identity Card */}
             <BrutalCard className="pt-20 mt-12">
-              {/* Avatar */}
-              <div className="absolute -top-12 left-8">
-                <div className="w-32 h-32 bg-[#FFD93D] border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-5xl font-black text-black">
-                  {user.name?.charAt(0).toUpperCase() || 'U'}
+              {/* 3D Lanyard Avatar */}
+              <div className="absolute -top-16 left-4">
+                <div className="relative w-[180px] h-[200px] border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-[#FFD93D] overflow-hidden">
+                  <Lanyard
+                    position={[0, 0, 20]}
+                    fov={30}
+                    transparent={true}
+                    profileImageUrl={profileImageUrl}
+                  />
+                  {/* Upload Photo Button */}
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingPhoto}
+                    className="absolute bottom-2 right-2 z-10 w-10 h-10 bg-black text-white border-[2px] border-black flex items-center justify-center hover:bg-white hover:text-black transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none"
+                    title="Upload profile photo"
+                  >
+                    {uploadingPhoto ? <Loader2 className="w-5 h-5 animate-spin" /> : <Camera className="w-5 h-5" />}
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                  />
                 </div>
               </div>
 
