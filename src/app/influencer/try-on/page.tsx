@@ -1238,7 +1238,7 @@ function TryOnPageContent() {
                             </div>
 
                         </motion.div>
-
+                    </div>
 
                         {/* RIGHT PANEL: Output & Presets */}
                     <div className="lg:col-span-7 space-y-5 sm:space-y-6 lg:space-y-7">
@@ -1508,7 +1508,6 @@ function TryOnPageContent() {
                                 )}
                             </button>
                         </div>
-                    </div>
 
                     
                         {/* RESULT DISPLAY */}
@@ -1516,7 +1515,7 @@ function TryOnPageContent() {
                             initial={{ opacity: 0, scale: 0.98 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: 0.5 }}
-                            className="lg:col-span-7 lg:col-start-6 relative bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] min-h-[380px] sm:min-h-[500px] flex flex-col"
+                            className="relative bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] min-h-[380px] sm:min-h-[500px] flex flex-col"
                         >
                             {/* Loading state takes priority - shows animation every time */}
                             {loading ? (
@@ -1730,7 +1729,7 @@ function TryOnPageContent() {
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="lg:col-span-7 lg:col-start-6 flex flex-col sm:flex-row gap-4"
+                                className="flex flex-col sm:flex-row gap-4"
                             >
                                 <button
                                     onClick={handleDownload}
