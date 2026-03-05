@@ -28,6 +28,7 @@ export default function BrutalNavbar() {
     const queryClient = useQueryClient();
     const { data: user, isLoading } = useUser();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
 
     // Hide on auth/utility pages, admin routes, onboarding, pending approval, and brand pages (BrandNavbar handles those)
     const isAuthPage =
@@ -44,6 +45,8 @@ export default function BrutalNavbar() {
         pathname?.startsWith("/brand");
 
     const handleLogout = useCallback(async () => {
+        if (isLoggingOut) return;
+        setIsLoggingOut(true);
         try {
             queryClient.setQueryData(["user"], null);
             queryClient.invalidateQueries({ queryKey: ["user"] });
@@ -60,12 +63,12 @@ export default function BrutalNavbar() {
                 sessionStorage.clear();
             }
 
-            window.location.href = "/login";
+            router.replace("/login");
         } catch (error) {
             console.error("Logout error:", error);
-            window.location.href = "/login";
+            router.replace("/login");
         }
-    }, [queryClient]);
+    }, [isLoggingOut, queryClient, router]);
 
     const isActive = (path: string) =>
         pathname === path || pathname?.startsWith(path + "/");
@@ -175,8 +178,9 @@ export default function BrutalNavbar() {
                                     {userInitial}
                                 </div>
                                 <button
-                                    onClick={handleLogout}
-                                    className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-black border-2 border-black rounded-xl bg-white hover:bg-red-100 hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all"
+                                    onClick={() => void handleLogout()}
+                                    disabled={isLoggingOut}
+                                    className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-black border-2 border-black rounded-xl bg-white hover:bg-red-100 hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                                 >
                                     <LogOut className="w-4 h-4" />
                                     Logout
@@ -268,10 +272,11 @@ export default function BrutalNavbar() {
 
                                     <button
                                         onClick={() => {
-                                            handleLogout();
+                                            void handleLogout();
                                             setMobileMenuOpen(false);
                                         }}
-                                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 bg-white border-2 border-black hover:bg-red-50 transition-colors"
+                                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 bg-white border-2 border-black hover:bg-red-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                                        disabled={isLoggingOut}
                                     >
                                         <LogOut className="w-5 h-5" />
                                         Logout
@@ -316,3 +321,5 @@ export default function BrutalNavbar() {
         </header>
     );
 }
+
+

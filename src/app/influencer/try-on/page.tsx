@@ -890,7 +890,7 @@ function TryOnPageContent() {
                         transition={{ delay: 0.1 }}
                         className="text-xs sm:text-sm md:text-xl font-bold text-black border-[2px] border-black bg-white inline-block px-3 sm:px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
                     >
-                        UPLOAD YOUR PHOTO â€¢ SELECT CLOTHING â€¢ SEE THE MAGIC
+                        UPLOAD YOUR PHOTO • SELECT CLOTHING • SEE THE MAGIC
                     </motion.p>
                 </div>
 
@@ -905,7 +905,7 @@ function TryOnPageContent() {
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.2 }}
-                            className="p-4 sm:p-6 bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] space-y-5 sm:space-y-6"
+                            className="p-3 sm:p-6 bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] space-y-4 sm:space-y-6"
                         >
                             <h3 className="font-serif text-xl text-charcoal flex items-center gap-2">
                                 <Upload className="w-5 h-5 text-peach" />
@@ -913,8 +913,8 @@ function TryOnPageContent() {
                             </h3>
 
                             {/* Saved Profile Photos */}
-                            <div className="space-y-2">
-                                <div className="flex items-center justify-between">
+                            <div className="space-y-1.5">
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
                                     <span className="text-xs font-semibold text-charcoal/50 uppercase tracking-widest">
                                         Use Saved Photos (Profile)
                                     </span>
@@ -965,15 +965,15 @@ function TryOnPageContent() {
 
 
                             {/* Side-by-Side Upload Grid - Stacks on mobile */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
                                 {/* Person Upload */}
-                                <div className="space-y-2">
-                                    <div className="flex justify-between text-sm">
+                                <div className="space-y-1.5">
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs sm:text-sm">
                                         <span className="font-medium text-charcoal/80">Your Photo <span className="text-rose-400">*</span></span>
                                         {personImage && (
                                             <button
                                                 onClick={() => { setPersonImage(''); setPersonImageBase64(''); }}
-                                                className="text-xs text-charcoal/40 hover:text-rose-500 transition-colors"
+                                                className="text-[10px] sm:text-xs text-charcoal/40 hover:text-rose-500 transition-colors self-start sm:self-auto"
                                             >
                                                 Remove
                                             </button>
@@ -985,7 +985,7 @@ function TryOnPageContent() {
                                         onDragLeave={() => setDragOver(null)}
                                         onDrop={(e) => handleDrop(e, 'person')}
                                         className={`
-                                            group relative aspect-[3/4] transition-all duration-200 border-[3px] 
+                                            group relative aspect-square sm:aspect-[3/4] transition-all duration-200 border-[3px] 
                                             ${personImage
                                                 ? 'border-transparent shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
                                                 : dragOver === 'person'
@@ -999,16 +999,16 @@ function TryOnPageContent() {
                                                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                             </>
                                         ) : (
-                                            <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
-                                                <div className="w-14 h-14 mb-3 rounded-full bg-gradient-to-br from-white/80 to-white/40 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300 border border-white/50">
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center p-2 sm:p-6 text-center">
+                                                <div className="w-10 h-10 sm:w-14 sm:h-14 mb-2 sm:mb-3 rounded-full bg-gradient-to-br from-white/80 to-white/40 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300 border border-white/50">
                                                     {uploadingImage === 'person' ? (
-                                                        <RefreshCw className="w-6 h-6 text-peach animate-spin" />
+                                                        <RefreshCw className="w-4 h-4 sm:w-6 sm:h-6 text-peach animate-spin" />
                                                     ) : (
-                                                        <Upload className="w-6 h-6 text-charcoal/40 group-hover:text-peach transition-colors" />
+                                                        <Upload className="w-4 h-4 sm:w-6 sm:h-6 text-charcoal/40 group-hover:text-peach transition-colors" />
                                                     )}
                                                 </div>
-                                                <p className="text-lg font-black uppercase text-black group-hover:underline decoration-2 underline-offset-4">Upload Photo</p>
-                                                <p className="text-xs font-bold text-black/40 mt-1 uppercase tracking-wider">Good Lighting</p>
+                                                <p className="text-[11px] sm:text-lg font-black uppercase text-black group-hover:underline decoration-2 underline-offset-4 text-center leading-tight">Upload Photo</p>
+                                                <p className="text-[9px] sm:text-xs font-bold text-black/40 mt-1 uppercase tracking-wider text-center">Good Lighting</p>
                                             </div>
                                         )}
                                         <input
@@ -1042,13 +1042,13 @@ function TryOnPageContent() {
                                 </div>
 
                                 {/* Clothing Upload */}
-                                <div className="space-y-2">
-                                    <div className="flex justify-between text-sm">
+                                <div className="space-y-1.5">
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs sm:text-sm">
                                         <span className="font-medium text-charcoal/80">Clothing <span className="text-rose-400">*</span></span>
                                         {clothingImage && !product && (
                                             <button
                                                 onClick={() => { setClothingImage(''); setClothingImageBase64(''); }}
-                                                className="text-xs text-charcoal/40 hover:text-rose-500 transition-colors"
+                                                className="text-[10px] sm:text-xs text-charcoal/40 hover:text-rose-500 transition-colors self-start sm:self-auto"
                                             >
                                                 Remove
                                             </button>
@@ -1060,7 +1060,7 @@ function TryOnPageContent() {
                                         onDragLeave={() => setDragOver(null)}
                                         onDrop={(e) => handleDrop(e, 'clothing')}
                                         className={`
-                                            group relative aspect-[3/4] transition-all duration-200 border-[3px] 
+                                            group relative aspect-square sm:aspect-[3/4] transition-all duration-200 border-[3px] 
                                             ${clothingImage
                                                 ? 'border-transparent shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
                                                 : dragOver === 'clothing'
@@ -1074,16 +1074,16 @@ function TryOnPageContent() {
                                                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                             </>
                                         ) : (
-                                            <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
-                                                <div className="w-14 h-14 mb-3 rounded-full bg-gradient-to-br from-white/80 to-white/40 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300 border border-white/50">
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center p-2 sm:p-4 text-center">
+                                                <div className="w-10 h-10 sm:w-14 sm:h-14 mb-2 sm:mb-3 rounded-full bg-gradient-to-br from-white/80 to-white/40 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300 border border-white/50">
                                                     {uploadingImage === 'clothing' ? (
-                                                        <RefreshCw className="w-6 h-6 text-purple-500 animate-spin" />
+                                                        <RefreshCw className="w-4 h-4 sm:w-6 sm:h-6 text-purple-500 animate-spin" />
                                                     ) : (
-                                                        <ShoppingBag className="w-6 h-6 text-charcoal/40 group-hover:text-purple-500 transition-colors" />
+                                                        <ShoppingBag className="w-4 h-4 sm:w-6 sm:h-6 text-charcoal/40 group-hover:text-purple-500 transition-colors" />
                                                     )}
                                                 </div>
-                                                <p className="text-lg font-black uppercase text-black group-hover:underline decoration-2 underline-offset-4">Upload Garment</p>
-                                                <p className="text-xs font-bold text-black/40 mt-1 uppercase tracking-wider">Or select from Hub</p>
+                                                <p className="text-[11px] sm:text-lg font-black uppercase text-black group-hover:underline decoration-2 underline-offset-4 text-center leading-tight">Upload Garment</p>
+                                                <p className="text-[9px] sm:text-xs font-bold text-black/40 mt-1 uppercase tracking-wider text-center">Or select from Hub</p>
                                             </div>
                                         )}
                                         <input
@@ -1095,7 +1095,7 @@ function TryOnPageContent() {
                                         />
 
                                         {product && clothingImage && (
-                                            <div className="absolute top-2 right-2 px-2 py-1 bg-black/70 backdrop-blur-md text-white text-[10px] font-medium rounded-full flex items-center gap-1">
+                                            <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 px-1.5 py-0.5 sm:px-2 sm:py-1 bg-black/70 backdrop-blur-md text-white text-[9px] sm:text-[10px] font-medium rounded-full flex items-center gap-1">
                                                 <Sparkles className="w-2.5 h-2.5 text-purple-400" /> Auto-Selected
                                             </div>
                                         )}
@@ -1103,13 +1103,13 @@ function TryOnPageContent() {
 
                                     {/* Product Images Carousel - Restored Feature */}
                                     {productData && productData.images && productData.images.length > 0 && (
-                                        <div className="mt-3">
+                                        <div className="mt-2 sm:mt-3">
                                             <div className="flex items-center justify-between mb-2">
                                                 <span className="text-[10px] font-bold text-charcoal/50 uppercase tracking-widest">
                                                     Available Styles ({productData.images.length})
                                                 </span>
                                             </div>
-                                            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin snap-x">
+                                            <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-2 scrollbar-thin snap-x">
                                                 {productData.images.map((img: any, idx: number) => {
                                                     const url = typeof img === 'string' ? img : img.imagePath
                                                     const isRef = typeof img === 'object' && img.isTryOnReference
@@ -1144,14 +1144,14 @@ function TryOnPageContent() {
 
                             {/* Background Reference (only when needed) */}
                             {editType === 'background_change' && (
-                                <div className="space-y-2">
-                                    <div className="flex justify-between text-sm">
+                                <div className="space-y-1.5">
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs sm:text-sm">
                                         <span className="font-medium text-charcoal/80">Background Reference <span className="text-rose-400">*</span></span>
                                         {backgroundImage && (
                                             <button
                                                 type="button"
                                                 onClick={() => { setBackgroundImage(''); setBackgroundImageBase64(''); }}
-                                                className="text-xs text-charcoal/40 hover:text-rose-500 transition-colors"
+                                                className="text-[10px] sm:text-xs text-charcoal/40 hover:text-rose-500 transition-colors self-start sm:self-auto"
                                             >
                                                 Remove
                                             </button>
@@ -1164,7 +1164,7 @@ function TryOnPageContent() {
                                         {backgroundImage ? (
                                             <img src={backgroundImage} alt="Background" className="w-full h-full object-cover" />
                                         ) : (
-                                            <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center p-2 sm:p-4 text-center">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-10 h-10 rounded-full bg-white/50 flex items-center justify-center shadow-sm">
                                                         {uploadingImage === 'background' ? (
@@ -1190,8 +1190,8 @@ function TryOnPageContent() {
                                 </div>
                             )}
 
-                            {/* ACCESSORIES SECTION (Pro Only) */}
-                            <div className="pt-4 border-t border-charcoal/5">
+                            {/* ACCESSORIES SECTION (Pro Only) - hidden on small screens to keep mobile compact */}
+                            <div className="pt-4 border-t border-charcoal/5 hidden sm:block">
                                 <div className="flex justify-between items-center mb-3">
                                     <div className="flex items-center gap-2">
                                         <div className="p-1.5 bg-purple-100 rounded-md">
@@ -1781,3 +1781,6 @@ export default function TryOnPage() {
         </Suspense>
     )
 }
+
+
+

@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
     Sparkles,
     Users,
@@ -32,12 +32,19 @@ interface BrandNavbarProps {
 
 export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
     const pathname = usePathname()
+    const router = useRouter()
     const [mobileOpen, setMobileOpen] = useState(false)
+    const [isLoggingOut, setIsLoggingOut] = useState(false)
 
-    const handleLogout = async () => {
-        await fetch('/api/auth/logout', { method: 'POST' })
-        window.location.href = '/login'
-    }
+    const handleLogout = useCallback(async () => {
+        if (isLoggingOut) return
+        setIsLoggingOut(true)
+        try {
+            await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+        } finally {
+            router.replace('/login')
+        }
+    }, [isLoggingOut, router])
 
     return (
         <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b-[3px] border-black">
@@ -83,8 +90,9 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
                             {brandName?.charAt(0)?.toUpperCase() || 'B'}
                         </div>
                         <button
-                            onClick={handleLogout}
-                            className="flex items-center gap-2 px-4 py-2 rounded-full border-2 border-black bg-white hover:bg-gray-50 transition-colors font-medium text-sm"
+                            onClick={() => void handleLogout()}
+                            disabled={isLoggingOut}
+                            className="flex items-center gap-2 px-4 py-2 rounded-full border-2 border-black bg-white hover:bg-gray-50 transition-colors font-medium text-sm disabled:opacity-60 disabled:cursor-not-allowed"
                             title="Logout"
                         >
                             <LogOut className="w-4 h-4" strokeWidth={2} />
@@ -136,8 +144,9 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
 
                         <div className="pt-2 border-t-2 border-black mt-2">
                             <button
-                                onClick={() => { setMobileOpen(false); handleLogout() }}
-                                className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-red-600 bg-white border-2 border-black hover:bg-red-50 transition-colors font-medium text-sm"
+                                onClick={() => { setMobileOpen(false); void handleLogout() }}
+                                disabled={isLoggingOut}
+                                className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-red-600 bg-white border-2 border-black hover:bg-red-50 transition-colors font-medium text-sm disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                                 <LogOut className="w-4 h-4" strokeWidth={2} />
                                 Logout
@@ -149,3 +158,6 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
         </nav>
     )
 }
+
+
+

@@ -29,6 +29,7 @@ export default function Header() {
     const { data: user, isLoading } = useUser()
     const [scrolled, setScrolled] = useState(false)
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+    const [isLoggingOut, setIsLoggingOut] = useState(false)
 
     // Hide on auth/utility pages and admin routes (admin uses its own UI)
     const isAuthPage =
@@ -57,6 +58,8 @@ export default function Header() {
     }, [])
 
     const handleLogout = useCallback(async () => {
+        if (isLoggingOut) return
+        setIsLoggingOut(true)
         try {
             queryClient.setQueryData(['user'], null)
             queryClient.invalidateQueries({ queryKey: ['user'] })
@@ -74,13 +77,13 @@ export default function Header() {
             }
 
             toast.success('Logged out successfully')
-            router.push('/login')
+            router.replace('/login')
         } catch (error) {
             console.error('Logout error:', error)
             toast.error('Failed to logout cleanly')
-            router.push('/login')
+            router.replace('/login')
         }
-    }, [queryClient, router])
+    }, [isLoggingOut, queryClient, router])
 
     const isHomePage = pathname === '/'
 
@@ -215,7 +218,7 @@ export default function Header() {
                                 <button
                                     onClick={handleLogout}
                                     data-cursor="Logout"
-                                    className={`flex items-center gap-2 text-sm transition-colors duration-200 ${linkColor}`}
+                                    className={`flex items-center gap-2 text-sm transition-colors duration-200 ${linkColor} ${isLoggingOut ? "opacity-60 cursor-not-allowed" : ""}`} disabled={isLoggingOut}
                                 >
                                     <LogOut className="w-4 h-4" />
                                     Logout
@@ -303,10 +306,10 @@ export default function Header() {
 
                                     <button
                                         onClick={() => {
-                                            handleLogout()
+                                            void handleLogout()
                                             setMobileMenuOpen(false)
                                         }}
-                                        className="w-full flex items-center justify-center gap-3 px-4 py-3 mt-2 border-[3px] border-charcoal bg-white text-charcoal font-bold uppercase tracking-wider rounded-xl shadow-[4px_4px_0px_0px_rgba(17,17,17,1)] hover:bg-charcoal hover:text-white hover:shadow-none transition-all active:translate-x-[2px] active:translate-y-[2px]"
+                                        className="w-full flex items-center justify-center gap-3 px-4 py-3 mt-2 border-[3px] border-charcoal bg-white text-charcoal font-bold uppercase tracking-wider rounded-xl shadow-[4px_4px_0px_0px_rgba(17,17,17,1)] hover:bg-charcoal hover:text-white hover:shadow-none transition-all active:translate-x-[2px] active:translate-y-[2px] disabled:opacity-60 disabled:cursor-not-allowed"
                                     >
                                         <LogOut className="w-5 h-5" />
                                         Logout
@@ -351,3 +354,8 @@ export default function Header() {
         </header>
     )
 }
+
+
+
+
+

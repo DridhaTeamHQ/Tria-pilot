@@ -171,8 +171,8 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                         )}
                     </div>
 
-                    <div className="flex items-center justify-between gap-1.5 sm:gap-2 pt-1">
-                        <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 bg-white border-[2px] border-black rounded-md text-[10px] sm:text-[11px] font-bold text-charcoal shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] whitespace-nowrap">
+                    <div className="flex items-center justify-between gap-1 sm:gap-2 pt-1 min-w-0">
+                        <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 bg-white border-[2px] border-black rounded-md text-[10px] sm:text-[11px] font-bold text-charcoal shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] truncate max-w-[46%] sm:max-w-none">
                             {product.category || 'Product'}
                         </span>
 
@@ -182,7 +182,7 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                                 e.stopPropagation()
                                 router.push(`/influencer/try-on?productId=${product.id}`)
                             }}
-                            className="px-2.5 py-0.5 sm:px-3 sm:py-1 bg-[#FFD93D] text-black border-[2px] border-black rounded-md text-[10px] sm:text-[11px] font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center gap-1 whitespace-nowrap"
+                            className="px-2 py-0.5 sm:px-3 sm:py-1 bg-[#FFD93D] text-black border-[2px] border-black rounded-md text-[10px] sm:text-[11px] font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center gap-1 shrink-0"
                         >
                             Try-On
                             <ArrowRight className="w-2.5 h-2.5" />
@@ -195,5 +195,6 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
 })
 
 export default ProductCard
+
 
 
