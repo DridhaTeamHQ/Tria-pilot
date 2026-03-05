@@ -1,31 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
-import { createClient } from '@/lib/auth-client'
+import { useUser } from '@/lib/react-query/hooks'
 
 export default function LandingNav() {
   const [open, setOpen] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const { data: user, isLoading } = useUser()
+  const isAuthenticated = !isLoading && !!user
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const supabase = createClient()
-        const { data: { session } } = await supabase.auth.getSession()
-        setIsAuthenticated(!!session)
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-          setIsAuthenticated(!!session)
-        })
-
-        return () => subscription.unsubscribe()
-      } catch (error) {
-        console.error('Auth check error:', error)
-      }
-    }
-    checkAuth()
-  }, [])
 
   return (
     <nav

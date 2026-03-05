@@ -84,7 +84,7 @@ function LoginContent() {
 
       toast.success('Signed in successfully!')
 
-      router.push('/dashboard')
+      router.replace('/dashboard')
       router.refresh()
     } catch (error: unknown) {
       console.error('Login error:', error)

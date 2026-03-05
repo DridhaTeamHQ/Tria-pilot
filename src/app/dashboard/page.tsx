@@ -49,9 +49,9 @@ export default async function Dashboard() {
   }
 
   // Normalize role to lowercase
-  const role = (profile.role || 'influencer').toLowerCase()
+  const role = ((profile.role || 'influencer') as string).trim().toLowerCase()
   const onboardingComplete = Boolean(profile.onboarding_completed)
-  const approvalStatus = (profile.approval_status || 'none').toLowerCase()
+  const approvalStatus = ((profile.approval_status || 'none') as string).trim().toLowerCase()
 
   console.log('Dashboard routing:', { role, onboardingComplete, approvalStatus })
 
@@ -79,6 +79,6 @@ export default async function Dashboard() {
     redirect('/influencer/dashboard')
   }
 
-  // Unknown role → fallback to home
-  redirect('/')
+  // Unknown role → recover to profile completion instead of landing ambiguity
+  redirect('/complete-profile')
 }
