@@ -890,7 +890,7 @@ function TryOnPageContent() {
                         transition={{ delay: 0.1 }}
                         className="text-xs sm:text-sm md:text-xl font-bold text-black border-[2px] border-black bg-white inline-block px-3 sm:px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
                     >
-                        UPLOAD YOUR PHOTO � SELECT CLOTHING � SEE THE MAGIC
+                        UPLOAD YOUR PHOTO • SELECT CLOTHING • SEE THE MAGIC
                     </motion.p>
                 </div>
 
@@ -1297,7 +1297,7 @@ function TryOnPageContent() {
                                     <span className="text-xs font-normal text-charcoal/40">(auto scene + lighting)</span>
                                 </h3>
                                 <div className="text-[11px] text-charcoal/50">
-                                    Tip: presets marked “Face Lock: Max” are safest for strict identity consistency in moody/night scenes.
+                                    Tip: presets marked â€œFace Lock: Maxâ€ are safest for strict identity consistency in moody/night scenes.
                                 </div>
                                 <div className="flex gap-2 flex-wrap">
                                     <button
@@ -1567,9 +1567,9 @@ function TryOnPageContent() {
                                                     </div>
                                                     <p className="text-charcoal/60 text-sm mb-2">
                                                         {isOverEstimate
-                                                            ? '✨ Finishing up your images!'
+                                                            ? 'âœ¨ Finishing up your images!'
                                                             : isAlmostDone
-                                                                ? '✨ Just a few more seconds!'
+                                                                ? 'âœ¨ Just a few more seconds!'
                                                                 : `${elapsedSeconds}s elapsed`}
                                                     </p>
                                                     <p className="text-charcoal/40 text-xs mb-4">
@@ -1585,7 +1585,7 @@ function TryOnPageContent() {
 
                                         {/* Model badge */}
                                         <div className="inline-block px-4 py-2 rounded-full text-sm font-medium bg-charcoal/10 text-charcoal">
-                                            🚀 Flash Mode
+                                            ðŸš€ Flash Mode
                                         </div>
                                     </div>
                                 </div>
