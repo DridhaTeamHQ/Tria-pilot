@@ -529,7 +529,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-black uppercase tracking-wider mb-2">
-                                        Price (₹)
+                                        Price (INR)
                                     </label>
                                     <input
                                         type="number"
@@ -807,9 +807,9 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                             </div>
 
                             {/* Content */}
-                            <div className="p-4">
-                                <h3 className="font-black text-lg mb-1 truncate">{product.name}</h3>
-                                <div className="flex items-center gap-2 text-sm text-black/60 mb-3 flex-wrap">
+                            <div className="p-3.5">
+                                <h3 className="font-black text-base mb-1 truncate">{product.name}</h3>
+                                <div className="flex items-center gap-1.5 text-xs text-black/60 mb-2.5 flex-wrap">
                                     {product.category && (
                                         <span className="bg-gray-100 px-2 py-0.5 font-bold">
                                             {product.category}
@@ -817,7 +817,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                                     )}
                                     {product.price != null && (
                                         <span className="font-black">
-                                            ₹{product.price}
+                                            {'\u20B9'}{product.price}
                                             {product.discount != null && product.discount > 0 && (
                                                 <span className="text-green-600 ml-1">-{product.discount}%</span>
                                             )}
@@ -829,10 +829,10 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                                 </div>
 
                                 {/* Actions */}
-                                <div className="flex gap-2">
+                                <div className="flex items-center gap-1.5">
                                     <button
                                         onClick={() => openEditForm(product)}
-                                        className="flex-1 py-2 border-2 border-black font-bold text-sm uppercase hover:bg-gray-100 flex items-center justify-center gap-1"
+                                        className="flex-1 h-8 border-2 border-black font-bold text-[11px] uppercase hover:bg-gray-100 flex items-center justify-center gap-1"
                                     >
                                         <Edit2 className="w-4 h-4" />
                                         Edit
@@ -842,14 +842,14 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                                             href={product.link}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="p-2 border-2 border-black hover:bg-gray-100"
+                                            className="h-8 w-8 border-2 border-black hover:bg-gray-100 flex items-center justify-center"
                                         >
                                             <ExternalLink className="w-4 h-4" />
                                         </a>
                                     )}
                                     <button
                                         onClick={() => handleDeleteClick(product)}
-                                        className="p-2 border-2 border-black hover:bg-red-100"
+                                        className="h-8 w-8 border-2 border-black hover:bg-red-100 flex items-center justify-center"
                                         aria-label="Delete product"
                                     >
                                         <Trash2 className="w-4 h-4 text-red-600" />
@@ -897,3 +897,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
         </div>
     )
 }
+
+
+
+

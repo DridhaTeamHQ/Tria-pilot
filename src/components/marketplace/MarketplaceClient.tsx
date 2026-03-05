@@ -121,7 +121,7 @@ export default function MarketplaceClient({ products, categories, activeCategory
                         <span className="text-sm text-charcoal/40">Filter by category</span>
                     </div>
 
-                    <div className="flex flex-wrap gap-3">
+                    <div className="flex flex-wrap gap-2.5">
                         {categories.map((category) => {
                             const categoryValue = category === 'All Products' ? 'all' : category.toLowerCase()
                             const isActive = activeCategory === categoryValue
@@ -133,7 +133,7 @@ export default function MarketplaceClient({ products, categories, activeCategory
                                     data-cursor={isActive ? '' : 'Select'}
                                 >
                                     <span
-                                        className={`inline-block px-6 py-3 rounded-none text-sm font-bold transition-all duration-200 cursor-pointer border-[3px] uppercase tracking-wider ${isActive
+                                        className={`inline-block px-4 py-2 rounded-none text-xs font-bold transition-all duration-200 cursor-pointer border-[3px] uppercase tracking-wider ${isActive
                                                 ? 'bg-[#FFD93D] text-black border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -translate-y-1'
                                                 : 'bg-white border-black text-charcoal hover:bg-gray-50 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1'
                                             }`}
@@ -183,7 +183,7 @@ export default function MarketplaceClient({ products, categories, activeCategory
                         )}
                     </div>
                 ) : (
-                    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
                         {filteredProducts.map((product, index) => (
                             <ProductCard
                                 key={product.id}
@@ -198,3 +198,5 @@ export default function MarketplaceClient({ products, categories, activeCategory
         </div>
     )
 }
+
+

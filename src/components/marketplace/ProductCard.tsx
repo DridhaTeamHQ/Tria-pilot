@@ -109,7 +109,7 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
             >
-                <div className="aspect-[3/4] relative overflow-hidden bg-white border-b-[3px] border-black">
+                <div className="aspect-[4/5] sm:aspect-[3/4] relative overflow-hidden bg-white border-b-[3px] border-black">
                     {!firstImageLoaded && (
                         <div className="absolute inset-0 bg-gradient-to-br from-cream via-charcoal/5 to-cream animate-pulse">
                             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent skeleton-shimmer" />
@@ -156,12 +156,12 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                     )}
                 </div>
 
-                <div className="space-y-3 p-4">
-                    <h3 className="font-semibold text-charcoal text-base line-clamp-2 leading-tight min-h-[40px]">
+                <div className="space-y-2 p-2.5 sm:space-y-2.5 sm:p-3.5">
+                    <h3 className="font-semibold text-charcoal text-[13px] sm:text-[15px] line-clamp-2 leading-tight min-h-[34px] sm:min-h-[38px]">
                         {product.name}
                     </h3>
 
-                    <div className="flex items-center gap-2 text-sm text-charcoal/60">
+                    <div className="flex items-center gap-1.5 text-[11px] sm:text-sm text-charcoal/60">
                         <span className="truncate">{brandName}</span>
                         {priceDisplay && (
                             <>
@@ -171,8 +171,8 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                         )}
                     </div>
 
-                    <div className="flex items-center justify-between pt-2">
-                        <span className="px-3 py-1.5 bg-white border-[2px] border-black rounded-lg text-xs font-bold text-charcoal shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    <div className="flex items-center justify-between gap-1.5 sm:gap-2 pt-1">
+                        <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 bg-white border-[2px] border-black rounded-md text-[10px] sm:text-[11px] font-bold text-charcoal shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] whitespace-nowrap">
                             {product.category || 'Product'}
                         </span>
 
@@ -182,10 +182,10 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                                 e.stopPropagation()
                                 router.push(`/influencer/try-on?productId=${product.id}`)
                             }}
-                            className="px-4 py-1.5 bg-[#FFD93D] text-black border-[2px] border-black rounded-lg text-xs font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center gap-1.5"
+                            className="px-2.5 py-0.5 sm:px-3 sm:py-1 bg-[#FFD93D] text-black border-[2px] border-black rounded-md text-[10px] sm:text-[11px] font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center gap-1 whitespace-nowrap"
                         >
-                            Try Tryon
-                            <ArrowRight className="w-3 h-3" />
+                            Try-On
+                            <ArrowRight className="w-2.5 h-2.5" />
                         </button>
                     </div>
                 </div>
@@ -195,3 +195,5 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
 })
 
 export default ProductCard
+
+
