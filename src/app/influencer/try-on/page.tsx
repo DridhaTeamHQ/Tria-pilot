@@ -1238,6 +1238,71 @@ function TryOnPageContent() {
                             </div>
 
                         </motion.div>
+
+                        {/* Desktop-only controls on left column */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.45 }}
+                            className="hidden lg:block"
+                        >
+                            <h3 className="font-serif text-xl text-charcoal mb-4">
+                                Choose Your Aspect Ratio
+                            </h3>
+                            <div className="grid grid-cols-3 gap-3">
+                                {['1:1', '4:5', '9:16'].map((ratio) => (
+                                    <button
+                                        key={ratio}
+                                        onClick={() => setAspectRatio(ratio as any)}
+                                        className={`
+                                                flex-1 py-3 border-[3px] border-black text-sm font-black uppercase tracking-wider transition-all
+                                                ${aspectRatio === ratio
+                                                ? 'bg-[#FFD93D] text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+                                                : 'bg-white text-black hover:bg-gray-50 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'}
+                                            `}
+                                    >
+                                        {ratio}
+                                    </button>
+                                ))}
+                            </div>
+                        </motion.div>
+
+                        <div className="hidden lg:block pt-1">
+                            {(loading || retryAfterSeconds > 0) && (
+                                <div className="mb-3 rounded-md border-[2px] border-black bg-[#FFF3BF] px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-black">
+                                    {loading
+                                        ? (queueStatus === 'queued'
+                                            ? `In queue${activeJobId ? ` - job ${activeJobId.slice(0, 8)}` : ''}. We are waiting for a free generation slot.`
+                                            : `Generating now${activeJobId ? ` - job ${activeJobId.slice(0, 8)}` : ''}. Please keep this tab open.`)
+                                        : (retryReason === 'job_in_progress'
+                                            ? `A job is already running. Try again in ${retryAfterSeconds}s.`
+                                            : `Rate limit active. Try again in ${retryAfterSeconds}s.`)}
+                                </div>
+                            )}
+                            <button
+                                onClick={handleGenerate}
+                                disabled={isGenerateDisabled}
+                                className={`
+                    w-full py-3.5 text-sm font-black uppercase tracking-wider flex items-center justify-center gap-3 transition-all duration-200 border-[3px] border-black
+                    ${isGenerateDisabled
+                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+                                        : 'bg-[#FFD93D] text-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-[6px] active:shadow-none'}
+                  `}
+                            >
+                                {loading ? (
+                                    'Creating Magic...'
+                                ) : retryAfterSeconds > 0 ? (
+                                    retryReason === 'job_in_progress'
+                                        ? `Job in progress (${retryAfterSeconds}s)`
+                                        : `Try again in ${retryAfterSeconds}s`
+                                ) : (
+                                    <>
+                                        <Sparkles className="w-6 h-6" />
+                                        Generate Try-On
+                                    </>
+                                )}
+                            </button>
+                        </div>
                     </div>
 
                         {/* RIGHT PANEL: Output & Presets */}
@@ -1447,7 +1512,7 @@ function TryOnPageContent() {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.45 }}
-                            className="mb-6"
+                            className="mb-6 lg:hidden"
                         >
                             <h3 className="font-serif text-xl sm:text-2xl text-charcoal mb-4">
                                 Choose Your Aspect Ratio
@@ -1472,7 +1537,7 @@ function TryOnPageContent() {
                         </motion.div>
 
 {/* Generate Button (end of config) */}
-                        <div className="pt-2">
+                        <div className="pt-2 lg:hidden">
                             {(loading || retryAfterSeconds > 0) && (
                                 <div className="mb-3 rounded-md border-[2px] border-black bg-[#FFF3BF] px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-black">
                                     {loading
