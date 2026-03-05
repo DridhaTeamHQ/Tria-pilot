@@ -108,6 +108,7 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const queryClient = useQueryClient()
+  const enable3DLanyard = process.env.NEXT_PUBLIC_ENABLE_3D_PROFILE === 'true'
 
   // REAL-TIME DATA FETCHING
   // uses react-query to cache and auto-update data
@@ -272,14 +273,26 @@ export default function ProfilePage() {
               {/* 3D Lanyard Avatar */}
               <div className="absolute -top-16 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-8 z-10 w-[160px] h-[180px] md:w-[180px] md:h-[200px]">
                 <div className="relative w-full h-full border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-[#FFD93D] overflow-hidden">
-                  <LanyardErrorBoundary>
-                    <Lanyard
-                      position={[0, 0, 20]}
-                      fov={30}
-                      transparent={true}
-                      profileImageUrl={profileImageUrl}
+                  {enable3DLanyard ? (
+                    <LanyardErrorBoundary>
+                      <Lanyard
+                        position={[0, 0, 20]}
+                        fov={30}
+                        transparent={true}
+                        profileImageUrl={profileImageUrl}
+                      />
+                    </LanyardErrorBoundary>
+                  ) : profileImageUrl ? (
+                    <img
+                      src={profileImageUrl}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
                     />
-                  </LanyardErrorBoundary>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <User className="w-14 h-14 text-black/35" />
+                    </div>
+                  )}
                   {/* Upload Photo Button */}
                   <button
                     onClick={() => fileInputRef.current?.click()}
@@ -493,3 +506,4 @@ export default function ProfilePage() {
     </div>
   )
 }
+
