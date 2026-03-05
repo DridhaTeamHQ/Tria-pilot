@@ -288,7 +288,7 @@ export default function InfluencerDashboard() {
             <div className="flex gap-2 w-full md:w-auto mt-4 md:mt-0">
               <Link
                 href="/influencer/try-on"
-                className="w-full sm:w-auto text-center px-6 py-3 bg-black text-white rounded-xl font-bold border-[3px] border-black hover:bg-[#B4F056] hover:text-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                className="w-full sm:w-auto whitespace-nowrap text-center px-6 py-3 bg-black text-white rounded-xl font-bold border-[3px] border-black hover:bg-[#B4F056] hover:text-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
               >
                 New Try-On
               </Link>
