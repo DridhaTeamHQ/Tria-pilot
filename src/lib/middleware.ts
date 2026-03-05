@@ -98,7 +98,8 @@ export async function updateSession(request: NextRequest) {
         if (error) {
             // Handle refresh token errors gracefully
             if (error.message?.includes('refresh_token') || error.message?.includes('Refresh Token')) {
-                // Invalid/expired refresh token - continue as unauthenticated
+                // Invalid/expired refresh token - clear the local session to stop infinite retry loops
+                await supabase.auth.signOut({ scope: 'local' })
             } else if (!error.message?.includes('Auth session missing')) {
                 // Log non-trivial errors
                 console.warn('Auth error:', error.message)
@@ -121,7 +122,13 @@ export async function updateSession(request: NextRequest) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
         url.searchParams.set('redirect', pathname)
-        return NextResponse.redirect(url)
+        const redirectResponse = NextResponse.redirect(url)
+
+        // Preserve cookies!
+        supabaseResponse.cookies.getAll().forEach(cookie => {
+            redirectResponse.cookies.set(cookie.name, cookie.value, cookie as any)
+        })
+        return redirectResponse
     }
 
     // Authenticated users on root → redirect to /dashboard
@@ -129,7 +136,13 @@ export async function updateSession(request: NextRequest) {
     if (user && pathname === '/') {
         const url = request.nextUrl.clone()
         url.pathname = '/dashboard'
-        return NextResponse.redirect(url)
+        const redirectResponse = NextResponse.redirect(url)
+
+        // Preserve cookies!
+        supabaseResponse.cookies.getAll().forEach(cookie => {
+            redirectResponse.cookies.set(cookie.name, cookie.value, cookie as any)
+        })
+        return redirectResponse
     }
 
     return supabaseResponse

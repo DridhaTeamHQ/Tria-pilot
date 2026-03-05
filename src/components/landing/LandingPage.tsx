@@ -281,59 +281,61 @@ export default function LandingPage() {
           {/* Gradient */}
           <div className="absolute inset-0 bg-gradient-to-t from-[#faf9f6] via-[#faf9f6]/40 to-transparent" />
 
-          {/* KIWIKOO title */}
-          <div
-            ref={heroTitleRef}
-            id="hero-title-container"
-            className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none"
-          >
-            <h1
-              className="leading-none font-black tracking-tighter text-[#111111] opacity-90 mix-blend-multiply"
-              style={{ fontSize: 'clamp(2.5rem, 16vw, 15rem)' }}
+          {/* Content Wrapper for proper stacking */}
+          <div className="relative z-10 flex flex-col h-full w-full justify-between">
+            {/* KIWIKOO title - Flex growing to take available space above the bar */}
+            <div
+              ref={heroTitleRef}
+              id="hero-title-container"
+              className="flex-1 flex items-center justify-center pointer-events-none pb-10"
             >
-              KIWIKOO
-            </h1>
-            <h1
-              className="leading-none font-black tracking-tighter text-transparent absolute"
-              style={{
-                fontSize: 'clamp(2.5rem, 16vw, 15rem)',
-                WebkitTextStroke: '1px rgba(17,17,17,0.4)',
-              }}
-            >
-              KIWIKOO
-            </h1>
-          </div>
-
-          {/* Bottom Data Bar */}
-          <div className="relative z-20 flex flex-col md:flex-row w-full text-sm bg-[#faf9f6] border-strong-t">
-            {/* Left: tagline + CTA */}
-            <div className="md:w-3/4 p-8 md:p-12 grid-line-y flex flex-col justify-center gap-6">
-              <p className="max-w-2xl text-gray-800 text-lg md:text-xl font-bold leading-relaxed">
-                The ultimate fashion marketplace connecting influencers with the hottest brands. Try, Share, and Earn with vertically integrated AI.
-              </p>
-              <Link
-                href="/register"
-                className="neo-btn border-2 border-[#111111] bg-[#caff33] px-8 py-4 font-extrabold text-[#111111] inline-flex items-center gap-3 w-max rounded-xl"
-                style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
+              <h1
+                className="leading-none font-black tracking-tighter text-[#111111] opacity-90 mix-blend-multiply relative"
+                style={{ fontSize: 'clamp(2.5rem, 16vw, 15rem)' }}
               >
-                GET STARTED
-                <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-              </Link>
+                KIWIKOO
+                <span
+                  className="leading-none font-black tracking-tighter text-transparent absolute left-0 top-0"
+                  style={{
+                    WebkitTextStroke: '1px rgba(17,17,17,0.4)',
+                  }}
+                >
+                  KIWIKOO
+                </span>
+              </h1>
             </div>
-            {/* Right: Instant widget */}
-            <div className="md:w-1/4 p-8 flex flex-col justify-center bg-white relative overflow-hidden">
-              <div className="absolute -right-4 -top-4 text-9xl font-black text-gray-100 pointer-events-none select-none leading-none">
-                AI
+
+            {/* Bottom Data Bar */}
+            <div className="relative z-20 flex flex-col md:flex-row w-full text-sm bg-[#faf9f6] border-strong-t">
+              {/* Left: tagline + CTA */}
+              <div className="md:w-3/4 p-8 md:p-12 grid-line-y flex flex-col justify-center gap-6">
+                <p className="max-w-2xl text-gray-800 text-lg md:text-xl font-bold leading-relaxed">
+                  The ultimate fashion marketplace connecting influencers with the hottest brands. Try, Share, and Earn with vertically integrated AI.
+                </p>
+                <Link
+                  href="/register"
+                  className="neo-btn border-2 border-[#111111] bg-[#caff33] px-8 py-4 font-extrabold text-[#111111] inline-flex items-center gap-3 w-max rounded-xl"
+                  style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
+                >
+                  GET STARTED
+                  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </Link>
               </div>
-              <div className="relative z-10">
-                <div className="text-[#ff8a73] font-black text-5xl mb-2 tracking-tighter">Instant</div>
-                <div className="text-[#111111] font-bold text-xs tracking-widest uppercase mb-4">
-                  Virtual Try-On Output
+              {/* Right: Instant widget */}
+              <div className="md:w-1/4 p-8 flex flex-col justify-center bg-white relative overflow-hidden">
+                <div className="absolute -right-4 -top-4 text-9xl font-black text-gray-100 pointer-events-none select-none leading-none">
+                  AI
                 </div>
-                <div className="w-full h-1 bg-gray-200 rounded-full overflow-hidden">
-                  <div className="w-full h-full bg-[#ff8a73] animate-pulse" />
+                <div className="relative z-10">
+                  <div className="text-[#ff8a73] font-black text-5xl mb-2 tracking-tighter">Instant</div>
+                  <div className="text-[#111111] font-bold text-xs tracking-widest uppercase mb-4">
+                    Virtual Try-On Output
+                  </div>
+                  <div className="w-full h-1 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="w-full h-full bg-[#ff8a73] animate-pulse" />
+                  </div>
                 </div>
               </div>
             </div>

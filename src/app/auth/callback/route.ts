@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
   // if "next" is in param, use it as the redirect URL
@@ -51,16 +51,22 @@ export async function GET(request: Request) {
 
       // Upon successful login, redirect to the dashboard (or appropriate page).
       // The dashboard route handles onboarding redirect if needed.
-      console.log('[AUTH CALLBACK] SUCCESS - redirecting to:', `${origin}${next}`)
-      return NextResponse.redirect(`${origin}${next}`)
+      const redirectUrl = new URL(next, request.nextUrl)
+      console.log('[AUTH CALLBACK] SUCCESS - redirecting to:', redirectUrl.toString())
+      return NextResponse.redirect(redirectUrl)
     } else {
       console.error('OAuth Callback Error:', error)
       const errorMsg = error?.message || 'unknown_error'
-      return NextResponse.redirect(`${origin}/login?error=oauth_failed&details=${encodeURIComponent(errorMsg)}`)
+      const errorUrl = new URL('/login', request.nextUrl)
+      errorUrl.searchParams.set('error', 'oauth_failed')
+      errorUrl.searchParams.set('details', errorMsg)
+      return NextResponse.redirect(errorUrl)
     }
   }
 
   // return the user to an error page with instructions
-  return NextResponse.redirect(`${origin}/login?error=missing_code`)
+  const missingCodeUrl = new URL('/login', request.nextUrl)
+  missingCodeUrl.searchParams.set('error', 'missing_code')
+  return NextResponse.redirect(missingCodeUrl)
 }
 
