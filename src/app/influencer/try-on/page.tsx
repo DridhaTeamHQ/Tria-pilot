@@ -890,7 +890,7 @@ function TryOnPageContent() {
                         transition={{ delay: 0.1 }}
                         className="text-xs sm:text-sm md:text-xl font-bold text-black border-[2px] border-black bg-white inline-block px-3 sm:px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
                     >
-                        UPLOAD YOUR PHOTO • SELECT CLOTHING • SEE THE MAGIC
+                        UPLOAD YOUR PHOTO - SELECT CLOTHING - SEE THE MAGIC
                     </motion.p>
                 </div>
 
@@ -1241,7 +1241,7 @@ function TryOnPageContent() {
 
 
                         {/* RIGHT PANEL: Output & Presets */}
-                    <div className="lg:col-span-7 space-y-5 sm:space-y-6">
+                    <div className="lg:col-span-7 space-y-5 sm:space-y-6 lg:space-y-7">
 
                         {/* No analysis block in new pipeline */}
 
@@ -1516,7 +1516,7 @@ function TryOnPageContent() {
                             initial={{ opacity: 0, scale: 0.98 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: 0.5 }}
-                            className="relative bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] min-h-[380px] sm:min-h-[500px] flex flex-col"
+                            className="lg:col-span-7 lg:col-start-6 relative bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] min-h-[380px] sm:min-h-[500px] flex flex-col"
                         >
                             {/* Loading state takes priority - shows animation every time */}
                             {loading ? (
@@ -1566,9 +1566,9 @@ function TryOnPageContent() {
                                                     </div>
                                                     <p className="text-charcoal/60 text-sm mb-2">
                                                         {isOverEstimate
-                                                            ? 'âœ¨ Finishing up your images!'
+                                                            ? 'Finishing up your images!'
                                                             : isAlmostDone
-                                                                ? 'âœ¨ Just a few more seconds!'
+                                                                ? 'Just a few more seconds!'
                                                                 : `${elapsedSeconds}s elapsed`}
                                                     </p>
                                                     <p className="text-charcoal/40 text-xs mb-4">
@@ -1584,7 +1584,7 @@ function TryOnPageContent() {
 
                                         {/* Model badge */}
                                         <div className="inline-block px-4 py-2 rounded-full text-sm font-medium bg-charcoal/10 text-charcoal">
-                                            ðŸš€ Flash Mode
+                                            Flash Mode
                                         </div>
                                     </div>
                                 </div>
@@ -1730,7 +1730,7 @@ function TryOnPageContent() {
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="flex flex-col sm:flex-row gap-4"
+                                className="lg:col-span-7 lg:col-start-6 flex flex-col sm:flex-row gap-4"
                             >
                                 <button
                                     onClick={handleDownload}
@@ -1780,7 +1780,3 @@ export default function TryOnPage() {
         </Suspense>
     )
 }
-
-
-
-
