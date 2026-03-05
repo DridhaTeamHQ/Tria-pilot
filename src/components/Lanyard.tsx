@@ -4,10 +4,10 @@ import { useEffect, useRef, useState, Suspense } from 'react';
 import { Canvas, extend, useFrame } from '@react-three/fiber';
 import { useGLTF, useTexture, Environment, Lightformer } from '@react-three/drei';
 import { BallCollider, CuboidCollider, Physics, RigidBody, useRopeJoint, useSphericalJoint } from '@react-three/rapier';
-import { MeshLineGeometry, MeshLineMaterial } from 'meshline';
+// import { MeshLineGeometry, MeshLineMaterial } from 'meshline';
 import * as THREE from 'three';
 
-extend({ MeshLineGeometry, MeshLineMaterial });
+// extend({ MeshLineGeometry, MeshLineMaterial });
 
 interface LanyardProps {
     position?: [number, number, number];
@@ -145,7 +145,7 @@ function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false, profileImageUrl }
     }, [hovered, dragged]);
 
     useFrame((state, delta) => {
-        if (dragged) {
+        if (dragged && card.current) {
             vec.set(state.pointer.x, state.pointer.y, 0.5).unproject(state.camera);
             dir.copy(vec).sub(state.camera.position).normalize();
             vec.add(dir.multiplyScalar(state.camera.position.length()));
@@ -156,7 +156,7 @@ function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false, profileImageUrl }
                 z: vec.z - dragged.z,
             });
         }
-        if (fixed.current) {
+        if (fixed.current && j1.current && j2.current && j3.current && card.current) {
             [j1, j2].forEach((ref) => {
                 if (!ref.current.lerped)
                     ref.current.lerped = new THREE.Vector3().copy(ref.current.translation());
@@ -182,11 +182,13 @@ function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false, profileImageUrl }
         }
     });
 
-    curve.curveType = 'chordal';
+    // Early return if model assets aren't ready
+    if (!nodes?.card || !nodes?.clip || !nodes?.clamp || !materials?.base || !materials?.metal || !texture) return null;
+
+    // Configure texture
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
 
-    // Early return if model assets aren't ready
-    if (!nodes?.card || !materials?.base) return null;
+    curve.curveType = 'chordal';
 
     return (
         <>
@@ -248,7 +250,7 @@ function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false, profileImageUrl }
                     </group>
                 </RigidBody>
             </group>
-            <mesh ref={band}>
+            {/* <mesh ref={band}>
                 <meshLineGeometry />
                 <meshLineMaterial
                     color="white"
@@ -259,7 +261,7 @@ function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false, profileImageUrl }
                     repeat={[-4, 1]}
                     lineWidth={1}
                 />
-            </mesh>
+            </mesh> */}
         </>
     );
 }
