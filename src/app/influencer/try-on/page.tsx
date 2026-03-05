@@ -1240,46 +1240,7 @@ function TryOnPageContent() {
                         </motion.div>
 
 
-                        {/* Generate Button (Moved to Left Panel) */}
-                        <div className="pt-2">
-                            {(loading || retryAfterSeconds > 0) && (
-                                <div className="mb-3 rounded-md border-[2px] border-black bg-[#FFF3BF] px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-black">
-                                    {loading
-                                        ? (queueStatus === 'queued'
-                                            ? `In queue${activeJobId ? ` - job ${activeJobId.slice(0, 8)}` : ''}. We are waiting for a free generation slot.`
-                                            : `Generating now${activeJobId ? ` - job ${activeJobId.slice(0, 8)}` : ''}. Please keep this tab open.`)
-                                        : (retryReason === 'job_in_progress'
-                                            ? `A job is already running. Try again in ${retryAfterSeconds}s.`
-                                            : `Rate limit active. Try again in ${retryAfterSeconds}s.`)}
-                                </div>
-                            )}
-                            <button
-                                onClick={handleGenerate}
-                                disabled={isGenerateDisabled}
-                                className={`
-                    w-full py-3.5 sm:py-4 text-sm sm:text-base font-black uppercase tracking-wider flex items-center justify-center gap-3 transition-all duration-200 border-[3px] border-black
-                    ${isGenerateDisabled
-                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
-                                        : 'bg-[#FFD93D] text-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-[6px] active:shadow-none'}
-                  `}
-                            >
-                                {loading ? (
-                                    'Creating Magic...'
-                                ) : retryAfterSeconds > 0 ? (
-                                    retryReason === 'job_in_progress'
-                                        ? `Job in progress (${retryAfterSeconds}s)`
-                                        : `Try again in ${retryAfterSeconds}s`
-                                ) : (
-                                    <>
-                                        <Sparkles className="w-6 h-6" />
-                                        Generate Try-On
-                                    </>
-                                )}
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* RIGHT PANEL: Output & Presets */}
+                        {/* RIGHT PANEL: Output & Presets */}
                     <div className="lg:col-span-7 space-y-5 sm:space-y-6">
 
                         {/* No analysis block in new pipeline */}
@@ -1296,9 +1257,7 @@ function TryOnPageContent() {
                                     Style Presets
                                     <span className="text-xs font-normal text-charcoal/40">(auto scene + lighting)</span>
                                 </h3>
-                                <div className="text-[11px] text-charcoal/50">
-                                    Tip: presets marked â€œFace Lock: Maxâ€ are safest for strict identity consistency in moody/night scenes.
-                                </div>
+                                
                                 <div className="flex gap-2 flex-wrap">
                                     <button
                                         onClick={() => setPresetCategory('all')}
@@ -1512,6 +1471,46 @@ function TryOnPageContent() {
 
                         </motion.div>
 
+{/* Generate Button (end of config) */}
+                        <div className="pt-2">
+                            {(loading || retryAfterSeconds > 0) && (
+                                <div className="mb-3 rounded-md border-[2px] border-black bg-[#FFF3BF] px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-black">
+                                    {loading
+                                        ? (queueStatus === 'queued'
+                                            ? `In queue${activeJobId ? ` - job ${activeJobId.slice(0, 8)}` : ''}. We are waiting for a free generation slot.`
+                                            : `Generating now${activeJobId ? ` - job ${activeJobId.slice(0, 8)}` : ''}. Please keep this tab open.`)
+                                        : (retryReason === 'job_in_progress'
+                                            ? `A job is already running. Try again in ${retryAfterSeconds}s.`
+                                            : `Rate limit active. Try again in ${retryAfterSeconds}s.`)}
+                                </div>
+                            )}
+                            <button
+                                onClick={handleGenerate}
+                                disabled={isGenerateDisabled}
+                                className={`
+                    w-full py-3.5 sm:py-4 text-sm sm:text-base font-black uppercase tracking-wider flex items-center justify-center gap-3 transition-all duration-200 border-[3px] border-black
+                    ${isGenerateDisabled
+                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+                                        : 'bg-[#FFD93D] text-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-[6px] active:shadow-none'}
+                  `}
+                            >
+                                {loading ? (
+                                    'Creating Magic...'
+                                ) : retryAfterSeconds > 0 ? (
+                                    retryReason === 'job_in_progress'
+                                        ? `Job in progress (${retryAfterSeconds}s)`
+                                        : `Try again in ${retryAfterSeconds}s`
+                                ) : (
+                                    <>
+                                        <Sparkles className="w-6 h-6" />
+                                        Generate Try-On
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+
+                    
                         {/* RESULT DISPLAY */}
                         <motion.div
                             initial={{ opacity: 0, scale: 0.98 }}
@@ -1781,6 +1780,7 @@ export default function TryOnPage() {
         </Suspense>
     )
 }
+
 
 
 
