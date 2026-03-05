@@ -1,10 +1,9 @@
 'use client'
 
-import { useState, useEffect, useRef, memo, useCallback } from 'react'
+import { useState, useEffect, memo, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { ShoppingBag, ArrowRight } from 'lucide-react'
 
 interface ProductImage {
@@ -34,7 +33,6 @@ interface ProductCardProps {
     priority?: boolean
 }
 
-// Format price helper
 function formatPrice(price: any): string {
     if (!price) return ''
     const numPrice = typeof price === 'string' ? parseFloat(price) : price
@@ -44,65 +42,42 @@ function formatPrice(price: any): string {
 
 const ProductCard = memo(function ProductCard({ product, index, priority = false }: ProductCardProps) {
     const [isHovered, setIsHovered] = useState(false)
-    const [currentImageIndex, setCurrentImageIndex] = useState(0)
-    const [imagesLoaded, setImagesLoaded] = useState<Set<number>>(new Set([0]))
     const [firstImageLoaded, setFirstImageLoaded] = useState(false)
-    const intervalRef = useRef<NodeJS.Timeout | null>(null)
+    const [canHover, setCanHover] = useState(false)
 
-    // Collect all available images
-    const uniqueImages = useRef<string[]>([])
-
-    if (uniqueImages.current.length === 0) {
+    const uniqueImages = useMemo(() => {
         const allImages = [
-            ...(product.images?.map(img => img.imagePath) || []),
-            product.imagePath
+            ...(product.images?.map((img) => img.imagePath) || []),
+            product.imagePath,
         ].filter(Boolean) as string[]
-        uniqueImages.current = [...new Set(allImages)]
-    }
+        return [...new Set(allImages)]
+    }, [product.images, product.imagePath])
 
-    const hasMultipleImages = uniqueImages.current.length > 1
-    const currentImage = uniqueImages.current[currentImageIndex] || null
+    const hasMultipleImages = uniqueImages.length > 1
+    const currentImageIndex = isHovered && canHover && hasMultipleImages ? 1 : 0
+    const currentImage = uniqueImages[currentImageIndex] || null
 
-    // Preload next images on hover
-    const preloadImages = useCallback(() => {
-        if (hasMultipleImages && typeof window !== 'undefined') {
-            uniqueImages.current.forEach((src, idx) => {
-                if (idx !== 0) {
-                    const img = new window.Image()
-                    img.src = src
-                    img.onload = () => {
-                        setImagesLoaded(prev => new Set([...prev, idx]))
-                    }
-                }
-            })
-        }
-    }, [hasMultipleImages])
-
-    // Auto-cycle images on hover
     useEffect(() => {
-        if (isHovered && hasMultipleImages) {
-            preloadImages()
+        if (typeof window === 'undefined') return
+        const media = window.matchMedia('(hover: hover) and (pointer: fine)')
+        const update = () => setCanHover(media.matches)
+        update()
+        media.addEventListener('change', update)
+        return () => media.removeEventListener('change', update)
+    }, [])
 
-            intervalRef.current = setInterval(() => {
-                setCurrentImageIndex(prev => (prev + 1) % uniqueImages.current.length)
-            }, 1500)
-        } else {
-            if (intervalRef.current) {
-                clearInterval(intervalRef.current)
-            }
-            if (!isHovered) {
-                setTimeout(() => setCurrentImageIndex(0), 300)
-            }
+    useEffect(() => {
+        if (!(isHovered && canHover && hasMultipleImages)) return
+        for (let idx = 1; idx < uniqueImages.length; idx += 1) {
+            const img = new window.Image()
+            img.src = uniqueImages[idx]
         }
+    }, [isHovered, canHover, hasMultipleImages, uniqueImages])
 
-        return () => {
-            if (intervalRef.current) {
-                clearInterval(intervalRef.current)
-            }
-        }
-    }, [isHovered, hasMultipleImages, preloadImages])
+    const handleMouseEnter = useCallback(() => {
+        if (canHover) setIsHovered(true)
+    }, [canHover])
 
-    const handleMouseEnter = useCallback(() => setIsHovered(true), [])
     const handleMouseLeave = useCallback(() => setIsHovered(false), [])
 
     const brandName = product.brand?.companyName || product.brand?.user?.name || 'Brand'
@@ -121,39 +96,32 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
             <Link href={`/marketplace/${product.id}`} prefetch={index < 8}>
                 <div
                     data-cursor="View"
-                    className={`group relative bg-white border-[3px] border-black rounded-xl overflow-hidden cursor-pointer transform-gpu transition-all duration-200 p-0 ${isHovered ? 'shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -translate-y-1' : 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
-                        }`}
+                    className={`group relative bg-white border-[3px] border-black rounded-xl overflow-hidden cursor-pointer transform-gpu transition-all duration-200 p-0 ${isHovered ? 'shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -translate-y-1' : 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'}`}
                     onMouseEnter={handleMouseEnter}
                     onMouseLeave={handleMouseLeave}
                 >
-                    {/* Image Container - Rounded */}
                     <div className="aspect-[3/4] relative overflow-hidden bg-white border-b-[3px] border-black">
-                        {/* Skeleton loader */}
                         {!firstImageLoaded && (
                             <div className="absolute inset-0 bg-gradient-to-br from-cream via-charcoal/5 to-cream animate-pulse">
                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent skeleton-shimmer" />
                             </div>
                         )}
 
-                        {/* Images stack */}
-                        {uniqueImages.current.map((imgSrc, idx) => (
+                        {uniqueImages.map((imgSrc, idx) => (
                             <div
                                 key={imgSrc}
-                                className={`absolute inset-0 transition-opacity duration-500 ease-out ${idx === currentImageIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
-                                    }`}
+                                className={`absolute inset-0 transition-opacity duration-400 ease-out ${idx === currentImageIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
                             >
                                 <Image
                                     src={imgSrc}
                                     alt={idx === 0 ? product.name : `${product.name} - ${idx + 1}`}
                                     fill
                                     sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                                    className={`object-cover transition-transform duration-700 ease-out ${isHovered ? 'scale-105' : 'scale-100'
-                                        }`}
+                                    className={`object-cover transition-transform duration-500 ease-out ${isHovered ? 'scale-105' : 'scale-100'}`}
                                     priority={priority && idx === 0}
                                     loading={idx === 0 ? (priority ? 'eager' : 'lazy') : 'lazy'}
                                     onLoad={() => {
                                         if (idx === 0) setFirstImageLoaded(true)
-                                        setImagesLoaded(prev => new Set([...prev, idx]))
                                     }}
                                     placeholder="blur"
                                     blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBEQCEAwEPwAB//9k="
@@ -161,40 +129,29 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                             </div>
                         ))}
 
-                        {/* No image fallback */}
                         {!currentImage && (
                             <div className="absolute inset-0 flex items-center justify-center bg-cream">
                                 <ShoppingBag className="w-12 h-12 text-charcoal/10" />
                             </div>
                         )}
 
-                        {/* Image indicators */}
-                        {hasMultipleImages && (
-                            <div
-                                className={`absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1 transition-all duration-300 ${isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-                                    }`}
-                            >
-                                {uniqueImages.current.map((_, idx) => (
+                        {hasMultipleImages && canHover && (
+                            <div className={`absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1 transition-all duration-300 ${isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
+                                {uniqueImages.slice(0, 2).map((_, idx) => (
                                     <div
                                         key={idx}
-                                        className={`h-1 rounded-full transition-all duration-300 ${idx === currentImageIndex
-                                            ? 'w-5 bg-charcoal'
-                                            : 'w-1.5 bg-charcoal/30'
-                                            }`}
+                                        className={`h-1 rounded-full transition-all duration-300 ${idx === currentImageIndex ? 'w-5 bg-charcoal' : 'w-1.5 bg-charcoal/30'}`}
                                     />
                                 ))}
                             </div>
                         )}
                     </div>
 
-                    {/* Content */}
                     <div className="space-y-3 p-4">
-                        {/* Product Name */}
                         <h3 className="font-semibold text-charcoal text-base line-clamp-2 leading-tight min-h-[40px]">
                             {product.name}
                         </h3>
 
-                        {/* Brand + Price Row */}
                         <div className="flex items-center gap-2 text-sm text-charcoal/60">
                             <span className="truncate">{brandName}</span>
                             {priceDisplay && (
@@ -205,14 +162,11 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                             )}
                         </div>
 
-                        {/* Buttons Row */}
                         <div className="flex items-center justify-between pt-2">
-                            {/* Category Tag */}
                             <span className="px-3 py-1.5 bg-white border-[2px] border-black rounded-lg text-xs font-bold text-charcoal shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                                 {product.category || 'Product'}
                             </span>
 
-                            {/* Try Tryon Button - Using button instead of Link to avoid nested anchor */}
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation()

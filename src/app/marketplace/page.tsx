@@ -58,7 +58,7 @@ export default async function MarketplacePage({
     .limit(50)
 
   if (resolvedSearchParams.category && resolvedSearchParams.category !== 'all') {
-    query = query.eq('category', resolvedSearchParams.category)
+    query = query.ilike('category', resolvedSearchParams.category)
   }
 
   if (resolvedSearchParams.search) {
@@ -121,3 +121,4 @@ export default async function MarketplacePage({
     />
   )
 }
+
