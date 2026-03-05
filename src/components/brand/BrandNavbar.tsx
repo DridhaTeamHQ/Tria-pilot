@@ -41,8 +41,13 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
         setIsLoggingOut(true)
         try {
             await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+            if (typeof window !== 'undefined') {
+                localStorage.clear()
+                sessionStorage.clear()
+            }
         } finally {
-            router.replace('/login')
+            router.replace('/')
+            router.refresh()
         }
     }, [isLoggingOut, router])
 

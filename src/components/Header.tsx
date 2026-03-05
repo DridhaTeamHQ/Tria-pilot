@@ -77,11 +77,13 @@ export default function Header() {
             }
 
             toast.success('Logged out successfully')
-            router.replace('/login')
+            router.replace('/')
+            router.refresh()
         } catch (error) {
             console.error('Logout error:', error)
             toast.error('Failed to logout cleanly')
-            router.replace('/login')
+            router.replace('/')
+            router.refresh()
         }
     }, [isLoggingOut, queryClient, router])
 

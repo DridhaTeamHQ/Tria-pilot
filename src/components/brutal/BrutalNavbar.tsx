@@ -63,10 +63,12 @@ export default function BrutalNavbar() {
                 sessionStorage.clear();
             }
 
-            router.replace("/login");
+            router.replace("/");
+            router.refresh();
         } catch (error) {
             console.error("Logout error:", error);
-            router.replace("/login");
+            router.replace("/");
+            router.refresh();
         }
     }, [isLoggingOut, queryClient, router]);
 
