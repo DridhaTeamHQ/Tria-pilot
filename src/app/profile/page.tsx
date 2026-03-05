@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Component, type ReactNode } from 'react'
 import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import {
@@ -31,6 +31,32 @@ import {
 import { toast } from 'sonner'
 import Link from 'next/link'
 
+// ErrorBoundary to catch @react-three/fiber crashes (e.g. ReactCurrentOwner)
+class LanyardErrorBoundary extends Component<
+  { children: ReactNode; fallback?: ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: ReactNode; fallback?: ReactNode }) {
+    super(props)
+    this.state = { hasError: false }
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+  componentDidCatch(error: Error) {
+    console.warn('[LanyardErrorBoundary] 3D component failed to load:', error.message)
+  }
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback ?? (
+        <div className="w-full h-full flex items-center justify-center bg-[#FFD93D]">
+          <User className="w-12 h-12 text-black/30" />
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 const Lanyard = dynamic(() => import('@/components/Lanyard'), {
   ssr: false,
@@ -245,12 +271,14 @@ export default function ProfilePage() {
               {/* 3D Lanyard Avatar */}
               <div className="absolute -top-16 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-8 z-10 w-[160px] h-[180px] md:w-[180px] md:h-[200px]">
                 <div className="relative w-full h-full border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-[#FFD93D] overflow-hidden">
-                  <Lanyard
-                    position={[0, 0, 20]}
-                    fov={30}
-                    transparent={true}
-                    profileImageUrl={profileImageUrl}
-                  />
+                  <LanyardErrorBoundary>
+                    <Lanyard
+                      position={[0, 0, 20]}
+                      fov={30}
+                      transparent={true}
+                      profileImageUrl={profileImageUrl}
+                    />
+                  </LanyardErrorBoundary>
                   {/* Upload Photo Button */}
                   <button
                     onClick={() => fileInputRef.current?.click()}
