@@ -11,18 +11,22 @@
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, email, role, onboarding_completed, approval_status)
+  INSERT INTO public.profiles (id, email, full_name, role, onboarding_completed, approval_status)
   VALUES (
     NEW.id,
     NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'role', 'influencer')::text,
+    NEW.raw_user_meta_data->>'name',
+    LOWER(COALESCE(NEW.raw_user_meta_data->>'role', 'influencer')),
     false,
     CASE 
-      WHEN COALESCE(NEW.raw_user_meta_data->>'role', 'influencer') = 'brand' THEN 'approved'
+      WHEN LOWER(COALESCE(NEW.raw_user_meta_data->>'role', 'influencer')) = 'brand' THEN 'approved'
       ELSE 'none'
     END
   )
-  ON CONFLICT (id) DO NOTHING; -- Idempotent - won't fail if profile exists
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    full_name = EXCLUDED.full_name,
+    role = EXCLUDED.role;
   
   RETURN NEW;
 END;

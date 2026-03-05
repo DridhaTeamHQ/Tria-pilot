@@ -30,9 +30,16 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import BadgeDisplay, { type BadgeTier } from '@/components/influencer/BadgeDisplay'
 
-const Lanyard = dynamic(() => import('@/components/Lanyard'), { ssr: false })
+
+const Lanyard = dynamic(() => import('@/components/Lanyard'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-[180px] h-[200px] bg-white/20 flex items-center justify-center">
+      <Loader2 className="w-8 h-8 animate-spin text-black/20" />
+    </div>
+  )
+})
 import { useQueryClient, useQuery } from '@tanstack/react-query'
 
 // Neo-Brutalist Card Component
@@ -234,10 +241,10 @@ export default function ProfilePage() {
           <div className="lg:col-span-8 space-y-10">
 
             {/* Identity Card */}
-            <BrutalCard className="pt-20 mt-12">
+            <BrutalCard className="pt-36 md:pt-10 mt-16 md:mt-12">
               {/* 3D Lanyard Avatar */}
-              <div className="absolute -top-16 left-4">
-                <div className="relative w-[180px] h-[200px] border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-[#FFD93D] overflow-hidden">
+              <div className="absolute -top-16 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-8 z-10 w-[160px] h-[180px] md:w-[180px] md:h-[200px]">
+                <div className="relative w-full h-full border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-[#FFD93D] overflow-hidden">
                   <Lanyard
                     position={[0, 0, 20]}
                     fov={30}
@@ -263,33 +270,35 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                <div>
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 md:pl-[220px]">
+                <div className="flex flex-col items-center md:items-start text-center md:text-left">
                   {editing ? (
-                    <div className="flex items-center gap-3 mb-2">
+                    <div className="flex flex-wrap justify-center md:justify-start items-center gap-2 mb-2 w-full">
                       <input
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="text-3xl font-black bg-white border-[3px] border-black px-4 py-2 w-full max-w-sm focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+                        className="text-2xl md:text-3xl font-black bg-white border-[3px] border-black px-4 py-2 w-full max-w-sm focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all text-center md:text-left"
                         autoFocus
                       />
-                      <button onClick={handleSaveName} disabled={saving} className="bg-black text-white p-3 border-[3px] border-black hover:bg-white hover:text-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
-                        <Check className="w-5 h-5" />
-                      </button>
-                      <button onClick={() => setEditing(false)} className="bg-white text-black p-3 border-[3px] border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
-                        <X className="w-5 h-5" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button onClick={handleSaveName} disabled={saving} className="bg-black text-white p-2.5 border-[3px] border-black hover:bg-white hover:text-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
+                          <Check className="w-5 h-5" />
+                        </button>
+                        <button onClick={() => setEditing(false)} className="bg-white text-black p-2.5 border-[3px] border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-4 group">
-                      <h2 className="text-4xl font-black uppercase tracking-tight">{user.name || 'Set Name'}</h2>
-                      <button onClick={() => setEditing(true)} className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-black/5 rounded">
+                    <div className="flex items-center gap-3 group justify-center md:justify-start">
+                      <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tight">{user.name || 'Set Name'}</h2>
+                      <button onClick={() => setEditing(true)} className="opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-black/5 rounded">
                         <Edit3 className="w-5 h-5" />
                       </button>
                     </div>
                   )}
 
-                  <div className="flex flex-wrap gap-3 mt-4">
+                  <div className="flex flex-wrap justify-center md:justify-start gap-3 mt-4">
                     <span className="px-3 py-1 bg-black text-white text-xs font-bold uppercase tracking-widest border-[2px] border-black">
                       {user.role}
                     </span>
@@ -303,20 +312,20 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                <Link href="/settings" className="px-6 py-3 bg-white border-[3px] border-black font-bold uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center gap-2 text-sm">
+                <Link href="/settings" className="w-full md:w-auto px-6 py-3 bg-white border-[3px] border-black font-bold uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center justify-center gap-2 text-sm mt-2 md:mt-0">
                   <Settings className="w-4 h-4" />
                   Settings
                 </Link>
               </div>
 
               <div className="mt-8 pt-8 border-t-[3px] border-black space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 border-[2px] border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                <div className="flex flex-col md:flex-row items-center md:items-start gap-4 md:pl-[220px]">
+                  <div className="w-10 h-10 border-[2px] border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] shrink-0">
                     <Mail className="w-5 h-5" />
                   </div>
-                  <div>
+                  <div className="text-center md:text-left">
                     <p className="text-xs font-bold uppercase text-black/50 tracking-widest">Email Address</p>
-                    <p className="text-lg font-bold">{user.email}</p>
+                    <p className="text-lg font-bold break-all">{user.email}</p>
                   </div>
                 </div>
               </div>
@@ -388,10 +397,10 @@ export default function ProfilePage() {
               <div className="w-full h-4 border-[2px] border-black bg-white rounded-full overflow-hidden relative">
                 <div
                   className="absolute top-0 left-0 h-full bg-black"
-                  style={{ width: `${Number(profile?.badgeScore || 0)}%` }}
+                  style={{ width: `${Math.min(100, Number(profile?.badgeScore || 0))}%` }}
                 />
               </div>
-              <p className="text-xs font-bold mt-2 text-right">{profile?.badgeScore || 0}/100 XP</p>
+              <p className="text-xs font-bold mt-2 text-right">{Math.min(100, Number(profile?.badgeScore || 0))}/100 XP</p>
             </BrutalCard>
 
             {/* Metrics Grid */}

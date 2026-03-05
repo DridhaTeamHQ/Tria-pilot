@@ -1,10 +1,31 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { createClient } from '@/lib/auth-client'
 
 export default function LandingNav() {
   const [open, setOpen] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const supabase = createClient()
+        const { data: { session } } = await supabase.auth.getSession()
+        setIsAuthenticated(!!session)
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+          setIsAuthenticated(!!session)
+        })
+
+        return () => subscription.unsubscribe()
+      } catch (error) {
+        console.error('Auth check error:', error)
+      }
+    }
+    checkAuth()
+  }, [])
 
   return (
     <nav
@@ -31,10 +52,10 @@ export default function LandingNav() {
             FOR BRANDS
           </Link>
           <Link
-            href="/login"
+            href={isAuthenticated ? "/dashboard" : "/login"}
             className="bg-[#111111] text-white px-4 py-2 rounded-full text-[10px] hover:bg-[#ff8a73] transition-colors leading-none"
           >
-            LOG IN
+            {isAuthenticated ? "DASHBOARD" : "LOG IN"}
           </Link>
         </div>
       </div>
@@ -46,10 +67,10 @@ export default function LandingNav() {
         </Link>
         <div className="flex items-center gap-3">
           <Link
-            href="/login"
+            href={isAuthenticated ? "/dashboard" : "/login"}
             className="bg-[#111111] text-white px-4 py-2 rounded-full text-[10px] font-bold hover:bg-[#ff8a73] transition-colors"
           >
-            LOG IN
+            {isAuthenticated ? "DASHBOARD" : "LOG IN"}
           </Link>
           <button
             onClick={() => setOpen(!open)}

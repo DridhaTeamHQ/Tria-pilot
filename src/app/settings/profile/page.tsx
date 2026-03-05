@@ -105,13 +105,13 @@ export default function SettingsProfilePage() {
         </div>
 
         <BrutalCard title="Account Security">
-          <div className="flex items-start gap-6 mb-8">
-            <div className="w-16 h-16 border-[3px] border-black bg-[#FFD93D] flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6 mb-8 text-center sm:text-left">
+            <div className="w-16 h-16 border-[3px] border-black bg-[#FFD93D] flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mx-auto sm:mx-0 shrink-0">
               <Lock className="w-8 h-8 text-black" />
             </div>
             <div>
-              <h2 className="text-2xl font-black uppercase">Email Address</h2>
-              <p className="text-black/70 font-medium">Update the email address associated with your account.</p>
+              <h2 className="text-xl sm:text-2xl font-black uppercase">Email Address</h2>
+              <p className="text-sm sm:text-base text-black/70 font-medium">Update the email address associated with your account.</p>
             </div>
           </div>
 

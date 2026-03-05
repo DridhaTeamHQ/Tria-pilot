@@ -81,28 +81,8 @@ export default function SignupPage() {
             if (authError) throw new Error(authError.message)
             if (!authData.user) throw new Error('Failed to create account')
 
-            // 2. Create/Update Profile (Handle Trigger Race Condition)
-            const roleLowercase = role as 'influencer' | 'brand'
-            const approvalStatus = roleLowercase === 'influencer' ? 'none' : 'approved'
-
-            // Use UPSERT to handle race condition with handle_new_user trigger
-            const { error: profileError } = await supabase
-                .from('profiles')
-                .upsert({
-                    id: authData.user.id,
-                    email: formData.email.trim().toLowerCase(),
-                    full_name: formData.name.trim(),
-                    role: roleLowercase,
-                    onboarding_completed: false,
-                    approval_status: approvalStatus,
-                }, {
-                    onConflict: 'id'
-                })
-
-            if (profileError) {
-                console.error('Profile creation/update error:', profileError)
-                toast.warning('Account created, but profile sync failed. Please contact support.')
-            }
+            // Profile is created automatically by the handle_new_user trigger
+            // using the metadata provided in the signUp options above.
 
             toast.success('Account created! Please check your email.')
             router.push('/login')

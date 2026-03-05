@@ -1,0 +1,49 @@
+{
+  "user": {
+    "id": "bb8b3c21-0c75-4940-8e90-393acacf4ba3",
+    "aud": "authenticated",
+    "role": "authenticated",
+    "email": "arisankalarohit@gmail.com",
+    "email_confirmed_at": "2026-03-04T09:54:49.857416Z",
+    "phone": "",
+    "confirmed_at": "2026-03-04T09:54:49.857416Z",
+    "app_metadata": {
+      "provider": "google",
+      "providers": [
+        "google"
+      ]
+    },
+    "user_metadata": {
+      "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocLV_SrkWrJIA7QsGxUA2StGC-WYzII650-2fXbZ_VGkHXUc9g=s96-c",
+      "email": "arisankalarohit@gmail.com",
+      "email_verified": true,
+      "full_name": "Arisankala Rohit",
+      "iss": "https://accounts.google.com",
+      "name": "Arisankala Rohit",
+      "phone_verified": false,
+      "picture": "https://lh3.googleusercontent.com/a/ACg8ocLV_SrkWrJIA7QsGxUA2StGC-WYzII650-2fXbZ_VGkHXUc9g=s96-c",
+      "provider_id": "107152174836278266555",
+      "sub": "107152174836278266555"
+    },
+    "identities": null,
+    "created_at": "2026-03-04T09:54:49.846769Z",
+    "updated_at": "2026-03-04T09:54:49.858465Z",
+    "is_anonymous": false
+  },
+  "profile": {
+    "id": "bb8b3c21-0c75-4940-8e90-393acacf4ba3",
+    "email": "arisankalarohit@gmail.com",
+    "role": "influencer",
+    "onboarding_completed": false,
+    "approval_status": "none",
+    "created_at": "2026-03-04T09:54:49.843539+00:00",
+    "name": null,
+    "slug": null,
+    "createdAt": "2026-03-04T09:54:49.844",
+    "updatedAt": null,
+    "brand_data": {},
+    "influencer_data": {},
+    "full_name": null,
+    "avatar_url": null
+  }
+}

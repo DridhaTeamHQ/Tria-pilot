@@ -112,10 +112,11 @@ LIMIT 20;
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, email, role, onboarding_completed, approval_status)
+  INSERT INTO public.profiles (id, email, full_name, role, onboarding_completed, approval_status)
   VALUES (
     NEW.id,
     NEW.email,
+    NEW.raw_user_meta_data->>'name',
     LOWER(COALESCE(NEW.raw_user_meta_data->>'role', 'influencer')),
     false,
     CASE 
@@ -123,7 +124,10 @@ BEGIN
       ELSE 'none'
     END
   )
-  ON CONFLICT (id) DO NOTHING;
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    full_name = EXCLUDED.full_name,
+    role = EXCLUDED.role;
   
   RETURN NEW;
 END;

@@ -1,7 +1,5 @@
-/* eslint-disable react/no-unknown-property */
-'use client';
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { Canvas, extend, useFrame, useThree } from '@react-three/fiber';
+import { useEffect, useRef, useState, Suspense } from 'react';
+import { Canvas, extend, useFrame } from '@react-three/fiber';
 import { useGLTF, useTexture, Environment, Lightformer } from '@react-three/drei';
 import { BallCollider, CuboidCollider, Physics, RigidBody, useRopeJoint, useSphericalJoint } from '@react-three/rapier';
 import { MeshLineGeometry, MeshLineMaterial } from 'meshline';
@@ -15,6 +13,25 @@ interface LanyardProps {
     fov?: number;
     transparent?: boolean;
     profileImageUrl?: string | null;
+}
+
+/**
+ * Component to safely load the profile photo texture.
+ * useTexture MUST be called in a component that is always rendered
+ * if we want to avoid hook violations. Or we can just use a sub-component.
+ */
+function CardTexture({ url, fallbackMaterial }: { url: string, fallbackMaterial: any }) {
+    const texture = useTexture(url);
+    return (
+        <meshPhysicalMaterial
+            map={texture}
+            map-anisotropy={16}
+            clearcoat={1}
+            clearcoatRoughness={0.15}
+            roughness={0.9}
+            metalness={0.8}
+        />
+    );
 }
 
 export default function Lanyard({
@@ -49,39 +66,20 @@ export default function Lanyard({
                 onCreated={({ gl }) => gl.setClearColor(new THREE.Color(0x000000), transparent ? 0 : 1)}
             >
                 <ambientLight intensity={Math.PI} />
-                <Physics gravity={gravity} timeStep={isMobile ? 1 / 30 : 1 / 60}>
-                    <Band isMobile={isMobile} profileImageUrl={profileImageUrl} />
-                </Physics>
-                <Environment blur={0.75}>
-                    <Lightformer
-                        intensity={2}
-                        color="white"
-                        position={[0, -1, 5]}
-                        rotation={[0, 0, Math.PI / 3]}
-                        scale={[100, 0.1, 1]}
-                    />
-                    <Lightformer
-                        intensity={3}
-                        color="white"
-                        position={[-1, -1, 1]}
-                        rotation={[0, 0, Math.PI / 3]}
-                        scale={[100, 0.1, 1]}
-                    />
-                    <Lightformer
-                        intensity={3}
-                        color="white"
-                        position={[1, 1, 1]}
-                        rotation={[0, 0, Math.PI / 3]}
-                        scale={[100, 0.1, 1]}
-                    />
-                    <Lightformer
-                        intensity={10}
-                        color="white"
-                        position={[-10, 0, 14]}
-                        rotation={[0, Math.PI / 2, Math.PI / 3]}
-                        scale={[100, 10, 1]}
-                    />
-                </Environment>
+                <Suspense fallback={null}>
+                    <Physics gravity={gravity} timeStep={isMobile ? 1 / 30 : 1 / 60}>
+                        <Band isMobile={isMobile} profileImageUrl={profileImageUrl} />
+                    </Physics>
+                    <Environment blur={0.75}>
+                        <Lightformer
+                            intensity={2}
+                            color="white"
+                            position={[0, -1, 5]}
+                            rotation={[0, 0, Math.PI / 3]}
+                            scale={[100, 0.1, 1]}
+                        />
+                    </Environment>
+                </Suspense>
             </Canvas>
         </div>
     );
@@ -113,11 +111,9 @@ function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false, profileImageUrl }
         linearDamping: 4,
     };
 
+    // Safely load assets
     const { nodes, materials } = useGLTF('/models/card.glb') as any;
     const texture = useTexture('/models/lanyard.png');
-
-    // Load profile image as texture if URL is provided
-    const profileTexture = profileImageUrl ? useTexture(profileImageUrl) : null;
 
     const [curve] = useState(
         () =>
@@ -175,7 +171,9 @@ function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false, profileImageUrl }
             curve.points[1].copy(j2.current.lerped);
             curve.points[2].copy(j1.current.lerped);
             curve.points[3].copy(fixed.current.translation());
-            band.current.geometry.setPoints(curve.getPoints(isMobile ? 16 : 32));
+            if (band.current?.geometry) {
+                band.current.geometry.setPoints(curve.getPoints(isMobile ? 16 : 32));
+            }
             ang.copy(card.current.angvel());
             rot.copy(card.current.rotation());
             card.current.setAngvel({ x: ang.x, y: ang.y - rot.y * 0.25, z: ang.z });
@@ -184,6 +182,9 @@ function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false, profileImageUrl }
 
     curve.curveType = 'chordal';
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+
+    // Early return if model assets aren't ready
+    if (!nodes?.card || !materials?.base) return null;
 
     return (
         <>
@@ -223,19 +224,23 @@ function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false, profileImageUrl }
                         )}
                     >
                         <mesh geometry={nodes.card.geometry}>
-                            <meshPhysicalMaterial
-                                map={profileTexture || materials.base.map}
-                                map-anisotropy={16}
-                                clearcoat={isMobile ? 0 : 1}
-                                clearcoatRoughness={0.15}
-                                roughness={0.9}
-                                metalness={0.8}
-                            />
+                            {profileImageUrl ? (
+                                <Suspense fallback={<meshPhysicalMaterial {...materials.base} />}>
+                                    <CardTexture url={profileImageUrl} fallbackMaterial={materials.base} />
+                                </Suspense>
+                            ) : (
+                                <meshPhysicalMaterial
+                                    {...materials.base}
+                                    clearcoat={1}
+                                    clearcoatRoughness={0.15}
+                                    roughness={0.9}
+                                    metalness={0.8}
+                                />
+                            )}
                         </mesh>
                         <mesh
                             geometry={nodes.clip.geometry}
                             material={materials.metal}
-                            material-roughness={0.3}
                         />
                         <mesh geometry={nodes.clamp.geometry} material={materials.metal} />
                     </group>
