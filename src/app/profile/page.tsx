@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, Component, type ReactNode } from 'react'
-import dynamic from 'next/dynamic'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import {
   User,
@@ -31,42 +30,6 @@ import {
 import { toast } from 'sonner'
 import Link from 'next/link'
 
-// ErrorBoundary to catch @react-three/fiber crashes (e.g. ReactCurrentOwner)
-class LanyardErrorBoundary extends Component<
-  { children: ReactNode; fallback?: ReactNode },
-  { hasError: boolean; errorMsg: string }
-> {
-  constructor(props: { children: ReactNode; fallback?: ReactNode }) {
-    super(props)
-    this.state = { hasError: false, errorMsg: '' }
-  }
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, errorMsg: error.message }
-  }
-  componentDidCatch(error: Error) {
-    console.warn('[LanyardErrorBoundary] 3D component failed to load:', error)
-  }
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="w-full h-full flex flex-col p-2 text-xs items-center justify-center bg-[#FFD93D] overflow-hidden">
-          <User className="w-12 h-12 text-black/30 mb-2" />
-          <span className="text-red-600 font-bold max-w-full truncate">{this.state.errorMsg}</span>
-        </div>
-      )
-    }
-    return this.props.children
-  }
-}
-
-const Lanyard = dynamic(() => import('@/components/Lanyard'), {
-  ssr: false,
-  loading: () => (
-    <div className="w-[180px] h-[200px] bg-white/20 flex items-center justify-center">
-      <Loader2 className="w-8 h-8 animate-spin text-black/20" />
-    </div>
-  )
-})
 import { useQueryClient, useQuery } from '@tanstack/react-query'
 
 // Neo-Brutalist Card Component
@@ -108,7 +71,6 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const queryClient = useQueryClient()
-  const enable3DLanyard = process.env.NEXT_PUBLIC_ENABLE_3D_PROFILE === 'true'
 
   // REAL-TIME DATA FETCHING
   // uses react-query to cache and auto-update data
@@ -270,19 +232,10 @@ export default function ProfilePage() {
 
             {/* Identity Card */}
             <BrutalCard className="pt-36 md:pt-10 mt-16 md:mt-12">
-              {/* 3D Lanyard Avatar */}
+              {/* Profile Avatar */}
               <div className="absolute -top-16 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-8 z-10 w-[160px] h-[180px] md:w-[180px] md:h-[200px]">
                 <div className="relative w-full h-full border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-[#FFD93D] overflow-hidden">
-                  {enable3DLanyard ? (
-                    <LanyardErrorBoundary>
-                      <Lanyard
-                        position={[0, 0, 20]}
-                        fov={30}
-                        transparent={true}
-                        profileImageUrl={profileImageUrl}
-                      />
-                    </LanyardErrorBoundary>
-                  ) : profileImageUrl ? (
+                  {profileImageUrl ? (
                     <img
                       src={profileImageUrl}
                       alt="Profile"
@@ -506,4 +459,5 @@ export default function ProfilePage() {
     </div>
   )
 }
+
 
