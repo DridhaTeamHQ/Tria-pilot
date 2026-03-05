@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, Suspense } from 'react';
-import { Canvas, extend, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { useGLTF, useTexture, Environment, Lightformer } from '@react-three/drei';
 import { BallCollider, CuboidCollider, Physics, RigidBody, useRopeJoint, useSphericalJoint } from '@react-three/rapier';
 // import { MeshLineGeometry, MeshLineMaterial } from 'meshline';
@@ -22,12 +22,16 @@ interface LanyardProps {
  * useTexture MUST be called in a component that is always rendered
  * if we want to avoid hook violations. Or we can just use a sub-component.
  */
-function CardTexture({ url, fallbackMaterial }: { url: string, fallbackMaterial: any }) {
+function CardTexture({ url }: { url: string }) {
     const texture = useTexture(url);
+    useEffect(() => {
+        if (!texture) return;
+        texture.anisotropy = 16;
+        texture.needsUpdate = true;
+    }, [texture]);
     return (
         <meshPhysicalMaterial
             map={texture}
-            map-anisotropy={16}
             clearcoat={1}
             clearcoatRoughness={0.15}
             roughness={0.9}
@@ -230,7 +234,7 @@ function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false, profileImageUrl }
                         <mesh geometry={nodes.card.geometry}>
                             {profileImageUrl ? (
                                 <Suspense fallback={<meshPhysicalMaterial {...materials.base} />}>
-                                    <CardTexture url={profileImageUrl} fallbackMaterial={materials.base} />
+                                    <CardTexture url={profileImageUrl} />
                                 </Suspense>
                             ) : (
                                 <meshPhysicalMaterial
@@ -268,3 +272,4 @@ function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false, profileImageUrl }
 
 useGLTF.preload('/models/card.glb');
 useTexture.preload('/models/lanyard.png');
+
