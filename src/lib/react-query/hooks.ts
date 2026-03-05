@@ -188,11 +188,13 @@ export function useToggleFavorite() {
       queryClient.setQueryData(['favorites'], (old: any[] = []) => {
         if (isFavorited) {
           // Remove from favorites
-          return old.filter((product: any) => product.id !== productId)
+          return old.filter((product: any) => (product?.id || product?.product_id) !== productId)
         } else {
-          // Add to favorites (we'll need the product data, but for now just mark as favorited)
-          // The actual product will be added when the query refetches
-          return old
+          // Optimistically add a minimal item so Save toggles instantly
+          if (old.some((product: any) => (product?.id || product?.product_id) === productId)) {
+            return old
+          }
+          return [...old, { id: productId, product_id: productId }]
         }
       })
 

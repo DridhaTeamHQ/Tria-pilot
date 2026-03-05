@@ -159,9 +159,9 @@ export default async function ProductDetailPage({ params }: any) {
             <div className="space-y-3 pt-4">
               <Link
                 href={`/influencer/try-on?productId=${product.id}`}
-                className="w-full py-4 bg-[#FFD93D] text-black font-bold text-lg border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-2 hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+                className="w-full py-3 sm:py-3.5 bg-[#FFD93D] text-black font-bold text-base sm:text-lg border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-2 hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
               >
-                <Camera className="w-6 h-6" />
+                <Camera className="w-5 h-5" />
                 Try-On in Studio
               </Link>
 
@@ -171,23 +171,22 @@ export default async function ProductDetailPage({ params }: any) {
                 brandName={brandName}
               />
 
-              <div className="flex flex-wrap gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {product.link && (
                   <a
                     href={product.link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 min-w-[140px] py-3 bg-white border-[3px] border-black text-charcoal font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-2 hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all text-sm uppercase tracking-wider"
+                    className="w-full min-h-[60px] px-3 py-2.5 bg-white border-[3px] border-black text-charcoal font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-2 hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all text-sm uppercase tracking-wider text-center"
                   >
                     <ExternalLink className="w-4 h-4 flex-shrink-0" />
-                    <span className="hidden sm:inline">View Original</span>
-                    <span className="sm:hidden">Product</span>
+                    <span>View Original</span>
                   </a>
                 )}
                 <FavoriteButton productId={product.id} />
-                <button className="py-3 px-4 sm:px-6 bg-white border-[3px] border-black text-charcoal font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2 hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all uppercase tracking-wider">
+                <button className="w-full min-h-[60px] px-3 py-2.5 bg-white border-[3px] border-black text-charcoal font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-2 hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all uppercase tracking-wider text-sm">
                   <Share2 className="w-4 h-4" />
-                  <span className="hidden sm:inline">Share</span>
+                  <span>Share</span>
                 </button>
               </div>
             </div>

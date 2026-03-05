@@ -1,6 +1,5 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
 import { Heart } from 'lucide-react'
 import { toast } from 'sonner'
 import { useFavorites, useToggleFavorite } from '@/lib/react-query/hooks'
@@ -14,7 +13,7 @@ export default function FavoriteButton({ productId }: FavoriteButtonProps) {
   const toggleMutation = useToggleFavorite()
 
   // Check if product is favorited (favorites is an array of products)
-  const isFavorited = favorites.some((product: any) => product.id === productId)
+  const isFavorited = favorites.some((product: any) => product?.id === productId || product?.product_id === productId)
 
   const handleToggle = () => {
     // Immediate optimistic update - UI updates instantly
@@ -35,7 +34,7 @@ export default function FavoriteButton({ productId }: FavoriteButtonProps) {
 
   return (
     <button
-      className={`flex-1 py-3 px-6 border-[3px] border-black font-bold uppercase tracking-wider shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center justify-center gap-2 ${isFavorited ? 'bg-red-500 text-white' : 'bg-white text-black'
+      className={`w-full min-h-[60px] px-3 py-2.5 border-[3px] border-black font-bold uppercase tracking-wider text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center justify-center gap-2 ${isFavorited ? 'bg-red-500 text-white' : 'bg-white text-black'
         }`}
       onClick={handleToggle}
       disabled={toggleMutation.isPending || isLoading}
