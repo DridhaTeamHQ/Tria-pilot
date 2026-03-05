@@ -85,7 +85,6 @@ export default function ProfilePage() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [uploadDone, setUploadDone] = useState(false)
-  const [lastUploadFile, setLastUploadFile] = useState<File | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [expanded, setExpanded] = useState<Record<SectionKey, boolean>>({
     about: true,
@@ -156,6 +155,23 @@ export default function ProfilePage() {
     }
   }
 
+  const readFileAsBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+
+      reader.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const pct = Math.floor((event.loaded / event.total) * 60)
+          setUploadProgress(Math.max(10, pct))
+        }
+      }
+
+      reader.onerror = () => reject(new Error('Unable to read file'))
+      reader.onload = () => resolve(reader.result as string)
+      reader.readAsDataURL(file)
+    })
+  }
+
   const uploadPhotoFile = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       toast.error('Please select an image file')
@@ -166,8 +182,6 @@ export default function ProfilePage() {
       toast.error('Image must be less than 5MB')
       return
     }
-
-    setLastUploadFile(file)
     setUploadingPhoto(true)
     setUploadDone(false)
     setUploadProgress(10)
@@ -175,49 +189,36 @@ export default function ProfilePage() {
     const previousImage = profileImageUrl
 
     try {
-      const reader = new FileReader()
+      const base64 = await readFileAsBase64(file)
+      setProfileImageUrl(base64)
+      setUploadProgress(75)
 
-      reader.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const pct = Math.floor((event.loaded / event.total) * 60)
-          setUploadProgress(Math.max(10, pct))
+      const res = await fetch('/api/profile-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ imageBase64: base64, label: 'profile-avatar' })
+      })
+
+      if (!res.ok) throw new Error('Upload failed')
+
+      const resData = await res.json()
+      const finalUrl = resData.image?.imageUrl || base64
+      setProfileImageUrl(finalUrl)
+      setUploadProgress(100)
+      setUploadDone(true)
+
+      toast.success('Profile photo updated!', {
+        action: {
+          label: 'Undo',
+          onClick: () => setProfileImageUrl(previousImage)
         }
-      }
+      })
 
-      reader.onloadend = async () => {
-        const base64 = reader.result as string
-        setProfileImageUrl(base64)
-        setUploadProgress(75)
-
-        const res = await fetch('/api/profile-images', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ imageBase64: base64, label: 'profile-avatar' })
-        })
-
-        if (!res.ok) throw new Error('Upload failed')
-
-        const resData = await res.json()
-        const finalUrl = resData.image?.imageUrl || base64
-        setProfileImageUrl(finalUrl)
-        setUploadProgress(100)
-        setUploadDone(true)
-
-        toast.success('Profile photo updated!', {
-          action: {
-            label: 'Undo',
-            onClick: () => setProfileImageUrl(previousImage)
-          }
-        })
-
-        setTimeout(() => {
-          setUploadDone(false)
-          setUploadProgress(0)
-        }, 1200)
-      }
-
-      reader.readAsDataURL(file)
+      setTimeout(() => {
+        setUploadDone(false)
+        setUploadProgress(0)
+      }, 1200)
     } catch (err) {
       console.error('Photo upload error:', err)
       setProfileImageUrl(previousImage)
@@ -225,9 +226,7 @@ export default function ProfilePage() {
         action: {
           label: 'Retry',
           onClick: () => {
-            if (lastUploadFile) {
-              void uploadPhotoFile(lastUploadFile)
-            }
+            void uploadPhotoFile(file)
           }
         }
       })
@@ -238,6 +237,7 @@ export default function ProfilePage() {
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
+    e.currentTarget.value = ''
     if (!file) return
     await uploadPhotoFile(file)
   }
@@ -668,3 +668,5 @@ export default function ProfilePage() {
     </div>
   )
 }
+
+
