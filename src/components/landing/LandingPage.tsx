@@ -4,23 +4,24 @@ import { useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { toast } from 'sonner'
 
 gsap.registerPlugin(ScrollTrigger)
 
 const PF = 'var(--font-plus-jakarta-sans), sans-serif'
 
 export default function LandingPage() {
-  const globalBgRef    = useRef<HTMLDivElement>(null)
-  const heroRef        = useRef<HTMLElement>(null)
-  const heroImgRef     = useRef<HTMLDivElement>(null)
-  const heroTitleRef   = useRef<HTMLDivElement>(null)
-  const wordsRef       = useRef<HTMLSpanElement[]>([])
-  const arrows1Ref     = useRef<HTMLSpanElement[]>([])
-  const arrows2Ref     = useRef<HTMLSpanElement[]>([])
-  const footerSecRef   = useRef<HTMLElement>(null)
-  const footerClipRef  = useRef<HTMLDivElement>(null)
+  const globalBgRef = useRef<HTMLDivElement>(null)
+  const heroRef = useRef<HTMLElement>(null)
+  const heroImgRef = useRef<HTMLDivElement>(null)
+  const heroTitleRef = useRef<HTMLDivElement>(null)
+  const wordsRef = useRef<HTMLSpanElement[]>([])
+  const arrows1Ref = useRef<HTMLSpanElement[]>([])
+  const arrows2Ref = useRef<HTMLSpanElement[]>([])
+  const footerSecRef = useRef<HTMLElement>(null)
+  const footerClipRef = useRef<HTMLDivElement>(null)
   const footerLabelRef = useRef<HTMLDivElement>(null)
-  const footerHugeRef  = useRef<HTMLHeadingElement>(null)
+  const footerHugeRef = useRef<HTMLHeadingElement>(null)
 
   /* ── transparent html/body so #global-bg shows through ── */
   useEffect(() => {
@@ -34,16 +35,16 @@ export default function LandingPage() {
 
   /* ── Lenis + GSAP scroll animations ── */
   useEffect(() => {
-    const globalBg   = globalBgRef.current
-    const hero       = heroRef.current
-    const heroImg    = heroImgRef.current
-    const heroTitle  = heroTitleRef.current
-    const words      = wordsRef.current.filter(Boolean)
-    const arrows1    = arrows1Ref.current.filter(Boolean)
-    const arrows2    = arrows2Ref.current.filter(Boolean)
-    const footerSec  = footerSecRef.current
+    const globalBg = globalBgRef.current
+    const hero = heroRef.current
+    const heroImg = heroImgRef.current
+    const heroTitle = heroTitleRef.current
+    const words = wordsRef.current.filter(Boolean)
+    const arrows1 = arrows1Ref.current.filter(Boolean)
+    const arrows2 = arrows2Ref.current.filter(Boolean)
+    const footerSec = footerSecRef.current
     const footerClip = footerClipRef.current
-    const footerLbl  = footerLabelRef.current
+    const footerLbl = footerLabelRef.current
     const footerHuge = footerHugeRef.current
 
     if (!hero) return
@@ -75,7 +76,7 @@ export default function LandingPage() {
     // Skip scroll-driven animations when user prefers reduced motion
     if (prefersReducedMotion) {
       ScrollTrigger.getAll().forEach((t) => t.kill())
-      return () => {}
+      return () => { }
     }
 
     // ── Global Background Parallax Pan ──
@@ -540,8 +541,11 @@ export default function LandingPage() {
           <h1
             ref={footerHugeRef}
             id="footer-huge-text"
-            className="font-black tracking-tighter text-[#111111] whitespace-nowrap leading-[0.8] select-none"
-            style={{ fontSize: 'clamp(2.5rem, 17vw, 16rem)' }}
+            className="font-black tracking-tighter text-transparent whitespace-nowrap leading-[0.8] select-none"
+            style={{
+              fontSize: 'clamp(2.5rem, 17vw, 16rem)',
+              WebkitTextStroke: '3px rgba(17,17,17,0.85)'
+            }}
           >
             KIWIKOO
           </h1>
@@ -555,16 +559,16 @@ export default function LandingPage() {
               <div>
                 <div className="text-gray-400 mb-4 tracking-widest">COMPANY</div>
                 <ul className="space-y-3 text-[#111111]">
-                  <li><Link href="/about" className="hover:text-[#ff8a73] transition-colors">About Us</Link></li>
+                  <li><button onClick={() => toast.info('About Us page coming soon!')} className="hover:text-[#ff8a73] transition-colors uppercase">About Us</button></li>
                   <li><Link href="/register" className="hover:text-[#ff8a73] transition-colors">Join Us</Link></li>
-                  <li><Link href="/marketplace" className="hover:text-[#ff8a73] transition-colors">Marketplace</Link></li>
+                  <li><Link href="/#marketplace" className="hover:text-[#ff8a73] transition-colors">Marketplace</Link></li>
                 </ul>
               </div>
               <div>
                 <div className="text-gray-400 mb-4 tracking-widest">LEGAL</div>
                 <ul className="space-y-3 text-[#111111]">
-                  <li><Link href="/privacy" className="hover:text-[#ff8a73] transition-colors">Privacy Policy</Link></li>
-                  <li><Link href="/terms" className="hover:text-[#ff8a73] transition-colors">Terms of Use</Link></li>
+                  <li><button onClick={() => toast.info('Privacy Policy coming soon!')} className="hover:text-[#ff8a73] transition-colors uppercase">Privacy Policy</button></li>
+                  <li><button onClick={() => toast.info('Terms of Use coming soon!')} className="hover:text-[#ff8a73] transition-colors uppercase">Terms of Use</button></li>
                 </ul>
               </div>
             </div>

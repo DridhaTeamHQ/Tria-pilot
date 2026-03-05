@@ -1,7 +1,7 @@
 'use client'
 
 import { Suspense, useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { motion, LayoutGroup } from 'framer-motion'
 import Link from 'next/link'
 import { toast } from 'sonner'
@@ -27,6 +27,7 @@ export default function LoginPage() {
 }
 
 function LoginContent() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -83,7 +84,8 @@ function LoginContent() {
 
       toast.success('Signed in successfully!')
 
-      window.location.href = '/dashboard'
+      router.push('/dashboard')
+      router.refresh()
     } catch (error: unknown) {
       console.error('Login error:', error)
       toast.error(error instanceof Error ? error.message : 'Failed to sign in. Please try again.')

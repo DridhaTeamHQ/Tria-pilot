@@ -122,6 +122,7 @@ function TryOnPageContent() {
     const [showCelebration, setShowCelebration] = useState(false)
     const [showShareModal, setShowShareModal] = useState(false)
     const [elapsedSeconds, setElapsedSeconds] = useState(0)
+    const [downloading, setDownloading] = useState(false)
     const generateInFlightRef = useRef(false)
     const lastGenerateAttemptAtRef = useRef(0)
 
@@ -352,25 +353,25 @@ function TryOnPageContent() {
         if (!pick?.imageUrl) return
 
         autoPersonLoadedRef.current = true
-        ;(async () => {
-            try {
-                setUploadingImage('person')
-                const res = await fetch(pick.imageUrl)
-                const blob = await res.blob()
-                const base64: string = await new Promise((resolve, reject) => {
-                    const reader = new FileReader()
-                    reader.onloadend = () => resolve(reader.result as string)
-                    reader.onerror = () => reject(new Error('Failed to read image'))
-                    reader.readAsDataURL(blob)
-                })
-                setPersonImage(base64)
-                setPersonImageBase64(base64)
-            } catch {
-                console.warn('[tryon] auto-select person image failed')
-            } finally {
-                setUploadingImage(null)
-            }
-        })()
+            ; (async () => {
+                try {
+                    setUploadingImage('person')
+                    const res = await fetch(pick.imageUrl)
+                    const blob = await res.blob()
+                    const base64: string = await new Promise((resolve, reject) => {
+                        const reader = new FileReader()
+                        reader.onloadend = () => resolve(reader.result as string)
+                        reader.onerror = () => reject(new Error('Failed to read image'))
+                        reader.readAsDataURL(blob)
+                    })
+                    setPersonImage(base64)
+                    setPersonImageBase64(base64)
+                } catch {
+                    console.warn('[tryon] auto-select person image failed')
+                } finally {
+                    setUploadingImage(null)
+                }
+            })()
     }, [savedProfileImages, personImage, personImageBase64])
 
     // Track if we've already loaded the product image to prevent infinite loops
@@ -581,7 +582,7 @@ function TryOnPageContent() {
             return
         }
         const now = Date.now()
-        if (now - lastGenerateAttemptAtRef.current < 1200) {
+        if (now - lastGenerateAttemptAtRef.current < 500) {
             toast.error('Please wait a moment before trying again.')
             return
         }
@@ -772,8 +773,9 @@ function TryOnPageContent() {
     }
 
     const handleDownload = async () => {
-        if (!result) return
+        if (!result || downloading) return
 
+        setDownloading(true)
         try {
             // Use base64 if available (much faster and avoids cross-origin fetch issues)
             if (result.base64Image) {
@@ -808,6 +810,8 @@ function TryOnPageContent() {
         } catch (error) {
             console.error('Download error:', error)
             toast.error('Failed to download image')
+        } finally {
+            setDownloading(false)
         }
     }
 
@@ -1605,9 +1609,11 @@ function TryOnPageContent() {
                                         <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4">
                                             <button
                                                 onClick={handleDownload}
-                                                className="px-6 py-3 bg-white text-charcoal rounded-full font-medium flex items-center gap-2 hover:bg-peach hover:text-white transition-colors"
+                                                disabled={downloading}
+                                                className="px-6 py-3 bg-white text-charcoal rounded-full font-medium flex items-center gap-2 hover:bg-peach hover:text-white transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                                             >
-                                                <Download className="w-4 h-4" /> Download
+                                                {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                                                {downloading ? 'Downloading...' : 'Download'}
                                             </button>
                                             <button
                                                 onClick={() => setShowShareModal(true)}
@@ -1642,8 +1648,8 @@ function TryOnPageContent() {
                                                             })
                                                         }}
                                                         className={`relative aspect-[3/4] overflow-hidden border-[3px] transition-all ${selectedVariant === idx
-                                                            ? 'border-black ring-2 ring-[#FFD93D] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -translate-y-1'
-                                                            : 'border-black/20 hover:border-black hover:shadow-md'
+                                                            ? 'border-black ring-4 ring-[#FFD93D] ring-offset-2 ring-offset-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] scale-105 z-10'
+                                                            : 'border-black/20 opacity-70 hover:opacity-100 hover:border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 z-0 grayscale-[30%] hover:grayscale-0'
                                                             }`}
                                                     >
                                                         <img
@@ -1729,10 +1735,11 @@ function TryOnPageContent() {
                             >
                                 <button
                                     onClick={handleDownload}
-                                    className="flex-1 px-6 py-4 bg-white border-[3px] border-black text-black font-black uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-gray-50 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all"
+                                    disabled={downloading}
+                                    className="flex-1 px-6 py-4 bg-white border-[3px] border-black text-black font-black uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-gray-50 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:-translate-y-0"
                                 >
-                                    <Download className="w-5 h-5" />
-                                    Download
+                                    {downloading ? <Loader2 className="w-5 h-5 animate-spin text-black" /> : <Download className="w-5 h-5" />}
+                                    {downloading ? 'Downloading...' : 'Download'}
                                 </button>
                                 <button
                                     onClick={() => setShowShareModal(true)}

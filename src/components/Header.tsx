@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
+import { toast } from 'sonner'
 import {
     Menu,
     X,
@@ -72,12 +73,14 @@ export default function Header() {
                 sessionStorage.clear()
             }
 
-            window.location.href = '/login'
+            toast.success('Logged out successfully')
+            router.push('/login')
         } catch (error) {
             console.error('Logout error:', error)
-            window.location.href = '/login'
+            toast.error('Failed to logout cleanly')
+            router.push('/login')
         }
-    }, [queryClient])
+    }, [queryClient, router])
 
     const isHomePage = pathname === '/'
 
@@ -99,7 +102,7 @@ export default function Header() {
         ? 'bg-white text-charcoal hover:bg-white/90'
         : 'bg-charcoal text-white hover:bg-charcoal/90'
 
-    const isActive = (path: string) => pathname === path || pathname?.startsWith(path + '/')
+    const isActive = (path: string) => pathname === path
     const isLoggedIn = !isLoading && user !== null && user !== undefined
 
     // Auth page check - return early if true
@@ -143,7 +146,7 @@ export default function Header() {
     }
 
     const userInitial = isLoggedIn && user
-        ? (user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U')
+        ? ((user as any).full_name?.charAt(0).toUpperCase() || user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U')
         : 'U'
 
     return (
@@ -303,7 +306,7 @@ export default function Header() {
                                             handleLogout()
                                             setMobileMenuOpen(false)
                                         }}
-                                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 transition-colors"
+                                        className="w-full flex items-center justify-center gap-3 px-4 py-3 mt-2 border-[3px] border-charcoal bg-white text-charcoal font-bold uppercase tracking-wider rounded-xl shadow-[4px_4px_0px_0px_rgba(17,17,17,1)] hover:bg-charcoal hover:text-white hover:shadow-none transition-all active:translate-x-[2px] active:translate-y-[2px]"
                                     >
                                         <LogOut className="w-5 h-5" />
                                         Logout
