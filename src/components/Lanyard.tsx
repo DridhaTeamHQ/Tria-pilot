@@ -265,3 +265,6 @@ function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false, profileImageUrl }
         </>
     );
 }
+
+useGLTF.preload('/models/card.glb');
+useTexture.preload('/models/lanyard.png');

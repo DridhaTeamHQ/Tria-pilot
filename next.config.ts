@@ -34,6 +34,11 @@ const nextConfig = {
     '@radix-ui/react-select',
     '@radix-ui/react-use-layout-effect',
     '@radix-ui/react-use-previous',
+    '@react-three/fiber',
+    '@react-three/drei',
+    '@react-three/rapier',
+    'three',
+    'meshline'
   ],
 
   // Explicit root to avoid lockfile root mis-detection in multi-lockfile environments
