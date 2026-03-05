@@ -249,9 +249,7 @@ function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false, profileImageUrl }
                 </RigidBody>
             </group>
             <mesh ref={band}>
-                {/* @ts-ignore */}
                 <meshLineGeometry />
-                {/* @ts-ignore */}
                 <meshLineMaterial
                     color="white"
                     depthTest={false}

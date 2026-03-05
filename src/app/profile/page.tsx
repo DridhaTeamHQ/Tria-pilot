@@ -34,23 +34,24 @@ import Link from 'next/link'
 // ErrorBoundary to catch @react-three/fiber crashes (e.g. ReactCurrentOwner)
 class LanyardErrorBoundary extends Component<
   { children: ReactNode; fallback?: ReactNode },
-  { hasError: boolean }
+  { hasError: boolean; errorMsg: string }
 > {
   constructor(props: { children: ReactNode; fallback?: ReactNode }) {
     super(props)
-    this.state = { hasError: false }
+    this.state = { hasError: false, errorMsg: '' }
   }
-  static getDerivedStateFromError() {
-    return { hasError: true }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, errorMsg: error.message }
   }
   componentDidCatch(error: Error) {
-    console.warn('[LanyardErrorBoundary] 3D component failed to load:', error.message)
+    console.warn('[LanyardErrorBoundary] 3D component failed to load:', error)
   }
   render() {
     if (this.state.hasError) {
-      return this.props.fallback ?? (
-        <div className="w-full h-full flex items-center justify-center bg-[#FFD93D]">
-          <User className="w-12 h-12 text-black/30" />
+      return (
+        <div className="w-full h-full flex flex-col p-2 text-xs items-center justify-center bg-[#FFD93D] overflow-hidden">
+          <User className="w-12 h-12 text-black/30 mb-2" />
+          <span className="text-red-600 font-bold max-w-full truncate">{this.state.errorMsg}</span>
         </div>
       )
     }
