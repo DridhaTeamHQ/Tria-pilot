@@ -59,6 +59,23 @@ function LoginContent() {
     }
   }, [searchParams])
 
+  const waitForServerSession = async () => {
+    // Avoid a first-login bounce by waiting until /api/auth/me can read the fresh cookie.
+    for (let i = 0; i < 5; i++) {
+      const meRes = await fetch('/api/auth/me', {
+        credentials: 'include',
+        cache: 'no-store',
+      })
+      if (meRes.ok) {
+        const meData = await meRes.json().catch(() => null)
+        if (meData?.user) return true
+      }
+      await new Promise((resolve) => setTimeout(resolve, 200))
+    }
+    return false
+  }
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -83,9 +100,13 @@ function LoginContent() {
       }
 
       toast.success('Signed in successfully!')
+      await waitForServerSession()
 
+      if (typeof window !== 'undefined') {
+        window.location.assign('/dashboard')
+        return
+      }
       router.replace('/dashboard')
-      router.refresh()
     } catch (error: unknown) {
       console.error('Login error:', error)
       toast.error(error instanceof Error ? error.message : 'Failed to sign in. Please try again.')

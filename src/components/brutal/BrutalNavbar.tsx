@@ -61,14 +61,18 @@ export default function BrutalNavbar() {
             if (typeof window !== "undefined") {
                 localStorage.clear();
                 sessionStorage.clear();
+                window.location.assign("/");
+                return;
             }
 
             router.replace("/");
-            router.refresh();
         } catch (error) {
             console.error("Logout error:", error);
+            if (typeof window !== "undefined") {
+                window.location.assign("/");
+                return;
+            }
             router.replace("/");
-            router.refresh();
         }
     }, [isLoggingOut, queryClient, router]);
 

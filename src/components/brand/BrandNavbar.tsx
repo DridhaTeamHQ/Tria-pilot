@@ -46,8 +46,11 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
                 sessionStorage.clear()
             }
         } finally {
+            if (typeof window !== 'undefined') {
+                window.location.assign('/')
+                return
+            }
             router.replace('/')
-            router.refresh()
         }
     }, [isLoggingOut, router])
 

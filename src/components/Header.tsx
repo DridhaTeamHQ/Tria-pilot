@@ -77,13 +77,19 @@ export default function Header() {
             }
 
             toast.success('Logged out successfully')
+            if (typeof window !== 'undefined') {
+                window.location.assign('/')
+                return
+            }
             router.replace('/')
-            router.refresh()
         } catch (error) {
             console.error('Logout error:', error)
             toast.error('Failed to logout cleanly')
+            if (typeof window !== 'undefined') {
+                window.location.assign('/')
+                return
+            }
             router.replace('/')
-            router.refresh()
         }
     }, [isLoggingOut, queryClient, router])
 
