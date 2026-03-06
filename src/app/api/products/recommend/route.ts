@@ -57,7 +57,7 @@ export async function GET(request: Request) {
           id, name, description, category, price, link, audience,
           brand_id,
           brand:brand_id(id, full_name, brand_data),
-          images, cover_image
+          cover_image, tryon_image
         `)
         .neq('id', productId)
         .or(`category.eq.${currentProduct.category},brand_id.eq.${currentProduct.brand_id}`) // audience might be null
@@ -76,7 +76,7 @@ export async function GET(request: Request) {
           id, name, description, category, audience,
           brand_id,
           brand:brand_id(id, full_name, brand_data),
-          images, cover_image
+          cover_image, tryon_image
       `)
       .limit(100)
 

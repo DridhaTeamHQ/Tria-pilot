@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import { ShoppingBag, Filter, Sparkles, Search, X } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import ProductCard from './ProductCard'
 
 interface ProductImage {
@@ -35,6 +36,7 @@ interface MarketplaceClientProps {
 }
 
 export default function MarketplaceClient({ products, categories, activeCategory }: MarketplaceClientProps) {
+    const router = useRouter()
     const [searchQuery, setSearchQuery] = useState('')
     const [showSearch, setShowSearch] = useState(false)
 
@@ -54,6 +56,12 @@ export default function MarketplaceClient({ products, categories, activeCategory
 
     const clearSearch = useCallback(() => setSearchQuery(''), [])
     const toggleSearch = useCallback(() => setShowSearch(prev => !prev), [])
+    useEffect(() => {
+        // Prefetch top visible product routes so first click feels instant.
+        products.slice(0, 8).forEach((p) => {
+            router.prefetch(`/marketplace/${p.id}`)
+        })
+    }, [products, router])
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-cream via-cream to-white pt-24 pb-16">
@@ -198,5 +206,3 @@ export default function MarketplaceClient({ products, categories, activeCategory
         </div>
     )
 }
-
-

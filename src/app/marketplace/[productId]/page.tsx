@@ -1,40 +1,49 @@
-import { createClient } from '@/lib/auth'
+import { createServiceClient } from '@/lib/auth'
 import { getIdentity } from '@/lib/auth-state'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { Camera, ExternalLink, ArrowLeft } from 'lucide-react'
 import ImageCarousel from '@/components/product/ImageCarousel'
-import ProductRecommendations from '@/components/product/ProductRecommendations'
 import RequestCollaborationButton from '@/components/collaborations/RequestCollaborationButton'
 import FavoriteButton from '@/components/product/FavoriteButton'
 import ProductShareButton from '@/components/product/ProductShareButton'
 
-export const dynamic = 'force-dynamic'
+const ProductRecommendations = dynamic(
+  () => import('@/components/product/ProductRecommendations'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="mt-12">
+        <div className="h-8 w-56 bg-zinc-200 rounded animate-pulse mb-6" />
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-64 bg-zinc-200 rounded-lg animate-pulse" />
+          ))}
+        </div>
+      </div>
+    ),
+  }
+)
 
 export default async function ProductDetailPage({ params }: any) {
   const { productId } = await params
 
-  // Use getIdentity for auth and role check
-  const auth = await getIdentity()
+  const authPromise = getIdentity()
 
-  if (!auth.authenticated) {
-    redirect('/login')
+  let service: ReturnType<typeof createServiceClient> | null = null
+  try {
+    service = createServiceClient()
+  } catch {
+    service = null
   }
 
-  if (!auth.identity) {
-    redirect('/complete-profile')
+  if (!service) {
+    // This page requires DB access; if service key is missing, fail fast.
+    notFound()
   }
 
-  const { identity } = auth
-
-  // Only influencers can view product details
-  if (identity.role !== 'influencer') {
-    redirect('/')
-  }
-
-  // Fetch product using regular client - RLS allows reading active products
-  const supabase = await createClient()
-  const { data: product, error } = await supabase
+  const productPromise = service
     .from('products')
     .select(`
       id,
@@ -46,7 +55,7 @@ export default async function ProductDetailPage({ params }: any) {
       audience,
       tags,
       cover_image,
-      images,
+      tryon_image,
       brand_id,
       brand:brand_id (
         id,
@@ -57,45 +66,43 @@ export default async function ProductDetailPage({ params }: any) {
     .eq('id', productId)
     .single()
 
+  const [auth, productRes] = await Promise.all([authPromise, productPromise])
+
+  if (!auth.authenticated) {
+    redirect('/login')
+  }
+
+  if (!auth.identity) {
+    redirect('/complete-profile')
+  }
+
+  if (auth.identity.role !== 'influencer') {
+    redirect('/')
+  }
+
+  const { data: product, error } = productRes
+
   if (error || !product) {
     console.error('Database error fetching product:', error)
     notFound()
   }
 
-  // Normalize images and aggressively cap heavy inline payloads for faster server render.
-  const rawImages = Array.isArray(product.images) ? product.images : []
-  const images: string[] = []
-
-  for (const candidate of rawImages) {
-    if (typeof candidate !== 'string') continue
-    if (candidate.startsWith('data:')) {
-      // Keep only small inline assets; large base64 payloads severely slow route transitions.
-      if (candidate.length > 300 * 1024) continue
-    }
-    images.push(candidate)
-    if (images.length >= 4) break
-  }
-
-  if (product.cover_image && !images.includes(product.cover_image)) {
-    if (!product.cover_image.startsWith('data:') || product.cover_image.length <= 300 * 1024) {
-      images.unshift(product.cover_image)
-    }
-  }
-
-  // Brand Name
+  const images = Array.from(new Set([product.cover_image, product.tryon_image].filter((img): img is string => {
+    if (typeof img !== 'string' || !img) return false
+    if (!img.startsWith('data:')) return true
+    return img.length <= 300 * 1024
+  })))
 
   const brandFn = product.brand
   const brandObj = Array.isArray(brandFn) ? brandFn[0] : brandFn
   const brandData = (brandObj?.brand_data || {}) as Record<string, any>
   const brandName = brandData.companyName || brandObj?.full_name || 'Brand'
 
-  // Normalize tags (Supabase returns array, code might expect string if not updated)
   const tagsArray = Array.isArray(product.tags) ? product.tags : []
 
   return (
     <div className="min-h-screen bg-cream pt-24">
       <div className="container mx-auto px-6 py-8">
-        {/* Back Link */}
         <Link
           href="/marketplace"
           className="inline-flex items-center gap-2 text-sm text-charcoal/60 hover:text-charcoal mb-8 transition-colors"
@@ -105,14 +112,11 @@ export default async function ProductDetailPage({ params }: any) {
         </Link>
 
         <div className="grid lg:grid-cols-2 gap-12 mb-16">
-          {/* Left: Image Carousel */}
           <div className="bg-white rounded-xl border-[3px] border-black overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
             <ImageCarousel images={images} />
           </div>
 
-          {/* Right: Product Information */}
           <div className="space-y-6">
-            {/* Category & Brand */}
             <div>
               <span className="inline-block px-3 py-1 text-xs font-semibold bg-peach/20 text-orange-700 rounded-full mb-3">
                 {product.category?.toUpperCase() || 'CLOTHING'}
@@ -122,7 +126,6 @@ export default async function ProductDetailPage({ params }: any) {
               </p>
             </div>
 
-            {/* Title & Price Box */}
             <div className="bg-white border-[3px] border-black p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] mb-8 relative">
               <div className="absolute -top-3 -left-3 bg-[#FFD93D] px-4 py-1 border-[3px] border-black text-xs font-bold uppercase tracking-widest shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                 {brandName}
@@ -135,7 +138,6 @@ export default async function ProductDetailPage({ params }: any) {
               )}
             </div>
 
-            {/* Action Buttons */}
             <div className="space-y-3 pt-4">
               <Link
                 href={`/influencer/try-on?productId=${product.id}`}
@@ -168,7 +170,6 @@ export default async function ProductDetailPage({ params }: any) {
               </div>
             </div>
 
-            {/* Description & Details Box */}
             <div className="mt-12 border-[3px] border-black p-8 bg-white relative">
               <div className="absolute -top-4 left-8 bg-white px-4 border-[3px] border-black text-sm font-bold uppercase tracking-widest">
                 Specification
@@ -179,7 +180,6 @@ export default async function ProductDetailPage({ params }: any) {
                 {product.description || 'No description available.'}
               </p>
 
-              {/* Tags */}
               {tagsArray.length > 0 && (
                 <div className="mt-8 pt-8 border-t-[3px] border-black/10">
                   <h2 className="text-sm font-bold uppercase mb-4 text-charcoal/50 tracking-wider">Tags</h2>
@@ -196,7 +196,6 @@ export default async function ProductDetailPage({ params }: any) {
                 </div>
               )}
 
-              {/* Target Audience & Category */}
               <div className="grid grid-cols-2 gap-6 mt-8 pt-8 border-t-[3px] border-black/10">
                 {product.audience && (
                   <div>
@@ -213,7 +212,6 @@ export default async function ProductDetailPage({ params }: any) {
           </div>
         </div>
 
-        {/* Recommendations */}
         <ProductRecommendations productId={product.id} />
       </div>
     </div>

@@ -41,7 +41,7 @@ export default async function MarketplacePage({
     supabase = await createClient()
   }
 
-  // Build products query — only fetch lightweight columns.
+  // Build products query - only fetch lightweight columns.
   // IMPORTANT: Do NOT fetch `images` here. That column contains base64 data
   // (multi-MB per product) and is only needed on the product detail page.
   // `cover_image` is kept because most products store a short Supabase URL there.
@@ -55,7 +55,6 @@ export default async function MarketplacePage({
       price,
       cover_image,
       tryon_image,
-      images,
       brand_id,
       brand:brand_id (
         id,
@@ -75,7 +74,7 @@ export default async function MarketplacePage({
     query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`)
   }
 
-  // Just fetch products — NO auth check needed here.
+  // Just fetch products - NO auth check needed here.
   // /marketplace is already in PUBLIC_PREFIXES (middleware.ts line 40)
   const { data: products, error: productsError } = await query
 
@@ -93,10 +92,6 @@ export default async function MarketplacePage({
 
     // Use cover image URL when available, but never inline base64 in listing payloads.
     let mainImage = p.cover_image || p.tryon_image || ''
-    const imageCandidates = Array.isArray(p.images) ? p.images.filter((img: unknown) => typeof img === 'string') : []
-    if (!mainImage && imageCandidates.length > 0) {
-      mainImage = imageCandidates[0] as string
-    }
     // Keep smaller inline images visible; skip only very large data URIs that hurt page speed.
     if (typeof mainImage === 'string' && mainImage.startsWith('data:') && mainImage.length > 2 * 1024 * 1024) {
       mainImage = ''
@@ -117,7 +112,7 @@ export default async function MarketplacePage({
           slug: null
         }
       },
-      // Don't pass images on listing — they're only needed on detail page
+      // Don't pass images on listing - they're only needed on detail page
       images: []
     }
   })
@@ -130,4 +125,3 @@ export default async function MarketplacePage({
     />
   )
 }
-
