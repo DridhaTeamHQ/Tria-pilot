@@ -61,9 +61,14 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
                     {/* Logo */}
                     <Link
                         href="/brand/dashboard"
-                        className="flex items-center gap-2 font-black text-xl"
+                        className="inline-flex items-center"
                     >
-                        <span>Kiwikoo</span>
+                        <img
+                            src="/assets/logos/kiwikoo-logo-dark.svg"
+                            alt="Kiwikoo"
+                            className="h-7 w-auto md:h-8"
+                            loading="eager"
+                        />
                     </Link>
 
                     {/* Desktop Navigation Links */}
@@ -166,6 +171,3 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
         </nav>
     )
 }
-
-
-

@@ -134,9 +134,14 @@ export default function BrutalNavbar() {
                     <Link
                         href="/"
                         prefetch={true}
-                        className="text-2xl md:text-3xl font-black tracking-tight text-black hover:text-[#FF8C69] transition-colors shrink-0"
+                        className="inline-flex items-center shrink-0"
                     >
-                        Kiwikoo
+                        <img
+                            src="/assets/logos/kiwikoo-logo-dark.svg"
+                            alt="Kiwikoo"
+                            className="h-8 w-auto md:h-9"
+                            loading="eager"
+                        />
                     </Link>
 
                     {/* Desktop Navigation - Center */}
@@ -327,5 +332,3 @@ export default function BrutalNavbar() {
         </header>
     );
 }
-
-
