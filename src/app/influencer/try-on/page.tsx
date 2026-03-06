@@ -1320,7 +1320,6 @@ function TryOnPageContent() {
                                 <h3 className="font-serif text-xl text-charcoal flex items-center gap-2">
                                     <Palette className="w-5 h-5 text-peach" />
                                     Style Presets
-                                    <span className="text-xs font-normal text-charcoal/40">(auto scene + lighting)</span>
                                 </h3>
                                 
                                 <div className="flex gap-2 flex-wrap">
@@ -1403,7 +1402,6 @@ function TryOnPageContent() {
                                                 </div>
                                                 <div>
                                                     <div className="font-serif text-sm">Clothing Only</div>
-                                                    <div className="text-[10px] opacity-60">No scene change</div>
                                                 </div>
                                             </div>
                                         </button>
@@ -1464,39 +1462,9 @@ function TryOnPageContent() {
                                                                 )}
                                                             </div>
 
-                                                            {/* Name & Description */}
+                                                            {/* Name */}
                                                             <div className="text-black mt-auto">
                                                                 <div className="font-black text-sm uppercase leading-tight mb-1">{preset.name}</div>
-                                                                <div className="text-[9px] font-bold opacity-60 line-clamp-2 leading-tight uppercase mb-1">
-                                                                    {preset.description}
-                                                                </div>
-                                                                {preset.vibe && (
-                                                                    <div className="text-[8px] font-black uppercase tracking-wide text-black/65 line-clamp-1">
-                                                                        {preset.vibe}
-                                                                    </div>
-                                                                )}
-                                                                {preset.lightingHint && (
-                                                                    <div className="text-[8px] font-bold uppercase tracking-wide text-black/55 line-clamp-1 mt-1">
-                                                                        Light: {preset.lightingHint}
-                                                                    </div>
-                                                                )}
-                                                                {(preset.styleTags?.length || preset.framingHint || preset.poseHint) && (
-                                                                    <div className="mt-1 flex flex-wrap gap-1">
-                                                                        {preset.framingHint ? (
-                                                                            <span className="text-[8px] uppercase font-black border border-black/50 bg-white/80 px-1 py-[1px]">
-                                                                                {preset.framingHint.split(',')[0]}
-                                                                            </span>
-                                                                        ) : null}
-                                                                        {preset.styleTags?.slice(0, 2).map(tag => (
-                                                                            <span
-                                                                                key={`${preset.id}-${tag}`}
-                                                                                className="text-[8px] uppercase font-black border border-black/50 bg-white/80 px-1 py-[1px]"
-                                                                            >
-                                                                                {tag}
-                                                                            </span>
-                                                                        ))}
-                                                                    </div>
-                                                                )}
                                                             </div>
                                                         </div>
                                                     </button>
@@ -1844,3 +1812,4 @@ export default function TryOnPage() {
         </Suspense>
     )
 }
+
