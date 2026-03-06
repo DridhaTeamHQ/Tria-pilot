@@ -219,8 +219,8 @@ export default function BrandInboxPage() {
     }
 
     return (
-        <div className="container mx-auto px-6 py-8">
-            <h1 className="text-3xl font-black text-black mb-6">
+        <div className="container mx-auto px-4 sm:px-6 py-8">
+            <h1 className="text-2xl sm:text-3xl font-black text-black mb-6">
                 <Inbox className="inline-block w-8 h-8 mr-2 -mt-1" />
                 Inbox
             </h1>
@@ -327,7 +327,7 @@ export default function BrandInboxPage() {
                                             className={`flex ${message.sender_id === currentUserId ? 'justify-end' : 'justify-start'}`}
                                         >
                                             <div
-                                                className={`max-w-[70%] p-3 border-2 border-black ${message.sender_id === currentUserId
+                                                className={`max-w-[85%] sm:max-w-[70%] p-3 border-2 border-black ${message.sender_id === currentUserId
                                                         ? 'bg-[#B4F056]'
                                                         : 'bg-white'
                                                     }`}
@@ -344,7 +344,7 @@ export default function BrandInboxPage() {
                             </div>
 
                             {/* Input */}
-                            <form onSubmit={sendMessage} className="p-4 border-t-2 border-black flex gap-3">
+                            <form onSubmit={sendMessage} className="p-4 border-t-2 border-black flex flex-col sm:flex-row gap-3">
                                 <input
                                     type="text"
                                     value={newMessage}
@@ -355,7 +355,7 @@ export default function BrandInboxPage() {
                                 <button
                                     type="submit"
                                     disabled={!newMessage.trim() || sending}
-                                    className="px-6 py-3 bg-[#B4F056] border-2 border-black font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 transition-all flex items-center gap-2"
+                                    className="w-full sm:w-auto px-6 py-3 bg-[#B4F056] border-2 border-black font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 transition-all flex items-center justify-center gap-2"
                                 >
                                     {sending ? (
                                         <Loader2 className="w-5 h-5 animate-spin" />

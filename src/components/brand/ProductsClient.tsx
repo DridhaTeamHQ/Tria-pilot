@@ -424,18 +424,18 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
     // Rendering logic for interactive form...
     // (Truncated for brevity in thought, but full code is in call)
     return (
-        <div className="container mx-auto px-6 py-8">
+        <div className="container mx-auto px-4 sm:px-6 py-8">
             {/* Header */}
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
                 <div>
-                    <h1 className="text-3xl font-black text-black mb-1">Products</h1>
+                    <h1 className="text-2xl sm:text-3xl font-black text-black mb-1">Products</h1>
                     <p className="text-black/60 font-medium">
-                        Manage your product catalog • {products.length} products
+                        Manage your product catalog - {products.length} products
                     </p>
                 </div>
                 <button type="button"
                     onClick={() => setShowForm(true)}
-                    className="flex items-center gap-2 px-4 py-3 bg-[#B4F056] border-[3px] border-black font-black uppercase text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 bg-[#B4F056] border-[3px] border-black font-black uppercase text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all"
                 >
                     <Plus className="w-5 h-5" strokeWidth={2.5} />
                     Add Product
@@ -461,7 +461,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                             </button>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-6">
                             {/* Name */}
                             <div>
                                 <label className="block text-xs font-black uppercase tracking-wider mb-2">
@@ -492,7 +492,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                             </div>
 
                             {/* Category & Audience */}
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-black uppercase tracking-wider mb-2">
                                         Category
@@ -526,7 +526,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                             </div>
 
                             {/* Price, Discount, Stock, SKU */}
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-black uppercase tracking-wider mb-2">
                                         Price (INR)
@@ -712,7 +712,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
 
                                 {/* Legend */}
                                 {images.length > 0 && (
-                                    <div className="flex gap-4 text-xs mt-2">
+                                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-xs mt-2">
                                         <div className="flex items-center gap-1">
                                             <div className="w-3 h-3 bg-[#B4F056] border border-black" />
                                             <span>Cover: Main display image</span>
@@ -726,7 +726,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                             </div>
 
                             {/* Actions */}
-                            <div className="flex gap-3 pt-4 border-t-2 border-black">
+                            <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t-2 border-black">
                                 <button
                                     type="button"
                                     onClick={resetForm}
@@ -897,7 +897,3 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
         </div>
     )
 }
-
-
-
-

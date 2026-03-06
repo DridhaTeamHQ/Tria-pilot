@@ -132,10 +132,10 @@ export default function BrandProfilePage() {
     }
 
     return (
-        <div className="container mx-auto px-6 py-8 max-w-3xl">
+        <div className="container mx-auto px-4 sm:px-6 py-8 max-w-3xl">
             {/* Header */}
             <div className="mb-8">
-                <h1 className="text-3xl font-black text-black mb-1">
+                <h1 className="text-2xl sm:text-3xl font-black text-black mb-1">
                     <User className="inline-block w-8 h-8 mr-2 -mt-1" />
                     Brand Profile
                 </h1>
@@ -146,7 +146,7 @@ export default function BrandProfilePage() {
 
             <form onSubmit={handleSubmit} className="space-y-8">
                 {/* Company Info */}
-                <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6">
+                <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4 sm:p-6">
                     <h2 className="text-xl font-black mb-6 flex items-center gap-2">
                         <Building2 className="w-5 h-5" />
                         Company Information
@@ -166,7 +166,7 @@ export default function BrandProfilePage() {
                             />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-xs font-black uppercase tracking-wider mb-2">
                                     Brand Type
@@ -231,13 +231,13 @@ export default function BrandProfilePage() {
                 </div>
 
                 {/* Contact Info */}
-                <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6">
+                <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4 sm:p-6">
                     <h2 className="text-xl font-black mb-6 flex items-center gap-2">
                         <Mail className="w-5 h-5" />
                         Contact Information
                     </h2>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-xs font-black uppercase tracking-wider mb-2">
                                 Contact Email
@@ -271,7 +271,7 @@ export default function BrandProfilePage() {
                 </div>
 
                 {/* Social Links */}
-                <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6">
+                <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4 sm:p-6">
                     <h2 className="text-xl font-black mb-6 flex items-center gap-2">
                         <Instagram className="w-5 h-5" />
                         Social Media

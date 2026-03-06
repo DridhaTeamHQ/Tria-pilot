@@ -95,10 +95,10 @@ export default function BrandInfluencersPage() {
     }
 
     return (
-        <div className="container mx-auto px-6 py-8">
+        <div className="container mx-auto px-4 sm:px-6 py-8">
             {/* Header */}
             <div className="mb-8">
-                <h1 className="text-3xl font-black text-black mb-1">
+                <h1 className="text-2xl sm:text-3xl font-black text-black mb-1">
                     <Users className="inline-block w-8 h-8 mr-2 -mt-1" />
                     Discover Influencers
                 </h1>
@@ -109,7 +109,7 @@ export default function BrandInfluencersPage() {
 
             {/* Search & Filters */}
             <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4 mb-8">
-                <form onSubmit={handleSearch} className="flex gap-3 mb-4">
+                <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3 mb-4">
                     <div className="flex-1 relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-black/40" />
                         <input
@@ -122,14 +122,14 @@ export default function BrandInfluencersPage() {
                     </div>
                     <button
                         type="submit"
-                        className="px-6 py-3 bg-[#B4F056] border-2 border-black font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
+                        className="w-full sm:w-auto px-6 py-3 bg-[#B4F056] border-2 border-black font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
                     >
                         Search
                     </button>
                     <button
                         type="button"
                         onClick={() => setShowFilters(!showFilters)}
-                        className={`px-4 py-3 border-2 border-black font-black uppercase flex items-center gap-2 ${showFilters ? 'bg-black text-white' : 'bg-white'}`}
+                        className={`w-full sm:w-auto px-4 py-3 border-2 border-black font-black uppercase flex items-center justify-center gap-2 ${showFilters ? 'bg-black text-white' : 'bg-white'}`}
                     >
                         <Filter className="w-5 h-5" />
                         <ChevronDown className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
@@ -274,7 +274,7 @@ export default function BrandInfluencersPage() {
                             </div>
 
                             {/* Actions */}
-                            <div className="p-3 flex gap-2">
+                            <div className="p-3 flex flex-col sm:flex-row gap-2">
                                 <button type="button"
                                     onClick={() => handleViewProfile(influencer.id)}
                                     className="flex-1 py-2 border-2 border-black font-bold text-sm uppercase hover:bg-gray-100 flex items-center justify-center gap-1"
