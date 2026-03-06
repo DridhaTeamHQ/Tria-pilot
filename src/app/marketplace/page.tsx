@@ -55,6 +55,7 @@ export default async function MarketplacePage({
       price,
       cover_image,
       tryon_image,
+      images,
       brand_id,
       brand:brand_id (
         id,
@@ -92,6 +93,10 @@ export default async function MarketplacePage({
 
     // Use cover image URL when available, but never inline base64 in listing payloads.
     let mainImage = p.cover_image || p.tryon_image || ''
+    const imageCandidates = Array.isArray(p.images) ? p.images.filter((img: unknown) => typeof img === 'string') : []
+    if (!mainImage && imageCandidates.length > 0) {
+      mainImage = imageCandidates[0] as string
+    }
     // Keep smaller inline images visible; skip only very large data URIs that hurt page speed.
     if (typeof mainImage === 'string' && mainImage.startsWith('data:') && mainImage.length > 2 * 1024 * 1024) {
       mainImage = ''

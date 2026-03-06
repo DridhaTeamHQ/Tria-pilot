@@ -62,11 +62,18 @@ export default async function ProductDetailPage({ params }: any) {
     notFound()
   }
 
-  // Normalize images
-  // Supabase images is text[]
-  let images: string[] = product.images || []
+  // Normalize images and cap heavy inline payloads to keep detail page responsive.
+  let images: string[] = Array.isArray(product.images) ? product.images : []
+  images = images.filter((img: unknown): img is string => {
+    if (typeof img !== 'string') return false
+    if (!img.startsWith('data:')) return true
+    return img.length <= 2 * 1024 * 1024
+  })
+
   if (product.cover_image && !images.includes(product.cover_image)) {
-    images.unshift(product.cover_image)
+    if (!product.cover_image.startsWith('data:') || product.cover_image.length <= 2 * 1024 * 1024) {
+      images.unshift(product.cover_image)
+    }
   }
 
   // Brand Name

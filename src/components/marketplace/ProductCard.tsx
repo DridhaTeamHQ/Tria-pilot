@@ -77,7 +77,9 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
 
     const handleMouseEnter = useCallback(() => {
         if (canHover) setIsHovered(true)
-    }, [canHover])
+        // Warm up product detail route for faster click-to-open.
+        router.prefetch(`/marketplace/${product.id}`)
+    }, [canHover, product.id, router])
 
     const handleMouseLeave = useCallback(() => setIsHovered(false), [])
 
