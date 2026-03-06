@@ -55,7 +55,7 @@ export default function LandingNav() {
           >
             {isAuthenticated ? "DASHBOARD" : "LOG IN"}
           </Link>
-          <button
+          <button type="button"
             onClick={() => setOpen(!open)}
             aria-label="Toggle menu"
             className="w-9 h-9 flex flex-col items-center justify-center gap-[5px] shrink-0"

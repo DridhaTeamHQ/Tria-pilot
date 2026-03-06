@@ -5,44 +5,50 @@ import { cookies } from 'next/headers'
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
-    
+
     // Sign out from Supabase
     const { error } = await supabase.auth.signOut()
-    
+
     if (error) {
       console.error('Supabase signOut error:', error)
     }
-    
-    // Clear all auth-related cookies
+
     const cookieStore = await cookies()
-    const authCookies = [
+    const response = NextResponse.json(
+      { success: true },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          Pragma: 'no-cache',
+          Expires: '0',
+        },
+      }
+    )
+
+    // Supabase cookies can be chunked (e.g. .0, .1), so clear all auth-like names.
+    const cookieNamesToClear = new Set<string>([
       'sb-access-token',
       'sb-refresh-token',
       'sb-auth-token',
-    ]
-    
-    // Clear Supabase cookies (they use a pattern like sb-<project-ref>-auth-token)
-    const allCookies = cookieStore.getAll()
-    allCookies.forEach((cookie) => {
+    ])
+
+    cookieStore.getAll().forEach((cookie) => {
       if (cookie.name.includes('sb-') || cookie.name.includes('supabase')) {
-        cookieStore.delete(cookie.name)
+        cookieNamesToClear.add(cookie.name)
       }
     })
-    
-    // Return response with headers to clear cookies on client side
-    const response = NextResponse.json({ success: true })
-    
-    // Clear cookies in response headers
-    authCookies.forEach((cookieName) => {
+
+    cookieNamesToClear.forEach((cookieName) => {
       response.cookies.set(cookieName, '', {
         expires: new Date(0),
+        maxAge: 0,
         path: '/',
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
       })
     })
-    
+
     return response
   } catch (error) {
     console.error('Logout error:', error)
@@ -52,4 +58,3 @@ export async function POST(request: Request) {
     )
   }
 }
-

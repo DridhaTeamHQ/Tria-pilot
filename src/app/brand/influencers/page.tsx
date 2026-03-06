@@ -275,14 +275,14 @@ export default function BrandInfluencersPage() {
 
                             {/* Actions */}
                             <div className="p-3 flex gap-2">
-                                <button
+                                <button type="button"
                                     onClick={() => handleViewProfile(influencer.id)}
                                     className="flex-1 py-2 border-2 border-black font-bold text-sm uppercase hover:bg-gray-100 flex items-center justify-center gap-1"
                                 >
                                     <ExternalLink className="w-4 h-4" />
                                     View Profile
                                 </button>
-                                <button
+                                <button type="button"
                                     onClick={() => handleMessage(influencer.id)}
                                     className="flex-1 py-2 bg-[#B4F056] border-2 border-black font-bold text-sm uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-1"
                                 >

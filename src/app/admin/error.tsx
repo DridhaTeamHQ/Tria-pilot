@@ -31,7 +31,7 @@ export default function AdminError({
           <li>NEXT_PUBLIC_SUPABASE_ANON_KEY</li>
         </ul>
         <div className="flex gap-4 justify-center flex-wrap">
-          <button
+          <button type="button"
             onClick={reset}
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-charcoal text-cream rounded-full hover:bg-charcoal/90 transition-colors text-sm"
           >

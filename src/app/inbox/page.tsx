@@ -30,7 +30,7 @@ function BrutalButton({ onClick, children, variant = 'primary', className = '' }
   }
 
   return (
-    <button
+    <button type="button"
       onClick={onClick}
       className={`px-4 py-2 font-bold uppercase tracking-wider border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center gap-2 ${variants[variant]} ${className}`}
     >
@@ -152,7 +152,7 @@ export default function InboxPage() {
             { id: 'unread', label: 'Unread', count: unreadCount },
             { id: 'read', label: 'Read', count: notifications.length - unreadCount },
           ].map((tab) => (
-            <button
+            <button type="button"
               key={tab.id}
               onClick={() => setFilter(tab.id as any)}
               className={`px-6 py-2 font-black uppercase tracking-wider border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all ${filter === tab.id

@@ -33,7 +33,7 @@ export default function FavoriteButton({ productId }: FavoriteButtonProps) {
   }
 
   return (
-    <button
+    <button type="button"
       className={`w-full min-h-[60px] px-3 py-2.5 border-[3px] border-black font-bold uppercase tracking-wider text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center justify-center gap-2 ${isFavorited ? 'bg-red-500 text-white' : 'bg-white text-black'
         }`}
       onClick={handleToggle}

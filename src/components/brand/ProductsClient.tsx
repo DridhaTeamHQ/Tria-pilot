@@ -433,7 +433,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                         Manage your product catalog • {products.length} products
                     </p>
                 </div>
-                <button
+                <button type="button"
                     onClick={() => setShowForm(true)}
                     className="flex items-center gap-2 px-4 py-3 bg-[#B4F056] border-[3px] border-black font-black uppercase text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all"
                 >
@@ -456,7 +456,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                             <h2 className="text-xl font-black">
                                 {editingProduct ? 'Edit Product' : 'Add New Product'}
                             </h2>
-                            <button onClick={resetForm} className="p-2 hover:bg-gray-100">
+                            <button type="button" onClick={resetForm} className="p-2 hover:bg-gray-100">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -762,7 +762,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                     <p className="text-black/40 font-medium mb-6">
                         Add your first product to get started
                     </p>
-                    <button
+                    <button type="button"
                         onClick={() => setShowForm(true)}
                         className="inline-flex items-center gap-2 px-6 py-3 bg-[#B4F056] border-[3px] border-black font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
                     >
@@ -830,7 +830,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
 
                                 {/* Actions */}
                                 <div className="flex items-center gap-1.5">
-                                    <button
+                                    <button type="button"
                                         onClick={() => openEditForm(product)}
                                         className="flex-1 h-8 border-2 border-black font-bold text-[11px] uppercase hover:bg-gray-100 flex items-center justify-center gap-1"
                                     >
@@ -847,7 +847,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                                             <ExternalLink className="w-4 h-4" />
                                         </a>
                                     )}
-                                    <button
+                                    <button type="button"
                                         onClick={() => handleDeleteClick(product)}
                                         className="h-8 w-8 border-2 border-black hover:bg-red-100 flex items-center justify-center"
                                         aria-label="Delete product"

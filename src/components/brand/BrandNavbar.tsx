@@ -97,7 +97,7 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
                         <div className="w-9 h-9 rounded-full bg-[#B4F056] border-2 border-black flex items-center justify-center font-bold text-sm">
                             {brandName?.charAt(0)?.toUpperCase() || 'B'}
                         </div>
-                        <button
+                        <button type="button"
                             onClick={() => void handleLogout()}
                             disabled={isLoggingOut}
                             className="flex items-center gap-2 px-4 py-2 rounded-full border-2 border-black bg-white hover:bg-gray-50 transition-colors font-medium text-sm disabled:opacity-60 disabled:cursor-not-allowed"
@@ -109,7 +109,7 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
                     </div>
 
                     {/* Mobile hamburger */}
-                    <button
+                    <button type="button"
                         className="md:hidden p-2 rounded-xl border-2 border-black bg-white hover:bg-gray-50 transition-colors"
                         onClick={() => setMobileOpen(!mobileOpen)}
                     >
@@ -151,7 +151,7 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
                         })}
 
                         <div className="pt-2 border-t-2 border-black mt-2">
-                            <button
+                            <button type="button"
                                 onClick={() => { setMobileOpen(false); void handleLogout() }}
                                 disabled={isLoggingOut}
                                 className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-red-600 bg-white border-2 border-black hover:bg-red-50 transition-colors font-medium text-sm disabled:opacity-60 disabled:cursor-not-allowed"

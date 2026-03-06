@@ -20,7 +20,7 @@ export default function PlatformSection() {
                     </h2>
 
                     <div className="inline-flex p-1.5 bg-[var(--brutal-cream)] border-[4px] border-black shadow-[4px_4px_0_0_#000]">
-                        <button
+                        <button type="button"
                             onClick={() => setActiveTab("brands")}
                             className={`px-6 py-3 text-sm font-black uppercase tracking-wide transition-all ${
                                 activeTab === "brands"
@@ -30,7 +30,7 @@ export default function PlatformSection() {
                         >
                             For Brands
                         </button>
-                        <button
+                        <button type="button"
                             onClick={() => setActiveTab("influencers")}
                             className={`px-6 py-3 text-sm font-black uppercase tracking-wide transition-all ${
                                 activeTab === "influencers"

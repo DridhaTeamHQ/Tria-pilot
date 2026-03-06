@@ -971,7 +971,7 @@ function TryOnPageContent() {
                                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs sm:text-sm">
                                         <span className="font-medium text-charcoal/80">Your Photo <span className="text-rose-400">*</span></span>
                                         {personImage && (
-                                            <button
+                                            <button type="button"
                                                 onClick={() => { setPersonImage(''); setPersonImageBase64(''); }}
                                                 className="text-[10px] sm:text-xs text-charcoal/40 hover:text-rose-500 transition-colors self-start sm:self-auto"
                                             >
@@ -1046,7 +1046,7 @@ function TryOnPageContent() {
                                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs sm:text-sm">
                                         <span className="font-medium text-charcoal/80">Clothing <span className="text-rose-400">*</span></span>
                                         {clothingImage && !product && (
-                                            <button
+                                            <button type="button"
                                                 onClick={() => { setClothingImage(''); setClothingImageBase64(''); }}
                                                 className="text-[10px] sm:text-xs text-charcoal/40 hover:text-rose-500 transition-colors self-start sm:self-auto"
                                             >
@@ -1116,7 +1116,7 @@ function TryOnPageContent() {
                                                     const isSelected = clothingImage === url
 
                                                     return (
-                                                        <button
+                                                        <button type="button"
                                                             key={idx}
                                                             onClick={() => handleSelectProductImage(url)}
                                                             className={`
@@ -1224,7 +1224,7 @@ function TryOnPageContent() {
                                             <div key={idx} className="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden border border-white shadow-sm group">
                                                 <img src={img} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                                    <button onClick={() => handleRemoveAccessory(idx)} className="text-white hover:text-red-400">
+                                                    <button type="button" onClick={() => handleRemoveAccessory(idx)} className="text-white hover:text-red-400">
                                                         <X className="w-4 h-4" />
                                                     </button>
                                                 </div>
@@ -1251,7 +1251,7 @@ function TryOnPageContent() {
                             </h3>
                             <div className="grid grid-cols-3 gap-3">
                                 {['1:1', '4:5', '9:16'].map((ratio) => (
-                                    <button
+                                    <button type="button"
                                         key={ratio}
                                         onClick={() => setAspectRatio(ratio as any)}
                                         className={`
@@ -1279,7 +1279,7 @@ function TryOnPageContent() {
                                             : `Rate limit active. Try again in ${retryAfterSeconds}s.`)}
                                 </div>
                             )}
-                            <button
+                            <button type="button"
                                 onClick={handleGenerate}
                                 disabled={isGenerateDisabled}
                                 className={`
@@ -1323,7 +1323,7 @@ function TryOnPageContent() {
                                 </h3>
                                 
                                 <div className="flex gap-2 flex-wrap">
-                                    <button
+                                    <button type="button"
                                         onClick={() => setPresetCategory('all')}
                                         className={`
                                             px-4 py-1.5 border-[2px] border-black rounded-full text-[10px] font-bold uppercase tracking-wide transition-all
@@ -1335,7 +1335,7 @@ function TryOnPageContent() {
                                         All
                                     </button>
                                     {presetCategories.map(cat => (
-                                        <button
+                                        <button type="button"
                                             key={cat}
                                             onClick={() => setPresetCategory(cat)}
                                             className={`
@@ -1359,7 +1359,7 @@ function TryOnPageContent() {
                             ) : (
                                 <div className="relative group/presets">
                                     {/* Left Arrow */}
-                                    <button
+                                    <button type="button"
                                         onClick={() => {
                                             const container = document.getElementById('preset-scroll-container')
                                             if (container) container.scrollBy({ left: -300, behavior: 'smooth' })
@@ -1370,7 +1370,7 @@ function TryOnPageContent() {
                                     </button>
 
                                     {/* Right Arrow */}
-                                    <button
+                                    <button type="button"
                                         onClick={() => {
                                             const container = document.getElementById('preset-scroll-container')
                                             if (container) container.scrollBy({ left: 300, behavior: 'smooth' })
@@ -1387,7 +1387,7 @@ function TryOnPageContent() {
                                         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                                     >
                                         {/* No Preset Option */}
-                                        <button
+                                        <button type="button"
                                             onClick={() => setSelectedPreset('')}
                                             className={`
                                                 flex-shrink-0 group relative p-3 border-[3px] border-black text-left transition-all duration-200 overflow-hidden h-32 w-40 bg-white
@@ -1424,7 +1424,7 @@ function TryOnPageContent() {
                                                 const bgGradient = categoryColors[preset.category] || 'from-gray-400/40 to-gray-500/40'
 
                                                 return (
-                                                    <button
+                                                    <button type="button"
                                                         key={preset.id}
                                                         onClick={() => setSelectedPreset(preset.id)}
                                                         className={`
@@ -1487,7 +1487,7 @@ function TryOnPageContent() {
                             </h3>
                             <div className="grid grid-cols-3 gap-2 sm:gap-4">
                                 {['1:1', '4:5', '9:16'].map((ratio) => (
-                                    <button
+                                    <button type="button"
                                         key={ratio}
                                         onClick={() => setAspectRatio(ratio as any)}
                                         className={`
@@ -1517,7 +1517,7 @@ function TryOnPageContent() {
                                             : `Rate limit active. Try again in ${retryAfterSeconds}s.`)}
                                 </div>
                             )}
-                            <button
+                            <button type="button"
                                 onClick={handleGenerate}
                                 disabled={isGenerateDisabled}
                                 className={`
@@ -1638,7 +1638,7 @@ function TryOnPageContent() {
 
                                         {/* Overlay Controls (on hover) */}
                                         <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4">
-                                            <button
+                                            <button type="button"
                                                 onClick={handleDownload}
                                                 disabled={downloading}
                                                 className="px-6 py-3 bg-white text-charcoal rounded-full font-medium flex items-center gap-2 hover:bg-peach hover:text-white transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
@@ -1646,7 +1646,7 @@ function TryOnPageContent() {
                                                 {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                                                 {downloading ? 'Downloading...' : 'Download'}
                                             </button>
-                                            <button
+                                            <button type="button"
                                                 onClick={() => setShowShareModal(true)}
                                                 className="px-6 py-3 bg-white text-charcoal rounded-full font-medium flex items-center gap-2 hover:bg-peach hover:text-white transition-colors"
                                             >
@@ -1668,7 +1668,7 @@ function TryOnPageContent() {
                                             </div>
                                             <div className="grid grid-cols-3 gap-3">
                                                 {variants.map((variant, idx) => (
-                                                    <button
+                                                    <button type="button"
                                                         key={idx}
                                                         onClick={() => {
                                                             setSelectedVariant(idx)
@@ -1723,7 +1723,7 @@ function TryOnPageContent() {
                                                     <code className="flex-1 text-xs bg-white px-3 py-2 border-[2px] border-black text-black font-mono truncate font-bold">
                                                         {displayUrl}
                                                     </code>
-                                                    <button
+                                                    <button type="button"
                                                         onClick={copyLink}
                                                         className="p-2 bg-white border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[1px] hover:shadow-none transition-all"
                                                         title="Copy tracked link"
@@ -1764,7 +1764,7 @@ function TryOnPageContent() {
                                 animate={{ opacity: 1, y: 0 }}
                                 className="flex flex-col sm:flex-row gap-4"
                             >
-                                <button
+                                <button type="button"
                                     onClick={handleDownload}
                                     disabled={downloading}
                                     className="flex-1 px-6 py-4 bg-white border-[3px] border-black text-black font-black uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-gray-50 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:-translate-y-0"
@@ -1772,7 +1772,7 @@ function TryOnPageContent() {
                                     {downloading ? <Loader2 className="w-5 h-5 animate-spin text-black" /> : <Download className="w-5 h-5" />}
                                     {downloading ? 'Downloading...' : 'Download'}
                                 </button>
-                                <button
+                                <button type="button"
                                     onClick={() => setShowShareModal(true)}
                                     className="flex-1 px-6 py-4 bg-[#FFD93D] border-[3px] border-black text-black font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
                                 >

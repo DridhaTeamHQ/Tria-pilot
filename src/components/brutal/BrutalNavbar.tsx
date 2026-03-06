@@ -183,7 +183,7 @@ export default function BrutalNavbar() {
                                 <div className="w-10 h-10 rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black">
                                     {userInitial}
                                 </div>
-                                <button
+                                <button type="button"
                                     onClick={() => void handleLogout()}
                                     disabled={isLoggingOut}
                                     className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-black border-2 border-black rounded-xl bg-white hover:bg-red-100 hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
@@ -216,7 +216,7 @@ export default function BrutalNavbar() {
                         )}
 
                         {/* Mobile Menu Toggle */}
-                        <button
+                        <button type="button"
                             className="md:hidden p-2 rounded-xl border-2 border-black bg-white hover:bg-[#F9F8F4] transition-colors"
                             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                         >
@@ -276,7 +276,7 @@ export default function BrutalNavbar() {
                                         );
                                     })}
 
-                                    <button
+                                    <button type="button"
                                         onClick={() => {
                                             void handleLogout();
                                             setMobileMenuOpen(false);

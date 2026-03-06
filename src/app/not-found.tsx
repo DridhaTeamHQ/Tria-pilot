@@ -39,7 +39,7 @@ export default function NotFound() {
             <Home className="w-5 h-5" />
             Go Home
           </Link>
-          <button
+          <button type="button"
             onClick={() => window.history.back()}
             className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-black text-lg font-black uppercase tracking-wider border-[3px] border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[3px] hover:translate-y-[3px] transition-all"
           >

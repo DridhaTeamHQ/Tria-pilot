@@ -353,7 +353,7 @@ export default function AdsPage() {
                   <h2 className="text-lg md:text-xl font-black uppercase">Choose Style</h2>
                 </div>
                 <div className="flex flex-wrap gap-2 border-b-2 border-black pb-4">
-                  <button
+                  <button type="button"
                     onClick={() => setActiveCategory('all')}
                     className={cn(
                       'inline-flex items-center gap-2 rounded-lg border-2 border-black px-3 py-2 text-xs font-black uppercase transition-all duration-200',
@@ -366,7 +366,7 @@ export default function AdsPage() {
                     All Cinematic
                   </button>
                   {AD_PRESET_CATEGORIES.map((cat) => (
-                    <button
+                    <button type="button"
                       key={cat.id}
                       onClick={() => setActiveCategory(cat.id)}
                       className={cn(
@@ -482,7 +482,7 @@ export default function AdsPage() {
                     {productImage ? (
                       <div className="relative aspect-[4/3] overflow-hidden rounded-lg border-2 border-black">
                         <img src={productImage} alt="Product" className="h-full w-full object-cover" />
-                        <button
+                        <button type="button"
                           onClick={() => setProductImage('')}
                           className="absolute top-2 right-2 inline-flex h-7 w-7 items-center justify-center rounded-md border-2 border-black bg-white"
                         >
@@ -502,7 +502,7 @@ export default function AdsPage() {
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-[11px] font-black uppercase tracking-wider">Model / Character</p>
                       {influencerImage && (
-                        <button
+                        <button type="button"
                           onClick={() => setLockFaceIdentity(!lockFaceIdentity)}
                           className={cn(
                             'inline-flex items-center gap-1 rounded-md border-2 border-black px-2 py-1 text-[10px] font-black uppercase',
@@ -517,7 +517,7 @@ export default function AdsPage() {
 
                     <div className="grid grid-cols-2 gap-2">
                       {CHARACTER_OPTIONS.map((opt) => (
-                        <button
+                        <button type="button"
                           key={opt.value}
                           onClick={() => {
                             setCharacterType(opt.value as CharacterType)
@@ -542,7 +542,7 @@ export default function AdsPage() {
                     {characterType === 'animal' && (
                       <div className="flex flex-wrap gap-1">
                         {ANIMAL_OPTIONS.slice(0, 6).map((a) => (
-                          <button
+                          <button type="button"
                             key={a}
                             onClick={() => setAnimalType(a)}
                             className={cn(
@@ -560,7 +560,7 @@ export default function AdsPage() {
                       <div className="space-y-2">
                         <div className="flex flex-wrap gap-1">
                           {CHARACTER_STYLE_OPTIONS.slice(0, 6).map((s) => (
-                            <button
+                            <button type="button"
                               key={s}
                               onClick={() => setCharacterStyle(characterStyle === s ? '' : s)}
                               className={cn(
@@ -635,7 +635,7 @@ export default function AdsPage() {
                     {influencerImage ? (
                       <div className="relative mt-auto aspect-[4/3] overflow-hidden rounded-lg border-2 border-black">
                         <img src={influencerImage} alt="Model" className="h-full w-full object-cover" />
-                        <button
+                        <button type="button"
                           onClick={() => {
                             setInfluencerImage('')
                             setLockFaceIdentity(false)
@@ -659,7 +659,7 @@ export default function AdsPage() {
 
             <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.35, delay: 0.06 }}>
               <BrutalCard className="overflow-hidden rounded-2xl">
-                <button
+                <button type="button"
                   onClick={() => setTextOpen(!textOpen)}
                   className="flex w-full items-center justify-between border-b-[3px] border-black bg-[#B4F056] px-4 py-4 md:px-5"
                 >
@@ -708,7 +708,7 @@ export default function AdsPage() {
 
             <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.35, delay: 0.08 }}>
               <BrutalCard className="overflow-hidden rounded-2xl">
-                <button
+                <button type="button"
                   onClick={() => setOptionsOpen(!optionsOpen)}
                   className="flex w-full items-center justify-between border-b-[3px] border-black bg-[#FFD93D] px-4 py-4 md:px-5"
                 >
@@ -731,7 +731,7 @@ export default function AdsPage() {
                           <p className="mb-2 text-[10px] font-black uppercase tracking-wider">Aspect Ratio</p>
                           <div className="flex flex-wrap gap-2">
                             {ASPECT_RATIO_OPTIONS.map((opt) => (
-                              <button
+                              <button type="button"
                                 key={opt.value}
                                 onClick={() => setAspectRatio(opt.value)}
                                 className={cn(
@@ -750,7 +750,7 @@ export default function AdsPage() {
                             <p className="mb-2 text-[10px] font-black uppercase tracking-wider">Platforms</p>
                             <div className="flex flex-wrap gap-2">
                               {PLATFORM_OPTIONS.map((opt) => (
-                                <button
+                                <button type="button"
                                   key={opt.value}
                                   onClick={() => togglePlatform(opt.value)}
                                   className={cn(
@@ -770,7 +770,7 @@ export default function AdsPage() {
                             <p className="mb-2 text-[10px] font-black uppercase tracking-wider">Camera Angle</p>
                             <div className="flex flex-wrap gap-2">
                               {CAMERA_ANGLE_OPTIONS.map((opt) => (
-                                <button
+                                <button type="button"
                                   key={opt.value}
                                   onClick={() => setCameraAngle(opt.value)}
                                   className={cn(
@@ -874,14 +874,14 @@ export default function AdsPage() {
                     </div>
                     <div className="p-4 space-y-3">
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <button
+                        <button type="button"
                           onClick={handleDownload}
                           className="inline-flex items-center justify-center gap-2 rounded-lg border-[3px] border-black bg-[#B4F056] px-4 py-3 text-xs font-black uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-0.5"
                         >
                           <Download className="h-4 w-4" />
                           Download
                         </button>
-                        <button
+                        <button type="button"
                           onClick={handleGenerate}
                           disabled={loading}
                           className="inline-flex items-center justify-center gap-2 rounded-lg border-[3px] border-black bg-white px-4 py-3 text-xs font-black uppercase transition-all hover:-translate-y-0.5"

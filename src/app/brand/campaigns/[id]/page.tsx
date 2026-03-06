@@ -378,8 +378,8 @@ function EditableField({ label, value, onSave, type = 'text', multiline = false 
                         <input type={type} value={draft} onChange={(e) => setDraft(e.target.value)}
                             className="flex-1 px-3 py-2 border border-black/15 rounded-lg text-sm font-medium focus:border-[#B4F056] focus:ring-2 focus:ring-[#B4F056]/30 outline-none" autoFocus />
                     )}
-                    <button onClick={handleSave} className="p-2 bg-[#B4F056] rounded-lg hover:bg-[#a3e045] transition-colors"><Save className="w-3.5 h-3.5" strokeWidth={2.5} /></button>
-                    <button onClick={() => { setDraft(value); setEditing(false) }} className="p-2 bg-black/5 rounded-lg hover:bg-black/10 transition-colors"><X className="w-3.5 h-3.5" strokeWidth={2.5} /></button>
+                    <button type="button" onClick={handleSave} className="p-2 bg-[#B4F056] rounded-lg hover:bg-[#a3e045] transition-colors"><Save className="w-3.5 h-3.5" strokeWidth={2.5} /></button>
+                    <button type="button" onClick={() => { setDraft(value); setEditing(false) }} className="p-2 bg-black/5 rounded-lg hover:bg-black/10 transition-colors"><X className="w-3.5 h-3.5" strokeWidth={2.5} /></button>
                 </div>
             </div>
         )
@@ -420,7 +420,7 @@ function ScriptCard({ script, index }: { script: ScriptItem; index: number }) {
 
     return (
         <div className="bg-black/[0.02] border border-black/6 rounded-xl overflow-hidden">
-            <button
+            <button type="button"
                 onClick={() => setExpanded(!expanded)}
                 className="w-full px-4 py-3 flex items-center justify-between hover:bg-black/[0.03] transition-colors"
             >
@@ -523,7 +523,7 @@ function RefineChatPanel({ campaignId, onStrategyUpdated, onClose }: {
                         </div>
                         <p className="text-xs font-black">AI Refine</p>
                     </div>
-                    <button onClick={onClose} className="p-1.5 hover:bg-black/5 rounded-lg transition-colors">
+                    <button type="button" onClick={onClose} className="p-1.5 hover:bg-black/5 rounded-lg transition-colors">
                         <X className="w-3.5 h-3.5 text-black/40" strokeWidth={2} />
                     </button>
                 </div>
@@ -535,7 +535,7 @@ function RefineChatPanel({ campaignId, onStrategyUpdated, onClose }: {
                             <p className="text-[11px] font-bold text-black/50 mb-3">Try asking:</p>
                             <div className="space-y-1.5">
                                 {['Make hooks more aggressive', 'Add TOFU content angles', 'Rewrite scripts for TikTok', 'Improve funnel strategy'].map((s) => (
-                                    <button key={s} onClick={() => { setInput(s); inputRef.current?.focus() }}
+                                    <button type="button" key={s} onClick={() => { setInput(s); inputRef.current?.focus() }}
                                         className="block w-full text-left text-[11px] font-medium text-black/50 bg-black/[0.03] hover:bg-[#B4F056]/10 hover:text-black/70 px-3 py-1.5 rounded-lg transition-colors">
                                         ✨ {s}
                                     </button>
@@ -572,7 +572,7 @@ function RefineChatPanel({ campaignId, onStrategyUpdated, onClose }: {
                             placeholder="Ask to improve..."
                             className="flex-1 bg-transparent text-[12px] font-medium outline-none placeholder:text-black/30"
                             disabled={loading} />
-                        <button onClick={handleSend} disabled={!input.trim() || loading}
+                        <button type="button" onClick={handleSend} disabled={!input.trim() || loading}
                             className="p-1.5 bg-black rounded-lg text-white disabled:opacity-20 hover:bg-black/80 transition-colors">
                             {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" strokeWidth={2.5} />}
                         </button>
@@ -690,14 +690,14 @@ export default function CampaignDetailPage() {
                             </div>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
-                            <button
+                            <button type="button"
                                 onClick={() => setChatOpen(true)}
                                 className="flex items-center gap-1 px-2.5 py-1.5 bg-gradient-to-r from-[#B4F056] to-[#9be03e] border border-[#8cc92f] rounded-lg text-[11px] font-bold text-black hover:shadow-md transition-all"
                             >
                                 <Sparkles className="w-3 h-3" strokeWidth={2.5} />
                                 Refine
                             </button>
-                            <button onClick={() => downloadPdf(campaign as unknown as Record<string, unknown>)}
+                            <button type="button" onClick={() => downloadPdf(campaign as unknown as Record<string, unknown>)}
                                 className="flex items-center gap-1 px-2.5 py-1.5 bg-white border border-black/12 rounded-lg text-[11px] font-bold hover:bg-black/5 transition-colors">
                                 <Download className="w-3 h-3" strokeWidth={2} /> PDF
                             </button>
@@ -708,7 +708,7 @@ export default function CampaignDetailPage() {
                                 <option value="paused">Paused</option>
                                 <option value="completed">Completed</option>
                             </select>
-                            <button onClick={handleDelete} disabled={deleting}
+                            <button type="button" onClick={handleDelete} disabled={deleting}
                                 className="p-1.5 text-red-500/60 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30">
                                 {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" strokeWidth={2} />}
                             </button>

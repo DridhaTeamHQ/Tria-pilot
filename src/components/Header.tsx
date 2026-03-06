@@ -223,7 +223,7 @@ export default function Header() {
                                 >
                                     {userInitial}
                                 </div>
-                                <button
+                                <button type="button"
                                     onClick={handleLogout}
                                     data-cursor="Logout"
                                     className={`flex items-center gap-2 text-sm transition-colors duration-200 ${linkColor} ${isLoggingOut ? "opacity-60 cursor-not-allowed" : ""}`} disabled={isLoggingOut}
@@ -254,7 +254,7 @@ export default function Header() {
                         )}
 
                         {/* Mobile Menu Toggle */}
-                        <button
+                        <button type="button"
                             className={`md:hidden p-2 rounded-lg transition-colors ${isHomePage && !scrolled ? 'hover:bg-white/10 text-white' : 'hover:bg-charcoal/5 text-charcoal'}`}
                             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                         >
@@ -312,7 +312,7 @@ export default function Header() {
                                         )
                                     })}
 
-                                    <button
+                                    <button type="button"
                                         onClick={() => {
                                             void handleLogout()
                                             setMobileMenuOpen(false)

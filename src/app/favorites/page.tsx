@@ -48,10 +48,11 @@ export default async function FavoritesPage() {
           <p className="text-zinc-600 dark:text-zinc-400">
             No favorites yet. Start exploring the marketplace!
           </p>
-          <Link href="/marketplace">
-            <button className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md">
-              Browse Products
-            </button>
+          <Link
+            href="/marketplace"
+            className="mt-4 inline-block px-4 py-2 bg-primary text-primary-foreground rounded-md"
+          >
+            Browse Products
           </Link>
         </div>
       ) : (

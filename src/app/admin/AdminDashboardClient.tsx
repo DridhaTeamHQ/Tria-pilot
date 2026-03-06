@@ -375,7 +375,7 @@ export default function AdminDashboardClient({ initialApplications, dataSource =
             </h1>
             <p className="text-black/60 font-medium">Review applications and manage platform access.</p>
           </div>
-          <button
+          <button type="button"
             onClick={refresh}
             className="flex items-center gap-2 rounded-xl border-[3px] border-black bg-white px-5 py-3 font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
           >
@@ -470,7 +470,7 @@ export default function AdminDashboardClient({ initialApplications, dataSource =
                   { key: 'rejected', label: 'Rejected' },
                   { key: 'all', label: 'All' },
                 ].map((f) => (
-                  <button
+                  <button type="button"
                     key={f.key}
                     onClick={() => setActiveFilter(f.key as any)}
                     className={`
@@ -600,7 +600,7 @@ export default function AdminDashboardClient({ initialApplications, dataSource =
                     <div className="lg:w-64 flex flex-col gap-3 justify-center border-t-2 border-dashed border-black/10 lg:border-t-0 lg:border-l-2 lg:pl-6 pt-4 lg:pt-0">
                       {app.status === 'pending' ? (
                         <>
-                          <button
+                          <button type="button"
                             onClick={() => handleStatusUpdate(app.user_id, 'approved')}
                             disabled={loading === app.user_id}
                             className="w-full py-3 bg-[#B4F056] text-black font-black border-2 border-black rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-y-0.5 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2 disabled:opacity-50"
@@ -608,7 +608,7 @@ export default function AdminDashboardClient({ initialApplications, dataSource =
                             <Check className="w-5 h-5" strokeWidth={3} />
                             APPROVE
                           </button>
-                          <button
+                          <button type="button"
                             onClick={() => {
                               const note = prompt('Rejection reason (optional):')
                               if (note !== null) handleStatusUpdate(app.user_id, 'rejected', note)
@@ -677,7 +677,7 @@ export default function AdminDashboardClient({ initialApplications, dataSource =
                           <option value="silver">Silver</option>
                           <option value="bronze">Bronze</option>
                         </select>
-                        <button
+                        <button type="button"
                           onClick={() => handleMetricsSave(app)}
                           disabled={loading === app.user_id}
                           className="w-full py-2 bg-[#FFD93D] text-black font-black border-2 border-black rounded-lg"

@@ -424,7 +424,7 @@ export default function GenerationsPage() {
 
                                     <div className="mt-auto pt-4 border-t-[2px] border-black grid grid-cols-3 gap-2">
                                         {/* Download */}
-                                        <button
+                                        <button type="button"
                                             onClick={(e) => {
                                                 e.stopPropagation()
                                                 if (job.outputImagePath) handleDownload(job.outputImagePath, job.id)
@@ -438,7 +438,7 @@ export default function GenerationsPage() {
                                         </button>
 
                                         {/* Share */}
-                                        <button
+                                        <button type="button"
                                             onClick={(e) => {
                                                 e.stopPropagation()
                                                 if (job.outputImagePath) handleShare(job.outputImagePath)
@@ -452,7 +452,7 @@ export default function GenerationsPage() {
                                         </button>
 
                                         {/* Delete */}
-                                        <button
+                                        <button type="button"
                                             onClick={(e) => {
                                                 e.stopPropagation()
                                                 requestDelete(job)

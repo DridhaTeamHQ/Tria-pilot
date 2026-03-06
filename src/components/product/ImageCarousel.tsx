@@ -46,13 +46,13 @@ export default function ImageCarousel({ images }: ImageCarouselProps) {
         />
         {images.length > 1 && (
           <>
-            <button
+            <button type="button"
               className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white border-[3px] border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] z-10"
               onClick={prevImage}
             >
               <ChevronLeft className="h-6 w-6 stroke-[3]" />
             </button>
-            <button
+            <button type="button"
               className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white border-[3px] border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] z-10"
               onClick={nextImage}
             >
@@ -69,7 +69,7 @@ export default function ImageCarousel({ images }: ImageCarouselProps) {
       {images.length > 1 && (
         <div className="flex gap-2">
           {images.map((image, index) => (
-            <button
+            <button type="button"
               key={index}
               onClick={() => goToImage(index)}
               className={`flex-1 aspect-square rounded-lg overflow-hidden border-2 transition-colors relative ${index === currentIndex

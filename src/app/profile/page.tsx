@@ -155,23 +155,6 @@ export default function ProfilePage() {
     }
   }
 
-  const readFileAsBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-
-      reader.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const pct = Math.floor((event.loaded / event.total) * 60)
-          setUploadProgress(Math.max(10, pct))
-        }
-      }
-
-      reader.onerror = () => reject(new Error('Unable to read file'))
-      reader.onload = () => resolve(reader.result as string)
-      reader.readAsDataURL(file)
-    })
-  }
-
   const uploadPhotoFile = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       toast.error('Please select an image file')
@@ -182,31 +165,45 @@ export default function ProfilePage() {
       toast.error('Image must be less than 5MB')
       return
     }
+
     setUploadingPhoto(true)
     setUploadDone(false)
-    setUploadProgress(10)
+    setUploadProgress(15)
 
     const previousImage = profileImageUrl
+    const previewUrl = URL.createObjectURL(file)
+    let progressTimer: ReturnType<typeof setInterval> | null = null
 
     try {
-      const base64 = await readFileAsBase64(file)
-      setProfileImageUrl(base64)
-      setUploadProgress(75)
+      setProfileImageUrl(previewUrl)
+      progressTimer = setInterval(() => {
+        setUploadProgress((prev) => (prev >= 90 ? prev : prev + 8))
+      }, 180)
+
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('label', 'profile-avatar')
 
       const res = await fetch('/api/profile-images', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ imageBase64: base64, label: 'profile-avatar' })
+        body: formData,
       })
 
-      if (!res.ok) throw new Error('Upload failed')
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}))
+        throw new Error(errBody.error || 'Upload failed')
+      }
 
       const resData = await res.json()
-      const finalUrl = resData.image?.imageUrl || base64
+      const finalUrl = resData.image?.imageUrl || previewUrl
       setProfileImageUrl(finalUrl)
       setUploadProgress(100)
       setUploadDone(true)
+
+      if (finalUrl !== previewUrl) {
+        URL.revokeObjectURL(previewUrl)
+      }
 
       toast.success('Profile photo updated!', {
         action: {
@@ -221,8 +218,9 @@ export default function ProfilePage() {
       }, 1200)
     } catch (err) {
       console.error('Photo upload error:', err)
+      URL.revokeObjectURL(previewUrl)
       setProfileImageUrl(previousImage)
-      toast.error('Failed to upload photo', {
+      toast.error(err instanceof Error ? err.message : 'Failed to upload photo', {
         action: {
           label: 'Retry',
           onClick: () => {
@@ -231,6 +229,7 @@ export default function ProfilePage() {
         }
       })
     } finally {
+      if (progressTimer) clearInterval(progressTimer)
       setUploadingPhoto(false)
     }
   }
@@ -353,7 +352,7 @@ export default function ProfilePage() {
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <button
+            <button type="button"
               onClick={() => setEditing(true)}
               className="px-5 py-2 bg-black text-white border-[3px] border-black font-bold uppercase tracking-wide shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
             >
@@ -365,7 +364,7 @@ export default function ProfilePage() {
             >
               View Public Profile
             </Link>
-            <button
+            <button type="button"
               onClick={copyProfileLink}
               className="px-5 py-2 bg-[#FFD93D] text-black border-[3px] border-black font-bold uppercase tracking-wide shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all inline-flex items-center gap-2"
             >
@@ -397,7 +396,7 @@ export default function ProfilePage() {
                     </div>
                   )}
 
-                  <button
+                  <button type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploadingPhoto}
                     className="absolute bottom-2 right-2 z-10 w-10 h-10 bg-black text-white border-[2px] border-black flex items-center justify-center hover:bg-white hover:text-black transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none"
@@ -437,10 +436,10 @@ export default function ProfilePage() {
                         autoFocus
                       />
                       <div className="flex items-center gap-2">
-                        <button onClick={handleSaveName} disabled={saving} className="bg-black text-white p-2.5 border-[3px] border-black hover:bg-white hover:text-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
+                        <button type="button" onClick={handleSaveName} disabled={saving} className="bg-black text-white p-2.5 border-[3px] border-black hover:bg-white hover:text-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
                           <Check className="w-5 h-5" />
                         </button>
-                        <button
+                        <button type="button"
                           onClick={() => {
                             setName(user.name || '')
                             setEditing(false)
@@ -454,7 +453,7 @@ export default function ProfilePage() {
                   ) : (
                     <div className="flex items-center gap-3 group justify-center md:justify-start">
                       <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tight">{user.name || 'Set Name'}</h2>
-                      <button onClick={() => setEditing(true)} className="opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-black/5 rounded">
+                      <button type="button" onClick={() => setEditing(true)} className="opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-black/5 rounded">
                         <Edit3 className="w-5 h-5" />
                       </button>
                     </div>
@@ -494,7 +493,7 @@ export default function ProfilePage() {
             </BrutalCard>
 
             <BrutalCard title="About Me">
-              <button
+              <button type="button"
                 onClick={() => toggleSection('about')}
                 className="md:hidden w-full mb-4 flex items-center justify-between border-[2px] border-black px-3 py-2 font-bold uppercase text-xs"
               >
@@ -536,7 +535,7 @@ export default function ProfilePage() {
             </BrutalCard>
 
             <BrutalCard title="Social Presence">
-              <button
+              <button type="button"
                 onClick={() => toggleSection('social')}
                 className="md:hidden w-full mb-4 flex items-center justify-between border-[2px] border-black px-3 py-2 font-bold uppercase text-xs"
               >
@@ -599,7 +598,7 @@ export default function ProfilePage() {
             </BrutalCard>
 
             <BrutalCard title="Audience Metrics">
-              <button
+              <button type="button"
                 onClick={() => toggleSection('metrics')}
                 className="md:hidden w-full mb-4 flex items-center justify-between border-[2px] border-black px-3 py-2 font-bold uppercase text-xs"
               >

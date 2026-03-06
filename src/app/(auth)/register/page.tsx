@@ -90,7 +90,7 @@ function RegisterContent() {
                   <p className="text-xs text-black/60 font-medium mt-1">Create content, grow your audience, and earn.</p>
                 </div>
               </div>
-              <button
+              <button type="button"
                 onClick={(e) => {
                   e.stopPropagation()
                   handleJoin('INFLUENCER')
@@ -119,7 +119,7 @@ function RegisterContent() {
                   <p className="text-xs text-black/60 font-medium mt-1">Launch campaigns and find top talent.</p>
                 </div>
               </div>
-              <button
+              <button type="button"
                 onClick={(e) => {
                   e.stopPropagation()
                   handleJoin('BRAND')
@@ -210,7 +210,7 @@ function RegisterContent() {
                     </div>
                   </div>
 
-                  <button
+                  <button type="button"
                     onClick={(e) => {
                       e.stopPropagation()
                       handleJoin('INFLUENCER')
@@ -251,7 +251,7 @@ function RegisterContent() {
                     </div>
                   </div>
 
-                  <button
+                  <button type="button"
                     onClick={(e) => {
                       e.stopPropagation()
                       handleJoin('BRAND')

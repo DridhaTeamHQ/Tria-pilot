@@ -93,7 +93,7 @@ export default function MarketplaceClient({ products, categories, activeCategory
                                         autoFocus
                                     />
                                     {searchQuery && (
-                                        <button
+                                        <button type="button"
                                             onClick={clearSearch}
                                             className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal hover:scale-110 transition-transform"
                                         >
@@ -103,7 +103,7 @@ export default function MarketplaceClient({ products, categories, activeCategory
                                 </div>
                             )}
 
-                            <button
+                            <button type="button"
                                 onClick={toggleSearch}
                                 className={`p-3 rounded-lg border-[3px] border-black transition-all duration-200 ${showSearch
                                     ? 'bg-peach text-charcoal shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -translate-y-1'
@@ -174,7 +174,7 @@ export default function MarketplaceClient({ products, categories, activeCategory
                             }
                         </p>
                         {searchQuery && (
-                            <button
+                            <button type="button"
                                 onClick={clearSearch}
                                 className="px-6 py-3 bg-charcoal text-cream rounded-full font-medium hover:bg-charcoal/90 transition-colors"
                             >

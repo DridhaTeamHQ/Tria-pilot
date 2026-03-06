@@ -155,7 +155,7 @@ function CampaignStrategyCard({
                         Campaign Created — View All
                     </Link>
                 ) : (
-                    <button
+                    <button type="button"
                         onClick={onApprove}
                         disabled={isCreating}
                         className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#B4F056] border-2 border-black rounded-xl font-black uppercase text-sm shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -234,7 +234,7 @@ function SuggestionChips({
     return (
         <div className="flex flex-wrap gap-2">
             {suggestions.map((text, i) => (
-                <button
+                <button type="button"
                     key={i}
                     onClick={() => onSelect(text)}
                     disabled={disabled}

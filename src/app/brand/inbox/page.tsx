@@ -250,7 +250,7 @@ export default function BrandInboxPage() {
                             </div>
                         ) : (
                             conversations.map(conv => (
-                                <button
+                                <button type="button"
                                     key={conv.id}
                                     onClick={() => selectConversation(conv)}
                                     className={`w-full p-4 text-left border-b-2 border-black/10 hover:bg-gray-50 transition-colors ${selectedConversation?.id === conv.id ? 'bg-[#B4F056]/20' : ''
@@ -293,7 +293,7 @@ export default function BrandInboxPage() {
                         <>
                             {/* Header */}
                             <div className="p-4 border-b-2 border-black flex items-center gap-3">
-                                <button
+                                <button type="button"
                                     onClick={() => setSelectedConversation(null)}
                                     className="md:hidden p-2 hover:bg-gray-100"
                                 >

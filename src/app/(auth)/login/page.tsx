@@ -61,7 +61,7 @@ function LoginContent() {
 
   const waitForServerSession = async () => {
     // Avoid a first-login bounce by waiting until /api/auth/me can read the fresh cookie.
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 10; i++) {
       const meRes = await fetch('/api/auth/me', {
         credentials: 'include',
         cache: 'no-store',
@@ -70,7 +70,7 @@ function LoginContent() {
         const meData = await meRes.json().catch(() => null)
         if (meData?.user) return true
       }
-      await new Promise((resolve) => setTimeout(resolve, 200))
+      await new Promise((resolve) => setTimeout(resolve, 300))
     }
     return false
   }
@@ -100,13 +100,20 @@ function LoginContent() {
       }
 
       toast.success('Signed in successfully!')
-      await waitForServerSession()
+      const hasServerSession = await waitForServerSession()
+      const redirectTarget = searchParams.get('redirect') || '/dashboard'
 
       if (typeof window !== 'undefined') {
-        window.location.assign('/dashboard')
+        // Force a full navigation to ensure middleware/layouts read fresh auth cookies.
+        window.location.assign(redirectTarget)
         return
       }
-      router.replace('/dashboard')
+
+      if (hasServerSession) {
+        router.replace(redirectTarget)
+      } else {
+        router.replace('/dashboard')
+      }
     } catch (error: unknown) {
       console.error('Login error:', error)
       toast.error(error instanceof Error ? error.message : 'Failed to sign in. Please try again.')
@@ -155,13 +162,13 @@ function LoginContent() {
           </div>
 
           <div className="flex p-1 bg-white border-2 border-black mb-6">
-            <button
+            <button type="button"
               onClick={() => setUserType('influencer')}
               className={`flex-1 py-2 text-xs font-black uppercase tracking-wider transition-all border-r-2 border-black ${userType === 'influencer' ? 'bg-[#FF8C69] text-black' : 'text-black/40 hover:text-black hover:bg-gray-50'}`}
             >
               Influencer
             </button>
-            <button
+            <button type="button"
               onClick={() => setUserType('brand')}
               className={`flex-1 py-2 text-xs font-black uppercase tracking-wider transition-all ${userType === 'brand' ? 'bg-[#B4F056] text-black' : 'text-black/40 hover:text-black hover:bg-gray-50'}`}
             >
@@ -319,13 +326,13 @@ function LoginContent() {
 
               {/* Role Switcher */}
               <div className="flex p-1 bg-white border-2 border-black mb-10 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                <button
+                <button type="button"
                   onClick={() => setUserType('influencer')}
                   className={`flex-1 py-3 text-sm font-black uppercase tracking-wider transition-all border-r-2 border-black ${userType === 'influencer' ? 'bg-[#FF8C69] text-black' : 'text-black/40 hover:text-black hover:bg-gray-50'}`}
                 >
                   Influencer
                 </button>
-                <button
+                <button type="button"
                   onClick={() => setUserType('brand')}
                   className={`flex-1 py-3 text-sm font-black uppercase tracking-wider transition-all ${userType === 'brand' ? 'bg-[#B4F056] text-black' : 'text-black/40 hover:text-black hover:bg-gray-50'}`}
                 >

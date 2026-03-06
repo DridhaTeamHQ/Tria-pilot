@@ -119,7 +119,7 @@ export default function InfluencerAnalyticsPage() {
       <div className="min-h-screen bg-[#FDFBF7] pt-24 flex items-center justify-center">
         <div className="text-center bg-white border-[3px] border-black p-10 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
           <p className="text-red-600 font-black uppercase text-xl mb-6">Failed to load analytics</p>
-          <button
+          <button type="button"
             onClick={() => window.location.reload()}
             className="px-6 py-3 bg-black text-white font-bold uppercase tracking-wider border-[2px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none hover:bg-white hover:text-black transition-all"
           >
@@ -283,7 +283,7 @@ export default function InfluencerAnalyticsPage() {
                             <div className="bg-gray-100 px-3 py-1 border-[2px] border-black text-xs font-mono font-bold truncate max-w-[200px] sm:max-w-xs">
                               {product.originalUrl ? shortenUrl(product.originalUrl) : product.maskedUrl}
                             </div>
-                            <button
+                            <button type="button"
                               onClick={() => handleCopyLink(product.maskedUrl)}
                               className="p-1.5 bg-white border-[2px] border-black hover:bg-[#FFD93D] transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
                               title="Copy tracked link"

@@ -4,7 +4,6 @@ import { useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { toast } from 'sonner'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -561,7 +560,7 @@ export default function LandingPage() {
               <div>
                 <div className="text-gray-400 mb-4 tracking-widest">COMPANY</div>
                 <ul className="space-y-3 text-[#111111]">
-                  <li><button onClick={() => toast.info('About Us page coming soon!')} className="hover:text-[#ff8a73] transition-colors uppercase">About Us</button></li>
+                  <li><Link href="/about" className="hover:text-[#ff8a73] transition-colors uppercase">About Us</Link></li>
                   <li><Link href="/register" className="hover:text-[#ff8a73] transition-colors">Join Us</Link></li>
                   <li><Link href="/#marketplace" className="hover:text-[#ff8a73] transition-colors">Marketplace</Link></li>
                 </ul>
@@ -569,8 +568,8 @@ export default function LandingPage() {
               <div>
                 <div className="text-gray-400 mb-4 tracking-widest">LEGAL</div>
                 <ul className="space-y-3 text-[#111111]">
-                  <li><button onClick={() => toast.info('Privacy Policy coming soon!')} className="hover:text-[#ff8a73] transition-colors uppercase">Privacy Policy</button></li>
-                  <li><button onClick={() => toast.info('Terms of Use coming soon!')} className="hover:text-[#ff8a73] transition-colors uppercase">Terms of Use</button></li>
+                  <li><Link href="/privacy" className="hover:text-[#ff8a73] transition-colors uppercase">Privacy Policy</Link></li>
+                  <li><Link href="/terms" className="hover:text-[#ff8a73] transition-colors uppercase">Terms of Use</Link></li>
                 </ul>
               </div>
             </div>

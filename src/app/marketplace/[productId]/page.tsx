@@ -2,11 +2,12 @@ import { createClient } from '@/lib/auth'
 import { getIdentity } from '@/lib/auth-state'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
-import { Camera, ExternalLink, Share2, ArrowLeft } from 'lucide-react'
+import { Camera, ExternalLink, ArrowLeft } from 'lucide-react'
 import ImageCarousel from '@/components/product/ImageCarousel'
 import ProductRecommendations from '@/components/product/ProductRecommendations'
 import RequestCollaborationButton from '@/components/collaborations/RequestCollaborationButton'
 import FavoriteButton from '@/components/product/FavoriteButton'
+import ProductShareButton from '@/components/product/ProductShareButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -66,7 +67,8 @@ export default async function ProductDetailPage({ params }: any) {
   let images: string[] = product.images || []
 
   // FALLBACK: If no images in new table, check Legacy tables
-  if (images.length <= 1) {
+  // Only hit legacy tables when we truly have no primary media.
+  if (images.length === 0 && !product.cover_image) {
     // 1. Try Legacy Table with current ID
     const { data: legacyImgs } = await supabase
       .from('ProductImage')
@@ -184,10 +186,7 @@ export default async function ProductDetailPage({ params }: any) {
                   </a>
                 )}
                 <FavoriteButton productId={product.id} />
-                <button className="w-full min-h-[60px] px-3 py-2.5 bg-white border-[3px] border-black text-charcoal font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-2 hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all uppercase tracking-wider text-sm">
-                  <Share2 className="w-4 h-4" />
-                  <span>Share</span>
-                </button>
+                <ProductShareButton productName={product.name} />
               </div>
             </div>
 

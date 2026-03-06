@@ -419,7 +419,7 @@ export function ShareModal({ isOpen, onClose, imageUrl, imageBase64, productId }
                   <h2 className="text-xl sm:text-2xl font-serif text-charcoal">Share to Social Media</h2>
                   <p className="text-sm text-charcoal/60 mt-1">Choose a platform and share type</p>
                 </div>
-                <button
+                <button type="button"
                   onClick={handleClose}
                   className="h-10 w-10 flex items-center justify-center border-2 border-black rounded-full bg-white hover:bg-[#FFD93D] transition-colors"
                 >
@@ -446,7 +446,7 @@ export function ShareModal({ isOpen, onClose, imageUrl, imageBase64, productId }
                         <code className="flex-1 text-xs bg-white px-2 py-1.5 rounded border border-charcoal/10 text-charcoal/70 font-mono truncate">
                           {originalUrl ? shortenUrl(originalUrl) : maskedLink}
                         </code>
-                        <button
+                        <button type="button"
                           onClick={handleCopyLink}
                           className="p-1.5 hover:bg-charcoal/5 rounded transition-colors"
                           title="Copy tracked link"
@@ -476,7 +476,7 @@ export function ShareModal({ isOpen, onClose, imageUrl, imageBase64, productId }
                         {PLATFORMS.map((platform) => {
                           const Icon = platform.icon
                           return (
-                            <button
+                            <button type="button"
                               key={platform.id}
                               onClick={() => setSelectedPlatform(platform.id)}
                               className="group relative p-4 sm:p-6 min-h-[120px] rounded-2xl border-2 border-charcoal/10 hover:border-charcoal/30 transition-all overflow-hidden"
@@ -503,7 +503,7 @@ export function ShareModal({ isOpen, onClose, imageUrl, imageBase64, productId }
                 ) : (
                   <>
                     {/* Back Button */}
-                      <button
+                      <button type="button"
                         onClick={() => setSelectedPlatform(null)}
                         className="flex items-center gap-2 text-sm text-charcoal/60 hover:text-charcoal transition-colors mb-4 min-h-[40px]"
                       >
@@ -521,7 +521,7 @@ export function ShareModal({ isOpen, onClose, imageUrl, imageBase64, productId }
                           {SHARE_TYPES.map((type) => {
                             const Icon = type.icon
                             return (
-                              <button
+                              <button type="button"
                                 key={type.id}
                                 onClick={() => setSelectedShareType(type.id)}
                                 className="group p-4 rounded-xl border-2 border-charcoal/10 hover:border-peach/50 transition-all text-left"
@@ -565,13 +565,13 @@ export function ShareModal({ isOpen, onClose, imageUrl, imageBase64, productId }
 
                         {/* Action Buttons */}
                         <div className="flex gap-3 pt-4">
-                          <button
+                          <button type="button"
                             onClick={() => setSelectedShareType(null)}
                             className="flex-1 px-6 py-3 rounded-full border border-charcoal/10 text-charcoal hover:bg-charcoal/5 transition-colors font-medium"
                           >
                             Cancel
                           </button>
-                          <button
+                          <button type="button"
                             onClick={handleShare}
                             disabled={sharing}
                             className="flex-1 px-6 py-3 rounded-full bg-charcoal text-cream hover:bg-peach transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"

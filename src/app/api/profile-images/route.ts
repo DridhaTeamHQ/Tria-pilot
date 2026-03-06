@@ -48,6 +48,7 @@ export async function GET() {
  * POST /api/profile-images
  * 
  * Saves a new profile image for the current user.
+ * Supports multipart/form-data (fast path) and JSON base64 (backward compatibility).
  */
 export async function POST(request: Request) {
     try {
@@ -58,24 +59,60 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        const body = await request.json()
-        const { imageBase64, label } = body
+        const contentTypeHeader = request.headers.get('content-type') || ''
+        let label: string | null = null
+        let fileBuffer: Buffer | null = null
+        let uploadContentType = 'image/jpeg'
+        let extension = 'jpg'
 
-        if (!imageBase64) {
-            return NextResponse.json({ error: 'Image data required' }, { status: 400 })
+        if (contentTypeHeader.includes('multipart/form-data')) {
+            const formData = await request.formData()
+            const file = formData.get('file')
+            const labelValue = formData.get('label')
+            label = typeof labelValue === 'string' ? labelValue : null
+
+            if (!(file instanceof File)) {
+                return NextResponse.json({ error: 'Image file required' }, { status: 400 })
+            }
+
+            if (!file.type.startsWith('image/')) {
+                return NextResponse.json({ error: 'Invalid file type' }, { status: 400 })
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                return NextResponse.json({ error: 'Image must be less than 5MB' }, { status: 400 })
+            }
+
+            const arrayBuffer = await file.arrayBuffer()
+            fileBuffer = Buffer.from(arrayBuffer)
+            uploadContentType = file.type || 'image/jpeg'
+            extension = uploadContentType.split('/')[1] || 'jpg'
+        } else {
+            // Backward-compatible JSON body support
+            const body = await request.json().catch(() => null)
+            const imageBase64 = body?.imageBase64
+            label = body?.label || null
+
+            if (!imageBase64) {
+                return NextResponse.json({ error: 'Image data required' }, { status: 400 })
+            }
+
+            const base64Data = String(imageBase64).replace(/^data:image\/\w+;base64,/, '')
+            fileBuffer = Buffer.from(base64Data, 'base64')
+            uploadContentType = 'image/jpeg'
+            extension = 'jpg'
         }
 
-        // Upload to storage
-        const fileName = `profile-images/${authUser.id}/${Date.now()}.jpg`
+        if (!fileBuffer || fileBuffer.length === 0) {
+            return NextResponse.json({ error: 'Invalid image payload' }, { status: 400 })
+        }
 
-        // Convert base64 to blob
-        const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '')
-        const buffer = Buffer.from(base64Data, 'base64')
+        const fileName = `profile-images/${authUser.id}/${Date.now()}.${extension}`
 
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
             .from('profile-images')
-            .upload(fileName, buffer, {
-                contentType: 'image/jpeg',
+            .upload(fileName, fileBuffer, {
+                contentType: uploadContentType,
                 upsert: false
             })
 
@@ -84,7 +121,6 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Failed to upload image' }, { status: 500 })
         }
 
-        // Get public URL
         const { data: urlData } = supabase.storage
             .from('profile-images')
             .getPublicUrl(fileName)

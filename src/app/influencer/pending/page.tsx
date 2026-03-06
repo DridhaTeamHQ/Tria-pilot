@@ -295,7 +295,7 @@ export default function InfluencerPendingPage() {
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 mb-6">
-              <button
+              <button type="button"
                 onClick={() => fetchStatus(true)}
                 disabled={refreshing}
                 className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-black text-white font-black border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,0.3)] hover:-translate-y-0.5 transition-all disabled:opacity-60"

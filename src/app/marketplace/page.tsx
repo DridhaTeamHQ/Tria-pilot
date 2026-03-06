@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/auth'
+import { createClient, createServiceClient } from '@/lib/auth'
 import MarketplaceClient from '@/components/marketplace/MarketplaceClient'
 
 // Define types that match MarketplaceClient expectations
@@ -32,7 +32,14 @@ export default async function MarketplacePage({
 }) {
   const resolvedSearchParams = await searchParams
 
-  const supabase = await createClient()
+  // Use service client for public marketplace listing to avoid cookie/session overhead on every request.
+  let supabase: any
+  try {
+    supabase = createServiceClient()
+  } catch {
+    // Fallback for environments where service role key is not configured.
+    supabase = await createClient()
+  }
 
   // Build products query — only fetch lightweight columns.
   // IMPORTANT: Do NOT fetch `images` here. That column contains base64 data
@@ -82,15 +89,11 @@ export default async function MarketplacePage({
     const brandData = p.brand?.brand_data as Record<string, any> || {}
     const companyName = brandData.companyName || 'Unknown Brand'
 
-    // Use cover_image directly — it's usually a Supabase storage URL.
-    // Use cover_image directly — it's usually a Supabase storage URL.
-    // Allow base64 images even if they are large, as a fallback for failed storage uploads.
-    // We check for very large payloads (>5MB) to avoid complete page failure, but standard gens are ~1-3MB.
+    // Use cover image URL when available, but never inline base64 in listing payloads.
     let mainImage = p.cover_image || ''
-    if (mainImage.startsWith('data:') && mainImage.length > 5 * 1024 * 1024) {
-      // If > 5MB, it might be too heavy for initial load, but better than nothing?
-      // For now, let's allow it but warn.
-      console.warn(`[Marketplace] Large base64 image encountered for product ${p.id}`)
+    // Listing cards should never ship data URIs; this keeps SSR payloads fast.
+    if (typeof mainImage === 'string' && mainImage.startsWith('data:')) {
+      mainImage = ''
     }
 
     return {

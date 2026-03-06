@@ -75,7 +75,7 @@ export default function ProductSwitcher() {
                     {features.map((feature) => {
                         const Icon = feature.icon;
                         return (
-                            <button
+                            <button type="button"
                                 key={feature.id}
                                 onClick={() => setActiveTab(feature.id)}
                                 className={cn(

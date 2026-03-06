@@ -26,13 +26,13 @@ export default function Error({
                 Our team has been notified.
             </p>
             <div className="flex gap-4 mt-4">
-                <button
+                <button type="button"
                     onClick={() => window.location.href = '/dashboard'}
                     className="px-6 py-3 border-2 border-black font-bold uppercase hover:bg-gray-100"
                 >
                     Go to Dashboard
                 </button>
-                <button
+                <button type="button"
                     onClick={() => reset()}
                     className="flex items-center gap-2 px-6 py-3 bg-[#B4F056] border-[3px] border-black font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-px hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
                 >

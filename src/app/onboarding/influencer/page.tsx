@@ -448,7 +448,7 @@ export default function InfluencerOnboardingPage() {
                             <Loader2 className="w-6 h-6 text-white animate-spin" />
                           </div>
                         )}
-                        <button
+                        <button type="button"
                           onClick={() => setIdentityImages(prev => ({ ...prev, [req.type]: {} }))}
                           className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
                         >
@@ -558,7 +558,7 @@ export default function InfluencerOnboardingPage() {
 
           {/* Navigation Buttons */}
           <div className="flex justify-between mt-6 sm:mt-8 pt-4 sm:pt-6 border-t-2 border-black/10 gap-3">
-            <button
+            <button type="button"
               onClick={handleBack}
               disabled={step === 1}
               className={`
@@ -573,7 +573,7 @@ export default function InfluencerOnboardingPage() {
               Back
             </button>
 
-            <button
+            <button type="button"
               onClick={handleNext}
               disabled={loading || isPending || !canProceed()}
               className={`

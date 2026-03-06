@@ -122,7 +122,7 @@ export default function InfluencerCollaborationsPage() {
             { id: 'accepted', label: 'Accepted', count: collaborations.filter((c) => c.status === 'accepted').length },
             { id: 'declined', label: 'Declined', count: collaborations.filter((c) => c.status === 'declined').length },
           ].map((tab) => (
-            <button
+            <button type="button"
               key={tab.id}
               onClick={() => setFilter(tab.id as any)}
               className={`px-5 py-2 font-black uppercase tracking-wider border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all transform hover:-translate-y-1 ${filter === tab.id
@@ -203,14 +203,14 @@ export default function InfluencerCollaborationsPage() {
                     <div className="space-y-3 mt-auto pt-6 border-t-[2px] border-black border-dashed">
                       {collab.status === 'pending' && (
                         <div className="flex gap-3">
-                          <button
+                          <button type="button"
                             onClick={() => handleStatusChange(collab.id, 'accepted')}
                             disabled={updateStatusMutation.isPending}
                             className="flex-1 bg-[#BAFCA2] border-[2px] border-black font-black uppercase py-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all flex items-center justify-center gap-2"
                           >
                             <CheckCircle2 className="w-5 h-5" /> Accept
                           </button>
-                          <button
+                          <button type="button"
                             onClick={() => handleStatusChange(collab.id, 'declined')}
                             disabled={updateStatusMutation.isPending}
                             className="flex-1 bg-[#FFABAB] border-[2px] border-black font-black uppercase py-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all flex items-center justify-center gap-2"
@@ -253,13 +253,13 @@ export default function InfluencerCollaborationsPage() {
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="p-6 gap-3">
-              <button
+              <button type="button"
                 onClick={() => setConfirmDialog({ open: false, collabId: null, status: null })}
                 className="px-4 py-2 bg-white border-[2px] border-black font-bold uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none transition-all"
               >
                 Cancel
               </button>
-              <button
+              <button type="button"
                 onClick={confirmStatusChange}
                 className={`px-4 py-2 border-[2px] border-black font-bold uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none transition-all text-black ${confirmDialog.status === 'accepted' ? 'bg-[#BAFCA2]' : 'bg-[#FFABAB]'
                   }`}

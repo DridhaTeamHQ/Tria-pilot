@@ -66,7 +66,7 @@ export default function HeroTryOn() {
                     {/* CTA Button */}
                     <FadeInSection delay={0.3}>
                         <div className="flex flex-col sm:flex-row gap-4 pt-2">
-                            <button
+                            <button type="button"
                                 onClick={handleUploadClick}
                                 className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 sm:px-8 py-3.5 sm:py-4 text-base sm:text-lg font-bold text-black bg-[#B4F056] border-[3px] border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all group"
                             >
@@ -173,7 +173,7 @@ export default function HeroTryOn() {
                     {/* Generate Try-On Button - More top margin */}
                     <FadeInSection delay={0.5}>
                         <div className="mt-12 flex justify-center">
-                            <button
+                            <button type="button"
                                 onClick={handleGenerateClick}
                                 disabled={!hasPhoto && isLoggedIn}
                                 className={`w-full sm:w-auto flex items-center justify-center gap-3 px-6 sm:px-8 py-3.5 sm:py-4 text-base sm:text-lg font-bold text-black border-[3px] border-black rounded-xl transition-all ${!hasPhoto && isLoggedIn
