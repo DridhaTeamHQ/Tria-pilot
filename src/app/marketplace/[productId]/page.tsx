@@ -84,7 +84,7 @@ export default async function ProductDetailPage({ params }: any) {
 
   return (
     <div className="min-h-screen bg-cream pt-24">
-      <div className="container mx-auto px-6 py-8">
+      <div className="container mx-auto px-4 sm:px-6 py-8">
         <Link
           href="/marketplace"
           className="inline-flex items-center gap-2 text-sm text-charcoal/60 hover:text-charcoal mb-8 transition-colors"
@@ -93,7 +93,7 @@ export default async function ProductDetailPage({ params }: any) {
           Back to Marketplace
         </Link>
 
-        <div className="grid lg:grid-cols-2 gap-12 mb-16">
+        <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 mb-16">
           <div className="bg-white rounded-xl border-[3px] border-black overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
             <ImageCarousel images={images} />
           </div>
@@ -108,14 +108,14 @@ export default async function ProductDetailPage({ params }: any) {
               </p>
             </div>
 
-            <div className="bg-white border-[3px] border-black p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] mb-8 relative">
-              <div className="absolute -top-3 -left-3 bg-[#FFD93D] px-4 py-1 border-[3px] border-black text-xs font-bold uppercase tracking-widest shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+            <div className="bg-white border-[3px] border-black p-5 sm:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] mb-8 relative">
+              <div className="inline-block sm:absolute sm:-top-3 sm:-left-3 mb-3 sm:mb-0 bg-[#FFD93D] px-4 py-1 border-[3px] border-black text-xs font-bold uppercase tracking-widest shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                 {brandName}
               </div>
-              <h1 className="text-4xl md:text-5xl font-black text-charcoal mb-4 uppercase leading-[0.9] mt-2">{product.name}</h1>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-charcoal mb-4 uppercase leading-[0.9] mt-2">{product.name}</h1>
               {product.price && (
                 <div className="inline-block bg-black text-white px-4 py-2 text-2xl font-bold font-mono">
-                  ₹{Number(product.price).toLocaleString()}
+                  Rs. {Number(product.price).toLocaleString()}
                 </div>
               )}
             </div>
@@ -153,7 +153,7 @@ export default async function ProductDetailPage({ params }: any) {
             </div>
 
             <div className="mt-12 border-[3px] border-black p-8 bg-white relative">
-              <div className="absolute -top-4 left-8 bg-white px-4 border-[3px] border-black text-sm font-bold uppercase tracking-widest">
+              <div className="inline-block sm:absolute sm:-top-4 sm:left-8 mb-4 sm:mb-0 bg-white px-4 border-[3px] border-black text-sm font-bold uppercase tracking-widest">
                 Specification
               </div>
 
@@ -178,7 +178,7 @@ export default async function ProductDetailPage({ params }: any) {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-6 mt-8 pt-8 border-t-[3px] border-black/10">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-8 pt-8 border-t-[3px] border-black/10">
                 {product.audience && (
                   <div>
                     <p className="text-xs font-bold text-charcoal/40 uppercase mb-2 tracking-widest">Target Audience</p>

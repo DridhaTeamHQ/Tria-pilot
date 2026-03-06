@@ -28,7 +28,7 @@ import { useQueryClient, useQuery } from '@tanstack/react-query'
 
 function BrutalCard({ children, className = '', title }: { children: React.ReactNode, className?: string, title?: string }) {
   return (
-    <div className={`bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-8 relative ${className}`}>
+    <div className={`bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-5 sm:p-8 relative ${className}`}>
       {title && (
         <div className="absolute -top-4 left-6 bg-white px-4 border-[3px] border-black text-sm font-bold uppercase tracking-widest shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
           {title}
@@ -50,7 +50,7 @@ function BrutalTag({ label, color = 'bg-white' }: { label: string, color?: strin
 function LoadingSkeleton() {
   return (
     <div className="min-h-screen bg-[#FDFBF7] pt-28 pb-20 animate-pulse">
-      <div className="container mx-auto px-6 max-w-7xl">
+      <div className="container mx-auto px-4 sm:px-6 max-w-7xl">
         <div className="h-16 w-[360px] bg-black/10 mb-6" />
         <div className="h-8 w-[520px] bg-black/10 mb-14" />
         <div className="grid lg:grid-cols-12 gap-10">
@@ -341,32 +341,32 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] pt-28 pb-20">
-      <div className="container mx-auto px-6 max-w-7xl">
+      <div className="container mx-auto px-4 sm:px-6 max-w-7xl">
 
         <div className="mb-16">
-          <h1 className="text-6xl md:text-7xl font-black text-black uppercase mb-4 tracking-tight leading-none">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-black text-black uppercase mb-4 tracking-tight leading-none">
             Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-black to-gray-500">Profile</span>
           </h1>
-          <p className="text-xl font-bold text-black/60 max-w-2xl border-l-[4px] border-[#FFD93D] pl-6 py-2">
+          <p className="text-base sm:text-xl font-bold text-black/60 max-w-2xl border-l-[4px] border-[#FFD93D] pl-4 sm:pl-6 py-2">
             Manage your digital persona, track your growth, and showcase your influence.
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
             <button type="button"
               onClick={() => setEditing(true)}
-              className="px-5 py-2 bg-black text-white border-[3px] border-black font-bold uppercase tracking-wide shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+              className="w-full sm:w-auto px-5 py-2 bg-black text-white border-[3px] border-black font-bold uppercase tracking-wide shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
             >
               Edit Profile
             </button>
             <Link
               href={publicProfilePath}
-              className="px-5 py-2 bg-white text-black border-[3px] border-black font-bold uppercase tracking-wide shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+              className="w-full sm:w-auto text-center px-5 py-2 bg-white text-black border-[3px] border-black font-bold uppercase tracking-wide shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
             >
               View Public Profile
             </Link>
             <button type="button"
               onClick={copyProfileLink}
-              className="px-5 py-2 bg-[#FFD93D] text-black border-[3px] border-black font-bold uppercase tracking-wide shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all inline-flex items-center gap-2"
+              className="w-full sm:w-auto justify-center px-5 py-2 bg-[#FFD93D] text-black border-[3px] border-black font-bold uppercase tracking-wide shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all inline-flex items-center gap-2"
             >
               <Share2 className="w-4 h-4" />
               Share

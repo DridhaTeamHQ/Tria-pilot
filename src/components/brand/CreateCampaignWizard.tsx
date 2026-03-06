@@ -180,20 +180,20 @@ export default function CreateCampaignWizard() {
   }
 
   return (
-    <div className="container mx-auto px-6 py-8 max-w-3xl">
+    <div className="container mx-auto px-4 sm:px-6 py-8 max-w-3xl">
       <div className="mb-8">
         <Link
           href="/brand/campaigns"
           className="text-sm font-bold uppercase tracking-wider text-black/60 hover:text-black"
         >
-          ← Back to campaigns
+          Back to campaigns
         </Link>
         <h1 className="text-3xl font-black text-black mt-2">Create campaign</h1>
         <p className="text-black/60 font-medium mt-1">Set goal, audience, creative, and budget.</p>
       </div>
 
       {/* Step indicator */}
-      <div className="flex items-center justify-between mb-8 border-[3px] border-black p-2 bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-8 border-[3px] border-black p-2 bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
         {STEPS.map((s, i) => {
           const StepIcon = s.icon
           const active = step === s.id
@@ -201,7 +201,7 @@ export default function CreateCampaignWizard() {
           return (
             <div
               key={s.id}
-              className={`flex items-center gap-2 px-3 py-2 font-black text-xs uppercase ${
+              className={`flex items-center gap-2 px-3 py-2 font-black text-xs uppercase shrink-0 ${
                 active ? 'bg-[#FFD93D]' : done ? 'bg-[#B4F056]' : 'bg-gray-100'
               } border-2 border-black`}
             >
@@ -232,7 +232,7 @@ export default function CreateCampaignWizard() {
               <label className="block text-xs font-black uppercase tracking-wider mb-3">
                 Goal
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {GOALS.map((g) => (
                   <button
                     key={g.value}
@@ -255,7 +255,7 @@ export default function CreateCampaignWizard() {
         {/* Step 2: Audience */}
         {step === 2 && (
           <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-black uppercase tracking-wider mb-2">
                   Age min
@@ -321,7 +321,7 @@ export default function CreateCampaignWizard() {
               <label className="block text-xs font-black uppercase tracking-wider mb-2">
                 Interests (add one or comma-separated)
               </label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="text"
                   value={interestsInput}
@@ -333,7 +333,7 @@ export default function CreateCampaignWizard() {
                 <button
                   type="button"
                   onClick={addInterests}
-                  className="px-4 py-3 bg-black text-white font-black uppercase text-sm border-2 border-black"
+                  className="w-full sm:w-auto px-4 py-3 bg-black text-white font-black uppercase text-sm border-2 border-black"
                 >
                   Add
                 </button>
@@ -352,7 +352,7 @@ export default function CreateCampaignWizard() {
                         className="hover:bg-black/10 rounded"
                         aria-label="Remove"
                       >
-                        ×
+                        x
                       </button>
                     </span>
                   ))}
@@ -376,11 +376,11 @@ export default function CreateCampaignWizard() {
               >
                 <option value="">None</option>
                 {productsLoading ? (
-                  <option disabled>Loading…</option>
+                  <option disabled>Loading...</option>
                 ) : (
                   products.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.name} {p.price != null ? `(₹${p.price})` : ''}
+                      {p.name} {p.price != null ? `(Rs. ${p.price})` : ''}
                     </option>
                   ))
                 )}
@@ -450,7 +450,7 @@ export default function CreateCampaignWizard() {
               <label className="block text-xs font-black uppercase tracking-wider mb-3">
                 Budget type
               </label>
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   type="button"
                   onClick={() => updateBudget('budget_type', 'daily')}
@@ -478,7 +478,7 @@ export default function CreateCampaignWizard() {
             {form.budget.budget_type === 'daily' && (
               <div>
                 <label className="block text-xs font-black uppercase tracking-wider mb-2">
-                  Daily budget (₹)
+                  Daily budget (Rs.)
                 </label>
                 <input
                   type="number"
@@ -496,7 +496,7 @@ export default function CreateCampaignWizard() {
             {form.budget.budget_type === 'lifetime' && (
               <div>
                 <label className="block text-xs font-black uppercase tracking-wider mb-2">
-                  Total budget (₹)
+                  Total budget (Rs.)
                 </label>
                 <input
                   type="number"
@@ -511,7 +511,7 @@ export default function CreateCampaignWizard() {
                 />
               </div>
             )}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-black uppercase tracking-wider mb-2">
                   Start date
@@ -546,7 +546,7 @@ export default function CreateCampaignWizard() {
               <dl className="space-y-2 text-sm">
                 <div>
                   <dt className="font-bold text-black/60">Title</dt>
-                  <dd className="font-black">{form.title || '—'}</dd>
+                  <dd className="font-black">{form.title || '-'}</dd>
                 </div>
                 <div>
                   <dt className="font-bold text-black/60">Goal</dt>
@@ -555,11 +555,11 @@ export default function CreateCampaignWizard() {
                 <div>
                   <dt className="font-bold text-black/60">Audience</dt>
                   <dd className="font-medium">
-                    Age {form.audience.age_min ?? '—'}–{form.audience.age_max ?? '—'}
-                    {form.audience.gender && ` · ${form.audience.gender}`}
-                    {form.audience.location && ` · ${form.audience.location}`}
+                    Age {form.audience.age_min ?? '-'}-{form.audience.age_max ?? '-'}
+                    {form.audience.gender && ` | ${form.audience.gender}`}
+                    {form.audience.location && ` | ${form.audience.location}`}
                     {form.audience.interests.length > 0 &&
-                      ` · ${form.audience.interests.join(', ')}`}
+                      ` | ${form.audience.interests.join(', ')}`}
                   </dd>
                 </div>
                 <div>
@@ -568,17 +568,17 @@ export default function CreateCampaignWizard() {
                     {form.creative.product_id
                       ? products.find((p) => p.id === form.creative.product_id)?.name ?? 'Product'
                       : 'No product'}
-                    {form.creative.headline && ` · "${form.creative.headline}"`}
+                    {form.creative.headline && ` | "${form.creative.headline}"`}
                     {form.creative.creative_assets.length > 0 &&
-                      ` · ${form.creative.creative_assets.length} asset(s)`}
+                      ` | ${form.creative.creative_assets.length} asset(s)`}
                   </dd>
                 </div>
                 <div>
                   <dt className="font-bold text-black/60">Budget</dt>
                   <dd className="font-medium">
                     {form.budget.budget_type === 'daily'
-                      ? `₹${form.budget.daily_budget ?? 0}/day`
-                      : `₹${form.budget.total_budget ?? 0} total`}
+                      ? `Rs. ${form.budget.daily_budget ?? 0}/day`
+                      : `Rs. ${form.budget.total_budget ?? 0} total`}
                     {form.budget.start_date && ` from ${form.budget.start_date}`}
                     {form.budget.end_date && ` to ${form.budget.end_date}`}
                   </dd>
@@ -592,13 +592,13 @@ export default function CreateCampaignWizard() {
         )}
 
         {/* Navigation */}
-        <div className="flex justify-between mt-8 pt-6 border-t-2 border-black">
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-between mt-8 pt-6 border-t-2 border-black gap-3">
           <div>
             {step > 1 ? (
               <button
                 type="button"
                 onClick={() => setStep((s) => s - 1)}
-                className="flex items-center gap-2 px-4 py-3 border-2 border-black font-bold uppercase text-sm hover:bg-gray-100"
+                className="w-full sm:w-auto justify-center flex items-center gap-2 px-4 py-3 border-2 border-black font-bold uppercase text-sm hover:bg-gray-100"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Back
@@ -606,7 +606,7 @@ export default function CreateCampaignWizard() {
             ) : (
               <Link
                 href="/brand/campaigns"
-                className="inline-flex items-center gap-2 px-4 py-3 border-2 border-black font-bold uppercase text-sm hover:bg-gray-100"
+                className="w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-3 border-2 border-black font-bold uppercase text-sm hover:bg-gray-100"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Cancel
@@ -619,7 +619,7 @@ export default function CreateCampaignWizard() {
                 type="button"
                 onClick={goNext}
                 disabled={!canNext}
-                className="flex items-center gap-2 px-4 py-3 bg-[#B4F056] border-2 border-black font-black uppercase text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+                className="w-full sm:w-auto justify-center flex items-center gap-2 px-4 py-3 bg-[#B4F056] border-2 border-black font-black uppercase text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
               >
                 Next
                 <ArrowRight className="w-4 h-4" />
@@ -634,7 +634,7 @@ export default function CreateCampaignWizard() {
                 {createCampaign.isPending ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Launching…</span>
+                    <span>Launching...</span>
                   </>
                 ) : (
                   <>
