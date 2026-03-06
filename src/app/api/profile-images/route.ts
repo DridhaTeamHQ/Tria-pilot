@@ -151,23 +151,23 @@ export async function POST(request: Request) {
             .getPublicUrl(fileName)
 
         const imageUrl = urlData.publicUrl
-        const now = new Date().toISOString()
 
         // Primary persistence path: profile avatar.
         const { error: profileUpdateError } = await db
             .from('profiles')
             .update({
                 avatar_url: imageUrl,
-                updated_at: now,
             })
             .eq('id', authUser.id)
 
         if (profileUpdateError) {
             console.error('Failed to update profiles.avatar_url:', profileUpdateError)
             return NextResponse.json({
-                error: 'Failed to save profile avatar. Please try again.',
+                error: profileUpdateError.message || 'Failed to save profile avatar. Please try again.',
             }, { status: 500 })
         }
+
+        const now = new Date().toISOString()
 
         // Secondary metadata (best effort): influencer profile image history.
         try {
