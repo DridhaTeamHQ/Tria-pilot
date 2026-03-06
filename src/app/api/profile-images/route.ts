@@ -15,24 +15,37 @@ export async function GET() {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        const { data: profile, error } = await supabase
-            .from('influencer_profiles')
-            .select('profile_images')
-            .eq('user_id', authUser.id)
-            .maybeSingle()
+        const [{ data: profile }, { data: accountProfile }] = await Promise.all([
+            supabase
+                .from('influencer_profiles')
+                .select('profile_images')
+                .eq('user_id', authUser.id)
+                .maybeSingle(),
+            supabase
+                .from('profiles')
+                .select('avatar_url')
+                .eq('id', authUser.id)
+                .maybeSingle(),
+        ])
 
-        if (error) {
-            return NextResponse.json({ images: [] })
-        }
-
-        const images = Array.isArray(profile?.profile_images)
+        let images = Array.isArray(profile?.profile_images)
             ? profile.profile_images.map((img: any, index: number) => ({
                 id: img.id || `img-${index}`,
                 imageUrl: img.url || img.imageUrl || img,
                 isPrimary: Boolean(img.isPrimary || index === 0),
-                label: img.label || null
+                label: img.label || null,
             }))
             : []
+
+        // Fallback: if structured image metadata is missing, use profiles.avatar_url.
+        if (images.length === 0 && typeof accountProfile?.avatar_url === 'string' && accountProfile.avatar_url) {
+            images = [{
+                id: 'avatar-primary',
+                imageUrl: accountProfile.avatar_url,
+                isPrimary: true,
+                label: 'avatar',
+            }]
+        }
 
         return NextResponse.json({ images })
     } catch (error) {
@@ -121,12 +134,14 @@ export async function POST(request: Request) {
             .from('profile-images')
             .upload(fileName, fileBuffer, {
                 contentType: uploadContentType,
-                upsert: false
+                upsert: false,
             })
 
         if (uploadError) {
             console.error('Upload error:', uploadError)
-            return NextResponse.json({ error: 'Failed to upload image' }, { status: 500 })
+            return NextResponse.json({
+                error: uploadError.message || 'Failed to upload image',
+            }, { status: 500 })
         }
 
         const { data: urlData } = db.storage
@@ -134,83 +149,87 @@ export async function POST(request: Request) {
             .getPublicUrl(fileName)
 
         const imageUrl = urlData.publicUrl
-
-        const { data: existingProfile, error: existingProfileError } = await db
-            .from('influencer_profiles')
-            .select('id, profile_images')
-            .eq('user_id', authUser.id)
-            .maybeSingle()
-
-        if (existingProfileError) {
-            console.error('Failed to read influencer profile:', existingProfileError)
-            return NextResponse.json({ error: 'Failed to read profile image metadata' }, { status: 500 })
-        }
-
-        const currentImages = Array.isArray(existingProfile?.profile_images) ? existingProfile.profile_images : []
-        const normalizedExisting = currentImages.map((img: any, index: number) => ({
-            ...img,
-            isPrimary: makePrimary ? false : Boolean(img?.isPrimary || index === 0),
-        }))
-
-        const newImage = {
-            id: `img-${Date.now()}`,
-            url: imageUrl,
-            label: label || null,
-            isPrimary: makePrimary || normalizedExisting.length === 0
-        }
-
-        const nextImages = [...normalizedExisting, newImage]
         const now = new Date().toISOString()
 
-        if (existingProfile?.id) {
-            const { error: updateError } = await db
-                .from('influencer_profiles')
-                .update({
-                    profile_images: nextImages,
-                    updated_at: now
-                })
-                .eq('id', existingProfile.id)
-
-            if (updateError) {
-                console.error('Failed to update image metadata:', updateError)
-                return NextResponse.json({ error: 'Failed to save profile image metadata' }, { status: 500 })
-            }
-        } else {
-            const { error: insertError } = await db
-                .from('influencer_profiles')
-                .insert({
-                    user_id: authUser.id,
-                    profile_images: nextImages,
-                    updated_at: now
-                })
-
-            if (insertError) {
-                console.error('Failed to create image metadata row:', insertError)
-                return NextResponse.json({ error: 'Failed to create profile image metadata' }, { status: 500 })
-            }
-        }
-
+        // Primary persistence path: profile avatar.
         const { error: profileUpdateError } = await db
             .from('profiles')
             .update({
                 avatar_url: imageUrl,
-                updated_at: now
+                updated_at: now,
             })
             .eq('id', authUser.id)
 
         if (profileUpdateError) {
-            console.warn('Failed to update profiles.avatar_url:', profileUpdateError)
+            console.error('Failed to update profiles.avatar_url:', profileUpdateError)
+            return NextResponse.json({
+                error: 'Failed to save profile avatar. Please try again.',
+            }, { status: 500 })
         }
 
-        return NextResponse.json({
-            success: true,
-            image: {
-                id: newImage.id,
-                imageUrl: newImage.url,
-                isPrimary: newImage.isPrimary,
-                label: newImage.label
+        // Secondary metadata (best effort): influencer profile image history.
+        try {
+            const { data: existingProfile } = await db
+                .from('influencer_profiles')
+                .select('id, profile_images')
+                .eq('user_id', authUser.id)
+                .maybeSingle()
+
+            const currentImages = Array.isArray(existingProfile?.profile_images) ? existingProfile.profile_images : []
+            const normalizedExisting = currentImages.map((img: any, index: number) => ({
+                ...img,
+                isPrimary: makePrimary ? false : Boolean(img?.isPrimary || index === 0),
+            }))
+
+            const newImage = {
+                id: `img-${Date.now()}`,
+                url: imageUrl,
+                label: label || null,
+                isPrimary: makePrimary || normalizedExisting.length === 0,
             }
-        })
+
+            const nextImages = [...normalizedExisting, newImage]
+
+            if (existingProfile?.id) {
+                await db
+                    .from('influencer_profiles')
+                    .update({
+                        profile_images: nextImages,
+                        updated_at: now,
+                    })
+                    .eq('id', existingProfile.id)
+            } else {
+                await db
+                    .from('influencer_profiles')
+                    .insert({
+                        user_id: authUser.id,
+                        profile_images: nextImages,
+                        updated_at: now,
+                    })
+            }
+
+            return NextResponse.json({
+                success: true,
+                image: {
+                    id: newImage.id,
+                    imageUrl: newImage.url,
+                    isPrimary: newImage.isPrimary,
+                    label: newImage.label,
+                },
+            })
+        } catch (metadataError) {
+            console.warn('Profile image metadata write skipped:', metadataError)
+            return NextResponse.json({
+                success: true,
+                image: {
+                    id: `img-${Date.now()}`,
+                    imageUrl,
+                    isPrimary: true,
+                    label: label || null,
+                },
+                warning: 'Avatar updated, but image history metadata was not saved.',
+            })
+        }
     } catch (error) {
         console.error('Save profile image error:', error)
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

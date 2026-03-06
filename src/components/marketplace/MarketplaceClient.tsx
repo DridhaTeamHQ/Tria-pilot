@@ -69,7 +69,7 @@ export default function MarketplaceClient({ products, categories, activeCategory
                 {/* Header */}
                 <div className="mb-10 animate-fade-in">
                     <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-8">
-                        <div className="bg-white border-[3px] border-black p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] max-w-2xl relative overflow-hidden">
+                        <div className="bg-white border-[3px] border-black p-5 sm:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] max-w-2xl relative overflow-hidden">
                             <div className="relative z-10">
                                 <div className="flex items-center gap-3 mb-4">
                                     <div className="w-10 h-10 border-[2px] border-black bg-[#FFD93D] flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
@@ -77,8 +77,8 @@ export default function MarketplaceClient({ products, categories, activeCategory
                                     </div>
                                     <span className="text-sm font-bold uppercase tracking-widest text-charcoal/70">Discover & Collaborate</span>
                                 </div>
-                                <h1 className="text-5xl sm:text-6xl font-black text-charcoal mb-4 uppercase leading-[0.9]">
-                                    Brand <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-charcoal to-gray-500">Marketplace</span>
+                                <h1 className="text-4xl sm:text-6xl font-black text-charcoal mb-4 uppercase leading-[0.9]">
+                                    Brand <br /><span className="block break-all sm:break-normal text-transparent bg-clip-text bg-gradient-to-r from-charcoal to-gray-500">Marketplace</span>
                                 </h1>
                                 <p className="text-charcoal/70 text-lg font-medium max-w-md border-l-[3px] border-[#FFD93D] pl-4">
                                     Find perfect collaboration opportunities tailored to your niche.
