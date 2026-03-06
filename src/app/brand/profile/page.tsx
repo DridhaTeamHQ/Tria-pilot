@@ -132,7 +132,7 @@ export default function BrandProfilePage() {
     }
 
     return (
-        <div className="container mx-auto px-4 sm:px-6 py-8 max-w-3xl">
+        <div className="container mx-auto px-4 sm:px-6 py-8 max-w-3xl animate-fade-in">
             {/* Header */}
             <div className="mb-8">
                 <h1 className="text-2xl sm:text-3xl font-black text-black mb-1">
@@ -146,7 +146,7 @@ export default function BrandProfilePage() {
 
             <form onSubmit={handleSubmit} className="space-y-8">
                 {/* Company Info */}
-                <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4 sm:p-6">
+                <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4 sm:p-6 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
                     <h2 className="text-xl font-black mb-6 flex items-center gap-2">
                         <Building2 className="w-5 h-5" />
                         Company Information
@@ -231,7 +231,7 @@ export default function BrandProfilePage() {
                 </div>
 
                 {/* Contact Info */}
-                <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4 sm:p-6">
+                <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4 sm:p-6 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
                     <h2 className="text-xl font-black mb-6 flex items-center gap-2">
                         <Mail className="w-5 h-5" />
                         Contact Information
@@ -271,7 +271,7 @@ export default function BrandProfilePage() {
                 </div>
 
                 {/* Social Links */}
-                <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4 sm:p-6">
+                <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4 sm:p-6 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
                     <h2 className="text-xl font-black mb-6 flex items-center gap-2">
                         <Instagram className="w-5 h-5" />
                         Social Media
@@ -332,7 +332,7 @@ export default function BrandProfilePage() {
                 <button
                     type="submit"
                     disabled={saving}
-                    className="w-full py-4 bg-[#B4F056] border-[3px] border-black font-black uppercase text-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                    className="w-full py-4 bg-[#B4F056] border-[3px] border-black font-black uppercase text-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 active:translate-y-[1px] disabled:opacity-50 transition-all flex items-center justify-center gap-2"
                 >
                     {saving ? (
                         <Loader2 className="w-6 h-6 animate-spin" />

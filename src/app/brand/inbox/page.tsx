@@ -219,7 +219,7 @@ export default function BrandInboxPage() {
     }
 
     return (
-        <div className="container mx-auto px-4 sm:px-6 py-8">
+        <div className="container mx-auto px-4 sm:px-6 py-8 animate-fade-in">
             <h1 className="text-2xl sm:text-3xl font-black text-black mb-6">
                 <Inbox className="inline-block w-8 h-8 mr-2 -mt-1" />
                 Inbox
@@ -253,7 +253,7 @@ export default function BrandInboxPage() {
                                 <button type="button"
                                     key={conv.id}
                                     onClick={() => selectConversation(conv)}
-                                    className={`w-full p-4 text-left border-b-2 border-black/10 hover:bg-gray-50 transition-colors ${selectedConversation?.id === conv.id ? 'bg-[#B4F056]/20' : ''
+                                    className={`w-full p-4 text-left border-b-2 border-black/10 hover:bg-gray-50 hover:-translate-y-[1px] transition-all ${selectedConversation?.id === conv.id ? 'bg-[#B4F056]/20' : ''
                                         }`}
                                 >
                                     <div className="flex items-start gap-3">
@@ -355,7 +355,7 @@ export default function BrandInboxPage() {
                                 <button
                                     type="submit"
                                     disabled={!newMessage.trim() || sending}
-                                    className="w-full sm:w-auto px-6 py-3 bg-[#B4F056] border-2 border-black font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                                    className="w-full sm:w-auto px-6 py-3 bg-[#B4F056] border-2 border-black font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-[1px] disabled:opacity-50 transition-all flex items-center justify-center gap-2"
                                 >
                                     {sending ? (
                                         <Loader2 className="w-5 h-5 animate-spin" />

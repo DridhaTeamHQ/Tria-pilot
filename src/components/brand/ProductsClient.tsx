@@ -424,7 +424,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
     // Rendering logic for interactive form...
     // (Truncated for brevity in thought, but full code is in call)
     return (
-        <div className="container mx-auto px-4 sm:px-6 py-8">
+        <div className="container mx-auto px-4 sm:px-6 py-8 animate-fade-in">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
                 <div>
@@ -449,7 +449,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                     onClick={resetForm}
                 >
                     <div
-                        className="bg-[#FFFDF8] rounded-2xl border-[3px] border-black shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+                        className="bg-[#FFFDF8] rounded-2xl border-[3px] border-black shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-fade-in"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="flex items-center justify-between p-4 border-b-[3px] border-black">
@@ -764,7 +764,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                     </p>
                     <button type="button"
                         onClick={() => setShowForm(true)}
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-[#B4F056] border-[3px] border-black font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-[#B4F056] border-[3px] border-black font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-[1px] transition-all"
                     >
                         <Plus className="w-5 h-5" />
                         Add Product
@@ -775,7 +775,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                     {products.map((product) => (
                         <div
                             key={product.id}
-                            className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden group"
+                            className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden group hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all animate-fade-in"
                         >
                             {/* Image */}
                             <div className="aspect-square bg-gray-100 relative">
@@ -832,7 +832,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                                 <div className="flex items-center gap-1.5">
                                     <button type="button"
                                         onClick={() => openEditForm(product)}
-                                        className="flex-1 h-8 border-2 border-black font-bold text-[11px] uppercase hover:bg-gray-100 flex items-center justify-center gap-1"
+                                        className="flex-1 h-8 border-2 border-black font-bold text-[11px] uppercase hover:bg-gray-100 active:scale-[0.98] transition-transform flex items-center justify-center gap-1"
                                     >
                                         <Edit2 className="w-4 h-4" />
                                         Edit
@@ -842,14 +842,14 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                                             href={product.link}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="h-8 w-8 border-2 border-black hover:bg-gray-100 flex items-center justify-center"
+                                            className="h-8 w-8 border-2 border-black hover:bg-gray-100 active:scale-[0.96] transition-transform flex items-center justify-center"
                                         >
                                             <ExternalLink className="w-4 h-4" />
                                         </a>
                                     )}
                                     <button type="button"
                                         onClick={() => handleDeleteClick(product)}
-                                        className="h-8 w-8 border-2 border-black hover:bg-red-100 flex items-center justify-center"
+                                        className="h-8 w-8 border-2 border-black hover:bg-red-100 active:scale-[0.96] transition-transform flex items-center justify-center"
                                         aria-label="Delete product"
                                     >
                                         <Trash2 className="w-4 h-4 text-red-600" />
