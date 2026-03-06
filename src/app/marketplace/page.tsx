@@ -54,6 +54,7 @@ export default async function MarketplacePage({
       category,
       price,
       cover_image,
+      tryon_image,
       brand_id,
       brand:brand_id (
         id,
@@ -90,9 +91,9 @@ export default async function MarketplacePage({
     const companyName = brandData.companyName || 'Unknown Brand'
 
     // Use cover image URL when available, but never inline base64 in listing payloads.
-    let mainImage = p.cover_image || ''
-    // Listing cards should never ship data URIs; this keeps SSR payloads fast.
-    if (typeof mainImage === 'string' && mainImage.startsWith('data:')) {
+    let mainImage = p.cover_image || p.tryon_image || ''
+    // Keep smaller inline images visible; skip only very large data URIs that hurt page speed.
+    if (typeof mainImage === 'string' && mainImage.startsWith('data:') && mainImage.length > 2 * 1024 * 1024) {
       mainImage = ''
     }
 

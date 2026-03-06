@@ -65,41 +65,6 @@ export default async function ProductDetailPage({ params }: any) {
   // Normalize images
   // Supabase images is text[]
   let images: string[] = product.images || []
-
-  // FALLBACK: If no images in new table, check Legacy tables
-  // Only hit legacy tables when we truly have no primary media.
-  if (images.length === 0 && !product.cover_image) {
-    // 1. Try Legacy Table with current ID
-    const { data: legacyImgs } = await supabase
-      .from('ProductImage')
-      .select('imagePath')
-      .eq('productId', productId)
-      .order('order', { ascending: true })
-
-    if (legacyImgs && legacyImgs.length > 0) {
-      images = legacyImgs.map(i => i.imagePath)
-    } else {
-      // 2. Try Name Match Fallback (for migration mismatch)
-      const { data: legacyMatch } = await supabase
-        .from('Product')
-        .select('id')
-        .eq('name', product.name)
-        .single()
-
-      if (legacyMatch) {
-        const { data: nameMatchImages } = await supabase
-          .from('ProductImage')
-          .select('imagePath')
-          .eq('productId', legacyMatch.id)
-          .order('order', { ascending: true })
-
-        if (nameMatchImages && nameMatchImages.length > 0) {
-          images = nameMatchImages.map(i => i.imagePath)
-        }
-      }
-    }
-  }
-
   if (product.cover_image && !images.includes(product.cover_image)) {
     images.unshift(product.cover_image)
   }
