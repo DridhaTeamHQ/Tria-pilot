@@ -62,16 +62,22 @@ export default async function ProductDetailPage({ params }: any) {
     notFound()
   }
 
-  // Normalize images and cap heavy inline payloads to keep detail page responsive.
-  let images: string[] = Array.isArray(product.images) ? product.images : []
-  images = images.filter((img: unknown): img is string => {
-    if (typeof img !== 'string') return false
-    if (!img.startsWith('data:')) return true
-    return img.length <= 2 * 1024 * 1024
-  })
+  // Normalize images and aggressively cap heavy inline payloads for faster server render.
+  const rawImages = Array.isArray(product.images) ? product.images : []
+  const images: string[] = []
+
+  for (const candidate of rawImages) {
+    if (typeof candidate !== 'string') continue
+    if (candidate.startsWith('data:')) {
+      // Keep only small inline assets; large base64 payloads severely slow route transitions.
+      if (candidate.length > 300 * 1024) continue
+    }
+    images.push(candidate)
+    if (images.length >= 4) break
+  }
 
   if (product.cover_image && !images.includes(product.cover_image)) {
-    if (!product.cover_image.startsWith('data:') || product.cover_image.length <= 2 * 1024 * 1024) {
+    if (!product.cover_image.startsWith('data:') || product.cover_image.length <= 300 * 1024) {
       images.unshift(product.cover_image)
     }
   }

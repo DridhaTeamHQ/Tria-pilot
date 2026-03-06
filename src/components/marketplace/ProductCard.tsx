@@ -82,6 +82,11 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
     }, [canHover, product.id, router])
 
     const handleMouseLeave = useCallback(() => setIsHovered(false), [])
+    useEffect(() => {
+        if (priority) {
+            router.prefetch(`/marketplace/${product.id}`)
+        }
+    }, [priority, product.id, router])
 
     const brandName = product.brand?.companyName || product.brand?.user?.name || 'Brand'
     const priceDisplay = formatPrice(product.price)
