@@ -626,26 +626,35 @@ function TryOnPageContent() {
                 }
             }
 
-            const response = await fetch('/api/tryon', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({
-                    personImage: personImageBase64 || personImage,
-                    personImages: allAdditionalImages.length > 0 ? allAdditionalImages : undefined,
-                    editType,
-                    clothingImage: clothingImageBase64 || clothingImage || undefined,
-                    backgroundImage: backgroundImageBase64 || backgroundImage || undefined,
-                    accessoryImages: accessoryImages.length > 0 ? accessoryImages : undefined,
-                    accessoryTypes: accessoryTypes.length > 0 ? accessoryTypes : undefined,
-                    model: 'flash',
-                    stylePreset: selectedPreset || undefined,
-                    userRequest: userRequest || undefined,
-                    aspectRatio,
-                    resolution: quality,
-                }),
-            })
+            const submitTimeoutMs = 115000
+            const controller = new AbortController()
+            const timeoutId = setTimeout(() => controller.abort(), submitTimeoutMs)
 
+            let response: Response
+            try {
+                response = await fetch('/api/tryon', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    signal: controller.signal,
+                    body: JSON.stringify({
+                        personImage: personImageBase64 || personImage,
+                        personImages: allAdditionalImages.length > 0 ? allAdditionalImages : undefined,
+                        editType,
+                        clothingImage: clothingImageBase64 || clothingImage || undefined,
+                        backgroundImage: backgroundImageBase64 || backgroundImage || undefined,
+                        accessoryImages: accessoryImages.length > 0 ? accessoryImages : undefined,
+                        accessoryTypes: accessoryTypes.length > 0 ? accessoryTypes : undefined,
+                        model: 'flash',
+                        stylePreset: selectedPreset || undefined,
+                        userRequest: userRequest || undefined,
+                        aspectRatio,
+                        resolution: quality,
+                    }),
+                })
+            } finally {
+                clearTimeout(timeoutId)
+            }
             // Safe parse handles non-JSON and error responses gracefully
             const data = await safeParseResponse(response, 'try-on generation')
 
@@ -705,6 +714,48 @@ function TryOnPageContent() {
             // Show celebration for 5 seconds to let success video play fully
             setTimeout(() => setShowCelebration(false), 5000)
         } catch (error) {
+            if (error instanceof Error && error.name === 'AbortError') {
+                toast.error('Request timed out. Checking active job...')
+                try {
+                    const activeRes = await fetch('/api/tryon/jobs/active', { cache: 'no-store', credentials: 'include' })
+                    const active = await safeParseResponse<any>(activeRes, 'active try-on job after timeout')
+                    if (activeRes.ok && active?.jobId && (active?.status === 'pending' || active?.status === 'processing')) {
+                        const timeoutJobId = String(active.jobId)
+                        setActiveJobId(timeoutJobId)
+                        setQueueStatus(active.status === 'pending' ? 'queued' : 'generating')
+                        const finalJob = await pollTryOnJob(timeoutJobId, {
+                            onStatus: (status) => {
+                                setQueueStatus(status === 'pending' ? 'queued' : 'generating')
+                            },
+                        })
+
+                        if (finalJob.status === 'failed') {
+                            throw new Error(finalJob.error || 'Try-on generation failed')
+                        }
+
+                        if (!finalJob.imageUrl && !finalJob.base64Image) {
+                            throw new Error('Try-on completed but no image was returned')
+                        }
+
+                        setVariants([])
+                        setResult({
+                            jobId: timeoutJobId,
+                            imageUrl: finalJob.imageUrl || '',
+                            base64Image: finalJob.base64Image,
+                        })
+                        toast.success('Try-on completed successfully!')
+                        setShowCelebration(true)
+                        setTimeout(() => setShowCelebration(false), 5000)
+                        return
+                    }
+                } catch (resumeError) {
+                    console.warn('Failed to resume timed-out job:', resumeError)
+                }
+
+                toast.error('Generation timed out. Please try again.')
+                return
+            }
+
             // Handle structured error codes from API
             const structured = error as (Error & { status?: number; retryAfterSeconds?: number; code?: string })
             const errorMessage = error instanceof Error ? error.message : 'Generation failed'
@@ -1812,4 +1863,3 @@ export default function TryOnPage() {
         </Suspense>
     )
 }
-
