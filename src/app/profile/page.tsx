@@ -155,14 +155,67 @@ export default function ProfilePage() {
     }
   }
 
+  const preparePhotoForUpload = async (file: File): Promise<File> => {
+    const maxEdge = 1600
+
+    // Keep already-light files as-is for best quality and speed.
+    if (file.size <= 1.8 * 1024 * 1024 && file.type !== 'image/heic' && file.type !== 'image/heif') {
+      return file
+    }
+
+    return await new Promise<File>((resolve, reject) => {
+      const objectUrl = URL.createObjectURL(file)
+      const img = new Image()
+
+      img.onload = () => {
+        try {
+          const scale = Math.min(1, maxEdge / Math.max(img.width, img.height))
+          const width = Math.max(1, Math.round(img.width * scale))
+          const height = Math.max(1, Math.round(img.height * scale))
+
+          const canvas = document.createElement('canvas')
+          canvas.width = width
+          canvas.height = height
+
+          const ctx = canvas.getContext('2d')
+          if (!ctx) {
+            URL.revokeObjectURL(objectUrl)
+            reject(new Error('Could not process image'))
+            return
+          }
+
+          ctx.drawImage(img, 0, 0, width, height)
+          canvas.toBlob((blob) => {
+            URL.revokeObjectURL(objectUrl)
+            if (!blob) {
+              reject(new Error('Could not compress image'))
+              return
+            }
+            resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }))
+          }, 'image/jpeg', 0.82)
+        } catch (error) {
+          URL.revokeObjectURL(objectUrl)
+          reject(error instanceof Error ? error : new Error('Image compression failed'))
+        }
+      }
+
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl)
+        reject(new Error('Failed to read image'))
+      }
+
+      img.src = objectUrl
+    })
+  }
+
   const uploadPhotoFile = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       toast.error('Please select an image file')
       return
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image must be less than 5MB')
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error('Image must be less than 15MB')
       return
     }
 
@@ -171,24 +224,38 @@ export default function ProfilePage() {
     setUploadProgress(15)
 
     const previousImage = profileImageUrl
-    const previewUrl = URL.createObjectURL(file)
     let progressTimer: ReturnType<typeof setInterval> | null = null
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
 
     try {
+      const uploadFile = await preparePhotoForUpload(file)
+
+      if (uploadFile.size > 5 * 1024 * 1024) {
+        throw new Error('Compressed image is still too large. Please choose a smaller image.')
+      }
+
+      const previewUrl = URL.createObjectURL(uploadFile)
       setProfileImageUrl(previewUrl)
+
       progressTimer = setInterval(() => {
         setUploadProgress((prev) => (prev >= 90 ? prev : prev + 8))
       }, 180)
 
       const formData = new FormData()
-      formData.append('file', file)
+      formData.append('file', uploadFile)
       formData.append('label', 'profile-avatar')
+
+      const controller = new AbortController()
+      timeoutId = setTimeout(() => controller.abort(), 45000)
 
       const res = await fetch('/api/profile-images', {
         method: 'POST',
         credentials: 'include',
         body: formData,
+        signal: controller.signal,
       })
+
+      clearTimeout(timeoutId)
 
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}))
@@ -218,9 +285,15 @@ export default function ProfilePage() {
       }, 1200)
     } catch (err) {
       console.error('Photo upload error:', err)
-      URL.revokeObjectURL(previewUrl)
       setProfileImageUrl(previousImage)
-      toast.error(err instanceof Error ? err.message : 'Failed to upload photo', {
+
+      const errorMessage = err instanceof Error && err.name === 'AbortError'
+        ? 'Upload timed out. Try a smaller image or better network.'
+        : err instanceof Error
+          ? err.message
+          : 'Failed to upload photo'
+
+      toast.error(errorMessage, {
         action: {
           label: 'Retry',
           onClick: () => {
@@ -230,6 +303,7 @@ export default function ProfilePage() {
       })
     } finally {
       if (progressTimer) clearInterval(progressTimer)
+      if (timeoutId) clearTimeout(timeoutId)
       setUploadingPhoto(false)
     }
   }
@@ -667,5 +741,3 @@ export default function ProfilePage() {
     </div>
   )
 }
-
-

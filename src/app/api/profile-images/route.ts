@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
 
+export const maxDuration = 60
+
 /**
  * GET /api/profile-images
  *
