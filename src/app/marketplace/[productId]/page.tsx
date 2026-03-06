@@ -2,29 +2,12 @@ import { createServiceClient } from '@/lib/auth'
 import { getIdentity } from '@/lib/auth-state'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
-import dynamic from 'next/dynamic'
 import { Camera, ExternalLink, ArrowLeft } from 'lucide-react'
 import ImageCarousel from '@/components/product/ImageCarousel'
+import ProductRecommendations from '@/components/product/ProductRecommendations'
 import RequestCollaborationButton from '@/components/collaborations/RequestCollaborationButton'
 import FavoriteButton from '@/components/product/FavoriteButton'
 import ProductShareButton from '@/components/product/ProductShareButton'
-
-const ProductRecommendations = dynamic(
-  () => import('@/components/product/ProductRecommendations'),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="mt-12">
-        <div className="h-8 w-56 bg-zinc-200 rounded animate-pulse mb-6" />
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-64 bg-zinc-200 rounded-lg animate-pulse" />
-          ))}
-        </div>
-      </div>
-    ),
-  }
-)
 
 export default async function ProductDetailPage({ params }: any) {
   const { productId } = await params
@@ -39,7 +22,6 @@ export default async function ProductDetailPage({ params }: any) {
   }
 
   if (!service) {
-    // This page requires DB access; if service key is missing, fail fast.
     notFound()
   }
 
