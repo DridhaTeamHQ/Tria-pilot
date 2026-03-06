@@ -38,6 +38,8 @@ const ULTRA_FACE_LOCK_PRESETS = new Set([
   'street_mcdonalds_bmw_night',
   'studio_crimson_noir',
   'golden_hour_bedroom',
+  'lifestyle_european_bench',
+  'airport_travel_candid',
 ])
 const COMPLEX_BACKGROUND_PRESETS = new Set([
   'urban_gas_station_night',
@@ -173,90 +175,19 @@ export async function generateWithNanoBananaPro(
     // ═════════════════════════════════════════════════════════════════════════
     if (isDev) console.log('\n━━━ STAGE 2: Compact Prompt ━━━')
 
-    const presetGuidance = getPresetExampleGuidance(sceneConfig.preset || input.presetId)
-    const requestGuidance = getRequestExampleGuidance(input.userRequest)
-    const exampleGuidance = presetGuidance || requestGuidance
     const resolvedPresetId = sceneConfig.preset || input.presetId
     const isUltraFaceLockPreset = ULTRA_FACE_LOCK_PRESETS.has((resolvedPresetId || '').toLowerCase())
     const isComplexBackgroundPreset = COMPLEX_BACKGROUND_PRESETS.has((resolvedPresetId || '').toLowerCase())
-    const resolvedPreset = getPresetById(resolvedPresetId || '')
-    const presetFaceGuard = getPresetFaceGuard(resolvedPresetId)
-    const presetOpticalGuard = getPresetOpticalGuard(resolvedPresetId)
-    const strengthProfile = getPresetStrengthProfile({
-      presetId: resolvedPresetId,
-      category: resolvedPreset?.category,
-    })
-    const faceSpatialLock = getFaceSpatialLock(personFace)
-    const identityCorrectionGuidance = [
-      presetFaceGuard.identityCorrectionGuidance,
-      !faceSpatialLock
-        ? 'Face detection confidence is limited in this run. Prioritize exact source identity signals (eyes, nose-lip relation, jawline, beard/skin texture) and avoid any beautification or age/complexion shift.'
-        : undefined,
-    ]
-      .filter(Boolean)
-      .join(' ')
+
 
     const promptInput = {
       garmentDescription: input.garmentDescription,
       preset: sceneConfig.anchorZone,
       lighting: sceneConfig.lightingMode,
-      realismGuidance: sceneConfig.realismGuidance,
       lightingBlueprint: sceneConfig.lightingBlueprint,
-      presetAvoid: sceneConfig.presetAvoid,
-      garmentOnPersonGuidance: forensicAnchor.garmentOnPersonGuidance,
-      faceForensicAnchor: forensicAnchor.faceAnchor,
-      eyesAnchor: forensicAnchor.eyesAnchor,
-      characterSummary: forensicAnchor.characterSummary,
-      poseSummary: forensicAnchor.poseSummary,
-      appearanceSummary: forensicAnchor.appearanceSummary,
-      bodyAnchor: forensicAnchor.bodyAnchor,
-      styleGuidance: sanitizeEnvironmentGuidance(
-        exampleGuidance
-          ? `${exampleGuidance.vibe} ${exampleGuidance.scene} Lighting intent: ${exampleGuidance.lighting}.`
-          : undefined
-      ),
-      colorGradingGuidance: sanitizeEnvironmentGuidance(exampleGuidance?.colorGrading),
-      cameraGuidance: [
-        sanitizeEnvironmentGuidance(exampleGuidance?.camera),
-        presetOpticalGuard.cameraGuidance,
-      ].filter(Boolean).join(' '),
-      poseInferenceGuidance: sanitizeEnvironmentGuidance(exampleGuidance?.poseInference),
-      researchContext: input.researchContext,
-      webResearchContext: input.webResearchContext,
-      additionalAvoidTerms: Array.from(
-        new Set([
-          ...(presetGuidance?.avoidTerms || []),
-          ...(requestGuidance?.avoidTerms || []),
-          ...presetFaceGuard.additionalAvoidTerms,
-          ...presetOpticalGuard.additionalAvoidTerms,
-        ])
-      ),
-      identityPriorityRules: Array.from(
-        new Set([
-          ...sanitizeIdentityRules([...(presetGuidance?.identityRules || []), ...(requestGuidance?.identityRules || [])]),
-          'Preset style, grading, and mood controls apply to scene and garment only, never to facial geometry or face skin texture.',
-          'Night or moody rendering must not reshape jaw, cheeks, eyes, or brows, and must not beautify or airbrush the face.',
-          'If scene detail conflicts with identity preservation, simplify scene detail before altering any face geometry or face texture.',
-          'Preserve perceived age from the source face exactly; no de-aging, youthification, or wrinkle cleanup.',
-          'Preserve source skin luminance and undertone on the face; no whitening, brightening, fairness shift, or complexion rewrite.',
-          ...presetFaceGuard.identityPriorityRules,
-        ])
-      ),
-      identityCorrectionGuidance: identityCorrectionGuidance || undefined,
-      strengthProfile,
       hasFaceReference: Boolean(faceCropResult.success && faceCropResult.faceCropBase64),
-      faceBox: faceSpatialLock
-        ? {
-            ymin: faceSpatialLock.box.ymin,
-            xmin: faceSpatialLock.box.xmin,
-            ymax: faceSpatialLock.box.ymax,
-            xmax: faceSpatialLock.box.xmax,
-          }
-        : undefined,
-      faceSpatialLockQuality: faceSpatialLock?.quality,
       aspectRatio: input.aspectRatio || '1:1',
-      retryMode: true,
-      sceneCorrectionGuidance: undefined as string | undefined,
+      retryMode: false, // Only set true during actual retries, not first pass
     }
     const prompt = buildForensicPrompt(promptInput)
 
@@ -380,27 +311,12 @@ export async function generateWithNanoBananaPro(
       ]
         .filter(Boolean)
         .join(', ')
-      console.warn(`   ⚠️ Quality retry triggered (${retryReasons}), retrying once with stricter controls`)
-      const retryIdentityCorrectionGuidance = buildRetryIdentityCorrectionGuidance({
-        baseIdentityCorrectionGuidance: promptInput.identityCorrectionGuidance,
-        microDriftEmphasis: driftRetryParams.emphasis,
-        hasHardFaceFailure: hardFaceFailure,
-        isComplexBackgroundPreset,
-      })
-      const retrySceneCorrectionGuidance = [
-        sceneAssessment.correctionGuidance,
-        isComplexBackgroundPreset
-          ? 'When scene complexity conflicts with identity, simplify distant background detail and preserve legible real textures instead of adding stylized blur or glow.'
-          : undefined,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .trim()
+      console.warn(`   ⚠️ Quality retry triggered (${retryReasons}), retrying with retryMode=true`)
+      // SIMPLE RETRY: use the exact same prompt with only retryMode=true.
+      // Adding more text on retry was causing WORSE drift (30% → 40%).
       const retryPrompt = buildForensicPrompt({
         ...promptInput,
         retryMode: true,
-        sceneCorrectionGuidance: retrySceneCorrectionGuidance || undefined,
-        identityCorrectionGuidance: retryIdentityCorrectionGuidance || undefined,
       })
 
       generatedImage = await generateTryOnDirect({
@@ -486,17 +402,17 @@ export async function generateWithNanoBananaPro(
     )
     const faceConsistencyGate = finalFaceFailure
       ? {
-          failed: true,
-          reason: driftAssessment.reason || 'unknown',
-          microDriftPercent: finalMicroDrift,
-          threshold: finalDriftMax,
-        }
+        failed: true,
+        reason: driftAssessment.reason || 'unknown',
+        microDriftPercent: finalMicroDrift,
+        threshold: finalDriftMax,
+      }
       : {
-          failed: false,
-          reason: 'passed',
-          microDriftPercent: finalMicroDrift,
-          threshold: finalDriftMax,
-        }
+        failed: false,
+        reason: 'passed',
+        microDriftPercent: finalMicroDrift,
+        threshold: finalDriftMax,
+      }
 
     if (isDev) {
       console.log(`   Generated in ${(genTime / 1000).toFixed(1)}s`)
@@ -512,11 +428,7 @@ export async function generateWithNanoBananaPro(
       debug: {
         model: MAIN_RENDER_MODEL,
         sceneConfig,
-        exampleGuidance,
-        strengthProfile,
-        presetGuidance,
-        requestGuidance,
-        forensicAnchor,
+        resolvedPresetId,
         personFace,
         finalDetectedFace,
         retried,
@@ -525,11 +437,8 @@ export async function generateWithNanoBananaPro(
         driftRetryParams,
         sceneAssessment,
         faceConsistencyGate,
-        researchContextChars: input.researchContext?.length || 0,
-        webResearchContextChars: input.webResearchContext?.length || 0,
         faceCropUsed: Boolean(faceCropResult.success && faceCropResult.faceCropBase64),
-        faceFreezeStatus: 'disabled',
-        eyeCompositeStatus: 'disabled',
+        promptLength: prompt.length,
       },
     }
   } catch (error) {
@@ -763,28 +672,67 @@ function sanitizeEnvironmentGuidance(value?: string): string | undefined {
   const normalized = value
     .replace(/\s+/g, ' ')
     .trim()
-  const blocked = [
-    'change face',
-    'replace face',
-    'swap face',
-    'face from image',
-    'do not change face',
-    'keep face',
-    'face 100%',
-    'identical to reference photo',
-    'beautify',
-    'skin smoothing',
+
+  // Phase 1: Block sentences that contain face/identity manipulation phrases
+  const blockedPhrases = [
+    'change face', 'replace face', 'swap face', 'face from image',
+    'do not change face', 'keep face', 'face 100%', 'identical to reference',
+    'beautify', 'skin smoothing', 'face preserved', 'identity from reference',
+    'use person from', 'use the girl', 'use the boy', 'use the man', 'use the woman',
+    'use uploaded photo', 'use attached portrait', 'use provided reference',
+    'subject from reference', 'face and identity', 'face unchanged',
   ]
+
+  // Phase 2: Block sentences that describe a specific person/subject
+  // These override the actual input person's identity when injected into prompts
+  const subjectDescriptors = [
+    // Ethnicity/nationality
+    'caucasian', 'african', 'asian', 'japanese', 'korean', 'chinese', 'indian',
+    'beninese', 'moroccan', 'yakutian', 'european descent',
+    // Age/gender combos that describe a different person
+    'young woman', 'young man', 'young guy', 'young adult male', 'young adult female',
+    'young traveler', 'male model', 'female model', 'alternative model',
+    // Hair descriptions (override actual person's hair)
+    'chestnut hair', 'blonde hair', 'pink hair', 'brown hair', 'black hair',
+    'red hair', 'shoulder-length', 'short hair', 'long hair', 'wet-look hair',
+    'slicked', 'ponytail', 'cornrows', 'braids', 'braid',
+    // Skin/appearance
+    'medium brown skin', 'warm undertones', 'smooth skin', 'sharp jawline',
+    'sharp bone structure', 'oval face', 'strong jawline',
+    // Body descriptions
+    'tall athletic', 'slim female', 'average build',
+    // Specific outfit from examples (override actual garment)
+    'oversized black suit', 'fur coat', 'track jacket', 'windbreaker',
+    'olive-green', 'heather gray hoodie', 'navy joggers',
+    // Specific identity phrases
+    'ai influencer', 'content creator', 'main character',
+  ]
+
   const sentences = normalized.split(/[.!?]\s+/)
   const safe = sentences.filter((sentence) => {
     const lower = sentence.toLowerCase()
-    return !blocked.some(token => lower.includes(token))
+    // Block if sentence contains any blocked phrase
+    if (blockedPhrases.some(token => lower.includes(token))) return false
+    // Block if sentence describes a specific person/subject
+    if (subjectDescriptors.some(token => lower.includes(token))) return false
+    return true
   })
-  return safe.join(' ').trim() || undefined
+  return safe.join('. ').trim() || undefined
 }
 
 function sanitizeIdentityRules(rules: string[]): string[] {
-  const forbidden = ['replace face', 'swap face', 'face from image 3', 'change identity']
+  const forbidden = [
+    // Face swap/replace phrases
+    'replace face', 'swap face', 'face from image 3', 'change identity',
+    // Subject-specific identity descriptions that override input person
+    'black beninese', 'japanese', 'caucasian', 'korean', 'chinese',
+    'african', 'moroccan', 'yakutian', 'indian',
+    'young woman', 'young man', 'male model', 'female model',
+    'pink hair', 'chestnut hair', 'cornrows', 'braids',
+    'tattoos', 'nose ring', 'facial tattoos',
+    'tall athletic', 'slim female', 'average build',
+    'identity:',
+  ]
   return rules
     .map(rule => rule.trim())
     .filter(Boolean)

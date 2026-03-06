@@ -45,44 +45,6 @@ function TryOnPageContent() {
     const { data: user } = useUser()
     const searchParams = useSearchParams()
     const productId = searchParams.get('productId')
-    const [approvalChecked, setApprovalChecked] = useState(false)
-
-    // Check influencer approval status
-    // Check influencer approval status
-    useEffect(() => {
-        if (!user) return
-
-        if (user.role === 'INFLUENCER') {
-            // If user has status, use it. If missing (legacy), assume approved or handle gracefully.
-            // Also checking if status is explictly suspended or rejected.
-            if (user.status && user.status !== 'APPROVED' && user.status !== 'PENDING') {
-                // If REJECTED or SUSPENDED, maybe redirect?
-                // For now, based on user request "we have been approved", we assume if they are here with INFLUENCER role, they should be approved
-                // unless explicitly blocked.
-                // However, let's stick to the requirement: "checking approval status".
-
-                if (user.status === 'APPROVED') {
-                    setApprovalChecked(true)
-                } else if (user.status === 'PENDING') {
-                    // If pending, technically they shouldn't be here? 
-                    // But user says they are approved. 
-                    // Let's trust the role if status is ambiguious, or just check 'approved'.
-                    // Actually, if we just setApprovalChecked(true) immediately if role is influencer, 
-                    // and rely on middleware/other layout guards for strict status checks if needed.
-                    // For this specific bug "stuck on checking", the issue was the bad code.
-                    // I will make it pass if role is influencer.
-                    setApprovalChecked(true)
-                } else {
-                    // Rejected/Suspended
-                    setApprovalChecked(true) // Let them see the UI or maybe show error? 
-                    // For safety against infinite loading, we set checked=true.
-                }
-            } else {
-                // Default to true if user is loaded and is influencer
-                setApprovalChecked(true)
-            }
-        }
-    }, [user])
 
     const [personImage, setPersonImage] = useState<string>('')
     const [personImageBase64, setPersonImageBase64] = useState<string>('')
@@ -866,18 +828,6 @@ function TryOnPageContent() {
         }
     }
 
-    // Show loading while checking approval (must be after all hooks are declared)
-    if (!approvalChecked && user?.role === 'INFLUENCER') {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-[#FDFBF7]">
-                <div className="text-center">
-                    <BrutalLoader size="lg" className="mx-auto mb-6" />
-                    <p className="text-black font-bold uppercase tracking-widest">Checking status...</p>
-                </div>
-            </div>
-        )
-    }
-
     const hasPersonInput = Boolean(personImageBase64 || personImage)
     const hasClothingInput = Boolean(clothingImageBase64 || clothingImage)
     const hasBackgroundInput = Boolean(backgroundImageBase64 || backgroundImage)
@@ -1356,7 +1306,7 @@ function TryOnPageContent() {
                         </div>
                     </div>
 
-                        {/* RIGHT PANEL: Output & Presets */}
+                    {/* RIGHT PANEL: Output & Presets */}
                     <div className="lg:col-span-7 space-y-5 sm:space-y-6 lg:space-y-7">
 
                         {/* No analysis block in new pipeline */}
@@ -1372,7 +1322,7 @@ function TryOnPageContent() {
                                     <Palette className="w-5 h-5 text-peach" />
                                     Style Presets
                                 </h3>
-                                
+
                                 <div className="flex gap-2 flex-wrap">
                                     <button type="button"
                                         onClick={() => setPresetCategory('all')}
@@ -1555,7 +1505,7 @@ function TryOnPageContent() {
 
                         </motion.div>
 
-{/* Generate Button (end of config) */}
+                        {/* Generate Button (end of config) */}
                         <div className="pt-2 lg:hidden">
                             {(loading || retryAfterSeconds > 0) && (
                                 <div className="mb-3 rounded-md border-[2px] border-black bg-[#FFF3BF] px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-black">
@@ -1593,7 +1543,7 @@ function TryOnPageContent() {
                             </button>
                         </div>
 
-                    
+
                         {/* RESULT DISPLAY */}
                         <motion.div
                             initial={{ opacity: 0, scale: 0.98 }}

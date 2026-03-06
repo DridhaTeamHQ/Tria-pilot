@@ -434,43 +434,48 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
 
   if (process.env.NODE_ENV !== 'production') console.log(`🍌 DIRECT TRANSPORT: gemini-3-pro-image-preview | prompt: ${prompt.length} chars`)
 
-  // Content order MUST match prompt references:
-  //   Image 1 = person (identity anchor)
-  //   Image 2 = garment (clothing to apply)
-  //   Image 3 = face crop (micro-identity reinforcement, optional)
-  //   Last    = prompt text
+  // IMAGE-FIRST ordering: Person image anchors identity before any text.
+  // Minimal bridging text — let the images speak for themselves.
   const contents: ContentListUnion = [
+    // Person image FIRST — establishes the identity anchor
     {
       inlineData: {
         data: cleanPerson,
         mimeType: 'image/jpeg',
       },
     } as any,
+    // Minimal label — avoid drowning images with text
+    'Image 1: the person. Copy this face exactly.',
   ]
 
-  // Garment MUST be Image 2 (matching prompt: "garment from Image 2")
-  contents.push({
-    inlineData: {
-      data: cleanGarment,
-      mimeType: 'image/jpeg',
-    },
-  } as any)
-
-  // Face crop is Image 3 (matching prompt: "Image 3 is a cropped face reference")
   if (faceCropBase64 && faceCropBase64.length > 100) {
     const cleanFaceCrop = faceCropBase64.replace(/^data:image\/[a-z]+;base64,/, '')
     if (cleanFaceCrop.length > 100) {
-      if (process.env.NODE_ENV !== 'production') console.log('👤 Adding Face Crop reference as Image 3 for identity lock')
-      contents.push({
-        inlineData: {
-          data: cleanFaceCrop,
-          mimeType: 'image/jpeg',
-        },
-      } as any)
+      if (process.env.NODE_ENV !== 'production') console.log('👤 Adding face crop as Image 3 for identity reinforcement')
+      contents.push(
+        {
+          inlineData: {
+            data: cleanFaceCrop,
+            mimeType: 'image/jpeg',
+          },
+        } as any,
+        'Image 3: face close-up reference.'
+      )
     }
   }
 
-  // Prompt text always last
+  // Garment image — after identity is established
+  contents.push(
+    {
+      inlineData: {
+        data: cleanGarment,
+        mimeType: 'image/jpeg',
+      },
+    } as any,
+    'Image 2: the garment. Apply this clothing to the person. Preserve text and logos.'
+  )
+
+  // Full prompt text LAST — instructions build on the visual context already established
   contents.push(prompt)
 
   const imageConfig = {
@@ -480,10 +485,12 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
   } as ImageConfig
 
   const config: GenerateContentConfig = {
-    // Keep TEXT+IMAGE to allow instruction following while retaining image grounding.
     responseModalities: ['TEXT', 'IMAGE'],
+    // MINIMAL system instruction — let the prompt + images do the work.
+    // Short positive framing only. No negative rules (they paradoxically cause drift).
+    systemInstruction: `You are a photorealistic virtual try-on compositor. Copy the person's face from Image 1 exactly — same bone structure, eyes, nose, lips, jaw, skin, and pores. Apply the garment from Image 2. The face is immutable.`,
     imageConfig,
-    temperature: 0.01,
+    temperature: 0.4,
     topP: 0.9,
     topK: 32,
   }
