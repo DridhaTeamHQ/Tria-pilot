@@ -15,7 +15,6 @@ export async function GET() {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        // influencer_profiles is keyed by user_id in this codebase.
         const { data: profile, error } = await supabase
             .from('influencer_profiles')
             .select('profile_images')
@@ -51,11 +50,18 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const supabase = await createClient()
-        const service = createServiceClient()
         const { data: { user: authUser } } = await supabase.auth.getUser()
 
         if (!authUser) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
+        // Prefer service client for storage/DB writes; fall back to auth client if service env is missing.
+        let db: Awaited<ReturnType<typeof createClient>> | ReturnType<typeof createServiceClient> = supabase
+        try {
+            db = createServiceClient()
+        } catch {
+            db = supabase
         }
 
         const contentTypeHeader = request.headers.get('content-type') || ''
@@ -111,7 +117,7 @@ export async function POST(request: Request) {
 
         const fileName = `profile-images/${authUser.id}/${Date.now()}.${extension}`
 
-        const { error: uploadError } = await service.storage
+        const { error: uploadError } = await db.storage
             .from('profile-images')
             .upload(fileName, fileBuffer, {
                 contentType: uploadContentType,
@@ -123,19 +129,24 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Failed to upload image' }, { status: 500 })
         }
 
-        const { data: urlData } = service.storage
+        const { data: urlData } = db.storage
             .from('profile-images')
             .getPublicUrl(fileName)
 
         const imageUrl = urlData.publicUrl
 
-        const { data: profile } = await service
+        const { data: existingProfile, error: existingProfileError } = await db
             .from('influencer_profiles')
-            .select('profile_images')
+            .select('id, profile_images')
             .eq('user_id', authUser.id)
             .maybeSingle()
 
-        const currentImages = Array.isArray(profile?.profile_images) ? profile.profile_images : []
+        if (existingProfileError) {
+            console.error('Failed to read influencer profile:', existingProfileError)
+            return NextResponse.json({ error: 'Failed to read profile image metadata' }, { status: 500 })
+        }
+
+        const currentImages = Array.isArray(existingProfile?.profile_images) ? existingProfile.profile_images : []
         const normalizedExisting = currentImages.map((img: any, index: number) => ({
             ...img,
             isPrimary: makePrimary ? false : Boolean(img?.isPrimary || index === 0),
@@ -151,22 +162,35 @@ export async function POST(request: Request) {
         const nextImages = [...normalizedExisting, newImage]
         const now = new Date().toISOString()
 
-        const { error: upsertError } = await service
-            .from('influencer_profiles')
-            .upsert({
-                user_id: authUser.id,
-                profile_images: nextImages,
-                updated_at: now
-            }, {
-                onConflict: 'user_id'
-            })
+        if (existingProfile?.id) {
+            const { error: updateError } = await db
+                .from('influencer_profiles')
+                .update({
+                    profile_images: nextImages,
+                    updated_at: now
+                })
+                .eq('id', existingProfile.id)
 
-        if (upsertError) {
-            console.error('Failed to save image metadata:', upsertError)
-            return NextResponse.json({ error: 'Failed to save profile image metadata' }, { status: 500 })
+            if (updateError) {
+                console.error('Failed to update image metadata:', updateError)
+                return NextResponse.json({ error: 'Failed to save profile image metadata' }, { status: 500 })
+            }
+        } else {
+            const { error: insertError } = await db
+                .from('influencer_profiles')
+                .insert({
+                    user_id: authUser.id,
+                    profile_images: nextImages,
+                    updated_at: now
+                })
+
+            if (insertError) {
+                console.error('Failed to create image metadata row:', insertError)
+                return NextResponse.json({ error: 'Failed to create profile image metadata' }, { status: 500 })
+            }
         }
 
-        const { error: profileUpdateError } = await service
+        const { error: profileUpdateError } = await db
             .from('profiles')
             .update({
                 avatar_url: imageUrl,
