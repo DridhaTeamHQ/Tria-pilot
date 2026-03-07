@@ -60,16 +60,16 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#F9F8F4] border-b-[3px] border-black">
-      <div className="w-full max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10">
+      <div className="w-full max-w-[2000px] mx-auto px-3 sm:px-5 lg:px-6 xl:px-8">
         <div className="flex items-center justify-between h-14 md:h-16">
           <Link
             href="/brand/dashboard"
-            className="text-3xl font-black tracking-tight text-black hover:text-[#B4F056] transition-colors shrink-0"
+            className="text-[2.25rem] md:text-[2rem] lg:text-[2.2rem] font-black tracking-tight text-black hover:text-[#B4F056] transition-colors shrink-0 leading-none"
           >
             Kiwikoo
           </Link>
 
-          <nav className="hidden md:flex flex-1 items-center justify-center gap-2 lg:gap-3 px-4 overflow-x-auto">
+          <nav className="hidden md:flex flex-1 items-center justify-center gap-1 lg:gap-1.5 px-2">
             {navItems.map((item) => {
               const Icon = item.icon
               const active = isActive(item.href)
@@ -77,28 +77,28 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`px-3 lg:px-4 py-2 rounded-xl text-base font-bold transition-all duration-150 flex items-center justify-center gap-2 border-2 border-black whitespace-nowrap ${
+                  className={`px-2.5 lg:px-3 py-1.5 rounded-xl text-sm lg:text-[15px] font-bold transition-all duration-150 flex items-center justify-center gap-1.5 border-2 border-black whitespace-nowrap ${
                     active
                       ? 'bg-[#B4F056] text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
                       : 'bg-white text-black hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
                   }`}
                 >
-                  <Icon className="w-4 h-4 shrink-0" />
+                  <Icon className="w-3.5 h-3.5 lg:w-4 lg:h-4 shrink-0" />
                   <span className="whitespace-nowrap">{item.label}</span>
                 </Link>
               )
             })}
           </nav>
 
-          <div className="hidden md:flex items-center gap-3 shrink-0">
-            <div className="w-10 h-10 rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black text-base">
+          <div className="hidden md:flex items-center gap-2 shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black text-sm">
               {brandName?.charAt(0)?.toUpperCase() || 'B'}
             </div>
             <button
               type="button"
               onClick={() => void handleLogout()}
               disabled={isLoggingOut}
-              className="flex items-center gap-2 px-4 py-2 text-base font-bold text-black border-2 border-black rounded-xl bg-white hover:bg-red-100 hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-bold text-black border-2 border-black rounded-xl bg-white hover:bg-red-100 hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
               title="Logout"
             >
               <LogOut className="w-4 h-4" />
