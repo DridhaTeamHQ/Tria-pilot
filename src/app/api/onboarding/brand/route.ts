@@ -16,6 +16,16 @@ const onboardingSchema = z
     website: z.string().trim().url().max(2048).optional().or(z.literal('')),
     vertical: z.string().trim().max(120).optional(),
     budgetRange: z.string().trim().max(80).optional(),
+    description: z.string().trim().max(4000).optional(),
+    contactEmail: z.string().trim().email().max(320).optional(),
+    contactPhone: z.string().trim().max(40).optional(),
+    socialLinks: z
+      .object({
+        instagram: z.string().trim().max(200).optional(),
+        twitter: z.string().trim().max(200).optional(),
+        linkedin: z.string().trim().max(200).optional(),
+      })
+      .optional(),
   })
   .strict()
 
@@ -72,6 +82,15 @@ export async function POST(request: Request) {
       ...(data.website !== undefined && { website: data.website || null }),
       ...(data.vertical && { vertical: data.vertical }),
       ...(data.budgetRange && { budgetRange: data.budgetRange }),
+      ...(data.description !== undefined && { description: data.description }),
+      ...(data.contactEmail !== undefined && { contactEmail: data.contactEmail }),
+      ...(data.contactPhone !== undefined && { contactPhone: data.contactPhone }),
+      ...(data.socialLinks !== undefined && {
+        socialLinks: {
+          ...((existingData.socialLinks as Record<string, unknown>) || {}),
+          ...data.socialLinks,
+        },
+      }),
     }
 
     const updateData: Record<string, unknown> = {
@@ -149,6 +168,14 @@ export async function GET() {
         website: brandData.website || '',
         vertical: brandData.vertical || '',
         budgetRange: brandData.budgetRange || '',
+        description: brandData.description || '',
+        contactEmail: brandData.contactEmail || profile.email || '',
+        contactPhone: brandData.contactPhone || '',
+        socialLinks: {
+          instagram: (brandData.socialLinks as Record<string, unknown>)?.instagram || '',
+          twitter: (brandData.socialLinks as Record<string, unknown>)?.twitter || '',
+          linkedin: (brandData.socialLinks as Record<string, unknown>)?.linkedin || '',
+        },
       },
     })
   } catch (error) {
@@ -156,4 +183,3 @@ export async function GET() {
     return NextResponse.json({ onboardingCompleted: false })
   }
 }
-
