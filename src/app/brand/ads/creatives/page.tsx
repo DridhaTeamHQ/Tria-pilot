@@ -31,9 +31,9 @@ import { toast } from 'sonner'
 import BrutalCard from '@/components/brutal/BrutalCard'
 import { BrutalLoader } from '@/components/ui/BrutalLoader'
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // TYPES
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 interface AdCreative {
     id: string
@@ -55,9 +55,9 @@ interface Campaign {
 
 type QualityTier = 'all' | 'high' | 'medium' | 'low'
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CONSTANTS
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 const PLATFORM_ICONS: Record<Platform, React.ReactNode> = {
     instagram: <Instagram className="h-4 w-4" />,
@@ -73,9 +73,9 @@ const QUALITY_CONFIG: Record<QualityTier, { min: number; max: number; label: str
     low: { min: 0, max: 59, label: 'Low' },
 }
 
-// ═══════════════════════════════════════════════════════════════
-// QUALITY BADGE — NEO-BRUTALIST
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// QUALITY BADGE â€” NEO-BRUTALIST
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 function QualityBadge({ score }: { score: number }) {
     let bg = 'bg-[#FF8C69]' // coral low
@@ -94,14 +94,14 @@ function QualityBadge({ score }: { score: number }) {
                 bg
             )}
         >
-            {score} — {label}
+            {score} â€” {label}
         </span>
     )
 }
 
-// ═══════════════════════════════════════════════════════════════
-// CREATIVE CARD — NEO-BRUTALIST
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// CREATIVE CARD â€” NEO-BRUTALIST
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 function CreativeCard({
     creative,
@@ -244,9 +244,9 @@ function CreativeCard({
     )
 }
 
-// ═══════════════════════════════════════════════════════════════
-// LIGHTBOX — NEO-BRUTALIST
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// LIGHTBOX â€” NEO-BRUTALIST
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 function Lightbox({
     open,
@@ -329,9 +329,9 @@ function getRelativeDate(dateStr: string): string {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // MAIN PAGE
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 export default function CreativesPage() {
     const router = useRouter()
@@ -462,24 +462,24 @@ export default function CreativesPage() {
                         whileHover={{ y: -2 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => router.push('/brand/ads')}
-                        className="flex items-center gap-2 px-5 py-2.5 border-[3px] border-black bg-[#FFD93D] font-black text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-shadow"
+                        className="flex items-center gap-2 px-6 py-3 border-[3px] border-black bg-[#FFD93D] font-black text-base shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-shadow"
                     >
                         <Plus className="h-4 w-4" />
                         Generate New Ad
                     </motion.button>
                 </div>
 
-                {/* Filters — neo-brutalist chips */}
+                {/* Filters â€” neo-brutalist chips */}
                 <BrutalCard className="p-4 mb-8">
-                    <p className="text-[10px] font-black uppercase text-black/50 mb-3">Filters</p>
-                    <div className="flex flex-wrap gap-3">
+                    <p className="text-xs md:text-sm font-black uppercase text-black/60 mb-3">Filters</p>
+                    <div className="flex flex-wrap gap-4">
                         {/* Campaign */}
                         <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="text-[10px] font-bold text-black/60 mr-1">Campaign</span>
+                            <span className="text-sm font-bold text-black/70 mr-1">Campaign</span>
                             <select
                                 value={campaignFilter}
                                 onChange={(e) => setCampaignFilter(e.target.value)}
-                                className="border-[2px] border-black bg-white px-3 py-1.5 text-xs font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:outline-none focus:ring-2 focus:ring-[#FFD93D]"
+                                className="border-[2px] border-black bg-white px-4 py-2 text-sm md:text-base font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:outline-none focus:ring-2 focus:ring-[#FFD93D]"
                             >
                                 <option value="all">All</option>
                                 <option value="unassigned">Unassigned</option>
@@ -492,7 +492,7 @@ export default function CreativesPage() {
                         </div>
                         {/* Platform */}
                         <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="text-[10px] font-bold text-black/60 mr-1">Platform</span>
+                            <span className="text-sm font-bold text-black/70 mr-1">Platform</span>
                             {(['all', 'instagram', 'facebook', 'google', 'influencer'] as const).map(
                                 (p) => (
                                     <button
@@ -500,7 +500,7 @@ export default function CreativesPage() {
                                         type="button"
                                         onClick={() => setPlatformFilter(p === 'all' ? 'all' : p)}
                                         className={cn(
-                                            'px-2.5 py-1 text-[10px] font-bold border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
+                                            'px-3.5 py-2 text-sm font-bold border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
                                             platformFilter === p
                                                 ? 'bg-[#FFD93D] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
                                                 : 'bg-white hover:bg-[#FFFDF5]'
@@ -513,14 +513,14 @@ export default function CreativesPage() {
                         </div>
                         {/* Quality */}
                         <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="text-[10px] font-bold text-black/60 mr-1">Quality</span>
+                            <span className="text-sm font-bold text-black/70 mr-1">Quality</span>
                             {(['all', 'high', 'medium', 'low'] as const).map((q) => (
                                 <button
                                     key={q}
                                     type="button"
                                     onClick={() => setQualityFilter(q)}
                                     className={cn(
-                                        'px-2.5 py-1 text-[10px] font-bold border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
+                                        'px-3.5 py-2 text-sm font-bold border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
                                         qualityFilter === q
                                             ? 'bg-[#C3B1E1] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
                                             : 'bg-white hover:bg-[#FFFDF5]'
@@ -532,14 +532,14 @@ export default function CreativesPage() {
                         </div>
                         {/* Sort */}
                         <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="text-[10px] font-bold text-black/60 mr-1">Sort</span>
+                            <span className="text-sm font-bold text-black/70 mr-1">Sort</span>
                             {(['newest', 'oldest'] as const).map((s) => (
                                 <button
                                     key={s}
                                     type="button"
                                     onClick={() => setSortOrder(s)}
                                     className={cn(
-                                        'px-2.5 py-1 text-[10px] font-bold border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
+                                        'px-3.5 py-2 text-sm font-bold border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
                                         sortOrder === s
                                             ? 'bg-black text-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
                                             : 'bg-white hover:bg-[#FFFDF5]'
@@ -557,7 +557,7 @@ export default function CreativesPage() {
                                     setPlatformFilter('all')
                                     setQualityFilter('all')
                                 }}
-                                className="text-[10px] font-bold text-black/60 hover:text-black underline ml-auto"
+                                className="text-sm font-bold text-black/70 hover:text-black underline ml-auto"
                             >
                                 Clear filters
                             </button>

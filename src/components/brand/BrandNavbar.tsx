@@ -11,7 +11,6 @@ import {
   Inbox,
   User,
   LogOut,
-  ImageIcon,
   Menu,
   X,
   ChevronRight,
@@ -21,8 +20,7 @@ const navItems = [
   { href: '/brand/campaigns', label: 'Campaigns', icon: Target },
   { href: '/brand/profile', label: 'Profile', icon: User },
   { href: '/brand/influencers', label: 'Influencers', icon: Users },
-  { href: '/brand/ads', label: 'Ads', icon: Sparkles },
-  { href: '/brand/ads/creatives', label: 'Creatives', icon: ImageIcon },
+  { href: '/brand/ads/creatives', label: 'Ad Creatives', icon: Sparkles },
   { href: '/brand/products', label: 'Products', icon: Package },
   { href: '/brand/inbox', label: 'Inbox', icon: Inbox },
 ]
@@ -37,7 +35,12 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
-  const isActive = (href: string) => pathname === href || pathname?.startsWith(`${href}/`)
+  const activeHref =
+    navItems
+      .filter((item) => pathname === item.href || pathname?.startsWith(`${item.href}/`))
+      .sort((a, b) => b.href.length - a.href.length)[0]?.href || null
+
+  const isActive = (href: string) => activeHref === href
 
   const handleLogout = useCallback(async () => {
     if (isLoggingOut) return
