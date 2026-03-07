@@ -7,6 +7,12 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
 import { loginSchema } from '@/lib/validation'
+import {
+  emailLocalPart,
+  isEmailIdentifier,
+  normalizeIdentifier,
+  usernameToSyntheticEmail,
+} from '@/lib/auth-username'
 
 type SupabaseSessionClient = Awaited<ReturnType<typeof createClient>>
 type SupabasePrivilegedClient = SupabaseSessionClient | ReturnType<typeof createServiceClient>
@@ -43,9 +49,27 @@ function buildFallbackProfile(user: { id: string; email?: string | null; user_me
     role,
     onboarding_completed: false,
     approval_status: role === 'brand' ? 'approved' : 'none',
-    full_name: (user.user_metadata?.name as string) || (user.user_metadata?.full_name as string) || null,
+    full_name: (user.user_metadata?.name as string) || (user.user_metadata?.full_name as string) || (user.email ? emailLocalPart(user.email) : null),
     avatar_url: null,
   }
+}
+
+async function signInByCandidates(
+  supabase: SupabaseSessionClient,
+  candidateEmails: string[],
+  password: string
+) {
+  let lastError: { message?: string; status?: number } | null = null
+
+  for (const email of candidateEmails) {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (!error && data.user) {
+      return { data, emailUsed: email, error: null }
+    }
+    lastError = error
+  }
+
+  return { data: null, emailUsed: null, error: lastError }
 }
 
 export async function POST(request: Request) {
@@ -59,26 +83,24 @@ export async function POST(request: Request) {
       )
     }
 
-    const { email: rawEmail, password, rememberMe = true } = loginSchema.parse(body)
-    const email = rawEmail.trim().toLowerCase()
+    const { identifier: rawIdentifier, password, rememberMe = true } = loginSchema.parse(body)
+    const identifier = normalizeIdentifier(rawIdentifier)
+
+    const candidateEmails = isEmailIdentifier(identifier)
+      ? [identifier]
+      : [usernameToSyntheticEmail(identifier)]
 
     const supabase = await createClient()
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+
+    const signInResult = await signInByCandidates(supabase, candidateEmails, password)
 
     void rememberMe
 
-    if (error) {
-      console.error('Supabase auth error:', {
-        message: error.message,
-        status: error.status,
-        email,
-      })
+    if (!signInResult.data || !signInResult.data.user) {
+      const error = signInResult.error
+      const lowerMessage = (error?.message || '').toLowerCase()
 
-      const lowerMessage = (error.message || '').toLowerCase()
-      let errorMessage = 'Invalid email or password.'
+      let errorMessage = 'Invalid username/email or password.'
       let statusCode = 401
       let errorCode: 'USER_NOT_FOUND' | 'INVALID_PASSWORD' | 'EMAIL_NOT_CONFIRMED' | 'RATE_LIMITED' | null = null
 
@@ -93,23 +115,47 @@ export async function POST(request: Request) {
       } else if (lowerMessage.includes('invalid login credentials') || lowerMessage.includes('invalid credentials')) {
         try {
           const lookupClient = getPrivilegedClient(supabase)
-          const { data: profile, error: profileLookupError } = await lookupClient
-            .from('profiles')
-            .select('id')
-            .ilike('email', email)
-            .maybeSingle()
 
-          if (!profileLookupError && !profile) {
-            errorMessage = 'No user found with this email. Please sign up first.'
+          let exists = false
+          if (isEmailIdentifier(identifier)) {
+            const { data: profile, error: profileLookupError } = await lookupClient
+              .from('profiles')
+              .select('id')
+              .ilike('email', identifier)
+              .maybeSingle()
+
+            exists = !profileLookupError && !!profile
+          } else {
+            const { data: profileBySynthetic, error: syntheticLookupError } = await lookupClient
+              .from('profiles')
+              .select('id')
+              .eq('email', usernameToSyntheticEmail(identifier))
+              .maybeSingle()
+
+            if (!syntheticLookupError && profileBySynthetic) {
+              exists = true
+            } else {
+              const { data: profileByEmailLocal, error: localLookupError } = await lookupClient
+                .from('profiles')
+                .select('id')
+                .ilike('email', `${identifier}@%`)
+                .limit(1)
+
+              exists = !localLookupError && Array.isArray(profileByEmailLocal) && profileByEmailLocal.length > 0
+            }
+          }
+
+          if (!exists) {
+            errorMessage = 'No user found with this username/email. Please sign up first.'
             statusCode = 404
             errorCode = 'USER_NOT_FOUND'
-          } else if (!profileLookupError && profile) {
+          } else {
             errorMessage = 'Incorrect password. Please try again.'
             statusCode = 401
             errorCode = 'INVALID_PASSWORD'
           }
         } catch {
-          errorMessage = 'Invalid email or password.'
+          errorMessage = 'Invalid username/email or password.'
           statusCode = 401
           errorCode = null
         }
@@ -125,10 +171,8 @@ export async function POST(request: Request) {
       )
     }
 
-    if (!data.user) {
-      console.error('Login error: No user returned from Supabase', { email })
-      return NextResponse.json({ error: 'Authentication failed' }, { status: 401 })
-    }
+    const data = signInResult.data
+    const email = signInResult.emailUsed || data.user.email || identifier
 
     if (!data.user.email_confirmed_at) {
       return NextResponse.json(
@@ -245,7 +289,7 @@ export async function POST(request: Request) {
 
     if (error instanceof Error && error.name === 'ZodError') {
       return NextResponse.json(
-        { error: 'Please provide a valid email and password' },
+        { error: 'Please provide a valid username/email and password' },
         { status: 400 }
       )
     }

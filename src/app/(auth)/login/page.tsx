@@ -29,7 +29,7 @@ export default function LoginPage() {
 function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -86,7 +86,7 @@ function LoginContent() {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          email: email.trim().toLowerCase(),
+          identifier: identifier.trim().toLowerCase(),
           password,
           rememberMe: true,
         }),
@@ -96,7 +96,7 @@ function LoginContent() {
 
       if (!res.ok) {
         if (data?.noUserFound || data?.errorCode === 'USER_NOT_FOUND') {
-          toast.error('No user found with this email. Please sign up first.')
+          toast.error('No user found with this username/email. Please sign up first.')
           return
         }
 
@@ -191,17 +191,17 @@ function LoginContent() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-xs font-black uppercase tracking-widest text-black">Email Address</label>
+              <label className="text-xs font-black uppercase tracking-widest text-black">Username / Email</label>
               <div className="relative">
                 <div className="absolute left-0 top-0 bottom-0 w-11 border-r-2 border-black flex items-center justify-center bg-white border-2 border-r-2 border-black z-10">
                   <Mail className="w-4 h-4 text-black" strokeWidth={2.5} />
                 </div>
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type="text"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
                   className="w-full pl-14 pr-4 py-3 bg-white border-2 border-black text-black font-bold placeholder:text-black/30 outline-none focus:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all"
-                  placeholder="hello@example.com"
+                  placeholder="username or email"
                   required
                 />
               </div>
@@ -355,17 +355,17 @@ function LoginContent() {
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-widest text-black">Email Address</label>
+                  <label className="text-xs font-black uppercase tracking-widest text-black">Username / Email</label>
                   <div className="relative group">
                     <div className={`absolute left-0 top-0 bottom-0 w-12 border-r-2 border-black flex items-center justify-center bg-white border-2 border-r-2 border-black z-10`}>
                       <Mail className="w-5 h-5 text-black" strokeWidth={2.5} />
                     </div>
                     <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      type="text"
+                      value={identifier}
+                      onChange={(e) => setIdentifier(e.target.value)}
                       className="w-full pl-16 pr-4 py-4 bg-white border-2 border-black text-black font-bold placeholder:text-black/30 outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
-                      placeholder="hello@example.com"
+                      placeholder="username or email"
                       required
                     />
                   </div>
@@ -464,5 +464,8 @@ function LoginContent() {
     </div>
   )
 }
+
+
+
 
 

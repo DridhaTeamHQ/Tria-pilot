@@ -5,9 +5,9 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
-import { ArrowRight, Loader2, Sparkles, Users, Zap, User, Mail, Lock, Eye, EyeOff } from 'lucide-react'
+import { ArrowRight, Loader2, Sparkles, Users, Zap, User, Lock, Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/auth-client'
-import { getPublicSiteUrlClient, buildAuthConfirmUrl } from '@/lib/site-url'
+import { getPublicSiteUrlClient } from '@/lib/site-url'
 
 export default function SignupPage() {
     const router = useRouter()
@@ -23,8 +23,7 @@ export default function SignupPage() {
     const [showPassword, setShowPassword] = useState(false)
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
     const [formData, setFormData] = useState({
-        name: '',
-        email: '',
+        username: '',
         password: '',
         confirmPassword: '',
         agreeTerms: false
@@ -49,6 +48,10 @@ export default function SignupPage() {
             toast.error('Please agree to the Terms of Service')
             return
         }
+        if (formData.username.trim().length < 3) {
+            toast.error('Username must be at least 3 characters')
+            return
+        }
         if (formData.password !== formData.confirmPassword) {
             toast.error('Passwords do not match')
             return
@@ -61,38 +64,36 @@ export default function SignupPage() {
         setLoading(true)
 
         try {
-            const supabase = createClient()
-            const siteUrl = getPublicSiteUrlClient()
-            const redirectUrl = buildAuthConfirmUrl(siteUrl, '/login?confirmed=true')
-
-            // 1. Create Auth User
-            const { data: authData, error: authError } = await supabase.auth.signUp({
-                email: formData.email.trim().toLowerCase(),
-                password: formData.password,
-                options: {
-                    emailRedirectTo: redirectUrl,
-                    data: {
-                        role: role,
-                        name: formData.name.trim(),
-                    },
-                },
+            const res = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    username: formData.username.trim().toLowerCase(),
+                    password: formData.password,
+                    role: role === 'brand' ? 'BRAND' : 'INFLUENCER',
+                }),
             })
 
-            if (authError) throw new Error(authError.message)
-            if (!authData.user) throw new Error('Failed to create account')
+            const data = await res.json().catch(() => ({}))
+            if (!res.ok) {
+                throw new Error(data?.error || 'Signup failed')
+            }
 
-            // Profile is created automatically by the handle_new_user trigger
-            // using the metadata provided in the signUp options above.
+            if (data?.requiresManualLogin) {
+                toast.success('Account created. Please sign in.')
+                router.push('/login')
+                return
+            }
 
-            toast.success('Account created! Please check your email.')
-            router.push('/login')
-
+            toast.success('Account created!')
+            router.push('/dashboard')
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Signup failed'
             const normalized = message.toLowerCase()
 
-            if (normalized.includes('already registered') || normalized.includes('already been registered')) {
-                toast.error('This email is already registered. Please sign in.')
+            if (normalized.includes('already') || normalized.includes('exists')) {
+                toast.error('Username already exists. Please sign in.')
             } else {
                 toast.error(message)
             }
@@ -100,8 +101,7 @@ export default function SignupPage() {
             setLoading(false)
         }
     }
-
-    const handleGoogleSignup = async () => {
+const handleGoogleSignup = async () => {
         setLoading(true)
         try {
             const supabase = createClient()
@@ -239,7 +239,7 @@ export default function SignupPage() {
                                 {/* Name */}
                                 <div>
                                     <label className="block text-sm font-bold text-black mb-1.5">
-                                        {isInfluencer ? 'Full Name' : 'Company Name'}
+                                        Username
                                     </label>
                                     <div className="relative">
                                         <div className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-[#B4F056] rounded-lg border-2 border-black flex items-center justify-center">
@@ -247,27 +247,9 @@ export default function SignupPage() {
                                         </div>
                                         <input
                                             type="text"
-                                            placeholder={isInfluencer ? 'Your name' : 'Company name'}
-                                            value={formData.name}
-                                            onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                            required
-                                            className="w-full pl-14 pr-4 py-3 rounded-xl bg-white border-[2px] border-black text-black placeholder:text-black/40 font-medium focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:-translate-x-0.5 focus:-translate-y-0.5 transition-all"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Email */}
-                                <div>
-                                    <label className="block text-sm font-bold text-black mb-1.5">Email</label>
-                                    <div className="relative">
-                                        <div className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-[#FF8C69] rounded-lg border-2 border-black flex items-center justify-center">
-                                            <Mail className="w-4 h-4 text-black" strokeWidth={2.5} />
-                                        </div>
-                                        <input
-                                            type="email"
-                                            placeholder="you@example.com"
-                                            value={formData.email}
-                                            onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                            placeholder="your username"
+                                            value={formData.username}
+                                            onChange={e => setFormData({ ...formData, username: e.target.value })}
                                             required
                                             className="w-full pl-14 pr-4 py-3 rounded-xl bg-white border-[2px] border-black text-black placeholder:text-black/40 font-medium focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:-translate-x-0.5 focus:-translate-y-0.5 transition-all"
                                         />
@@ -411,4 +393,7 @@ export default function SignupPage() {
         </div>
     )
 }
+
+
+
 

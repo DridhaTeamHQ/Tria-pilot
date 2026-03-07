@@ -11,18 +11,26 @@ const passwordSchema = z.string().min(8).max(128)
 
 const nameSchema = z.string().trim().min(1).max(120)
 
+const usernameSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .min(3)
+  .max(32)
+  .regex(/^[a-z0-9._-]+$/)
+
 export const registerSchema = z
   .object({
-    email: emailSchema,
+    username: usernameSchema,
     password: passwordSchema,
-    name: nameSchema,
     role: z.enum(['INFLUENCER', 'BRAND']),
+    name: nameSchema.optional(),
   })
   .strict()
 
 export const loginSchema = z
   .object({
-    email: emailSchema,
+    identifier: z.string().trim().min(1).max(320),
     // Allow short passwords so Supabase can return a consistent auth error, but cap length.
     password: z.string().min(1).max(128),
     rememberMe: z.boolean().optional(),
@@ -129,4 +137,3 @@ export const linkAnalyticsQuerySchema = z
     endDate: z.string().max(40).optional(),
   })
   .strict()
-
