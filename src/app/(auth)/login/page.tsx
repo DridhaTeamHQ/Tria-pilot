@@ -95,6 +95,11 @@ function LoginContent() {
       const data = await res.json().catch(() => ({ error: 'Request failed' }))
 
       if (!res.ok) {
+        if (data?.noUserFound || data?.errorCode === 'USER_NOT_FOUND') {
+          toast.error('No user found with this email. Please sign up first.')
+          return
+        }
+
         toast.error(data.error ?? 'Failed to sign in. Please try again.')
         return
       }
@@ -459,4 +464,5 @@ function LoginContent() {
     </div>
   )
 }
+
 

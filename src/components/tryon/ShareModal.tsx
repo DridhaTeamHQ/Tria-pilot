@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Instagram, Youtube, Twitter, MessageCircle, Image as ImageIcon, FileText, Send, Copy, Check, Link as LinkIcon } from 'lucide-react'
 import { toast } from 'sonner'
@@ -38,6 +38,14 @@ export function ShareModal({ isOpen, onClose, imageUrl, imageBase64, productId }
   const [linkLoading, setLinkLoading] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
 
+  const handleClose = useCallback(() => {
+    setSelectedPlatform(null)
+    setSelectedShareType(null)
+    setMaskedLink(null)
+    setLinkCopied(false)
+    onClose()
+  }, [onClose])
+
   useEffect(() => {
     if (!isOpen) return
 
@@ -52,7 +60,7 @@ export function ShareModal({ isOpen, onClose, imageUrl, imageBase64, productId }
       document.body.style.overflow = originalOverflow
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [isOpen])
+  }, [isOpen, handleClose])
 
   // Helper function to shorten URL for display
   const shortenUrl = (url: string | null): string => {
@@ -381,14 +389,6 @@ export function ShareModal({ isOpen, onClose, imageUrl, imageBase64, productId }
     }
   }
 
-  const handleClose = () => {
-    setSelectedPlatform(null)
-    setSelectedShareType(null)
-    setMaskedLink(null)
-    setLinkCopied(false)
-    onClose()
-  }
-
   return (
     <AnimatePresence>
       {isOpen && (
@@ -601,4 +601,5 @@ export function ShareModal({ isOpen, onClose, imageUrl, imageBase64, productId }
     </AnimatePresence>
   )
 }
+
 

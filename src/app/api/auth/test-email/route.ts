@@ -1,33 +1,58 @@
 import { NextResponse } from 'next/server'
-import { createServiceClient } from '@/lib/auth'
+import crypto from 'crypto'
+import { createClient, createServiceClient } from '@/lib/auth'
 
 /**
- * Test endpoint to check email configuration
- * POST /api/auth/test-email
- * Body: { email: string }
+ * Test endpoint to check email configuration.
+ * PRODUCTION SAFETY:
+ * - Disabled by default (ENABLE_DEBUG_AUTH_ENDPOINTS=true to enable)
+ * - Requires authenticated admin user
  */
 export async function POST(request: Request) {
+  if (process.env.ENABLE_DEBUG_AUTH_ENDPOINTS !== 'true') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
   try {
+    const supabase = await createClient()
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { data: actorProfile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', authUser.id)
+      .maybeSingle()
+
+    if ((actorProfile?.role || '').toLowerCase() !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const body = await request.json().catch(() => null)
     if (!body || !body.email) {
       return NextResponse.json({ error: 'Email required' }, { status: 400 })
     }
 
-    const email = body.email.trim().toLowerCase()
+    const email = String(body.email).trim().toLowerCase()
     const service = createServiceClient()
 
-    // Check Supabase email configuration
     const config = {
       siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-      hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      supabaseUrlConfigured: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
+      hasServiceKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
     }
 
-    // Try to send a test confirmation email
-    const { data, error } = await service.auth.admin.generateLink({
+    const tempPassword = `${crypto.randomBytes(12).toString('base64url')}Aa1!`
+
+    const { error } = await service.auth.admin.generateLink({
       type: 'signup',
-      email: email,
-      password: 'TempPassword123!', // Temporary password for testing
+      email,
+      password: tempPassword,
       options: {
         redirectTo: `${config.siteUrl}/auth/confirm?next=/login?confirmed=true`,
       },
@@ -38,29 +63,19 @@ export async function POST(request: Request) {
         success: false,
         error: error.message,
         config,
-        details: {
-          code: error.status,
-          message: error.message,
-        },
       })
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Test email sent successfully',
+      message: 'Test email generation request submitted',
       config,
-      link: data?.properties?.action_link,
     })
   } catch (error) {
     return NextResponse.json(
       {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
-        config: {
-          siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-          supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-          hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-        },
       },
       { status: 500 }
     )

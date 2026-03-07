@@ -57,6 +57,7 @@ export default function BrandInboxPage() {
         if (toId && currentUserId) {
             startConversation(toId)
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchParams, currentUserId])
 
     useEffect(() => {
@@ -381,3 +382,4 @@ export default function BrandInboxPage() {
         </div>
     )
 }
+

@@ -8,6 +8,11 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 gsap.registerPlugin(ScrollTrigger)
 
 const PF = 'var(--font-plus-jakarta-sans), sans-serif'
+type LenisLike = {
+  raf: (timeMs: number) => void
+  on: (event: string, callback: () => void) => void
+  destroy: () => void
+}
 
 export default function LandingPage() {
   const globalBgRef = useRef<HTMLDivElement>(null)
@@ -53,8 +58,7 @@ export default function LandingPage() {
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
     // Lenis smooth scroll (skip when user prefers reduced motion)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let lenis: any = null
+    let lenis: LenisLike | null = null
     const tick = (time: number) => { lenis?.raf(time * 1000) }
 
     if (!prefersReducedMotion) {
@@ -600,3 +604,4 @@ export default function LandingPage() {
     </div>
   )
 }
+

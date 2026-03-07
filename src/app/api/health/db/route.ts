@@ -4,7 +4,15 @@ import { createClient } from '@/lib/auth'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
+function isEnvEnabled(value: string | undefined): boolean {
+  return (value || '').trim().toLowerCase() === 'true'
+}
+
 export async function GET() {
+  if (!isEnvEnabled(process.env.ENABLE_DB_HEALTH_ENDPOINT)) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
   const result = {
     ok: false,
     supabase: { ok: false, error: undefined as string | undefined, profilesCount: 0 },
@@ -27,8 +35,8 @@ export async function GET() {
       result.supabase.ok = true
       result.supabase.profilesCount = count ?? 0
     }
-  } catch (e) {
-    result.supabase.error = e instanceof Error ? e.message : String(e)
+  } catch (error) {
+    result.supabase.error = error instanceof Error ? error.message : String(error)
     result.supabase.ok = false
   }
 

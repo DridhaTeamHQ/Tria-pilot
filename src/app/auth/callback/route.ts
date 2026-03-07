@@ -10,10 +10,26 @@ function normalizeRole(value: unknown): SupportedRole | null {
   return null
 }
 
+function sanitizeNextPath(next: string | null): string {
+  if (!next) return '/dashboard'
+  const value = next.trim()
+
+  // Allow only app-internal absolute paths.
+  if (!value.startsWith('/') || value.startsWith('//')) {
+    return '/dashboard'
+  }
+
+  if (value.includes('\r') || value.includes('\n')) {
+    return '/dashboard'
+  }
+
+  return value
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/dashboard'
+  const next = sanitizeNextPath(searchParams.get('next'))
   const roleFromQuery = normalizeRole(searchParams.get('role'))
 
   if (!code) {

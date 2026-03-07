@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
@@ -46,11 +46,7 @@ export default function BrandInfluencersPage() {
     const [sortBy, setSortBy] = useState<'followers' | 'engagement'>('followers')
     const [showFilters, setShowFilters] = useState(false)
 
-    useEffect(() => {
-        fetchInfluencers()
-    }, [selectedNiche, followerRange, sortBy])
-
-    const fetchInfluencers = async () => {
+    const fetchInfluencers = useCallback(async () => {
         try {
             const params = new URLSearchParams()
             if (search) params.set('search', search)
@@ -72,7 +68,11 @@ export default function BrandInfluencersPage() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [search, selectedNiche, followerRange, sortBy])
+
+    useEffect(() => {
+        void fetchInfluencers()
+    }, [fetchInfluencers])
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault()
@@ -297,3 +297,5 @@ export default function BrandInfluencersPage() {
         </div>
     )
 }
+
+

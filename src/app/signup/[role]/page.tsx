@@ -88,7 +88,14 @@ export default function SignupPage() {
             router.push('/login')
 
         } catch (error) {
-            toast.error(error instanceof Error ? error.message : 'Signup failed')
+            const message = error instanceof Error ? error.message : 'Signup failed'
+            const normalized = message.toLowerCase()
+
+            if (normalized.includes('already registered') || normalized.includes('already been registered')) {
+                toast.error('This email is already registered. Please sign in.')
+            } else {
+                toast.error(message)
+            }
         } finally {
             setLoading(false)
         }
@@ -404,3 +411,4 @@ export default function SignupPage() {
         </div>
     )
 }
+
