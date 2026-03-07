@@ -1,13 +1,10 @@
 /**
  * GET /api/auth/me
- * 
+ *
  * READ-ONLY ENDPOINT:
  * - Fetches authenticated user from Supabase Auth
  * - Fetches profile from profiles table
  * - Returns { user, profile }
- * 
- * NEVER writes to profiles.
- * NEVER auto-creates missing profiles.
  */
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
@@ -20,7 +17,6 @@ export async function GET() {
       error: authError,
     } = await supabase.auth.getUser()
 
-    // Handle auth errors — return 200 + null when not logged in to avoid 401 log noise
     if (authError) {
       if (!authError.message?.includes('Auth session missing')) {
         console.error('Auth error in /api/auth/me:', authError.message)
@@ -32,30 +28,39 @@ export async function GET() {
       return NextResponse.json({ user: null, profile: null })
     }
 
-    // Fetch profile from profiles table (SOURCE OF TRUTH)
-    const service = createServiceClient()
-    const { data: profile, error: profileError } = await service
+    let profileClient: Awaited<ReturnType<typeof createClient>> | ReturnType<typeof createServiceClient> = supabase
+    try {
+      profileClient = createServiceClient()
+    } catch (serviceError) {
+      console.warn('Service role unavailable in /api/auth/me; falling back to session client:', serviceError)
+      profileClient = supabase
+    }
+
+    const { data: profile, error: profileError } = await profileClient
       .from('profiles')
       .select('id, email, role, onboarding_completed, approval_status, brand_data')
       .eq('id', authUser.id)
-      .single()
+      .maybeSingle()
 
-    if (profileError) {
-      console.error(`Profile error for ${authUser.id}:`, profileError)
-      return NextResponse.json(
-        { error: 'Profile not found', message: profileError.message },
-        { status: 404 }
-      )
+    if (profileError || !profile) {
+      console.warn(`Profile missing/unreadable for ${authUser.id}:`, profileError?.message || 'not found')
+
+      const fallbackRole = String(authUser.user_metadata?.role || 'influencer').toLowerCase() === 'brand'
+        ? 'brand'
+        : 'influencer'
+
+      return NextResponse.json({
+        user: {
+          id: authUser.id,
+          email: authUser.email || '',
+          name: (authUser.user_metadata?.name as string) || (authUser.user_metadata?.full_name as string) || null,
+          role: fallbackRole.toUpperCase(),
+          slug: authUser.email?.split('@')[0] || '',
+        },
+        profile: null,
+      })
     }
 
-    if (!profile) {
-      return NextResponse.json(
-        { error: 'Profile not found' },
-        { status: 404 }
-      )
-    }
-
-    // Normalize values to lowercase
     const role = (profile.role || 'influencer').toLowerCase()
     const approvalStatus = (profile.approval_status || 'none').toLowerCase()
 
@@ -63,14 +68,14 @@ export async function GET() {
       user: {
         id: profile.id,
         email: profile.email,
-        name: (profile.brand_data as any)?.companyName || null,
-        role: role.toUpperCase(), // Backward compatibility
+        name: (profile.brand_data as Record<string, unknown> | null)?.companyName || null,
+        role: role.toUpperCase(),
         slug: profile.email?.split('@')[0] || '',
       },
       profile: {
         id: profile.id,
         email: profile.email,
-        role: role,
+        role,
         onboarding_completed: Boolean(profile.onboarding_completed),
         approval_status: approvalStatus,
         brand_data: profile.brand_data || null,

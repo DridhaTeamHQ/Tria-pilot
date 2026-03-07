@@ -1,24 +1,20 @@
 /**
  * CENTRAL DASHBOARD ROUTE
- * 
+ *
  * This is the SINGLE ENTRY POINT for all authenticated users.
  * Routes users to their role-specific dashboard based on profiles table.
- * 
- * Flow:
- * 1. Check auth session
- * 2. Fetch profile from Supabase profiles table
- * 3. Route based on role:
- *    - admin → /admin
- *    - brand (onboarding incomplete) → /onboarding/brand
- *    - brand (active) → /brand/dashboard
- *    - influencer (onboarding incomplete) → /onboarding/influencer
- *    - influencer (pending approval) → /influencer/pending
- *    - influencer (approved) → /influencer/dashboard
  */
 import { createClient, createServiceClient } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
+
+function normalizeRole(rawRole: unknown): 'admin' | 'brand' | 'influencer' {
+  const value = String(rawRole || '').trim().toLowerCase()
+  if (value === 'admin') return 'admin'
+  if (value === 'brand') return 'brand'
+  return 'influencer'
+}
 
 export default async function Dashboard() {
   const supabase = await createClient()
@@ -26,41 +22,75 @@ export default async function Dashboard() {
     data: { user: authUser },
   } = await supabase.auth.getUser()
 
-  console.log('[DASHBOARD] getUser result:', authUser ? `authenticated uid=${authUser.id}` : 'NOT authenticated')
-
-  // Not authenticated → login
   if (!authUser) {
-    console.log('[DASHBOARD] Redirecting to /login (not authenticated)')
     redirect('/login')
   }
 
-  // Fetch profile from profiles table (SOURCE OF TRUTH)
-  const service = createServiceClient()
-  const { data: profile, error } = await service
-    .from('profiles')
-    .select('role, onboarding_completed, approval_status')
-    .eq('id', authUser.id)
-    .single()
+  let profileClient: Awaited<ReturnType<typeof createClient>> | ReturnType<typeof createServiceClient> = supabase
+  try {
+    profileClient = createServiceClient()
+  } catch (serviceError) {
+    console.warn('Service role unavailable in dashboard routing; falling back to session client:', serviceError)
+    profileClient = supabase
+  }
 
-  // No profile → complete profile setup
-  if (error || !profile) {
-    console.error('Dashboard: No profile found for user', authUser.id, error)
+  let profile: {
+    role: string | null
+    onboarding_completed: boolean | null
+    approval_status: string | null
+  } | null = null
+
+  try {
+    const { data, error } = await profileClient
+      .from('profiles')
+      .select('role, onboarding_completed, approval_status')
+      .eq('id', authUser.id)
+      .maybeSingle()
+
+    if (!error && data) {
+      profile = data
+    }
+  } catch (error) {
+    console.warn('Dashboard profile fetch failed:', error)
+  }
+
+  if (!profile) {
+    const fallbackRole = normalizeRole(authUser.user_metadata?.role)
+
+    try {
+      const { data: created } = await profileClient
+        .from('profiles')
+        .insert({
+          id: authUser.id,
+          email: authUser.email,
+          role: fallbackRole,
+          full_name: (authUser.user_metadata?.name as string) || (authUser.user_metadata?.full_name as string) || null,
+          onboarding_completed: false,
+          approval_status: fallbackRole === 'brand' ? 'approved' : 'none',
+        })
+        .select('role, onboarding_completed, approval_status')
+        .maybeSingle()
+
+      if (created) {
+        profile = created
+      }
+    } catch (error) {
+      console.warn('Dashboard profile auto-create failed:', error)
+    }
+  }
+
+  if (!profile) {
     redirect('/complete-profile')
   }
 
-  // Normalize role to lowercase
-  const role = ((profile.role || 'influencer') as string).trim().toLowerCase()
+  const role = normalizeRole(profile.role)
   const onboardingComplete = Boolean(profile.onboarding_completed)
   const approvalStatus = ((profile.approval_status || 'none') as string).trim().toLowerCase()
 
-  console.log('Dashboard routing:', { role, onboardingComplete, approvalStatus })
-
-  // ADMIN - goes to admin dashboard
   if (role === 'admin') {
     redirect('/admin')
   }
 
-  // BRAND - check onboarding
   if (role === 'brand') {
     if (!onboardingComplete) {
       redirect('/onboarding/brand')
@@ -68,17 +98,11 @@ export default async function Dashboard() {
     redirect('/brand/dashboard')
   }
 
-  // INFLUENCER - check onboarding and approval
-  if (role === 'influencer') {
-    if (!onboardingComplete) {
-      redirect('/onboarding/influencer')
-    }
-    if (approvalStatus !== 'approved') {
-      redirect('/influencer/pending')
-    }
-    redirect('/influencer/dashboard')
+  if (!onboardingComplete) {
+    redirect('/onboarding/influencer')
   }
-
-  // Unknown role → recover to profile completion instead of landing ambiguity
-  redirect('/complete-profile')
+  if (approvalStatus !== 'approved') {
+    redirect('/influencer/pending')
+  }
+  redirect('/influencer/dashboard')
 }

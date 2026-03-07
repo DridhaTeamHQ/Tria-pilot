@@ -11,12 +11,40 @@ import { loginSchema } from '@/lib/validation'
 type SupabaseSessionClient = Awaited<ReturnType<typeof createClient>>
 type SupabasePrivilegedClient = SupabaseSessionClient | ReturnType<typeof createServiceClient>
 
+interface ProfileRow {
+  id: string
+  email: string | null
+  role: string | null
+  onboarding_completed: boolean | null
+  approval_status: string | null
+  full_name: string | null
+  avatar_url: string | null
+}
+
 function getPrivilegedClient(supabase: SupabaseSessionClient): SupabasePrivilegedClient {
   try {
     return createServiceClient()
   } catch (serviceError) {
     console.warn('SUPABASE_SERVICE_ROLE_KEY not set; falling back to session client for login profile fetch:', serviceError)
     return supabase
+  }
+}
+
+function normalizeRole(rawRole: unknown): 'influencer' | 'brand' {
+  const value = String(rawRole || '').trim().toLowerCase()
+  return value === 'brand' ? 'brand' : 'influencer'
+}
+
+function buildFallbackProfile(user: { id: string; email?: string | null; user_metadata?: Record<string, unknown> }): ProfileRow {
+  const role = normalizeRole(user.user_metadata?.role)
+  return {
+    id: user.id,
+    email: user.email || null,
+    role,
+    onboarding_completed: false,
+    approval_status: role === 'brand' ? 'approved' : 'none',
+    full_name: (user.user_metadata?.name as string) || (user.user_metadata?.full_name as string) || null,
+    avatar_url: null,
   }
 }
 
@@ -32,10 +60,9 @@ export async function POST(request: Request) {
     }
 
     const { email: rawEmail, password, rememberMe = true } = loginSchema.parse(body)
-
     const email = rawEmail.trim().toLowerCase()
-    const supabase = await createClient()
 
+    const supabase = await createClient()
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -103,15 +130,33 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Authentication failed' }, { status: 401 })
     }
 
-    const service = getPrivilegedClient(supabase)
+    if (!data.user.email_confirmed_at) {
+      return NextResponse.json(
+        {
+          error: 'Please verify your email address before signing in. Check your inbox for the confirmation link.',
+          emailConfirmed: false,
+          requiresEmailVerification: true,
+        },
+        { status: 403 }
+      )
+    }
 
-    const { data: adminRow } = await supabase
-      .from('admin_users')
-      .select('user_id')
-      .eq('user_id', data.user.id)
-      .maybeSingle()
+    let isAdmin = false
+    try {
+      const { data: adminRow, error: adminError } = await supabase
+        .from('admin_users')
+        .select('user_id')
+        .eq('user_id', data.user.id)
+        .maybeSingle()
 
-    if (adminRow) {
+      if (!adminError && adminRow) {
+        isAdmin = true
+      }
+    } catch (adminLookupError) {
+      console.warn('Admin lookup skipped:', adminLookupError)
+    }
+
+    if (isAdmin) {
       return NextResponse.json(
         {
           user: {
@@ -127,52 +172,52 @@ export async function POST(request: Request) {
       )
     }
 
-    if (!data.user.email_confirmed_at) {
-      return NextResponse.json(
-        {
-          error: 'Please verify your email address before signing in. Check your inbox for the confirmation link.',
-          emailConfirmed: false,
-          requiresEmailVerification: true,
-        },
-        { status: 403 }
-      )
-    }
+    const profileClient = getPrivilegedClient(supabase)
+    let profile: ProfileRow | null = null
 
-    let { data: profile, error: profileError } = await service
-      .from('profiles')
-      .select('id, email, role, onboarding_completed, approval_status, full_name, avatar_url')
-      .eq('id', data.user.id)
-      .single()
-
-    if (profileError || !profile) {
-      const metadataRole = String(data.user.user_metadata?.role || '').trim().toLowerCase()
-      const newProfileRole = metadataRole === 'brand' || metadataRole === 'influencer'
-        ? metadataRole
-        : 'influencer'
-
-      const { data: newProfile, error: createError } = await service
+    try {
+      const { data: fetchedProfile, error: fetchError } = await profileClient
         .from('profiles')
-        .insert({
-          id: data.user.id,
-          email: data.user.email,
-          role: newProfileRole,
-          full_name: data.user.user_metadata?.name || data.user.user_metadata?.full_name || null,
-          onboarding_completed: false,
-          approval_status: newProfileRole === 'brand' ? 'approved' : 'none',
-        })
-        .select()
-        .single()
+        .select('id, email, role, onboarding_completed, approval_status, full_name, avatar_url')
+        .eq('id', data.user.id)
+        .maybeSingle()
 
-      if (createError) {
-        console.error('Failed to create profile:', createError)
-        return NextResponse.json({ error: 'Failed to setup user profile' }, { status: 500 })
+      if (!fetchError && fetchedProfile) {
+        profile = fetchedProfile as ProfileRow
       }
-
-      profile = newProfile
+    } catch (fetchError) {
+      console.warn('Profile fetch failed during login:', fetchError)
     }
 
     if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 500 })
+      const fallback = buildFallbackProfile(data.user)
+
+      try {
+        const { data: createdProfile, error: createError } = await profileClient
+          .from('profiles')
+          .insert({
+            id: fallback.id,
+            email: fallback.email,
+            role: fallback.role,
+            full_name: fallback.full_name,
+            onboarding_completed: fallback.onboarding_completed,
+            approval_status: fallback.approval_status,
+          })
+          .select('id, email, role, onboarding_completed, approval_status, full_name, avatar_url')
+          .maybeSingle()
+
+        if (!createError && createdProfile) {
+          profile = createdProfile as ProfileRow
+        } else {
+          console.warn('Profile create failed during login, using fallback:', createError)
+        }
+      } catch (createError) {
+        console.warn('Profile create threw during login, using fallback:', createError)
+      }
+
+      if (!profile) {
+        profile = fallback
+      }
     }
 
     const normalizedRole = (profile.role || 'influencer').toLowerCase()
@@ -184,13 +229,13 @@ export async function POST(request: Request) {
         name: profile.full_name,
         role: normalizedRole.toUpperCase(),
         avatarUrl: profile.avatar_url,
-        onboardingCompleted: profile.onboarding_completed,
-        approvalStatus: profile.approval_status,
+        onboardingCompleted: Boolean(profile.onboarding_completed),
+        approvalStatus: profile.approval_status || 'none',
         influencerProfile: normalizedRole === 'influencer' ? {
-          onboardingCompleted: profile.onboarding_completed,
+          onboardingCompleted: Boolean(profile.onboarding_completed),
         } : null,
         brandProfile: normalizedRole === 'brand' ? {
-          onboardingCompleted: profile.onboarding_completed,
+          onboardingCompleted: Boolean(profile.onboarding_completed),
         } : null,
       },
       session: data.session,
