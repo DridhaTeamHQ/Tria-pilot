@@ -57,17 +57,17 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
     return (
         <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b-[3px] border-black">
             <div className="container mx-auto px-4 sm:px-6">
-                <div className="flex items-center justify-between h-14 md:h-16">
+                <div className="flex items-center justify-between h-12 md:h-14">
                     {/* Logo */}
                     <Link
                         href="/brand/dashboard"
-                        className="flex items-center gap-2 font-black text-xl"
+                        className="flex items-center gap-2 font-black text-lg md:text-xl leading-none"
                     >
                         <span>Kiwikoo</span>
                     </Link>
 
                     {/* Desktop Navigation Links */}
-                    <div className="hidden xl:flex items-center gap-2">
+                    <div className="hidden lg:flex items-center gap-1.5">
                         {navItems.map((item) => {
                             const isActive = pathname === item.href ||
                                 pathname?.startsWith(item.href + '/')
@@ -77,7 +77,7 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
                                     key={item.href}
                                     href={item.href}
                                     className={`
-                                        flex items-center gap-2 px-4 py-2 font-medium text-sm
+                                        flex items-center gap-1.5 px-3 py-1.5 font-medium text-xs md:text-sm
                                         rounded-full border-2 border-black transition-all
                                         ${isActive
                                             ? 'bg-[#B4F056] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
@@ -93,14 +93,14 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
                     </div>
 
                     {/* Desktop User Section */}
-                    <div className="hidden xl:flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-[#B4F056] border-2 border-black flex items-center justify-center font-bold text-sm">
+                    <div className="hidden lg:flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-[#B4F056] border-2 border-black flex items-center justify-center font-bold text-xs">
                             {brandName?.charAt(0)?.toUpperCase() || 'B'}
                         </div>
                         <button type="button"
                             onClick={() => void handleLogout()}
                             disabled={isLoggingOut}
-                            className="flex items-center gap-2 px-4 py-2 rounded-full border-2 border-black bg-white hover:bg-gray-50 transition-colors font-medium text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 border-black bg-white hover:bg-gray-50 transition-colors font-medium text-xs md:text-sm disabled:opacity-60 disabled:cursor-not-allowed"
                             title="Logout"
                         >
                             <LogOut className="w-4 h-4" strokeWidth={2} />
@@ -110,12 +110,12 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
 
                     {/* Mobile hamburger */}
                     <button type="button"
-                        className="xl:hidden p-2 rounded-xl border-2 border-black bg-white hover:bg-gray-50 transition-colors"
+                        className="lg:hidden p-1.5 rounded-lg border-2 border-black bg-white hover:bg-gray-50 transition-colors"
                         onClick={() => setMobileOpen(!mobileOpen)}
                     >
                         {mobileOpen
-                            ? <X className="w-5 h-5 text-black" />
-                            : <Menu className="w-5 h-5 text-black" />
+                            ? <X className="w-4 h-4 text-black" />
+                            : <Menu className="w-4 h-4 text-black" />
                         }
                     </button>
                 </div>
@@ -123,9 +123,9 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
 
             {/* Mobile Menu */}
             {mobileOpen && (
-                <div className="xl:hidden bg-white border-t-2 border-black animate-[slideDown_0.2s_ease-out]">
+                <div className="lg:hidden bg-white border-t-2 border-black animate-[slideDown_0.2s_ease-out]">
                     <style>{`@keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
-                    <div className="container mx-auto px-4 py-3 space-y-1.5">
+                    <div className="container mx-auto px-4 py-2.5 space-y-1.5">
                         {navItems.map((item) => {
                             const isActive = pathname === item.href ||
                                 pathname?.startsWith(item.href + '/')
@@ -136,8 +136,8 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
                                     href={item.href}
                                     onClick={() => setMobileOpen(false)}
                                     className={`
-                                        flex items-center gap-3 px-4 py-2.5 font-medium text-sm
-                                        rounded-xl border-2 border-black transition-all
+                                        flex items-center gap-2.5 px-3.5 py-2 font-medium text-sm
+                                        rounded-lg border-2 border-black transition-all
                                         ${isActive
                                             ? 'bg-[#B4F056] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
                                             : 'bg-white hover:bg-gray-50'
