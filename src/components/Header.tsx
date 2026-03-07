@@ -107,7 +107,7 @@ export default function Header() {
     })()
 
     // Derived styles
-    const logoSrc = (isHomePage && !scrolled) ? '/assets/logos/kiwikoo-logo-light.svg' : '/assets/logos/kiwikoo-logo-dark.svg'
+    const logoColor = (isHomePage && !scrolled) ? 'text-white' : 'text-charcoal'
     const linkColor = (isHomePage && !scrolled) ? 'text-white/80 hover:text-white' : 'text-charcoal/70 hover:text-charcoal'
     const buttonVariant = (isHomePage && !scrolled)
         ? 'bg-white text-charcoal hover:bg-white/90'
@@ -170,15 +170,10 @@ export default function Header() {
                     <Link
                         href="/"
                         prefetch={true}
-                        className="inline-flex items-center"
+                        className={`text-2xl font-serif font-bold transition-colors ${logoColor}`}
                         data-cursor="Home"
                     >
-                        <img
-                            src={logoSrc}
-                            alt="Kiwikoo"
-                            className="h-8 w-auto md:h-9"
-                            loading="eager"
-                        />
+                        Kiwikoo
                     </Link>
 
                     {/* Desktop Navigation */}
@@ -367,3 +362,8 @@ export default function Header() {
         </header>
     )
 }
+
+
+
+
+
