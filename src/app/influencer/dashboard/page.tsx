@@ -247,6 +247,20 @@ export default function InfluencerDashboard() {
   }
 
   const openVariantViewer = (generation: any) => {
+    if (window.matchMedia('(max-width: 767px)').matches) {
+      const mobileImageUrl = getGenerationVariants(generation).find((variant) => !!variant.url)?.url
+      if (mobileImageUrl) {
+        const params = new URLSearchParams({
+          image: mobileImageUrl,
+          title: `Generation #${generation.id.slice(0, 8)}`,
+          back: '/influencer/dashboard',
+          download: `kiwikoo-tryon-${generation.id.slice(0, 8)}.png`,
+        })
+        router.push(`/gallery/view?${params.toString()}`)
+        return
+      }
+    }
+
     setSelectedGeneration(generation)
     setSelectedVariantIndex(0)
   }
@@ -614,3 +628,4 @@ export default function InfluencerDashboard() {
     </div>
   )
 }
+

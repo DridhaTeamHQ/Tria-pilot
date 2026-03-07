@@ -418,6 +418,21 @@ export default function CreativesPage() {
         }
     }
 
+    const openCreativeViewer = (creative: AdCreative) => {
+        if (window.matchMedia('(max-width: 767px)').matches) {
+            const params = new URLSearchParams({
+                image: creative.imageUrl,
+                title: creative.campaign?.title ? `${creative.campaign.title} Creative` : 'Ad Creative',
+                back: '/brand/ads/creatives',
+                download: `creative-${creative.id}.jpg`,
+            })
+            router.push(`/gallery/view?${params.toString()}`)
+            return
+        }
+
+        setLightboxImage(creative.imageUrl)
+    }
+
     const hasActiveFilters =
         campaignFilter !== 'all' || platformFilter !== 'all' || qualityFilter !== 'all'
 
@@ -605,7 +620,7 @@ export default function CreativesPage() {
                                 creative={creative}
                                 onRegenerate={() => handleRegenerate(creative)}
                                 onDownload={() => handleDownload(creative)}
-                                onImageClick={() => setLightboxImage(creative.imageUrl)}
+                                onImageClick={() => openCreativeViewer(creative)}
                                 regenerating={regenerating === creative.id}
                             />
                         ))}
@@ -621,3 +636,4 @@ export default function CreativesPage() {
         </motion.div>
     )
 }
+
