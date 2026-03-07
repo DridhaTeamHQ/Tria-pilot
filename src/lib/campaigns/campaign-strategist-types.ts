@@ -38,7 +38,23 @@ export interface StrategistMessage {
     phase?: StrategistPhase
     /** If the assistant produced a campaign creation payload */
     campaignPayload?: CampaignStrategyOutput | null
+    /** User-uploaded images (base64 data URLs) */
+    images?: string[]
+    /** AI-generated campaign visual images */
+    generatedImages?: GeneratedCampaignImage[]
     timestamp?: string
+}
+
+/** An AI-generated image within the strategist chat */
+export interface GeneratedCampaignImage {
+    /** Base64 data URL of the generated image */
+    imageBase64: string
+    /** Description/prompt used to generate */
+    description: string
+    /** The ad preset used, if any */
+    preset?: string
+    /** Quality score from rating */
+    qualityScore?: number
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -128,5 +144,6 @@ export interface BrandContext {
         description?: string
         price?: number
         category?: string
+        imageUrl?: string
     }>
 }

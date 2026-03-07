@@ -134,19 +134,7 @@ const URBAN_PRESETS: ScenePreset[] = [
     style: 'realism',
     negative_bias: 'No rooftop clutter, no industrial tanks, no flat overcast haze, no clipped sky highlights.'
   },
-  {
-    id: 'urban_street_dusk',
-    label: 'City Street at Dusk',
-    category: 'street',
-    region: 'india',
-    scene: 'Upscale city street at blue hour with smooth pavement, modern facades, practical streetlights, and sparse distant pedestrian blur.',
-    lighting: 'Key: warm practical streetlight from side. Fill: cool blue-hour ambient from sky and opposite facades. Rim: distant storefront spill on silhouette edge. Dual temperature blend around 3200K practical and 6800K ambient.',
-    camera: '35mm lens, full-body framing with converging street perspective.',
-    motion: 'subtle motion',
-    mood: 'candid',
-    style: 'realism',
-    negative_bias: 'No heavy traffic dominance, no messy signage clutter, no muddy mixed white balance, no oversaturated neon cast.'
-  },
+  // Removed: urban_street_dusk — dual color temperature (3200K+6800K) forces face recoloring
 ]
 
 const CELEBRATION_PRESETS: ScenePreset[] = [
@@ -195,19 +183,18 @@ const CASUAL_PRESETS: ScenePreset[] = [
 ]
 
 const EXTENDED_PRESETS: ScenePreset[] = [
-  {
-    id: 'urban_gas_station_night',
-    label: 'Gas Station Night',
-    category: 'street',
-    region: 'global',
-    scene: 'UK-style gas station forecourt at night with wet reflective asphalt, canopy columns, fuel pumps, convenience storefront glow, and parked dark car near pumps.',
-    lighting: 'Key: overhead canopy practicals (cool-white) from top-front. Fill: storefront and sign spill (mixed warm/cool) across forecourt. Rim: specular reflections from wet ground and car panels. Mixed 3200-5200K night lighting with deep but readable blacks.',
-    camera: '35mm or smartphone-equivalent vertical framing, full-body to three-quarter with pumps and car context.',
-    motion: 'subtle motion',
-    mood: 'candid',
-    style: 'realism',
-    negative_bias: 'No daylight sky, no dry pavement, no neon over-saturation, no face beautification or heavy face grading, no washed night blacks, no synthetic background blur or fake bokeh.'
-  },
+  // ─── SAFE EXTENDED PRESETS ─────────────────────────────────────────────────
+  // Only presets with natural/neutral lighting and standard camera angles.
+  // Removed 18 presets that caused face drift due to:
+  //   - Colored gels/backdrops bleeding onto face (crimson, green-red, orange, red)
+  //   - Night mixed-color-temp lighting (gas station, fast-food, dusk, night garden)
+  //   - Unusual angles warping face geometry (fisheye, drone aerial, low-frame)
+  //   - B&W conversion reprocessing skin tones
+  //   - Hard directional light creating face shadows (beam split, court sun, dark study)
+  //   - Mirror reflection physics complicating identity
+  //   - High-contrast flash overriding face detail (mafia office, newspaper set)
+  // ──────────────────────────────────────────────────────────────────────────
+  /*
   {
     id: 'golden_hour_bedroom',
     label: 'Golden Hour Bed (Blinds)',
@@ -222,32 +209,6 @@ const EXTENDED_PRESETS: ScenePreset[] = [
     negative_bias: 'No hard overhead flash, no cold blue cast, no perfectly flat bedding, no sterile hotel-room look.'
   },
   {
-    id: 'editorial_mafia_office',
-    label: 'Editorial Study (Mafia Office)',
-    category: 'lifestyle',
-    region: 'global',
-    scene: 'Dark wood study with tufted brown leather sofa, leather desk chair, brass hardware accents, textured paneling, and polished wood side surfaces.',
-    lighting: 'Key: direct frontal flash with crisp specular response. Fill: minimal ambient bounce from dark wood to keep shape readable. Rim: subtle practical back edge from lamp or window slit. Mixed 3200-4600K with high-contrast editorial punch.',
-    camera: 'Mid-frame portrait look, moderate depth, sharp subject emphasis.',
-    motion: 'static',
-    mood: 'candid',
-    style: 'realism',
-    negative_bias: 'No flat soft-only beauty light, no blown highlights on leather, no plastic skin smoothing, no washed shadows.'
-  },
-  {
-    id: 'studio_beam_split',
-    label: 'Split-Light Character Portrait',
-    category: 'lifestyle',
-    region: 'global',
-    scene: 'Neutral gray studio with clean floor-to-backdrop transition and a controlled slit-beam pattern crossing the set.',
-    lighting: 'Key: narrow hard beam from front-left creating geometric split. Fill: very low-level bounce to retain shadow-side detail. Rim: subtle rear kicker for shoulder separation. Neutral 5000-5400K with controlled contrast.',
-    camera: '50mm close portrait framing, head-on with slight edge softness.',
-    motion: 'static',
-    mood: 'candid',
-    style: 'realism',
-    negative_bias: 'No glam retouch, no heavy soft fill flattening, no random color cast, no painterly rendering.'
-  },
-  {
     id: 'studio_gray_flash',
     label: 'Gray Flash Editorial',
     category: 'lifestyle',
@@ -259,19 +220,6 @@ const EXTENDED_PRESETS: ScenePreset[] = [
     mood: 'candid',
     style: 'realism',
     negative_bias: 'No soft beauty flattening, no pastel haze, no overexposed forehead hotspots, no plastic texture.'
-  },
-  {
-    id: 'studio_crimson_noir',
-    label: 'Crimson Neo-Noir',
-    category: 'lifestyle',
-    region: 'global',
-    scene: 'Minimal studio with deep crimson background paper, matte floor, and negative-space composition without props.',
-    lighting: 'Key: low-key side source slightly below eye level. Fill: very restrained bounce to keep shadow detail credible. Rim: narrow rear edge on jawline and shoulders. Warm-red scene bias with practical neutral skin handling around 3000-4200K.',
-    camera: 'Close-up to medium close-up, slightly low angle, medium depth with crisp facial and background edge detail.',
-    motion: 'static',
-    mood: 'candid',
-    style: 'realism',
-    negative_bias: 'No smile or expression rewrite, no wide-angle distortion, no crushed-black clipping, no stylized face reshaping.'
   },
   {
     id: 'lifestyle_airport_terminal',
@@ -313,58 +261,6 @@ const EXTENDED_PRESETS: ScenePreset[] = [
     negative_bias: 'No aggressive HDR, no heavy crowd congestion, no over-posed stance, no unrealistic architectural blur.'
   },
   {
-    id: 'street_subway_fisheye',
-    label: 'Subway Fisheye Streetwear',
-    category: 'street',
-    region: 'global',
-    scene: 'Underground stairwell with tiled walls, graffiti surfaces, worn concrete steps, steel handrail, and fluorescent ceiling fixtures.',
-    lighting: 'Key: overhead fluorescent practicals. Fill: cool bounce from tiled walls and concrete steps. Rim: rear fixture spill along edge contours. Cool-neutral 4000-4800K with localized high contrast and hard step shadows.',
-    camera: 'Wide fisheye low-angle framing with intentional barrel distortion and dynamic perspective.',
-    motion: 'subtle motion',
-    mood: 'candid',
-    style: 'realism',
-    negative_bias: 'No clean corporate hallway look, no flat soft-light wash, no fisheye correction, no sterile textures.'
-  },
-  {
-    id: 'street_mcdonalds_bmw_night',
-    label: 'Fast-Food Luxury Night',
-    category: 'street',
-    region: 'global',
-    scene: 'Night fast-food parking lot with illuminated storefront signage, reflective asphalt, white performance sedan, and takeaway props on hood surface.',
-    lighting: 'Key: warm streetlamp practical from upper side. Fill: storefront spill and sign bounce across car paint and pavement. Rim: bright reflected edge from signage and wet asphalt highlights. Mixed 3000-5000K night palette with preserved black depth.',
-    camera: '35mm cinematic lifestyle framing with deep focus; storefront, car contours, and asphalt reflections stay crisp without synthetic bokeh.',
-    motion: 'subtle motion',
-    mood: 'candid',
-    style: 'realism',
-    negative_bias: 'No daylight elements, no incorrect vehicle class look, no blown signage, no face beautification or aggressive face grading, no artificial background blur or bokeh blobs.'
-  },
-  {
-    id: 'outdoor_kerala_theyyam_gtr',
-    label: 'Kerala Theyyam GT-R Aerial',
-    category: 'outdoor',
-    region: 'global',
-    scene: 'Traditional Kerala tiled ancestral house centered in frame, dense tropical greenery and coconut trees, slightly wet mud driveway, matte black GT-R parked in front, culturally authentic Theyyam performer beside the car.',
-    lighting: 'Key: soft overcast monsoon daylight from high sky dome. Fill: wet-ground and wall bounce with humid atmospheric haze. Rim: warm headlight edge reflections through mist. Balanced monsoon palette with natural contrast and no oversaturation.',
-    camera: 'High drone-angle cinematic composition (about 45 degrees), deep focus across house, vehicle, and performer with no blur wash.',
-    motion: 'static',
-    mood: 'candid',
-    style: 'realism',
-    negative_bias: 'No fake CGI look, no warped architecture, no oversaturated greens or reds, no synthetic depth blur.'
-  },
-  {
-    id: 'studio_bw_minimalist_portrait',
-    label: 'B&W Minimalist Portrait',
-    category: 'lifestyle',
-    region: 'global',
-    scene: 'Minimal light-toned studio wall, no props, clean vertical framing with strong geometric negative space.',
-    lighting: 'Key: soft front-top studio source. Fill: gentle frontal return preserving smooth tonal transitions. Rim: minimal contour edge for clean face outline. Monochrome conversion with true micro-contrast.',
-    camera: 'Vertical portrait framing (9:16 friendly), medium-deep focus with clean contour detail and no fake blur halos.',
-    motion: 'static',
-    mood: 'candid',
-    style: 'realism',
-    negative_bias: 'No face distortion, no plastic skin, no anime/CGI style, no synthetic bokeh, no warped eyewear geometry.'
-  },
-  {
     id: 'home_cozy_teddy_selfie',
     label: 'Cozy Teddy Selfie',
     category: 'home',
@@ -390,45 +286,7 @@ const EXTENDED_PRESETS: ScenePreset[] = [
     style: 'realism',
     negative_bias: 'No scene replacement, no perspective drift, no extra people, no fake depth blur or bokeh overlays.'
   },
-  {
-    id: 'street_elevator_mirror_chic',
-    label: 'Elevator Mirror Chic',
-    category: 'street',
-    region: 'global',
-    scene: 'Business elevator mirror environment with brushed-steel panels, practical LED strips, realistic smudges/fingerprints, and reflective control panel details.',
-    lighting: 'Key: cool overhead LED practicals. Fill: metallic bounce from walls and mirror. Rim: controlled edge highlights on clothing and phone surfaces, keeping reflection physics realistic.',
-    camera: 'Handheld phone mirror capture at waist-to-chest height, slight natural tilt, deep focus across reflected surfaces without AI blur.',
-    motion: 'static',
-    mood: 'candid',
-    style: 'realism',
-    negative_bias: 'No perfect-clean mirror CGI, no warped reflections, no beauty light, no artificial blur gradients.'
-  },
-  {
-    id: 'editorial_sky_negative_space',
-    label: 'Sky Negative Space Editorial',
-    category: 'outdoor',
-    region: 'global',
-    scene: 'Open sky-dominant composition with expansive cloud field and minimal horizon occupancy, subject positioned low in frame for negative-space storytelling.',
-    lighting: 'Key: soft daylight from open sky. Fill: ambient atmospheric bounce with gentle tonal rolloff. Rim: natural edge from sun angle when available. Neutral-cool daylight with filmic contrast.',
-    camera: '50mm editorial framing with deep sky detail and no artificial blur; preserve cloud texture and horizon clarity.',
-    motion: 'subtle motion',
-    mood: 'candid',
-    style: 'realism',
-    negative_bias: 'No fake cloud smoothing, no extreme HDR halos, no blur wall sky, no oversaturated cyan cast.'
-  },
-  {
-    id: 'editorial_night_garden_flash',
-    label: 'Night Garden Flash Editorial',
-    category: 'lifestyle',
-    region: 'global',
-    scene: 'Dense tropical garden backdrop at night with layered leaves, natural depth, and dark environmental separation behind subject.',
-    lighting: 'Key: direct frontal flash with clean skin detail. Fill: low-level ambient foliage bounce. Rim: colored practical spill for subtle red-green edge separation while keeping skin realistic.',
-    camera: '35mm portrait framing with sharp leaf texture and realistic flash falloff; avoid synthetic blur patterns.',
-    motion: 'static',
-    mood: 'candid',
-    style: 'realism',
-    negative_bias: 'No neon overdrive, no plastic foliage, no skin airbrushing, no fake bokeh circles.'
-  },
+  */
   {
     id: 'studio_white_brick_bench',
     label: 'White Brick Bench Studio',
@@ -441,97 +299,6 @@ const EXTENDED_PRESETS: ScenePreset[] = [
     mood: 'candid',
     style: 'realism',
     negative_bias: 'No overexposed wall clipping, no hazy blur haze, no artificial texture smoothing.'
-  },
-  {
-    id: 'editorial_newspaper_set',
-    label: 'Newspaper Set Editorial',
-    category: 'lifestyle',
-    region: 'global',
-    scene: 'Concept editorial set with chair and surrounding newspaper collage on floor and walls, visible print texture and layered paper folds.',
-    lighting: 'Key: punchy direct source from front-top. Fill: paper bounce retaining legibility of typography and texture. Rim: subtle side kicker to separate silhouette.',
-    camera: '35mm low-seated framing with crisp paper detail, balanced perspective, and no synthetic depth blur.',
-    motion: 'static',
-    mood: 'candid',
-    style: 'realism',
-    negative_bias: 'No unreadable smeared paper texture, no cartoon color push, no blur gradient artifacts.'
-  },
-  {
-    id: 'editorial_court_geometric_sun',
-    label: 'Court Geometric Sunlight',
-    category: 'outdoor',
-    region: 'global',
-    scene: 'Outdoor court with painted ground planes, clean walls, and geometric sunlight/shadow shapes creating graphic composition.',
-    lighting: 'Key: hard natural sunlight with directional shadow geometry. Fill: ground bounce keeping facial and garment detail readable. Rim: sun edge on shoulders and shoes.',
-    camera: '35mm seated full-body lifestyle framing, deep focus on court lines and wall textures.',
-    motion: 'subtle motion',
-    mood: 'candid',
-    style: 'realism',
-    negative_bias: 'No flat overcast relight, no shadow inconsistency, no synthetic blur or washed textures.'
-  },
-  {
-    id: 'studio_window_blind_portrait',
-    label: 'Window Blind Portrait',
-    category: 'lifestyle',
-    region: 'global',
-    scene: 'Minimal interior wall with natural window-blind projection patterns and clean uncluttered composition.',
-    lighting: 'Key: directional sunlight through blinds creating stripe patterns. Fill: soft room bounce preserving skin texture in shadow bands. Rim: gentle warm edge from window direction.',
-    camera: 'Portrait framing with medium depth; keep wall texture and light pattern edges clean, no blur haze.',
-    motion: 'static',
-    mood: 'candid',
-    style: 'realism',
-    negative_bias: 'No fake projected patterns, no oversoft skin, no bokeh blobs, no muddy shadow bands.'
-  },
-  {
-    id: 'editorial_dark_study_set',
-    label: 'Dark Study Set Editorial',
-    category: 'lifestyle',
-    region: 'global',
-    scene: 'Dark studio study set with armchair, side table, lamp, stacked books, flowers, and textured rug for rich set storytelling.',
-    lighting: 'Key: controlled warm practical plus soft directional fill. Fill: low ambient return to retain dark-set depth. Rim: subtle edge separation from background.',
-    camera: '50mm seated environmental portrait with deep set detail and natural tonal contrast.',
-    motion: 'static',
-    mood: 'candid',
-    style: 'realism',
-    negative_bias: 'No crushed black clipping, no fake lamp glow bloom, no blur-smear in prop textures.'
-  },
-  {
-    id: 'studio_orange_director_chair',
-    label: 'Orange Director Chair Studio',
-    category: 'lifestyle',
-    region: 'global',
-    scene: 'Solid orange seamless studio backdrop with director chair and clean floor transition for bold color-block editorial look.',
-    lighting: 'Key: soft front source with controlled contrast. Fill: backdrop bounce preserving skin and fabric detail. Rim: mild side edge for shape definition.',
-    camera: 'Full-body seated framing with deep focus and crisp edge rendering against seamless backdrop.',
-    motion: 'static',
-    mood: 'candid',
-    style: 'realism',
-    negative_bias: 'No oversaturated clipping, no background banding, no synthetic depth blur, no plastic skin.'
-  },
-  {
-    id: 'studio_green_red_gel_editorial',
-    label: 'Green-Red Gel Editorial',
-    category: 'lifestyle',
-    region: 'global',
-    scene: 'Minimal studio wall setup with controlled colored-light interplay and clean floor/wall transition.',
-    lighting: 'Key: warm directional source on subject plane. Fill: controlled green gel spill on shadow side for editorial contrast. Rim: subtle edge separation maintaining natural skin texture.',
-    camera: 'Three-quarter standing framing with medium-deep focus and clean wall gradients, no fake blur.',
-    motion: 'subtle motion',
-    mood: 'candid',
-    style: 'realism',
-    negative_bias: 'No posterized color banding, no skin recolor artifacts, no AI haze blur.'
-  },
-  {
-    id: 'studio_red_seamless_profile',
-    label: 'Red Seamless Profile',
-    category: 'lifestyle',
-    region: 'global',
-    scene: 'Bold red seamless backdrop with minimal set elements and profile-oriented editorial composition.',
-    lighting: 'Key: soft side light shaping profile contours. Fill: subtle front bounce preserving facial micro-detail. Rim: fine shoulder outline against red background.',
-    camera: 'Medium profile framing with deep focus and crisp hair/garment edge detail.',
-    motion: 'static',
-    mood: 'candid',
-    style: 'realism',
-    negative_bias: 'No red channel clipping, no warped profile anatomy, no soft blur wall, no painterly rendering.'
   },
 ]
 

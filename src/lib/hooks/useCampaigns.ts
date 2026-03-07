@@ -25,7 +25,8 @@ export function useCampaigns() {
   return useQuery({
     queryKey: ['campaigns'],
     queryFn: getCampaigns,
-    staleTime: 60 * 1000,
+    staleTime: 5 * 1000, // 5 seconds — short so new campaigns appear quickly
+    refetchOnMount: 'always', // Always refetch when component mounts
   })
 }
 

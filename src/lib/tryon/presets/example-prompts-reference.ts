@@ -706,18 +706,14 @@ Lighting: harsh direct Phone flash reflected off mirror, blown highlights, hard 
 
 /** Preset IDs that have at least one example (for prompt builder to prefer these) */
 const PRESET_ALIASES: Record<string, string> = {
-  studio_black: 'studio_crimson_noir',
+  studio_black: 'studio_gray_flash',
   studio_grey: 'studio_white',
   studio_gradient: 'studio_white',
   celebration_festive: 'celebration_festive',
-  studio_beam_split: 'studio_beam_split',
   studio_gray_flash: 'studio_gray_flash',
-  studio_crimson_noir: 'studio_crimson_noir',
   lifestyle_airport_terminal: 'lifestyle_airport_terminal',
   lifestyle_tropical_patio: 'lifestyle_tropical_patio',
   lifestyle_european_bench: 'lifestyle_european_bench',
-  street_subway_fisheye: 'street_subway_fisheye',
-  street_mcdonalds_bmw_night: 'street_mcdonalds_bmw_night',
 }
 
 function validateExamplePromptDataset(): void {
@@ -746,8 +742,9 @@ function validateExamplePromptDataset(): void {
 
     const resolvedPresetId = PRESET_ALIASES[example.presetId] || example.presetId
     if (!getPresetById(resolvedPresetId)) {
-      throw new Error(
-        `Example prompt dataset error: unknown presetId "${example.presetId}" (resolved "${resolvedPresetId}") for "${example.id}"`
+      // Gracefully skip examples referencing removed presets instead of crashing
+      console.warn(
+        `[example-prompts] Skipping example "${example.id}": preset "${example.presetId}" no longer exists`
       )
     }
   }

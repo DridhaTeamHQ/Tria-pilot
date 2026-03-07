@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback, type KeyboardEvent } from 'react'
+import { useState, useRef, useEffect, useCallback, type KeyboardEvent, type ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -13,26 +13,29 @@ import {
     Loader2,
     Rocket,
     ChevronRight,
+    ImagePlus,
+    X,
+    Download,
+    Wand2,
+    RefreshCw,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type {
     StrategistPhase,
     StrategistMessage,
     CampaignStrategyOutput,
+    GeneratedCampaignImage,
 } from '@/lib/campaigns/campaign-strategist-types'
 import { STRATEGIST_PHASES } from '@/lib/campaigns/campaign-strategist-types'
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    AUTO-CONTINUATION MESSAGES
-   When a phase transition is detected, the system automatically
-   sends this message to trigger the next phase's work.
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 const AUTO_CONTINUE_MESSAGES: Partial<Record<StrategistPhase, string>> = {
     researcher: '[SYSTEM: Auto-triggered Research Phase. Deliver the full research brief now. Do not ask the user to wait.]',
-    ideator: '[SYSTEM: Auto-triggered Ideation Phase. Based on the research, deliver content ideas, hooks, and angles now.]',
-    scripter: '[SYSTEM: Auto-triggered Scripting Phase. Based on the ideas, write ad scripts, organic scripts, and UGC briefs now.]',
-    analyst: '[SYSTEM: Auto-triggered Analysis Phase. Optimize everything, create A/B variants, and generate the campaign summary card with the campaign_create JSON payload now.]',
+    ideator: '[SYSTEM: Auto-triggered Ideation Phase. Based on the research, deliver content ideas, hooks, angles, AND generate 1-2 campaign concept visuals by including [IMAGE_GEN:detailed description] markers in your response. Visual generation is MANDATORY in this phase.]',
+    // scripter & analyst are NOT auto-triggered — user reviews ideation first
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -99,6 +102,7 @@ function CampaignStrategyCard({
             <div className="bg-gradient-to-r from-[#B4F056] to-[#d4ff8a] px-5 py-3 flex items-center gap-2">
                 <Rocket className="w-4 h-4" strokeWidth={2.5} />
                 <h3 className="text-xs font-black uppercase tracking-wider">Campaign Strategy Ready</h3>
+                <span className="ml-auto text-[9px] font-black uppercase bg-black/10 px-2 py-0.5 rounded-full tracking-wider">Draft</span>
             </div>
 
             <div className="p-5 space-y-3">
@@ -152,7 +156,7 @@ function CampaignStrategyCard({
                         className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#B4F056] border-2 border-black rounded-xl font-black uppercase text-sm shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all"
                     >
                         <CheckCircle2 className="w-4 h-4" />
-                        Campaign Created — View All
+                        Draft Campaign Saved — View All
                     </Link>
                 ) : (
                     <button type="button"
@@ -173,14 +177,106 @@ function CampaignStrategyCard({
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   GENERATED IMAGE GALLERY
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+function GeneratedImageGallery({ images, onRegenerate }: { images: GeneratedCampaignImage[]; onRegenerate?: (description: string) => void }) {
+    const handleDownload = (image: GeneratedCampaignImage, index: number) => {
+        const a = document.createElement('a')
+        a.href = image.imageBase64
+        a.download = `campaign-visual-${index + 1}.png`
+        a.click()
+    }
+
+    return (
+        <div className="space-y-3 mt-3">
+            <div className="flex items-center gap-2">
+                <Wand2 className="w-3.5 h-3.5 text-[#A78BFA]" strokeWidth={2.5} />
+                <p className="text-[10px] font-black uppercase tracking-wider text-[#A78BFA]">
+                    AI Generated Campaign Visuals
+                </p>
+            </div>
+            <div className={`grid gap-3 ${images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                {images.map((img, idx) => (
+                    <div key={idx} className="relative group overflow-hidden rounded-xl border border-black/10 shadow-sm">
+                        <img
+                            src={img.imageBase64}
+                            alt={img.description}
+                            className="w-full aspect-square object-cover transition-transform group-hover:scale-[1.02]"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform">
+                            <p className="text-[11px] font-medium text-white/90 line-clamp-2 mb-2">{img.description}</p>
+                            <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => handleDownload(img, idx)}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/90 rounded-lg text-[10px] font-black uppercase text-black hover:bg-white transition-colors"
+                                >
+                                    <Download className="w-3 h-3" />
+                                    Save
+                                </button>
+                                {onRegenerate && (
+                                    <button
+                                        type="button"
+                                        onClick={() => onRegenerate(img.description)}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#A78BFA]/90 rounded-lg text-[10px] font-black uppercase text-white hover:bg-[#A78BFA] transition-colors"
+                                    >
+                                        <RefreshCw className="w-3 h-3" />
+                                        Regenerate
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                        {img.preset && (
+                            <span className="absolute top-2 left-2 text-[9px] font-black uppercase bg-black/60 text-white px-2 py-0.5 rounded-full">
+                                {img.preset}
+                            </span>
+                        )}
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   IMAGE UPLOAD PREVIEW
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+function ImageUploadPreview({ images, onRemove }: { images: string[]; onRemove: (index: number) => void }) {
+    if (images.length === 0) return null
+
+    return (
+        <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
+            {images.map((img, i) => (
+                <div key={i} className="relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 border-black/15 group">
+                    <img src={img} alt={`Upload ${i + 1}`} className="w-full h-full object-cover" />
+                    <button
+                        type="button"
+                        onClick={() => onRemove(i)}
+                        className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                    >
+                        <X className="w-3 h-3" strokeWidth={3} />
+                    </button>
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/40 to-transparent h-4" />
+                </div>
+            ))}
+        </div>
+    )
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    TYPING INDICATOR
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
-function TypingIndicator({ phase }: { phase: StrategistPhase }) {
+function TypingIndicator({ phase, isGeneratingImage }: { phase: StrategistPhase; isGeneratingImage?: boolean }) {
     const phaseInfo = STRATEGIST_PHASES.find((p) => p.id === phase)
-    const label = phaseInfo
-        ? `${phaseInfo.emoji} ${phaseInfo.description}`
-        : 'Thinking'
+    const label = isGeneratingImage
+        ? '🎨 Generating campaign visual...'
+        : phaseInfo
+            ? `${phaseInfo.emoji} ${phaseInfo.description}`
+            : 'Thinking'
 
     return (
         <div className="flex gap-3 items-end animate-fadeIn">
@@ -210,11 +306,29 @@ const PHASE_SUGGESTIONS: Partial<Record<StrategistPhase, string[]>> = {
         'We sell fashion accessories for Gen Z',
         'Our budget is ₹50,000/month',
         'We want to grow on Instagram & TikTok',
-        'We\'re at early traction stage',
+        'Show me what a campaign visual would look like',
+    ],
+    ideator: [
+        '✅ Looks great — write the scripts now',
+        '🎨 Generate more campaign visuals',
+        'I want lifestyle images with models',
+        'Try a different visual style',
+        'Tweak the content angles',
+    ],
+    scripter: [
+        '✅ Scripts look good — optimize & finalize',
+        'More script variants',
+        'Make the hooks punchier',
+        'Add a TikTok-specific version',
+    ],
+    analyst: [
+        'Finalize the campaign',
+        'More A/B test ideas',
     ],
     complete: [
         'Refine targeting',
         'More ad variants',
+        'Generate a campaign visual for this strategy',
         'Adjust budget strategy',
     ],
 }
@@ -397,9 +511,13 @@ Here's how I work:
 4. **✍️ Scripts & Copy** — Ad scripts, organic content, UGC briefs
 5. **📊 Optimization** — A/B variants, conversion improvements
 
+### 🖼️ Visual Intelligence (NEW!)
+- **Upload images** — I can analyze your product photos, competitor creatives, mood boards, and more using AI Vision
+- **Generate visuals** — I'll create stunning campaign visuals during our conversation to preview your ad concepts
+
 I'll flow through each phase **automatically** — no need to prompt me. At the end, your campaign will be **auto-generated** and ready to launch.
 
-**Tell me about your brand and what you're looking to achieve with this campaign.**`,
+**Tell me about your brand and what you're looking to achieve with this campaign.** You can also upload a product image to get started!`,
     phase: 'intake',
 }
 
@@ -413,8 +531,12 @@ export default function CampaignStrategist() {
     const [createdCampaignId, setCreatedCampaignId] = useState<string | null>(null)
     const [isCreatingCampaign, setIsCreatingCampaign] = useState(false)
     const [phaseTransitions, setPhaseTransitions] = useState<Set<number>>(new Set())
+    const [pendingImages, setPendingImages] = useState<string[]>([])
+    const [storedProductImages, setStoredProductImages] = useState<string[]>([])
+    const [isGeneratingImage, setIsGeneratingImage] = useState(false)
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
+    const fileInputRef = useRef<HTMLInputElement>(null)
     const autoProgressRef = useRef(false)
 
     const scrollToBottom = useCallback(() => {
@@ -441,6 +563,40 @@ export default function CampaignStrategist() {
         autoResize()
     }, [input, autoResize])
 
+    // Handle image upload
+    const handleImageUpload = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files
+        if (!files) return
+
+        const maxImages = 10 - pendingImages.length
+        const filesToProcess = Array.from(files).slice(0, maxImages)
+
+        for (const file of filesToProcess) {
+            if (file.size > 10 * 1024 * 1024) {
+                toast.error(`${file.name} is too large (max 10MB)`)
+                continue
+            }
+
+            const reader = new FileReader()
+            reader.onload = (ev) => {
+                const base64 = ev.target?.result as string
+                if (base64) {
+                    setPendingImages(prev => [...prev, base64])
+                }
+            }
+            reader.readAsDataURL(file)
+        }
+
+        // Reset file input
+        if (fileInputRef.current) {
+            fileInputRef.current.value = ''
+        }
+    }, [pendingImages.length])
+
+    const removeImage = useCallback((index: number) => {
+        setPendingImages(prev => prev.filter((_, i) => i !== index))
+    }, [])
+
     /**
      * Core send function — handles both user messages and auto-continuation
      */
@@ -453,24 +609,43 @@ export default function CampaignStrategist() {
         const userMessage = (text || input).trim()
         if (!userMessage || loading) return
 
+        // Capture pending images for this message
+        const messageImages = isAutoContinue ? [] : [...pendingImages]
+
         if (!isAutoContinue) {
             setInput('')
+            // Store product images persistently for future generation
+            if (messageImages.length > 0) {
+                setStoredProductImages(prev => {
+                    const combined = [...prev, ...messageImages]
+                    return combined.slice(0, 10) // Keep max 10
+                })
+            }
+            setPendingImages([])
         }
 
         // Only add visible user messages (not auto-continue triggers)
         if (!isAutoContinue) {
             setMessages((prev) => [
                 ...prev,
-                { role: 'user', content: userMessage, phase: targetPhase },
+                {
+                    role: 'user',
+                    content: userMessage,
+                    phase: targetPhase,
+                    images: messageImages.length > 0 ? messageImages : undefined,
+                },
             ])
         }
 
         setLoading(true)
+        if (messageImages.length > 0) {
+            setIsGeneratingImage(false)
+        }
 
         try {
             const currentMessages = isAutoContinue
                 ? messages
-                : [...messages, { role: 'user' as const, content: userMessage, phase: targetPhase }]
+                : [...messages, { role: 'user' as const, content: userMessage, phase: targetPhase, images: messageImages.length > 0 ? messageImages : undefined }]
 
             const response = await fetch('/api/campaigns/chat', {
                 method: 'POST',
@@ -482,6 +657,12 @@ export default function CampaignStrategist() {
                         role: m.role,
                         content: m.content,
                     })),
+                    // Always send stored product images for Gemini generation reference
+                    images: messageImages.length > 0
+                        ? messageImages
+                        : storedProductImages.length > 0
+                            ? storedProductImages
+                            : undefined,
                 }),
             })
 
@@ -498,11 +679,17 @@ export default function CampaignStrategist() {
 
             if (data.campaignPayload) {
                 setCampaignPayload(data.campaignPayload)
+                // Campaign created = flow is DONE, force complete and stop auto-progression
+                setPhase('complete')
+                autoProgressRef.current = false
             }
 
             if (data.createdCampaignId) {
                 setCreatedCampaignId(data.createdCampaignId)
             }
+
+            // Handle generated images
+            const generatedImages: GeneratedCampaignImage[] = data.generatedImages || []
 
             setMessages((prev) => {
                 const newMessages = [
@@ -510,12 +697,12 @@ export default function CampaignStrategist() {
                     {
                         role: 'assistant' as const,
                         content: data.response,
-                        phase: newPhase || targetPhase,
+                        phase: data.campaignPayload ? 'complete' as StrategistPhase : (newPhase || targetPhase),
                         campaignPayload: data.campaignPayload || null,
+                        generatedImages: generatedImages.length > 0 ? generatedImages : undefined,
                     },
                 ]
 
-                // Track phase transition for rendering the banner
                 if (didTransition) {
                     setPhaseTransitions((prev) => new Set([...prev, newMessages.length - 1]))
                 }
@@ -523,8 +710,8 @@ export default function CampaignStrategist() {
                 return newMessages
             })
 
-            // AUTO-PROGRESSION: If the AI transitioned to a new phase, auto-send continuation
-            if (didTransition && newPhase && newPhase !== 'complete' && AUTO_CONTINUE_MESSAGES[newPhase]) {
+            // AUTO-PROGRESSION — only if no campaign payload (flow not done)
+            if (!data.campaignPayload && didTransition && newPhase && newPhase !== 'complete' && AUTO_CONTINUE_MESSAGES[newPhase]) {
                 autoProgressRef.current = true
             }
         } catch {
@@ -539,8 +726,9 @@ export default function CampaignStrategist() {
             ])
         } finally {
             setLoading(false)
+            setIsGeneratingImage(false)
         }
-    }, [input, loading, messages, phase])
+    }, [input, loading, messages, phase, pendingImages, storedProductImages])
 
     // Effect for auto-progression
     useEffect(() => {
@@ -548,7 +736,6 @@ export default function CampaignStrategist() {
             autoProgressRef.current = false
             const autoContinueMsg = AUTO_CONTINUE_MESSAGES[phase]
             if (autoContinueMsg) {
-                // Small delay so the user can see the transition before the next message loads
                 const timer = setTimeout(() => {
                     sendMessage(autoContinueMsg, { isAutoContinue: true, targetPhase: phase })
                 }, 1500)
@@ -618,7 +805,6 @@ export default function CampaignStrategist() {
         }
     }
 
-    // Determine if input should be disabled during auto-progression phases
     const isAutoProgressing = loading && phase !== 'intake' && phase !== 'complete'
 
     return (
@@ -641,6 +827,9 @@ export default function CampaignStrategist() {
                                 <h1 className="text-sm font-black uppercase tracking-wider text-black/70">
                                     AI Campaign Strategist
                                 </h1>
+                                <span className="text-[9px] font-black uppercase bg-[#A78BFA]/15 text-[#A78BFA] px-2 py-0.5 rounded-full">
+                                    Vision + Visual Gen
+                                </span>
                             </div>
                             <PhaseProgressBar currentPhase={phase} />
                         </div>
@@ -675,12 +864,35 @@ export default function CampaignStrategist() {
                                         : 'bg-white border border-black/8 shadow-sm text-black rounded-2xl rounded-bl-md'
                                         }`}
                                 >
+                                    {/* User-uploaded images in message */}
+                                    {msg.images && msg.images.length > 0 && (
+                                        <div className={`flex gap-2 mb-3 ${msg.images.length > 1 ? 'flex-wrap' : ''}`}>
+                                            {msg.images.map((img, imgIdx) => (
+                                                <div key={imgIdx} className="relative rounded-lg overflow-hidden border border-white/20">
+                                                    <img
+                                                        src={img}
+                                                        alt={`Uploaded ${imgIdx + 1}`}
+                                                        className="max-w-[200px] max-h-[200px] object-cover rounded-lg"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
                                     {msg.role === 'assistant' ? (
                                         renderMarkdown(msg.content)
                                     ) : (
                                         <p className="text-[13px] font-medium whitespace-pre-wrap leading-relaxed">
                                             {msg.content}
                                         </p>
+                                    )}
+
+                                    {/* Generated images */}
+                                    {msg.generatedImages && msg.generatedImages.length > 0 && (
+                                        <GeneratedImageGallery
+                                            images={msg.generatedImages}
+                                            onRegenerate={(desc) => sendMessage(`Regenerate this campaign visual with a different creative approach: ${desc}`)}
+                                        />
                                     )}
                                 </div>
                                 {msg.role === 'user' && (
@@ -703,7 +915,7 @@ export default function CampaignStrategist() {
                         </div>
                     ))}
 
-                    {loading && <TypingIndicator phase={phase} />}
+                    {loading && <TypingIndicator phase={phase} isGeneratingImage={isGeneratingImage} />}
                     <div ref={messagesEndRef} />
                 </div>
             </div>
@@ -711,8 +923,11 @@ export default function CampaignStrategist() {
             {/* ── STICKY INPUT AREA ────────────────────────────── */}
             <div className="flex-shrink-0 bg-white/90 backdrop-blur-md border-t border-black/8 z-10">
                 <div className="mx-auto max-w-3xl px-4 py-3 space-y-3">
-                    {/* Suggestion chips — only show during intake and complete */}
+                    {/* Suggestion chips */}
                     <SuggestionChips phase={phase} onSelect={(t) => sendMessage(t)} disabled={loading} />
+
+                    {/* Image upload previews */}
+                    <ImageUploadPreview images={pendingImages} onRemove={removeImage} />
 
                     {/* Auto-progress indicator */}
                     {isAutoProgressing && (
@@ -726,6 +941,25 @@ export default function CampaignStrategist() {
 
                     {/* Textarea form */}
                     <form onSubmit={handleSubmit} className="flex items-end gap-2">
+                        {/* Image upload button */}
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={loading || pendingImages.length >= 10}
+                            className="h-[46px] w-[46px] flex items-center justify-center border-2 border-black/15 rounded-xl hover:bg-[#A78BFA]/10 hover:border-[#A78BFA] transition-all disabled:opacity-30 disabled:cursor-not-allowed shrink-0 group"
+                            title="Upload image for AI analysis"
+                        >
+                            <ImagePlus className="w-5 h-5 text-black/40 group-hover:text-[#A78BFA] transition-colors" strokeWidth={2} />
+                        </button>
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={handleImageUpload}
+                            className="hidden"
+                        />
+
                         <div className="flex-1 relative">
                             <textarea
                                 ref={textareaRef}
@@ -735,11 +969,13 @@ export default function CampaignStrategist() {
                                 placeholder={
                                     isAutoProgressing
                                         ? 'AI is working autonomously...'
-                                        : phase === 'intake'
-                                            ? 'Tell me about your brand, product, and campaign goals...'
-                                            : phase === 'complete'
-                                                ? 'Ask me to refine anything, or approve the campaign above...'
-                                                : 'Continue the conversation...'
+                                        : pendingImages.length > 0
+                                            ? 'Describe what you want me to analyze in these images...'
+                                            : phase === 'intake'
+                                                ? 'Tell me about your brand... Upload product images for better strategy!'
+                                                : phase === 'complete'
+                                                    ? 'Ask me to refine anything, or approve the campaign above...'
+                                                    : 'Continue the conversation...'
                                 }
                                 disabled={loading}
                                 rows={1}
@@ -748,7 +984,7 @@ export default function CampaignStrategist() {
                         </div>
                         <button
                             type="submit"
-                            disabled={loading || !input.trim()}
+                            disabled={loading || (!input.trim() && pendingImages.length === 0)}
                             className="h-[46px] w-[46px] flex items-center justify-center bg-[#B4F056] border-2 border-black rounded-xl font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none disabled:translate-y-0 shrink-0"
                             aria-label="Send message"
                         >
@@ -759,6 +995,16 @@ export default function CampaignStrategist() {
                             )}
                         </button>
                     </form>
+
+                    {/* Image upload hint */}
+                    {pendingImages.length === 0 && !loading && (
+                        <p className="text-[10px] font-medium text-black/25 text-center">
+                            {storedProductImages.length > 0
+                                ? `📷 ${storedProductImages.length} product image${storedProductImages.length > 1 ? 's' : ''} stored — AI will use them to generate campaign visuals`
+                                : '📷 Upload product photos (up to 10) — AI Vision will analyze them & use them for campaign visual generation'
+                            }
+                        </p>
+                    )}
                 </div>
             </div>
 

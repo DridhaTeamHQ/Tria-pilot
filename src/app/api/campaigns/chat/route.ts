@@ -1,9 +1,11 @@
 /**
- * CAMPAIGNS CHAT API — AI Campaign Strategist
+ * CAMPAIGNS CHAT API — AI Campaign Strategist (Multimodal)
  *
- * Complete rewrite: transforms the basic chatbot into a phased strategist
- * with 4-role activation (Researcher → Ideator → Scripter → Analyst)
- * and auto-campaign creation.
+ * Transforms the chat into a multimodal strategist with:
+ *  - OpenAI GPT-4o Vision for understanding user-uploaded images
+ *  - Gemini (Nano Banana Pro) for generating campaign visuals
+ *  - 4-role activation with auto-progression
+ *  - Auto-campaign creation from strategy output
  *
  * Uses Supabase only — NO Prisma
  */
@@ -16,8 +18,12 @@ import type {
   StrategistPhase,
   BrandContext,
   CampaignStrategyOutput,
+  GeneratedCampaignImage,
 } from '@/lib/campaigns/campaign-strategist-types'
 import type { CampaignGoal, BudgetType } from '@/lib/campaigns/types'
+
+// Increase timeout for multimodal operations (Vision + Image Generation)
+export const maxDuration = 120
 
 const chatSchema = z
   .object({
@@ -32,12 +38,16 @@ const chatSchema = z
       )
       .max(80)
       .optional(),
+    // User-uploaded product images as base64 data URLs (up to 10)
+    images: z
+      .array(z.string().max(5_000_000)) // ~3.5MB base64 limit per image
+      .max(10)
+      .optional(),
   })
   .strict()
 
 /**
  * Parse a campaign_create JSON block from the AI's response.
- * Returns the parsed payload or null if not found.
  */
 function parseCampaignPayload(content: string): CampaignStrategyOutput | null {
   const match = content.match(/```campaign_create\s*([\s\S]*?)```/)
@@ -45,7 +55,6 @@ function parseCampaignPayload(content: string): CampaignStrategyOutput | null {
 
   try {
     const parsed = JSON.parse(match[1].trim())
-    // Validate required fields
     if (!parsed.title || !parsed.goal || !parsed.brief) return null
     return parsed as CampaignStrategyOutput
   } catch {
@@ -54,9 +63,167 @@ function parseCampaignPayload(content: string): CampaignStrategyOutput | null {
 }
 
 /**
+ * Parse [IMAGE_GEN:description] markers from the AI response.
+ * The AI strategist will include these when it wants to generate a campaign visual.
+ */
+function parseImageGenMarkers(content: string): { description: string; preset?: string }[] {
+  const markers: { description: string; preset?: string }[] = []
+  const regex = /\[IMAGE_GEN(?::([^\]]*))?\]([\s\S]*?)(?=\[IMAGE_GEN|\[PHASE:|```campaign_create|$)/g
+  let match
+
+  while ((match = regex.exec(content)) !== null) {
+    const inlineDesc = match[1]?.trim()
+    const blockDesc = match[2]?.trim()
+    const description = inlineDesc || blockDesc
+
+    if (description) {
+      // Check if a preset is mentioned
+      const presetMatch = description.match(/preset:\s*(\w+)/i)
+      markers.push({
+        description: description.replace(/preset:\s*\w+/i, '').trim(),
+        preset: presetMatch?.[1],
+      })
+    }
+  }
+
+  // Also check for simpler format: [IMAGE_GEN:description here]
+  const simpleRegex = /\[IMAGE_GEN:([^\]]+)\]/g
+  let simpleMatch
+  while ((simpleMatch = simpleRegex.exec(content)) !== null) {
+    const desc = simpleMatch[1].trim()
+    // Avoid duplicates
+    if (!markers.some(m => m.description === desc)) {
+      const presetMatch = desc.match(/preset:\s*(\w+)/i)
+      markers.push({
+        description: desc.replace(/preset:\s*\w+/i, '').trim(),
+        preset: presetMatch?.[1],
+      })
+    }
+  }
+
+  return markers
+}
+
+/**
+ * Generate a campaign visual using Gemini with product reference images.
+ * When product images are provided, Gemini generates visuals that incorporate
+ * the actual product — the user just describes what kind of shot they want.
+ */
+async function generateCampaignVisual(
+  description: string,
+  productImages: string[],
+  preset?: string,
+): Promise<GeneratedCampaignImage | null> {
+  try {
+    // Use OpenAI to craft a detailed generation prompt from the user's simple description
+    const openai = getOpenAI()
+
+    const hasProductImages = productImages.length > 0
+    const systemContent = hasProductImages
+      ? `You are an ad creative director. The user has provided product images. 
+Given their simple description of what kind of campaign image they want, generate a detailed, 
+cinematic prompt for AI image generation that FEATURES THE PRODUCT from the reference images.
+
+The prompt should describe:
+- How to showcase the product (held, worn, displayed, in-use, flat lay, etc.)
+- Scene/setting around the product
+- Model/subject details if a person is involved
+- Lighting, mood, and color palette
+- Camera angle and composition
+- The product should be the STAR of the image
+
+Keep the prompt under 200 words. Be vivid and specific.
+Return ONLY the prompt text, nothing else.`
+      : `You are an ad creative director. Given a description of a campaign visual, generate a detailed, 
+cinematic prompt for image generation. The prompt should describe:
+- Scene/setting
+- Subject/character details
+- Lighting and mood
+- Product placement if relevant
+- Camera angle and composition
+
+Keep the prompt under 200 words. Be vivid and specific.
+Return ONLY the prompt text, nothing else.`
+
+    const promptResponse = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemContent },
+        {
+          role: 'user',
+          content: `Generate a cinematic ad image prompt for: ${description}`
+        }
+      ],
+      temperature: 0.8,
+      max_tokens: 300,
+    })
+
+    const imagePrompt = promptResponse.choices[0]?.message?.content?.trim()
+    if (!imagePrompt) return null
+
+    // Use Gemini for image generation with product reference images
+    const { GoogleGenAI } = await import('@google/genai')
+    const { getGeminiKey } = await import('@/lib/config/api-keys')
+
+    const client = new GoogleGenAI({ apiKey: getGeminiKey() })
+
+    // Build the parts array — include product images + text prompt
+    const parts: any[] = []
+
+    // Add product reference images first (up to 4 for Gemini context)
+    if (hasProductImages) {
+      const imagesToInclude = productImages.slice(0, 4)
+      for (const img of imagesToInclude) {
+        // Extract base64 data and mime type from data URL
+        const dataMatch = img.match(/^data:(image\/\w+);base64,(.+)$/)
+        if (dataMatch) {
+          parts.push({
+            inlineData: {
+              mimeType: dataMatch[1],
+              data: dataMatch[2],
+            }
+          })
+        }
+      }
+      parts.push({ text: `Using the product shown in the reference images above, generate a high-quality campaign visual. ${imagePrompt}` })
+    } else {
+      parts.push({ text: `Generate a high-quality, cinematic campaign visual image. ${imagePrompt}` })
+    }
+
+    // Use gemini-2.5-flash-image — confirmed working for image generation
+    const response = await client.models.generateContent({
+      model: 'gemini-2.5-flash-image',
+      contents: [{ role: 'user', parts }],
+      config: {
+        responseModalities: ['TEXT', 'IMAGE'] as unknown as undefined,
+      }
+    })
+
+    // Extract image from response
+    const responseParts = response.candidates?.[0]?.content?.parts
+    if (!responseParts) return null
+
+    for (const part of responseParts) {
+      if (part.inlineData?.data) {
+        const mimeType = part.inlineData.mimeType || 'image/png'
+        const imageBase64 = `data:${mimeType};base64,${part.inlineData.data}`
+        return {
+          imageBase64,
+          description,
+          preset: preset || undefined,
+        }
+      }
+    }
+
+    return null
+  } catch (error) {
+    console.error('Campaign visual generation failed:', error)
+    return null
+  }
+}
+
+/**
  * Detect phase transition markers in the AI's response.
- * Primary: looks for explicit [PHASE:xxx] markers.
- * Fallback: infers phase from content keywords when marker is missing.
  */
 function detectPhaseTransition(content: string, currentPhase: StrategistPhase): StrategistPhase | null {
   // Primary: explicit marker
@@ -71,7 +238,6 @@ function detectPhaseTransition(content: string, currentPhase: StrategistPhase): 
   const lower = content.toLowerCase()
 
   if (currentPhase === 'intake') {
-    // If the AI produced a research-like output while still in intake, transition
     const researchSignals = ['competitor', 'audience psychology', 'insight brief', 'objection', 'content gap', 'market intelligence']
     const signalCount = researchSignals.filter(s => lower.includes(s)).length
     if (signalCount >= 3) return 'researcher'
@@ -96,7 +262,6 @@ function detectPhaseTransition(content: string, currentPhase: StrategistPhase): 
   }
 
   if (currentPhase === 'analyst') {
-    // If there's a campaign_create block, transition to complete
     if (content.includes('```campaign_create')) return 'complete'
   }
 
@@ -173,7 +338,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid message format' }, { status: 400 })
     }
 
-    const { message, phase: currentPhase, conversationHistory = [] } = parsed.data
+    const { message, phase: currentPhase, conversationHistory = [], images = [] } = parsed.data
 
     // ─── BUILD BRAND CONTEXT ──────────────────────────
     const brandData = (profile.brand_data as Record<string, unknown>) || {}
@@ -186,10 +351,10 @@ export async function POST(request: Request) {
       products: [],
     }
 
-    // Fetch products for context
+    // Fetch products for context (including images for visual generation)
     const { data: products } = await service
       .from('products')
-      .select('id, name, description, price, category')
+      .select('id, name, description, price, category, image_url')
       .eq('brand_id', user.id)
       .limit(20)
 
@@ -200,6 +365,7 @@ export async function POST(request: Request) {
         description: (p.description as string) || undefined,
         price: p.price != null ? Number(p.price) : undefined,
         category: (p.category as string) || undefined,
+        imageUrl: (p.image_url as string) || undefined,
       }))
     }
 
@@ -247,19 +413,54 @@ export async function POST(request: Request) {
       campaignsSummary,
     )
 
-    // ─── CALL OPENAI ──────────────────────────────────
+    // ─── BUILD MESSAGES (with Vision support) ─────────
     const openai = getOpenAI()
-    const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+
+    // Determine if we should use Vision model (GPT-4o) vs mini
+    const hasImages = images.length > 0
+    const modelToUse = hasImages ? 'gpt-4o' : 'gpt-4o-mini'
+
+    // Build the user message with optional image content parts
+    let userContent: any
+
+    if (hasImages) {
+      // Multimodal message: text + images
+      const contentParts: any[] = [
+        { type: 'text', text: message },
+      ]
+
+      for (const img of images) {
+        // Clean base64 — ensure proper data URL format
+        const imageUrl = img.startsWith('data:')
+          ? img
+          : `data:image/jpeg;base64,${img}`
+
+        contentParts.push({
+          type: 'image_url',
+          image_url: {
+            url: imageUrl,
+            detail: 'high',
+          },
+        })
+      }
+
+      userContent = contentParts
+    } else {
+      userContent = message
+    }
+
+    // Build messages array
+    const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: any }> = [
       { role: 'system', content: systemPrompt },
       ...conversationHistory.map(m => ({
         role: m.role as 'system' | 'user' | 'assistant',
         content: m.content,
       })),
-      { role: 'user', content: message },
+      { role: 'user', content: userContent },
     ]
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: modelToUse,
       messages,
       temperature: 0.7,
       max_tokens: 3000,
@@ -275,6 +476,30 @@ export async function POST(request: Request) {
     // ─── DETECT CAMPAIGN PAYLOAD ──────────────────────
     const campaignPayload = parseCampaignPayload(responseContent)
 
+    // ─── DETECT & EXECUTE IMAGE GENERATION ────────────
+    const imageGenMarkers = parseImageGenMarkers(responseContent)
+    let generatedImages: GeneratedCampaignImage[] = []
+
+    if (imageGenMarkers.length > 0) {
+      // Collect all product images uploaded during this conversation
+      // These are stored in the current request's images array
+      const productImages = images || []
+
+      // Generate images in parallel (max 2 to avoid rate limits)
+      const toGenerate = imageGenMarkers.slice(0, 2)
+      const results = await Promise.allSettled(
+        toGenerate.map(marker =>
+          generateCampaignVisual(marker.description, productImages, marker.preset)
+        )
+      )
+
+      for (const result of results) {
+        if (result.status === 'fulfilled' && result.value) {
+          generatedImages.push(result.value)
+        }
+      }
+    }
+
     // ─── AUTO-CREATE CAMPAIGN IF PAYLOAD EXISTS ───────
     let createdCampaignId: string | null = null
 
@@ -289,7 +514,6 @@ export async function POST(request: Request) {
         const goal = goalMap[campaignPayload.goal] || 'awareness'
         const budgetType = (campaignPayload.budget?.budget_type || 'daily') as BudgetType
 
-        // Build the strategy JSON to store
         const strategyJson = {
           positioning: campaignPayload.positioning,
           funnel: campaignPayload.funnel,
@@ -351,9 +575,10 @@ export async function POST(request: Request) {
       }
     }
 
-    // ─── CLEAN RESPONSE (remove phase markers) ────────
+    // ─── CLEAN RESPONSE (remove markers) ──────────────
     const cleanedResponse = responseContent
       .replace(/\[PHASE:\w+\]/g, '')
+      .replace(/\[IMAGE_GEN:[^\]]*\]/g, '')
       .trim()
 
     // ─── RETURN ───────────────────────────────────────
@@ -362,6 +587,8 @@ export async function POST(request: Request) {
       phase: newPhase || currentPhase,
       campaignPayload: campaignPayload || null,
       createdCampaignId,
+      generatedImages: generatedImages.length > 0 ? generatedImages : undefined,
+      hasVisionSupport: hasImages,
     })
   } catch (error) {
     console.error('Campaign strategist error:', error)
