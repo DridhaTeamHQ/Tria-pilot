@@ -67,7 +67,7 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
                     </Link>
 
                     {/* Desktop Navigation Links */}
-                    <div className="hidden md:flex items-center gap-2">
+                    <div className="hidden xl:flex items-center gap-2">
                         {navItems.map((item) => {
                             const isActive = pathname === item.href ||
                                 pathname?.startsWith(item.href + '/')
@@ -93,7 +93,7 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
                     </div>
 
                     {/* Desktop User Section */}
-                    <div className="hidden md:flex items-center gap-3">
+                    <div className="hidden xl:flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-[#B4F056] border-2 border-black flex items-center justify-center font-bold text-sm">
                             {brandName?.charAt(0)?.toUpperCase() || 'B'}
                         </div>
@@ -110,7 +110,7 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
 
                     {/* Mobile hamburger */}
                     <button type="button"
-                        className="md:hidden p-2 rounded-xl border-2 border-black bg-white hover:bg-gray-50 transition-colors"
+                        className="xl:hidden p-2 rounded-xl border-2 border-black bg-white hover:bg-gray-50 transition-colors"
                         onClick={() => setMobileOpen(!mobileOpen)}
                     >
                         {mobileOpen
@@ -123,7 +123,7 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
 
             {/* Mobile Menu */}
             {mobileOpen && (
-                <div className="md:hidden bg-white border-t-2 border-black animate-[slideDown_0.2s_ease-out]">
+                <div className="xl:hidden bg-white border-t-2 border-black animate-[slideDown_0.2s_ease-out]">
                     <style>{`@keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
                     <div className="container mx-auto px-4 py-3 space-y-1.5">
                         {navItems.map((item) => {
@@ -166,6 +166,4 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
         </nav>
     )
 }
-
-
 

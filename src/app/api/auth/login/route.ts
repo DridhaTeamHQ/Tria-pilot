@@ -141,17 +141,20 @@ export async function POST(request: Request) {
 
     // If profile doesn't exist, create it
     if (profileError || !profile) {
-      const roleFromMetadata = data.user.user_metadata?.role?.toLowerCase() || 'influencer'
+      const metadataRole = String(data.user.user_metadata?.role || '').trim().toLowerCase()
+      const newProfileRole = metadataRole === 'brand' || metadataRole === 'influencer'
+        ? metadataRole
+        : 'influencer'
 
       const { data: newProfile, error: createError } = await service
         .from('profiles')
         .insert({
           id: data.user.id,
           email: data.user.email,
-          role: roleFromMetadata,
+          role: newProfileRole,
           full_name: data.user.user_metadata?.name || data.user.user_metadata?.full_name || null,
           onboarding_completed: false,
-          approval_status: 'none',
+          approval_status: newProfileRole === 'brand' ? 'approved' : 'none',
         })
         .select()
         .single()
@@ -208,3 +211,4 @@ export async function POST(request: Request) {
     )
   }
 }
+

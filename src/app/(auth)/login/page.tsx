@@ -125,10 +125,18 @@ function LoginContent() {
     try {
       const supabase = createClient()
       const siteUrl = getPublicSiteUrlClient()
+      const redirectTarget = searchParams.get('redirect') || '/dashboard'
+      const callbackUrl = new URL('/auth/callback', siteUrl)
+      callbackUrl.searchParams.set('next', redirectTarget)
+      callbackUrl.searchParams.set('role', userType)
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${siteUrl}/auth/callback`,
+          redirectTo: callbackUrl.toString(),
+          queryParams: {
+            prompt: 'select_account',
+          },
         },
       })
 
@@ -451,3 +459,4 @@ function LoginContent() {
     </div>
   )
 }
+
