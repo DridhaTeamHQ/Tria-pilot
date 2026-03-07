@@ -170,7 +170,7 @@ export default function BrandOnboardingPage() {
                 label={audience}
                 selected={formData.targetAudience.includes(audience)}
                 onClick={() => toggleSelection('targetAudience', audience)}
-                icon={audience === 'Men' ? '👔' : audience === 'Women' ? '👗' : audience === 'Kids' ? '🧒' : '👕'}
+                icon={audience === 'Men' ? 'M' : audience === 'Women' ? 'W' : audience === 'Kids' ? 'K' : 'U'}
               />
             ))}
           </div>
@@ -228,7 +228,7 @@ export default function BrandOnboardingPage() {
                   label={range}
                   selected={formData.budgetRange === range}
                   onClick={() => setFormData({ ...formData, budgetRange: range })}
-                  icon="💰"
+                  icon="$"
                 />
               ))}
             </div>
@@ -308,7 +308,7 @@ export default function BrandOnboardingPage() {
                 </>
               ) : step === TOTAL_STEPS ? (
                 <>
-                  🚀 Launch Portal
+                  Launch Portal
                 </>
               ) : (
                 <>

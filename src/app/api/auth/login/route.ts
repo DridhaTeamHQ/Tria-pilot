@@ -86,11 +86,31 @@ export async function POST(request: Request) {
     const { identifier: rawIdentifier, password, rememberMe = true } = loginSchema.parse(body)
     const identifier = normalizeIdentifier(rawIdentifier)
 
-    const candidateEmails = isEmailIdentifier(identifier)
+    const supabase = await createClient()
+    let candidateEmails = isEmailIdentifier(identifier)
       ? [identifier]
       : [usernameToSyntheticEmail(identifier)]
 
-    const supabase = await createClient()
+    if (!isEmailIdentifier(identifier)) {
+      try {
+        const lookupClient = getPrivilegedClient(supabase)
+        const { data: profileMatches, error: profileMatchError } = await lookupClient
+          .from('profiles')
+          .select('email')
+          .ilike('email', `${identifier}@%`)
+          .limit(5)
+
+        if (!profileMatchError && Array.isArray(profileMatches) && profileMatches.length > 0) {
+          const emailsFromProfiles = profileMatches
+            .map((row) => row.email)
+            .filter((value): value is string => typeof value === 'string' && value.length > 0)
+
+          candidateEmails = Array.from(new Set([...candidateEmails, ...emailsFromProfiles]))
+        }
+      } catch (candidateLookupError) {
+        console.warn('Username candidate lookup failed; using synthetic email fallback only:', candidateLookupError)
+      }
+    }
 
     const signInResult = await signInByCandidates(supabase, candidateEmails, password)
 
@@ -300,3 +320,4 @@ export async function POST(request: Request) {
     )
   }
 }
+

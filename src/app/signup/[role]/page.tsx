@@ -101,7 +101,8 @@ export default function SignupPage() {
             setLoading(false)
         }
     }
-const handleGoogleSignup = async () => {
+
+    const handleGoogleSignup = async () => {
         setLoading(true)
         try {
             const supabase = createClient()
@@ -265,7 +266,7 @@ const handleGoogleSignup = async () => {
                                         </div>
                                         <input
                                             type={showPassword ? "text" : "password"}
-                                            placeholder="••••••••"
+                                            placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                                             value={formData.password}
                                             onChange={e => setFormData({ ...formData, password: e.target.value })}
                                             required
@@ -290,7 +291,7 @@ const handleGoogleSignup = async () => {
                                         </div>
                                         <input
                                             type={showConfirmPassword ? "text" : "password"}
-                                            placeholder="••••••••"
+                                            placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                                             value={formData.confirmPassword}
                                             onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
                                             required
@@ -393,6 +394,7 @@ const handleGoogleSignup = async () => {
         </div>
     )
 }
+
 
 
 

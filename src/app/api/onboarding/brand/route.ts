@@ -1,19 +1,7 @@
 /**
  * BRAND ONBOARDING API
- * 
- * CRITICAL: This endpoint uses Supabase profiles as source of truth.
- * Onboarding data is stored in profiles JSONB column (brand_data).
- * 
- * On submission:
- * 1. Verify user exists in profiles
- * 2. Store/update brand onboarding data
- * 3. Update profiles:
- *    UPDATE profiles
- *    SET onboarding_completed = true,
- *        approval_status = 'approved'
- *    WHERE id = user.id;
- * 
- * ⚠️ Brands do NOT need admin approval
+ *
+ * Source of truth: profiles.brand_data JSONB.
  */
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
@@ -31,9 +19,21 @@ const onboardingSchema = z
   })
   .strict()
 
+async function getProfileClient() {
+  const supabase = await createClient()
+
+  try {
+    const service = createServiceClient()
+    return { supabase, profileClient: service }
+  } catch (serviceError) {
+    console.warn('SUPABASE_SERVICE_ROLE_KEY not set for onboarding; using session client fallback:', serviceError)
+    return { supabase, profileClient: supabase }
+  }
+}
+
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient()
+    const { supabase, profileClient } = await getProfileClient()
     const {
       data: { user: authUser },
     } = await supabase.auth.getUser()
@@ -42,9 +42,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get profile from profiles table (SOURCE OF TRUTH)
-    const service = createServiceClient()
-    const { data: profile, error: profileError } = await service
+    const { data: profile, error: profileError } = await profileClient
       .from('profiles')
       .select('id, email, role, onboarding_completed, brand_data')
       .eq('id', authUser.id)
@@ -62,13 +60,8 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => null)
     const data = onboardingSchema.parse(body)
 
-    // Determine if onboarding is completed (RELAXED RULES)
-    // Only require: company name
-    const isCompleted = Boolean(
-      data.companyName && data.companyName.trim() !== ''
-    )
+    const isCompleted = Boolean(data.companyName && data.companyName.trim() !== '')
 
-    // Merge with existing brand_data
     const existingData = (profile.brand_data as Record<string, unknown>) || {}
     const newBrandData = {
       ...existingData,
@@ -81,18 +74,16 @@ export async function POST(request: Request) {
       ...(data.budgetRange && { budgetRange: data.budgetRange }),
     }
 
-    // Update profiles table with brand data
     const updateData: Record<string, unknown> = {
       brand_data: newBrandData,
     }
 
-    // Mark onboarding as completed if all required fields present
     if (isCompleted && !profile.onboarding_completed) {
       updateData.onboarding_completed = true
-      updateData.approval_status = 'approved' // Brands auto-approved
+      updateData.approval_status = 'approved'
     }
 
-    const { error: updateError } = await service
+    const { error: updateError } = await profileClient
       .from('profiles')
       .update(updateData)
       .eq('id', authUser.id)
@@ -123,7 +114,7 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
-    const supabase = await createClient()
+    const { supabase, profileClient } = await getProfileClient()
     const {
       data: { user: authUser },
     } = await supabase.auth.getUser()
@@ -132,9 +123,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get from profiles table (SOURCE OF TRUTH)
-    const service = createServiceClient()
-    const { data: profile } = await service
+    const { data: profile } = await profileClient
       .from('profiles')
       .select('email, role, onboarding_completed, brand_data')
       .eq('id', authUser.id)
@@ -148,7 +137,6 @@ export async function GET() {
       return NextResponse.json({ error: 'Not a brand account' }, { status: 403 })
     }
 
-    // Return brand data from profiles
     const brandData = (profile.brand_data as Record<string, unknown>) || {}
 
     return NextResponse.json({
@@ -168,3 +156,4 @@ export async function GET() {
     return NextResponse.json({ onboardingCompleted: false })
   }
 }
+
