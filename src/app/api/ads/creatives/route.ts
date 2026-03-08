@@ -69,21 +69,41 @@ export async function GET(request: Request) {
         }
 
         // Transform for frontend
-        const transformedCreatives = (creatives || []).map(creative => ({
-            id: creative.id,
-            imageUrl: creative.image_url,
-            qualityScore: creative.rating || 75,
-            campaign: creative.campaign_id ? {
-                id: creative.campaign_id,
-                title: creative.title || 'Campaign',
-            } : null,
-            platforms: [creative.platform || 'instagram'],
-            copyVariants: [],
-            createdAt: creative.created_at,
-            regenerationCount: 0,
-            maxRegenerations: 5,
-            stylePreset: null,
-        }))
+        const transformedCreatives = (creatives || []).map(creative => {
+            const prompt = typeof creative.prompt === 'string' ? creative.prompt : ''
+            const sourceMatch = prompt.match(/\[source:([^\]]+)\]/i)
+            const taskMatch = prompt.match(/\[task:([^\]]+)\]/i)
+            const scopeMatch = prompt.match(/\[scope:([^\]]+)\]/i)
+            const modelMatch = prompt.match(/\[model:([^\]]+)\]/i)
+            const sourceAdId = sourceMatch?.[1] || null
+            const editPrompt = /^INPAINT EDIT/i.test(prompt)
+                ? prompt.replace(/^INPAINT EDIT(?:\s*\[[^\]]+\])*:\s*/i, '')
+                : null
+
+            return {
+                id: creative.id,
+                title: creative.title || 'Ad Creative',
+                prompt,
+                editPrompt,
+                sourceAdId,
+                editTask: taskMatch?.[1] || null,
+                editScope: scopeMatch?.[1] || null,
+                editModel: modelMatch?.[1] || null,
+                isEdited: /^INPAINT EDIT/i.test(prompt),
+                imageUrl: creative.image_url,
+                qualityScore: creative.rating || 75,
+                campaign: creative.campaign_id ? {
+                    id: creative.campaign_id,
+                    title: creative.title || 'Campaign',
+                } : null,
+                platforms: [creative.platform || 'instagram'],
+                copyVariants: [],
+                createdAt: creative.created_at,
+                regenerationCount: 0,
+                maxRegenerations: 5,
+                stylePreset: null,
+            }
+        })
 
         // Filter by quality score if specified
         let filteredCreatives = transformedCreatives

@@ -762,8 +762,24 @@ Prefer realistic poster/signage/paint treatment over heavy 3D extrusion.`
 // GPT-4o VISION PROMPT BUILDER
 // ═══════════════════════════════════════════════════════════════
 
-function toDataUrl(base64: string): string {
-  if (base64.startsWith('data:image/')) return base64
+const OPENAI_VISION_MIME_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/gif',
+  'image/webp',
+])
+
+function toOpenAIDataUrl(base64: string): string | null {
+  if (base64.startsWith('data:image/')) {
+    const mimeMatch = base64.match(/^data:(image\/[^;]+);base64,/i)
+    const mimeType = mimeMatch?.[1]?.toLowerCase() || ''
+    if (!OPENAI_VISION_MIME_TYPES.has(mimeType)) {
+      console.warn(`[AdPromptBuilder] Skipping unsupported OpenAI vision image MIME type: ${mimeType || 'unknown'}`)
+      return null
+    }
+    return base64
+  }
+
   return `data:image/jpeg;base64,${base64}`
 }
 
@@ -916,13 +932,16 @@ function buildUserContent(
 
   // Pass the product image directly to GPT-4o vision
   if (productImageBase64) {
-    content.push({
-      type: 'image_url',
-      image_url: {
-        url: toDataUrl(productImageBase64),
-        detail: safeMode ? 'low' : 'high',
-      },
-    })
+    const imageUrl = toOpenAIDataUrl(productImageBase64)
+    if (imageUrl) {
+      content.push({
+        type: 'image_url',
+        image_url: {
+          url: imageUrl,
+          detail: safeMode ? 'low' : 'high',
+        },
+      })
+    }
   }
 
   // Build the text brief

@@ -78,6 +78,8 @@ import {
 } from '@/lib/animations'
 import BrutalCard from '@/components/brutal/BrutalCard'
 import { BrutalLoader } from '@/components/ui/BrutalLoader'
+import AdInpaintModal from '@/components/brand/AdInpaintModal'
+import { normalizeImageFileForVisionUpload } from '@/lib/client-image-normalization'
 
 // ═══════════════════════════════════════════════════════════════
 
@@ -150,6 +152,8 @@ export default function AdsPage() {
   // UI
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<GenerationResult | null>(null)
+  const [editorOpen, setEditorOpen] = useState(false)
+  const [isApplyingInpaint, setIsApplyingInpaint] = useState(false)
   const [retryAfterSeconds, setRetryAfterSeconds] = useState(0)
   const [generationStatus, setGenerationStatus] = useState<'idle' | 'submitting' | 'rate_limited' | 'busy' | 'error' | 'success'>('idle')
   const [generationStatusText, setGenerationStatusText] = useState('')
@@ -180,17 +184,29 @@ export default function AdsPage() {
   }, [characterType, characterIdentity, visibleIdentityOptions])
 
   const handleImageUpload = useCallback(
-    (e: ChangeEvent<HTMLInputElement>, type: 'product' | 'influencer') => {
+    async (e: ChangeEvent<HTMLInputElement>, type: 'product' | 'influencer') => {
       const file = e.target.files?.[0]
       if (!file) return
+      e.target.value = ''
       if (file.size > 10 * 1024 * 1024) { toast.error('Max 10MB'); return }
-      const reader = new FileReader()
-      reader.onload = (ev) => {
-        const b64 = ev.target?.result as string
-        if (type === 'product') setProductImage(b64)
-        else { setInfluencerImage(b64); if (!b64) setLockFaceIdentity(false) }
+
+      try {
+        const normalizedImage = await normalizeImageFileForVisionUpload(file)
+        if (type === 'product') setProductImage(normalizedImage)
+        else {
+          setInfluencerImage(normalizedImage)
+          if (!normalizedImage) setLockFaceIdentity(false)
+        }
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : 'This image format is not supported. Use PNG, JPG, GIF, or WebP.'
+        )
+        if (type === 'influencer') {
+          setLockFaceIdentity(false)
+        }
       }
-      reader.readAsDataURL(file)
     }, []
   )
 
@@ -295,11 +311,56 @@ export default function AdsPage() {
     a.click()
   }
 
+  const handleApplyInpaint = async (
+    prompt: string,
+    maskBase64: string | undefined,
+    options?: { referenceImageBase64?: string; scope?: 'auto' | 'local' | 'subject' | 'full_frame'; task?: 'auto' | 'hold_product' | 'wear_accessory' | 'pose_change' | 'text_edit' | 'remove_object' | 'stylized_effect' | 'replace_region' | 'add_object' | 'scene_edit' | 'general_edit'; expansionOverride?: { left: number; top: number; width: number; height: number } }
+  ) => {
+    if (!result?.imageBase64) {
+      toast.error('Only the current generated creative can be edited right now.')
+      return
+    }
+
+    setIsApplyingInpaint(true)
+    try {
+      const response = await fetch('/api/ads/edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          imageBase64: result.imageBase64,
+          maskBase64,
+          prompt,
+          referenceImageBase64: options?.referenceImageBase64,
+          scope: options?.scope,
+          task: options?.task,
+          expansionOverride: options?.expansionOverride,
+          sourceAdId: result.id,
+          preset: result.preset,
+        }),
+      })
+
+      const data = await response.json().catch(() => ({ error: 'Edit failed' }))
+      if (!response.ok) {
+        throw new Error(data.error || 'Edit failed')
+      }
+
+      setResult(data as GenerationResult)
+      setEditorOpen(false)
+      toast.success('Inpaint edit applied')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Edit failed')
+    } finally {
+      setIsApplyingInpaint(false)
+    }
+  }
+
   const visiblePresets =
     activeCategory === 'all' ? getAdPresetList() : getPresetsByCategory(activeCategory)
 
   return (
-    <motion.div
+    <>
+      <motion.div
       variants={pageVariants}
       initial="initial"
       animate="animate"
@@ -873,7 +934,7 @@ export default function AdsPage() {
                       </div>
                     </div>
                     <div className="p-4 space-y-3">
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                         <button type="button"
                           onClick={handleDownload}
                           className="inline-flex items-center justify-center gap-2 rounded-lg border-[3px] border-black bg-[#B4F056] px-4 py-3 text-xs font-black uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-0.5"
@@ -882,9 +943,17 @@ export default function AdsPage() {
                           Download
                         </button>
                         <button type="button"
+                          onClick={() => setEditorOpen(true)}
+                          disabled={!result.imageBase64 || isApplyingInpaint}
+                          className="inline-flex items-center justify-center gap-2 rounded-lg border-[3px] border-black bg-[#FFD93D] px-4 py-3 text-xs font-black uppercase transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-black/10 disabled:text-black/45"
+                        >
+                          <Wand2 className="h-4 w-4" />
+                          Inpaint
+                        </button>
+                        <button type="button"
                           onClick={handleGenerate}
-                          disabled={loading}
-                          className="inline-flex items-center justify-center gap-2 rounded-lg border-[3px] border-black bg-white px-4 py-3 text-xs font-black uppercase transition-all hover:-translate-y-0.5"
+                          disabled={loading || isApplyingInpaint}
+                          className="inline-flex items-center justify-center gap-2 rounded-lg border-[3px] border-black bg-white px-4 py-3 text-xs font-black uppercase transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-black/10 disabled:text-black/45"
                         >
                           <RefreshCw className="h-4 w-4" />
                           Regenerate
@@ -921,5 +990,13 @@ export default function AdsPage() {
         </div>
       </div>
     </motion.div>
+      <AdInpaintModal
+        isOpen={editorOpen && !!result}
+        imageSrc={result?.imageBase64 || result?.imageUrl || ''}
+        isSubmitting={isApplyingInpaint}
+        onClose={() => setEditorOpen(false)}
+        onApply={handleApplyInpaint}
+      />
+    </>
   )
 }

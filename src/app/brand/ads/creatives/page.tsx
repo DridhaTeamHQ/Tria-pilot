@@ -18,6 +18,7 @@ import {
     RefreshCw,
     Sparkles,
     Download,
+    Wand2,
     X,
     Instagram,
     Facebook,
@@ -26,10 +27,14 @@ import {
     ImageIcon,
     ZoomIn,
     AlertCircle,
+    Clock3,
+    GitBranch,
+    ArrowRight,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import BrutalCard from '@/components/brutal/BrutalCard'
 import { BrutalLoader } from '@/components/ui/BrutalLoader'
+import AdInpaintModal from '@/components/brand/AdInpaintModal'
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // TYPES
@@ -37,6 +42,14 @@ import { BrutalLoader } from '@/components/ui/BrutalLoader'
 
 interface AdCreative {
     id: string
+    title: string
+    prompt?: string | null
+    editPrompt?: string | null
+    sourceAdId?: string | null
+    isEdited?: boolean
+    editTask?: string | null
+    editScope?: string | null
+    editModel?: string | null
     imageUrl: string
     qualityScore: number
     campaign?: { id: string; title: string }
@@ -45,6 +58,7 @@ interface AdCreative {
     createdAt: string
     regenerationCount: number
     maxRegenerations: number
+    stylePreset?: string | null
 }
 
 interface Campaign {
@@ -108,13 +122,21 @@ function CreativeCard({
     onRegenerate,
     onDownload,
     onImageClick,
+    onInpaint,
+    onViewHistory,
+    historyCount,
     regenerating,
+    inpainting,
 }: {
     creative: AdCreative
     onRegenerate: () => void
     onDownload: () => void
     onImageClick: () => void
+    onInpaint: () => void
+    onViewHistory: () => void
+    historyCount: number
     regenerating: boolean
+    inpainting: boolean
 }) {
     const [imageError, setImageError] = useState(false)
     const [imageLoading, setImageLoading] = useState(true)
@@ -122,8 +144,9 @@ function CreativeCard({
 
     const getImageSrc = (url: string) => {
         if (!url) return ''
-        if (url.includes('supabase.co/storage'))
+        if (url.includes('supabase.co/storage')) {
             return `/api/images/proxy?url=${encodeURIComponent(url)}`
+        }
         return url
     }
 
@@ -135,7 +158,6 @@ function CreativeCard({
                     'p-0'
                 )}
             >
-                {/* Image */}
                 <div
                     className="group relative aspect-[4/5] cursor-pointer overflow-hidden bg-[#FFFDF5] border-b-[3px] border-black"
                     onClick={onImageClick}
@@ -164,7 +186,7 @@ function CreativeCard({
                     ) : (
                         <img
                             src={getImageSrc(creative.imageUrl)}
-                            alt="Ad creative"
+                            alt={creative.title || 'Ad creative'}
                             className={cn(
                                 'w-full h-full object-cover transition-all duration-300',
                                 imageLoading ? 'opacity-0 scale-105' : 'opacity-100 scale-100 hover:scale-105'
@@ -176,7 +198,20 @@ function CreativeCard({
                             onLoad={() => setImageLoading(false)}
                         />
                     )}
-                    {/* Hover zoom hint */}
+                    <div className="absolute left-3 top-3 flex flex-wrap gap-2">
+                        {creative.isEdited && (
+                            <span className="inline-flex items-center gap-1 rounded-md border-[2px] border-black bg-[#FFD93D] px-2 py-1 text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                                <Wand2 className="h-3 w-3" />
+                                Edited
+                            </span>
+                        )}
+                        {historyCount > 1 && (
+                            <span className="inline-flex items-center gap-1 rounded-md border-[2px] border-black bg-white px-2 py-1 text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                                <GitBranch className="h-3 w-3" />
+                                {historyCount} Versions
+                            </span>
+                        )}
+                    </div>
                     <div className="absolute inset-0 flex items-end justify-center pb-4 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-t from-black/20 to-transparent">
                         <span className="flex items-center gap-1.5 px-2 py-1 bg-white border-[2px] border-black text-[10px] font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                             <ZoomIn className="h-3.5 w-3.5" /> Click to zoom
@@ -185,12 +220,20 @@ function CreativeCard({
                 </div>
 
                 <div className="p-3 space-y-3 bg-white">
-                    <div className="flex items-center justify-between flex-wrap gap-1">
-                        <span className="text-[11px] font-bold text-black">
-                            {creative.campaign?.title || 'Unassigned'}
-                        </span>
-                        <span className="text-[10px] text-black/50">{relativeDate}</span>
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                            <p className="truncate text-[13px] font-black text-black">{creative.title || 'Ad Creative'}</p>
+                            <p className="truncate text-[11px] font-bold text-black/65">
+                                {creative.campaign?.title || 'Unassigned'}
+                            </p>
+                        </div>
+                        <span className="shrink-0 text-[10px] text-black/50">{relativeDate}</span>
                     </div>
+                    {creative.editPrompt && (
+                        <div className="rounded-md border-[2px] border-black bg-[#FFF8E6] px-2.5 py-2 text-[11px] font-semibold text-black/75">
+                            {creative.editPrompt}
+                        </div>
+                    )}
                     <div className="flex items-center gap-1.5 flex-wrap">
                         {creative.platforms.map((p) => (
                             <span
@@ -201,31 +244,88 @@ function CreativeCard({
                                 {PLATFORM_ICONS[p]}
                             </span>
                         ))}
+                        {creative.sourceAdId && (
+                            <span className="inline-flex items-center gap-1 rounded-md border-[1.5px] border-black bg-[#F5F0FF] px-2 py-1 text-[10px] font-black uppercase text-black/80">
+                                <ArrowRight className="h-3 w-3" />
+                                Edited from previous
+                            </span>
+                        )}
+                        {creative.editTask && (
+                            <span className="inline-flex items-center gap-1 rounded-md border-[1.5px] border-black bg-[#ECF8D0] px-2 py-1 text-[10px] font-black uppercase text-black/80">
+                                {creative.editTask.replace(/_/g, ' ')}
+                            </span>
+                        )}
+                        {creative.editScope && (
+                            <span className="inline-flex items-center gap-1 rounded-md border-[1.5px] border-black bg-[#E6F5FF] px-2 py-1 text-[10px] font-black uppercase text-black/80">
+                                {creative.editScope.replace(/_/g, ' ')}
+                            </span>
+                        )}
+                        {creative.editModel && (
+                            <span className="inline-flex items-center gap-1 rounded-md border-[1.5px] border-black bg-[#FFD93D] px-2 py-1 text-[10px] font-black uppercase text-black/80">
+                                {creative.editModel}
+                            </span>
+                        )}
                     </div>
-                    <QualityBadge score={creative.qualityScore} />
-                    <div className="flex gap-2 pt-1">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <QualityBadge score={creative.qualityScore} />
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                onViewHistory()
+                            }}
+                            disabled={historyCount <= 1}
+                            className="inline-flex items-center gap-1.5 border-[2px] border-black bg-white px-2.5 py-1.5 text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:cursor-not-allowed disabled:bg-black/10 disabled:text-black/45 disabled:shadow-none"
+                        >
+                            <Clock3 className="h-3.5 w-3.5" />
+                            History
+                        </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 pt-1">
                         <button
                             type="button"
                             onClick={(e) => {
                                 e.stopPropagation()
                                 onRegenerate()
                             }}
-                            disabled={regenerating}
+                            disabled={regenerating || inpainting}
                             className={cn(
-                                'flex-1 flex items-center justify-center gap-2 py-2.5 border-[2px] border-black text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
+                                'flex items-center justify-center gap-2 py-2.5 border-[2px] border-black text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
                                 regenerating
                                     ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                                     : 'bg-[#FF8C69] hover:bg-[#ff9d7d] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
                             )}
                         >
-                            {regenerating ? (
-                                <BrutalLoader size="sm" className="!min-h-0" />
-                            ) : (
-                                <>
-                                    <RefreshCw className="h-3.5 w-3.5" />
-                                    Regenerate
-                                </>
+                            {regenerating ? <BrutalLoader size="sm" className="!min-h-0" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                            <span>Regen</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                onInpaint()
+                            }}
+                            disabled={regenerating || inpainting}
+                            className={cn(
+                                'flex items-center justify-center gap-2 py-2.5 border-[2px] border-black text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
+                                inpainting
+                                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                    : 'bg-[#FFD93D] hover:bg-[#ffe37a] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
                             )}
+                        >
+                            {inpainting ? <BrutalLoader size="sm" className="!min-h-0" /> : <Wand2 className="h-3.5 w-3.5" />}
+                            <span>{creative.isEdited ? 'Edit Again' : 'Inpaint'}</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                onViewHistory()
+                            }}
+                            className="flex items-center justify-center gap-2 py-2.5 border-[2px] border-black bg-[#C3B1E1] text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                        >
+                            <GitBranch className="h-3.5 w-3.5" />
+                            History
                         </button>
                         <button
                             type="button"
@@ -233,9 +333,10 @@ function CreativeCard({
                                 e.stopPropagation()
                                 onDownload()
                             }}
-                            className="flex items-center justify-center py-2.5 px-3 bg-black text-white border-[2px] border-black font-black text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-black/90 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                            className="flex items-center justify-center gap-2 py-2.5 px-3 bg-black text-white border-[2px] border-black font-black text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-black/90 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
                         >
                             <Download className="h-3.5 w-3.5" />
+                            <span>Download</span>
                         </button>
                     </div>
                 </div>
@@ -244,9 +345,158 @@ function CreativeCard({
     )
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// LIGHTBOX â€” NEO-BRUTALIST
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+function HistoryModal({
+    open,
+    onClose,
+    focusCreativeId,
+    items,
+    onPreview,
+    onInpaint,
+    onDownload,
+}: {
+    open: boolean
+    onClose: () => void
+    focusCreativeId: string | null
+    items: AdCreative[]
+    onPreview: (creative: AdCreative) => void
+    onInpaint: (creative: AdCreative) => void
+    onDownload: (creative: AdCreative) => void
+}) {
+    useEffect(() => {
+        if (!open) return
+        const originalOverflow = document.body.style.overflow
+        document.body.style.overflow = 'hidden'
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') onClose()
+        }
+        window.addEventListener('keydown', onKeyDown)
+        return () => {
+            document.body.style.overflow = originalOverflow
+            window.removeEventListener('keydown', onKeyDown)
+        }
+    }, [open, onClose])
+
+    return (
+        <AnimatePresence>
+            {open && (
+                <motion.div
+                    key="history-modal"
+                    variants={overlayVariants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-[2px]"
+                    onClick={onClose}
+                >
+                    <motion.div
+                        variants={scaleFade}
+                        initial="initial"
+                        animate="animate"
+                        exit="exit"
+                        className="w-full max-w-3xl overflow-hidden border-[3px] border-black bg-[#FFFDF5] shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between border-b-[3px] border-black bg-[#C3B1E1] px-4 py-3">
+                            <div>
+                                <p className="text-sm font-black uppercase text-black">Creative History</p>
+                                <p className="text-[11px] font-bold text-black/65">
+                                    {items.length} version{items.length === 1 ? '' : 's'} in this chain
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="flex h-9 w-9 items-center justify-center border-[2px] border-black bg-white"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        </div>
+                        <div className="max-h-[75vh] space-y-3 overflow-y-auto p-4">
+                            {items.map((item, index) => {
+                                const active = item.id === focusCreativeId
+                                return (
+                                    <div
+                                        key={item.id}
+                                        className={cn(
+                                            'grid gap-3 border-[3px] border-black bg-white p-3 md:grid-cols-[120px_1fr] md:items-start',
+                                            active && 'bg-[#FFF3BF]'
+                                        )}
+                                    >
+                                        <button
+                                            type="button"
+                                            onClick={() => onPreview(item)}
+                                            className="overflow-hidden border-[2px] border-black bg-[#FFF8E6]"
+                                        >
+                                            <img
+                                                src={item.imageUrl.includes('supabase.co/storage')
+                                                    ? `/api/images/proxy?url=${encodeURIComponent(item.imageUrl)}`
+                                                    : item.imageUrl}
+                                                alt={item.title}
+                                                className="aspect-[4/5] h-full w-full object-cover"
+                                            />
+                                        </button>
+                                        <div className="space-y-3">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <span className="inline-flex items-center justify-center border-[2px] border-black bg-black px-2 py-1 text-[10px] font-black uppercase text-white">
+                                                    V{index + 1}
+                                                </span>
+                                                {active && (
+                                                    <span className="inline-flex items-center gap-1 border-[2px] border-black bg-[#B4F056] px-2 py-1 text-[10px] font-black uppercase">
+                                                        Current
+                                                    </span>
+                                                )}
+                                                {item.isEdited && (
+                                                    <span className="inline-flex items-center gap-1 border-[2px] border-black bg-[#FFD93D] px-2 py-1 text-[10px] font-black uppercase">
+                                                        <Wand2 className="h-3 w-3" /> Edited
+                                                    </span>
+                                                )}
+                                                <span className="text-[10px] font-bold uppercase text-black/55">
+                                                    {getRelativeDate(item.createdAt)}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-black text-black">{item.title}</p>
+                                                <p className="text-[11px] font-bold text-black/65">
+                                                    {item.campaign?.title || 'Unassigned'}
+                                                </p>
+                                            </div>
+                                            {item.editPrompt && (
+                                                <div className="rounded-md border-[2px] border-black bg-[#FFF8E6] px-3 py-2 text-[11px] font-semibold text-black/75">
+                                                    {item.editPrompt}
+                                                </div>
+                                            )}
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <QualityBadge score={item.qualityScore} />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => onInpaint(item)}
+                                                    className="inline-flex items-center gap-1.5 border-[2px] border-black bg-[#FFD93D] px-3 py-2 text-[11px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                                                >
+                                                    <Wand2 className="h-3.5 w-3.5" />
+                                                    Edit Again
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => onDownload(item)}
+                                                    className="inline-flex items-center gap-1.5 border-[2px] border-black bg-black px-3 py-2 text-[11px] font-black uppercase text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                                                >
+                                                    <Download className="h-3.5 w-3.5" />
+                                                    Download
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    )
+}
+
+// LIGHTBOX ? NEO-BRUTALIST
 
 function Lightbox({
     open,
@@ -341,9 +591,16 @@ export default function CreativesPage() {
     const [platformFilter, setPlatformFilter] = useState<Platform | 'all'>('all')
     const [qualityFilter, setQualityFilter] = useState<QualityTier>('all')
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest')
+    const [searchQuery, setSearchQuery] = useState('')
     const [loading, setLoading] = useState(true)
     const [regenerating, setRegenerating] = useState<string | null>(null)
+    const [inpaintingId, setInpaintingId] = useState<string | null>(null)
     const [lightboxImage, setLightboxImage] = useState<string | null>(null)
+    const [historyOpenId, setHistoryOpenId] = useState<string | null>(null)
+    const [editorOpen, setEditorOpen] = useState(false)
+    const [editorImage, setEditorImage] = useState<string>('')
+    const [editorCreative, setEditorCreative] = useState<AdCreative | null>(null)
+    const [isApplyingInpaint, setIsApplyingInpaint] = useState(false)
 
     useEffect(() => {
         Promise.all([
@@ -357,6 +614,33 @@ export default function CreativesPage() {
             .catch(console.error)
             .finally(() => setLoading(false))
     }, [])
+
+    const creativeMap = new Map(creatives.map((creative) => [creative.id, creative]))
+
+    const getHistoryRootId = (creative: AdCreative) => {
+        let current: AdCreative | undefined = creative
+        const seen = new Set<string>()
+
+        while (current?.sourceAdId && !seen.has(current.id)) {
+            seen.add(current.id)
+            const parent = creativeMap.get(current.sourceAdId)
+            if (!parent) break
+            current = parent
+        }
+
+        return current?.id || creative.id
+    }
+
+    const historyGroups = new Map<string, AdCreative[]>()
+    for (const creative of creatives) {
+        const rootId = getHistoryRootId(creative)
+        const group = historyGroups.get(rootId) || []
+        group.push(creative)
+        historyGroups.set(rootId, group)
+    }
+    for (const group of historyGroups.values()) {
+        group.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+    }
 
     const filteredCreatives = creatives
         .filter((c) => {
@@ -372,11 +656,24 @@ export default function CreativesPage() {
             const { min, max } = QUALITY_CONFIG[qualityFilter]
             return c.qualityScore >= min && c.qualityScore <= max
         })
+        .filter((c) => {
+            if (!searchQuery.trim()) return true
+            const haystack = [c.title, c.editPrompt, c.editTask, c.editScope, c.prompt, c.campaign?.title]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase()
+            return haystack.includes(searchQuery.trim().toLowerCase())
+        })
         .sort((a, b) => {
             const dateA = new Date(a.createdAt).getTime()
             const dateB = new Date(b.createdAt).getTime()
             return sortOrder === 'newest' ? dateB - dateA : dateA - dateB
         })
+
+    const activeHistoryCreative = historyOpenId ? creativeMap.get(historyOpenId) || null : null
+    const activeHistory = activeHistoryCreative
+        ? historyGroups.get(getHistoryRootId(activeHistoryCreative)) || []
+        : []
 
     const handleRegenerate = async (creative: AdCreative) => {
         setRegenerating(creative.id)
@@ -433,8 +730,90 @@ export default function CreativesPage() {
         setLightboxImage(creative.imageUrl)
     }
 
+
+    const toDataUrl = (blob: Blob) => new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onerror = () => reject(new Error('Failed to read creative image'))
+        reader.onloadend = () => resolve(String(reader.result || ''))
+        reader.readAsDataURL(blob)
+    })
+
+    const loadCreativeSourceImage = async (creative: AdCreative) => {
+        const url = creative.imageUrl.includes('supabase.co/storage')
+            ? `/api/images/proxy?url=${encodeURIComponent(creative.imageUrl)}`
+            : creative.imageUrl
+        const response = await fetch(url)
+        if (!response.ok) {
+            throw new Error('Failed to load creative image for editing')
+        }
+        const blob = await response.blob()
+        return toDataUrl(blob)
+    }
+
+    const handleOpenInpaint = async (creative: AdCreative) => {
+        setInpaintingId(creative.id)
+        try {
+            const imageBase64 = await loadCreativeSourceImage(creative)
+            setEditorCreative(creative)
+            setEditorImage(imageBase64)
+            setEditorOpen(true)
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Failed to open editor')
+        } finally {
+            setInpaintingId(null)
+        }
+    }
+
+    const handleApplyInpaint = async (
+    prompt: string,
+    maskBase64: string | undefined,
+    options?: { referenceImageBase64?: string; scope?: 'auto' | 'local' | 'subject' | 'full_frame'; task?: 'auto' | 'hold_product' | 'wear_accessory' | 'pose_change' | 'text_edit' | 'remove_object' | 'stylized_effect' | 'replace_region' | 'add_object' | 'scene_edit' | 'general_edit'; expansionOverride?: { left: number; top: number; width: number; height: number } }
+  ) => {
+        if (!editorCreative || !editorImage) {
+            toast.error('No creative loaded for editing')
+            return
+        }
+
+        setIsApplyingInpaint(true)
+        try {
+            const response = await fetch('/api/ads/edit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    imageBase64: editorImage,
+                    maskBase64,
+                    prompt,
+                    referenceImageBase64: options?.referenceImageBase64,
+          scope: options?.scope,
+          task: options?.task,
+          expansionOverride: options?.expansionOverride,
+                    sourceAdId: editorCreative.id,
+                    preset: editorCreative.stylePreset || 'edited',
+                }),
+            })
+            const data = await response.json().catch(() => ({ error: 'Edit failed' }))
+            if (!response.ok) {
+                throw new Error(data.error || 'Edit failed')
+            }
+
+            const refreshRes = await fetch('/api/ads/creatives')
+            const refreshData = await refreshRes.json()
+            setCreatives(refreshData.creatives || [])
+            setEditorOpen(false)
+            setEditorCreative(null)
+            setEditorImage('')
+            setHistoryOpenId(null)
+            toast.success('Creative edited successfully')
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Edit failed')
+        } finally {
+            setIsApplyingInpaint(false)
+        }
+    }
+
     const hasActiveFilters =
-        campaignFilter !== 'all' || platformFilter !== 'all' || qualityFilter !== 'all'
+        campaignFilter !== 'all' || platformFilter !== 'all' || qualityFilter !== 'all' || !!searchQuery.trim()
 
     return (
         <motion.div
@@ -472,6 +851,14 @@ export default function CreativesPage() {
                 {/* Filters â€” neo-brutalist chips */}
                 <BrutalCard className="p-4 mb-8">
                     <p className="text-xs md:text-sm font-black uppercase text-black/60 mb-3">Filters</p>
+                    <div className="mb-4">
+                        <input
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search by prompt, task, scope, or title"
+                            className="w-full border-[2px] border-black bg-white px-4 py-3 text-sm font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:outline-none focus:ring-2 focus:ring-[#FFD93D]"
+                        />
+                    </div>
                     <div className="flex flex-wrap gap-4">
                         {/* Campaign */}
                         <div className="flex flex-wrap items-center gap-1.5">
@@ -556,6 +943,7 @@ export default function CreativesPage() {
                                     setCampaignFilter('all')
                                     setPlatformFilter('all')
                                     setQualityFilter('all')
+                                    setSearchQuery('')
                                 }}
                                 className="text-sm font-bold text-black/70 hover:text-black underline ml-auto"
                             >
@@ -621,7 +1009,11 @@ export default function CreativesPage() {
                                 onRegenerate={() => handleRegenerate(creative)}
                                 onDownload={() => handleDownload(creative)}
                                 onImageClick={() => openCreativeViewer(creative)}
+                                onInpaint={() => handleOpenInpaint(creative)}
+                                onViewHistory={() => setHistoryOpenId(creative.id)}
+                                historyCount={historyGroups.get(getHistoryRootId(creative))?.length || 1}
                                 regenerating={regenerating === creative.id}
+                                inpainting={inpaintingId === creative.id}
                             />
                         ))}
                     </motion.div>
@@ -632,6 +1024,30 @@ export default function CreativesPage() {
                 open={lightboxImage !== null}
                 onClose={() => setLightboxImage(null)}
                 imageUrl={lightboxImage || ''}
+            />
+            <HistoryModal
+                open={historyOpenId !== null}
+                onClose={() => setHistoryOpenId(null)}
+                focusCreativeId={historyOpenId}
+                items={activeHistory}
+                onPreview={(creative) => openCreativeViewer(creative)}
+                onInpaint={(creative) => {
+                    setHistoryOpenId(null)
+                    void handleOpenInpaint(creative)
+                }}
+                onDownload={(creative) => void handleDownload(creative)}
+            />
+            <AdInpaintModal
+                isOpen={editorOpen && !!editorCreative}
+                imageSrc={editorImage}
+                isSubmitting={isApplyingInpaint}
+                onClose={() => {
+                    if (isApplyingInpaint) return
+                    setEditorOpen(false)
+                    setEditorCreative(null)
+                    setEditorImage('')
+                }}
+                onApply={handleApplyInpaint}
             />
         </motion.div>
     )
