@@ -97,6 +97,7 @@ export default function AdInpaintModal({
   const imageRef = useRef<HTMLImageElement | null>(null)
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const exportCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const lastPaintPointRef = useRef<{ x: number; y: number } | null>(null)
   const dragStateRef = useRef<{
     mode: HandleType
     startX: number
@@ -148,6 +149,7 @@ export default function AdInpaintModal({
     setHasMask(false)
     setMaskBounds(null)
     setManualRect(null)
+    lastPaintPointRef.current = null
   }
 
   useEffect(() => {
@@ -181,28 +183,28 @@ export default function AdInpaintModal({
     const x = clientX - rect.left
     const y = clientY - rect.top
     const radius = brushSize / 2
+    const previousPoint = lastPaintPointRef.current
 
     const overlayContext = overlay.getContext('2d')
     if (overlayContext) {
       overlayContext.save()
       overlayContext.globalCompositeOperation = 'source-over'
-      overlayContext.fillStyle = '#FF5A46'
-      overlayContext.globalAlpha = 0.22
-      overlayContext.beginPath()
-      overlayContext.arc(x, y, radius, 0, Math.PI * 2)
-      overlayContext.fill()
+      overlayContext.strokeStyle = 'rgba(255, 90, 70, 0.62)'
+      overlayContext.fillStyle = 'rgba(255, 90, 70, 0.62)'
+      overlayContext.lineWidth = brushSize
+      overlayContext.lineCap = 'round'
+      overlayContext.lineJoin = 'round'
 
-      overlayContext.globalAlpha = 0.1
-      overlayContext.beginPath()
-      overlayContext.arc(x, y, radius * 1.2, 0, Math.PI * 2)
-      overlayContext.fill()
-
-      overlayContext.globalAlpha = 0.65
-      overlayContext.strokeStyle = 'rgba(255, 105, 80, 0.95)'
-      overlayContext.lineWidth = Math.max(1.5, radius * 0.16)
-      overlayContext.beginPath()
-      overlayContext.arc(x, y, radius * 0.9, 0, Math.PI * 2)
-      overlayContext.stroke()
+      if (previousPoint) {
+        overlayContext.beginPath()
+        overlayContext.moveTo(previousPoint.x, previousPoint.y)
+        overlayContext.lineTo(x, y)
+        overlayContext.stroke()
+      } else {
+        overlayContext.beginPath()
+        overlayContext.arc(x, y, radius, 0, Math.PI * 2)
+        overlayContext.fill()
+      }
       overlayContext.restore()
     }
 
@@ -211,19 +213,37 @@ export default function AdInpaintModal({
       const scaleX = exportCanvas.width / rect.width
       const scaleY = exportCanvas.height / rect.height
       exportContext.globalCompositeOperation = 'source-over'
+      exportContext.strokeStyle = '#FFFFFF'
       exportContext.fillStyle = '#FFFFFF'
-      exportContext.beginPath()
-      exportContext.ellipse(x * scaleX, y * scaleY, radius * scaleX, radius * scaleY, 0, 0, Math.PI * 2)
-      exportContext.fill()
+      exportContext.lineWidth = Math.max(1, brushSize * ((scaleX + scaleY) / 2))
+      exportContext.lineCap = 'round'
+      exportContext.lineJoin = 'round'
+
+      if (previousPoint) {
+        exportContext.beginPath()
+        exportContext.moveTo(previousPoint.x * scaleX, previousPoint.y * scaleY)
+        exportContext.lineTo(x * scaleX, y * scaleY)
+        exportContext.stroke()
+      } else {
+        exportContext.beginPath()
+        exportContext.ellipse(x * scaleX, y * scaleY, radius * scaleX, radius * scaleY, 0, 0, Math.PI * 2)
+        exportContext.fill()
+      }
     }
 
+    const startX = previousPoint ? Math.min(previousPoint.x, x) : x
+    const startY = previousPoint ? Math.min(previousPoint.y, y) : y
+    const endX = previousPoint ? Math.max(previousPoint.x, x) : x
+    const endY = previousPoint ? Math.max(previousPoint.y, y) : y
+
     setMaskBounds((prev) => ({
-      left: prev ? Math.min(prev.left, x - radius) : x - radius,
-      top: prev ? Math.min(prev.top, y - radius) : y - radius,
-      right: prev ? Math.max(prev.right, x + radius) : x + radius,
-      bottom: prev ? Math.max(prev.bottom, y + radius) : y + radius,
+      left: prev ? Math.min(prev.left, startX - radius) : startX - radius,
+      top: prev ? Math.min(prev.top, startY - radius) : startY - radius,
+      right: prev ? Math.max(prev.right, endX + radius) : endX + radius,
+      bottom: prev ? Math.max(prev.bottom, endY + radius) : endY + radius,
     }))
     setHasMask(true)
+    lastPaintPointRef.current = { x, y }
   }
 
   const beginDrawing = (event: React.PointerEvent<HTMLCanvasElement>) => {
@@ -231,6 +251,7 @@ export default function AdInpaintModal({
     const rect = event.currentTarget.getBoundingClientRect()
     setBrushPoint({ x: event.clientX - rect.left, y: event.clientY - rect.top })
     setIsDrawing(true)
+    lastPaintPointRef.current = null
     event.currentTarget.setPointerCapture(event.pointerId)
     paintAtPoint(event.clientX, event.clientY)
   }
@@ -245,6 +266,7 @@ export default function AdInpaintModal({
   const stopDrawing = (event: React.PointerEvent<HTMLCanvasElement>) => {
     setIsDrawing(false)
     setBrushPoint(null)
+    lastPaintPointRef.current = null
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId)
     }
