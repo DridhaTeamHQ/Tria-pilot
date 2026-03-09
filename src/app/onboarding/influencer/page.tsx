@@ -263,8 +263,29 @@ export default function InfluencerOnboardingPage() {
     setIdentityImages(prev => ({ ...prev, [type]: { file, url: previewUrl, uploading: true } }))
 
     try {
+      // Basic compression to prevent API payload limits (similar to profile page)
+      let uploadFile = file
+      if (file.size > 2 * 1024 * 1024 && !file.type.includes('heic') && !file.type.includes('heif')) {
+        uploadFile = await new Promise<File>((resolve) => {
+          const img = new Image()
+          img.onload = () => {
+            const canvas = document.createElement('canvas')
+            const scale = Math.min(1, 1200 / Math.max(img.width, img.height))
+            canvas.width = img.width * scale
+            canvas.height = img.height * scale
+            const ctx = canvas.getContext('2d')
+            ctx?.drawImage(img, 0, 0, canvas.width, canvas.height)
+            canvas.toBlob((blob) => {
+              resolve(blob ? new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }) : file)
+            }, 'image/jpeg', 0.8)
+          }
+          img.onerror = () => resolve(file)
+          img.src = previewUrl
+        })
+      }
+
       const formDataUpload = new FormData()
-      formDataUpload.append('file', file)
+      formDataUpload.append('file', uploadFile)
       formDataUpload.append('imageType', type)
 
       const response = await fetch('/api/identity-images', {
@@ -272,15 +293,18 @@ export default function InfluencerOnboardingPage() {
         body: formDataUpload,
       })
 
-      if (!response.ok) throw new Error('Failed to upload')
+      const data = await response.json().catch(() => ({}))
 
-      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to upload image')
+      }
+
       setIdentityImages(prev => ({ ...prev, [type]: { url: data.image.imageUrl, uploading: false } }))
       toast.success(`${IDENTITY_IMAGE_REQUIREMENTS.find(r => r.type === type)?.label} uploaded!`)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Upload failed:', error)
-      setIdentityImages(prev => ({ ...prev, [type]: { uploading: false } }))
-      toast.error('Failed to upload image. Please try again.')
+      setIdentityImages(prev => ({ ...prev, [type]: { url: undefined, uploading: false } }))
+      toast.error(error.message || 'Failed to upload image. Please try again.')
     }
   }
 
