@@ -398,6 +398,7 @@ export interface DirectTryOnOptions {
   personImageBase64: string   // raw base64 (no data URI prefix)
   garmentImageBase64: string  // raw base64 (no data URI prefix)
   faceCropBase64?: string     // output of extractFaceCrop (raw base64)
+  characterReferenceBase64s?: { base64: string; label: string }[]  // multi-angle character references
   prompt: string              // pre-built sanitized prompt — passed AS-IS
   aspectRatio?: string
   resolution?: string
@@ -416,6 +417,7 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
     personImageBase64,
     garmentImageBase64,
     faceCropBase64,
+    characterReferenceBase64s,
     prompt,
     aspectRatio = '4:5',
     resolution = '2K',
@@ -461,6 +463,28 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
         } as any,
         'Image 3: face close-up reference.'
       )
+    }
+  }
+
+  // CHARACTER REFERENCES: Multi-angle identity images (like Higgsfield)
+  // These give Gemini multiple views of the same person for much better face consistency.
+  if (characterReferenceBase64s && characterReferenceBase64s.length > 0) {
+    let refIdx = 4  // Start numbering after Image 1 (person), Image 2 (garment), Image 3 (face crop)
+    for (const ref of characterReferenceBase64s) {
+      const cleanRef = ref.base64.replace(/^data:image\/[a-z]+;base64,/, '')
+      if (cleanRef && cleanRef.length > 100) {
+        if (process.env.NODE_ENV !== 'production') console.log(`🪞 Adding character ref Image ${refIdx}: ${ref.label}`)
+        contents.push(
+          {
+            inlineData: {
+              data: cleanRef,
+              mimeType: 'image/jpeg',
+            },
+          } as any,
+          `Image ${refIdx}: ${ref.label} — same person as Image 1, different angle.`
+        )
+        refIdx++
+      }
     }
   }
 

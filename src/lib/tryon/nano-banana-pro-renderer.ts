@@ -13,6 +13,7 @@
 
 import 'server-only'
 import { generateTryOnDirect } from '@/lib/nanobanana'
+import { resolveCharacterReferences, fetchImageAsBase64 } from '@/lib/tryon/character-resolver'
 import { buildForensicPrompt } from './forensic-prompt'
 import { detectFaceCoordinates, type FaceCoordinates } from './face-coordinates'
 import { buildForensicFaceAnchor } from './face-forensics'
@@ -91,6 +92,7 @@ export interface NanoBananaProInput {
   lightingDescription?: string
   researchContext?: string
   webResearchContext?: string
+  userId?: string  // Needed for character reference resolution
 }
 
 export interface NanoBananaProResult {
@@ -154,6 +156,35 @@ export async function generateWithNanoBananaPro(
       ),
     ])
 
+    // ── CHARACTER REFERENCES ──────────────────────────────────────────────
+    // Resolve multi-angle identity images from the user's character profile.
+    // Like Higgsfield, sending 2-3 angle-specific photos dramatically improves
+    // face consistency by giving Gemini multiple views of the same person.
+    let characterReferenceBase64s: { base64: string; label: string }[] | undefined
+    if (input.userId) {
+      try {
+        const charResult = await resolveCharacterReferences(input.userId, input.presetId)
+        if (charResult.available && charResult.references.length > 0) {
+          if (isDev) console.log(`   🪞 Character: ${charResult.references.length} references found (complete=${charResult.complete})`)
+          // Download images as base64 in parallel
+          const downloaded = await Promise.all(
+            charResult.references.map(async (ref) => {
+              const base64 = await fetchImageAsBase64(ref.imageUrl)
+              return base64 ? { base64, label: ref.label } : null
+            })
+          )
+          characterReferenceBase64s = downloaded.filter(Boolean) as { base64: string; label: string }[]
+          if (isDev && characterReferenceBase64s.length > 0) {
+            console.log(`   🪞 Sending ${characterReferenceBase64s.length} character refs to Gemini`)
+          }
+        } else if (isDev) {
+          console.log('   🪞 No character references available')
+        }
+      } catch (charErr) {
+        console.warn('⚠️ Character resolver failed, continuing without references:', charErr)
+      }
+    }
+
     // Extract face crop AFTER detection so we can use the detected face box for a tight crop.
     // This adds ~50-100ms (sharp only) but produces a much better identity signal.
     const faceCropResult = await withTimeout(
@@ -208,6 +239,7 @@ export async function generateWithNanoBananaPro(
       garmentImageBase64: input.garmentImageBase64,
       // Secondary identity reference improves eye geometry and face fidelity without post-processing.
       faceCropBase64: faceCropResult.success ? faceCropResult.faceCropBase64 : undefined,
+      characterReferenceBase64s,
       prompt,
       aspectRatio,
       resolution: '2K',

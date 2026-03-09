@@ -73,7 +73,7 @@ export interface HybridTryOnResult {
   image: string
   status: string
   warnings: string[]
-    debug: {
+  debug: {
     stages: any[]
     totalTimeMs: number
     faceOverwritten: boolean
@@ -487,6 +487,7 @@ export async function runHybridTryOnPipeline(
     lightingDescription: input.preset?.lighting_name,
     researchContext: intelligenceContext,
     webResearchContext,
+    userId: input.userId,  // For character reference resolution
   })
 
   if (!renderResult.success) {
