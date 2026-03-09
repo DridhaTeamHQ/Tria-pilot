@@ -10,6 +10,7 @@ import {
   type IdentityImageType,
   getUploadProgress
 } from '@/lib/identity/types'
+import { createClient } from '@/lib/auth-client'
 
 // Neo-Brutal Components
 import { OnboardingCard } from '@/components/brutal/onboarding/OnboardingCard'
@@ -284,19 +285,32 @@ export default function InfluencerOnboardingPage() {
         })
       }
 
-      const formDataUpload = new FormData()
-      formDataUpload.append('file', uploadFile)
-      formDataUpload.append('imageType', type)
+      const supabase = createClient()
+      const { data: userData } = await supabase.auth.getUser()
+      if (!userData.user) throw new Error('You must be logged in to upload.')
+
+      const fileName = `${userData.user.id}/${type}-${Date.now()}.jpg`
+
+      const { error: uploadError } = await supabase.storage
+        .from('identity-images')
+        .upload(fileName, uploadFile, { contentType: uploadFile.type, upsert: true })
+
+      if (uploadError) {
+        throw new Error(uploadError.message || 'Failed to upload image to storage')
+      }
+
+      const { data: { publicUrl } } = supabase.storage.from('identity-images').getPublicUrl(fileName)
 
       const response = await fetch('/api/identity-images', {
         method: 'POST',
-        body: formDataUpload,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageType: type, fileName, publicUrl }),
       })
 
       const data = await response.json().catch(() => ({}))
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to upload image')
+        throw new Error(data.error || 'Failed to save image record')
       }
 
       setIdentityImages(prev => ({ ...prev, [type]: { url: data.image.imageUrl, uploading: false } }))

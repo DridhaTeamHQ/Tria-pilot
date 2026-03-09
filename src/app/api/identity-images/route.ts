@@ -141,42 +141,13 @@ export async function POST(request: Request) {
       }
     }
 
-    const formData = await request.formData()
-    const file = formData.get('file') as File
-    const imageType = formData.get('imageType') as IdentityImageType
+    const { imageType, fileName, publicUrl } = await request.json()
 
-    if (!file || !imageType) return NextResponse.json({ error: 'File and image type required' }, { status: 400 })
+    if (!fileName || !imageType || !publicUrl) return NextResponse.json({ error: 'fileName, publicUrl, and imageType required' }, { status: 400 })
     const validTypes = new Set(IDENTITY_IMAGE_REQUIREMENTS.map((req) => req.type))
     if (!validTypes.has(imageType)) {
       return NextResponse.json({ error: 'Invalid image type' }, { status: 400 })
     }
-
-    const buffer = Buffer.from(await file.arrayBuffer())
-    const fileName = `${profile.id}/${imageType}-${Date.now()}.jpg`
-
-    // Upload to storage — auto-create bucket if missing
-    let uploadError: any = null
-    const uploadToStorage = async () => {
-      const result = await db.storage
-        .from('identity-images')
-        .upload(fileName, buffer, { contentType: file.type || 'image/jpeg', upsert: true })
-      return result
-    }
-
-    let uploadResult = await uploadToStorage()
-    uploadError = uploadResult.error
-
-    // If bucket doesn't exist, create it and retry
-    if (uploadError && (uploadError.message?.includes('not found') || uploadError.statusCode === 404 || uploadError.message?.includes('Bucket'))) {
-      console.log('Creating identity-images storage bucket...')
-      await db.storage.createBucket('identity-images', { public: true }).catch(() => null)
-      uploadResult = await uploadToStorage()
-      uploadError = uploadResult.error
-    }
-
-    if (uploadError) throw uploadError
-
-    const { data: { publicUrl } } = db.storage.from('identity-images').getPublicUrl(fileName)
 
     // Always update or insert by checking existing first to avoid missing composite unique constraint errors
     const { data: existingImage } = await db

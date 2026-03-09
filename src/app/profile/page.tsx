@@ -28,6 +28,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { createClient } from '@/lib/auth-client'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
 import {
   type IdentityImageType,
@@ -192,22 +193,32 @@ export default function ProfilePage() {
     setUploadingSlot(imageType)
     try {
       const uploadFile = await preparePhotoForUpload(file)
-      const formData = new FormData()
-      formData.append('file', uploadFile)
-      formData.append('imageType', imageType)
+
+      const supabase = createClient()
+      const { data: userData } = await supabase.auth.getUser()
+      if (!userData.user) throw new Error('You must be logged in to upload.')
+
+      const fileName = `${userData.user.id}/${imageType}-${Date.now()}.jpg`
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('identity-images')
+        .upload(fileName, uploadFile, { contentType: uploadFile.type, upsert: true })
+
+      if (uploadError) {
+        throw new Error(uploadError.message || 'Failed to upload image to storage')
+      }
+
+      const { data: { publicUrl } } = supabase.storage.from('identity-images').getPublicUrl(fileName)
 
       const res = await fetch('/api/identity-images', {
         method: 'POST',
-        credentials: 'include',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageType, fileName, publicUrl }),
       })
 
       if (!res.ok) {
-        if (res.status === 413) {
-          throw new Error('Image file is still too large (max 4.5MB). Please choose a smaller photo.')
-        }
         const errBody = await res.json().catch(() => ({}))
-        throw new Error(errBody.error || `Upload failed with status: ${res.status}`)
+        throw new Error(errBody.error || `Failed to save image record with status: ${res.status}`)
       }
 
       const data = await res.json()
