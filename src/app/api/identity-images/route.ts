@@ -141,41 +141,24 @@ export async function POST(request: Request) {
 
     const { data: { publicUrl } } = service.storage.from('identity-images').getPublicUrl(fileName)
 
-    // Upsert logic for DB record
-    // In SQL we can UPSERT if we have unique constraint on (profile_id, image_type) where active=true?
-    // We don't have that constraint. So we find existing and update, or insert.
-
-    const existing = (profile.identity_images || []).find((img: any) => img.image_type === imageType)
-    let record
-
-    if (existing) {
-      const { data: updated, error } = await service
-        .from('identity_images')
-        .update({
-          image_path: fileName,
-          image_url: publicUrl,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', existing.id)
-        .select()
-        .single()
-      if (error) throw error
-      record = updated
-    } else {
-      const { data: newRecord, error } = await service
-        .from('identity_images')
-        .insert({
+    // Always upsert by unique key so re-uploads work for all seven slots,
+    // including previously deleted/inactive rows.
+    const { data: record, error: upsertError } = await service
+      .from('identity_images')
+      .upsert(
+        {
           influencer_profile_id: profile.id,
           image_type: imageType,
           image_path: fileName,
           image_url: publicUrl,
-          is_active: true
-        })
-        .select()
-        .single()
-      if (error) throw error
-      record = newRecord
-    }
+          is_active: true,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'influencer_profile_id,image_type' }
+      )
+      .select()
+      .single()
+    if (upsertError) throw upsertError
 
     // Check completion
     const { data: allImages } = await service.from('identity_images').select('image_type').eq('influencer_profile_id', profile.id).eq('is_active', true)
