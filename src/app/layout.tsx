@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import type React from 'react'
-import { Plus_Jakarta_Sans } from 'next/font/google'
 import { Toaster } from '@/components/ui/sonner'
 import NavSwitcher from '@/components/landing/NavSwitcher'
 import ProfileCompletionGate from '@/components/ProfileCompletionGate'
@@ -8,12 +7,6 @@ import { ReactQueryProvider } from '@/lib/react-query/provider'
 import { RealtimeListener } from '@/components/providers/realtime-listener'
 import './globals.css'
 import { ReactLenis } from '@/lib/lenis'
-
-const plusJakartaSans = Plus_Jakarta_Sans({
-  subsets: ['latin'],
-  weight: ['400', '600', '700', '800'],
-  variable: '--font-plus-jakarta-sans',
-})
 
 export const metadata: Metadata = {
   title: 'Kiwikoo - AI Fashion Try-On Marketplace',
@@ -23,6 +16,7 @@ export const metadata: Metadata = {
 // Defined at module level so the object reference is stable across SSR and client,
 // preventing React's hydration mismatch on the <body> style prop.
 const FONT_VARS = {
+  '--font-plus-jakarta-sans': '"Plus Jakarta Sans", Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif',
   '--font-playfair': 'Playfair Display, Georgia, Cambria, "Times New Roman", serif',
   '--font-inter': 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif',
   '--font-geist-sans': 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif',
@@ -35,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={plusJakartaSans.variable} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body className="antialiased bg-cream text-charcoal" style={FONT_VARS} suppressHydrationWarning>
         <ReactQueryProvider>
           <Toaster />
