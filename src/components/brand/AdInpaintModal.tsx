@@ -184,10 +184,26 @@ export default function AdInpaintModal({
 
     const overlayContext = overlay.getContext('2d')
     if (overlayContext) {
-      overlayContext.fillStyle = 'rgba(255, 68, 68, 0.36)'
+      overlayContext.save()
+      overlayContext.globalCompositeOperation = 'source-over'
+      overlayContext.fillStyle = '#FF5A46'
+      overlayContext.globalAlpha = 0.22
       overlayContext.beginPath()
       overlayContext.arc(x, y, radius, 0, Math.PI * 2)
       overlayContext.fill()
+
+      overlayContext.globalAlpha = 0.1
+      overlayContext.beginPath()
+      overlayContext.arc(x, y, radius * 1.2, 0, Math.PI * 2)
+      overlayContext.fill()
+
+      overlayContext.globalAlpha = 0.65
+      overlayContext.strokeStyle = 'rgba(255, 105, 80, 0.95)'
+      overlayContext.lineWidth = Math.max(1.5, radius * 0.16)
+      overlayContext.beginPath()
+      overlayContext.arc(x, y, radius * 0.9, 0, Math.PI * 2)
+      overlayContext.stroke()
+      overlayContext.restore()
     }
 
     const exportContext = exportCanvas.getContext('2d')
@@ -406,26 +422,6 @@ export default function AdInpaintModal({
                 <div className={cn('relative inline-flex max-h-full max-w-full items-center justify-center rounded-[24px] transition-transform', isDrawing && 'scale-[1.01]')}>
                   <img ref={imageRef} src={imageSrc} alt="Ad edit target" className="block max-h-[50dvh] max-w-full rounded-xl border-[3px] border-black object-contain bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,0.2)] sm:max-h-[58dvh] lg:max-h-[calc(100dvh-150px)]" onLoad={resetMask} />
                   <canvas ref={overlayCanvasRef} className={cn('absolute inset-0 rounded-xl', isSubmitting ? 'cursor-not-allowed' : 'cursor-crosshair')} onPointerDown={beginDrawing} onPointerMove={continueDrawing} onPointerUp={stopDrawing} onPointerLeave={stopDrawing} />
-                {activeRect && (
-                  <div
-                    className="absolute rounded-[24px] border-[3px] border-[#FFD93D] bg-[#FFD93D]/15 shadow-[0_0_0_5px_rgba(255,217,61,0.16)] transition-all duration-150"
-                    style={{ left: activeRect.left, top: activeRect.top, width: activeRect.width, height: activeRect.height }}
-                  >
-                    <button type="button" onPointerDown={(event) => startRectDrag('move', event)} className="absolute -top-10 left-0 inline-flex items-center gap-2 rounded-full border-[2px] border-black bg-[#FFD93D] px-3 py-1 text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                      <Grip className="h-3.5 w-3.5" /> AI Expansion Preview
-                    </button>
-                    {(['nw', 'ne', 'sw', 'se'] as const).map((handle) => {
-                      const position = handle === 'nw' ? 'left-[-8px] top-[-8px]' : handle === 'ne' ? 'right-[-8px] top-[-8px]' : handle === 'sw' ? 'left-[-8px] bottom-[-8px]' : 'right-[-8px] bottom-[-8px]'
-                      return (
-                        <div
-                          key={handle}
-                          onPointerDown={(event) => startRectDrag(handle, event)}
-                          className={cn('absolute h-4 w-4 rounded-full border-[2px] border-black bg-white shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]', position)}
-                        />
-                      )
-                    })}
-                  </div>
-                )}
                 {brushPoint && !isSubmitting && <div className="pointer-events-none absolute rounded-full border-2 border-black/80 bg-[#FF4D4D]/10 shadow-[0_0_0_4px_rgba(255,217,61,0.18)]" style={{ width: brushSize, height: brushSize, left: brushPoint.x - brushSize / 2, top: brushPoint.y - brushSize / 2 }} />}
                 {hasMask && <div className="pointer-events-none absolute inset-0 rounded-xl ring-4 ring-[#FF4D4D]/20 animate-pulse" />}
                 {isSubmitting && inferredPlan && (
@@ -500,7 +496,7 @@ export default function AdInpaintModal({
                     </div>
                     <p className="mt-3 text-sm font-semibold text-black/75">{inferredPlan.creativeDirection}</p>
                     <p className="mt-2 text-xs font-bold uppercase text-black/55">{inferredPlan.modelReason}</p>
-                    <p className="mt-2 text-xs font-bold uppercase text-black/55">Drag the yellow box or resize its handles to override the AI region before submit.</p>
+                    <p className="mt-2 text-xs font-bold uppercase text-black/55">AI scope follows your marker strokes and prompt automatically.</p>
                   </div>
                 )}
 
@@ -550,3 +546,5 @@ export default function AdInpaintModal({
     </PortalModal>
   )
 }
+
+
