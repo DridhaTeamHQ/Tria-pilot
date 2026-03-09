@@ -79,7 +79,12 @@ export async function POST(request: Request) {
 
     if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const service = createServiceClient()
+    let db: Awaited<ReturnType<typeof createClient>> | ReturnType<typeof createServiceClient> = supabase
+    try {
+      db = createServiceClient()
+    } catch {
+      db = supabase
+    }
 
     // Look for existing influencer profile
     let { data: profile } = await supabase
@@ -91,7 +96,7 @@ export async function POST(request: Request) {
     // Auto-create influencer profile if it doesn't exist
     // This handles: brand users who need identity images, or new users
     if (!profile) {
-      const { data: newProfile, error: createErr } = await service
+      const { data: newProfile, error: createErr } = await db
         .from('influencer_profiles')
         .upsert({ id: authUser.id, user_id: authUser.id }, { onConflict: 'id' })
         .select('id, identity_images(*)')
@@ -120,7 +125,7 @@ export async function POST(request: Request) {
     // Upload to storage — auto-create bucket if missing
     let uploadError: any = null
     const uploadToStorage = async () => {
-      const result = await service.storage
+      const result = await db.storage
         .from('identity-images')
         .upload(fileName, buffer, { contentType: file.type || 'image/jpeg', upsert: true })
       return result
@@ -132,18 +137,18 @@ export async function POST(request: Request) {
     // If bucket doesn't exist, create it and retry
     if (uploadError && (uploadError.message?.includes('not found') || uploadError.statusCode === 404 || uploadError.message?.includes('Bucket'))) {
       console.log('Creating identity-images storage bucket...')
-      await service.storage.createBucket('identity-images', { public: true })
+      await db.storage.createBucket('identity-images', { public: true }).catch(() => null)
       uploadResult = await uploadToStorage()
       uploadError = uploadResult.error
     }
 
     if (uploadError) throw uploadError
 
-    const { data: { publicUrl } } = service.storage.from('identity-images').getPublicUrl(fileName)
+    const { data: { publicUrl } } = db.storage.from('identity-images').getPublicUrl(fileName)
 
     // Always upsert by unique key so re-uploads work for all seven slots,
     // including previously deleted/inactive rows.
-    const { data: record, error: upsertError } = await service
+    const { data: record, error: upsertError } = await db
       .from('identity_images')
       .upsert(
         {
@@ -161,7 +166,7 @@ export async function POST(request: Request) {
     if (upsertError) throw upsertError
 
     // Check completion
-    const { data: allImages } = await service.from('identity_images').select('image_type').eq('influencer_profile_id', profile.id).eq('is_active', true)
+    const { data: allImages } = await db.from('identity_images').select('image_type').eq('influencer_profile_id', profile.id).eq('is_active', true)
     const types = (allImages || []).map((i: any) => i.image_type)
     const isComplete = isIdentitySetupComplete(types)
 
@@ -194,20 +199,25 @@ export async function DELETE(request: Request) {
     const imageType = searchParams.get('imageType')
     if (!imageType) return NextResponse.json({ error: 'Type required' }, { status: 400 })
 
-    const service = createServiceClient()
+    let db: Awaited<ReturnType<typeof createClient>> | ReturnType<typeof createServiceClient> = supabase
+    try {
+      db = createServiceClient()
+    } catch {
+      db = supabase
+    }
 
     // Soft delete
     // Need to find profile ID first or filter by inner join... 
     // identity_images linked to influencer_profile_id which is usually user_id (1:1)
 
-    await service
+    await db
       .from('identity_images')
       .update({ is_active: false })
       .eq('influencer_profile_id', authUser.id) // Assuming ID match
       .eq('image_type', imageType)
 
     // Re-check completion
-    const { data: allImages } = await service.from('identity_images').select('image_type').eq('influencer_profile_id', authUser.id).eq('is_active', true)
+    const { data: allImages } = await db.from('identity_images').select('image_type').eq('influencer_profile_id', authUser.id).eq('is_active', true)
     const types = (allImages || []).map((i: any) => i.image_type)
     const isComplete = isIdentitySetupComplete(types)
 
@@ -219,6 +229,6 @@ export async function DELETE(request: Request) {
     })
 
   } catch (e) {
-    return NextResponse.json({ error: 'Error' }, { status: 500 })
+    return NextResponse.json({ error: e instanceof Error ? e.message : 'Error' }, { status: 500 })
   }
 }
