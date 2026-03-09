@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server'
+
+export const maxDuration = 60; // Set max execution time to 60s
+export const dynamic = 'force-dynamic';
 import { createClient, createServiceClient } from '@/lib/auth'
 import {
   IdentityImageType,
