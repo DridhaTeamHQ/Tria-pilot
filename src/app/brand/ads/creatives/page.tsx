@@ -30,6 +30,7 @@ import {
     Clock3,
     GitBranch,
     ArrowRight,
+    ArrowLeft,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import BrutalCard from '@/components/brutal/BrutalCard'
@@ -533,7 +534,7 @@ function Lightbox({
                     initial="initial"
                     animate="animate"
                     exit="exit"
-                    className="fixed inset-0 z-50 bg-black/55 backdrop-blur-[2px] flex items-start sm:items-center justify-center p-4 overflow-y-auto"
+                    className="fixed inset-0 z-50 bg-black/55 backdrop-blur-[2px] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto"
                     onClick={onClose}
                 >
                     <motion.div
@@ -541,25 +542,42 @@ function Lightbox({
                         initial="initial"
                         animate="animate"
                         exit="exit"
-                        className="relative max-w-[90vw] max-h-[90vh] bg-[#FFFDF8] rounded-2xl border-[4px] border-black shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] p-2"
+                        className="relative w-full max-w-[min(92vw,1100px)] bg-[#FFFDF8] rounded-2xl border-[4px] border-black shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] p-3 sm:p-4"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <button
-                            type="button"
-                            className="absolute -top-2 -right-2 z-10 w-11 h-11 bg-[#FF8C69] border-[3px] border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center hover:bg-[#ff9d7d] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
-                            onClick={onClose}
-                            aria-label="Close"
-                        >
-                            <X className="h-5 w-5 text-black" />
-                        </button>
-                        <div className="max-h-[calc(100vh-6rem)] overflow-y-auto overscroll-contain rounded-xl"><img src={src} alt="Creative preview" className="w-full h-auto object-contain block" /></div>
+                        <div className="mb-3 flex items-center justify-between gap-2">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="inline-flex items-center gap-2 rounded-lg border-[3px] border-black bg-white px-3 py-2 text-xs sm:text-sm font-black uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+                                aria-label="Back"
+                            >
+                                <ArrowLeft className="h-4 w-4" />
+                                Back
+                            </button>
+                            <button
+                                type="button"
+                                className="w-10 h-10 sm:w-11 sm:h-11 bg-[#FF8C69] border-[3px] border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center hover:bg-[#ff9d7d] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+                                onClick={onClose}
+                                aria-label="Close"
+                            >
+                                <X className="h-5 w-5 text-black" />
+                            </button>
+                        </div>
+
+                        <div className="max-h-[calc(100vh-10rem)] overflow-y-auto overscroll-contain rounded-xl border-[2px] border-black bg-white/60 p-2 sm:p-3">
+                            <img
+                                src={src}
+                                alt="Creative preview"
+                                className="mx-auto block max-w-full max-h-[calc(100vh-13rem)] w-auto h-auto object-contain"
+                            />
+                        </div>
                     </motion.div>
                 </motion.div>
             )}
         </AnimatePresence>
     )
 }
-
 function getRelativeDate(dateStr: string): string {
     const date = new Date(dateStr)
     const now = new Date()
