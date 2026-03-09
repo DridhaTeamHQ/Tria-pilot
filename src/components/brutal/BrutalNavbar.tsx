@@ -26,7 +26,7 @@ export default function BrutalNavbar() {
     const pathname = usePathname();
     const router = useRouter();
     const queryClient = useQueryClient();
-    const { data: user, isLoading } = useUser();
+    const { data: user, isLoading, isFetching } = useUser();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -78,7 +78,8 @@ export default function BrutalNavbar() {
 
     const isActive = (path: string) =>
         pathname === path || pathname?.startsWith(path + "/");
-    const isLoggedIn = !isLoading && user !== null && user !== undefined;
+    const isLoggedIn = user !== null && user !== undefined;
+    const authResolving = isLoading || (isFetching && !isLoggedIn);
 
     if (isAuthPage) {
         return null;
@@ -140,7 +141,9 @@ export default function BrutalNavbar() {
                     </Link>
 
                     {/* Desktop Navigation - Center */}
-                    {isLoggedIn ? (
+                    {authResolving ? (
+                        <div className="hidden md:flex flex-1 items-center justify-center" />
+                    ) : isLoggedIn ? (
                         <nav className="hidden md:flex flex-1 items-center justify-center gap-2 lg:gap-3 px-4">
                             {links.map((link) => {
                                 const Icon = link.icon;
@@ -178,7 +181,11 @@ export default function BrutalNavbar() {
 
                     {/* Right Side Actions */}
                     <div className="flex items-center gap-4 shrink-0">
-                        {isLoggedIn ? (
+                        {authResolving ? (
+                            <div className="hidden md:flex items-center gap-3">
+                                <div className="w-24 h-11 rounded-xl border-2 border-black bg-white animate-pulse" />
+                            </div>
+                        ) : isLoggedIn ? (
                             <div className="hidden md:flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black">
                                     {userInitial}
@@ -241,7 +248,9 @@ export default function BrutalNavbar() {
                         className="md:hidden bg-[#F9F8F4] border-t-2 border-black"
                     >
                         <div className="container mx-auto px-4 sm:px-6 py-4 space-y-3 max-h-[calc(100dvh-4rem)] overflow-y-auto">
-                            {isLoggedIn ? (
+                            {authResolving ? (
+                                <div className="px-4 py-3 text-sm font-bold text-black/60">Checking session...</div>
+                            ) : isLoggedIn ? (
                                 <>
                                     {/* User Info */}
                                     <div className="flex items-center gap-3 pb-4 border-b-2 border-black">
