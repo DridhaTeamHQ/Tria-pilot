@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import {
   User,
@@ -20,11 +20,19 @@ import {
   ExternalLink,
   Users,
   Share2,
-  ChevronDown
+  ChevronDown,
+  Upload,
+  Trash2,
+  ShieldCheck,
+  ImagePlus
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
+import {
+  type IdentityImageType,
+  IDENTITY_IMAGE_REQUIREMENTS
+} from '@/lib/identity/types'
 
 function BrutalCard({ children, className = '', title }: { children: React.ReactNode, className?: string, title?: string }) {
   return (
@@ -75,7 +83,14 @@ const fetchProfileData = async () => {
   return res.json()
 }
 
-type SectionKey = 'about' | 'social' | 'metrics'
+type SectionKey = 'about' | 'character' | 'social' | 'metrics'
+
+interface CharacterImage {
+  id: string
+  imageType: IdentityImageType
+  imageUrl: string
+  isActive: boolean
+}
 
 export default function ProfilePage() {
   const [editing, setEditing] = useState(false)
@@ -88,9 +103,17 @@ export default function ProfilePage() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [expanded, setExpanded] = useState<Record<SectionKey, boolean>>({
     about: true,
+    character: true,
     social: true,
     metrics: true,
   })
+  const [characterImages, setCharacterImages] = useState<CharacterImage[]>([])
+  const [characterProgress, setCharacterProgress] = useState(0)
+  const [characterComplete, setCharacterComplete] = useState(false)
+  const [uploadingSlot, setUploadingSlot] = useState<IdentityImageType | null>(null)
+  const [deletingSlot, setDeletingSlot] = useState<IdentityImageType | null>(null)
+  const characterInputRef = useRef<HTMLInputElement>(null)
+  const pendingSlotRef = useRef<IdentityImageType | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const queryClient = useQueryClient()
@@ -130,6 +153,97 @@ export default function ProfilePage() {
     }
     fetchProfileImage()
   }, [])
+
+  // Fetch character / identity images
+  const fetchCharacterImages = useCallback(async () => {
+    try {
+      const res = await fetch('/api/identity-images')
+      if (!res.ok) return
+      const data = await res.json()
+      setCharacterImages(data.images || [])
+      setCharacterProgress(data.progress || 0)
+      setCharacterComplete(data.isComplete || false)
+    } catch (err) {
+      console.error('Failed to fetch character images:', err)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchCharacterImages()
+  }, [fetchCharacterImages])
+
+  const handleCharacterUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.currentTarget.value = ''
+    if (!file || !pendingSlotRef.current) return
+
+    const imageType = pendingSlotRef.current
+    pendingSlotRef.current = null
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file')
+      return
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error('Image must be less than 15MB')
+      return
+    }
+
+    setUploadingSlot(imageType)
+    try {
+      const uploadFile = await preparePhotoForUpload(file)
+      const formData = new FormData()
+      formData.append('file', uploadFile)
+      formData.append('imageType', imageType)
+
+      const res = await fetch('/api/identity-images', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      })
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}))
+        throw new Error(errBody.error || 'Upload failed')
+      }
+
+      const data = await res.json()
+      toast.success(`${IDENTITY_IMAGE_REQUIREMENTS.find(r => r.type === imageType)?.label || 'Photo'} uploaded!`)
+      setCharacterProgress(data.progress || characterProgress)
+      setCharacterComplete(data.isComplete || false)
+      await fetchCharacterImages()
+    } catch (err) {
+      console.error('Character image upload error:', err)
+      toast.error(err instanceof Error ? err.message : 'Failed to upload')
+    } finally {
+      setUploadingSlot(null)
+    }
+  }
+
+  const handleCharacterDelete = async (imageType: IdentityImageType) => {
+    setDeletingSlot(imageType)
+    try {
+      const res = await fetch(`/api/identity-images?imageType=${imageType}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+      if (!res.ok) throw new Error('Delete failed')
+      const data = await res.json()
+      toast.success('Photo removed')
+      setCharacterProgress(data.progress || 0)
+      setCharacterComplete(data.isComplete || false)
+      await fetchCharacterImages()
+    } catch (err) {
+      toast.error('Failed to remove photo')
+    } finally {
+      setDeletingSlot(null)
+    }
+  }
+
+  const triggerCharacterUpload = (slot: IdentityImageType) => {
+    pendingSlotRef.current = slot
+    characterInputRef.current?.click()
+  }
 
   const toggleSection = (key: SectionKey) => {
     setExpanded((prev) => ({ ...prev, [key]: !prev[key] }))
@@ -606,6 +720,142 @@ export default function ProfilePage() {
                   </div>
                 </div>
               </div>
+            </BrutalCard>
+
+            {/* ── MY CHARACTER ── */}
+            <BrutalCard title="My Character">
+              <button type="button"
+                onClick={() => toggleSection('character')}
+                className="md:hidden w-full mb-4 flex items-center justify-between border-[2px] border-black px-3 py-2 font-bold uppercase text-xs"
+              >
+                <span>{expanded.character ? 'Hide Details' : 'Show Details'}</span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${expanded.character ? 'rotate-180' : ''}`} />
+              </button>
+
+              <div className={`${expanded.character ? 'block' : 'hidden'} md:block`}>
+                {/* Progress */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    {characterComplete ? (
+                      <div className="flex items-center gap-2 px-3 py-1 bg-green-300 border-[2px] border-black text-xs font-bold uppercase">
+                        <ShieldCheck className="w-4 h-4" />
+                        Character Ready
+                      </div>
+                    ) : (
+                      <p className="text-xs font-bold uppercase text-black/50 tracking-widest">
+                        {characterProgress}% Complete — Upload all 7 photos
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="w-full h-3 border-[2px] border-black bg-white overflow-hidden mb-6">
+                  <motion.div
+                    className="h-full bg-[#FFD93D]"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${characterProgress}%` }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
+                  />
+                </div>
+
+                {/* Upload Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {IDENTITY_IMAGE_REQUIREMENTS.map((req) => {
+                    const existing = characterImages.find(img => img.imageType === req.type && img.isActive !== false)
+                    const isUploading = uploadingSlot === req.type
+                    const isDeleting = deletingSlot === req.type
+
+                    return (
+                      <div key={req.type} className="relative group">
+                        <div className="aspect-[3/4] border-[3px] border-black bg-white overflow-hidden shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px]">
+                          {existing ? (
+                            /* Uploaded — show preview */
+                            <>
+                              <img
+                                src={existing.imageUrl}
+                                alt={req.label}
+                                className="w-full h-full object-cover"
+                              />
+                              {/* Overlay on hover */}
+                              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => triggerCharacterUpload(req.type)}
+                                  disabled={isUploading}
+                                  className="px-3 py-1.5 bg-white text-black border-[2px] border-black text-xs font-bold uppercase hover:bg-[#FFD93D] transition-colors"
+                                >
+                                  Replace
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCharacterDelete(req.type)}
+                                  disabled={isDeleting}
+                                  className="px-3 py-1.5 bg-red-400 text-black border-[2px] border-black text-xs font-bold uppercase hover:bg-red-500 transition-colors flex items-center gap-1"
+                                >
+                                  {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                                  Remove
+                                </button>
+                              </div>
+                            </>
+                          ) : (
+                            /* Empty — upload placeholder */
+                            <button
+                              type="button"
+                              onClick={() => triggerCharacterUpload(req.type)}
+                              disabled={isUploading}
+                              className="w-full h-full flex flex-col items-center justify-center gap-2 hover:bg-[#FFD93D]/10 transition-colors cursor-pointer"
+                            >
+                              {isUploading ? (
+                                <Loader2 className="w-8 h-8 text-black/30 animate-spin" />
+                              ) : (
+                                <>
+                                  <div className="w-10 h-10 border-[2px] border-dashed border-black/30 flex items-center justify-center">
+                                    <ImagePlus className="w-5 h-5 text-black/30" />
+                                  </div>
+                                  <span className="text-[11px] font-bold uppercase text-black/40 tracking-wide">
+                                    {req.icon} {req.label}
+                                  </span>
+                                </>
+                              )}
+                            </button>
+                          )}
+
+                          {/* Uploading overlay */}
+                          {isUploading && existing && (
+                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                              <Loader2 className="w-8 h-8 text-white animate-spin" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Label below */}
+                        <p className="mt-1.5 text-[10px] font-bold uppercase text-black/50 tracking-wider text-center truncate">
+                          {req.label}
+                          {existing && <span className="text-green-600 ml-1">✓</span>}
+                        </p>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Helper text */}
+                <div className="mt-6 border-[2px] border-dashed border-black/20 p-4 bg-[#FFF9E5]">
+                  <p className="text-xs font-bold text-black/60 leading-relaxed">
+                    📸 Upload clear, well-lit photos from multiple angles. These are used as reference for AI try-on to maintain your exact face and body identity.
+                    No sunglasses, heavy filters, or group photos.
+                  </p>
+                </div>
+              </div>
+
+              {/* Hidden file input for character uploads */}
+              <input
+                ref={characterInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleCharacterUpload}
+                className="hidden"
+              />
             </BrutalCard>
 
             <BrutalCard title="Social Presence">

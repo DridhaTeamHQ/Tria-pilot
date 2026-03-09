@@ -79,13 +79,30 @@ export async function POST(request: Request) {
 
     if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { data: profile } = await supabase
+    const service = createServiceClient()
+
+    // Look for existing influencer profile
+    let { data: profile } = await supabase
       .from('influencer_profiles')
-      .select('id, identity_setup_complete, identity_images(*)')
+      .select('id, identity_images(*)')
       .eq('id', authUser.id)
       .single()
 
-    if (!profile) return NextResponse.json({ error: 'Influencer profile not found' }, { status: 404 })
+    // Auto-create influencer profile if it doesn't exist
+    // This handles: brand users who need identity images, or new users
+    if (!profile) {
+      const { data: newProfile, error: createErr } = await service
+        .from('influencer_profiles')
+        .upsert({ id: authUser.id, user_id: authUser.id }, { onConflict: 'id' })
+        .select('id, identity_images(*)')
+        .single()
+
+      if (createErr || !newProfile) {
+        console.error('Failed to create influencer profile for identity images:', createErr)
+        return NextResponse.json({ error: 'Could not create profile for identity images' }, { status: 500 })
+      }
+      profile = newProfile
+    }
 
     const formData = await request.formData()
     const file = formData.get('file') as File
@@ -93,15 +110,29 @@ export async function POST(request: Request) {
 
     if (!file || !imageType) return NextResponse.json({ error: 'File and image type required' }, { status: 400 })
 
-    const service = createServiceClient()
     const buffer = Buffer.from(await file.arrayBuffer())
     const fileName = `${profile.id}/${imageType}-${Date.now()}.jpg`
 
-    const { error: uploadError } = await service.storage
-      .from('identity-images')
-      .upload(fileName, buffer, { contentType: file.type || 'image/jpeg', upsert: true })
+    // Upload to storage — auto-create bucket if missing
+    let uploadError: any = null
+    const uploadToStorage = async () => {
+      const result = await service.storage
+        .from('identity-images')
+        .upload(fileName, buffer, { contentType: file.type || 'image/jpeg', upsert: true })
+      return result
+    }
 
-    // If bucket missing, fallback logic omitted for brevity (Supabase should have buckets or create them manually)
+    let uploadResult = await uploadToStorage()
+    uploadError = uploadResult.error
+
+    // If bucket doesn't exist, create it and retry
+    if (uploadError && (uploadError.message?.includes('not found') || uploadError.statusCode === 404 || uploadError.message?.includes('Bucket'))) {
+      console.log('Creating identity-images storage bucket...')
+      await service.storage.createBucket('identity-images', { public: true })
+      uploadResult = await uploadToStorage()
+      uploadError = uploadResult.error
+    }
+
     if (uploadError) throw uploadError
 
     const { data: { publicUrl } } = service.storage.from('identity-images').getPublicUrl(fileName)
@@ -147,9 +178,6 @@ export async function POST(request: Request) {
     const types = (allImages || []).map((i: any) => i.image_type)
     const isComplete = isIdentitySetupComplete(types)
 
-    if (isComplete && !profile.identity_setup_complete) {
-      await service.from('influencer_profiles').update({ identity_setup_complete: true }).eq('id', profile.id)
-    }
 
     return NextResponse.json({
       image: { ...record, imageType: record.image_type, imageUrl: record.image_url }, // map for frontend
@@ -192,9 +220,6 @@ export async function DELETE(request: Request) {
     const types = (allImages || []).map((i: any) => i.image_type)
     const isComplete = isIdentitySetupComplete(types)
 
-    if (!isComplete) {
-      await service.from('influencer_profiles').update({ identity_setup_complete: false }).eq('id', authUser.id)
-    }
 
     return NextResponse.json({
       success: true,

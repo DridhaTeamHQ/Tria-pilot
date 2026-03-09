@@ -297,12 +297,17 @@ export async function generateWithNanoBananaPro(
     // Keep production reliable: avoid second full model pass when we're already near timeout.
     const retryBudgetMs = process.env.NODE_ENV === 'production' ? 45_000 : 120_000
     const canRetryInTime = elapsedBeforeRetryMs < retryBudgetMs
+    // When face restore (Stage 4) is enabled, skip the quality retry —
+    // Stage 4 handles face identity correction via inpainting, which is faster
+    // and more effective than re-generating the entire image.
+    const FACE_RESTORE_ENABLED = process.env.TRYON_ENABLE_FACE_RESTORE !== 'false'
+    const skipRetryForFaceRestore = FACE_RESTORE_ENABLED && !hardFaceFailure
 
-    if (!hasTrustedSourceFace && isDev) {
-      console.warn('   ⚠️ Skipping retry: source face detection is not trustworthy in this run.')
+    if (skipRetryForFaceRestore && hasRetrySignal && isDev) {
+      console.log('   ⏭️ Skipping Stage 3 retry — face restore (Stage 4) will handle identity correction')
     }
 
-    if (ENABLE_QUALITY_RETRY && hasRetrySignal && canRetryInTime) {
+    if (ENABLE_QUALITY_RETRY && hasRetrySignal && canRetryInTime && !skipRetryForFaceRestore) {
       retried = true
       const retryReasons = [
         driftAssessment.shouldRetry ? `face:${driftAssessment.reason}` : null,
@@ -385,6 +390,102 @@ export async function generateWithNanoBananaPro(
       )
     }
 
+    // ═════════════════════════════════════════════════════════════════════════
+    // STAGE 4: Face Identity Restoration (Two-Pass Gemini Inpainting)
+    // ═════════════════════════════════════════════════════════════════════════
+    const ENABLE_FACE_RESTORE = process.env.TRYON_ENABLE_FACE_RESTORE !== 'false'
+    let faceRestoreResult: { success: boolean; processingTimeMs: number; error?: string } | null = null
+
+    // Production-safe thresholds:
+    //  - In production: only trigger for SEVERE drift (≥40%) to conserve API quota
+    //  - In development: trigger at normal threshold (18%) for testing
+    const faceRestoreDriftThreshold = process.env.NODE_ENV === 'production' ? 40 : MICRO_DRIFT_RETRY_THRESHOLD
+    // Time budget: skip face restore if pipeline has already consumed too much time
+    const faceRestoreTimeBudgetMs = process.env.NODE_ENV === 'production' ? 60_000 : 120_000
+    const elapsedBeforeRestore = Date.now() - startTime
+    const hasTimeBudget = elapsedBeforeRestore < faceRestoreTimeBudgetMs
+
+    // Only attempt restoration if:
+    //  1. Face restore is enabled
+    //  2. We have detected faces in both original and generated images
+    //  3. Micro drift exceeds threshold (higher in production)
+    //  4. We have time budget remaining
+    //  5. We have a face crop for better reference
+    const shouldRestoreFace = Boolean(
+      ENABLE_FACE_RESTORE &&
+      personFace &&
+      finalDetectedFace &&
+      microDrift?.success &&
+      microDrift.driftPercent >= faceRestoreDriftThreshold &&
+      hasTimeBudget &&
+      faceCropResult.success &&
+      faceCropResult.faceCropBase64
+    )
+
+    if (shouldRestoreFace) {
+      if (isDev) console.log(`\n   🔧 Face drift ${microDrift!.driftPercent.toFixed(1)}% >= ${faceRestoreDriftThreshold}% → triggering face restoration`)
+
+      try {
+        const { restoreFaceIdentity } = await import('./face-restore')
+        const restoreResult = await restoreFaceIdentity({
+          generatedImageBase64: generatedImage,
+          personImageBase64: input.personImageBase64,
+          faceCropBase64: faceCropResult.faceCropBase64,
+          generatedFace: finalDetectedFace!,
+          personFace: personFace!,
+          aspectRatio: input.aspectRatio,
+        })
+
+        faceRestoreResult = {
+          success: restoreResult.success,
+          processingTimeMs: restoreResult.processingTimeMs,
+          error: restoreResult.error,
+        }
+
+        if (restoreResult.success && restoreResult.restoredImageBase64) {
+          // Verify the restored image actually improved identity
+          const restoredBuffer = base64ToBuffer(restoreResult.restoredImageBase64)
+          const refBuffer = base64ToBuffer(input.personImageBase64)
+          let restoredMicroDrift: Awaited<ReturnType<typeof computeMicroFaceDrift>> | null = null
+          try {
+            restoredMicroDrift = await computeMicroFaceDrift(refBuffer, restoredBuffer)
+          } catch (e) {
+            console.warn('   ⚠️ Could not verify restored face drift:', e)
+          }
+
+          const restoredDriftImproved = Boolean(
+            restoredMicroDrift?.success &&
+            microDrift?.success &&
+            restoredMicroDrift.driftPercent < microDrift.driftPercent
+          )
+
+          if (restoredDriftImproved) {
+            const oldDrift = microDrift!.driftPercent
+            generatedImage = restoreResult.restoredImageBase64
+            microDrift = restoredMicroDrift
+            if (isDev) console.log(`   ✅ Face restored! Drift: ${restoredMicroDrift!.driftPercent.toFixed(1)}% (was ${oldDrift.toFixed(1)}%)`)
+          } else {
+            if (isDev) console.log(`   ↩️ Restored face did not improve drift (${restoredMicroDrift?.driftPercent?.toFixed(1) ?? '?'}% vs ${microDrift?.driftPercent?.toFixed(1) ?? '?'}%), keeping original`)
+          }
+        } else {
+          if (isDev) console.log(`   ⚠️ Face restoration failed: ${restoreResult.error}`)
+        }
+      } catch (restoreError) {
+        console.error('   ❌ Face restoration error:', restoreError)
+        faceRestoreResult = {
+          success: false,
+          processingTimeMs: 0,
+          error: restoreError instanceof Error ? restoreError.message : String(restoreError),
+        }
+      }
+    } else if (isDev && ENABLE_FACE_RESTORE && microDrift?.success) {
+      if (!hasTimeBudget) {
+        console.log(`   ⏱️ Face restore skipped — time budget exhausted (${(elapsedBeforeRestore / 1000).toFixed(1)}s >= ${faceRestoreTimeBudgetMs / 1000}s)`)
+      } else {
+        console.log(`   ✓ Face drift ${microDrift.driftPercent.toFixed(1)}% < ${faceRestoreDriftThreshold}% → skipping face restoration`)
+      }
+    }
+
     const genTime = Date.now() - startTime
     const finalMicroDrift = microDrift?.success ? microDrift.driftPercent : null
     const finalDriftMax = isUltraFaceLockPreset
@@ -437,6 +538,7 @@ export async function generateWithNanoBananaPro(
         driftRetryParams,
         sceneAssessment,
         faceConsistencyGate,
+        faceRestoreResult,
         faceCropUsed: Boolean(faceCropResult.success && faceCropResult.faceCropBase64),
         promptLength: prompt.length,
       },
