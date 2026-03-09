@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Wand2 } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import AdInpaintModal from '@/components/brand/AdInpaintModal'
 
@@ -118,29 +118,13 @@ export default function BrandAdsInpaintPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FFF8E6]">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-3 py-2 sm:px-4 md:px-6 md:py-3">
-        <h1 className="inline-flex items-center gap-2 text-base font-black uppercase md:text-lg">
-          <Wand2 className="h-4 w-4 md:h-5 md:w-5" />
-          Inpaint
-        </h1>
-        <button
-          type="button"
-          onClick={() => router.push('/brand/ads')}
-          className="inline-flex items-center gap-2 rounded-lg border-2 border-black bg-white px-3 py-2 text-xs font-black uppercase md:text-sm"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </button>
-      </div>
-
-      <AdInpaintModal
-        isOpen
-        imageSrc={imageSrc}
-        isSubmitting={isApplying}
-        onClose={() => router.push('/brand/ads')}
-        onApply={handleApplyInpaint}
-      />
-    </div>
+    <AdInpaintModal
+      isOpen
+      embedded
+      imageSrc={imageSrc}
+      isSubmitting={isApplying}
+      onClose={() => router.push('/brand/ads')}
+      onApply={handleApplyInpaint}
+    />
   )
 }

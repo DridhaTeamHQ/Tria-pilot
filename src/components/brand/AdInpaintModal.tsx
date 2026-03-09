@@ -44,6 +44,7 @@ interface AdInpaintModalProps {
   isSubmitting: boolean
   onClose: () => void
   onApply: (prompt: string, maskBase64: string | undefined, options?: SmartEditOptions) => Promise<void> | void
+  embedded?: boolean
 }
 
 type HandleType = 'move' | 'nw' | 'ne' | 'sw' | 'se'
@@ -91,6 +92,7 @@ export default function AdInpaintModal({
   isSubmitting,
   onClose,
   onApply,
+  embedded = false,
 }: AdInpaintModalProps) {
   const imageRef = useRef<HTMLImageElement | null>(null)
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -370,10 +372,23 @@ export default function AdInpaintModal({
 
   return (
     <PortalModal isOpen={isOpen} onClose={onClose}>
-      <div className="fixed inset-0 z-[99999] bg-black/70 px-2 py-2 backdrop-blur-[2px] sm:px-4 sm:py-4" onClick={onClose}>
+      <div
+        className={cn(
+          'fixed inset-0 z-[99999]',
+          embedded
+            ? 'bg-[#FFF8E6]'
+            : 'bg-black/70 px-2 py-2 backdrop-blur-[2px] sm:px-3 sm:py-3'
+        )}
+        onClick={embedded ? undefined : onClose}
+      >
         <div
-          className="mx-auto flex h-[calc(100dvh-16px)] w-full max-w-[1600px] flex-col overflow-hidden rounded-[28px] border-[4px] border-black bg-[#FFF8E6] shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] sm:h-[calc(100dvh-32px)]"
-          onClick={(event) => event.stopPropagation()}
+          className={cn(
+            'mx-auto flex w-full flex-col overflow-hidden border-[4px] border-black bg-[#FFF8E6]',
+            embedded
+              ? 'h-[100dvh] max-w-none rounded-none shadow-none'
+              : 'h-[100dvh] max-w-[1700px] rounded-none shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] sm:h-[calc(100dvh-24px)] sm:rounded-[28px]'
+          )}
+          onClick={embedded ? undefined : (event) => event.stopPropagation()}
         >
           <div className="flex items-center justify-between gap-3 border-b-[4px] border-black bg-[#FFD93D] px-4 py-3 sm:px-6">
             <div>
@@ -385,11 +400,11 @@ export default function AdInpaintModal({
             </button>
           </div>
 
-          <div className="grid min-h-0 flex-1 gap-0 xl:grid-cols-[minmax(0,1fr)_400px]">
-            <div className="relative min-h-0 bg-[radial-gradient(circle_at_top,#f4ecd2_0%,#e7dcc0_65%,#dacda9_100%)] p-3 sm:p-4 lg:p-5">
+          <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[minmax(0,1fr)_390px] xl:grid-cols-[minmax(0,1fr)_420px]">
+            <div className="relative min-h-0 bg-[radial-gradient(circle_at_top,#f4ecd2_0%,#e7dcc0_65%,#dacda9_100%)] p-2.5 sm:p-4 lg:p-5">
               <div className="flex h-full min-h-0 w-full items-center justify-center overflow-auto rounded-[24px] border-[3px] border-black/10 bg-[#efe4c3]/40 p-3">
                 <div className={cn('relative inline-flex max-h-full max-w-full items-center justify-center rounded-[24px] transition-transform', isDrawing && 'scale-[1.01]')}>
-                  <img ref={imageRef} src={imageSrc} alt="Ad edit target" className="block max-h-[calc(100dvh-220px)] max-w-full rounded-xl border-[3px] border-black object-contain bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,0.2)] xl:max-h-[calc(100dvh-120px)]" onLoad={resetMask} />
+                  <img ref={imageRef} src={imageSrc} alt="Ad edit target" className="block max-h-[50dvh] max-w-full rounded-xl border-[3px] border-black object-contain bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,0.2)] sm:max-h-[58dvh] lg:max-h-[calc(100dvh-150px)]" onLoad={resetMask} />
                   <canvas ref={overlayCanvasRef} className={cn('absolute inset-0 rounded-xl', isSubmitting ? 'cursor-not-allowed' : 'cursor-crosshair')} onPointerDown={beginDrawing} onPointerMove={continueDrawing} onPointerUp={stopDrawing} onPointerLeave={stopDrawing} />
                 {activeRect && (
                   <div
@@ -429,8 +444,8 @@ export default function AdInpaintModal({
               </div>
             </div>
 
-            <div className="flex min-h-0 flex-col border-t-[4px] border-black bg-white xl:border-l-[4px] xl:border-t-0">
-              <div className="space-y-5 overflow-y-auto p-4 sm:p-5">
+            <div className="flex min-h-0 flex-col border-t-[4px] border-black bg-white lg:border-l-[4px] lg:border-t-0">
+              <div className="space-y-5 overflow-y-auto p-3 sm:p-5">
                 <div className="rounded-2xl border-[3px] border-black bg-[linear-gradient(135deg,#fff3bf_0%,#ffe36b_100%)] p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                   <div className="flex items-center gap-2 text-sm font-black uppercase"><Sparkles className="h-4 w-4" />What Do You Want To Do?</div>
                   <p className="mt-2 text-xs font-semibold text-black/70">Pick an action. The AI will adapt scope, expansion, composition, and camera reasoning automatically.</p>
@@ -518,7 +533,7 @@ export default function AdInpaintModal({
                 </div>
               </div>
 
-              <div className="mt-auto border-t-[4px] border-black bg-[#FFF8E6] p-4 sm:p-5">
+              <div className="sticky bottom-0 mt-auto border-t-[4px] border-black bg-[#FFF8E6] p-3 sm:p-5">
                 <div className="mb-3 flex items-center justify-between gap-3 text-xs font-bold text-black/65">
                   <span>{!hasMask ? (canApplyWithoutMask && inferredPlan ? `Ready without mask: ${getTaskLabel(inferredPlan.task)} / ${inferredPlan.scope.replace('_', ' ')}` : 'Paint an anchor area for local edits, or use pose/scene edits without a mask.') : inferredPlan ? `Ready: ${getTaskLabel(inferredPlan.task)} / ${inferredPlan.scope.replace('_', ' ')}` : 'Selection ready'}</span>
                   <button type="button" onClick={resetMask} disabled={isSubmitting} className="inline-flex items-center gap-1 rounded-lg border-[2px] border-black bg-white px-3 py-1.5 text-[11px] font-black uppercase disabled:cursor-not-allowed disabled:opacity-60"><RotateCcw className="h-3.5 w-3.5" />Clear</button>
