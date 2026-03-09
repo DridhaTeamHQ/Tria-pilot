@@ -150,19 +150,38 @@ function TryOnPageContent() {
         const intervalMs = 2000
 
         while (Date.now() - startedAt < timeoutMs) {
-            const pollResponse = await fetch(`/api/tryon/jobs/${jobId}`, { cache: 'no-store', credentials: 'include' })
-            const pollData = await safeParseResponse<any>(pollResponse, 'try-on job polling')
-            const status = pollData?.status as string | undefined
+            try {
+                const pollResponse = await fetch(`/api/tryon/jobs/${jobId}`, { cache: 'no-store', credentials: 'include' })
+                const pollData = await safeParseResponse<any>(pollResponse, 'try-on job polling')
+                const status = pollData?.status as string | undefined
 
-            if (status === 'pending' || status === 'processing') {
-                options?.onStatus?.(status)
+                if (status === 'pending' || status === 'processing') {
+                    options?.onStatus?.(status)
+                }
+
+                if (status === 'completed' || status === 'failed') {
+                    return pollData
+                }
+
+                await new Promise(resolve => setTimeout(resolve, intervalMs))
+            } catch (error) {
+                const structured = error as (Error & { status?: number; retryAfterSeconds?: number })
+                const isRateLimited = structured?.status === 429 || structured?.status === 503
+
+                if (!isRateLimited) {
+                    throw error
+                }
+
+                const retrySeconds = Math.max(1, Math.min(300, Number(structured?.retryAfterSeconds ?? (structured?.status === 503 ? 10 : 5))))
+                setRetryAfterSeconds(prev => Math.max(prev, retrySeconds))
+                setRetryReason('rate_limit')
+
+                const remainingMs = timeoutMs - (Date.now() - startedAt)
+                const waitMs = Math.min(retrySeconds * 1000, remainingMs)
+                if (waitMs <= 0) break
+
+                await new Promise(resolve => setTimeout(resolve, waitMs))
             }
-
-            if (status === 'completed' || status === 'failed') {
-                return pollData
-            }
-
-            await new Promise(resolve => setTimeout(resolve, intervalMs))
         }
 
         throw new Error('Generation is taking longer than expected. Please check Generations history.')
@@ -729,24 +748,16 @@ function TryOnPageContent() {
             const isServerBusy = is503 || (is429 && code === 'SERVER_BUSY')
             const isProviderRateLimit = is429 && code === 'RATE_LIMIT'
             if (is429 || is503) {
-                const retry = Math.min(30, Math.max(1, Number(structured?.retryAfterSeconds ?? (is503 ? 15 : 10))))
-
-                // Only lock the button for local server-side contention.
-                // For provider RATE_LIMIT, don't hard-lock UI; let user retry when ready.
-                if (isJobInProgress || isServerBusy) {
-                    setRetryAfterSeconds(retry)
-                    setRetryReason(isJobInProgress ? 'job_in_progress' : 'rate_limit')
-                } else {
-                    setRetryAfterSeconds(0)
-                    setRetryReason(null)
-                }
+                const retry = Math.max(1, Math.min(1800, Number(structured?.retryAfterSeconds ?? (is503 ? 20 : 15))))
+                setRetryAfterSeconds(retry)
+                setRetryReason(isJobInProgress ? 'job_in_progress' : 'rate_limit')
 
                 const msg = isJobInProgress
-                    ? `A try-on is still in progress. You can try again in ${retry}s.`
+                    ? `A try-on is still in progress. Please wait ${retry}s.`
                     : isServerBusy
                         ? `Service is busy. Please wait ${retry}s and try again.`
                         : isProviderRateLimit
-                            ? `Model provider is rate-limited right now. You can retry now or wait ~${retry}s.`
+                            ? `Model provider is rate-limited. Please wait ${retry}s before retrying.`
                             : `Too many requests. Please wait ${retry}s before trying again.`
                 toast.error(msg)
                 return
@@ -1813,3 +1824,4 @@ export default function TryOnPage() {
         </Suspense>
     )
 }
+

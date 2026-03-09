@@ -2,6 +2,8 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 type WindowState = { count: number; resetAt: number }
 
+const READ_METHODS = new Set(['GET', 'HEAD'])
+
 // Edge-safe in-memory store (best-effort). For strict production guarantees, back this with Redis.
 const store = new Map<string, WindowState>()
 
@@ -19,6 +21,7 @@ function pickBucket(pathname: string): 'auth' | 'tryon' | 'ads' | 'ai' | 'write'
     }
     return 'auth'
   }
+  if (pathname.startsWith('/api/tryon/jobs/')) return 'read'
   if (pathname.startsWith('/api/tryon')) return 'tryon'
   // Ads generate/regenerate — same traffic regulation as try-on
   if (pathname.startsWith('/api/ads/') && (pathname.includes('generate') || pathname.includes('regenerate'))) {
@@ -117,7 +120,7 @@ export function applyApiRateLimit(
   const allowed = ipResult.allowed && (userResult?.allowed ?? true)
 
   // Extra hourly limits for try-on (protects against steady abuse)
-  if (allowed && bucket === 'tryon') {
+  if (allowed && bucket === 'tryon' && !READ_METHODS.has(request.method)) {
     const hourWindowMs = 60 * 60 * 1000
     const maxPerHourUser = parseInt(process.env.MAX_TRYON_PER_HOUR || '18')
     const maxPerHourIp = parseInt(process.env.MAX_TRYON_PER_HOUR_PER_IP || '24')
