@@ -109,6 +109,10 @@ export async function POST(request: Request) {
     const imageType = formData.get('imageType') as IdentityImageType
 
     if (!file || !imageType) return NextResponse.json({ error: 'File and image type required' }, { status: 400 })
+    const validTypes = new Set(IDENTITY_IMAGE_REQUIREMENTS.map((req) => req.type))
+    if (!validTypes.has(imageType)) {
+      return NextResponse.json({ error: 'Invalid image type' }, { status: 400 })
+    }
 
     const buffer = Buffer.from(await file.arrayBuffer())
     const fileName = `${profile.id}/${imageType}-${Date.now()}.jpg`
@@ -141,7 +145,7 @@ export async function POST(request: Request) {
     // In SQL we can UPSERT if we have unique constraint on (profile_id, image_type) where active=true?
     // We don't have that constraint. So we find existing and update, or insert.
 
-    const existing = (profile.identity_images || []).find((img: any) => img.image_type === imageType && img.is_active)
+    const existing = (profile.identity_images || []).find((img: any) => img.image_type === imageType)
     let record
 
     if (existing) {
@@ -187,7 +191,11 @@ export async function POST(request: Request) {
     })
 
   } catch (error) {
-    return NextResponse.json({ error: 'Error' }, { status: 500 })
+    console.error('Upload identity image error:', error)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to upload identity image' },
+      { status: 500 }
+    )
   }
 }
 
