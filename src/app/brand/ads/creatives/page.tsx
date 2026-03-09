@@ -820,7 +820,7 @@ export default function CreativesPage() {
             variants={pageVariants}
             initial="initial"
             animate="animate"
-            className="min-h-screen bg-[#FFFDF5] pt-24 pb-16"
+            className="min-h-screen bg-[#FFFDF5] pt-6 md:pt-24 pb-10 md:pb-16"
         >
             <div className="container mx-auto px-4 max-w-6xl">
                 {/* Header */}

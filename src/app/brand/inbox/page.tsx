@@ -220,13 +220,13 @@ export default function BrandInboxPage() {
     }
 
     return (
-        <div className="container mx-auto px-4 sm:px-6 py-8 animate-fade-in">
+        <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 animate-fade-in">
             <h1 className="text-2xl sm:text-3xl font-black text-black mb-6">
                 <Inbox className="inline-block w-8 h-8 mr-2 -mt-1" />
                 Inbox
             </h1>
 
-            <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] h-[calc(100vh-220px)] flex">
+            <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] h-[calc(100dvh-170px)] md:h-[calc(100vh-220px)] flex">
                 {/* Conversations List */}
                 <div className={`w-full md:w-80 border-r-[3px] border-black flex flex-col ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
                     <div className="p-4 border-b-2 border-black">
@@ -382,4 +382,3 @@ export default function BrandInboxPage() {
         </div>
     )
 }
-

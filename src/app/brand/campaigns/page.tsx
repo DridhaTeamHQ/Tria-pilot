@@ -129,7 +129,7 @@ export default function CampaignsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#FAFAF8] pt-24 pb-8">
+      <div className="min-h-screen bg-[#FAFAF8] pt-6 md:pt-24 pb-8">
         <div className="container mx-auto px-4 max-w-6xl flex items-center justify-center py-12">
           <Loader2 className="w-8 h-8 animate-spin text-black" />
         </div>
@@ -138,7 +138,7 @@ export default function CampaignsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAF8] pt-6 pb-12">
+    <div className="min-h-screen bg-[#FAFAF8] pt-5 md:pt-6 pb-10 md:pb-12">
       <div className="container mx-auto px-4 max-w-6xl">
 
         {/* ── HEADER ── */}

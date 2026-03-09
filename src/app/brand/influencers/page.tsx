@@ -95,7 +95,7 @@ export default function BrandInfluencersPage() {
     }
 
     return (
-        <div className="container mx-auto px-4 sm:px-6 py-8 animate-fade-in">
+        <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 animate-fade-in">
             {/* Header */}
             <div className="mb-8">
                 <h1 className="text-2xl sm:text-3xl font-black text-black mb-1">
@@ -297,5 +297,3 @@ export default function BrandInfluencersPage() {
         </div>
     )
 }
-
-

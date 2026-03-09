@@ -137,13 +137,13 @@ export default function BrandProfilePage() {
   }
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10 animate-fade-in">
+    <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 md:py-10 animate-fade-in">
       <div className="mb-8 md:mb-10">
-        <h1 className="text-4xl md:text-5xl font-black text-black mb-2 leading-tight flex items-center gap-3">
+        <h1 className="text-3xl md:text-5xl font-black text-black mb-2 leading-tight flex items-center gap-2.5 md:gap-3">
           <User className="w-9 h-9 md:w-10 md:h-10" />
           Brand Profile
         </h1>
-        <p className="text-lg md:text-xl text-black/65 font-medium">
+        <p className="text-base md:text-xl text-black/65 font-medium">
           Manage your brand information and settings
         </p>
       </div>

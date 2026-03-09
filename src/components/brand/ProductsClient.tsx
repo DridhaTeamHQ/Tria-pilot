@@ -424,7 +424,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
     // Rendering logic for interactive form...
     // (Truncated for brevity in thought, but full code is in call)
     return (
-        <div className="container mx-auto px-4 sm:px-6 py-8 animate-fade-in">
+        <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 animate-fade-in">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
                 <div>
