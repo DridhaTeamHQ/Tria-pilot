@@ -175,24 +175,46 @@ export async function POST(request: Request) {
 
     const { data: { publicUrl } } = db.storage.from('identity-images').getPublicUrl(fileName)
 
-    // Always upsert by unique key so re-uploads work for all seven slots,
-    // including previously deleted/inactive rows.
-    const { data: record, error: upsertError } = await db
+    // Always update or insert by checking existing first to avoid missing composite unique constraint errors
+    const { data: existingImage } = await db
       .from('identity_images')
-      .upsert(
-        {
-          influencer_profile_id: profile.id,
-          image_type: imageType,
-          image_path: fileName,
-          image_url: publicUrl,
-          is_active: true,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'influencer_profile_id,image_type' }
-      )
-      .select()
-      .single()
-    if (upsertError) throw upsertError
+      .select('id')
+      .eq('influencer_profile_id', profile.id)
+      .eq('image_type', imageType)
+      .maybeSingle()
+
+    const payload = {
+      influencer_profile_id: profile.id,
+      image_type: imageType,
+      image_path: fileName,
+      image_url: publicUrl,
+      is_active: true,
+      updated_at: new Date().toISOString(),
+    }
+
+    let record;
+    let dbError;
+
+    if (existingImage) {
+      const { data, error } = await db
+        .from('identity_images')
+        .update(payload)
+        .eq('id', existingImage.id)
+        .select()
+        .single()
+      record = data
+      dbError = error
+    } else {
+      const { data, error } = await db
+        .from('identity_images')
+        .insert(payload)
+        .select()
+        .single()
+      record = data
+      dbError = error
+    }
+
+    if (dbError) throw dbError
 
     // Check completion
     const { data: allImages } = await db.from('identity_images').select('image_type').eq('influencer_profile_id', profile.id).eq('is_active', true)
