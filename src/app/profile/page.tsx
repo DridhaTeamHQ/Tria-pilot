@@ -759,6 +759,15 @@ export default function ProfilePage() {
                   />
                 </div>
 
+                {/* Hidden File Input for Character Images */}
+                <input
+                  ref={characterInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleCharacterUpload}
+                  className="hidden"
+                />
+
                 {/* Upload Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                   {IDENTITY_IMAGE_REQUIREMENTS.map((req) => {
