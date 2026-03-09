@@ -519,7 +519,7 @@ export default function GenerationsPage() {
                                     className="flex items-center gap-2 px-2.5 sm:px-4 py-2 bg-white text-black rounded-lg text-xs sm:text-sm font-bold border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
                                 >
                                     <ArrowLeft className="w-4 h-4" />
-                                    <span className="hidden sm:inline">Back</span>
+                                    <span>Back</span>
                                 </motion.button>
                                 <motion.button
                                     onClick={() => selectedImage && handleDownload(selectedImage, selectedJob.id)}
@@ -722,4 +722,5 @@ export default function GenerationsPage() {
         </div >
     )
 }
+
 

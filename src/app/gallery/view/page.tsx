@@ -16,7 +16,7 @@ function resolveImageUrl(url: string): string {
 
 function GalleryViewFallback() {
     return (
-        <div className="fixed inset-0 z-[150] bg-[#FDF6EC] flex items-center justify-center">
+        <div className="fixed inset-0 z-[250] bg-[#FDF6EC] flex items-center justify-center">
             <div className="rounded-xl border-[3px] border-black bg-white px-6 py-4 font-bold shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
                 Loading image...
             </div>
@@ -75,12 +75,22 @@ function GalleryViewContent() {
     }
 
     return (
-        <div className="fixed inset-0 z-[150] bg-[#FDF6EC] flex flex-col">
-            <header className="flex items-center gap-2 border-b-[3px] border-black bg-white px-3 py-3">
+        <div className="fixed inset-0 z-[250] bg-[#FDF6EC] flex flex-col">
+            <button
+                type="button"
+                onClick={handleBack}
+                className="md:hidden fixed left-3 top-[calc(env(safe-area-inset-top)+0.5rem)] z-[260] inline-flex items-center gap-1 rounded-lg border-[2px] border-black bg-white px-3 py-2 text-sm font-bold shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                aria-label="Back"
+            >
+                <ArrowLeft className="h-4 w-4" />
+                Back
+            </button>
+
+            <header className="sticky top-0 z-10 flex items-center gap-2 border-b-[3px] border-black bg-white px-3 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
                 <button
                     type="button"
                     onClick={handleBack}
-                    className="inline-flex items-center gap-1 rounded-lg border-[2px] border-black bg-white px-3 py-2 text-xs font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                    className="inline-flex items-center gap-1 rounded-lg border-[2px] border-black bg-white px-3 py-2 text-sm font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
                     aria-label="Back"
                 >
                     <ArrowLeft className="h-4 w-4" />
