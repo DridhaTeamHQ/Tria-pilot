@@ -1,6 +1,6 @@
-'use client'
+﻿'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import {
   User,
@@ -10,6 +10,8 @@ import {
   Phone,
   Save,
   Loader2,
+  Camera,
+  Check,
   Instagram,
   Twitter,
   Linkedin,
@@ -36,6 +38,12 @@ const VERTICALS = ['Fashion', 'Beauty', 'Lifestyle', 'Tech', 'Food & Beverage', 
 export default function BrandProfilePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [uploadDone, setUploadDone] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   const [profile, setProfile] = useState<BrandProfile>({
     companyName: '',
     brandType: '',
@@ -53,6 +61,10 @@ export default function BrandProfilePage() {
 
   useEffect(() => {
     void fetchProfile()
+  }, [])
+
+  useEffect(() => {
+    void fetchProfileImage()
   }, [])
 
   const fetchProfile = async () => {
@@ -82,6 +94,20 @@ export default function BrandProfilePage() {
       toast.error('Failed to load profile')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchProfileImage = async () => {
+    try {
+      const res = await fetch('/api/profile-images', { credentials: 'include' })
+      if (!res.ok) return
+      const imgData = await res.json()
+      const primary = imgData.images?.find((img: any) => img.isPrimary) || imgData.images?.[0]
+      if (primary?.imageUrl) {
+        setProfileImageUrl(primary.imageUrl)
+      }
+    } catch (err) {
+      console.error('Failed to fetch profile image:', err)
     }
   }
 
@@ -128,6 +154,152 @@ export default function BrandProfilePage() {
     }))
   }
 
+  const preparePhotoForUpload = async (file: File): Promise<File> => {
+    const maxEdge = 1600
+
+    if (file.size <= 1.8 * 1024 * 1024 && file.type !== 'image/heic' && file.type !== 'image/heif') {
+      return file
+    }
+
+    return await new Promise<File>((resolve, reject) => {
+      const objectUrl = URL.createObjectURL(file)
+      const img = new Image()
+
+      img.onload = () => {
+        try {
+          const scale = Math.min(1, maxEdge / Math.max(img.width, img.height))
+          const width = Math.max(1, Math.round(img.width * scale))
+          const height = Math.max(1, Math.round(img.height * scale))
+
+          const canvas = document.createElement('canvas')
+          canvas.width = width
+          canvas.height = height
+
+          const ctx = canvas.getContext('2d')
+          if (!ctx) {
+            URL.revokeObjectURL(objectUrl)
+            reject(new Error('Could not process image'))
+            return
+          }
+
+          ctx.drawImage(img, 0, 0, width, height)
+          canvas.toBlob((blob) => {
+            URL.revokeObjectURL(objectUrl)
+            if (!blob) {
+              reject(new Error('Could not compress image'))
+              return
+            }
+            resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }))
+          }, 'image/jpeg', 0.82)
+        } catch (error) {
+          URL.revokeObjectURL(objectUrl)
+          reject(error instanceof Error ? error : new Error('Image compression failed'))
+        }
+      }
+
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl)
+        reject(new Error('Failed to read image'))
+      }
+
+      img.src = objectUrl
+    })
+  }
+
+  const uploadPhotoFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file')
+      return
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error('Image must be less than 15MB')
+      return
+    }
+
+    setUploadingPhoto(true)
+    setUploadDone(false)
+    setUploadProgress(15)
+
+    const previousImage = profileImageUrl
+    let progressTimer: ReturnType<typeof setInterval> | null = null
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
+
+    try {
+      const uploadFile = await preparePhotoForUpload(file)
+      if (uploadFile.size > 5 * 1024 * 1024) {
+        throw new Error('Compressed image is still too large. Please choose a smaller image.')
+      }
+
+      const previewUrl = URL.createObjectURL(uploadFile)
+      setProfileImageUrl(previewUrl)
+
+      progressTimer = setInterval(() => {
+        setUploadProgress((prev) => (prev >= 90 ? prev : prev + 8))
+      }, 180)
+
+      const formData = new FormData()
+      formData.append('file', uploadFile)
+      formData.append('label', 'brand-avatar')
+
+      const controller = new AbortController()
+      timeoutId = setTimeout(() => controller.abort(), 45000)
+
+      const res = await fetch('/api/profile-images', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+        signal: controller.signal,
+      })
+
+      clearTimeout(timeoutId)
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}))
+        throw new Error(errBody.error || 'Upload failed')
+      }
+
+      const resData = await res.json()
+      const finalUrl = resData.image?.imageUrl || previewUrl
+      setProfileImageUrl(finalUrl)
+      setUploadProgress(100)
+      setUploadDone(true)
+
+      if (finalUrl !== previewUrl) {
+        URL.revokeObjectURL(previewUrl)
+      }
+
+      toast.success('Profile photo updated!')
+
+      setTimeout(() => {
+        setUploadDone(false)
+        setUploadProgress(0)
+      }, 1200)
+    } catch (err) {
+      console.error('Photo upload error:', err)
+      setProfileImageUrl(previousImage)
+
+      const errorMessage = err instanceof Error && err.name === 'AbortError'
+        ? 'Upload timed out. Try a smaller image or better network.'
+        : err instanceof Error
+          ? err.message
+          : 'Failed to upload photo'
+
+      toast.error(errorMessage)
+    } finally {
+      if (progressTimer) clearInterval(progressTimer)
+      if (timeoutId) clearTimeout(timeoutId)
+      setUploadingPhoto(false)
+    }
+  }
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.currentTarget.value = ''
+    if (!file) return
+    await uploadPhotoFile(file)
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -147,6 +319,53 @@ export default function BrandProfilePage() {
           Manage your brand information and settings
         </p>
       </div>
+
+      <section className="mb-8 bg-white border-[3px] border-black shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] p-5 md:p-7">
+        <div className="flex items-center gap-5">
+          <div className="relative w-[120px] h-[136px] md:w-[140px] md:h-[156px] border-[4px] border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] bg-[#FFD93D] overflow-hidden">
+            {profileImageUrl ? (
+              <img src={profileImageUrl} alt="Brand profile" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <Building2 className="w-12 h-12 text-black/35" />
+              </div>
+            )}
+
+            {(uploadingPhoto || uploadDone) && (
+              <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white">
+                {uploadDone ? <Check className="w-7 h-7 mb-1.5" /> : <Loader2 className="w-7 h-7 mb-1.5 animate-spin" />}
+                <p className="text-[10px] font-bold uppercase tracking-wider">
+                  {uploadDone ? 'Updated' : `Uploading ${uploadProgress}%`}
+                </p>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingPhoto}
+              className="absolute bottom-2 right-2 z-10 w-9 h-9 bg-black text-white border-[2px] border-black flex items-center justify-center hover:bg-white hover:text-black transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none"
+              title="Upload profile photo"
+            >
+              {uploadingPhoto ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoUpload}
+              className="hidden"
+            />
+          </div>
+
+          <div>
+            <h2 className="text-xl md:text-2xl font-black uppercase text-black">Brand Avatar</h2>
+            <p className="mt-1 text-sm md:text-base font-medium text-black/65">
+              Upload a logo or brand profile image. This updates instantly across your account.
+            </p>
+          </div>
+        </div>
+      </section>
 
       <form onSubmit={handleSubmit} className="space-y-8">
         <section className="bg-white border-[3px] border-black shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] p-5 md:p-7 lg:p-8">
