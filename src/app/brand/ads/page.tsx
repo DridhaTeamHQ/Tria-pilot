@@ -1,6 +1,7 @@
 'use client'
 
 import { type ReactNode, type ChangeEvent, useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
@@ -78,7 +79,6 @@ import {
 } from '@/lib/animations'
 import BrutalCard from '@/components/brutal/BrutalCard'
 import { BrutalLoader } from '@/components/ui/BrutalLoader'
-import AdInpaintModal from '@/components/brand/AdInpaintModal'
 import { normalizeImageFileForVisionUpload } from '@/lib/client-image-normalization'
 
 // ═══════════════════════════════════════════════════════════════
@@ -125,6 +125,7 @@ const ICON_MAP: Record<string, ReactNode> = {
 // ═══════════════════════════════════════════════════════════════
 
 export default function AdsPage() {
+  const router = useRouter()
   // Form
   const [selectedPreset, setSelectedPreset] = useState<AdPresetId | null>(null)
   const [activeCategory, setActiveCategory] = useState<AdPresetCategory | 'all'>('all')
@@ -152,8 +153,6 @@ export default function AdsPage() {
   // UI
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<GenerationResult | null>(null)
-  const [editorOpen, setEditorOpen] = useState(false)
-  const [isApplyingInpaint, setIsApplyingInpaint] = useState(false)
   const [retryAfterSeconds, setRetryAfterSeconds] = useState(0)
   const [generationStatus, setGenerationStatus] = useState<'idle' | 'submitting' | 'rate_limited' | 'busy' | 'error' | 'success'>('idle')
   const [generationStatusText, setGenerationStatusText] = useState('')
@@ -311,48 +310,25 @@ export default function AdsPage() {
     a.click()
   }
 
-  const handleApplyInpaint = async (
-    prompt: string,
-    maskBase64: string | undefined,
-    options?: { referenceImageBase64?: string; scope?: 'auto' | 'local' | 'subject' | 'full_frame'; task?: 'auto' | 'hold_product' | 'wear_accessory' | 'pose_change' | 'text_edit' | 'remove_object' | 'stylized_effect' | 'replace_region' | 'add_object' | 'scene_edit' | 'general_edit'; expansionOverride?: { left: number; top: number; width: number; height: number } }
-  ) => {
-    if (!result?.imageBase64) {
-      toast.error('Only the current generated creative can be edited right now.')
+  const handleOpenInpaint = () => {
+    if (!result?.imageBase64 && !result?.imageUrl) {
+      toast.error('Generate a creative first to open inpaint.')
       return
     }
 
-    setIsApplyingInpaint(true)
-    try {
-      const response = await fetch('/api/ads/edit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.setItem(
+        'brand_ads_inpaint_draft',
+        JSON.stringify({
+          id: result.id,
+          imageUrl: result.imageUrl,
           imageBase64: result.imageBase64,
-          maskBase64,
-          prompt,
-          referenceImageBase64: options?.referenceImageBase64,
-          scope: options?.scope,
-          task: options?.task,
-          expansionOverride: options?.expansionOverride,
-          sourceAdId: result.id,
           preset: result.preset,
-        }),
-      })
-
-      const data = await response.json().catch(() => ({ error: 'Edit failed' }))
-      if (!response.ok) {
-        throw new Error(data.error || 'Edit failed')
-      }
-
-      setResult(data as GenerationResult)
-      setEditorOpen(false)
-      toast.success('Inpaint edit applied')
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Edit failed')
-    } finally {
-      setIsApplyingInpaint(false)
+        })
+      )
     }
+
+    router.push('/brand/ads/inpaint')
   }
 
   const visiblePresets =
@@ -943,8 +919,8 @@ export default function AdsPage() {
                           Download
                         </button>
                         <button type="button"
-                          onClick={() => setEditorOpen(true)}
-                          disabled={!result.imageBase64 || isApplyingInpaint}
+                          onClick={handleOpenInpaint}
+                          disabled={!result.imageBase64 && !result.imageUrl}
                           className="inline-flex items-center justify-center gap-2 rounded-lg border-[3px] border-black bg-[#FFD93D] px-4 py-3 text-xs font-black uppercase transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-black/10 disabled:text-black/45"
                         >
                           <Wand2 className="h-4 w-4" />
@@ -952,7 +928,7 @@ export default function AdsPage() {
                         </button>
                         <button type="button"
                           onClick={handleGenerate}
-                          disabled={loading || isApplyingInpaint}
+                          disabled={loading}
                           className="inline-flex items-center justify-center gap-2 rounded-lg border-[3px] border-black bg-white px-4 py-3 text-xs font-black uppercase transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-black/10 disabled:text-black/45"
                         >
                           <RefreshCw className="h-4 w-4" />
@@ -990,13 +966,7 @@ export default function AdsPage() {
         </div>
       </div>
     </motion.div>
-      <AdInpaintModal
-        isOpen={editorOpen && !!result}
-        imageSrc={result?.imageBase64 || result?.imageUrl || ''}
-        isSubmitting={isApplyingInpaint}
-        onClose={() => setEditorOpen(false)}
-        onApply={handleApplyInpaint}
-      />
+
     </>
   )
 }

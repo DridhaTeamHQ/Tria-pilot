@@ -377,8 +377,8 @@ export default function AdInpaintModal({
         >
           <div className="flex items-center justify-between gap-3 border-b-[4px] border-black bg-[#FFD93D] px-4 py-3 sm:px-6">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-black/70">Smart Edit</p>
-              <h2 className="text-lg font-black uppercase text-black sm:text-2xl">Creative Control</h2>
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-black/70">Inpaint</p>
+              <h2 className="text-lg font-black uppercase text-black sm:text-2xl">Inpaint Editor</h2>
             </div>
             <button type="button" onClick={onClose} className="inline-flex h-10 w-10 items-center justify-center rounded-lg border-[3px] border-black bg-white text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]" aria-label="Close editor">
               <X className="h-4 w-4" />
@@ -436,7 +436,7 @@ export default function AdInpaintModal({
                   <p className="mt-2 text-xs font-semibold text-black/70">Pick an action. The AI will adapt scope, expansion, composition, and camera reasoning automatically.</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {SMART_EDIT_TASK_OPTIONS.map((option) => {
                     const Icon = TASK_ICONS[option.value]
                     return (
@@ -450,7 +450,7 @@ export default function AdInpaintModal({
 
                 <div className="rounded-2xl border-[3px] border-black bg-[#E6F5FF] p-4">
                   <div className="mb-3 flex items-center gap-2 text-sm font-black uppercase"><SunMedium className="h-4 w-4" />Smart Presets</div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     {SMART_EDIT_PRESETS.map((preset) => (
                       <button key={preset.label} type="button" onClick={() => { setTask(preset.task); setPrompt(preset.prompt) }} className="rounded-2xl border-[2px] border-black bg-white px-3 py-3 text-left text-[11px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                         {preset.label}
@@ -525,7 +525,7 @@ export default function AdInpaintModal({
                 </div>
                 <button type="button" onClick={handleApply} disabled={(!hasMask && !canApplyWithoutMask) || !prompt.trim() || isSubmitting} className="inline-flex w-full items-center justify-center gap-2 rounded-xl border-[3px] border-black bg-[#B4F056] px-4 py-3 text-sm font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] disabled:cursor-not-allowed disabled:bg-black/10 disabled:text-black/45 disabled:shadow-none">
                   <Wand2 className="h-4 w-4" />
-                  {isSubmitting && inferredPlan ? `Applying ${getTaskLabel(inferredPlan.task)}...` : 'Apply Smart Edit'}
+                  {isSubmitting && inferredPlan ? `Applying ${getTaskLabel(inferredPlan.task)}...` : 'Apply Inpaint'}
                 </button>
               </div>
             </div>

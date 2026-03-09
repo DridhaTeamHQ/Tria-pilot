@@ -34,7 +34,6 @@ import {
 import { toast } from 'sonner'
 import BrutalCard from '@/components/brutal/BrutalCard'
 import { BrutalLoader } from '@/components/ui/BrutalLoader'
-import AdInpaintModal from '@/components/brand/AdInpaintModal'
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // TYPES
@@ -597,10 +596,6 @@ export default function CreativesPage() {
     const [inpaintingId, setInpaintingId] = useState<string | null>(null)
     const [lightboxImage, setLightboxImage] = useState<string | null>(null)
     const [historyOpenId, setHistoryOpenId] = useState<string | null>(null)
-    const [editorOpen, setEditorOpen] = useState(false)
-    const [editorImage, setEditorImage] = useState<string>('')
-    const [editorCreative, setEditorCreative] = useState<AdCreative | null>(null)
-    const [isApplyingInpaint, setIsApplyingInpaint] = useState(false)
 
     useEffect(() => {
         Promise.all([
@@ -731,85 +726,21 @@ export default function CreativesPage() {
     }
 
 
-    const toDataUrl = (blob: Blob) => new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onerror = () => reject(new Error('Failed to read creative image'))
-        reader.onloadend = () => resolve(String(reader.result || ''))
-        reader.readAsDataURL(blob)
-    })
-
-    const loadCreativeSourceImage = async (creative: AdCreative) => {
-        const url = creative.imageUrl.includes('supabase.co/storage')
-            ? `/api/images/proxy?url=${encodeURIComponent(creative.imageUrl)}`
-            : creative.imageUrl
-        const response = await fetch(url)
-        if (!response.ok) {
-            throw new Error('Failed to load creative image for editing')
-        }
-        const blob = await response.blob()
-        return toDataUrl(blob)
-    }
-
-    const handleOpenInpaint = async (creative: AdCreative) => {
+    const handleOpenInpaint = (creative: AdCreative) => {
         setInpaintingId(creative.id)
-        try {
-            const imageBase64 = await loadCreativeSourceImage(creative)
-            setEditorCreative(creative)
-            setEditorImage(imageBase64)
-            setEditorOpen(true)
-        } catch (error) {
-            toast.error(error instanceof Error ? error.message : 'Failed to open editor')
-        } finally {
-            setInpaintingId(null)
-        }
-    }
 
-    const handleApplyInpaint = async (
-    prompt: string,
-    maskBase64: string | undefined,
-    options?: { referenceImageBase64?: string; scope?: 'auto' | 'local' | 'subject' | 'full_frame'; task?: 'auto' | 'hold_product' | 'wear_accessory' | 'pose_change' | 'text_edit' | 'remove_object' | 'stylized_effect' | 'replace_region' | 'add_object' | 'scene_edit' | 'general_edit'; expansionOverride?: { left: number; top: number; width: number; height: number } }
-  ) => {
-        if (!editorCreative || !editorImage) {
-            toast.error('No creative loaded for editing')
-            return
+        if (typeof window !== 'undefined') {
+            window.sessionStorage.setItem(
+                'brand_ads_inpaint_draft',
+                JSON.stringify({
+                    id: creative.id,
+                    imageUrl: creative.imageUrl,
+                    preset: creative.stylePreset || 'edited',
+                })
+            )
         }
 
-        setIsApplyingInpaint(true)
-        try {
-            const response = await fetch('/api/ads/edit', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({
-                    imageBase64: editorImage,
-                    maskBase64,
-                    prompt,
-                    referenceImageBase64: options?.referenceImageBase64,
-          scope: options?.scope,
-          task: options?.task,
-          expansionOverride: options?.expansionOverride,
-                    sourceAdId: editorCreative.id,
-                    preset: editorCreative.stylePreset || 'edited',
-                }),
-            })
-            const data = await response.json().catch(() => ({ error: 'Edit failed' }))
-            if (!response.ok) {
-                throw new Error(data.error || 'Edit failed')
-            }
-
-            const refreshRes = await fetch('/api/ads/creatives')
-            const refreshData = await refreshRes.json()
-            setCreatives(refreshData.creatives || [])
-            setEditorOpen(false)
-            setEditorCreative(null)
-            setEditorImage('')
-            setHistoryOpenId(null)
-            toast.success('Creative edited successfully')
-        } catch (error) {
-            toast.error(error instanceof Error ? error.message : 'Edit failed')
-        } finally {
-            setIsApplyingInpaint(false)
-        }
+        router.push('/brand/ads/inpaint')
     }
 
     const hasActiveFilters =
@@ -1000,7 +931,7 @@ export default function CreativesPage() {
                         variants={staggerContainer}
                         initial="initial"
                         animate="animate"
-                        className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+                        className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3"
                     >
                         {filteredCreatives.map((creative) => (
                             <CreativeCard
@@ -1033,21 +964,9 @@ export default function CreativesPage() {
                 onPreview={(creative) => openCreativeViewer(creative)}
                 onInpaint={(creative) => {
                     setHistoryOpenId(null)
-                    void handleOpenInpaint(creative)
+                    handleOpenInpaint(creative)
                 }}
                 onDownload={(creative) => void handleDownload(creative)}
-            />
-            <AdInpaintModal
-                isOpen={editorOpen && !!editorCreative}
-                imageSrc={editorImage}
-                isSubmitting={isApplyingInpaint}
-                onClose={() => {
-                    if (isApplyingInpaint) return
-                    setEditorOpen(false)
-                    setEditorCreative(null)
-                    setEditorImage('')
-                }}
-                onApply={handleApplyInpaint}
             />
         </motion.div>
     )
