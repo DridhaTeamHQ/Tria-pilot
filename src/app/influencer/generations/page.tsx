@@ -506,17 +506,17 @@ export default function GenerationsPage() {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -20 }}
                             transition={{ delay: 0.1, type: "spring", stiffness: 300, damping: 25 }}
-                            className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-white/10 relative z-[200]"
+                            className="flex flex-wrap items-center justify-between gap-3 px-3 sm:px-6 py-3 sm:py-4 border-b border-white/10 relative z-[200]"
                             onClick={(e) => e.stopPropagation()}
                         >
                             {/* Left side - Action buttons */}
-                            <div className="flex items-center gap-3">
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                                 {/* Added Back Button */}
                                 <motion.button
                                     onClick={closeLightbox}
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
-                                    className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg text-sm font-bold border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+                                    className="flex items-center gap-2 px-2.5 sm:px-4 py-2 bg-white text-black rounded-lg text-xs sm:text-sm font-bold border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
                                 >
                                     <ArrowLeft className="w-4 h-4" />
                                     <span className="hidden sm:inline">Back</span>
@@ -526,7 +526,7 @@ export default function GenerationsPage() {
                                     disabled={downloading === selectedJob.id}
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
-                                    className="flex items-center gap-2 px-4 py-2.5 bg-white text-black rounded-lg text-sm font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-[2px] border-black hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 disabled:opacity-50"
+                                    className="flex items-center gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 bg-white text-black rounded-lg text-xs sm:text-sm font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-[2px] border-black hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 disabled:opacity-50"
                                 >
                                     {downloading === selectedJob.id ? (
                                         <>
@@ -545,7 +545,7 @@ export default function GenerationsPage() {
                                     onClick={() => selectedImage && handleShare(selectedImage)}
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
-                                    className="flex items-center gap-2 px-4 py-2.5 bg-[#FF8C69] text-black rounded-lg text-sm font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-[2px] border-black hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all duration-300"
+                                    className="flex items-center gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 bg-[#FF8C69] text-black rounded-lg text-xs sm:text-sm font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-[2px] border-black hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all duration-300"
                                 >
                                     <Share2 className="w-4 h-4" />
                                     Share
@@ -555,7 +555,7 @@ export default function GenerationsPage() {
                                     onClick={() => requestDelete(selectedJob)}
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
-                                    className="flex items-center gap-2 px-4 py-2.5 bg-[#FF6B6B] text-black rounded-lg text-sm font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-[2px] border-black hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all duration-300"
+                                    className="flex items-center gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 bg-[#FF6B6B] text-black rounded-lg text-xs sm:text-sm font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-[2px] border-black hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all duration-300"
                                 >
                                     <Trash2 className="w-4 h-4" />
                                     Delete
@@ -581,12 +581,12 @@ export default function GenerationsPage() {
                         </motion.div>
 
                         {/* Image container - Centered & Full Size */}
-                        <div className="flex-1 flex items-center justify-center p-4 relative z-[100] w-full min-h-0 overflow-hidden">
+                        <div className="flex-1 overflow-y-auto overscroll-contain p-3 sm:p-4 relative z-[100] w-full min-h-0">
                             {!imageError ? (
                                 <img
                                     src={getImageUrl(selectedImage)}
                                     alt="Generation Result"
-                                    className="max-w-full max-h-full object-contain shadow-2xl rounded-lg"
+                                    className="w-full max-w-5xl h-auto object-contain shadow-2xl rounded-lg mx-auto"
                                     onClick={(e) => e.stopPropagation()}
                                     draggable={false}
                                     onError={() => setImageError(true)}

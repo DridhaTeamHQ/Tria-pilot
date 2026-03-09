@@ -533,7 +533,7 @@ function Lightbox({
                     initial="initial"
                     animate="animate"
                     exit="exit"
-                    className="fixed inset-0 z-50 bg-black/55 backdrop-blur-[2px] flex items-center justify-center p-4"
+                    className="fixed inset-0 z-50 bg-black/55 backdrop-blur-[2px] flex items-start sm:items-center justify-center p-4 overflow-y-auto"
                     onClick={onClose}
                 >
                     <motion.div
@@ -552,11 +552,7 @@ function Lightbox({
                         >
                             <X className="h-5 w-5 text-black" />
                         </button>
-                        <img
-                            src={src}
-                            alt="Creative preview"
-                            className="max-w-full max-h-[85vh] object-contain block"
-                        />
+                        <div className="max-h-[calc(100vh-6rem)] overflow-y-auto overscroll-contain rounded-xl"><img src={src} alt="Creative preview" className="w-full h-auto object-contain block" /></div>
                     </motion.div>
                 </motion.div>
             )}
