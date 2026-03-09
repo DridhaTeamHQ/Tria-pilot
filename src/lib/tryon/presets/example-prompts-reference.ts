@@ -714,7 +714,26 @@ const PRESET_ALIASES: Record<string, string> = {
   lifestyle_airport_terminal: 'lifestyle_airport_terminal',
   lifestyle_tropical_patio: 'lifestyle_tropical_patio',
   lifestyle_european_bench: 'lifestyle_european_bench',
+  urban_gas_station_night: 'casual_street_candid',
+  editorial_mafia_office: 'studio_editorial',
+  street_subway_fisheye: 'casual_street_candid',
+  street_mcdonalds_bmw_night: 'casual_street_candid',
+  studio_crimson_noir: 'studio_editorial',
+  outdoor_kerala_theyyam_gtr: 'outdoor_golden_hour',
+  studio_bw_minimalist_portrait: 'studio_white',
+  street_elevator_mirror_chic: 'casual_mirror_selfie',
+  editorial_sky_negative_space: 'studio_editorial',
+  editorial_night_garden_flash: 'studio_gray_flash',
+  editorial_newspaper_set: 'studio_editorial',
+  editorial_court_geometric_sun: 'outdoor_park',
+  studio_window_blind_portrait: 'golden_hour_bedroom',
+  editorial_dark_study_set: 'studio_editorial',
+  studio_orange_director_chair: 'studio_cream',
+  studio_green_red_gel_editorial: 'studio_editorial',
+  studio_red_seamless_profile: 'studio_editorial',
 }
+
+const WARNED_MISSING_PRESETS = new Set<string>()
 
 function validateExamplePromptDataset(): void {
   const ids = new Set<string>()
@@ -743,9 +762,12 @@ function validateExamplePromptDataset(): void {
     const resolvedPresetId = PRESET_ALIASES[example.presetId] || example.presetId
     if (!getPresetById(resolvedPresetId)) {
       // Gracefully skip examples referencing removed presets instead of crashing
-      console.warn(
-        `[example-prompts] Skipping example "${example.id}": preset "${example.presetId}" no longer exists`
-      )
+      if (process.env.NODE_ENV !== 'production' && !WARNED_MISSING_PRESETS.has(example.presetId)) {
+        console.warn(
+          `[example-prompts] Skipping example "${example.id}": preset "${example.presetId}" no longer exists`
+        )
+        WARNED_MISSING_PRESETS.add(example.presetId)
+      }
     }
   }
 }

@@ -2,6 +2,7 @@
 
 import { type ReactNode, type ChangeEvent, useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
@@ -518,7 +519,7 @@ export default function AdsPage() {
                     <p className="text-[11px] font-black uppercase tracking-wider">Product Image</p>
                     {productImage ? (
                       <div className="relative aspect-[4/3] overflow-hidden rounded-lg border-2 border-black">
-                        <img src={productImage} alt="Product" className="h-full w-full object-cover" />
+                        <Image unoptimized width={1200} height={1200} src={productImage} alt="Product" className="h-full w-full object-cover" />
                         <button type="button"
                           onClick={() => setProductImage('')}
                           className="absolute top-2 right-2 inline-flex h-7 w-7 items-center justify-center rounded-md border-2 border-black bg-white"
@@ -671,7 +672,7 @@ export default function AdsPage() {
 
                     {influencerImage ? (
                       <div className="relative mt-auto aspect-[4/3] overflow-hidden rounded-lg border-2 border-black">
-                        <img src={influencerImage} alt="Model" className="h-full w-full object-cover" />
+                        <Image unoptimized width={1200} height={1200} src={influencerImage} alt="Model" className="h-full w-full object-cover" />
                         <button type="button"
                           onClick={() => {
                             setInfluencerImage('')
@@ -904,7 +905,7 @@ export default function AdsPage() {
                 <motion.div key="result" variants={imageRevealVariants} initial="initial" animate="animate">
                   <BrutalCard className="overflow-hidden rounded-2xl">
                     <div className="relative border-b-[3px] border-black bg-black/5">
-                      <img src={result.imageBase64 || result.imageUrl} alt="Generated Ad" className="w-full object-cover" />
+                      <Image unoptimized width={1400} height={1400} src={result.imageBase64 || result.imageUrl} alt="Generated Ad" className="w-full object-cover" />
                       <div className="absolute left-3 top-3 rounded-md border-2 border-black bg-[#FFD93D] px-2 py-1 text-[10px] font-black uppercase">
                         {result.qualityScore}/100 Quality
                       </div>

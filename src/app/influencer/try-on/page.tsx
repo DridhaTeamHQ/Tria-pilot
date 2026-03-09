@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense, useCallback, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { toast } from 'sonner'
@@ -87,6 +88,8 @@ function TryOnPageContent() {
     const [downloading, setDownloading] = useState(false)
     const generateInFlightRef = useRef(false)
     const lastGenerateAttemptAtRef = useRef(0)
+    const pollCooldownUntilRef = useRef(0)
+    const pollAttemptRef = useRef(0)
 
     // Presets
     const [presets, setPresets] = useState<TryOnPreset[]>([])
@@ -147,23 +150,37 @@ function TryOnPageContent() {
     ) => {
         const startedAt = Date.now()
         const timeoutMs = 10 * 60 * 1000
-        const intervalMs = 2000
+        const baseIntervalMs = 3000
+        let consecutiveRateLimitCount = 0
 
         while (Date.now() - startedAt < timeoutMs) {
+            const now = Date.now()
+            const cooldownUntil = pollCooldownUntilRef.current
+            if (cooldownUntil > now) {
+                await new Promise(resolve => setTimeout(resolve, cooldownUntil - now))
+            }
+
             try {
                 const pollResponse = await fetch(`/api/tryon/jobs/${jobId}`, { cache: 'no-store', credentials: 'include' })
                 const pollData = await safeParseResponse<any>(pollResponse, 'try-on job polling')
                 const status = pollData?.status as string | undefined
 
+                pollAttemptRef.current += 1
+                consecutiveRateLimitCount = 0
+
                 if (status === 'pending' || status === 'processing') {
                     options?.onStatus?.(status)
+                    const dynamicIntervalMs = Math.min(12000, baseIntervalMs + Math.floor(pollAttemptRef.current / 3) * 1000)
+                    const jitterMs = Math.floor(Math.random() * 350)
+                    await new Promise(resolve => setTimeout(resolve, dynamicIntervalMs + jitterMs))
+                    continue
                 }
 
                 if (status === 'completed' || status === 'failed') {
                     return pollData
                 }
 
-                await new Promise(resolve => setTimeout(resolve, intervalMs))
+                await new Promise(resolve => setTimeout(resolve, baseIntervalMs))
             } catch (error) {
                 const structured = error as (Error & { status?: number; retryAfterSeconds?: number })
                 const isRateLimited = structured?.status === 429 || structured?.status === 503
@@ -172,7 +189,12 @@ function TryOnPageContent() {
                     throw error
                 }
 
-                const retrySeconds = Math.max(1, Math.min(300, Number(structured?.retryAfterSeconds ?? (structured?.status === 503 ? 10 : 5))))
+                consecutiveRateLimitCount += 1
+                const serverRetry = Math.max(1, Number(structured?.retryAfterSeconds ?? (structured?.status === 503 ? 12 : 8)))
+                const exponentialPenalty = Math.min(120, 2 ** Math.min(consecutiveRateLimitCount, 6))
+                const retrySeconds = Math.max(serverRetry, exponentialPenalty)
+                pollCooldownUntilRef.current = Date.now() + retrySeconds * 1000
+
                 setRetryAfterSeconds(prev => Math.max(prev, retrySeconds))
                 setRetryReason('rate_limit')
 
@@ -251,6 +273,8 @@ function TryOnPageContent() {
                 setLoading(false)
                 setActiveJobId(null)
                 setQueueStatus('idle')
+                pollAttemptRef.current = 0
+                pollCooldownUntilRef.current = 0
                 sessionStorage.removeItem('tryonActiveJobId')
             }
         }
@@ -563,7 +587,7 @@ function TryOnPageContent() {
             return
         }
         const now = Date.now()
-        if (now - lastGenerateAttemptAtRef.current < 500) {
+        if (now - lastGenerateAttemptAtRef.current < 2500) {
             toast.error('Please wait a moment before trying again.')
             return
         }
@@ -589,6 +613,8 @@ function TryOnPageContent() {
         setLoading(true)
         setQueueStatus('idle')
         generateInFlightRef.current = true
+        pollAttemptRef.current = 0
+        pollCooldownUntilRef.current = 0
 
         try {
             // Collect identity references (Flash: 1-2 strong face refs)
@@ -791,6 +817,8 @@ function TryOnPageContent() {
             setLoading(false)
             setActiveJobId(null)
             setQueueStatus('idle')
+            pollAttemptRef.current = 0
+            pollCooldownUntilRef.current = 0
             sessionStorage.removeItem('tryonActiveJobId')
             generateInFlightRef.current = false
         }
@@ -960,7 +988,7 @@ function TryOnPageContent() {
                                                     }`}
                                                 title={img.label || 'saved photo'}
                                             >
-                                                <img src={img.imageUrl} alt={img.label || 'saved'} loading="lazy" decoding="async" className="w-full h-12 sm:h-14 object-cover" />
+                                                <Image unoptimized width={1200} height={1200} src={img.imageUrl} alt={img.label || 'saved'} loading="lazy" decoding="async" className="w-full h-12 sm:h-14 object-cover" />
                                                 {img.isPrimary && (
                                                     <div className="absolute top-1 left-1 px-1.5 py-0.5 bg-black/60 text-white text-[10px] rounded-full">
                                                         Primary
@@ -1007,7 +1035,7 @@ function TryOnPageContent() {
                                     >
                                         {personImage ? (
                                             <>
-                                                <img src={personImage} alt="Person" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                                <Image unoptimized width={1200} height={1200} src={personImage} alt="Person" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                             </>
                                         ) : (
@@ -1082,7 +1110,7 @@ function TryOnPageContent() {
                                     >
                                         {clothingImage ? (
                                             <>
-                                                <img src={clothingImage} alt="Clothing" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                                <Image unoptimized width={1200} height={1200} src={clothingImage} alt="Clothing" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                             </>
                                         ) : (
@@ -1139,7 +1167,7 @@ function TryOnPageContent() {
                                                             `}
                                                             title={isRef ? "Recommended Try-On Reference" : "Product Variant"}
                                                         >
-                                                            <img src={url} alt={`Var ${idx}`} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                                                            <Image unoptimized width={1200} height={1200} src={url} alt={`Var ${idx}`} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                                                             {isRef && (
                                                                 <div className="absolute top-0.5 right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-white shadow-sm flex items-center justify-center">
                                                                     <Sparkles className="w-1.5 h-1.5 text-white" />
@@ -1174,7 +1202,7 @@ function TryOnPageContent() {
                                             }`}
                                     >
                                         {backgroundImage ? (
-                                            <img src={backgroundImage} alt="Background" className="w-full h-full object-cover" />
+                                            <Image unoptimized width={1200} height={1200} src={backgroundImage} alt="Background" className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="absolute inset-0 flex flex-col items-center justify-center p-2 sm:p-4 text-center">
                                                 <div className="flex items-center gap-3">
@@ -1234,7 +1262,7 @@ function TryOnPageContent() {
                                     <div className="mt-3 flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
                                         {accessoryImages.map((img: string, idx: number) => (
                                             <div key={idx} className="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden border border-white shadow-sm group">
-                                                <img src={img} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                                                <Image unoptimized width={1200} height={1200} src={img} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                                                     <button type="button" onClick={() => handleRemoveAccessory(idx)} className="text-white hover:text-red-400">
                                                         <X className="w-4 h-4" />
@@ -1635,7 +1663,7 @@ function TryOnPageContent() {
                             ) : result ? (
                                 <>
                                     <div className="flex-1 flex items-center justify-center group relative">
-                                        <img
+                                        <Image unoptimized width={1200} height={1200}
                                             src={result.base64Image ? (result.base64Image.startsWith('data:') ? result.base64Image : `data:image/jpeg;base64,${result.base64Image}`) : result.imageUrl}
                                             alt="Generated Result"
                                             className="w-full h-full object-contain max-h-[600px] bg-charcoal/90"
@@ -1695,7 +1723,7 @@ function TryOnPageContent() {
                                                             : 'border-black/20 opacity-70 hover:opacity-100 hover:border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 z-0 grayscale-[30%] hover:grayscale-0'
                                                             }`}
                                                     >
-                                                        <img
+                                                        <Image unoptimized width={1200} height={1200}
                                                             src={variant.base64Image ? (variant.base64Image.startsWith('data:') ? variant.base64Image : `data:image/jpeg;base64,${variant.base64Image}`) : variant.imageUrl}
                                                             alt={`Variant ${idx + 1}`}
                                                             className="w-full h-full object-cover"

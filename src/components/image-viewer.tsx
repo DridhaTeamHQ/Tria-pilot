@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { X, ImageOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -47,9 +48,12 @@ export function ImageViewer({ src, alt, className = '' }: ImageViewerProps) {
             <div className="w-6 h-6 border-2 border-charcoal/20 border-t-charcoal/60 rounded-full animate-spin" />
           </div>
         )}
-        <img
+        <Image
           src={src}
           alt={alt}
+          width={1200}
+          height={1200}
+          unoptimized
           className={`${className} cursor-pointer hover:opacity-90 transition-opacity ${isLoading ? 'opacity-0' : 'opacity-100'}`}
           onClick={() => setIsOpen(true)}
           onLoad={() => {
@@ -77,9 +81,12 @@ export function ImageViewer({ src, alt, className = '' }: ImageViewerProps) {
             >
               <X className="h-6 w-6" />
             </Button>
-            <img
+            <Image
               src={src}
               alt={alt}
+              width={1600}
+              height={1600}
+              unoptimized
               className="max-w-full max-h-[90vh] object-contain rounded-lg"
               onClick={(e) => e.stopPropagation()}
             />

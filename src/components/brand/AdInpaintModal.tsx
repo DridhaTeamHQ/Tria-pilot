@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
+import Image from 'next/image'
 import {
   Brush,
   ImagePlus,
@@ -338,7 +339,7 @@ export default function AdInpaintModal({
     if (computedPreviewRect) {
       setManualRect(computedPreviewRect)
     }
-  }, [computedPreviewRect?.left, computedPreviewRect?.top, computedPreviewRect?.width, computedPreviewRect?.height])
+  }, [computedPreviewRect])
 
   useEffect(() => {
     const onMove = (event: PointerEvent) => {
@@ -442,7 +443,7 @@ export default function AdInpaintModal({
             <div className="relative min-h-0 bg-[radial-gradient(circle_at_top,#f4ecd2_0%,#e7dcc0_65%,#dacda9_100%)] p-2.5 sm:p-4 lg:p-5">
               <div className="flex h-full min-h-0 w-full items-center justify-center overflow-auto rounded-[24px] border-[3px] border-black/10 bg-[#efe4c3]/40 p-3">
                 <div className={cn('relative inline-flex max-h-full max-w-full items-center justify-center rounded-[24px] transition-transform', isDrawing && 'scale-[1.01]')}>
-                  <img ref={imageRef} src={imageSrc} alt="Ad edit target" className="block max-h-[50dvh] max-w-full rounded-xl border-[3px] border-black object-contain bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,0.2)] sm:max-h-[58dvh] lg:max-h-[calc(100dvh-150px)]" onLoad={resetMask} />
+                  <Image ref={imageRef} src={imageSrc} alt="Ad edit target" width={1400} height={1800} unoptimized className="block h-auto max-h-[50dvh] w-auto max-w-full rounded-xl border-[3px] border-black object-contain bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,0.2)] sm:max-h-[58dvh] lg:max-h-[calc(100dvh-150px)]" onLoad={resetMask} />
                   <canvas ref={overlayCanvasRef} className={cn('absolute inset-0 rounded-xl', isSubmitting ? 'cursor-not-allowed' : 'cursor-crosshair')} onPointerDown={beginDrawing} onPointerMove={continueDrawing} onPointerUp={stopDrawing} onPointerLeave={stopDrawing} />
                 {brushPoint && !isSubmitting && <div className="pointer-events-none absolute rounded-full border border-black/45 bg-[#FF4D4D]/5 shadow-[0_0_0_2px_rgba(255,217,61,0.12)]" style={{ width: brushSize, height: brushSize, left: brushPoint.x - brushSize / 2, top: brushPoint.y - brushSize / 2 }} />}
                 {hasMask && <div className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-[#FF4D4D]/16" />}
@@ -534,7 +535,7 @@ export default function AdInpaintModal({
                     {referenceImageBase64 ? 'Replace Reference Image' : 'Upload Product / Reference'}
                     <input type="file" accept="image/*" className="hidden" onChange={handleReferenceUpload} />
                   </label>
-                  {referenceImageBase64 && <div className="mt-3 overflow-hidden rounded-2xl border-[3px] border-black bg-white"><img src={referenceImageBase64} alt="Reference" className="h-40 w-full object-contain bg-[#FFFDF5]" /></div>}
+                  {referenceImageBase64 && <div className="mt-3 overflow-hidden rounded-2xl border-[3px] border-black bg-white"><Image src={referenceImageBase64} alt="Reference" width={640} height={320} unoptimized className="h-40 w-full object-contain bg-[#FFFDF5]" /></div>}
                 </div>
 
                 <div>

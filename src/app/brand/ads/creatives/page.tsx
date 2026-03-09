@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
     staggerContainer,
@@ -184,11 +185,14 @@ function CreativeCard({
                             </button>
                         </div>
                     ) : (
-                        <img
+                        <Image
                             src={getImageSrc(creative.imageUrl)}
                             alt={creative.title || 'Ad creative'}
+                            fill
+                            unoptimized
+                            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                             className={cn(
-                                'w-full h-full object-cover transition-all duration-300',
+                                'object-cover transition-all duration-300',
                                 imageLoading ? 'opacity-0 scale-105' : 'opacity-100 scale-100 hover:scale-105'
                             )}
                             onError={() => {
@@ -425,15 +429,20 @@ function HistoryModal({
                                         <button
                                             type="button"
                                             onClick={() => onPreview(item)}
-                                            className="overflow-hidden border-[2px] border-black bg-[#FFF8E6]"
+                                            className="relative overflow-hidden border-[2px] border-black bg-[#FFF8E6]"
                                         >
-                                            <img
-                                                src={item.imageUrl.includes('supabase.co/storage')
-                                                    ? `/api/images/proxy?url=${encodeURIComponent(item.imageUrl)}`
-                                                    : item.imageUrl}
-                                                alt={item.title}
-                                                className="aspect-[4/5] h-full w-full object-cover"
-                                            />
+                                            <div className="relative aspect-[4/5] h-full w-full">
+                                                <Image
+                                                    src={item.imageUrl.includes('supabase.co/storage')
+                                                        ? `/api/images/proxy?url=${encodeURIComponent(item.imageUrl)}`
+                                                        : item.imageUrl}
+                                                    alt={item.title}
+                                                    fill
+                                                    unoptimized
+                                                    sizes="120px"
+                                                    className="object-cover"
+                                                />
+                                            </div>
                                         </button>
                                         <div className="space-y-3">
                                             <div className="flex flex-wrap items-center gap-2">
@@ -566,11 +575,16 @@ function Lightbox({
                         </div>
 
                         <div className="max-h-[calc(100vh-10rem)] overflow-y-auto overscroll-contain rounded-xl border-[2px] border-black bg-white/60 p-2 sm:p-3">
-                            <img
-                                src={src}
-                                alt="Creative preview"
-                                className="mx-auto block max-w-full max-h-[calc(100vh-13rem)] w-auto h-auto object-contain"
-                            />
+                            <div className="relative mx-auto h-[calc(100vh-13rem)] w-full max-w-full">
+                                <Image
+                                    src={src}
+                                    alt="Creative preview"
+                                    fill
+                                    unoptimized
+                                    sizes="100vw"
+                                    className="object-contain"
+                                />
+                            </div>
                         </div>
                     </motion.div>
                 </motion.div>
