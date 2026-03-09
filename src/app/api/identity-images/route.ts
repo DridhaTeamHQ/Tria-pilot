@@ -194,6 +194,8 @@ export async function POST(request: Request) {
 
     let record;
     let dbError;
+    // Generate an ID without relying on the global crypto, just in case
+    const genId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 
     if (existingImage) {
       const { data, error } = await db
@@ -207,7 +209,7 @@ export async function POST(request: Request) {
     } else {
       const { data, error } = await db
         .from('identity_images')
-        .insert({ ...payload, id: crypto.randomUUID() })
+        .insert({ ...payload, id: genId })
         .select()
         .single()
       record = data
@@ -229,10 +231,14 @@ export async function POST(request: Request) {
       uploadedTypes: types
     })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Upload identity image error:', error)
+
+    // Extract actual error reason (db object, storage object, or standard error)
+    const errorDetails = error?.message || error?.error_description || (typeof error === 'object' ? JSON.stringify(error) : String(error));
+
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to upload identity image' },
+      { error: `Upload Failed: ${errorDetails}` },
       { status: 500 }
     )
   }
