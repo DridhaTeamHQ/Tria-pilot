@@ -189,8 +189,8 @@ export default function AdInpaintModal({
     if (overlayContext) {
       overlayContext.save()
       overlayContext.globalCompositeOperation = 'source-over'
-      overlayContext.strokeStyle = 'rgba(255, 90, 70, 0.62)'
-      overlayContext.fillStyle = 'rgba(255, 90, 70, 0.62)'
+      overlayContext.strokeStyle = 'rgba(255, 90, 70, 0.34)'
+      overlayContext.fillStyle = 'rgba(255, 90, 70, 0.28)'
       overlayContext.lineWidth = brushSize
       overlayContext.lineCap = 'round'
       overlayContext.lineJoin = 'round'
@@ -444,8 +444,8 @@ export default function AdInpaintModal({
                 <div className={cn('relative inline-flex max-h-full max-w-full items-center justify-center rounded-[24px] transition-transform', isDrawing && 'scale-[1.01]')}>
                   <img ref={imageRef} src={imageSrc} alt="Ad edit target" className="block max-h-[50dvh] max-w-full rounded-xl border-[3px] border-black object-contain bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,0.2)] sm:max-h-[58dvh] lg:max-h-[calc(100dvh-150px)]" onLoad={resetMask} />
                   <canvas ref={overlayCanvasRef} className={cn('absolute inset-0 rounded-xl', isSubmitting ? 'cursor-not-allowed' : 'cursor-crosshair')} onPointerDown={beginDrawing} onPointerMove={continueDrawing} onPointerUp={stopDrawing} onPointerLeave={stopDrawing} />
-                {brushPoint && !isSubmitting && <div className="pointer-events-none absolute rounded-full border-2 border-black/80 bg-[#FF4D4D]/10 shadow-[0_0_0_4px_rgba(255,217,61,0.18)]" style={{ width: brushSize, height: brushSize, left: brushPoint.x - brushSize / 2, top: brushPoint.y - brushSize / 2 }} />}
-                {hasMask && <div className="pointer-events-none absolute inset-0 rounded-xl ring-4 ring-[#FF4D4D]/20 animate-pulse" />}
+                {brushPoint && !isSubmitting && <div className="pointer-events-none absolute rounded-full border border-black/45 bg-[#FF4D4D]/5 shadow-[0_0_0_2px_rgba(255,217,61,0.12)]" style={{ width: brushSize, height: brushSize, left: brushPoint.x - brushSize / 2, top: brushPoint.y - brushSize / 2 }} />}
+                {hasMask && <div className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-[#FF4D4D]/16" />}
                 {isSubmitting && inferredPlan && (
                   <div className="absolute inset-0 flex items-end rounded-xl bg-black/22 p-4">
                     <div className="w-full rounded-2xl border-[3px] border-black bg-white/95 p-4 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] backdrop-blur">
@@ -568,5 +568,4 @@ export default function AdInpaintModal({
     </PortalModal>
   )
 }
-
 
