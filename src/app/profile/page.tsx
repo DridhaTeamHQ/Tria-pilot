@@ -203,8 +203,11 @@ export default function ProfilePage() {
       })
 
       if (!res.ok) {
+        if (res.status === 413) {
+          throw new Error('Image file is still too large (max 4.5MB). Please choose a smaller photo.')
+        }
         const errBody = await res.json().catch(() => ({}))
-        throw new Error(errBody.error || 'Upload failed')
+        throw new Error(errBody.error || `Upload failed with status: ${res.status}`)
       }
 
       const data = await res.json()
@@ -214,7 +217,7 @@ export default function ProfilePage() {
       await fetchCharacterImages()
     } catch (err) {
       console.error('Character image upload error:', err)
-      toast.error(err instanceof Error ? err.message : 'Failed to upload')
+      toast.error(err instanceof Error ? err.message : 'Failed to upload image. Please try again.')
     } finally {
       setUploadingSlot(null)
     }
@@ -270,10 +273,10 @@ export default function ProfilePage() {
   }
 
   const preparePhotoForUpload = async (file: File): Promise<File> => {
-    const maxEdge = 1600
+    const maxEdge = 1200 // Reduced from 1600 to ensure files stay small for API route limits
 
-    // Keep already-light files as-is for best quality and speed.
-    if (file.size <= 1.8 * 1024 * 1024 && file.type !== 'image/heic' && file.type !== 'image/heif') {
+    // Keep already-light files as-is for best quality and speed. (Lowered threshold to 1.5MB)
+    if (file.size <= 1.5 * 1024 * 1024 && file.type !== 'image/heic' && file.type !== 'image/heif') {
       return file
     }
 
@@ -305,8 +308,9 @@ export default function ProfilePage() {
               reject(new Error('Could not compress image'))
               return
             }
+            // Reduced quality from 0.82 to 0.75 to ensure payload stays under 4MB limit
             resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }))
-          }, 'image/jpeg', 0.82)
+          }, 'image/jpeg', 0.75)
         } catch (error) {
           URL.revokeObjectURL(objectUrl)
           reject(error instanceof Error ? error : new Error('Image compression failed'))
