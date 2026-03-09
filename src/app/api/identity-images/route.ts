@@ -207,7 +207,7 @@ export async function POST(request: Request) {
     } else {
       const { data, error } = await db
         .from('identity_images')
-        .insert(payload)
+        .insert({ ...payload, id: crypto.randomUUID() })
         .select()
         .single()
       record = data
