@@ -7,6 +7,28 @@ import {
   getUploadProgress
 } from '@/lib/identity/types'
 
+async function findInfluencerProfile(
+  client: any,
+  authUserId: string,
+  selectClause: string
+): Promise<any> {
+  const byUserId = await client
+    .from('influencer_profiles')
+    .select(selectClause)
+    .eq('user_id', authUserId)
+    .maybeSingle()
+
+  if (byUserId.data) return byUserId.data
+
+  const byId = await client
+    .from('influencer_profiles')
+    .select(selectClause)
+    .eq('id', authUserId)
+    .maybeSingle()
+
+  return byId.data ?? null
+}
+
 export async function GET() {
   try {
     const supabase = await createClient()
@@ -14,13 +36,7 @@ export async function GET() {
 
     if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    // Check if influencer profile exists
-    // We can assume user ID matches profile ID for 1:1 relationship
-    const { data: profile } = await supabase
-      .from('influencer_profiles')
-      .select('*, identity_images(*)')
-      .eq('id', authUser.id)
-      .single()
+    const profile: any = await findInfluencerProfile(supabase, authUser.id, '*, identity_images(*)')
 
     if (!profile) {
       // Check if user is even an influencer role?
@@ -86,27 +102,40 @@ export async function POST(request: Request) {
       db = supabase
     }
 
-    // Look for existing influencer profile
-    let { data: profile } = await supabase
-      .from('influencer_profiles')
-      .select('id, identity_images(*)')
-      .eq('id', authUser.id)
-      .single()
+    // Look for existing influencer profile by user_id first (canonical), then id fallback.
+    let profile: any = await findInfluencerProfile(supabase, authUser.id, 'id, identity_images(*)')
 
-    // Auto-create influencer profile if it doesn't exist
-    // This handles: brand users who need identity images, or new users
+    // Auto-create influencer profile if it doesn't exist.
     if (!profile) {
-      const { data: newProfile, error: createErr } = await db
-        .from('influencer_profiles')
-        .upsert({ id: authUser.id, user_id: authUser.id }, { onConflict: 'id' })
-        .select('id, identity_images(*)')
-        .single()
+      let createErr: any = null
 
-      if (createErr || !newProfile) {
+      const createByUserId = await db
+        .from('influencer_profiles')
+        .upsert({ user_id: authUser.id }, { onConflict: 'user_id' })
+        .select('id, identity_images(*)')
+        .maybeSingle()
+
+      createErr = createByUserId.error
+      profile = createByUserId.data ?? null
+
+      if (!profile) {
+        const createById = await db
+          .from('influencer_profiles')
+          .upsert({ id: authUser.id, user_id: authUser.id }, { onConflict: 'id' })
+          .select('id, identity_images(*)')
+          .maybeSingle()
+        createErr = createById.error || createErr
+        profile = createById.data ?? null
+      }
+
+      if (!profile) {
+        profile = await findInfluencerProfile(db, authUser.id, 'id, identity_images(*)')
+      }
+
+      if (!profile) {
         console.error('Failed to create influencer profile for identity images:', createErr)
         return NextResponse.json({ error: 'Could not create profile for identity images' }, { status: 500 })
       }
-      profile = newProfile
     }
 
     const formData = await request.formData()
@@ -206,18 +235,19 @@ export async function DELETE(request: Request) {
       db = supabase
     }
 
-    // Soft delete
-    // Need to find profile ID first or filter by inner join... 
-    // identity_images linked to influencer_profile_id which is usually user_id (1:1)
+    const profile: any = await findInfluencerProfile(db, authUser.id, 'id')
+    if (!profile?.id) {
+      return NextResponse.json({ success: true, progress: 0, isComplete: false })
+    }
 
     await db
       .from('identity_images')
       .update({ is_active: false })
-      .eq('influencer_profile_id', authUser.id) // Assuming ID match
+      .eq('influencer_profile_id', profile.id)
       .eq('image_type', imageType)
 
     // Re-check completion
-    const { data: allImages } = await db.from('identity_images').select('image_type').eq('influencer_profile_id', authUser.id).eq('is_active', true)
+    const { data: allImages } = await db.from('identity_images').select('image_type').eq('influencer_profile_id', profile.id).eq('is_active', true)
     const types = (allImages || []).map((i: any) => i.image_type)
     const isComplete = isIdentitySetupComplete(types)
 
