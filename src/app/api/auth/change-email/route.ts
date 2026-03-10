@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { createClient } from '@/lib/auth'
-import { getPublicSiteUrlFromRequest, buildAuthConfirmUrl } from '@/lib/site-url'
+import { createClient, createServiceClient } from '@/lib/auth'
+import { getPublicSiteUrlFromRequest } from '@/lib/site-url'
+import { sendEmail } from '@/lib/email/supabase-email'
+import {
+  buildEmailChangeCurrentEmail,
+  buildEmailChangeNewEmail,
+  buildVerifyOtpUrl,
+} from '@/lib/email/auth-email'
 
 const schema = z
   .object({
@@ -25,7 +31,10 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => null)
     const { newEmail, password } = schema.parse(body)
 
-    // Re-authenticate by password to confirm identity (security)
+    if (newEmail === authUser.email.toLowerCase()) {
+      return NextResponse.json({ error: 'Please choose a different email address' }, { status: 400 })
+    }
+
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: authUser.email,
       password,
@@ -35,17 +44,77 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Incorrect password' }, { status: 400 })
     }
 
-    const emailRedirectTo = buildAuthConfirmUrl(
-      getPublicSiteUrlFromRequest(request),
-      '/settings/profile?email_changed=true'
-    )
+    const service = createServiceClient()
+    const siteUrl = getPublicSiteUrlFromRequest(request)
+    const nextPath = '/settings/profile?email_changed=true'
+    const redirectTo = `${siteUrl}${nextPath}`
 
-    const { error: updateError } = await supabase.auth.updateUser(
-      { email: newEmail },
-      { emailRedirectTo }
-    )
-    if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 400 })
+    const [currentLinkResult, newLinkResult] = await Promise.all([
+      service.auth.admin.generateLink({
+        type: 'email_change_current',
+        email: authUser.email,
+        newEmail,
+        options: { redirectTo },
+      }),
+      service.auth.admin.generateLink({
+        type: 'email_change_new',
+        email: authUser.email,
+        newEmail,
+        options: { redirectTo },
+      }),
+    ])
+
+    if (currentLinkResult.error) {
+      return NextResponse.json({ error: currentLinkResult.error.message }, { status: 400 })
+    }
+
+    if (newLinkResult.error) {
+      return NextResponse.json({ error: newLinkResult.error.message }, { status: 400 })
+    }
+
+    if (!currentLinkResult.data?.properties?.hashed_token || !newLinkResult.data?.properties?.hashed_token) {
+      return NextResponse.json({ error: 'Failed to create email confirmation links' }, { status: 500 })
+    }
+
+    const currentConfirmUrl = buildVerifyOtpUrl(siteUrl, {
+      tokenHash: currentLinkResult.data.properties.hashed_token,
+      type: currentLinkResult.data.properties.verification_type,
+      nextPath,
+    })
+
+    const newConfirmUrl = buildVerifyOtpUrl(siteUrl, {
+      tokenHash: newLinkResult.data.properties.hashed_token,
+      type: newLinkResult.data.properties.verification_type,
+      nextPath,
+    })
+
+    const currentTemplate = buildEmailChangeCurrentEmail({
+      confirmUrl: currentConfirmUrl,
+      newEmail,
+    })
+    const newTemplate = buildEmailChangeNewEmail({
+      confirmUrl: newConfirmUrl,
+      newEmail,
+    })
+
+    const [currentEmailResult, newEmailResult] = await Promise.all([
+      sendEmail({
+        to: authUser.email,
+        subject: currentTemplate.subject,
+        html: currentTemplate.html,
+        text: currentTemplate.text,
+      }),
+      sendEmail({
+        to: newEmail,
+        subject: newTemplate.subject,
+        html: newTemplate.html,
+        text: newTemplate.text,
+      }),
+    ])
+
+    if (!currentEmailResult.ok || !newEmailResult.ok) {
+      const errorMessage = currentEmailResult.error || newEmailResult.error || 'Failed to send confirmation emails'
+      return NextResponse.json({ error: errorMessage }, { status: 500 })
     }
 
     return NextResponse.json({ success: true })
@@ -59,4 +128,3 @@ export async function POST(request: Request) {
     )
   }
 }
-

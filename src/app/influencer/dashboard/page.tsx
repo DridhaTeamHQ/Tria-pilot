@@ -248,17 +248,8 @@ export default function InfluencerDashboard() {
 
   const openVariantViewer = (generation: any) => {
     if (window.matchMedia('(max-width: 767px)').matches) {
-      const mobileImageUrl = getGenerationVariants(generation).find((variant) => !!variant.url)?.url
-      if (mobileImageUrl) {
-        const params = new URLSearchParams({
-          image: mobileImageUrl,
-          title: `Generation #${generation.id.slice(0, 8)}`,
-          back: '/influencer/dashboard',
-          download: `kiwikoo-tryon-${generation.id.slice(0, 8)}.png`,
-        })
-        router.push(`/gallery/view?${params.toString()}`)
-        return
-      }
+      router.push('/influencer/generations')
+      return
     }
 
     setSelectedGeneration(generation)
@@ -345,7 +336,7 @@ export default function InfluencerDashboard() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="mb-8 sm:mb-12"
+          className="hidden sm:block mb-8 sm:mb-12"
         >
           <h2 className="text-xl sm:text-2xl font-bold text-black mb-4 sm:mb-6 uppercase tracking-tight">Quick Actions</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -628,4 +619,6 @@ export default function InfluencerDashboard() {
     </div>
   )
 }
+
+
 

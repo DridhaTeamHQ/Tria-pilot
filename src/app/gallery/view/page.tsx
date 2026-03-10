@@ -76,28 +76,19 @@ function GalleryViewContent() {
 
     return (
         <div className="fixed inset-0 z-[250] bg-[#FDF6EC] flex flex-col">
-            <button
-                type="button"
-                onClick={handleBack}
-                className="md:hidden fixed left-3 top-[calc(env(safe-area-inset-top)+0.5rem)] z-[260] inline-flex items-center gap-1 rounded-lg border-[2px] border-black bg-white px-3 py-2 text-sm font-bold shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
-                aria-label="Back"
-            >
-                <ArrowLeft className="h-4 w-4" />
-                Back
-            </button>
 
-            <header className="sticky top-0 z-10 flex items-center gap-2 border-b-[3px] border-black bg-white px-3 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+            <header className="sticky top-0 z-20 flex items-center gap-2 border-b-[3px] border-black bg-white px-3 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
                 <button
                     type="button"
                     onClick={handleBack}
-                    className="inline-flex items-center gap-1 rounded-lg border-[2px] border-black bg-white px-3 py-2 text-sm font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                    className="inline-flex shrink-0 items-center gap-1 rounded-lg border-[2px] border-black bg-white px-3 py-2 text-sm font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
                     aria-label="Back"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     Back
                 </button>
 
-                <p className="min-w-0 flex-1 truncate text-center text-sm font-black text-black">
+                <p className="min-w-0 flex-1 truncate text-center text-xs font-black text-black sm:text-sm">
                     {title}
                 </p>
 
@@ -105,7 +96,7 @@ function GalleryViewContent() {
                     type="button"
                     onClick={handleDownload}
                     disabled={downloading || !imageUrl}
-                    className="inline-flex items-center gap-1 rounded-lg border-[2px] border-black bg-[#FFD93D] px-3 py-2 text-xs font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex shrink-0 items-center gap-1 rounded-lg border-[2px] border-black bg-[#FFD93D] px-3 py-2 text-xs font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:cursor-not-allowed disabled:opacity-60"
                     aria-label="Download image"
                 >
                     <Download className="h-4 w-4" />
@@ -113,7 +104,7 @@ function GalleryViewContent() {
                 </button>
             </header>
 
-            <main className="flex-1 overflow-hidden p-4">
+            <main className="flex-1 overflow-hidden p-3 sm:p-4">
                 <div className="flex h-full w-full items-center justify-center rounded-xl border-[3px] border-black bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
                     {!imageUrl ? (
                         <div className="flex flex-col items-center gap-2 text-black/60">
@@ -146,3 +137,4 @@ export default function GalleryViewPage() {
         </Suspense>
     )
 }
+

@@ -60,7 +60,7 @@ export default function SettingsProfilePage() {
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.error || 'Failed to request email change')
 
-      toast.success('Email change requested. Please check your inbox to confirm the new email.')
+      toast.success('Email change requested. Please check both your current and new inboxes to confirm the change.')
       setPassword('')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to change email')
@@ -131,7 +131,7 @@ export default function SettingsProfilePage() {
                 <Mail className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-black/40" />
               </div>
               <p className="text-xs font-bold text-black/50 uppercase tracking-wide">
-                We&apos;ll send a confirmation link to your new address.
+                We&apos;ll send approval links to both your current and new email addresses.
               </p>
             </div>
 
@@ -180,3 +180,4 @@ export default function SettingsProfilePage() {
     </div>
   )
 }
+

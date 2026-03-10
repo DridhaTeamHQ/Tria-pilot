@@ -5,8 +5,6 @@ import Link from 'next/link'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import { ArrowRight, ArrowLeft, Mail, Loader2, KeyRound, Sparkles, Shield } from 'lucide-react'
-import { createClient } from '@/lib/auth-client'
-import { getPublicSiteUrlClient, buildAuthConfirmUrl } from '@/lib/site-url'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -22,19 +20,19 @@ export default function ForgotPasswordPage() {
 
     setLoading(true)
     try {
-      const supabase = createClient()
-
-      const siteUrl = getPublicSiteUrlClient()
-      const redirectTo = buildAuthConfirmUrl(siteUrl, '/reset-password')
-
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
-        redirectTo,
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
       })
 
-      if (error) throw new Error(error.message)
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data?.error || 'Failed to send reset email')
+      }
 
       setSent(true)
-      toast.success('Password reset email sent! Check your inbox.')
+      toast.success('If the account exists, a password reset email is on the way.')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to send reset email')
     } finally {
@@ -254,3 +252,4 @@ export default function ForgotPasswordPage() {
     </div>
   )
 }
+

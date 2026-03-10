@@ -295,20 +295,30 @@ export default function GenerationsPage() {
                     variants={fadeInUp}
                     className="mb-10"
                 >
-                    <Link
-                        href="/influencer/dashboard"
-                        className="group inline-flex items-center gap-2 text-sm text-black hover:underline mb-6 transition-all duration-300 font-bold"
-                    >
-                        <motion.span
-                            whileHover={{ x: -3 }}
-                            transition={{ type: "spring", stiffness: 400 }}
+                    <div className="mb-6 flex items-center">
+                        <Link
+                            href="/influencer/dashboard"
+                            className="inline-flex items-center gap-2 rounded-xl border-[3px] border-black bg-white px-4 py-2 text-sm font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:hidden"
                         >
                             <ArrowLeft className="h-4 w-4" />
-                        </motion.span>
-                        <span className="relative">
-                            Back to Dashboard
-                        </span>
-                    </Link>
+                            Back
+                        </Link>
+
+                        <Link
+                            href="/influencer/dashboard"
+                            className="group hidden md:inline-flex items-center gap-2 text-sm text-black hover:underline transition-all duration-300 font-bold"
+                        >
+                            <motion.span
+                                whileHover={{ x: -3 }}
+                                transition={{ type: "spring", stiffness: 400 }}
+                            >
+                                <ArrowLeft className="h-4 w-4" />
+                            </motion.span>
+                            <span className="relative">
+                                Back to Dashboard
+                            </span>
+                        </Link>
+                    </div>
 
                     <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
                         <div>
@@ -380,7 +390,7 @@ export default function GenerationsPage() {
                         variants={containerVariants}
                         initial="hidden"
                         animate="visible"
-                        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
+                        className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6"
                     >
                         {generations?.map((job: any) => (
                             <motion.div
@@ -722,5 +732,6 @@ export default function GenerationsPage() {
         </div >
     )
 }
+
 
 

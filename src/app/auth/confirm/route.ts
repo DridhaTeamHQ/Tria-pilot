@@ -1,19 +1,5 @@
 /**
  * Email Confirmation Handler
- * 
- * After email verification:
- * - Redirect to /login
- * - User logs in → dashboard route handles redirect based on profile state
- * 
- * CORRECT LOGIC AFTER LOGIN (in dashboard):
- * const profile = await getProfile(user.id);
- * if (!profile.onboarding_completed) {
- *   redirect('/onboarding');
- * }
- * if (profile.role === 'influencer' && profile.approval_status !== 'approved') {
- *   redirect('/influencer/pending');
- * }
- * redirect('/dashboard');
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { type EmailOtpType } from '@supabase/supabase-js'
@@ -50,13 +36,20 @@ export async function GET(request: NextRequest) {
     const { error, data } = await supabase.auth.verifyOtp({ token_hash, type })
 
     if (!error && data.user) {
-      // After email confirmation, redirect to login
-      // Dashboard route will handle routing based on profile state
-      await supabase.auth.signOut() // Sign out to prevent middleware redirects
-      return NextResponse.redirect(new URL('/login?confirmed=true', requestUrl.origin))
+      if (type === 'signup' || type === 'invite' || type === 'magiclink') {
+        await supabase.auth.signOut()
+      }
+
+      if (type === 'recovery') {
+        const resetUrl = new URL('/reset-password', requestUrl.origin)
+        resetUrl.searchParams.set('token_hash', token_hash)
+        resetUrl.searchParams.set('type', type)
+        return NextResponse.redirect(resetUrl)
+      }
+
+      return NextResponse.redirect(new URL(next, requestUrl.origin))
     }
   }
 
-  // If verification failed, return user to login with an error flag
   return NextResponse.redirect(new URL('/login?error=confirmation_failed', requestUrl.origin))
 }

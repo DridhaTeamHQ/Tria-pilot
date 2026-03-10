@@ -1,66 +1,56 @@
 import { NextResponse } from 'next/server'
-import { createServiceClient } from '@/lib/auth'
 import { z } from 'zod'
-import crypto from 'crypto'
+import { createServiceClient } from '@/lib/auth'
 import { getPublicSiteUrlFromRequest } from '@/lib/site-url'
 import { sendEmail } from '@/lib/email/supabase-email'
-import { buildEmailConfirmationEmail, buildVerifyOtpUrl } from '@/lib/email/auth-email'
+import {
+  buildPasswordResetEmail,
+  buildResetPasswordUrl,
+} from '@/lib/email/auth-email'
 
-const resendSchema = z.object({
-  email: z.string().email().trim().toLowerCase(),
+const schema = z.object({
+  email: z.string().trim().toLowerCase().email().max(320),
 })
 
-/**
- * Resend email confirmation.
- * Uses a generic response to avoid account enumeration.
- */
 export async function POST(request: Request) {
   const genericOk = {
-    message: 'If an account exists and is pending confirmation, a confirmation email has been sent.',
+    message: 'If an account exists for that email, a password reset link has been sent.',
   }
 
   try {
     const body = await request.json().catch(() => null)
-    if (!body) {
-      return NextResponse.json({ error: 'Request body required' }, { status: 400 })
-    }
+    const { email } = schema.parse(body)
 
-    const { email } = resendSchema.parse(body)
     const service = createServiceClient()
-
     const { data: users } = await service.auth.admin.listUsers({ page: 1, perPage: 1000 })
-    const user = users?.users?.find((u: any) => u.email?.toLowerCase().trim() === email)
+    const user = users?.users?.find((entry) => entry.email?.trim().toLowerCase() === email)
 
-    if (!user || user.email_confirmed_at) {
+    if (!user?.email) {
       return NextResponse.json(genericOk)
     }
 
     const siteUrl = getPublicSiteUrlFromRequest(request)
-    const tempPassword = `${crypto.randomBytes(12).toString('base64url')}Aa1!`
-
     const { data, error } = await service.auth.admin.generateLink({
-      type: 'signup',
+      type: 'recovery',
       email,
-      password: tempPassword,
       options: {
-        redirectTo: `${siteUrl}/login?confirmed=true`,
+        redirectTo: `${siteUrl}/reset-password`,
       },
     })
 
     if (error || !data?.properties?.hashed_token) {
       if (error) {
-        console.error('Resend confirmation generateLink error:', error)
+        console.error('Forgot password generateLink error:', error)
       }
       return NextResponse.json(genericOk)
     }
 
-    const confirmUrl = buildVerifyOtpUrl(siteUrl, {
+    const resetUrl = buildResetPasswordUrl(siteUrl, {
       tokenHash: data.properties.hashed_token,
       type: data.properties.verification_type,
-      nextPath: '/login?confirmed=true',
     })
 
-    const template = buildEmailConfirmationEmail({ confirmUrl })
+    const template = buildPasswordResetEmail({ resetUrl })
     const result = await sendEmail({
       to: email,
       subject: template.subject,
@@ -69,15 +59,16 @@ export async function POST(request: Request) {
     })
 
     if (!result.ok && !result.skipped) {
-      console.error('Resend confirmation email failed:', result.error)
+      console.error('Forgot password email send failed:', result.error)
     }
 
     return NextResponse.json(genericOk)
   } catch (error) {
-    console.error('Resend confirmation error:', error)
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Invalid input' }, { status: 400 })
     }
+
+    console.error('Forgot password error:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
