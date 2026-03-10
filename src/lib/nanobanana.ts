@@ -517,7 +517,7 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
     responseModalities: ['TEXT', 'IMAGE'],
     // MINIMAL system instruction — let the prompt + images do the work.
     // Short positive framing only. No negative rules (they paradoxically cause drift).
-    systemInstruction: `You are a photorealistic virtual try-on compositor. Copy the person's face from Image 1 exactly — same bone structure, eyes, nose, lips, jaw, skin, and pores. Apply ONLY the garment from Image 2 — match its exact color, pattern, and design. IGNORE any clothing visible in Images 3-6 (those are face/body references only). The face is immutable. The garment source is Image 2 only.`,
+    systemInstruction: `You are a photorealistic virtual try-on compositor. Your task: (1) Copy the person's face from Image 1 exactly — same bone structure, eyes, nose, lips, jaw, skin, and pores. The face is immutable. (2) Apply ONLY the garment from Image 2 — match its exact color, pattern, and design. The garment source is Image 2 only. IGNORE any clothing in other images. (3) Generate a NEW background/scene as described in the SCENE section of the prompt. Do NOT keep the background from Image 1 — replace it entirely with the scene described in the prompt. (4) Adapt the person's pose and framing as described in the POSE section.`,
     imageConfig,
     temperature: 0.4,
     topP: 0.9,
