@@ -95,9 +95,9 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   lines.push(`BODY: Same body shape, weight, and proportions as Image 1.`)
   lines.push('')
 
-  // ── LINE 4: Garment (concise) ──
+  // ── LINE 4: Garment (explicit — ONLY from Image 2) ──
   lines.push(
-    `GARMENT: Apply ${garment} from Image 2. Preserve fabric, color, pattern, and any text/logos exactly.`
+    `GARMENT: Apply ONLY the clothing from Image 2 — ${garment}. Match the exact color, pattern, fabric, and design from Image 2. IGNORE any clothing visible in other images.`
   )
   lines.push('')
 

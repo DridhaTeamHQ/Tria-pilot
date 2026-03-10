@@ -39,41 +39,41 @@ export interface CharacterResolverResult {
  */
 const PRESET_ANGLE_MAP: Record<string, IdentityImageType[]> = {
     // Studio / front-facing presets
-    studio: ['face_front', 'body_front', 'face_smile'],
-    minimal: ['face_front', 'body_front'],
-    editorial: ['face_front', 'face_left', 'body_front'],
+    studio: ['face_front', 'face_smile'],
+    minimal: ['face_front', 'face_smile'],
+    editorial: ['face_front', 'face_left'],
 
     // Outdoor / candid presets
-    urban: ['face_left', 'body_front', 'face_front'],
-    street: ['face_left', 'body_left', 'face_front'],
-    rooftop: ['face_front', 'body_front', 'face_right'],
-    terrace: ['face_front', 'body_front', 'face_right'],
+    urban: ['face_left', 'face_front'],
+    street: ['face_left', 'face_front'],
+    rooftop: ['face_front', 'face_right'],
+    terrace: ['face_front', 'face_right'],
 
     // Profile / side shots
-    mirror: ['face_right', 'body_front', 'face_front'],
-    selfie: ['face_front', 'face_smile', 'body_front'],
+    mirror: ['face_right', 'face_front'],
+    selfie: ['face_front', 'face_smile'],
 
     // Nature / golden hour
-    golden: ['face_front', 'face_smile', 'body_front'],
-    sunset: ['face_left', 'body_front', 'face_front'],
-    garden: ['face_front', 'body_front', 'face_smile'],
+    golden: ['face_front', 'face_smile'],
+    sunset: ['face_left', 'face_front'],
+    garden: ['face_front', 'face_smile'],
 
     // Indoor / cozy
-    cafe: ['face_smile', 'face_front', 'body_front'],
-    restaurant: ['face_front', 'face_smile', 'body_front'],
-    library: ['face_front', 'body_front', 'face_left'],
+    cafe: ['face_smile', 'face_front'],
+    restaurant: ['face_front', 'face_smile'],
+    library: ['face_front', 'face_left'],
 
     // Action / movement
-    running: ['body_front', 'face_front', 'body_left'],
-    walking: ['body_left', 'face_left', 'body_front'],
+    running: ['face_front', 'face_left'],
+    walking: ['face_left', 'face_front'],
 
     // Night / dark
-    night: ['face_front', 'body_front', 'face_left'],
-    neon: ['face_front', 'face_left', 'body_front'],
+    night: ['face_front', 'face_left'],
+    neon: ['face_front', 'face_left'],
 }
 
-// Default if no preset match: front face + body + smile
-const DEFAULT_ANGLES: IdentityImageType[] = ['face_front', 'body_front', 'face_smile']
+// Default: front face + smile (FACE-ONLY — never body, body refs have competing clothing)
+const DEFAULT_ANGLES: IdentityImageType[] = ['face_front', 'face_smile']
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN RESOLVER
@@ -143,7 +143,7 @@ export async function resolveCharacterReferences(
                     usedTypes.add(angle)
                 }
             }
-            if (references.length >= 3) break  // Max 3 references
+            if (references.length >= 2) break  // Max 2 face-only references
         }
 
         // Second pass: if we still have < 2, add any available face image
@@ -157,24 +157,13 @@ export async function resolveCharacterReferences(
                         usedTypes.add(faceType)
                     }
                 }
-                if (references.length >= 3) break
+                if (references.length >= 2) break
             }
         }
 
-        // Third pass: if still < 2, add body references
-        if (references.length < 2) {
-            const bodyPriority: IdentityImageType[] = ['body_front', 'body_left', 'body_right']
-            for (const bodyType of bodyPriority) {
-                if (availableTypes.has(bodyType) && !usedTypes.has(bodyType)) {
-                    const ref = allImages.find(img => img.imageType === bodyType)
-                    if (ref) {
-                        references.push(ref)
-                        usedTypes.add(bodyType)
-                    }
-                }
-                if (references.length >= 3) break
-            }
-        }
+        // NOTE: Body references are intentionally excluded.
+        // Body shots show the person in DIFFERENT clothing, which causes Gemini
+        // to copy that outfit instead of the target garment from Image 2.
 
         return {
             available: allImages.length > 0,
