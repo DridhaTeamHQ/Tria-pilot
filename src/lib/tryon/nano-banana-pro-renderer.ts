@@ -122,11 +122,12 @@ export async function generateWithNanoBananaPro(
 
     const presetNames = getAllPresetIds()
 
-    // Try to load stored character metadata (extracted once on upload).
-    // If available, skip the per-request GPT-4o forensic call — saves $$ and ensures
-    // every generation for this user uses the EXACT SAME face description.
+    // ── CHARACTER METADATA (DISABLED — face was better without it) ────────
+    // The per-request GPT-4o forensic analysis was producing better face results.
+    // Stored metadata can be re-enabled via TRYON_USE_STORED_METADATA=true when ready.
+    const useStoredMetadata = process.env.TRYON_USE_STORED_METADATA === 'true'
     let storedMetadata: CharacterMetadata | null = null
-    if (input.userId) {
+    if (useStoredMetadata && input.userId) {
       try {
         storedMetadata = await loadCharacterMetadata(input.userId)
         if (storedMetadata && isDev) {
@@ -162,7 +163,7 @@ export async function generateWithNanoBananaPro(
         buildSceneFallback(input)
       ),
       detectFaceCoordinates(input.personImageBase64, { allowHeuristicFallback: true }),
-      // Use stored metadata if available, otherwise fall back to per-request GPT-4o
+      // Use stored metadata if enabled, otherwise per-request GPT-4o (default — better face quality)
       storedMetadata
         ? Promise.resolve({
           faceAnchor: storedMetadata.faceAnchor,
@@ -186,17 +187,16 @@ export async function generateWithNanoBananaPro(
         ),
     ])
 
-    // ── CHARACTER REFERENCES ──────────────────────────────────────────────
-    // Resolve multi-angle identity images from the user's character profile.
-    // Like Higgsfield, sending 2-3 angle-specific photos dramatically improves
-    // face consistency by giving Gemini multiple views of the same person.
+    // ── CHARACTER REFERENCES (DISABLED — adding extra face images increased face drift) ──
+    // The pipeline produces better faces with just person + face crop + forensic prompt.
+    // Can be re-enabled via TRYON_USE_CHARACTER_REFS=true when properly tuned.
+    const useCharacterRefs = process.env.TRYON_USE_CHARACTER_REFS === 'true'
     let characterReferenceBase64s: { base64: string; label: string }[] | undefined
-    if (input.userId) {
+    if (useCharacterRefs && input.userId) {
       try {
         const charResult = await resolveCharacterReferences(input.userId, input.presetId)
         if (charResult.available && charResult.references.length > 0) {
           if (isDev) console.log(`   🪞 Character: ${charResult.references.length} references found (complete=${charResult.complete})`)
-          // Download images as base64 in parallel
           const downloaded = await Promise.all(
             charResult.references.map(async (ref) => {
               const base64 = await fetchImageAsBase64(ref.imageUrl)
