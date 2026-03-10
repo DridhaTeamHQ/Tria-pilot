@@ -436,20 +436,35 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
 
   if (process.env.NODE_ENV !== 'production') console.log(`🍌 DIRECT TRANSPORT: gemini-3-pro-image-preview | prompt: ${prompt.length} chars`)
 
-  // IMAGE-FIRST ordering: Person image anchors identity before any text.
-  // Minimal bridging text — let the images speak for themselves.
+  // IMAGE ORDERING — critical for correct garment application:
+  // Image 1: Person (identity anchor)
+  // Image 2: Garment (THE target clothing — must come early so Gemini prioritizes it)
+  // Image 3: Face crop (face-only close-up for identity reinforcement)
+  // Image 4+: Character refs (face/body angles — explicitly labeled to IGNORE clothing)
+  // Prompt: full instructions LAST
   const contents: ContentListUnion = [
-    // Person image FIRST — establishes the identity anchor
+    // Image 1: Person — establishes the identity anchor
     {
       inlineData: {
         data: cleanPerson,
         mimeType: 'image/jpeg',
       },
     } as any,
-    // Minimal label — avoid drowning images with text
     'Image 1: the person. Copy this face exactly.',
   ]
 
+  // Image 2: Garment — IMMEDIATELY after person so Gemini knows what to apply
+  contents.push(
+    {
+      inlineData: {
+        data: cleanGarment,
+        mimeType: 'image/jpeg',
+      },
+    } as any,
+    'Image 2: the TARGET GARMENT. Apply THIS clothing to the person from Image 1. Match the exact color, pattern, fabric, and design from this image. Preserve text and logos.'
+  )
+
+  // Image 3: Face crop — face-only close-up for identity reinforcement
   if (faceCropBase64 && faceCropBase64.length > 100) {
     const cleanFaceCrop = faceCropBase64.replace(/^data:image\/[a-z]+;base64,/, '')
     if (cleanFaceCrop.length > 100) {
@@ -461,15 +476,16 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
             mimeType: 'image/jpeg',
           },
         } as any,
-        'Image 3: face close-up reference.'
+        'Image 3: face close-up of the person from Image 1. Use for identity reinforcement only.'
       )
     }
   }
 
-  // CHARACTER REFERENCES: Multi-angle identity images (like Higgsfield)
-  // These give Gemini multiple views of the same person for much better face consistency.
+  // Image 4+: Character references — multi-angle identity photos
+  // CRITICAL: These show the person in DIFFERENT outfits. Must explicitly tell Gemini
+  // to ONLY use the face/body shape and IGNORE any clothing in these images.
   if (characterReferenceBase64s && characterReferenceBase64s.length > 0) {
-    let refIdx = 4  // Start numbering after Image 1 (person), Image 2 (garment), Image 3 (face crop)
+    let refIdx = 4
     for (const ref of characterReferenceBase64s) {
       const cleanRef = ref.base64.replace(/^data:image\/[a-z]+;base64,/, '')
       if (cleanRef && cleanRef.length > 100) {
@@ -481,23 +497,12 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
               mimeType: 'image/jpeg',
             },
           } as any,
-          `Image ${refIdx}: ${ref.label} — same person as Image 1, different angle.`
+          `Image ${refIdx}: ${ref.label} — same person as Image 1, different angle. Use ONLY for face/body identity. IGNORE any clothing in this image. The ONLY garment to apply is from Image 2.`
         )
         refIdx++
       }
     }
   }
-
-  // Garment image — after identity is established
-  contents.push(
-    {
-      inlineData: {
-        data: cleanGarment,
-        mimeType: 'image/jpeg',
-      },
-    } as any,
-    'Image 2: the garment. Apply this clothing to the person. Preserve text and logos.'
-  )
 
   // Full prompt text LAST — instructions build on the visual context already established
   contents.push(prompt)
@@ -512,7 +517,7 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
     responseModalities: ['TEXT', 'IMAGE'],
     // MINIMAL system instruction — let the prompt + images do the work.
     // Short positive framing only. No negative rules (they paradoxically cause drift).
-    systemInstruction: `You are a photorealistic virtual try-on compositor. Copy the person's face from Image 1 exactly — same bone structure, eyes, nose, lips, jaw, skin, and pores. Apply the garment from Image 2. The face is immutable.`,
+    systemInstruction: `You are a photorealistic virtual try-on compositor. Copy the person's face from Image 1 exactly — same bone structure, eyes, nose, lips, jaw, skin, and pores. Apply ONLY the garment from Image 2 — match its exact color, pattern, and design. IGNORE any clothing visible in Images 3-6 (those are face/body references only). The face is immutable. The garment source is Image 2 only.`,
     imageConfig,
     temperature: 0.4,
     topP: 0.9,
