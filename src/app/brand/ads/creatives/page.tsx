@@ -285,7 +285,7 @@ function CreativeCard({
                             History
                         </button>
                     </div>
-                    <div className="grid grid-cols-1 gap-2 pt-1 min-[420px]:grid-cols-2">
+                    <div className="grid grid-cols-2 gap-2 pt-1">
                         <button
                             type="button"
                             onClick={(e) => {
@@ -294,14 +294,14 @@ function CreativeCard({
                             }}
                             disabled={regenerating || inpainting}
                             className={cn(
-                                'flex min-h-[44px] items-center justify-center gap-2 px-3 py-2.5 text-center border-[2px] border-black text-[11px] sm:text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
+                                'flex min-h-[44px] items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-center border-[2px] border-black text-[10px] sm:text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
                                 regenerating
                                     ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                                     : 'bg-[#FF8C69] hover:bg-[#ff9d7d] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
                             )}
                         >
-                            {regenerating ? <BrutalLoader size="sm" className="!min-h-0" /> : <RefreshCw className="h-3.5 w-3.5" />}
-                            <span>Regen</span>
+                            {regenerating ? <BrutalLoader size="sm" className="!min-h-0" /> : <RefreshCw className="h-3.5 w-3.5 shrink-0" />}
+                            <span className="truncate">Redo</span>
                         </button>
                         <button
                             type="button"
@@ -311,14 +311,14 @@ function CreativeCard({
                             }}
                             disabled={regenerating || inpainting}
                             className={cn(
-                                'flex min-h-[44px] items-center justify-center gap-2 px-3 py-2.5 text-center border-[2px] border-black text-[11px] sm:text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
+                                'flex min-h-[44px] items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-center border-[2px] border-black text-[10px] sm:text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
                                 inpainting
                                     ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                                     : 'bg-[#FFD93D] hover:bg-[#ffe37a] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
                             )}
                         >
-                            {inpainting ? <BrutalLoader size="sm" className="!min-h-0" /> : <Wand2 className="h-3.5 w-3.5" />}
-                            <span>{creative.isEdited ? 'Edit Again' : 'Inpaint'}</span>
+                            {inpainting ? <BrutalLoader size="sm" className="!min-h-0" /> : <Wand2 className="h-3.5 w-3.5 shrink-0" />}
+                            <span className="truncate">{creative.isEdited ? 'Re-edit' : 'Edit'}</span>
                         </button>
                         <button
                             type="button"
@@ -326,10 +326,10 @@ function CreativeCard({
                                 e.stopPropagation()
                                 onViewHistory()
                             }}
-                            className="flex min-h-[44px] items-center justify-center gap-2 px-3 py-2.5 text-center border-[2px] border-black bg-[#C3B1E1] text-[11px] sm:text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                            className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-center border-[2px] border-black bg-[#C3B1E1] text-[10px] sm:text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
                         >
-                            <GitBranch className="h-3.5 w-3.5" />
-                            History
+                            <GitBranch className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">History</span>
                         </button>
                         <button
                             type="button"
@@ -337,10 +337,10 @@ function CreativeCard({
                                 e.stopPropagation()
                                 onDownload()
                             }}
-                            className="flex min-h-[44px] items-center justify-center gap-2 px-3 py-2.5 text-center bg-black text-white border-[2px] border-black font-black text-[11px] sm:text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-black/90 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                            className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-center bg-black text-white border-[2px] border-black font-black text-[10px] sm:text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-black/90 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
                         >
-                            <Download className="h-3.5 w-3.5" />
-                            <span>Download</span>
+                            <Download className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">Save</span>
                         </button>
                     </div>
                 </div>
@@ -1012,6 +1012,7 @@ export default function CreativesPage() {
         </motion.div>
     )
 }
+
 
 
 
