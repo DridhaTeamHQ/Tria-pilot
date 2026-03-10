@@ -972,7 +972,7 @@ export default function CreativesPage() {
                         variants={staggerContainer}
                         initial="initial"
                         animate="animate"
-                        className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3"
+                        className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3"
                     >
                         {filteredCreatives.map((creative) => (
                             <CreativeCard
@@ -1012,6 +1012,7 @@ export default function CreativesPage() {
         </motion.div>
     )
 }
+
 
 
 
