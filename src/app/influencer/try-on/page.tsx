@@ -95,6 +95,7 @@ function TryOnPageContent() {
     const [presets, setPresets] = useState<TryOnPreset[]>([])
     const [presetsLoading, setPresetsLoading] = useState(true)
     const [presetCategories, setPresetCategories] = useState<string[]>([])
+    const selectedPresetDetails = presets.find((preset) => preset.id === selectedPreset) ?? null
 
     // Fetch presets
     useEffect(() => {
@@ -945,8 +946,10 @@ function TryOnPageContent() {
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.2 }}
-                            className="p-3 sm:p-6 bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] space-y-4 sm:space-y-6"
+                            className="relative overflow-hidden p-3 sm:p-6 bg-[linear-gradient(180deg,#FFFFFF_0%,#FFF8F0_100%)] border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] space-y-4 sm:space-y-6"
                         >
+                            <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border-[3px] border-black/70 bg-[#FFD93D]/40" />
+                            <div className="pointer-events-none absolute bottom-6 right-6 h-16 w-16 rounded-2xl border-[3px] border-black/50 bg-[#FF8C69]/15 rotate-12" />
                             <h3 className="font-serif text-xl text-charcoal flex items-center gap-2">
                                 <Upload className="w-5 h-5 text-peach" />
                                 Upload Images
@@ -1391,6 +1394,26 @@ function TryOnPageContent() {
                                 </div>
                             </div>
 
+                            {selectedPresetDetails && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="mb-4 flex flex-col gap-3 rounded-[24px] border-[3px] border-black bg-[linear-gradient(135deg,#FFF7E8_0%,#FFE0CC_100%)] px-4 py-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:flex-row sm:items-center sm:justify-between"
+                                >
+                                    <div>
+                                        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-black/50">Selected preset</p>
+                                        <h4 className="mt-1 text-lg font-black uppercase text-black">{selectedPresetDetails.name}</h4>
+                                        <p className="text-sm font-bold text-black/60">
+                                            {selectedPresetDetails.category}{selectedPresetDetails.faceStability === 'max' ? ' / face lock max' : ''}
+                                        </p>
+                                    </div>
+                                    <div className="inline-flex items-center gap-2 self-start rounded-full border-[3px] border-black bg-white px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                                        <Sparkles className="h-4 w-4" />
+                                        Ready for styling
+                                    </div>
+                                </motion.div>
+                            )}
+
                             {presetsLoading ? (
                                 <div className="flex items-center justify-center py-8">
                                     <Loader2 className="w-6 h-6 animate-spin text-peach" />
@@ -1430,12 +1453,13 @@ function TryOnPageContent() {
                                         <button type="button"
                                             onClick={() => setSelectedPreset('')}
                                             className={`
-                                                flex-shrink-0 group relative p-3 border-[3px] border-black text-left transition-all duration-200 overflow-hidden h-32 w-40 bg-white
+                                                flex-shrink-0 group relative p-3 border-[3px] border-black text-left transition-all duration-200 overflow-hidden h-32 w-40 bg-[linear-gradient(180deg,#FFFFFF_0%,#F7F7F7_100%)]
                                                 ${selectedPreset === ''
                                                     ? 'bg-[#FFD93D] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] translate-x-[2px] translate-y-[2px]'
-                                                    : 'hover:bg-gray-50 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[2px] hover:-translate-y-[2px]'}
+                                                    : 'hover:bg-gray-50 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[2px] hover:-translate-y-[2px] hover:rotate-[-1deg]'}
                                             `}
                                         >
+                                            <div className="absolute inset-x-0 top-0 h-2 bg-[#FFD93D] border-b-[2px] border-black" />
                                             <div className="relative z-10 flex flex-col h-full justify-between">
                                                 <div className={`w-8 h-8 rounded-full mb-2 flex items-center justify-center ${selectedPreset === '' ? 'bg-white/10' : 'bg-charcoal/5'}`}>
                                                     <X className="w-4 h-4" />
@@ -1470,8 +1494,8 @@ function TryOnPageContent() {
                                                         className={`
                                                             flex-shrink-0 group relative p-3 border-[3px] border-black text-left transition-all duration-200 overflow-hidden h-32 w-40
                                                             ${selectedPreset === preset.id
-                                                                ? 'ring-4 ring-[#FFD93D] ring-offset-2 ring-offset-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
-                                                                : 'border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1'}
+                                                                ? 'ring-4 ring-[#FFD93D] ring-offset-2 ring-offset-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] scale-[1.01]'
+                                                                : 'border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 hover:rotate-[-1deg]'}
                                                         `}
                                                     >
                                                         {/* Solid Backgrounds instead of Gradient */}
@@ -1484,7 +1508,9 @@ function TryOnPageContent() {
                                                                                 preset.category === 'travel' ? 'bg-[#EEF1FF]' :
                                                                                     'bg-gray-100'
                                                             }`} />
+                                                        <div className="absolute inset-x-0 top-0 h-2 bg-[#FFD93D] border-b-[2px] border-black z-0" />
                                                         <div className="absolute inset-0 border-b-[3px] border-black z-0 opacity-10" />
+                                                        <div className="absolute right-3 bottom-3 z-0 h-10 w-10 rounded-full border-[2px] border-black/20 bg-white/30" />
 
                                                         <div className="relative z-10 h-full flex flex-col justify-between">
                                                             {/* Category Badge */}
@@ -1588,7 +1614,7 @@ function TryOnPageContent() {
                             initial={{ opacity: 0, scale: 0.98 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: 0.5 }}
-                            className="relative bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] min-h-[380px] sm:min-h-[500px] flex flex-col"
+                            className="relative overflow-hidden bg-[linear-gradient(180deg,#FFFFFF_0%,#FFF8F0_100%)] border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] min-h-[380px] sm:min-h-[500px] flex flex-col"
                         >
                             {/* Loading state takes priority - shows animation every time */}
                             {loading ? (
@@ -1845,7 +1871,7 @@ export default function TryOnPage() {
     return (
         <Suspense fallback={
             <div className="min-h-screen bg-[#FDFBF7] pt-24 flex items-center justify-center">
-                <BrutalLoader size="lg" />
+                <BrutalLoader size="lg" tone="influencer" label="Generating try-on" />
             </div>
         }>
             <TryOnPageContent />
