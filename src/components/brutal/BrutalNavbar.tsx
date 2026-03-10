@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
     Menu,
     X,
-    LogOut,
     Sparkles,
     Camera,
     ShoppingBag,
@@ -21,6 +20,7 @@ import {
 } from "lucide-react";
 import { useUser } from "@/lib/react-query/hooks";
 import { useQueryClient } from "@tanstack/react-query";
+import LogoutButton from "@/components/LogoutButton";
 
 export default function BrutalNavbar() {
     const pathname = usePathname();
@@ -190,14 +190,10 @@ export default function BrutalNavbar() {
                                 <div className="w-10 h-10 rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black">
                                     {userInitial}
                                 </div>
-                                <button type="button"
+                                <LogoutButton
                                     onClick={() => void handleLogout()}
                                     disabled={isLoggingOut}
-                                    className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-black border-2 border-black rounded-xl bg-white hover:bg-red-100 hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                                >
-                                    <LogOut className="w-4 h-4" />
-                                    Logout
-                                </button>
+                                />
                             </div>
                         ) : (
                             <div className="hidden md:flex items-center gap-3">
@@ -285,17 +281,14 @@ export default function BrutalNavbar() {
                                         );
                                     })}
 
-                                    <button type="button"
+                                    <LogoutButton
                                         onClick={() => {
                                             void handleLogout();
                                             setMobileMenuOpen(false);
                                         }}
-                                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 bg-white border-2 border-black hover:bg-red-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                                         disabled={isLoggingOut}
-                                    >
-                                        <LogOut className="w-5 h-5" />
-                                        Logout
-                                    </button>
+                                        fullWidth
+                                    />
                                 </>
                             ) : (
                                 <>

@@ -10,11 +10,11 @@ import {
   Package,
   Inbox,
   User,
-  LogOut,
   Menu,
   X,
   ChevronRight,
 } from 'lucide-react'
+import LogoutButton from '@/components/LogoutButton'
 
 const navItems = [
   { href: '/brand/campaigns', label: 'Campaigns', icon: Target },
@@ -97,16 +97,11 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
             <div className="w-9 h-9 rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black text-sm">
               {brandName?.charAt(0)?.toUpperCase() || 'B'}
             </div>
-            <button
-              type="button"
+            <LogoutButton
               onClick={() => void handleLogout()}
               disabled={isLoggingOut}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-bold text-black border-2 border-black rounded-xl bg-white hover:bg-red-100 hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
               title="Logout"
-            >
-              <LogOut className="w-4 h-4" />
-              Logout
-            </button>
+            />
           </div>
 
           <button
@@ -145,18 +140,15 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
             })}
 
             <div className="pt-2 border-t-2 border-black mt-2">
-              <button
-                type="button"
+              <LogoutButton
                 onClick={() => {
                   setMobileOpen(false)
                   void handleLogout()
                 }}
                 disabled={isLoggingOut}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 bg-white border-2 border-black hover:bg-red-50 transition-colors font-bold text-base disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                <LogOut className="w-5 h-5" />
-                Logout
-              </button>
+                fullWidth
+                className="text-base"
+              />
             </div>
           </div>
         </div>

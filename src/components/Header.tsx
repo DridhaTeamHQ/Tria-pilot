@@ -8,7 +8,6 @@ import { toast } from 'sonner'
 import {
     Menu,
     X,
-    LogOut,
     Sparkles,
     Camera,
     ShoppingBag,
@@ -19,6 +18,7 @@ import {
     Megaphone,
     BarChart3,
 } from 'lucide-react'
+import LogoutButton from '@/components/LogoutButton'
 import { useUser } from '@/lib/react-query/hooks'
 import { useQueryClient } from '@tanstack/react-query'
 
@@ -223,14 +223,12 @@ export default function Header() {
                                 >
                                     {userInitial}
                                 </div>
-                                <button type="button"
+                                <LogoutButton
                                     onClick={handleLogout}
-                                    data-cursor="Logout"
-                                    className={`flex items-center gap-2 text-sm transition-colors duration-200 ${linkColor} ${isLoggingOut ? "opacity-60 cursor-not-allowed" : ""}`} disabled={isLoggingOut}
-                                >
-                                    <LogOut className="w-4 h-4" />
-                                    Logout
-                                </button>
+                                    dataCursor="Logout"
+                                    disabled={isLoggingOut}
+                                    className="border-charcoal bg-[#FF6B57] shadow-[3px_3px_0px_0px_rgba(17,17,17,1)] hover:bg-[#FF5A45]"
+                                />
                             </div>
                         ) : (
                             <div className="hidden md:flex items-center gap-4">
@@ -312,16 +310,16 @@ export default function Header() {
                                         )
                                     })}
 
-                                    <button type="button"
+                                    <LogoutButton
                                         onClick={() => {
                                             void handleLogout()
                                             setMobileMenuOpen(false)
                                         }}
-                                        className="w-full flex items-center justify-center gap-3 px-4 py-3 mt-2 border-[3px] border-charcoal bg-white text-charcoal font-bold uppercase tracking-wider rounded-xl shadow-[4px_4px_0px_0px_rgba(17,17,17,1)] hover:bg-charcoal hover:text-white hover:shadow-none transition-all active:translate-x-[2px] active:translate-y-[2px] disabled:opacity-60 disabled:cursor-not-allowed"
-                                    >
-                                        <LogOut className="w-5 h-5" />
-                                        Logout
-                                    </button>
+                                        disabled={isLoggingOut}
+                                        fullWidth
+                                        dataCursor="Logout"
+                                        className="mt-2 border-[3px] border-charcoal shadow-[4px_4px_0px_0px_rgba(17,17,17,1)]"
+                                    />
                                 </>
                             ) : (
                                 <>
