@@ -166,10 +166,11 @@ export default function GenerationsPage() {
                     <motion.span
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="inline-flex max-w-full items-center gap-1 px-2 py-1 bg-[#98FB98] text-black text-[10px] sm:text-xs font-bold rounded-lg border-[2px] border-black whitespace-nowrap"
+                        className="inline-flex w-fit max-w-full items-center gap-1 px-2 py-1 bg-[#98FB98] text-black text-[10px] sm:text-xs font-bold rounded-lg border-[2px] border-black self-start"
                     >
                         <CheckCircle2 className="w-3 h-3" />
-                        Completed
+                        <span className="hidden min-[400px]:inline">Completed</span>
+                        <span className="min-[400px]:hidden">Done</span>
                     </motion.span>
                 )
             case 'PROCESSING':
@@ -178,10 +179,11 @@ export default function GenerationsPage() {
                     <motion.span
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="inline-flex max-w-full items-center gap-1 px-2 py-1 bg-[#FFD93D] text-black text-[10px] sm:text-xs font-bold rounded-lg border-[2px] border-black whitespace-nowrap"
+                        className="inline-flex w-fit max-w-full items-center gap-1 px-2 py-1 bg-[#FFD93D] text-black text-[10px] sm:text-xs font-bold rounded-lg border-[2px] border-black self-start"
                     >
                         <Clock className="w-3 h-3 animate-pulse" />
-                        Processing
+                        <span className="hidden min-[400px]:inline">Processing</span>
+                        <span className="min-[400px]:hidden">Pending</span>
                     </motion.span>
                 )
             case 'FAILED':
@@ -190,7 +192,7 @@ export default function GenerationsPage() {
                     <motion.span
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="inline-flex max-w-full items-center gap-1 px-2 py-1 bg-[#FF6B6B] text-black text-[10px] sm:text-xs font-bold rounded-lg border-[2px] border-black whitespace-nowrap"
+                        className="inline-flex w-fit max-w-full items-center gap-1 px-2 py-1 bg-[#FF6B6B] text-black text-[10px] sm:text-xs font-bold rounded-lg border-[2px] border-black self-start"
                     >
                         <XCircle className="w-3 h-3" />
                         Failed
@@ -198,7 +200,7 @@ export default function GenerationsPage() {
                 )
             default:
                 return (
-                    <span className="inline-flex max-w-full items-center gap-1 px-2 py-1 bg-gray-100 text-black text-[10px] sm:text-xs font-bold rounded-lg border-[2px] border-black whitespace-nowrap">
+                    <span className="inline-flex w-fit max-w-full items-center gap-1 px-2 py-1 bg-gray-100 text-black text-[10px] sm:text-xs font-bold rounded-lg border-[2px] border-black self-start">
                         {status}
                     </span>
                 )
