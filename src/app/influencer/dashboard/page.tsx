@@ -51,90 +51,6 @@ const cardVariants = {
   }
 }
 
-function VirtualTryOnSpotlightCard() {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.12, type: 'spring', stiffness: 220, damping: 22 }}
-      className="mb-10 sm:mb-12"
-    >
-      <Link
-        href="/influencer/try-on"
-        className="group block overflow-hidden rounded-[32px] border-[3px] border-black bg-gradient-to-br from-[#FFB36B] via-[#FF8C69] to-[#FFD93D] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]"
-      >
-        <div className="relative isolate overflow-hidden px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
-          <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full border-[3px] border-black/80 bg-white/35 sm:h-40 sm:w-40" />
-          <div className="pointer-events-none absolute right-8 top-8 h-16 w-16 rounded-full border-[3px] border-black/70 bg-[#FFF7E8]/70 sm:h-20 sm:w-20" />
-          <div className="pointer-events-none absolute -bottom-12 left-1/2 h-32 w-32 -translate-x-1/2 rounded-full border-[3px] border-black/60 bg-[#FFE6C7]/45 blur-[2px] sm:h-40 sm:w-40" />
-
-          <div className="relative z-10 grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(260px,0.8fr)] lg:items-end">
-            <div className="max-w-2xl">
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-white px-3 py-1 text-[11px] font-black uppercase tracking-[0.24em] text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:text-xs">
-                <Sparkles className="h-4 w-4" />
-                Main Studio Entry
-              </div>
-              <h2 className="max-w-xl text-3xl font-black uppercase leading-[0.95] text-black sm:text-4xl lg:text-5xl">
-                Virtual Try-On
-              </h2>
-              <p className="mt-3 max-w-xl text-sm font-semibold leading-6 text-black/75 sm:text-base">
-                Upload your photo, test outfits, and generate polished looks from one fast studio built for creators.
-              </p>
-
-              <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                {['Upload photo', 'Pick clothing', 'Generate looks'].map((step) => (
-                  <span
-                    key={step}
-                    className="inline-flex items-center justify-center rounded-full border-[3px] border-black bg-[#FFF7E8] px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-                  >
-                    {step}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="relative z-10 rounded-[28px] border-[3px] border-black bg-[#FFF7E8]/90 p-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] backdrop-blur-sm sm:p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.24em] text-black/55">Studio flow</p>
-                  <p className="mt-2 text-xl font-black text-black sm:text-2xl">Create a new look</p>
-                </div>
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border-[3px] border-black bg-[#B4F056] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                  <Camera className="h-6 w-6 text-black" />
-                </div>
-              </div>
-
-              <div className="mt-5 grid grid-cols-3 gap-3 text-center">
-                {[
-                  { label: 'Photo', value: '1' },
-                  { label: 'Garment', value: '2' },
-                  { label: 'Looks', value: '3' },
-                ].map((item) => (
-                  <div
-                    key={item.label}
-                    className="rounded-2xl border-[3px] border-black bg-white px-3 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-                  >
-                    <div className="text-lg font-black text-black">{item.value}</div>
-                    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-black/55 sm:text-xs">{item.label}</div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-5 flex items-center justify-between rounded-2xl border-[3px] border-black bg-black px-4 py-3 text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-1">
-                <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.22em] text-white/60">Open studio</p>
-                  <p className="text-base font-black sm:text-lg">Start new try-on</p>
-                </div>
-                <ArrowRight className="h-6 w-6 shrink-0" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </Link>
-    </motion.div>
-  )
-}
-
 export default function InfluencerDashboard() {
   const router = useRouter()
   const { data: user } = useUser()
@@ -369,8 +285,6 @@ export default function InfluencerDashboard() {
             </div>
           </div>
         </motion.div>
-
-        <VirtualTryOnSpotlightCard />
 
         {/* Stats Grid */}
         <motion.div

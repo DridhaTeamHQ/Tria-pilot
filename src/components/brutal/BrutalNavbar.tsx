@@ -142,9 +142,9 @@ export default function BrutalNavbar() {
 
                     {/* Desktop Navigation - Center */}
                     {authResolving ? (
-                        <div className="hidden md:flex flex-1 items-center justify-center" />
+                        <div className="hidden lg:flex flex-1 items-center justify-center" />
                     ) : isLoggedIn ? (
-                        <nav className="hidden md:flex flex-1 items-center justify-center gap-2 lg:gap-3 px-4">
+                        <nav className="hidden lg:flex flex-1 items-center justify-center gap-2 lg:gap-3 px-4">
                             {links.map((link) => {
                                 const Icon = link.icon;
                                 const active = isActive(link.href);
@@ -153,7 +153,7 @@ export default function BrutalNavbar() {
                                         key={link.href}
                                         href={link.href}
                                         prefetch={true}
-                                        className={`px-3 lg:px-4 py-2 rounded-xl text-sm font-bold transition-all duration-150 flex items-center justify-center whitespace-nowrap gap-1.5 lg:gap-2 border-2 border-black ${active
+                                        className={`px-3 xl:px-4 py-2 rounded-xl text-sm font-bold transition-all duration-150 flex items-center justify-center whitespace-nowrap gap-1.5 xl:gap-2 border-2 border-black ${active
                                             ? "bg-[#FF8C69] text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
                                             : "bg-white text-black hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
                                             }`}
@@ -165,7 +165,7 @@ export default function BrutalNavbar() {
                             })}
                         </nav>
                     ) : (
-                        <nav className="hidden md:flex flex-1 items-center justify-center gap-6 text-base font-bold text-black px-4">
+                        <nav className="hidden lg:flex flex-1 items-center justify-center gap-6 text-base font-bold text-black px-4">
                             {publicLinks.map((link) => (
                                 <Link
                                     key={link.href}
@@ -182,11 +182,11 @@ export default function BrutalNavbar() {
                     {/* Right Side Actions */}
                     <div className="flex items-center gap-4 shrink-0">
                         {authResolving ? (
-                            <div className="hidden md:flex items-center gap-3">
+                            <div className="hidden lg:flex items-center gap-3">
                                 <div className="w-24 h-11 rounded-xl border-2 border-black bg-white animate-pulse" />
                             </div>
                         ) : isLoggedIn ? (
-                            <div className="hidden md:flex items-center gap-3">
+                            <div className="hidden lg:flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black">
                                     {userInitial}
                                 </div>
@@ -196,7 +196,7 @@ export default function BrutalNavbar() {
                                 />
                             </div>
                         ) : (
-                            <div className="hidden md:flex items-center gap-3">
+                            <div className="hidden lg:flex items-center gap-3">
                                 {/* Log In - Outlined */}
                                 <Link
                                     href="/login"
@@ -220,7 +220,7 @@ export default function BrutalNavbar() {
 
                         {/* Mobile Menu Toggle */}
                         <button type="button"
-                            className="md:hidden p-2 rounded-xl border-2 border-black bg-white hover:bg-[#F9F8F4] transition-colors"
+                            className="lg:hidden p-2 rounded-xl border-2 border-black bg-white hover:bg-[#F9F8F4] transition-colors"
                             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                         >
                             {mobileMenuOpen ? (
@@ -241,7 +241,7 @@ export default function BrutalNavbar() {
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="md:hidden bg-[#F9F8F4] border-t-2 border-black"
+                        className="lg:hidden bg-[#F9F8F4] border-t-2 border-black"
                     >
                         <div className="container mx-auto px-4 sm:px-6 py-4 space-y-3 max-h-[calc(100dvh-4rem)] overflow-y-auto">
                             {authResolving ? (
