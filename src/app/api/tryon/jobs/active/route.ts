@@ -3,6 +3,10 @@ import { createClient, createServiceClient } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
+// Jobs older than this are considered stale and auto-expired.
+// Normal generation takes 30-90s. 5 minutes is very generous.
+const STALE_JOB_THRESHOLD_MINUTES = 5
+
 export async function GET() {
   try {
     const supabase = await createClient()
@@ -15,6 +19,17 @@ export async function GET() {
     }
 
     const service = createServiceClient()
+
+    // AUTO-EXPIRE: Mark any job stuck in pending/processing for > 5 minutes as failed.
+    // This prevents infinite polling loops when a job crashes, times out, or the server restarts.
+    await service
+      .from('generation_jobs')
+      .update({ status: 'failed', updated_at: new Date().toISOString() })
+      .eq('user_id', authUser.id)
+      .in('status', ['pending', 'processing'])
+      .lt('created_at', new Date(Date.now() - STALE_JOB_THRESHOLD_MINUTES * 60 * 1000).toISOString())
+
+    // Now fetch the active job (if any remain after cleanup)
     const { data: activeJob, error } = await service
       .from('generation_jobs')
       .select('id, status, created_at, updated_at')
