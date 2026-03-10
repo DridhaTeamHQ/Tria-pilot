@@ -95,9 +95,9 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   lines.push(`BODY: Same body shape, weight, and proportions as Image 1.`)
   lines.push('')
 
-  // ── LINE 4: Garment (explicit — ONLY from Image 2) ──
+  // ── LINE 4: Garment (explicit — ONLY from Image 2, full outfit) ──
   lines.push(
-    `GARMENT: Apply ONLY the clothing from Image 2 — ${garment}. Match the exact color, pattern, fabric, and design from Image 2. IGNORE any clothing visible in other images.`
+    `GARMENT: Apply the FULL OUTFIT from Image 2 — ${garment}. Include ALL pieces (top, bottom, layers, accessories) visible in Image 2. Match the exact color of each piece, pattern, fabric, and design. IGNORE any clothing visible in other images.`
   )
   lines.push('')
 
@@ -112,9 +112,15 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   }
   lines.push('')
 
-  // ── LINE 6: Quality (one line) ──
+  // ── LINE 5b: Pose/Camera (from preset camera guidance) ──
+  if (input.cameraGuidance) {
+    lines.push(`POSE: Use the framing and composition from the preset: ${input.cameraGuidance}. The person should naturally fit this scene.`)
+    lines.push('')
+  }
+
+  // ── LINE 6: Quality (sharp background + natural skin) ──
   lines.push(
-    `OUTPUT: Photorealistic candid photo, natural skin with visible pores, aspect ratio ${aspectRatio}.`
+    `OUTPUT: Photorealistic candid photo, natural skin with visible pores, sharp in-focus background with realistic texture and detail, aspect ratio ${aspectRatio}.`
   )
 
   // ── LINE 7: Retry (only on retry, minimal) ──

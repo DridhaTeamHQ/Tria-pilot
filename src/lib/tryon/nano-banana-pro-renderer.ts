@@ -241,6 +241,10 @@ export async function generateWithNanoBananaPro(
     const isComplexBackgroundPreset = COMPLEX_BACKGROUND_PRESETS.has((resolvedPresetId || '').toLowerCase())
 
 
+    // Look up the preset's camera/pose guidance
+    const resolvedPreset = getPresetById(resolvedPresetId || '')
+    const presetCamera = resolvedPreset?.camera
+
     const promptInput = {
       garmentDescription: input.garmentDescription,
       preset: sceneConfig.anchorZone,
@@ -249,6 +253,7 @@ export async function generateWithNanoBananaPro(
       hasFaceReference: Boolean(faceCropResult.success && faceCropResult.faceCropBase64),
       aspectRatio: input.aspectRatio || '1:1',
       retryMode: false, // Only set true during actual retries, not first pass
+      cameraGuidance: presetCamera, // Pass preset camera/pose to the prompt
     }
     const prompt = buildForensicPrompt(promptInput)
 
