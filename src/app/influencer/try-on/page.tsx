@@ -876,6 +876,13 @@ function TryOnPageContent() {
         (editType === 'clothing_change' && !hasClothingInput) ||
         (editType === 'background_change' && !hasBackgroundInput)
     const isGenerateDisabled = loading || retryAfterSeconds > 0 || missingRequiredInput
+    const canGenerateNow = !loading && retryAfterSeconds === 0 && !missingRequiredInput
+    const setupSteps = [
+        { label: 'Photo', complete: hasPersonInput },
+        { label: editType === 'background_change' ? 'Background' : 'Garment', complete: editType === 'background_change' ? hasBackgroundInput : hasClothingInput },
+        { label: 'Preset', complete: Boolean(selectedPreset) },
+        { label: 'Generate', complete: canGenerateNow },
+    ]
 
     return (
         <div className="relative min-h-screen pt-20 sm:pt-24 pb-8 sm:pb-12 overflow-hidden bg-[#FDFBF7]">
@@ -916,6 +923,31 @@ function TryOnPageContent() {
                     )}
                 </AnimatePresence>
 
+                <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.12 }}
+                    className="mb-6 grid grid-cols-2 gap-3 rounded-[24px] border-[3px] border-black bg-white/80 p-3 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] backdrop-blur-sm sm:grid-cols-4"
+                >
+                    {setupSteps.map((step, index) => (
+                        <div
+                            key={step.label}
+                            className={step.complete
+                                ? "relative rounded-2xl border-[3px] border-black bg-[#FFD93D] px-3 py-3 text-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                                : "relative rounded-2xl border-[3px] border-black bg-[#F6F1E8] px-3 py-3 text-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                            }
+                        >
+                            <div className="text-[10px] font-black uppercase tracking-[0.22em] text-black/55">Step {index + 1}</div>
+                            <div className="mt-1 text-sm font-black uppercase text-black">{step.label}</div>
+                            <div className={step.complete
+                                ? "mt-2 text-[11px] font-bold uppercase tracking-[0.18em] text-black"
+                                : "mt-2 text-[11px] font-bold uppercase tracking-[0.18em] text-black/45"
+                            }>
+                                {step.complete ? "Ready" : "Waiting"}
+                            </div>
+                        </div>
+                    ))}
+                </motion.div>
                 {/* Header */}
                 <div className="mb-8 sm:mb-12">
                     <motion.h1
@@ -1329,7 +1361,9 @@ function TryOnPageContent() {
                     w-full py-3.5 text-sm font-black uppercase tracking-wider flex items-center justify-center gap-3 transition-all duration-200 border-[3px] border-black
                     ${isGenerateDisabled
                                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
-                                        : 'bg-[#FFD93D] text-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-[6px] active:shadow-none'}
+                                        : canGenerateNow
+                                            ? 'bg-[#FFD93D] text-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-[6px] active:shadow-none animate-pulse'
+                                            : 'bg-[#FFD93D] text-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-[6px] active:shadow-none'}
                   `}
                             >
                                 {loading ? (
@@ -1590,7 +1624,9 @@ function TryOnPageContent() {
                     w-full py-3.5 sm:py-4 text-sm sm:text-base font-black uppercase tracking-wider flex items-center justify-center gap-3 transition-all duration-200 border-[3px] border-black
                     ${isGenerateDisabled
                                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
-                                        : 'bg-[#FFD93D] text-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-[6px] active:shadow-none'}
+                                        : canGenerateNow
+                                            ? 'bg-[#FFD93D] text-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-[6px] active:shadow-none animate-pulse'
+                                            : 'bg-[#FFD93D] text-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-[6px] active:shadow-none'}
                   `}
                             >
                                 {loading ? (
@@ -1688,7 +1724,14 @@ function TryOnPageContent() {
                                 </div>
                             ) : result ? (
                                 <>
-                                    <div className="flex-1 flex items-center justify-center group relative">
+                                    <motion.div
+                                        key={result.imageUrl || result.base64Image || selectedVariant}
+                                        initial={{ opacity: 0, y: 18, scale: 0.985 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+                                        className="flex-1 flex items-center justify-center group relative"
+                                    >
+                                        <div className="pointer-events-none absolute inset-x-10 top-6 h-8 rounded-full bg-[#FFD93D]/20 blur-2xl" />
                                         <Image unoptimized width={1200} height={1200}
                                             src={result.base64Image ? (result.base64Image.startsWith('data:') ? result.base64Image : `data:image/jpeg;base64,${result.base64Image}`) : result.imageUrl}
                                             alt="Generated Result"
@@ -1719,7 +1762,7 @@ function TryOnPageContent() {
                                                 <Share2 className="w-4 h-4" /> Share
                                             </button>
                                         </div>
-                                    </div>
+                                    </motion.div>
 
                                     {/* Variant Selector - Shows when multiple variants exist */}
                                     {variants.length > 1 && (
