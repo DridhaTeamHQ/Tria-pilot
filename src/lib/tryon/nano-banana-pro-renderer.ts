@@ -187,12 +187,11 @@ export async function generateWithNanoBananaPro(
         ),
     ])
 
-    // ── CHARACTER REFERENCES (DISABLED — adding extra face images increased face drift) ──
-    // The pipeline produces better faces with just person + face crop + forensic prompt.
-    // Can be re-enabled via TRYON_USE_CHARACTER_REFS=true when properly tuned.
-    const useCharacterRefs = process.env.TRYON_USE_CHARACTER_REFS === 'true'
+    // ── CHARACTER REFERENCES (face-only, max 2) ──────────────────────────
+    // Send face-only reference images for better face consistency.
+    // Body shots excluded (they show competing outfits). Garment is Image 2.
     let characterReferenceBase64s: { base64: string; label: string }[] | undefined
-    if (useCharacterRefs && input.userId) {
+    if (input.userId) {
       try {
         const charResult = await resolveCharacterReferences(input.userId, input.presetId)
         if (charResult.available && charResult.references.length > 0) {
