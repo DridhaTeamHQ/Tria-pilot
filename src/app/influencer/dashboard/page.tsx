@@ -142,6 +142,12 @@ export default function InfluencerDashboard() {
   // Quick Actions
   const quickActions = [
     {
+      title: 'Try-On Studio',
+      description: 'Create stunning virtual try-ons with AI',
+      icon: Camera,
+      href: '/influencer/try-on',
+    },
+    {
       title: 'Browse Marketplace',
       description: 'Discover products from top brands',
       icon: ShoppingBag,
