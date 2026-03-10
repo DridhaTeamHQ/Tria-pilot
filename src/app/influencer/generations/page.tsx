@@ -166,7 +166,7 @@ export default function GenerationsPage() {
                     <motion.span
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#98FB98] text-black text-xs font-bold rounded-lg border-[2px] border-black"
+                        className="inline-flex max-w-full items-center gap-1 px-2 py-1 bg-[#98FB98] text-black text-[10px] sm:text-xs font-bold rounded-lg border-[2px] border-black whitespace-nowrap"
                     >
                         <CheckCircle2 className="w-3 h-3" />
                         Completed
@@ -178,7 +178,7 @@ export default function GenerationsPage() {
                     <motion.span
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#FFD93D] text-black text-xs font-bold rounded-lg border-[2px] border-black"
+                        className="inline-flex max-w-full items-center gap-1 px-2 py-1 bg-[#FFD93D] text-black text-[10px] sm:text-xs font-bold rounded-lg border-[2px] border-black whitespace-nowrap"
                     >
                         <Clock className="w-3 h-3 animate-pulse" />
                         Processing
@@ -190,7 +190,7 @@ export default function GenerationsPage() {
                     <motion.span
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#FF6B6B] text-black text-xs font-bold rounded-lg border-[2px] border-black"
+                        className="inline-flex max-w-full items-center gap-1 px-2 py-1 bg-[#FF6B6B] text-black text-[10px] sm:text-xs font-bold rounded-lg border-[2px] border-black whitespace-nowrap"
                     >
                         <XCircle className="w-3 h-3" />
                         Failed
@@ -198,7 +198,7 @@ export default function GenerationsPage() {
                 )
             default:
                 return (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 text-black text-xs font-bold rounded-lg border-[2px] border-black">
+                    <span className="inline-flex max-w-full items-center gap-1 px-2 py-1 bg-gray-100 text-black text-[10px] sm:text-xs font-bold rounded-lg border-[2px] border-black whitespace-nowrap">
                         {status}
                     </span>
                 )
@@ -320,7 +320,7 @@ export default function GenerationsPage() {
                         </Link>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
                         <div>
                             <motion.h1
                                 initial={{ opacity: 0, x: -20 }}
@@ -347,7 +347,7 @@ export default function GenerationsPage() {
                         >
                             <Link
                                 href="/influencer/try-on"
-                                className="group inline-flex items-center gap-2.5 px-6 py-3 bg-black text-white rounded-xl font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:bg-[#B4F056] hover:text-black border-[3px] border-black transition-all duration-300"
+                                className="group inline-flex w-full items-center justify-center gap-2.5 px-6 py-3 bg-black text-white rounded-xl font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:bg-[#B4F056] hover:text-black border-[3px] border-black transition-all duration-300 sm:w-auto"
                             >
                                 <Camera className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300" />
                                 New Try-On
@@ -390,14 +390,14 @@ export default function GenerationsPage() {
                         variants={containerVariants}
                         initial="hidden"
                         animate="visible"
-                        className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6"
+                        className="grid grid-cols-1 min-[520px]:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
                     >
                         {generations?.map((job: any) => (
                             <motion.div
                                 key={job.id}
                                 variants={cardVariants}
                                 whileHover={{ y: -6 }}
-                                className="group bg-white rounded-xl overflow-hidden border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 flex flex-col"
+                                className="group mx-auto w-full max-w-[340px] bg-white rounded-xl overflow-hidden border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 flex flex-col min-[520px]:max-w-none"
                             >
                                 {/* Image Area */}
                                 {(job.status?.toLowerCase() === 'completed' || job.status?.toLowerCase() === 'complete') && job.outputImagePath ? (
@@ -431,8 +431,8 @@ export default function GenerationsPage() {
                                 )}
 
                                 {/* Card Body */}
-                                <div className="p-4 flex-1 flex flex-col">
-                                    <div className="flex items-start justify-between mb-3">
+                                <div className="p-3 sm:p-4 flex-1 flex flex-col">
+                                    <div className="mb-3 flex flex-col items-start gap-2 min-[520px]:flex-row min-[520px]:items-start min-[520px]:justify-between">
                                         <div>
                                             <p className="text-sm font-bold text-black font-mono mb-1">
                                                 #{job.id.slice(0, 8)}
@@ -732,6 +732,4 @@ export default function GenerationsPage() {
         </div >
     )
 }
-
-
 

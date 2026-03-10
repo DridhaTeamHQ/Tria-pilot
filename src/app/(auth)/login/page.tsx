@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { ArrowRight, Loader2, Mail, Lock, Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/auth-client'
 import { getPublicSiteUrlClient } from '@/lib/site-url'
+import { isSyntheticEmail } from '@/lib/auth-username'
 
 export default function LoginPage() {
   return (
@@ -31,6 +32,7 @@ function LoginContent() {
   const searchParams = useSearchParams()
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
+  const [recoveryEmail, setRecoveryEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [userType, setUserType] = useState<'influencer' | 'brand'>('influencer')
@@ -47,6 +49,7 @@ function LoginContent() {
     : '/assets/auth-bg-brand.png'
 
   const isLayoutFlipped = userType === 'brand'
+  const isUsernameEntry = Boolean(identifier.trim()) && !identifier.includes('@')
 
   useEffect(() => {
     const confirmed = searchParams.get('confirmed')
@@ -68,11 +71,11 @@ function LoginContent() {
       })
       if (meRes.ok) {
         const meData = await meRes.json().catch(() => null)
-        if (meData?.user) return true
+        if (meData?.user) return meData.user
       }
       await new Promise((resolve) => setTimeout(resolve, 300))
     }
-    return false
+    return null
   }
 
 
@@ -104,9 +107,26 @@ function LoginContent() {
         return
       }
 
-      toast.success('Signed in successfully!')
-      const hasServerSession = await waitForServerSession()
+      const sessionUser = await waitForServerSession()
       const redirectTarget = searchParams.get('redirect') || '/dashboard'
+      const normalizedRecoveryEmail = recoveryEmail.trim().toLowerCase()
+
+      if (sessionUser && isSyntheticEmail(sessionUser.email) && normalizedRecoveryEmail) {
+        const recoveryRes = await fetch('/api/auth/change-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ newEmail: normalizedRecoveryEmail, password }),
+        })
+
+        const recoveryData = await recoveryRes.json().catch(() => ({}))
+        if (recoveryRes.ok) {
+          toast.success('Signed in. Check both inboxes to confirm your recovery email.')
+        } else {
+          toast.error(recoveryData?.error || 'Signed in, but we could not start recovery email setup.')
+        }
+      } else {
+        toast.success('Signed in successfully!')
+      }
 
       if (typeof window !== 'undefined') {
         // Force a full navigation to ensure middleware/layouts read fresh auth cookies.
@@ -114,7 +134,7 @@ function LoginContent() {
         return
       }
 
-      if (hasServerSession) {
+      if (sessionUser) {
         router.replace(redirectTarget)
       } else {
         router.replace('/dashboard')
@@ -206,6 +226,22 @@ function LoginContent() {
                 />
               </div>
             </div>
+
+            {isUsernameEntry && (
+              <div className="space-y-2 rounded-xl border-[2px] border-black bg-[#FFF4CC] p-3">
+                <label className="text-xs font-black uppercase tracking-widest text-black">Recovery Email</label>
+                <input
+                  type="email"
+                  value={recoveryEmail}
+                  onChange={(e) => setRecoveryEmail(e.target.value)}
+                  className="w-full px-4 py-3 bg-white border-2 border-black text-black font-bold placeholder:text-black/30 outline-none focus:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all"
+                  placeholder="Add email for forgot password"
+                />
+                <p className="text-[11px] font-bold text-black/60">
+                  If this account was created with a username only, we&apos;ll send confirmation links to this email after sign in.
+                </p>
+              </div>
+            )}
 
             <div className="space-y-2">
               <div className="flex justify-between items-center">
@@ -371,6 +407,22 @@ function LoginContent() {
                   </div>
                 </div>
 
+            {isUsernameEntry && (
+              <div className="space-y-2 rounded-xl border-[2px] border-black bg-[#FFF4CC] p-3">
+                <label className="text-xs font-black uppercase tracking-widest text-black">Recovery Email</label>
+                <input
+                  type="email"
+                  value={recoveryEmail}
+                  onChange={(e) => setRecoveryEmail(e.target.value)}
+                  className="w-full px-4 py-3 bg-white border-2 border-black text-black font-bold placeholder:text-black/30 outline-none focus:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all"
+                  placeholder="Add email for forgot password"
+                />
+                <p className="text-[11px] font-bold text-black/60">
+                  If this account was created with a username only, we&apos;ll send confirmation links to this email after sign in.
+                </p>
+              </div>
+            )}
+
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <label className="text-xs font-black uppercase tracking-widest text-black">Password</label>
@@ -464,9 +516,4 @@ function LoginContent() {
     </div>
   )
 }
-
-
-
-
-
 

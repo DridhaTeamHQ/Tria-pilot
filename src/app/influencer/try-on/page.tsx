@@ -928,7 +928,7 @@ function TryOnPageContent() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 }}
-                        className="text-xs sm:text-sm md:text-xl font-bold text-black border-[2px] border-black bg-white inline-block px-3 sm:px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                        className="block w-full text-center text-xs sm:text-sm md:text-xl font-bold text-black border-[2px] border-black bg-white px-3 sm:px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:inline-block sm:w-auto sm:text-left"
                     >
                         UPLOAD YOUR PHOTO - SELECT CLOTHING - SEE THE MAGIC
                     </motion.p>
@@ -953,8 +953,8 @@ function TryOnPageContent() {
                             </h3>
 
                             {/* Saved Profile Photos */}
-                            <div className="space-y-1.5">
-                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between gap-3 flex-wrap">
                                     <span className="text-xs font-semibold text-charcoal/50 uppercase tracking-widest">
                                         Use Saved Photos (Profile)
                                     </span>
@@ -1005,9 +1005,9 @@ function TryOnPageContent() {
 
 
                             {/* Side-by-Side Upload Grid - Stacks on mobile */}
-                            <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
+                            <div className="grid grid-cols-1 min-[520px]:grid-cols-2 gap-3 sm:gap-4">
                                 {/* Person Upload */}
-                                <div className="space-y-1.5">
+                                <div className="space-y-2">
                                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs sm:text-sm">
                                         <span className="font-medium text-charcoal/80">Your Photo <span className="text-rose-400">*</span></span>
                                         {personImage && (
@@ -1025,7 +1025,7 @@ function TryOnPageContent() {
                                         onDragLeave={() => setDragOver(null)}
                                         onDrop={(e) => handleDrop(e, 'person')}
                                         className={`
-                                            group relative aspect-square sm:aspect-[3/4] transition-all duration-200 border-[3px] 
+                                            group relative aspect-[4/5] sm:aspect-[3/4] transition-all duration-200 border-[3px] 
                                             ${personImage
                                                 ? 'border-transparent shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
                                                 : dragOver === 'person'
@@ -1067,7 +1067,7 @@ function TryOnPageContent() {
                                     </div>
 
                                     {/* Save to Profile Checkbox */}
-                                    <label className="flex items-center gap-2 text-[10px] text-charcoal/50 hover:text-charcoal/80 transition-colors cursor-pointer ml-1">
+                                    <label className="flex items-center gap-2 text-xs text-charcoal/60 hover:text-charcoal/80 transition-colors cursor-pointer ml-1">
                                         <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${saveUploadedPersonToProfile ? 'bg-peach border-peach' : 'border-charcoal/20 bg-white'}`}>
                                             {saveUploadedPersonToProfile && <Check className="w-2.5 h-2.5 text-white" />}
                                         </div>
@@ -1082,7 +1082,7 @@ function TryOnPageContent() {
                                 </div>
 
                                 {/* Clothing Upload */}
-                                <div className="space-y-1.5">
+                                <div className="space-y-2">
                                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs sm:text-sm">
                                         <span className="font-medium text-charcoal/80">Clothing <span className="text-rose-400">*</span></span>
                                         {clothingImage && !product && (
@@ -1100,7 +1100,7 @@ function TryOnPageContent() {
                                         onDragLeave={() => setDragOver(null)}
                                         onDrop={(e) => handleDrop(e, 'clothing')}
                                         className={`
-                                            group relative aspect-square sm:aspect-[3/4] transition-all duration-200 border-[3px] 
+                                            group relative aspect-[4/5] sm:aspect-[3/4] transition-all duration-200 border-[3px] 
                                             ${clothingImage
                                                 ? 'border-transparent shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
                                                 : dragOver === 'clothing'
@@ -1184,7 +1184,7 @@ function TryOnPageContent() {
 
                             {/* Background Reference (only when needed) */}
                             {editType === 'background_change' && (
-                                <div className="space-y-1.5">
+                                <div className="space-y-2">
                                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs sm:text-sm">
                                         <span className="font-medium text-charcoal/80">Background Reference <span className="text-rose-400">*</span></span>
                                         {backgroundImage && (

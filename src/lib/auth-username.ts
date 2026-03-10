@@ -21,6 +21,11 @@ export function usernameToSyntheticEmail(username: string): string {
   return `${clean}@${getSyntheticDomain()}`
 }
 
+export function isSyntheticEmail(email: string | null | undefined): boolean {
+  if (!email) return false
+  return email.trim().toLowerCase().endsWith(`@${getSyntheticDomain()}`)
+}
+
 export function emailLocalPart(email: string): string {
   return email.split('@')[0]?.toLowerCase() || email.toLowerCase()
 }
