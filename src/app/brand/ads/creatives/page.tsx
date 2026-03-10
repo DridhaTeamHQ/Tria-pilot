@@ -105,11 +105,12 @@ function QualityBadge({ score }: { score: number }) {
     return (
         <span
             className={cn(
-                'inline-flex items-center gap-1.5 px-2.5 py-1 border-[2px] border-black text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]',
+                'inline-flex items-center gap-1 px-2 py-1 border-[2px] border-black text-[10px] sm:text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]',
                 bg
             )}
         >
-            {score} â€” {label}
+            <span>{score}</span>
+            <span className="hidden sm:inline">- {label}</span>
         </span>
     )
 }
@@ -223,22 +224,22 @@ function CreativeCard({
                     </div>
                 </div>
 
-                <div className="p-3 space-y-3 bg-white">
+                <div className="space-y-2 bg-white p-2.5 sm:p-3">
                     <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                            <p className="truncate text-[13px] font-black text-black">{creative.title || 'Ad Creative'}</p>
-                            <p className="truncate text-[11px] font-bold text-black/65">
+                            <p className="truncate text-xs sm:text-[13px] font-black text-black">{creative.title || 'Ad Creative'}</p>
+                            <p className="truncate text-[10px] sm:text-[11px] font-bold text-black/65">
                                 {creative.campaign?.title || 'Unassigned'}
                             </p>
                         </div>
-                        <span className="shrink-0 text-[10px] text-black/50">{relativeDate}</span>
+                        <span className="shrink-0 text-[9px] sm:text-[10px] text-black/50">{relativeDate}</span>
                     </div>
                     {creative.editPrompt && (
                         <div className="rounded-md border-[2px] border-black bg-[#FFF8E6] px-2.5 py-2 text-[11px] font-semibold text-black/75">
                             {creative.editPrompt}
                         </div>
                     )}
-                    <div className="flex items-center gap-1.5 flex-wrap">
+                    <div className="flex items-center gap-1 flex-wrap">
                         {creative.platforms.map((p) => (
                             <span
                                 key={p}
@@ -249,23 +250,23 @@ function CreativeCard({
                             </span>
                         ))}
                         {creative.sourceAdId && (
-                            <span className="inline-flex items-center gap-1 rounded-md border-[1.5px] border-black bg-[#F5F0FF] px-2 py-1 text-[10px] font-black uppercase text-black/80">
+                            <span className="hidden sm:inline-flex items-center gap-1 rounded-md border-[1.5px] border-black bg-[#F5F0FF] px-2 py-1 text-[10px] font-black uppercase text-black/80">
                                 <ArrowRight className="h-3 w-3" />
                                 Edited from previous
                             </span>
                         )}
                         {creative.editTask && (
-                            <span className="inline-flex items-center gap-1 rounded-md border-[1.5px] border-black bg-[#ECF8D0] px-2 py-1 text-[10px] font-black uppercase text-black/80">
+                            <span className="hidden sm:inline-flex items-center gap-1 rounded-md border-[1.5px] border-black bg-[#ECF8D0] px-2 py-1 text-[10px] font-black uppercase text-black/80">
                                 {creative.editTask.replace(/_/g, ' ')}
                             </span>
                         )}
                         {creative.editScope && (
-                            <span className="inline-flex items-center gap-1 rounded-md border-[1.5px] border-black bg-[#E6F5FF] px-2 py-1 text-[10px] font-black uppercase text-black/80">
+                            <span className="hidden sm:inline-flex items-center gap-1 rounded-md border-[1.5px] border-black bg-[#E6F5FF] px-2 py-1 text-[10px] font-black uppercase text-black/80">
                                 {creative.editScope.replace(/_/g, ' ')}
                             </span>
                         )}
                         {creative.editModel && (
-                            <span className="inline-flex items-center gap-1 rounded-md border-[1.5px] border-black bg-[#FFD93D] px-2 py-1 text-[10px] font-black uppercase text-black/80">
+                            <span className="hidden sm:inline-flex items-center gap-1 rounded-md border-[1.5px] border-black bg-[#FFD93D] px-2 py-1 text-[10px] font-black uppercase text-black/80">
                                 {creative.editModel}
                             </span>
                         )}
@@ -279,13 +280,13 @@ function CreativeCard({
                                 onViewHistory()
                             }}
                             disabled={historyCount <= 1}
-                            className="inline-flex items-center gap-1.5 border-[2px] border-black bg-white px-2.5 py-1.5 text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:cursor-not-allowed disabled:bg-black/10 disabled:text-black/45 disabled:shadow-none"
+                            className="hidden sm:inline-flex items-center gap-1.5 border-[2px] border-black bg-white px-2.5 py-1.5 text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:cursor-not-allowed disabled:bg-black/10 disabled:text-black/45 disabled:shadow-none"
                         >
                             <Clock3 className="h-3.5 w-3.5" />
                             History
                         </button>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 pt-1">
+                    <div className="grid grid-cols-2 gap-1.5 pt-0.5">
                         <button
                             type="button"
                             onClick={(e) => {
@@ -294,7 +295,7 @@ function CreativeCard({
                             }}
                             disabled={regenerating || inpainting}
                             className={cn(
-                                'flex min-h-[44px] items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-center border-[2px] border-black text-[10px] sm:text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
+                                'flex min-h-[40px] items-center justify-center gap-1.5 rounded-[18px] px-2.5 py-2 text-center border-[2px] border-black text-[10px] sm:text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
                                 regenerating
                                     ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                                     : 'bg-[#FF8C69] hover:bg-[#ff9d7d] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
@@ -311,7 +312,7 @@ function CreativeCard({
                             }}
                             disabled={regenerating || inpainting}
                             className={cn(
-                                'flex min-h-[44px] items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-center border-[2px] border-black text-[10px] sm:text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
+                                'flex min-h-[40px] items-center justify-center gap-1.5 rounded-[18px] px-2.5 py-2 text-center border-[2px] border-black text-[10px] sm:text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
                                 inpainting
                                     ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                                     : 'bg-[#FFD93D] hover:bg-[#ffe37a] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
@@ -326,7 +327,7 @@ function CreativeCard({
                                 e.stopPropagation()
                                 onViewHistory()
                             }}
-                            className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-center border-[2px] border-black bg-[#C3B1E1] text-[10px] sm:text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                            className="flex min-h-[40px] items-center justify-center gap-1.5 rounded-[18px] px-2.5 py-2 text-center border-[2px] border-black bg-[#C3B1E1] text-[10px] sm:text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
                         >
                             <GitBranch className="h-3.5 w-3.5 shrink-0" />
                             <span className="hidden sm:inline">History</span>
@@ -337,7 +338,7 @@ function CreativeCard({
                                 e.stopPropagation()
                                 onDownload()
                             }}
-                            className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-center bg-black text-white border-[2px] border-black font-black text-[10px] sm:text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-black/90 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                            className="flex min-h-[40px] items-center justify-center gap-1.5 rounded-[18px] px-2.5 py-2 text-center bg-black text-white border-[2px] border-black font-black text-[10px] sm:text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-black/90 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
                         >
                             <Download className="h-3.5 w-3.5 shrink-0" />
                             <span className="hidden sm:inline">Save</span>
@@ -558,7 +559,7 @@ function Lightbox({
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="inline-flex items-center gap-2 rounded-lg border-[3px] border-black bg-white px-3 py-2 text-xs sm:text-sm font-black uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+                                className="inline-flex items-center gap-2 rounded-[18px] border-[3px] border-black bg-white px-3 py-2 text-xs sm:text-sm font-black uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
                                 aria-label="Back"
                             >
                                 <ArrowLeft className="h-4 w-4" />
