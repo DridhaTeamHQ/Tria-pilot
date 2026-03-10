@@ -301,7 +301,7 @@ function CreativeCard({
                             )}
                         >
                             {regenerating ? <BrutalLoader size="sm" className="!min-h-0" /> : <RefreshCw className="h-3.5 w-3.5 shrink-0" />}
-                            <span className="truncate">Redo</span>
+                            <span className="hidden sm:inline">Redo</span>
                         </button>
                         <button
                             type="button"
@@ -318,7 +318,7 @@ function CreativeCard({
                             )}
                         >
                             {inpainting ? <BrutalLoader size="sm" className="!min-h-0" /> : <Wand2 className="h-3.5 w-3.5 shrink-0" />}
-                            <span className="truncate">{creative.isEdited ? 'Re-edit' : 'Edit'}</span>
+                            <span className="hidden sm:inline">{creative.isEdited ? 'Re-edit' : 'Edit'}</span>
                         </button>
                         <button
                             type="button"
@@ -329,7 +329,7 @@ function CreativeCard({
                             className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-center border-[2px] border-black bg-[#C3B1E1] text-[10px] sm:text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
                         >
                             <GitBranch className="h-3.5 w-3.5 shrink-0" />
-                            <span className="truncate">History</span>
+                            <span className="hidden sm:inline">History</span>
                         </button>
                         <button
                             type="button"
@@ -340,7 +340,7 @@ function CreativeCard({
                             className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-center bg-black text-white border-[2px] border-black font-black text-[10px] sm:text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-black/90 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
                         >
                             <Download className="h-3.5 w-3.5 shrink-0" />
-                            <span className="truncate">Save</span>
+                            <span className="hidden sm:inline">Save</span>
                         </button>
                     </div>
                 </div>
