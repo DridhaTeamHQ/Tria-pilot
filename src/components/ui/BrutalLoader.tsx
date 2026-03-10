@@ -1,52 +1,119 @@
 'use client'
 
-import { motion } from 'framer-motion'
-import { Star } from 'lucide-react'
+type LoaderTone = 'brand' | 'influencer' | 'neutral'
 
 export function BrutalLoader({
     size = 'md',
     className = '',
-    showLabel = true
+    showLabel = true,
+    tone = 'neutral',
+    label = 'Loading...'
 }: {
     size?: 'sm' | 'md' | 'lg',
     className?: string,
-    showLabel?: boolean
+    showLabel?: boolean,
+    tone?: LoaderTone,
+    label?: string,
 }) {
-    const sizeClasses = {
-        sm: 'w-6 h-6',
-        md: 'w-12 h-12',
-        lg: 'w-24 h-24'
+    const sizeMap = {
+        sm: { box: 24, shadowWidth: 24, shadowHeight: 4, top: 34, labelClass: 'text-[9px]' },
+        md: { box: 36, shadowWidth: 36, shadowHeight: 5, top: 48, labelClass: 'text-[10px]' },
+        lg: { box: 48, shadowWidth: 48, shadowHeight: 5, top: 60, labelClass: 'text-xs' },
     }
 
-    const iconSize = {
-        sm: 16,
-        md: 24,
-        lg: 48
+    const toneMap: Record<LoaderTone, { block: string, shadow: string, text: string }> = {
+        brand: {
+            block: '#B4F056',
+            shadow: 'rgba(180, 240, 86, 0.35)',
+            text: 'text-black/70',
+        },
+        influencer: {
+            block: '#FF8C69',
+            shadow: 'rgba(255, 140, 105, 0.35)',
+            text: 'text-black/70',
+        },
+        neutral: {
+            block: '#FFD93D',
+            shadow: 'rgba(240, 128, 128, 0.32)',
+            text: 'text-black/65',
+        },
     }
+
+    const currentSize = sizeMap[size]
+    const currentTone = toneMap[tone]
 
     return (
-        <div className={`relative flex items-center justify-center ${className}`}>
-            {/* Spinning Outer Shape */}
-            <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                className={`${sizeClasses[size]} bg-[#FFD93D] border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center`}
+        <div className={['flex flex-col items-center justify-center', className].join(' ')}>
+            <div
+                className="relative"
+                style={{
+                    width: currentSize.box,
+                    height: currentSize.top + currentSize.shadowHeight,
+                }}
+                aria-label={label}
+                role="status"
             >
-                {/* Counter-Spinning Inner Icon */}
-                <motion.div
-                    animate={{ rotate: -360 }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                >
-                    <Star className={`text-black fill-black`} size={iconSize[size]} />
-                </motion.div>
-            </motion.div>
-
-            {/* Label (Optional, mainly for larger loaders) */}
-            {size === 'lg' && showLabel && (
-                <p className="absolute -bottom-12 text-sm font-black uppercase tracking-widest bg-white border-[2px] border-black px-2 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] whitespace-nowrap">
-                    Loading...
+                <span
+                    className="absolute left-0 rounded-[999px]"
+                    style={{
+                        width: currentSize.shadowWidth,
+                        height: currentSize.shadowHeight,
+                        top: currentSize.top,
+                        background: currentTone.shadow,
+                        animation: 'brutal-loader-shadow 0.5s linear infinite',
+                    }}
+                />
+                <span
+                    className="absolute left-0 rounded-[6px] border-[2px] border-black"
+                    style={{
+                        width: currentSize.box,
+                        height: currentSize.box,
+                        background: currentTone.block,
+                        animation: 'brutal-loader-jump 0.5s linear infinite',
+                        boxShadow: '4px 4px 0 rgba(0,0,0,0.16)',
+                    }}
+                />
+            </div>
+            {showLabel && (
+                <p className={['mt-3 font-black uppercase tracking-[0.2em]', currentTone.text, currentSize.labelClass].join(' ')}>
+                    {label}
                 </p>
             )}
+            <style jsx>{`
+                @keyframes brutal-loader-jump {
+                    15% {
+                        border-bottom-right-radius: 3px;
+                    }
+
+                    25% {
+                        transform: translateY(9px) rotate(22.5deg);
+                    }
+
+                    50% {
+                        transform: translateY(18px) scale(1, 0.9) rotate(45deg);
+                        border-bottom-right-radius: 24px;
+                    }
+
+                    75% {
+                        transform: translateY(9px) rotate(67.5deg);
+                    }
+
+                    100% {
+                        transform: translateY(0) rotate(90deg);
+                    }
+                }
+
+                @keyframes brutal-loader-shadow {
+                    0%,
+                    100% {
+                        transform: scale(1, 1);
+                    }
+
+                    50% {
+                        transform: scale(1.2, 1);
+                    }
+                }
+            `}</style>
         </div>
     )
 }
