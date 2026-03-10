@@ -31,6 +31,11 @@ function normalizeStatus(value: unknown): 'none' | 'pending' | 'approved' | 'rej
   return 'none'
 }
 
+function normalizeInfluencerProfile(value: any) {
+  if (Array.isArray(value)) return value[0] || {}
+  return value || {}
+}
+
 export async function GET(request: Request) {
   try {
     const supabase = await createClient()
@@ -46,20 +51,18 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url)
     const statusFilter = searchParams.get('status')
-    const sortBy = searchParams.get('sortBy') || 'created_at'
     const order = (searchParams.get('order') || 'desc') as 'asc' | 'desc'
 
-    // Fetch profiles 
-    let query = service.from('profiles').select('*, influencer_profiles(*)')
+    const { data: profiles, error } = await service
+      .from('profiles')
+      .select('*, influencer_profiles(*)')
       .or('role.eq.INFLUENCER,role.eq.influencer')
       .order('created_at', { ascending: order === 'asc' })
 
-    const { data: profiles, error } = await query
     if (error) throw error
 
-    // Transform to match legacy format
     const enriched = (profiles || []).map((p: any) => {
-      const inf = p.influencer_profiles || {}
+      const inf = normalizeInfluencerProfile(p.influencer_profiles)
       const displayStatus = normalizeStatus(p.approval_status)
       const hasReviewStatus = displayStatus !== 'none'
       const onboardingCompleted = Boolean(
@@ -69,14 +72,15 @@ export async function GET(request: Request) {
         hasReviewStatus
       )
 
-      if (statusFilter && statusFilter !== 'none') {
-        if (statusFilter !== displayStatus) return null
+      if (statusFilter && statusFilter !== 'none' && statusFilter !== displayStatus) {
+        return null
       }
 
       return {
         user_id: p.id,
         email: p.email,
         full_name: p.full_name,
+        avatar_url: p.avatar_url || null,
         status: displayStatus,
         created_at: p.created_at,
         updated_at: p.updated_at,
@@ -93,22 +97,22 @@ export async function GET(request: Request) {
           retentionRate: inf.retention_rate,
           badgeScore: inf.badge_score,
           badgeTier: inf.badge_tier,
-          onboardingCompleted: onboardingCompleted,
-          portfolioVisibility: inf.portfolio_visibility
+          onboardingCompleted,
+          portfolioVisibility: inf.portfolio_visibility,
         },
         user: {
           id: p.id,
           email: p.email,
           name: p.full_name,
           role: p.role,
-          createdAt: p.created_at
-        }
+          createdAt: p.created_at,
+        },
       }
     }).filter(Boolean)
 
     return NextResponse.json(enriched)
-
   } catch (error) {
+    console.error('Admin influencer list error:', error)
     return NextResponse.json({ error: 'Error' }, { status: 500 })
   }
 }

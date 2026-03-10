@@ -11,6 +11,11 @@ function normalizeStatus(value: unknown): 'none' | 'pending' | 'approved' | 'rej
   return 'none'
 }
 
+function normalizeInfluencerProfile(value: any) {
+  if (Array.isArray(value)) return value[0] || {}
+  return value || {}
+}
+
 export default async function AdminPage() {
   const service = createServiceClient()
 
@@ -21,7 +26,7 @@ export default async function AdminPage() {
     .order('created_at', { ascending: false })
 
   if (error || !profiles) {
-    console.error("ADMIN PAGE ERROR:", error)
+    console.error('ADMIN PAGE ERROR:', error)
     return (
       <div className="min-h-screen bg-cream flex flex-col items-center justify-center">
         <p>Failed to load admin dashboard.</p>
@@ -31,7 +36,7 @@ export default async function AdminPage() {
   }
 
   const enrichedApplications = profiles.map((p: any) => {
-    const inf = p.influencer_profiles || {}
+    const inf = normalizeInfluencerProfile(p.influencer_profiles)
     const displayStatus = normalizeStatus(p.approval_status)
     const hasReviewStatus = displayStatus !== 'none'
     const onboardingCompleted = Boolean(
@@ -45,6 +50,7 @@ export default async function AdminPage() {
       user_id: p.id,
       email: p.email,
       full_name: p.full_name,
+      avatar_url: p.avatar_url || null,
       status: displayStatus,
       created_at: p.created_at,
       updated_at: p.updated_at,
@@ -63,15 +69,15 @@ export default async function AdminPage() {
         retentionRate: inf.retention_rate,
         badgeScore: inf.badge_score,
         badgeTier: inf.badge_tier,
-        onboardingCompleted: onboardingCompleted
+        onboardingCompleted,
       },
       user: {
         id: p.id,
         email: p.email,
         name: p.full_name,
         role: p.role,
-        createdAt: p.created_at
-      }
+        createdAt: p.created_at,
+      },
     }
   })
 

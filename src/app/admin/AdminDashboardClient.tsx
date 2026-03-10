@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Check, X, Clock, User, Mail, Calendar, RefreshCw, Search, TrendingUp, Users, Filter } from 'lucide-react'
 import { toast } from 'sonner'
@@ -27,6 +28,7 @@ interface InfluencerApplication {
   user_id: string
   email: string
   full_name: string | null
+  avatar_url?: string | null
   status: 'none' | 'pending' | 'approved' | 'rejected' // Use 'none' instead of 'draft'
   created_at: string
   updated_at: string
@@ -55,6 +57,17 @@ interface AdminDashboardClientProps {
   dataSource?: 'full' | 'supabase-only'
 }
 
+function getSocialVerifyUrl(platform: string, username: string) {
+  if (!username) return undefined
+  const cleanUsername = username.replace(/^@/, '')
+  switch (platform.toLowerCase()) {
+    case 'instagram': return `https://instagram.com/${cleanUsername}`
+    case 'youtube': return `https://youtube.com/@${cleanUsername}`
+    case 'facebook': return `https://facebook.com/${cleanUsername}`
+    case 'snapchat': return `https://www.snapchat.com/add/${cleanUsername}`
+    default: return undefined
+  }
+}
 export default function AdminDashboardClient({ initialApplications, dataSource = 'full' }: AdminDashboardClientProps) {
   const [applications, setApplications] = useState<InfluencerApplication[]>(initialApplications)
   const [loading, setLoading] = useState<string | null>(null)
@@ -513,8 +526,21 @@ export default function AdminDashboardClient({ initialApplications, dataSource =
                     {/* User Info */}
                     <div className="flex-1">
                       <div className="flex items-start gap-4 mb-4">
-                        <div className="w-14 h-14 rounded-xl bg-black flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
-                          <User className="w-7 h-7 text-white" />
+                        <div className="relative h-14 w-14 overflow-hidden rounded-xl border-2 border-black bg-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
+                          {app.avatar_url ? (
+                            <Image
+                              src={app.avatar_url}
+                              alt={app.full_name || app.email}
+                              fill
+                              sizes="56px"
+                              className="object-cover"
+                              unoptimized
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center">
+                              <User className="w-7 h-7 text-white" />
+                            </div>
+                          )}
                         </div>
                         <div>
                           <h3 className="text-xl font-black text-black leading-tight">
@@ -547,7 +573,10 @@ export default function AdminDashboardClient({ initialApplications, dataSource =
                         <div className="bg-white/50 rounded-xl border-2 border-black/5 p-4 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-sm">
                           <div className="flex justify-between border-b border-black/5 pb-2">
                             <span className="text-black/50 font-medium">Followers</span>
-                            <span className="font-bold text-black">{app.onboarding.followers?.toLocaleString() ?? '-'}</span>
+                            <div className="text-right">
+                              <span className="font-bold text-black">{app.onboarding.followers != null ? Number(app.onboarding.followers).toLocaleString() : '-'}</span>
+                              <div className="text-[10px] font-medium uppercase tracking-wide text-black/40">From influencer profile</div>
+                            </div>
                           </div>
                           <div className="flex justify-between border-b border-black/5 pb-2">
                             <span className="text-black/50 font-medium">Engagement</span>
@@ -578,9 +607,15 @@ export default function AdminDashboardClient({ initialApplications, dataSource =
                               {app.onboarding.socials && Object.entries(app.onboarding.socials as Record<string, string>)
                                 .filter(([, url]) => url)
                                 .map(([platform, handle]) => (
-                                  <span key={platform} className="px-2 py-1 bg-black/5 rounded text-xs font-bold text-black/70">
+                                  <a
+                                    key={platform}
+                                    href={getSocialVerifyUrl(platform, String(handle)) || '#'}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="px-2 py-1 bg-black/5 rounded text-xs font-bold text-black/70 underline-offset-2 hover:bg-black/10 hover:underline"
+                                  >
                                     <span className="uppercase">{platform}:</span> {String(handle)}
-                                  </span>
+                                  </a>
                                 ))
                               }
                             </div>
@@ -696,3 +731,4 @@ export default function AdminDashboardClient({ initialApplications, dataSource =
     </div>
   )
 }
+
