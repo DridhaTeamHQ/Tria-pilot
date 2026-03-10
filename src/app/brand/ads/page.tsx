@@ -150,6 +150,7 @@ export default function AdsPage() {
   const strictRealism = true
   const [textOpen, setTextOpen] = useState(true)
   const [optionsOpen, setOptionsOpen] = useState(true)
+  const [showAllPresets, setShowAllPresets] = useState(false)
 
   // UI
   const [loading, setLoading] = useState(false)
@@ -182,6 +183,10 @@ export default function AdsPage() {
       setCharacterIdentity('global_modern')
     }
   }, [characterType, characterIdentity, visibleIdentityOptions])
+
+  useEffect(() => {
+    setShowAllPresets(false)
+  }, [activeCategory])
 
   const handleImageUpload = useCallback(
     async (e: ChangeEvent<HTMLInputElement>, type: 'product' | 'influencer') => {
@@ -334,6 +339,15 @@ export default function AdsPage() {
 
   const visiblePresets =
     activeCategory === 'all' ? getAdPresetList() : getPresetsByCategory(activeCategory)
+  const collapsedPresetCount = 6
+  const displayedPresets = showAllPresets
+    ? visiblePresets
+    : (() => {
+      const base = visiblePresets.slice(0, collapsedPresetCount)
+      if (!selectedPreset || base.some((preset) => preset.id === selectedPreset)) return base
+      const selected = visiblePresets.find((preset) => preset.id === selectedPreset)
+      return selected ? [selected, ...base.slice(0, collapsedPresetCount - 1)] : base
+    })()
 
   return (
     <>
@@ -427,7 +441,7 @@ export default function AdsPage() {
                   key={activeCategory}
                   className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
                 >
-                  {visiblePresets.map((preset) => {
+                  {displayedPresets.map((preset) => {
                     const isCinematic = preset.category === 'cinematic'
                     return (
                       <motion.button
@@ -460,10 +474,10 @@ export default function AdsPage() {
                           </span>
                           <div>
                             <p className="text-sm font-black uppercase leading-tight">{preset.name}</p>
-                            <p className="mt-1 text-xs font-medium text-black/70">{preset.description}</p>
+                            <p className="mt-1 line-clamp-2 text-xs font-medium text-black/70">{preset.description}</p>
                             {isCinematic && (
                               <p className="mt-1 text-[10px] font-black uppercase tracking-wide text-purple-700">
-                                ✦ Cinematic Production Quality
+                                Cinematic Production Quality
                               </p>
                             )}
                             <div className="mt-2 flex flex-wrap gap-1">
@@ -484,16 +498,22 @@ export default function AdsPage() {
                               >
                                 {preset.tier}
                               </span>
-                              <span className="rounded-md border border-black bg-white px-1.5 py-0.5 text-[9px] font-black uppercase">
-                                {preset.stability}
-                              </span>
-                              <span className="rounded-md border border-black bg-[#FFF8E6] px-1.5 py-0.5 text-[9px] font-black uppercase">
-                                {preset.pack}
-                              </span>
+                              {(selectedPreset === preset.id || showAllPresets) && (
+                                <span className="rounded-md border border-black bg-white px-1.5 py-0.5 text-[9px] font-black uppercase">
+                                  {preset.stability}
+                                </span>
+                              )}
+                              {(selectedPreset === preset.id || showAllPresets) && (
+                                <span className="rounded-md border border-black bg-[#FFF8E6] px-1.5 py-0.5 text-[9px] font-black uppercase">
+                                  {preset.pack}
+                                </span>
+                              )}
                             </div>
-                            <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-black/55">
-                              Best for: {preset.platforms.map((p) => (p === 'google' ? 'Google' : p)).join(' / ')}
-                            </p>
+                            {(selectedPreset === preset.id || showAllPresets) && (
+                              <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-black/55">
+                                Best for: {preset.platforms.map((p) => (p === 'google' ? 'Google' : p)).join(' / ')}
+                              </p>
+                            )}
                           </div>
                         </div>
                         {selectedPreset === preset.id && (
@@ -505,6 +525,18 @@ export default function AdsPage() {
                     )
                   })}
                 </motion.div>
+                {visiblePresets.length > collapsedPresetCount && (
+                  <div className="mt-4 flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => setShowAllPresets((prev) => !prev)}
+                      className="inline-flex items-center gap-2 rounded-lg border-2 border-black bg-white px-4 py-2 text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-[#FFD93D]"
+                    >
+                      {showAllPresets ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      {showAllPresets ? 'Show fewer styles' : `Show all ${visiblePresets.length} styles`}
+                    </button>
+                  </div>
+                )}
               </BrutalCard>
             </motion.div>
 
@@ -971,3 +1003,4 @@ export default function AdsPage() {
     </>
   )
 }
+
