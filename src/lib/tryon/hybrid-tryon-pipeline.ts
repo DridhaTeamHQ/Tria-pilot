@@ -30,6 +30,9 @@ import { generateWithNanoBananaPro } from './nano-banana-pro-renderer'
 
 const GARMENT_EXTRACT_MODEL = 'gemini-2.5-flash-image' as const
 const ENABLE_DETERMINISTIC_FACE_LOCK = process.env.TRYON_ENABLE_DETERMINISTIC_FACE_LOCK === 'true'
+const ENABLE_INTELLIGENT_PREANALYSIS =
+  process.env.TRYON_ENABLE_INTELLIGENT_PREANALYSIS === 'true' ||
+  process.env.NODE_ENV !== 'production'
 const FACE_LOCK_DRIFT_THRESHOLD = 22
 const FACE_COMPOSITE_BLOCKED_PRESETS = new Set([
   'studio_crimson_noir',

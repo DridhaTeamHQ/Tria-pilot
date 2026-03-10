@@ -27,7 +27,9 @@ import { getPresetExampleGuidance, getRequestExampleGuidance } from './presets/e
 import { getPresetStrengthProfile } from './preset-strength-profile'
 
 const MAIN_RENDER_MODEL = 'gemini-3-pro-image-preview' as const
-const ENABLE_QUALITY_RETRY = process.env.TRYON_ENABLE_QUALITY_RETRY !== 'false'
+const ENABLE_QUALITY_RETRY =
+  process.env.TRYON_ENABLE_QUALITY_RETRY === 'true' ||
+  process.env.NODE_ENV !== 'production'
 const MICRO_DRIFT_RETRY_THRESHOLD = 18
 const FINAL_MICRO_DRIFT_MAX_DEFAULT = 24
 const FINAL_MICRO_DRIFT_MAX_COMPLEX = 20
@@ -366,7 +368,9 @@ export async function generateWithNanoBananaPro(
     // When face restore (Stage 4) is enabled, skip the quality retry —
     // Stage 4 handles face identity correction via inpainting, which is faster
     // and more effective than re-generating the entire image.
-    const FACE_RESTORE_ENABLED = process.env.TRYON_ENABLE_FACE_RESTORE !== 'false'
+    const FACE_RESTORE_ENABLED =
+      process.env.TRYON_ENABLE_FACE_RESTORE === 'true' ||
+      process.env.NODE_ENV !== 'production'
     const skipRetryForFaceRestore = FACE_RESTORE_ENABLED && !hardFaceFailure
 
     if (skipRetryForFaceRestore && hasRetrySignal && isDev) {
@@ -459,7 +463,9 @@ export async function generateWithNanoBananaPro(
     // ═════════════════════════════════════════════════════════════════════════
     // STAGE 4: Face Identity Restoration (Two-Pass Gemini Inpainting)
     // ═════════════════════════════════════════════════════════════════════════
-    const ENABLE_FACE_RESTORE = process.env.TRYON_ENABLE_FACE_RESTORE !== 'false'
+    const ENABLE_FACE_RESTORE =
+      process.env.TRYON_ENABLE_FACE_RESTORE === 'true' ||
+      process.env.NODE_ENV !== 'production'
     let faceRestoreResult: { success: boolean; processingTimeMs: number; error?: string } | null = null
 
     // Production-safe thresholds:

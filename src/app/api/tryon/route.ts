@@ -339,10 +339,23 @@ export async function POST(request: Request) {
       }
 
       const errMsg = inlineError instanceof Error ? inlineError.message : 'Generation failed'
+      const isTimeoutLikeError = /timeout|timed out|taking longer than expected|aborted|body timeout|function invocation/i.test(errMsg)
       await service
         .from('generation_jobs')
         .update({ status: 'failed', error_message: errMsg })
         .eq('id', job.id)
+      if (isTimeoutLikeError) {
+        return NextResponse.json(
+          {
+            error: 'Generation is taking longer than expected. Please retry once or check the Generations page shortly.',
+            code: 'GENERATION_TIMEOUT',
+            retryAfterSeconds: 15,
+            jobId: job.id,
+            status: 'failed',
+          },
+          { status: 503, headers: { 'Retry-After': '15', 'Cache-Control': 'no-store' } }
+        )
+      }
       return NextResponse.json(
         { error: errMsg, jobId: job.id, status: 'failed' },
         { status: 500 }
