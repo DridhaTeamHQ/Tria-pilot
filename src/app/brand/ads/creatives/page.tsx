@@ -285,7 +285,7 @@ function CreativeCard({
                             History
                         </button>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 pt-1">
+                    <div className="grid grid-cols-1 gap-2 pt-1 min-[420px]:grid-cols-2">
                         <button
                             type="button"
                             onClick={(e) => {
@@ -294,7 +294,7 @@ function CreativeCard({
                             }}
                             disabled={regenerating || inpainting}
                             className={cn(
-                                'flex items-center justify-center gap-2 py-2.5 border-[2px] border-black text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
+                                'flex min-h-[44px] items-center justify-center gap-2 px-3 py-2.5 text-center border-[2px] border-black text-[11px] sm:text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
                                 regenerating
                                     ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                                     : 'bg-[#FF8C69] hover:bg-[#ff9d7d] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
@@ -311,7 +311,7 @@ function CreativeCard({
                             }}
                             disabled={regenerating || inpainting}
                             className={cn(
-                                'flex items-center justify-center gap-2 py-2.5 border-[2px] border-black text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
+                                'flex min-h-[44px] items-center justify-center gap-2 px-3 py-2.5 text-center border-[2px] border-black text-[11px] sm:text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
                                 inpainting
                                     ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                                     : 'bg-[#FFD93D] hover:bg-[#ffe37a] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
@@ -326,7 +326,7 @@ function CreativeCard({
                                 e.stopPropagation()
                                 onViewHistory()
                             }}
-                            className="flex items-center justify-center gap-2 py-2.5 border-[2px] border-black bg-[#C3B1E1] text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                            className="flex min-h-[44px] items-center justify-center gap-2 px-3 py-2.5 text-center border-[2px] border-black bg-[#C3B1E1] text-[11px] sm:text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
                         >
                             <GitBranch className="h-3.5 w-3.5" />
                             History
@@ -337,7 +337,7 @@ function CreativeCard({
                                 e.stopPropagation()
                                 onDownload()
                             }}
-                            className="flex items-center justify-center gap-2 py-2.5 px-3 bg-black text-white border-[2px] border-black font-black text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-black/90 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                            className="flex min-h-[44px] items-center justify-center gap-2 px-3 py-2.5 text-center bg-black text-white border-[2px] border-black font-black text-[11px] sm:text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-black/90 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
                         >
                             <Download className="h-3.5 w-3.5" />
                             <span>Download</span>
@@ -781,17 +781,16 @@ export default function CreativesPage() {
             animate="animate"
             className="min-h-screen bg-[#FFFDF5] pt-6 md:pt-24 pb-10 md:pb-16"
         >
-            <div className="container mx-auto px-4 max-w-6xl">
-                {/* Header */}
-                <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-                    <div>
+            <div className="container mx-auto px-4 max-w-6xl">                {/* Header */}
+                <div className="mb-8 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+                    <div className="min-w-0">
                         <h1
-                            className="text-4xl md:text-5xl font-black text-black"
+                            className="text-[clamp(2.6rem,7vw,4.6rem)] font-black leading-[0.92] text-black"
                             style={{ fontFamily: 'Playfair Display, serif' }}
                         >
                             Ad Creatives
                         </h1>
-                        <p className="text-black/50 mt-1">
+                        <p className="mt-2 max-w-2xl text-base text-black/55 sm:text-lg">
                             All generated ad creatives across your campaigns
                         </p>
                     </div>
@@ -800,100 +799,18 @@ export default function CreativesPage() {
                         whileHover={{ y: -2 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => router.push('/brand/ads')}
-                        className="flex items-center gap-2 px-6 py-3 border-[3px] border-black bg-[#FFD93D] font-black text-base shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-shadow"
+                        className="flex w-full items-center justify-center gap-2 border-[3px] border-black bg-[#FFD93D] px-4 py-3 text-sm font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-shadow hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:w-auto sm:px-6 sm:text-base"
                     >
-                        <Plus className="h-4 w-4" />
-                        Generate New Ad
+                        <Plus className="h-4 w-4 shrink-0" />
+                        <span className="truncate">Generate New Ad</span>
                     </motion.button>
                 </div>
 
-                {/* Filters â€” neo-brutalist chips */}
-                <BrutalCard className="p-4 mb-8">
-                    <p className="text-xs md:text-sm font-black uppercase text-black/60 mb-3">Filters</p>
-                    <div className="mb-4">
-                        <input
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Search by prompt, task, scope, or title"
-                            className="w-full border-[2px] border-black bg-white px-4 py-3 text-sm font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:outline-none focus:ring-2 focus:ring-[#FFD93D]"
-                        />
-                    </div>
-                    <div className="flex flex-wrap gap-4">
-                        {/* Campaign */}
-                        <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="text-sm font-bold text-black/70 mr-1">Campaign</span>
-                            <select
-                                value={campaignFilter}
-                                onChange={(e) => setCampaignFilter(e.target.value)}
-                                className="border-[2px] border-black bg-white px-4 py-2 text-sm md:text-base font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:outline-none focus:ring-2 focus:ring-[#FFD93D]"
-                            >
-                                <option value="all">All</option>
-                                <option value="unassigned">Unassigned</option>
-                                {campaigns.map((c) => (
-                                    <option key={c.id} value={c.id}>
-                                        {c.title}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        {/* Platform */}
-                        <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="text-sm font-bold text-black/70 mr-1">Platform</span>
-                            {(['all', 'instagram', 'facebook', 'google', 'influencer'] as const).map(
-                                (p) => (
-                                    <button
-                                        key={p}
-                                        type="button"
-                                        onClick={() => setPlatformFilter(p === 'all' ? 'all' : p)}
-                                        className={cn(
-                                            'px-3.5 py-2 text-sm font-bold border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
-                                            platformFilter === p
-                                                ? 'bg-[#FFD93D] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
-                                                : 'bg-white hover:bg-[#FFFDF5]'
-                                        )}
-                                    >
-                                        {p === 'all' ? 'All' : PLATFORM_ICONS[p]}
-                                    </button>
-                                )
-                            )}
-                        </div>
-                        {/* Quality */}
-                        <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="text-sm font-bold text-black/70 mr-1">Quality</span>
-                            {(['all', 'high', 'medium', 'low'] as const).map((q) => (
-                                <button
-                                    key={q}
-                                    type="button"
-                                    onClick={() => setQualityFilter(q)}
-                                    className={cn(
-                                        'px-3.5 py-2 text-sm font-bold border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
-                                        qualityFilter === q
-                                            ? 'bg-[#C3B1E1] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
-                                            : 'bg-white hover:bg-[#FFFDF5]'
-                                    )}
-                                >
-                                    {QUALITY_CONFIG[q].label}
-                                </button>
-                            ))}
-                        </div>
-                        {/* Sort */}
-                        <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="text-sm font-bold text-black/70 mr-1">Sort</span>
-                            {(['newest', 'oldest'] as const).map((s) => (
-                                <button
-                                    key={s}
-                                    type="button"
-                                    onClick={() => setSortOrder(s)}
-                                    className={cn(
-                                        'px-3.5 py-2 text-sm font-bold border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
-                                        sortOrder === s
-                                            ? 'bg-black text-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
-                                            : 'bg-white hover:bg-[#FFFDF5]'
-                                    )}
-                                >
-                                    {s === 'newest' ? 'Newest' : 'Oldest'}
-                                </button>
-                            ))}
+                <BrutalCard className="mb-8 p-4 sm:p-5 lg:p-6">
+                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                            <p className="text-xs font-black uppercase tracking-[0.18em] text-black/50">Filters</p>
+                            <p className="mt-1 text-sm font-medium text-black/55">Refine your library without cramped controls.</p>
                         </div>
                         {hasActiveFilters && (
                             <button
@@ -904,11 +821,107 @@ export default function CreativesPage() {
                                     setQualityFilter('all')
                                     setSearchQuery('')
                                 }}
-                                className="text-sm font-bold text-black/70 hover:text-black underline ml-auto"
+                                className="inline-flex items-center justify-center self-start border-[2px] border-black bg-white px-3 py-2 text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-[#FFF8E6] sm:self-auto"
                             >
                                 Clear filters
                             </button>
                         )}
+                    </div>
+                    <div className="mb-5">
+                        <input
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search by prompt, task, scope, or title"
+                            className="w-full border-[2px] border-black bg-white px-4 py-3 text-sm font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:outline-none focus:ring-2 focus:ring-[#FFD93D]"
+                        />
+                    </div>
+                    <div className="grid gap-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1.45fr)]">
+                        <div className="space-y-2">
+                            <span className="text-sm font-bold uppercase tracking-wide text-black/65">Campaign</span>
+                            <select
+                                value={campaignFilter}
+                                onChange={(e) => setCampaignFilter(e.target.value)}
+                                className="w-full border-[2px] border-black bg-white px-4 py-3 text-sm font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:outline-none focus:ring-2 focus:ring-[#FFD93D]"
+                            >
+                                <option value="all">All campaigns</option>
+                                <option value="unassigned">Unassigned</option>
+                                {campaigns.map((c) => (
+                                    <option key={c.id} value={c.id}>
+                                        {c.title}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1.1fr)]">
+                            <div className="space-y-2">
+                                <span className="text-sm font-bold uppercase tracking-wide text-black/65">Platform</span>
+                                <div className="grid grid-cols-3 gap-2 min-[460px]:grid-cols-5 sm:grid-cols-3 xl:grid-cols-5">
+                                    {(['all', 'instagram', 'facebook', 'google', 'influencer'] as const).map((p) => (
+                                        <button
+                                            key={p}
+                                            type="button"
+                                            onClick={() => setPlatformFilter(p === 'all' ? 'all' : p)}
+                                            className={cn(
+                                                'flex min-h-[52px] items-center justify-center gap-2 rounded-none border-[2px] border-black px-3 py-2 text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
+                                                platformFilter === p
+                                                    ? 'bg-[#FFD93D] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                                                    : 'bg-white hover:bg-[#FFFDF5]'
+                                            )}
+                                            aria-label={p}
+                                        >
+                                            {p === 'all' ? (
+                                                'All'
+                                            ) : (
+                                                <>
+                                                    {PLATFORM_ICONS[p]}
+                                                    <span className="sr-only">{p}</span>
+                                                </>
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <span className="text-sm font-bold uppercase tracking-wide text-black/65">Quality</span>
+                                <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">
+                                    {(['all', 'high', 'medium', 'low'] as const).map((q) => (
+                                        <button
+                                            key={q}
+                                            type="button"
+                                            onClick={() => setQualityFilter(q)}
+                                            className={cn(
+                                                'flex min-h-[52px] items-center justify-center rounded-none border-[2px] border-black px-3 py-2 text-center text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
+                                                qualityFilter === q
+                                                    ? 'bg-[#C3B1E1] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                                                    : 'bg-white hover:bg-[#FFFDF5]'
+                                            )}
+                                        >
+                                            {QUALITY_CONFIG[q].label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="space-y-2 sm:col-span-2 xl:col-span-2">
+                                <span className="text-sm font-bold uppercase tracking-wide text-black/65">Sort</span>
+                                <div className="grid grid-cols-2 gap-2 sm:max-w-[18rem]">
+                                    {(['newest', 'oldest'] as const).map((s) => (
+                                        <button
+                                            key={s}
+                                            type="button"
+                                            onClick={() => setSortOrder(s)}
+                                            className={cn(
+                                                'flex min-h-[48px] items-center justify-center rounded-none border-[2px] border-black px-3 py-2 text-sm font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
+                                                sortOrder === s
+                                                    ? 'bg-black text-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                                                    : 'bg-white hover:bg-[#FFFDF5]'
+                                            )}
+                                        >
+                                            {s === 'newest' ? 'Newest' : 'Oldest'}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </BrutalCard>
 
@@ -959,7 +972,7 @@ export default function CreativesPage() {
                         variants={staggerContainer}
                         initial="initial"
                         animate="animate"
-                        className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3"
+                        className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3"
                     >
                         {filteredCreatives.map((creative) => (
                             <CreativeCard
@@ -999,4 +1012,7 @@ export default function CreativesPage() {
         </motion.div>
     )
 }
+
+
+
 

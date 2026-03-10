@@ -67,12 +67,12 @@ export default function ValuesSection() {
                 </motion.div>
 
                 <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
-                    <div className="flex lg:flex-col gap-2 overflow-x-auto pb-2 lg:pb-0 lg:overflow-visible flex-shrink-0 lg:w-72">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:flex lg:w-72 lg:flex-col lg:overflow-visible">
                         {values.map((value) => (
                             <motion.button
                                 key={value.id}
                                 onClick={() => setActiveValue(value)}
-                                className={`flex items-center gap-3 text-left p-4 border-[4px] border-black font-black text-sm uppercase tracking-wide whitespace-nowrap transition-all ${
+                                className={`flex min-h-[88px] items-center gap-3 text-left p-4 border-[4px] border-black font-black text-sm uppercase tracking-wide transition-all ${
                                     activeValue.id === value.id
                                         ? "bg-black text-white shadow-[6px_6px_0_0_var(--brutal-coral)]"
                                         : "bg-white text-black shadow-[4px_4px_0_0_#000] hover:shadow-[6px_6px_0_0_#000] hover:-translate-x-0.5 hover:-translate-y-0.5"
@@ -122,3 +122,4 @@ export default function ValuesSection() {
         </section>
     );
 }
+

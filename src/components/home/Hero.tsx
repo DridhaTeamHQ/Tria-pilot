@@ -50,16 +50,16 @@ export default function Hero() {
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, delay: 0.3 }}
-                        className="mt-10 flex flex-wrap gap-4"
+                        className="mt-10 flex flex-col gap-4 sm:flex-row sm:flex-wrap"
                     >
                         <Link href="/register">
-                            <span className="inline-flex items-center gap-2 px-8 py-4 bg-[var(--brutal-lime)] text-black font-black text-sm uppercase tracking-wide border-[4px] border-black shadow-[6px_6px_0_0_#000] hover:shadow-[3px_3px_0_0_#000] hover:translate-x-[3px] hover:translate-y-[3px] active:shadow-none active:translate-x-[6px] active:translate-y-[6px] transition-all">
+                            <span className="inline-flex w-full items-center justify-center gap-2 px-6 py-4 text-center bg-[var(--brutal-lime)] text-black font-black text-sm uppercase tracking-wide border-[4px] border-black shadow-[6px_6px_0_0_#000] transition-all hover:shadow-[3px_3px_0_0_#000] hover:translate-x-[3px] hover:translate-y-[3px] active:shadow-none active:translate-x-[6px] active:translate-y-[6px] sm:w-auto sm:px-8">
                                 Get Started For Free
                                 <ArrowRight className="w-5 h-5" />
                             </span>
                         </Link>
                         <Link href="/login">
-                            <span className="inline-flex items-center gap-2 px-8 py-4 bg-white text-black font-black text-sm uppercase tracking-wide border-[4px] border-black shadow-[6px_6px_0_0_#000] hover:shadow-[3px_3px_0_0_#000] hover:translate-x-[3px] hover:translate-y-[3px] active:shadow-none transition-all">
+                            <span className="inline-flex w-full items-center justify-center gap-2 px-6 py-4 text-center bg-white text-black font-black text-sm uppercase tracking-wide border-[4px] border-black shadow-[6px_6px_0_0_#000] transition-all hover:shadow-[3px_3px_0_0_#000] hover:translate-x-[3px] hover:translate-y-[3px] active:shadow-none sm:w-auto sm:px-8">
                                 Log In
                             </span>
                         </Link>
@@ -75,7 +75,7 @@ export default function Hero() {
                 className="relative flex-shrink-0 w-full md:w-[42%] lg:w-[38%] min-h-[280px] md:min-h-0 md:flex md:items-center md:justify-end md:pr-0"
             >
                 <div className="absolute inset-0 md:left-[-5%] md:top-0 md:bottom-0 md:w-[110%] bg-white border-l-[4px] md:border-l-0 border-t-[4px] md:border-t-0 border-black [box-shadow:-8px_8px_0_0_#000] md:[box-shadow:-12px_12px_0_0_#000]" />
-                <div className="relative z-10 px-6 py-12 md:py-16 md:pr-12 lg:pr-20 grid grid-cols-3 gap-4 md:flex md:flex-col md:gap-6 md:items-end md:pb-24">
+                <div className="relative z-10 grid grid-cols-1 gap-4 px-6 py-12 sm:grid-cols-2 md:flex md:flex-col md:gap-6 md:items-end md:py-16 md:pr-12 md:pb-24 lg:pr-20">
                     {[
                         { icon: Zap, label: "Instant", sub: "Virtual Try-On" },
                         { icon: ShoppingBag, label: "Marketplace", sub: "Brand Connect" },
@@ -97,3 +97,4 @@ export default function Hero() {
         </section>
     );
 }
+

@@ -25,15 +25,15 @@ export default function CTASection() {
                         Gen-Z fashion is your gateway to success.
                     </p>
 
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:justify-center">
                         <Link href="/register">
-                            <span className="inline-flex items-center justify-center gap-2 min-w-[200px] px-8 py-4 bg-[var(--brutal-lime)] text-black font-black text-sm uppercase tracking-wide border-[4px] border-black shadow-[6px_6px_0_0_var(--brutal-lime)] hover:shadow-[3px_3px_0_0_var(--brutal-lime)] hover:translate-x-[3px] hover:translate-y-[3px] active:shadow-none transition-all">
+                            <span className="inline-flex w-full items-center justify-center gap-2 px-6 py-4 text-center bg-[var(--brutal-lime)] text-black font-black text-sm uppercase tracking-wide border-[4px] border-black shadow-[6px_6px_0_0_var(--brutal-lime)] transition-all hover:shadow-[3px_3px_0_0_var(--brutal-lime)] hover:translate-x-[3px] hover:translate-y-[3px] active:shadow-none sm:w-auto sm:min-w-[200px] sm:px-8">
                                 Create Account
                                 <ArrowRight className="w-5 h-5" />
                             </span>
                         </Link>
                         <Link href="/about">
-                            <span className="inline-flex items-center justify-center min-w-[200px] px-8 py-4 bg-white text-black font-black text-sm uppercase tracking-wide border-[4px] border-white shadow-[6px_6px_0_0_rgba(255,255,255,0.3)] hover:bg-[var(--brutal-cream)] hover:border-[var(--brutal-cream)] transition-all">
+                            <span className="inline-flex w-full items-center justify-center px-6 py-4 text-center bg-white text-black font-black text-sm uppercase tracking-wide border-[4px] border-white shadow-[6px_6px_0_0_rgba(255,255,255,0.3)] transition-all hover:bg-[var(--brutal-cream)] hover:border-[var(--brutal-cream)] sm:w-auto sm:min-w-[200px] sm:px-8">
                                 Learn More
                             </span>
                         </Link>
@@ -47,3 +47,4 @@ export default function CTASection() {
         </section>
     );
 }
+
