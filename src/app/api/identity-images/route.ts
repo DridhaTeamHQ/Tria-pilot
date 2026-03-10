@@ -9,6 +9,7 @@ import {
   isIdentitySetupComplete,
   getUploadProgress
 } from '@/lib/identity/types'
+import { extractCharacterMetadata } from '@/lib/tryon/character-metadata'
 
 async function findInfluencerProfile(
   client: any,
@@ -197,6 +198,15 @@ export async function POST(request: Request) {
     const types = (allImages || []).map((i: any) => i.image_type)
     const isComplete = isIdentitySetupComplete(types)
 
+    // Auto-extract character metadata when a face image is uploaded
+    // This runs GPT-4o ONCE and stores the result for all future try-ons
+    const isFaceImage = imageType.startsWith('face_')
+    if (isFaceImage) {
+      // Fire-and-forget — don't block the upload response
+      extractCharacterMetadata(authUser.id).catch(err =>
+        console.error('Background metadata extraction failed:', err)
+      )
+    }
 
     return NextResponse.json({
       image: { ...record, imageType: record.image_type, imageUrl: record.image_url }, // map for frontend

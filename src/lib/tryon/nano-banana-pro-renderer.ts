@@ -14,6 +14,7 @@
 import 'server-only'
 import { generateTryOnDirect } from '@/lib/nanobanana'
 import { resolveCharacterReferences, fetchImageAsBase64 } from '@/lib/tryon/character-resolver'
+import { loadCharacterMetadata, type CharacterMetadata } from '@/lib/tryon/character-metadata'
 import { buildForensicPrompt } from './forensic-prompt'
 import { detectFaceCoordinates, type FaceCoordinates } from './face-coordinates'
 import { buildForensicFaceAnchor } from './face-forensics'
@@ -121,6 +122,33 @@ export async function generateWithNanoBananaPro(
 
     const presetNames = getAllPresetIds()
 
+    // Try to load stored character metadata (extracted once on upload).
+    // If available, skip the per-request GPT-4o forensic call — saves $$ and ensures
+    // every generation for this user uses the EXACT SAME face description.
+    let storedMetadata: CharacterMetadata | null = null
+    if (input.userId) {
+      try {
+        storedMetadata = await loadCharacterMetadata(input.userId)
+        if (storedMetadata && isDev) {
+          console.log('   🪞 Using stored character metadata (skipping per-request GPT-4o)')
+        }
+      } catch { /* ignore metadata load errors */ }
+    }
+
+    const forensicFallback = {
+      faceAnchor:
+        'preserve exact face shape width and fullness, eye geometry, nose bridge and tip, lip contour, jawline, skin texture with visible pores, facial hair density and pattern, and eyewear geometry',
+      eyesAnchor:
+        'almond eye shape, medium inter-eye spacing, dark brown iris color, forward gaze direction, stable eyelid crease and brow geometry',
+      characterSummary: 'single subject from Image 1',
+      poseSummary: 'inherit pose and head angle from Image 1',
+      appearanceSummary: 'preserve stable hairstyle and accessories from Image 1',
+      bodyAnchor:
+        'preserve original body build, weight, shoulder width, torso mass, and limb proportions exactly as visible in Image 1',
+      garmentOnPersonGuidance:
+        'garment follows original shoulder slope and torso drape from Image 1 — do not slim or reshape body. Do NOT slim or narrow the face. Do NOT thin the beard.',
+    }
+
     const [sceneConfig, personFace, forensicAnchor] = await Promise.all([
       withTimeout(
         getStrictSceneConfig({
@@ -134,26 +162,28 @@ export async function generateWithNanoBananaPro(
         buildSceneFallback(input)
       ),
       detectFaceCoordinates(input.personImageBase64, { allowHeuristicFallback: true }),
-      withTimeout(
-        buildForensicFaceAnchor({
-          personImageBase64: input.personImageBase64,
-          garmentDescription: input.garmentDescription,
-        }),
-        10000,
-        {
-          faceAnchor:
-            'preserve exact face shape width and fullness, eye geometry, nose bridge and tip, lip contour, jawline, skin texture with visible pores, facial hair density and pattern, and eyewear geometry',
-          eyesAnchor:
-            'almond eye shape, medium inter-eye spacing, dark brown iris color, forward gaze direction, stable eyelid crease and brow geometry',
-          characterSummary: 'single subject from Image 1',
+      // Use stored metadata if available, otherwise fall back to per-request GPT-4o
+      storedMetadata
+        ? Promise.resolve({
+          faceAnchor: storedMetadata.faceAnchor,
+          eyesAnchor: storedMetadata.eyesAnchor,
+          characterSummary: storedMetadata.characterSummary || 'single subject from Image 1',
           poseSummary: 'inherit pose and head angle from Image 1',
-          appearanceSummary: 'preserve stable hairstyle and accessories from Image 1',
-          bodyAnchor:
-            'preserve original body build, weight, shoulder width, torso mass, and limb proportions exactly as visible in Image 1',
+          appearanceSummary: storedMetadata.hairDescription
+            ? `${storedMetadata.hairDescription}, preserve stable hairstyle and accessories from Image 1`
+            : 'preserve stable hairstyle and accessories from Image 1',
+          bodyAnchor: storedMetadata.bodyAnchor,
           garmentOnPersonGuidance:
             'garment follows original shoulder slope and torso drape from Image 1 — do not slim or reshape body. Do NOT slim or narrow the face. Do NOT thin the beard.',
-        }
-      ),
+        })
+        : withTimeout(
+          buildForensicFaceAnchor({
+            personImageBase64: input.personImageBase64,
+            garmentDescription: input.garmentDescription,
+          }),
+          10000,
+          forensicFallback
+        ),
     ])
 
     // ── CHARACTER REFERENCES ──────────────────────────────────────────────
