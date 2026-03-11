@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import {
@@ -10,7 +10,7 @@ import {
     Loader2,
     MessageCircle,
     ChevronLeft,
-    User
+    Clock3,
 } from 'lucide-react'
 
 interface Conversation {
@@ -45,6 +45,7 @@ export default function BrandInboxPage() {
     const [loading, setLoading] = useState(true)
     const [sending, setSending] = useState(false)
     const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+    const [searchQuery, setSearchQuery] = useState('')
 
     useEffect(() => {
         fetchCurrentUser()
@@ -87,10 +88,13 @@ export default function BrandInboxPage() {
 
             if (!res.ok) throw new Error(data.error)
 
-            setConversations(data.conversations || [])
+            const nextConversations = data.conversations || []
+            setConversations(nextConversations)
+            return nextConversations as Conversation[]
         } catch (error) {
             console.error('Failed to fetch conversations:', error)
             toast.error('Failed to load conversations')
+            return [] as Conversation[]
         } finally {
             setLoading(false)
         }
@@ -109,10 +113,10 @@ export default function BrandInboxPage() {
             if (!res.ok) throw new Error(data.error)
 
             // Refresh conversations and select the new one
-            await fetchConversations()
+            const nextConversations = await fetchConversations()
 
             // Find and select the conversation
-            const conv = conversations.find(c =>
+            const conv = nextConversations.find(c =>
                 c.other_party.id === recipientId
             ) || {
                 id: data.conversation.id,
@@ -145,6 +149,16 @@ export default function BrandInboxPage() {
             if (!res.ok) throw new Error(data.error)
 
             setMessages(data.messages || [])
+            setConversations(prev => prev.map((item) =>
+                item.id === conversation.id
+                    ? { ...item, unread_count: 0 }
+                    : item
+            ))
+            setSelectedConversation((prev) =>
+                prev && prev.id === conversation.id
+                    ? { ...prev, unread_count: 0 }
+                    : conversation
+            )
         } catch (error) {
             console.error('Failed to fetch messages:', error)
             toast.error('Failed to load messages')
@@ -184,6 +198,16 @@ export default function BrandInboxPage() {
             setMessages(prev => prev.map(m =>
                 m.id === optimisticMessage.id ? data.message : m
             ))
+            const sentAt = data.message?.created_at || optimisticMessage.created_at
+            setConversations(prev => prev.map((item) =>
+                item.id === selectedConversation.id
+                    ? {
+                        ...item,
+                        last_message: content,
+                        last_message_at: sentAt,
+                    }
+                    : item
+            ))
         } catch (error) {
             console.error('Failed to send message:', error)
             toast.error('Failed to send message')
@@ -194,6 +218,17 @@ export default function BrandInboxPage() {
             setSending(false)
         }
     }
+
+    const filteredConversations = useMemo(() => {
+        const query = searchQuery.trim().toLowerCase()
+        if (!query) return conversations
+
+        return conversations.filter((conversation) =>
+            conversation.other_party.name.toLowerCase().includes(query) ||
+            conversation.other_party.email.toLowerCase().includes(query) ||
+            (conversation.last_message || '').toLowerCase().includes(query)
+        )
+    }, [conversations, searchQuery])
 
     const formatTime = (dateString: string) => {
         const date = new Date(dateString)
@@ -225,6 +260,10 @@ export default function BrandInboxPage() {
                 <Inbox className="inline-block w-8 h-8 mr-2 -mt-1" />
                 Inbox
             </h1>
+            <div className="mb-4 flex items-start gap-3 rounded-xl border-[3px] border-black bg-[#FFF3BF] p-4 text-sm font-semibold text-black">
+                <Clock3 className="mt-0.5 h-5 w-5 shrink-0" />
+                <p>Brand inbox will be available soon. Messaging is already usable, but we are still polishing the full experience.</p>
+            </div>
 
             <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] h-[calc(100dvh-170px)] md:h-[calc(100vh-220px)] flex">
                 {/* Conversations List */}
@@ -234,6 +273,8 @@ export default function BrandInboxPage() {
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-black/40" />
                             <input
                                 type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Search conversations..."
                                 className="w-full pl-9 pr-4 py-2 border-2 border-black text-sm font-medium focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] outline-none"
                             />
@@ -241,16 +282,18 @@ export default function BrandInboxPage() {
                     </div>
 
                     <div className="flex-1 overflow-y-auto">
-                        {conversations.length === 0 ? (
+                        {filteredConversations.length === 0 ? (
                             <div className="p-6 text-center">
                                 <MessageCircle className="w-12 h-12 mx-auto mb-3 text-black/20" />
-                                <p className="text-black/60 font-medium text-sm">No conversations yet</p>
+                                <p className="text-black/60 font-medium text-sm">
+                                    {searchQuery.trim() ? 'No matching conversations' : 'No conversations yet'}
+                                </p>
                                 <p className="text-black/40 text-xs mt-1">
-                                    Start by messaging an influencer
+                                    {searchQuery.trim() ? 'Try a different name or email' : 'Start by messaging an influencer'}
                                 </p>
                             </div>
                         ) : (
-                            conversations.map(conv => (
+                            filteredConversations.map(conv => (
                                 <button type="button"
                                     key={conv.id}
                                     onClick={() => selectConversation(conv)}

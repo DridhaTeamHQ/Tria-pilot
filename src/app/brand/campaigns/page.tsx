@@ -7,6 +7,7 @@ import {
   Loader2, Sparkles, Search, SlidersHorizontal, ArrowUpDown,
   ChevronDown, TrendingUp,
 } from 'lucide-react'
+import { BrutalLoader } from '@/components/ui/BrutalLoader'
 import CampaignAnalytics from '@/components/campaigns/CampaignAnalytics'
 import CampaignRecommendations from '@/components/campaigns/CampaignRecommendations'
 
@@ -61,10 +62,10 @@ const STATUS_BADGE_COLORS: Record<string, string> = {
 }
 
 const GOAL_LABELS: Record<string, string> = {
-  sales: '🛒 Sales',
-  awareness: '📢 Awareness',
-  launch: '🚀 Launch',
-  traffic: '🔗 Traffic',
+  sales: 'Sales',
+  awareness: 'Awareness',
+  launch: 'Launch',
+  traffic: 'Traffic',
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -235,7 +236,7 @@ export default function CampaignsPage() {
                   >
                     <ArrowUpDown className="w-3.5 h-3.5 text-black/40" strokeWidth={2} />
                     {SORT_OPTIONS.find(o => o.value === sortOption)?.label || 'Sort'}
-                    <ChevronDown className={`w-3 h-3 text-black/30 transition-transform ${sortOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={`w-3 h-3 text-black/30 transition-transform ${sortOpen ? 'rotate-180' : '--'}`} />
                   </button>
                   {sortOpen && (
                     <>
@@ -264,7 +265,7 @@ export default function CampaignsPage() {
             <div className="flex items-center justify-between px-1">
               <p className="text-[11px] font-bold text-black/40 uppercase tracking-wider">
                 {filteredCampaigns.length} campaign{filteredCampaigns.length !== 1 ? 's' : ''}
-                {statusFilter !== 'all' && ` · ${statusFilter}`}
+                {statusFilter !== 'all' && ` - ${statusFilter}`}
               </p>
             </div>
 
@@ -366,7 +367,7 @@ export default function CampaignsPage() {
                             </div>
                             <div>
                               <p className="text-[9px] font-bold text-black/35 uppercase">Spend</p>
-                              <p className="text-sm font-black tabular-nums">₹{(campaign.spend ?? 0).toLocaleString()}</p>
+                              <p className="text-sm font-black tabular-nums">Rs. {(campaign.spend ?? 0).toLocaleString()}</p>
                             </div>
                           </div>
                         </div>
@@ -381,7 +382,7 @@ export default function CampaignsPage() {
                               month: 'long',
                               day: 'numeric',
                             })
-                            : '—'}
+                            : '--'}
                         </p>
                       </div>
                     </Link>

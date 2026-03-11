@@ -47,6 +47,7 @@ export default async function BrandDashboard() {
   const companyName = (brandData.companyName as string) || profile.name || 'Brand'
   const brandType = (brandData.brandType as string) || ''
   const vertical = (brandData.vertical as string) || ''
+  const brandSummary = [brandType, vertical].filter(Boolean).join(' - ')
 
   const campaigns = (campaignsListReq.data || []) as Array<{
     id: string
@@ -139,9 +140,7 @@ export default async function BrandDashboard() {
           Welcome back, {companyName}!
         </h1>
         <p className="text-black/60 font-medium text-sm sm:text-lg">
-          {brandType && `${brandType}`}
-          {vertical && ` • ${vertical}`}
-          {!brandType && !vertical && 'Your brand command center'}
+          {brandSummary || 'Your brand command center'}
         </p>
       </div>
 
@@ -153,7 +152,7 @@ export default async function BrandDashboard() {
               <DollarSign className="w-6 h-6" strokeWidth={2.5} />
             </div>
             <div>
-              <div className="text-xl sm:text-2xl font-black">₹{stats.totalSpend.toLocaleString()}</div>
+              <div className="text-xl sm:text-2xl font-black">Rs. {stats.totalSpend.toLocaleString()}</div>
               <div className="text-xs font-bold text-black/60 uppercase">Total Spend</div>
             </div>
           </div>
@@ -304,7 +303,7 @@ export default async function BrandDashboard() {
       {/* Getting Started */}
       {stats.products === 0 && (
         <div className="mt-8 sm:mt-10 p-5 sm:p-8 bg-gradient-to-br from-[#B4F056]/30 to-[#FFD93D]/30 border-[3px] border-black">
-          <h2 className="text-xl sm:text-2xl font-black text-black mb-3">🚀 Get Started</h2>
+          <h2 className="text-xl sm:text-2xl font-black text-black mb-3">Get Started</h2>
           <p className="text-black/70 font-medium mb-6">
             Start by adding your first product, then discover influencers to collaborate with!
           </p>

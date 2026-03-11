@@ -29,7 +29,7 @@ export async function GET(request: Request, { params }: Params) {
         // Verify user is part of this conversation
         const { data: conversation } = await service
             .from('conversations')
-            .select('brand_id, influencer_id')
+            .select('brand_id, influencer_id, unread_brand, unread_influencer')
             .eq('id', conversationId)
             .single()
 
@@ -102,7 +102,7 @@ export async function POST(request: Request, { params }: Params) {
         // Verify user is part of this conversation
         const { data: conversation } = await service
             .from('conversations')
-            .select('brand_id, influencer_id')
+            .select('brand_id, influencer_id, unread_brand, unread_influencer')
             .eq('id', conversationId)
             .single()
 
@@ -132,30 +132,20 @@ export async function POST(request: Request, { params }: Params) {
 
         // Update conversation
         const isBrand = conversation.brand_id === user.id
-        const updateData: any = {
+        const updateData = {
             last_message: content.trim().substring(0, 100),
             last_message_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
+            unread_influencer: isBrand
+                ? Number(conversation.unread_influencer || 0) + 1
+                : Number(conversation.unread_influencer || 0),
+            unread_brand: isBrand
+                ? Number(conversation.unread_brand || 0)
+                : Number(conversation.unread_brand || 0) + 1,
         }
 
-        // Increment unread count for the other party
-        if (isBrand) {
-            updateData.unread_influencer = service.rpc('increment_unread_influencer', {
-                conv_id: conversationId
-            })
-        } else {
-            updateData.unread_brand = service.rpc('increment_unread_brand', {
-                conv_id: conversationId
-            })
-        }
-
-        // Simple update without RPC for now
         await service
             .from('conversations')
-            .update({
-                last_message: content.trim().substring(0, 100),
-                last_message_at: new Date().toISOString(),
-            })
+            .update(updateData)
             .eq('id', conversationId)
 
         return NextResponse.json({ message }, { status: 201 })

@@ -9,7 +9,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Mail, Instagram, Loader2, MessageCircle } from 'lucide-react'
+import { ArrowLeft, Mail, Instagram, MessageCircle } from 'lucide-react'
+import { BrutalLoader } from '@/components/ui/BrutalLoader'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 
@@ -27,6 +28,17 @@ interface InfluencerData {
     youtube?: string
     tiktok?: string
   }
+}
+
+type InfluencerApiRecord = {
+  id: string
+  email: string
+  name: string
+  bio?: string
+  followers?: number
+  engagement_rate?: string
+  niches?: string[]
+  profile_image?: string | null
 }
 
 export default function InfluencerDetailPage({
@@ -51,9 +63,18 @@ export default function InfluencerDetailPage({
         const data = await res.json()
 
         // Find the specific influencer
-        const found = data.influencers?.find((i: any) => i.id === influencerId)
+        const found = data.influencers?.find((i: InfluencerApiRecord) => i.id === influencerId)
         if (found) {
-          setInfluencer(found)
+          setInfluencer({
+            id: found.id,
+            fullName: found.name || 'Influencer',
+            email: found.email || '',
+            bio: found.bio || '',
+            niche: found.niches?.[0],
+            followers: found.followers || 0,
+            engagementRate: Number(found.engagement_rate || 0),
+            profileImage: found.profile_image || undefined,
+          })
         }
       } catch (error) {
         console.error('Failed to load influencer:', error)
@@ -68,14 +89,14 @@ export default function InfluencerDetailPage({
 
   const handleMessage = () => {
     if (influencer) {
-      router.push(`/brand/inbox?newConversation=${influencer.id}`)
+      router.push(`/brand/inbox?to=${influencer.id}`)
     }
   }
 
   if (loading) {
     return (
       <div className="min-h-screen bg-[#FFFCF5] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-black" />
+        <BrutalLoader size="lg" tone="brand" label="Loading profile" />
       </div>
     )
   }
@@ -150,7 +171,7 @@ export default function InfluencerDetailPage({
                 <div className="bg-gray-50 border-2 border-black p-4">
                   <div className="text-2xl font-black">
                     {influencer.engagementRate
-                      ? `${(influencer.engagementRate * 100).toFixed(1)}%`
+                      ? `${influencer.engagementRate.toFixed(1)}%`
                       : 'N/A'}
                   </div>
                   <div className="text-xs font-bold text-black/60 uppercase">Engagement</div>
@@ -171,7 +192,7 @@ export default function InfluencerDetailPage({
               )}
 
               {/* Actions */}
-              <div className="flex gap-3 mt-6">
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                 <Button
                   onClick={handleMessage}
                   className="px-6 py-3 bg-[#B4F056] border-[3px] border-black font-bold hover:bg-[#a3e04a] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"

@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
@@ -16,6 +16,7 @@ import {
   Twitter,
   Linkedin,
 } from 'lucide-react'
+import { BrutalLoader } from '@/components/ui/BrutalLoader'
 
 interface BrandProfile {
   companyName: string
@@ -302,8 +303,8 @@ export default function BrandProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-black" />
+      <div className="min-h-screen flex items-center justify-center bg-[#FAFAF8]">
+        <BrutalLoader size="lg" tone="brand" label="Loading brand profile" />
       </div>
     )
   }
@@ -321,7 +322,7 @@ export default function BrandProfilePage() {
       </div>
 
       <section className="mb-8 bg-white border-[3px] border-black shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] p-5 md:p-7">
-        <div className="flex items-center gap-5">
+        <div className="flex flex-col items-start gap-5 md:flex-row md:items-center">
           <div className="relative w-[120px] h-[136px] md:w-[140px] md:h-[156px] border-[4px] border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] bg-[#FFD93D] overflow-hidden">
             {profileImageUrl ? (
               <img src={profileImageUrl} alt="Brand profile" className="w-full h-full object-cover" />
