@@ -65,6 +65,18 @@ export async function GET(request: NextRequest) {
   }
 
   const existingRole = normalizeRole(existingProfile?.role)
+
+  if (existingRole && roleFromQuery && existingRole !== roleFromQuery) {
+    await supabase.auth.signOut()
+
+    const mismatchUrl = new URL('/login', request.nextUrl)
+    mismatchUrl.searchParams.set('from', roleFromQuery)
+    mismatchUrl.searchParams.set('error', 'role_mismatch')
+    mismatchUrl.searchParams.set('requested', roleFromQuery)
+    mismatchUrl.searchParams.set('actual', existingRole)
+    return NextResponse.redirect(mismatchUrl)
+  }
+
   const profilePayload: Record<string, unknown> = {
     id: data.user.id,
     email: data.user.email,

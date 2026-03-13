@@ -56,8 +56,14 @@ function LoginContent() {
     const confirmed = searchParams.get('confirmed')
     const error = searchParams.get('error')
     const details = searchParams.get('details')
+    const requestedRole = searchParams.get('requested')
+    const actualRole = searchParams.get('actual')
     if (confirmed === 'true') {
       toast.success('Email confirmed! You can now sign in.')
+    } else if (error === 'role_mismatch') {
+      const requestedLabel = requestedRole === 'brand' ? 'brand' : 'influencer'
+      const actualLabel = actualRole === 'brand' ? 'brand' : 'influencer'
+      toast.error(`This Google account is already linked to a ${actualLabel} account. Use the ${actualLabel} login or a different Google account for ${requestedLabel}.`)
     } else if (error) {
       toast.error(`Authentication error: ${details || 'Please try again.'}`)
     }
