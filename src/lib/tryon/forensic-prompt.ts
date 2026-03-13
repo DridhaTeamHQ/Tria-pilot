@@ -133,9 +133,10 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     lines.push('')
   }
 
-  // ── LINE 6: Quality (sharp background + natural skin) ──
+  // ── LINE 6: Quality (anti-AI specs + sharp background) ──
+  // Camera specs prevent cartoonish/CGI look — key Nano Banana best practice
   lines.push(
-    `OUTPUT: Photorealistic candid photo, natural skin with visible pores, sharp in-focus background with realistic texture and detail, aspect ratio ${aspectRatio}.`
+    `OUTPUT: Shot on Canon EOS R5, 85mm f/1.8 lens, ISO 200. Photorealistic candid photo with natural film grain, real skin with visible pores and micro-imperfections, sharp in-focus background with realistic texture and detail, natural depth of field, aspect ratio ${aspectRatio}.`
   )
 
   // ── LINE 7: Retry (only on retry, minimal) ──

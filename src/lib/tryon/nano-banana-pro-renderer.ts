@@ -126,7 +126,7 @@ export async function generateWithNanoBananaPro(
 
     // ── IDENTITY EMBEDDING (Soul ID) ──────────────────────────────────────
     // Load the frozen identity fingerprint if available.
-    // The identityDNA paragraph anchors the face across all generations.
+    // If not extracted yet but identity images exist, auto-extract now.
     let identityEmbedding: IdentityEmbedding | null = null
     if (input.userId) {
       try {
@@ -134,7 +134,21 @@ export async function generateWithNanoBananaPro(
         if (identityEmbedding && isDev) {
           console.log(`   🧬 Soul ID loaded (${identityEmbedding.imageCount} images, v${identityEmbedding.version})`)
         }
-      } catch { /* ignore embedding load errors */ }
+
+        // Auto-extract if no embedding exists yet (e.g. images uploaded before Soul ID code)
+        if (!identityEmbedding) {
+          const { needsReExtraction, extractIdentityEmbedding } = await import('./identity-embedding')
+          if (await needsReExtraction(input.userId)) {
+            if (isDev) console.log('   🧬 Soul ID not found — auto-extracting from existing images...')
+            identityEmbedding = await extractIdentityEmbedding(input.userId)
+            if (identityEmbedding && isDev) {
+              console.log(`   🧬 Soul ID extracted! (${identityEmbedding.imageCount} images)`)
+            }
+          }
+        }
+      } catch (err) {
+        if (isDev) console.warn('⚠️ Soul ID load/extract failed:', err)
+      }
     }
 
     const forensicFallback = {

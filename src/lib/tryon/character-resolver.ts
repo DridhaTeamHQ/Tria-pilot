@@ -2,7 +2,7 @@
  * CHARACTER RESOLVER
  * 
  * Fetches a user's character reference images from the identity_images table
- * and selects the best 2-3 references for a given preset/scene.
+ * and selects the best 4 face references for a given preset/scene.
  * 
  * This is the core of the multi-reference identity system — like Higgsfield,
  * we send multiple angle-specific photos to Gemini for dramatically better
@@ -39,41 +39,41 @@ export interface CharacterResolverResult {
  */
 const PRESET_ANGLE_MAP: Record<string, IdentityImageType[]> = {
     // Studio / front-facing presets
-    studio: ['face_front', 'face_smile'],
-    minimal: ['face_front', 'face_smile'],
-    editorial: ['face_front', 'face_left'],
+    studio: ['face_front', 'face_smile', 'face_left', 'face_right'],
+    minimal: ['face_front', 'face_smile', 'face_left', 'face_right'],
+    editorial: ['face_front', 'face_left', 'face_smile', 'face_right'],
 
     // Outdoor / candid presets
-    urban: ['face_left', 'face_front'],
-    street: ['face_left', 'face_front'],
-    rooftop: ['face_front', 'face_right'],
-    terrace: ['face_front', 'face_right'],
+    urban: ['face_left', 'face_front', 'face_smile', 'face_right'],
+    street: ['face_left', 'face_front', 'face_smile', 'face_right'],
+    rooftop: ['face_front', 'face_right', 'face_smile', 'face_left'],
+    terrace: ['face_front', 'face_right', 'face_smile', 'face_left'],
 
     // Profile / side shots
-    mirror: ['face_right', 'face_front'],
-    selfie: ['face_front', 'face_smile'],
+    mirror: ['face_right', 'face_front', 'face_smile', 'face_left'],
+    selfie: ['face_front', 'face_smile', 'face_left', 'face_right'],
 
     // Nature / golden hour
-    golden: ['face_front', 'face_smile'],
-    sunset: ['face_left', 'face_front'],
-    garden: ['face_front', 'face_smile'],
+    golden: ['face_front', 'face_smile', 'face_left', 'face_right'],
+    sunset: ['face_left', 'face_front', 'face_smile', 'face_right'],
+    garden: ['face_front', 'face_smile', 'face_left', 'face_right'],
 
     // Indoor / cozy
-    cafe: ['face_smile', 'face_front'],
-    restaurant: ['face_front', 'face_smile'],
-    library: ['face_front', 'face_left'],
+    cafe: ['face_smile', 'face_front', 'face_left', 'face_right'],
+    restaurant: ['face_front', 'face_smile', 'face_left', 'face_right'],
+    library: ['face_front', 'face_left', 'face_smile', 'face_right'],
 
     // Action / movement
-    running: ['face_front', 'face_left'],
-    walking: ['face_left', 'face_front'],
+    running: ['face_front', 'face_left', 'face_smile', 'face_right'],
+    walking: ['face_left', 'face_front', 'face_smile', 'face_right'],
 
     // Night / dark
-    night: ['face_front', 'face_left'],
-    neon: ['face_front', 'face_left'],
+    night: ['face_front', 'face_left', 'face_smile', 'face_right'],
+    neon: ['face_front', 'face_left', 'face_smile', 'face_right'],
 }
 
-// Default: front face + smile (FACE-ONLY — never body, body refs have competing clothing)
-const DEFAULT_ANGLES: IdentityImageType[] = ['face_front', 'face_smile']
+// Default: all 4 face angles (FACE-ONLY — never body, body refs have competing clothing)
+const DEFAULT_ANGLES: IdentityImageType[] = ['face_front', 'face_smile', 'face_left', 'face_right']
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN RESOLVER
@@ -143,7 +143,7 @@ export async function resolveCharacterReferences(
                     usedTypes.add(angle)
                 }
             }
-            if (references.length >= 2) break  // Max 2 face-only references
+            if (references.length >= 4) break  // Max 4 face references (Gemini supports up to 14 total)
         }
 
         // Second pass: if we still have < 2, add any available face image
@@ -157,7 +157,7 @@ export async function resolveCharacterReferences(
                         usedTypes.add(faceType)
                     }
                 }
-                if (references.length >= 2) break
+                if (references.length >= 4) break
             }
         }
 
