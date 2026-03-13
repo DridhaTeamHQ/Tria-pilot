@@ -526,14 +526,18 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
 
   const startTime = Date.now()
 
+  // Model selection: Pro (default) or Flash (faster/cheaper)
+  // Set TRYON_IMAGE_MODEL=gemini-3.1-flash-image-preview for Nano Banana 2
+  const modelName = process.env.TRYON_IMAGE_MODEL?.trim() || 'gemini-3-pro-image-preview'
+
   const response = await geminiGenerateContent({
-    model: 'gemini-3-pro-image-preview',
+    model: modelName,
     contents,
     config,
   })
 
   const duration = ((Date.now() - startTime) / 1000).toFixed(2)
-  if (process.env.NODE_ENV !== 'production') console.log(`🍌 DIRECT TRANSPORT: Gemini responded in ${duration}s`)
+  if (process.env.NODE_ENV !== 'production') console.log(`🍌 DIRECT TRANSPORT: ${modelName} responded in ${duration}s`)
 
   // Extract image
   if (response.data) {

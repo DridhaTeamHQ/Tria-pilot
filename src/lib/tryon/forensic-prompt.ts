@@ -35,6 +35,7 @@ export interface ForensicPromptInput {
   styleGuidance?: string
   colorGradingGuidance?: string
   cameraGuidance?: string
+  identityDNA?: string            // Soul ID — frozen paragraph describing the person's exact face
   poseInferenceGuidance?: string
   researchContext?: string
   webResearchContext?: string
@@ -79,15 +80,29 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   )
   lines.push('')
 
-  // ── LINE 2: Identity anchor (concise) ──
-  if (hasFaceReference) {
-    lines.push(
-      `IDENTITY: Copy the face from Image 1 and Image 3 (close-up) exactly — same bone structure, eyes, nose, lips, jaw, skin texture, pores, skin tone, and perceived age.`
-    )
+  // ── LINE 2: Identity anchor (concise + Soul ID) ──
+  if (input.identityDNA) {
+    // Soul ID available — use frozen identity paragraph for consistency
+    if (hasFaceReference) {
+      lines.push(
+        `IDENTITY: ${input.identityDNA} Copy these EXACT features from Image 1 and Image 3 (close-up). Do not change any facial feature.`
+      )
+    } else {
+      lines.push(
+        `IDENTITY: ${input.identityDNA} Copy these EXACT features from Image 1. Do not change any facial feature.`
+      )
+    }
   } else {
-    lines.push(
-      `IDENTITY: Copy the face from Image 1 exactly — same bone structure, eyes, nose, lips, jaw, skin texture, pores, skin tone, and perceived age.`
-    )
+    // No Soul ID — generic identity instruction
+    if (hasFaceReference) {
+      lines.push(
+        `IDENTITY: Copy the face from Image 1 and Image 3 (close-up) exactly — same bone structure, eyes, nose, lips, jaw, skin texture, pores, skin tone, and perceived age.`
+      )
+    } else {
+      lines.push(
+        `IDENTITY: Copy the face from Image 1 exactly — same bone structure, eyes, nose, lips, jaw, skin texture, pores, skin tone, and perceived age.`
+      )
+    }
   }
   lines.push('')
 

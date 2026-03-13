@@ -14,7 +14,7 @@
 import 'server-only'
 import { generateTryOnDirect } from '@/lib/nanobanana'
 import { resolveCharacterReferences, fetchImageAsBase64 } from '@/lib/tryon/character-resolver'
-import { loadCharacterMetadata, type CharacterMetadata } from '@/lib/tryon/character-metadata'
+import { loadIdentityEmbedding, type IdentityEmbedding } from '@/lib/tryon/identity-embedding'
 import { buildForensicPrompt } from './forensic-prompt'
 import { detectFaceCoordinates, type FaceCoordinates } from './face-coordinates'
 import { buildForensicFaceAnchor } from './face-forensics'
@@ -124,18 +124,17 @@ export async function generateWithNanoBananaPro(
 
     const presetNames = getAllPresetIds()
 
-    // ── CHARACTER METADATA (DISABLED — face was better without it) ────────
-    // The per-request GPT-4o forensic analysis was producing better face results.
-    // Stored metadata can be re-enabled via TRYON_USE_STORED_METADATA=true when ready.
-    const useStoredMetadata = process.env.TRYON_USE_STORED_METADATA === 'true'
-    let storedMetadata: CharacterMetadata | null = null
-    if (useStoredMetadata && input.userId) {
+    // ── IDENTITY EMBEDDING (Soul ID) ──────────────────────────────────────
+    // Load the frozen identity fingerprint if available.
+    // The identityDNA paragraph anchors the face across all generations.
+    let identityEmbedding: IdentityEmbedding | null = null
+    if (input.userId) {
       try {
-        storedMetadata = await loadCharacterMetadata(input.userId)
-        if (storedMetadata && isDev) {
-          console.log('   🪞 Using stored character metadata (skipping per-request GPT-4o)')
+        identityEmbedding = await loadIdentityEmbedding(input.userId)
+        if (identityEmbedding && isDev) {
+          console.log(`   🧬 Soul ID loaded (${identityEmbedding.imageCount} images, v${identityEmbedding.version})`)
         }
-      } catch { /* ignore metadata load errors */ }
+      } catch { /* ignore embedding load errors */ }
     }
 
     const forensicFallback = {
@@ -165,28 +164,16 @@ export async function generateWithNanoBananaPro(
         buildSceneFallback(input)
       ),
       detectFaceCoordinates(input.personImageBase64, { allowHeuristicFallback: true }),
-      // Use stored metadata if enabled, otherwise per-request GPT-4o (default — better face quality)
-      storedMetadata
-        ? Promise.resolve({
-          faceAnchor: storedMetadata.faceAnchor,
-          eyesAnchor: storedMetadata.eyesAnchor,
-          characterSummary: storedMetadata.characterSummary || 'single subject from Image 1',
-          poseSummary: 'inherit pose and head angle from Image 1',
-          appearanceSummary: storedMetadata.hairDescription
-            ? `${storedMetadata.hairDescription}, preserve stable hairstyle and accessories from Image 1`
-            : 'preserve stable hairstyle and accessories from Image 1',
-          bodyAnchor: storedMetadata.bodyAnchor,
-          garmentOnPersonGuidance:
-            'garment follows original shoulder slope and torso drape from Image 1 — do not slim or reshape body. Do NOT slim or narrow the face. Do NOT thin the beard.',
-        })
-        : withTimeout(
-          buildForensicFaceAnchor({
-            personImageBase64: input.personImageBase64,
-            garmentDescription: input.garmentDescription,
-          }),
-          10000,
-          forensicFallback
-        ),
+      // Always use per-request GPT-4o for forensic anchor (best face quality).
+      // Identity DNA is injected separately in the prompt for consistency.
+      withTimeout(
+        buildForensicFaceAnchor({
+          personImageBase64: input.personImageBase64,
+          garmentDescription: input.garmentDescription,
+        }),
+        10000,
+        forensicFallback
+      ),
     ])
 
     // ── CHARACTER REFERENCES (face-only, max 2) ──────────────────────────
@@ -255,6 +242,7 @@ export async function generateWithNanoBananaPro(
       aspectRatio: input.aspectRatio || '1:1',
       retryMode: false, // Only set true during actual retries, not first pass
       cameraGuidance: presetCamera, // Pass preset camera/pose to the prompt
+      identityDNA: identityEmbedding?.identityDNA, // Soul ID — frozen identity paragraph
     }
     const prompt = buildForensicPrompt(promptInput)
 
