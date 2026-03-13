@@ -16,6 +16,7 @@
 import 'server-only'
 import { createServiceClient } from '@/lib/auth'
 import { getOpenAI } from '@/lib/openai'
+import { getGeminiKey } from '@/lib/config/api-keys'
 
 const FORENSIC_MODEL = process.env.TRYON_FORENSIC_PROMPT_MODEL?.trim() || 'gpt-4o'
 
@@ -103,8 +104,8 @@ export async function extractIdentityEmbedding(
 
     if (isDev) console.log(`🧬 Extracting identity embedding from ${images.length} images...`)
 
-    // Download all images as base64 (in parallel, limit to 6 to avoid memory issues)
-    const imagesToAnalyze = images.slice(0, 6)
+    // Download all images as base64 (in parallel, limit to 7 to cover all identity slots)
+    const imagesToAnalyze = images.slice(0, 7)
     const imageDataArray = await Promise.all(
       imagesToAnalyze.map(async (img: any) => {
         try {
@@ -128,10 +129,20 @@ export async function extractIdentityEmbedding(
       return null
     }
 
-    if (isDev) console.log(`🧬 Analyzing ${validImages.length} images with GPT-4o...`)
+    if (isDev) console.log(`🧬 Analyzing ${validImages.length} images...`)
 
-    // Run multi-image GPT-4o analysis
-    const embedding = await analyzeMultipleImages(validImages)
+    // Try GPT-4o first, fall back to Gemini if OpenAI quota is hit
+    let embedding: IdentityEmbedding | null = null
+    try {
+      embedding = await analyzeMultipleImages(validImages)
+    } catch (err: any) {
+      if (err?.status === 429 || err?.code === 'insufficient_quota') {
+        if (isDev) console.log('🧬 OpenAI quota hit — falling back to Gemini for Soul ID extraction...')
+        embedding = await analyzeWithGemini(validImages)
+      } else {
+        throw err
+      }
+    }
     if (!embedding) return null
 
     // Store in DB
@@ -287,6 +298,145 @@ Rules:
   }
 
   return embedding
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GEMINI FALLBACK ANALYSIS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async function analyzeWithGemini(
+  images: { type: string; dataUrl: string }[]
+): Promise<IdentityEmbedding | null> {
+  const { GoogleGenAI } = await import('@google/genai')
+  const ai = new GoogleGenAI({ apiKey: getGeminiKey() })
+
+  const analysisPrompt = buildAnalysisPrompt(images.length)
+
+  // Build parts: text prompt + all images
+  const parts: any[] = [{ text: analysisPrompt }]
+  for (let i = 0; i < images.length; i++) {
+    const cleanBase64 = images[i].dataUrl.replace(/^data:image\/[a-z]+;base64,/, '')
+    parts.push({ text: `Photo ${i + 1} (${images[i].type}):` })
+    parts.push({
+      inlineData: {
+        data: cleanBase64,
+        mimeType: 'image/jpeg',
+      },
+    })
+  }
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: [{ role: 'user', parts }],
+    config: {
+      temperature: 0.1,
+      maxOutputTokens: 800,
+      responseMimeType: 'application/json',
+    },
+  })
+
+  const text = typeof response.text === 'function' ? response.text() : (response as any).text || ''
+  const jsonMatch = text.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) {
+    console.error('🧬 Gemini did not return valid JSON for Soul ID extraction')
+    return null
+  }
+  const parsed = JSON.parse(jsonMatch[0]) as Record<string, string>
+
+  if (!parsed.identityDNA) {
+    console.error('🧬 Gemini did not return identityDNA')
+    return null
+  }
+
+  return buildEmbeddingFromParsed(parsed, images, 'gemini-2.5-flash')
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SHARED HELPERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function buildAnalysisPrompt(imageCount: number): string {
+  return `You are analyzing ${imageCount} photos of the SAME person from different angles.
+Your job: Create a PERMANENT identity profile by cross-referencing features across all views.
+
+Features confirmed in 2+ images are marked as high-confidence.
+
+CRITICAL: You MUST write an "identityDNA" paragraph — a single, dense paragraph 
+that describes this person's EXACT face so precisely that an AI image generator could 
+reproduce it perfectly. This paragraph will be used in EVERY image generation for this person.
+
+The identityDNA should read like:
+"This person has a [shape] face with [width] proportions, [cheek description], [jawline], 
+and [chin]. Their [eye shape] eyes are [color] with [spacing] spacing. The nose has a 
+[bridge] bridge and [tip] tip. Lips are [description]. Skin is [tone] with [texture]. 
+[Hair description]. [Any distinguishing marks]."
+
+Return JSON only:
+{
+  "faceShape": "<shape + width + proportions>",
+  "eyeGeometry": "<shape, color, spacing, crease, brow>",
+  "noseProfile": "<bridge width + tip shape>",
+  "lipContour": "<fullness + shape>",
+  "jawline": "<jaw shape + angle + chin>",
+  "skinTone": "<specific tone + undertone>",
+  "skinTexture": "<smoothness + pore visibility>",
+  "distinguishingMarks": "<moles, dimples, scars — or 'none'>",
+  "hairDescription": "<length + color + texture + parting>",
+  "bodyBuild": "<shoulder width + build>",
+  "eyewear": "<frame description or 'none'>",
+  "identityDNA": "<THE CRITICAL PARAGRAPH — 2-3 sentences>"
+}
+
+Rules:
+- Cross-reference across all ${imageCount} images.
+- Face width and cheek volume are #1 source of AI face drift — be PRECISE.
+- Do NOT mention name, age, ethnicity.
+- The identityDNA is the most important output.`
+}
+
+function buildEmbeddingFromParsed(
+  parsed: Record<string, string>,
+  images: { type: string; dataUrl: string }[],
+  modelUsed: string
+): IdentityEmbedding {
+  const faceAnchor = [
+    parsed.faceShape || null,
+    parsed.jawline || null,
+    parsed.skinTone ? `${parsed.skinTone} skin` : null,
+    parsed.skinTexture || null,
+    parsed.noseProfile || null,
+    parsed.lipContour || null,
+    parsed.distinguishingMarks && parsed.distinguishingMarks !== 'none'
+      ? parsed.distinguishingMarks : null,
+  ].filter(Boolean).join(', ')
+
+  const eyesAnchor = parsed.eyeGeometry || 'preserve exact eye geometry and color'
+  const bodyAnchor = parsed.bodyBuild
+    ? `preserve ${parsed.bodyBuild} — do not slim, reshape, or idealize the body`
+    : 'preserve original body build, weight, shoulder width, and proportions exactly'
+
+  return {
+    faceShape: parsed.faceShape || 'unknown',
+    eyeGeometry: parsed.eyeGeometry || 'unknown',
+    noseProfile: parsed.noseProfile || 'unknown',
+    lipContour: parsed.lipContour || 'unknown',
+    jawline: parsed.jawline || 'unknown',
+    skinTone: parsed.skinTone || 'unknown',
+    skinTexture: parsed.skinTexture || 'unknown',
+    distinguishingMarks: parsed.distinguishingMarks || 'none',
+    hairDescription: parsed.hairDescription || 'unknown',
+    bodyBuild: parsed.bodyBuild || 'unknown',
+    eyewear: parsed.eyewear || 'none',
+    identityDNA: parsed.identityDNA,
+    faceAnchor,
+    eyesAnchor,
+    bodyAnchor,
+    imageCount: images.length,
+    imageTypes: images.map(i => i.type),
+    extractedAt: new Date().toISOString(),
+    modelUsed,
+    version: 1,
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

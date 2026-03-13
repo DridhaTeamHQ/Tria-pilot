@@ -515,13 +515,32 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
 
   const config: GenerateContentConfig = {
     responseModalities: ['TEXT', 'IMAGE'],
-    // MINIMAL system instruction — let the prompt + images do the work.
-    // Short positive framing only. No negative rules (they paradoxically cause drift).
-    systemInstruction: `You are a photorealistic virtual try-on compositor. Your task: (1) Copy the person's face from Image 1 exactly — same bone structure, eyes, nose, lips, jaw, skin, and pores. The face is immutable. (2) Apply ONLY the garment from Image 2 — match its exact color, pattern, and design. The garment source is Image 2 only. IGNORE any clothing in other images. (3) Generate a NEW background/scene as described in the SCENE section of the prompt. Do NOT keep the background from Image 1 — replace it entirely with the scene described in the prompt. (4) Adapt the person's pose and framing as described in the POSE section.`,
+    // STRONG face immutability instruction — references ALL character images explicitly.
+    // Camera specs + technical language prevent cartoonish/CGI output.
+    systemInstruction: `You are a photorealistic virtual try-on compositor shooting on a Canon EOS R5.
+
+FACE RULES (IMMUTABLE — highest priority):
+- The person's face is a FROZEN TEXTURE MAP from Image 1. Copy it pixel-for-pixel.
+- Images 3-7 show the SAME person from different angles. Use them to cross-verify face geometry.
+- Match EXACT bone structure, eye shape, eye spacing, nose bridge width, lip contour, jawline angle, skin tone, pore texture, and perceived age from Image 1.
+- The face must be IDENTICAL to Image 1. Any deviation is a failure.
+
+GARMENT RULES:
+- Apply ONLY the garment from Image 2 — match its exact color, pattern, fabric, and design.
+- IGNORE any clothing visible in Images 1, 3, 4, 5, 6, or 7 — those show the person in different outfits.
+
+SCENE RULES:
+- Generate a NEW background/scene as described in the SCENE section of the prompt.
+- Do NOT keep the background from Image 1 — replace it entirely.
+- Adapt pose and framing as described in the POSE section.
+
+OUTPUT QUALITY:
+- Shoot with natural film grain, real skin with visible pores and micro-imperfections.
+- No airbrushing, no skin smoothing, no beautification, no CGI look.`,
     imageConfig,
-    temperature: 0.4,
-    topP: 0.9,
-    topK: 32,
+    temperature: 0.3,
+    topP: 0.85,
+    topK: 16,
   }
 
   const startTime = Date.now()
