@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createServiceClient } from '@/lib/auth'
+import { createClient, createServiceClient } from '@/lib/auth'
 import { z } from 'zod'
 import crypto from 'crypto'
 import { getPublicSiteUrlFromRequest } from '@/lib/site-url'
@@ -10,10 +10,6 @@ const resendSchema = z.object({
   email: z.string().email().trim().toLowerCase(),
 })
 
-/**
- * Resend email confirmation.
- * Uses a generic response to avoid account enumeration.
- */
 export async function POST(request: Request) {
   const genericOk = {
     message: 'If an account exists and is pending confirmation, a confirmation email has been sent.',
@@ -68,8 +64,19 @@ export async function POST(request: Request) {
       text: template.text,
     })
 
-    if (!result.ok && !result.skipped) {
-      console.error('Resend confirmation email failed:', result.error)
+    if (!result.ok) {
+      const fallbackClient = await createClient()
+      const { error: fallbackError } = await fallbackClient.auth.resend({
+        type: 'signup',
+        email,
+        options: {
+          emailRedirectTo: `${siteUrl}/login?confirmed=true`,
+        },
+      })
+
+      if (fallbackError) {
+        console.error('Resend confirmation fallback failed:', fallbackError)
+      }
     }
 
     return NextResponse.json(genericOk)

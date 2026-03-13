@@ -33,6 +33,7 @@ function LoginContent() {
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [recoveryEmail, setRecoveryEmail] = useState('')
+  const [showRecoveryEmailInput, setShowRecoveryEmailInput] = useState(false)
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [userType, setUserType] = useState<'influencer' | 'brand'>('influencer')
@@ -229,17 +230,33 @@ function LoginContent() {
 
             {isUsernameEntry && (
               <div className="space-y-2 rounded-xl border-[2px] border-black bg-[#FFF4CC] p-3">
-                <label className="text-xs font-black uppercase tracking-widest text-black">Recovery Email</label>
-                <input
-                  type="email"
-                  value={recoveryEmail}
-                  onChange={(e) => setRecoveryEmail(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border-2 border-black text-black font-bold placeholder:text-black/30 outline-none focus:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all"
-                  placeholder="Add email for forgot password"
-                />
-                <p className="text-[11px] font-bold text-black/60">
-                  If this account was created with a username only, we&apos;ll send confirmation links to this email after sign in.
-                </p>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <label className="text-xs font-black uppercase tracking-widest text-black">Recovery Email</label>
+                    <p className="text-[11px] font-bold text-black/60">Optional for username-only accounts.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowRecoveryEmailInput((prev) => !prev)}
+                    className="border-2 border-black bg-white px-3 py-1 text-[11px] font-black uppercase tracking-wide"
+                  >
+                    {showRecoveryEmailInput ? 'Hide' : 'Add'}
+                  </button>
+                </div>
+                {showRecoveryEmailInput && (
+                  <>
+                    <input
+                      type="email"
+                      value={recoveryEmail}
+                      onChange={(e) => setRecoveryEmail(e.target.value)}
+                      className="w-full px-4 py-3 bg-white border-2 border-black text-black font-bold placeholder:text-black/30 outline-none focus:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all"
+                      placeholder="Add email for forgot password"
+                    />
+                    <p className="text-[11px] font-bold text-black/60">
+                      Only needed if this username-based account still uses an internal recovery email.
+                    </p>
+                  </>
+                )}
               </div>
             )}
 
@@ -258,8 +275,8 @@ function LoginContent() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-14 pr-12 py-3 bg-white border-2 border-black text-black font-bold placeholder:text-black/30 outline-none focus:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all"
                   placeholder="password"
-                  required
-                />
+                      required
+                    />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -330,14 +347,14 @@ function LoginContent() {
       <LayoutGroup>
         <motion.div
           layout
-          className={`hidden lg:flex w-full relative z-0 h-screen overflow-hidden ${isLayoutFlipped ? 'flex-row-reverse' : 'flex-row'}`}
+          className={`hidden lg:flex min-h-screen w-full relative z-0 overflow-x-hidden ${isLayoutFlipped ? 'flex-row-reverse' : 'flex-row'}`}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
 
           {/* IMAGE SIDE */}
           <motion.div
             layout
-            className="flex-1 relative overflow-hidden h-full"
+            className="relative hidden min-h-screen lg:block lg:w-[52%] xl:w-[56%] overflow-hidden"
           >
             <motion.div
               key={userType}
@@ -355,11 +372,11 @@ function LoginContent() {
           {/* FORM SIDE */}
           <motion.div
             layout
-            className="w-full lg:w-[45%] xl:w-[40%] flex items-center justify-center p-6 lg:p-12 relative z-10 bg-transparent"
+            className="w-full lg:w-[48%] xl:w-[44%] min-w-0 flex items-center justify-center px-8 py-10 xl:px-14 relative z-10 bg-transparent overflow-y-auto"
           >
             <motion.div
               layout
-              className="w-full max-w-[400px]"
+              className="w-full max-w-[520px]"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
@@ -409,17 +426,33 @@ function LoginContent() {
 
             {isUsernameEntry && (
               <div className="space-y-2 rounded-xl border-[2px] border-black bg-[#FFF4CC] p-3">
-                <label className="text-xs font-black uppercase tracking-widest text-black">Recovery Email</label>
-                <input
-                  type="email"
-                  value={recoveryEmail}
-                  onChange={(e) => setRecoveryEmail(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border-2 border-black text-black font-bold placeholder:text-black/30 outline-none focus:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all"
-                  placeholder="Add email for forgot password"
-                />
-                <p className="text-[11px] font-bold text-black/60">
-                  If this account was created with a username only, we&apos;ll send confirmation links to this email after sign in.
-                </p>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <label className="text-xs font-black uppercase tracking-widest text-black">Recovery Email</label>
+                    <p className="text-[11px] font-bold text-black/60">Optional for username-only accounts.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowRecoveryEmailInput((prev) => !prev)}
+                    className="border-2 border-black bg-white px-3 py-1 text-[11px] font-black uppercase tracking-wide"
+                  >
+                    {showRecoveryEmailInput ? 'Hide' : 'Add'}
+                  </button>
+                </div>
+                {showRecoveryEmailInput && (
+                  <>
+                    <input
+                      type="email"
+                      value={recoveryEmail}
+                      onChange={(e) => setRecoveryEmail(e.target.value)}
+                      className="w-full px-4 py-3 bg-white border-2 border-black text-black font-bold placeholder:text-black/30 outline-none focus:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all"
+                      placeholder="Add email for forgot password"
+                    />
+                    <p className="text-[11px] font-bold text-black/60">
+                      Only needed if this username-based account still uses an internal recovery email.
+                    </p>
+                  </>
+                )}
               </div>
             )}
 
@@ -470,14 +503,14 @@ function LoginContent() {
                   <span className="w-full border-t-2 border-black/10"></span>
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-[#F9F8F4] lg:bg-transparent px-2 text-black/40 font-black tracking-widest backdrop-blur-sm">Or continue with</span>
+                  <span className="bg-[#F9F8F4] lg:bg-transparent px-3 text-black/40 font-black tracking-[0.18em] backdrop-blur-sm whitespace-nowrap">Or continue with</span>
                 </div>
               </div>
 
               <button
                 type="button"
                 onClick={handleGoogleLogin}
-                className="w-full mb-8 py-4 font-black text-sm uppercase tracking-wider bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center justify-center gap-3 text-black"
+                className="w-full mb-8 py-4 px-4 font-black text-[13px] xl:text-sm uppercase tracking-[0.18em] bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center justify-center gap-3 text-black whitespace-nowrap"
               >
                 <svg className="w-6 h-6" viewBox="0 0 24 24">
                   <path

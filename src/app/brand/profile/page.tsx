@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import {
@@ -316,9 +317,17 @@ export default function BrandProfilePage() {
           <User className="w-9 h-9 md:w-10 md:h-10" />
           Brand Profile
         </h1>
-        <p className="text-base md:text-xl text-black/65 font-medium">
-          Manage your brand information and settings
-        </p>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <p className="text-base md:text-xl text-black/65 font-medium">
+            Manage your brand information and settings
+          </p>
+          <Link
+            href="/settings/billing"
+            className="inline-flex items-center justify-center rounded-xl border-[3px] border-black bg-[#FFD93D] px-4 py-2 text-sm font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+          >
+            Billing
+          </Link>
+        </div>
       </div>
 
       <section className="mb-8 bg-white border-[3px] border-black shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] p-5 md:p-7">

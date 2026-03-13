@@ -36,7 +36,6 @@ export async function PATCH(request: Request) {
 
     console.log('[PROFILE PATCH] Updating name for user:', authUser.id, 'to:', name.trim())
 
-    // Update profile in Supabase
     const { data: updated, error } = await service
       .from('profiles')
       .update({ full_name: name.trim() })
@@ -86,18 +85,16 @@ export async function GET() {
 
     const service = createServiceClient()
 
-    // Fetch profile from Supabase
     const { data: profile, error } = await service
       .from('profiles')
       .select('*')
       .eq('id', authUser.id)
-      .single()
+      .single<any>()
 
     if (error || !profile) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Check for influencer_profiles data
     let influencerData = null
     if ((profile.role || '').toLowerCase() === 'influencer') {
       const { data: infProfile } = await service
@@ -133,6 +130,17 @@ export async function GET() {
         role: (profile.role || 'influencer').toUpperCase(),
         createdAt: profile.created_at,
         influencerProfile: influencerData,
+        subscription: {
+          provider: profile.subscription_provider || null,
+          role: profile.subscription_role || (profile.role || 'influencer').toLowerCase(),
+          tier: profile.subscription_tier || null,
+          status: profile.subscription_status || 'inactive',
+          planId: profile.subscription_plan_id || null,
+          currentPeriodEnd: profile.subscription_current_period_end || null,
+          cancelAtPeriodEnd: Boolean(profile.subscription_cancel_at_period_end),
+          hasCustomer: Boolean(profile.razorpay_customer_id),
+          subscriptionId: profile.razorpay_subscription_id || null,
+        },
       }
     })
   } catch (error) {

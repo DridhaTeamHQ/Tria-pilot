@@ -38,9 +38,9 @@ export async function GET() {
 
     const { data: profile, error: profileError } = await profileClient
       .from('profiles')
-      .select('id, email, role, onboarding_completed, approval_status, brand_data')
+      .select('*')
       .eq('id', authUser.id)
-      .maybeSingle()
+      .maybeSingle<any>()
 
     if (profileError || !profile) {
       console.warn(`Profile missing/unreadable for ${authUser.id}:`, profileError?.message || 'not found')
@@ -63,14 +63,26 @@ export async function GET() {
 
     const role = (profile.role || 'influencer').toLowerCase()
     const approvalStatus = (profile.approval_status || 'none').toLowerCase()
+    const subscription = {
+      provider: profile.subscription_provider || null,
+      role: profile.subscription_role || role,
+      tier: profile.subscription_tier || null,
+      status: profile.subscription_status || 'inactive',
+      plan_id: profile.subscription_plan_id || null,
+      current_period_end: profile.subscription_current_period_end || null,
+      cancel_at_period_end: Boolean(profile.subscription_cancel_at_period_end),
+      has_customer: Boolean(profile.razorpay_customer_id),
+      subscription_id: profile.razorpay_subscription_id || null,
+    }
 
     return NextResponse.json({
       user: {
         id: profile.id,
         email: profile.email,
-        name: (profile.brand_data as Record<string, unknown> | null)?.companyName || null,
+        name: (profile.brand_data as Record<string, unknown> | null)?.companyName || profile.full_name || null,
         role: role.toUpperCase(),
         slug: profile.email?.split('@')[0] || '',
+        subscription,
       },
       profile: {
         id: profile.id,
@@ -79,6 +91,7 @@ export async function GET() {
         onboarding_completed: Boolean(profile.onboarding_completed),
         approval_status: approvalStatus,
         brand_data: profile.brand_data || null,
+        subscription,
       },
     })
   } catch (error) {

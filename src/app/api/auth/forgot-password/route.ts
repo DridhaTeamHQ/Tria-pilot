@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { createServiceClient } from '@/lib/auth'
+import { createClient, createServiceClient } from '@/lib/auth'
 import { getPublicSiteUrlFromRequest } from '@/lib/site-url'
 import { sendEmail } from '@/lib/email/supabase-email'
 import {
@@ -30,11 +30,12 @@ export async function POST(request: Request) {
     }
 
     const siteUrl = getPublicSiteUrlFromRequest(request)
+    const redirectTo = `${siteUrl}/reset-password`
     const { data, error } = await service.auth.admin.generateLink({
       type: 'recovery',
       email,
       options: {
-        redirectTo: `${siteUrl}/reset-password`,
+        redirectTo,
       },
     })
 
@@ -58,8 +59,15 @@ export async function POST(request: Request) {
       text: template.text,
     })
 
-    if (!result.ok && !result.skipped) {
-      console.error('Forgot password email send failed:', result.error)
+    if (!result.ok) {
+      const fallbackClient = await createClient()
+      const { error: fallbackError } = await fallbackClient.auth.resetPasswordForEmail(email, {
+        redirectTo,
+      })
+
+      if (fallbackError) {
+        console.error('Forgot password fallback reset email failed:', fallbackError)
+      }
     }
 
     return NextResponse.json(genericOk)
