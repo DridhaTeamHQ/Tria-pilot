@@ -112,7 +112,7 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                         router.push(`/marketplace/${product.id}`)
                     }
                 }}
-                className={`group relative bg-white border-[3px] border-black rounded-xl overflow-hidden cursor-pointer transform-gpu transition-all duration-200 p-0 ${isHovered ? 'shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -translate-y-1' : 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'}`}
+                className={`group relative cursor-pointer overflow-hidden rounded-[24px] border-[3px] border-black bg-white p-0 transform-gpu transition-all duration-200 ${isHovered ? 'shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -translate-y-1' : 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'}`}
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
             >
@@ -163,13 +163,13 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                     )}
                 </div>
 
-                <div className="space-y-2 p-2.5 sm:space-y-2.5 sm:p-3.5">
-                    <h3 className="font-semibold text-charcoal text-[13px] sm:text-[15px] line-clamp-2 leading-tight min-h-[34px] sm:min-h-[38px]">
+                <div className="space-y-3 p-3.5 sm:p-4">
+                    <h3 className="min-h-[34px] text-[13px] font-semibold leading-tight text-charcoal line-clamp-2 sm:min-h-[38px] sm:text-[15px]">
                         {product.name}
                     </h3>
 
-                    <div className="flex items-center gap-1.5 text-[11px] sm:text-sm text-charcoal/60">
-                        <span className="truncate">{brandName}</span>
+                    <div className="flex items-center gap-1.5 text-[11px] text-charcoal/60 sm:text-sm">
+                        <span className="truncate font-medium">{brandName}</span>
                         {priceDisplay && (
                             <>
                                 <span className="text-charcoal/30">|</span>
@@ -178,8 +178,8 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                         )}
                     </div>
 
-                    <div className="flex items-center justify-between gap-1 sm:gap-2 pt-1 min-w-0">
-                        <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 bg-white border-[2px] border-black rounded-md text-[10px] sm:text-[11px] font-bold text-charcoal shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] truncate max-w-[46%] sm:max-w-none">
+                    <div className="flex items-center justify-between gap-2 min-w-0">
+                        <span className="max-w-[48%] truncate rounded-full border-2 border-black/15 bg-[#F6F2E8] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-charcoal/70 sm:max-w-none sm:text-[11px]">
                             {product.category || 'Product'}
                         </span>
 
@@ -189,7 +189,7 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                                 e.stopPropagation()
                                 router.push(`/influencer/try-on?productId=${product.id}`)
                             }}
-                            className="px-2 py-0.5 sm:px-3 sm:py-1 bg-[#FFD93D] text-black border-[2px] border-black rounded-md text-[10px] sm:text-[11px] font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center gap-1 shrink-0"
+                            className="inline-flex shrink-0 items-center gap-1 rounded-full border-[2px] border-black bg-[#FFD93D] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none sm:text-[11px]"
                         >
                             Try-On
                             <ArrowRight className="w-2.5 h-2.5" />

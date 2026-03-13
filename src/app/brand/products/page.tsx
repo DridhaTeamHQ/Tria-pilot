@@ -27,7 +27,25 @@ export default async function BrandProductsPage() {
   // No "brand_id" filter needed if RLS is correct, but adding it doesn't hurt for clarity
   const { data: products, error } = await supabase
     .from('products')
-    .select('*')
+    .select(`
+      id,
+      name,
+      description,
+      category,
+      price,
+      discount,
+      stock,
+      sku,
+      try_on_compatible,
+      link,
+      tags,
+      audience,
+      cover_image,
+      tryon_image,
+      images,
+      active,
+      created_at
+    `)
     .eq('brand_id', user.id) // Redundant but explicit
     .order('created_at', { ascending: false })
 

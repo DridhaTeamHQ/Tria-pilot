@@ -771,14 +771,14 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                     </button>
                 </div>
             ) : (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                     {products.map((product) => (
                         <div
                             key={product.id}
-                            className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden group hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all animate-fade-in"
+                            className="group overflow-hidden rounded-[28px] border-[3px] border-black bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-0.5 hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] animate-fade-in"
                         >
                             {/* Image */}
-                            <div className="aspect-square bg-gray-100 relative">
+                            <div className="relative aspect-[4/3] bg-[#F3F0E8]">
                                 {product.cover_image || product.images?.[0] ? (
                                     <img
                                         src={product.cover_image || product.images?.[0]}
@@ -792,68 +792,77 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                                 )}
                                 {!product.active && (
                                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                        <span className="bg-red-500 text-white px-3 py-1 font-black text-sm uppercase">
+                                        <span className="rounded-full bg-red-500 px-3 py-1 font-black text-sm uppercase text-white">
                                             Inactive
                                         </span>
                                     </div>
                                 )}
                                 {/* Try-On indicator */}
                                 {(product.try_on_compatible || product.tryon_image) && (
-                                    <div className="absolute top-2 right-2 bg-[#FF6B35] text-white px-2 py-1 text-[10px] font-black flex items-center gap-1 border border-black">
+                                    <div className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full border-2 border-black bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-black">
                                         <Shirt className="w-3 h-3" />
-                                        TRY-ON
+                                        Try-on ready
                                     </div>
                                 )}
                             </div>
 
                             {/* Content */}
-                            <div className="p-3.5">
-                                <h3 className="font-black text-base mb-1 truncate">{product.name}</h3>
-                                <div className="flex items-center gap-1.5 text-xs text-black/60 mb-2.5 flex-wrap">
-                                    {product.category && (
-                                        <span className="bg-gray-100 px-2 py-0.5 font-bold">
-                                            {product.category}
-                                        </span>
-                                    )}
-                                    {product.price != null && (
-                                        <span className="font-black">
-                                            {'\u20B9'}{product.price}
-                                            {product.discount != null && product.discount > 0 && (
-                                                <span className="text-green-600 ml-1">-{product.discount}%</span>
-                                            )}
-                                        </span>
-                                    )}
-                                    {product.sku && (
-                                        <span className="text-black/50 text-xs font-medium">{product.sku}</span>
+                            <div className="space-y-4 p-4 sm:p-5">
+                                <div className="space-y-2">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                            <h3 className="truncate text-lg font-black leading-tight">{product.name}</h3>
+                                            <p className="mt-1 text-sm font-medium text-black/55">
+                                                {product.category || 'Uncategorized'}
+                                                {product.sku ? ` · ${product.sku}` : ''}
+                                            </p>
+                                        </div>
+                                        {product.price != null && (
+                                            <div className="shrink-0 text-right">
+                                                <p className="text-lg font-black">{'\u20B9'}{product.price}</p>
+                                                {product.discount != null && product.discount > 0 && (
+                                                    <p className="text-xs font-bold uppercase text-green-700">{product.discount}% off</p>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                    {product.description && (
+                                        <p className="line-clamp-2 text-sm font-medium leading-relaxed text-black/65">
+                                            {product.description}
+                                        </p>
                                     )}
                                 </div>
 
                                 {/* Actions */}
-                                <div className="flex items-center gap-1.5">
+                                <div className="flex flex-col gap-2 sm:flex-row">
                                     <button type="button"
                                         onClick={() => openEditForm(product)}
-                                        className="flex-1 h-8 border-2 border-black font-bold text-[11px] uppercase hover:bg-gray-100 active:scale-[0.98] transition-transform flex items-center justify-center gap-1"
+                                        className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full border-2 border-black bg-black px-4 text-sm font-black uppercase text-white transition-transform hover:scale-[0.99]"
                                     >
                                         <Edit2 className="w-4 h-4" />
                                         Edit
                                     </button>
-                                    {product.link && (
-                                        <a
-                                            href={product.link}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="h-8 w-8 border-2 border-black hover:bg-gray-100 active:scale-[0.96] transition-transform flex items-center justify-center"
+                                    <div className="flex gap-2">
+                                        {product.link && (
+                                            <a
+                                                href={product.link}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full border-2 border-black px-4 text-sm font-black uppercase transition-transform hover:scale-[0.99] sm:flex-none"
+                                            >
+                                                <ExternalLink className="w-4 h-4" />
+                                                View
+                                            </a>
+                                        )}
+                                        <button type="button"
+                                            onClick={() => handleDeleteClick(product)}
+                                            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full border-2 border-black px-4 text-sm font-black uppercase text-red-600 transition-transform hover:scale-[0.99] sm:flex-none"
+                                            aria-label="Delete product"
                                         >
-                                            <ExternalLink className="w-4 h-4" />
-                                        </a>
-                                    )}
-                                    <button type="button"
-                                        onClick={() => handleDeleteClick(product)}
-                                        className="h-8 w-8 border-2 border-black hover:bg-red-100 active:scale-[0.96] transition-transform flex items-center justify-center"
-                                        aria-label="Delete product"
-                                    >
-                                        <Trash2 className="w-4 h-4 text-red-600" />
-                                    </button>
+                                            <Trash2 className="w-4 h-4" />
+                                            Delete
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

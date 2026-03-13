@@ -69,7 +69,7 @@ export default function MarketplaceClient({ products, categories, activeCategory
                 {/* Header */}
                 <div className="mb-10 animate-fade-in">
                     <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-8">
-                        <div className="bg-white border-[3px] border-black p-5 sm:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] max-w-2xl relative overflow-hidden">
+                        <div className="relative max-w-2xl overflow-hidden rounded-[28px] border-[3px] border-black bg-white p-5 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:p-8">
                             <div className="relative z-10">
                                 <div className="flex items-center gap-3 mb-4">
                                     <div className="w-10 h-10 border-[2px] border-black bg-[#FFD93D] flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
@@ -85,7 +85,7 @@ export default function MarketplaceClient({ products, categories, activeCategory
                                 </p>
                             </div>
                             {/* Decorative elements */}
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-gray-100 rounded-bl-full border-l-[3px] border-b-[3px] border-black -mr-[3px] -mt-[3px] z-0 opacity-50" />
+                            <div className="absolute right-0 top-0 z-0 h-32 w-32 rounded-bl-full border-b-[3px] border-l-[3px] border-black bg-gray-100 opacity-50 -mr-[3px] -mt-[3px]" />
                         </div>
 
                         {/* Search toggle */}
@@ -141,7 +141,7 @@ export default function MarketplaceClient({ products, categories, activeCategory
                                     data-cursor={isActive ? '' : 'Select'}
                                 >
                                     <span
-                                        className={`inline-block px-4 py-2 rounded-none text-xs font-bold transition-all duration-200 cursor-pointer border-[3px] uppercase tracking-wider ${isActive
+                                        className={`inline-block rounded-full border-[3px] px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${isActive
                                                 ? 'bg-[#FFD93D] text-black border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -translate-y-1'
                                                 : 'bg-white border-black text-charcoal hover:bg-gray-50 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1'
                                             }`}
@@ -155,15 +155,17 @@ export default function MarketplaceClient({ products, categories, activeCategory
                 </div>
 
                 {/* Product Count */}
-                <p className="text-sm text-charcoal/40 mb-8 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                    {filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'} found
+                <div className="mb-8 flex flex-wrap items-center gap-3 rounded-full border-[2px] border-black/10 bg-white/80 px-4 py-2 text-sm font-medium text-charcoal/50 backdrop-blur-sm">
+                    <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                    <span>
+                        {filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'} found
+                    </span>
                     {searchQuery && (
-                        <span className="text-charcoal/30">
+                        <span className="text-charcoal/35">
                             for &quot;{searchQuery}&quot;
                         </span>
                     )}
-                </p>
+                </div>
 
                 {/* Product Grid */}
                 {filteredProducts.length === 0 ? (
