@@ -21,9 +21,24 @@ import { buildAdPrompt } from '@/lib/ads/ad-prompt-builder'
 export const maxDuration = 180
 
 const curatedPresets = [
-  { preset: 'PERF_BEST_QUALITY' as AdPresetId, label: 'Studio Hero' },
-  { preset: 'PRODUCT_LIFESTYLE' as AdPresetId, label: 'Lifestyle Scene' },
-  { preset: 'CINEMATIC_STUDIO_EDITORIAL' as AdPresetId, label: 'Editorial Spotlight' },
+  {
+    preset: 'PERF_BEST_QUALITY' as AdPresetId,
+    label: 'Studio Hero',
+    extraDirection:
+      'VARIANT GOAL: Make this a clean ecommerce packshot. Show only the product with no human model. Use a ghost mannequin, hanger, flat-lay, or invisible support if needed. Place it on an off-white seamless background with soft premium shadows and accurate product color.',
+  },
+  {
+    preset: 'PRODUCT_LIFESTYLE' as AdPresetId,
+    label: 'Lifestyle Scene',
+    extraDirection:
+      'VARIANT GOAL: Make this a lifestyle image in a believable real-world setting. Use a human model only for this variant. Show more environment and storytelling than the other variants, but keep styling minimal so the product stays dominant.',
+  },
+  {
+    preset: 'CINEMATIC_STUDIO_EDITORIAL' as AdPresetId,
+    label: 'Editorial Spotlight',
+    extraDirection:
+      'VARIANT GOAL: Make this feel like a fashion editorial. Use a tighter composition such as a torso crop, detail crop, or dramatic spotlight setup. Avoid repeating the same pose, framing, or overall composition as the lifestyle image.',
+  },
 ] as const
 
 const requestSchema = z.object({
@@ -52,6 +67,7 @@ async function generateVisual({
   category,
   description,
   variationIndex,
+  extraDirection,
 }: {
   preset: AdPresetId
   productImage: string
@@ -59,6 +75,7 @@ async function generateVisual({
   category?: string
   description?: string
   variationIndex: number
+  extraDirection: string
 }) {
   const generationInput: AdGenerationInput = {
     preset,
@@ -79,13 +96,10 @@ async function generateVisual({
   }
 
   const { prompt: rawPrompt } = await buildAdPrompt(generationInput, productImage, null)
-  const productContext = [productName, category, description].filter(Boolean).join(' • ')
-  const compositionPrompt =
-    buildQualityPreamble() +
-    (productContext
-      ? `PRODUCT CONTEXT: ${productContext}\n\n`
-      : '') +
-    rawPrompt
+  const productContext = [productName, category, description].filter(Boolean).join(' | ')
+  const compositionPrompt = `${buildQualityPreamble()}${
+    productContext ? `PRODUCT CONTEXT: ${productContext}\n\n` : ''
+  }${extraDirection}\n\n${rawPrompt}`
 
   return await generateIntelligentAdComposition(productImage, undefined, compositionPrompt, {
     lockFaceIdentity: false,
@@ -158,6 +172,7 @@ export async function POST(request: Request) {
           category: input.category,
           description: input.description,
           variationIndex: index,
+          extraDirection: config.extraDirection,
         })
 
         const imagePath = `${user.id}/product-visuals/${Date.now()}-${index + 1}.jpg`
