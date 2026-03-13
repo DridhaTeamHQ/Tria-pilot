@@ -11,6 +11,11 @@ import { ReactLenis } from '@/lib/lenis'
 export const metadata: Metadata = {
   title: 'Kiwikoo - AI Fashion Try-On Marketplace',
   description: 'AI-powered platform connecting influencers and brands with virtual try-on capabilities.',
+  icons: {
+    icon: '/icon.svg',
+    shortcut: '/icon.svg',
+    apple: '/icon.svg',
+  },
 }
 
 // Defined at module level so the object reference is stable across SSR and client,
