@@ -13,7 +13,8 @@ import {
     Camera,
     Save,
     ExternalLink,
-    Shirt
+    Shirt,
+    Sparkles
 } from 'lucide-react'
 
 export interface Product {
@@ -34,6 +35,14 @@ export interface Product {
     images?: string[]
     active: boolean
     created_at: string
+}
+
+interface GeneratedProductVisual {
+    id: string
+    label: string
+    preset: string
+    imageUrl: string
+    imageBase64: string
 }
 
 interface ProductsClientProps {
@@ -122,6 +131,8 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
     const [images, setImages] = useState<string[]>([])
     const [coverIndex, setCoverIndex] = useState(0)
     const [tryonIndex, setTryonIndex] = useState<number | null>(null)
+    const [generatingVisuals, setGeneratingVisuals] = useState(false)
+    const [generatedVisuals, setGeneratedVisuals] = useState<GeneratedProductVisual[]>([])
 
     const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -145,6 +156,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
         setImages([])
         setCoverIndex(0)
         setTryonIndex(null)
+        setGeneratedVisuals([])
         setEditingProduct(null)
         setShowForm(false)
     }
@@ -163,6 +175,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
         setTags(product.tags?.join(', ') || '')
         setAudience(product.audience || '')
         setImages(product.images || [])
+        setGeneratedVisuals([])
 
         // Find cover and tryon indices
         if (product.images && product.images.length > 0) {
@@ -240,6 +253,57 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
         } else {
             setTryonIndex(index)
             toast.success('Try-on image set!')
+        }
+    }
+
+    const handleGenerateProductVisuals = async () => {
+        const sourceImage = images[coverIndex] || images[0]
+        if (!sourceImage) {
+            toast.error('Upload at least one product image first.')
+            return
+        }
+
+        setGeneratingVisuals(true)
+        setGeneratedVisuals([])
+
+        try {
+            const res = await fetch('/api/brand/products/generate-visuals', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    productImage: sourceImage,
+                    productName: name.trim() || undefined,
+                    category: category || undefined,
+                    description: description.trim() || undefined,
+                }),
+            })
+
+            const data = await res.json().catch(() => ({ error: 'Request failed' }))
+            if (!res.ok) {
+                throw new Error(data?.error || 'Failed to generate product visuals')
+            }
+
+            const visuals = Array.isArray(data.visuals) ? (data.visuals as GeneratedProductVisual[]) : []
+            if (visuals.length === 0) {
+                throw new Error('No product visuals were returned')
+            }
+
+            const newImages = visuals.map((visual) => visual.imageUrl || visual.imageBase64).filter(Boolean)
+            const startIndex = images.length
+            setImages(prev => [...prev, ...newImages])
+            setGeneratedVisuals(visuals)
+            setCoverIndex(startIndex)
+
+            if (data.partial) {
+                toast.success(`Generated ${visuals.length} visuals. A couple of variations may need another try.`)
+            } else {
+                toast.success(`Generated ${visuals.length} polished product visuals.`)
+            }
+        } catch (error) {
+            console.error('Generate product visuals error:', error)
+            toast.error(error instanceof Error ? error.message : 'Failed to generate product visuals')
+        } finally {
+            setGeneratingVisuals(false)
         }
     }
 
@@ -626,6 +690,34 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                                 <label className="block text-xs font-black uppercase tracking-wider mb-2">
                                     Product Images
                                 </label>
+                                <div className="mb-4 rounded-2xl border-2 border-black bg-[#FFF6D8] p-4">
+                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                        <div className="space-y-1">
+                                            <p className="text-xs font-black uppercase tracking-wider text-black">Upload Once, Generate Neat Visuals</p>
+                                            <p className="text-sm font-medium text-black/65">
+                                                Add your base product image, then generate 3 clean storefront visuals using the ad creative engine.
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleGenerateProductVisuals}
+                                            disabled={generatingVisuals || images.length === 0}
+                                            className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-black bg-[#FFD93D] px-4 py-2 text-xs font-black uppercase tracking-wide text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-transform hover:scale-[0.99] disabled:cursor-not-allowed disabled:bg-black/10 disabled:text-black/45 disabled:shadow-none"
+                                        >
+                                            {generatingVisuals ? (
+                                                <>
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                    Generating 3 visuals
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Sparkles className="w-4 h-4" />
+                                                    Generate 3 visuals
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
                                 <p className="text-xs text-black/60 mb-3">
                                     Click image to set as <span className="text-[#B4F056] font-bold">COVER</span> (display) or <span className="text-[#FF6B35] font-bold">TRY-ON</span> (virtual try-on)
                                 </p>
@@ -720,6 +812,27 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                                         <div className="flex items-center gap-1">
                                             <div className="w-3 h-3 bg-[#FF6B35] border border-black" />
                                             <span>Try-On: Sent to virtual try-on</span>
+                                        </div>
+                                    </div>
+                                )}
+                                {generatedVisuals.length > 0 && (
+                                    <div className="mt-4 rounded-2xl border-2 border-black bg-white p-4">
+                                        <p className="text-xs font-black uppercase tracking-[0.18em] text-black/55">Latest generated set</p>
+                                        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                                            {generatedVisuals.map((visual) => (
+                                                <div key={visual.id} className="overflow-hidden rounded-2xl border-2 border-black bg-[#FFFDF8]">
+                                                    <div className="aspect-square bg-[#F3F0E8]">
+                                                        <img
+                                                            src={visual.imageUrl || visual.imageBase64}
+                                                            alt={visual.label}
+                                                            className="h-full w-full object-cover"
+                                                        />
+                                                    </div>
+                                                    <div className="border-t-2 border-black px-3 py-2">
+                                                        <p className="text-[11px] font-black uppercase tracking-wide text-black">{visual.label}</p>
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
                                 )}
