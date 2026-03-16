@@ -509,18 +509,24 @@ export default function GenerationsPage() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.3 }}
-                        className="fixed inset-0 flex flex-col bg-black/90 backdrop-blur-md"
+                        className="fixed inset-0 flex items-center justify-center bg-black/90 p-3 backdrop-blur-md sm:p-4"
                         onClick={closeLightbox}
                         data-lightbox="true"
                     >
-                        {/* Top toolbar - properly aligned */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.98 }}
+                            transition={{ duration: 0.22 }}
+                            className="flex max-h-[min(88dvh,920px)] w-full max-w-[min(90vw,1080px)] flex-col overflow-hidden rounded-[24px] border-[3px] border-black bg-black shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]"
+                            onClick={(e) => e.stopPropagation()}
+                        >
                         <motion.div
                             initial={{ opacity: 0, y: -20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -20 }}
                             transition={{ delay: 0.1, type: "spring", stiffness: 300, damping: 25 }}
-                            className="relative z-[200] flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-3 py-3 sm:px-6 sm:py-4"
-                            onClick={(e) => e.stopPropagation()}
+                            className="relative z-[200] flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-3 py-3 sm:px-5"
                         >
                             {/* Left side - Action buttons */}
                             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -594,13 +600,12 @@ export default function GenerationsPage() {
                         </motion.div>
 
                         {/* Image container - Centered & Full Size */}
-                        <div className="relative z-[100] flex-1 overflow-y-auto overscroll-contain p-3 sm:p-4 w-full min-h-0">
+                        <div className="relative z-[100] flex min-h-0 flex-1 items-center justify-center p-3 sm:p-4">
                             {!imageError ? (
                                 <img
                                     src={getImageUrl(selectedImage)}
                                     alt="Generation Result"
-                                    className="mx-auto h-auto max-h-[calc(100dvh-11rem)] w-full max-w-5xl rounded-lg object-contain shadow-2xl sm:max-h-none"
-                                    onClick={(e) => e.stopPropagation()}
+                                    className="h-auto max-h-full w-auto max-w-full rounded-lg object-contain shadow-2xl"
                                     draggable={false}
                                     onError={() => setImageError(true)}
                                 />
@@ -622,7 +627,6 @@ export default function GenerationsPage() {
                             exit={{ opacity: 0, y: 20 }}
                             transition={{ delay: 0.15 }}
                             className="flex items-center justify-center gap-4 px-4 py-3 border-t border-white/10 relative z-[200]"
-                            onClick={(e) => e.stopPropagation()}
                         >
                             <span className="text-white/40 text-xs flex items-center gap-1.5 font-mono">
                                 <Calendar className="w-3 h-3" />
@@ -632,6 +636,7 @@ export default function GenerationsPage() {
                             <span className="text-white/40 text-xs font-mono">
                                 Click outside or press ESC to close
                             </span>
+                        </motion.div>
                         </motion.div>
                     </motion.div>
                 )}
