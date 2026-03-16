@@ -14,7 +14,7 @@
  *   if (auth.identity.role !== 'brand') redirect('/dashboard')
  */
 
-import { createClient } from '@/lib/auth'
+import { createClient, createServiceClient } from '@/lib/auth'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -56,8 +56,26 @@ async function fetchProfile(supabase: Awaited<ReturnType<typeof createClient>>, 
   }
 
   // Normalize to lowercase (defensive, DB should already be lowercase)
-  const role = ((data.role || 'influencer') as string).toLowerCase() as UserRole
+  let role = ((data.role || 'influencer') as string).toLowerCase() as UserRole
   const approval_status = ((data.approval_status || 'none') as string).toLowerCase() as ApprovalStatus
+
+  // Legacy admin accounts may still be marked in admin_users even if profiles.role was not backfilled.
+  if (role !== 'admin') {
+    try {
+      const service = createServiceClient()
+      const { data: adminRow, error: adminLookupError } = await service
+        .from('admin_users')
+        .select('user_id')
+        .eq('user_id', userId)
+        .maybeSingle()
+
+      if (!adminLookupError && adminRow) {
+        role = 'admin'
+      }
+    } catch (adminCheckError) {
+      console.warn('fetchProfile admin_users fallback skipped:', adminCheckError)
+    }
+  }
 
   return {
     id: data.id,

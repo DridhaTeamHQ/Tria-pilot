@@ -58,7 +58,7 @@ function AdminLoginContent() {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: normalizedEmail, password, rememberMe: true }),
+        body: JSON.stringify({ identifier: normalizedEmail, password, rememberMe: true }),
       })
 
       const data = await response.json().catch(() => ({}))
@@ -189,4 +189,3 @@ function AdminLoginContent() {
     </div>
   )
 }
-
