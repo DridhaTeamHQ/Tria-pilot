@@ -149,11 +149,8 @@ export default function SignupPage() {
 
   return (
     <div className="relative min-h-[100dvh] w-full overflow-x-hidden bg-[#F9F8F4]">
-      <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url('${bgImage}')` }}
-      />
-      <div className="absolute inset-0 bg-[#f9f8f4]/80 backdrop-blur-[2px]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,#fffdf8_0%,#f7f2e7_100%)]" />
+      <div className="absolute inset-0 opacity-40 [background-image:linear-gradient(rgba(0,0,0,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.05)_1px,transparent_1px)] [background-size:34px_34px]" />
 
       <div className="relative z-10 lg:hidden">
         <div className="flex min-h-[100dvh] items-center justify-center px-4 py-8">
@@ -176,9 +173,23 @@ export default function SignupPage() {
         </div>
       </div>
 
-      <div className="relative z-10 hidden min-h-[100dvh] lg:flex">
-        <div className="relative flex min-h-[100dvh] w-[52%] items-end p-12 xl:p-16">
-          <div className="max-w-xl rounded-[30px] border-[3px] border-black bg-[#ECE8E1]/92 p-8 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] backdrop-blur-sm">
+      <div className="relative z-10 hidden min-h-[100dvh] lg:flex lg:px-5 lg:py-8 xl:px-8 xl:py-10">
+        <div className="grid w-full grid-cols-[1.04fr_0.96fr] gap-8 xl:gap-10">
+          <div
+            className="relative min-h-[calc(100dvh-4rem)] overflow-hidden rounded-[38px] border-[4px] border-black shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]"
+          >
+            <div
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: `url('${bgImage}')` }}
+            />
+            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(249,248,244,0.36)_0%,rgba(249,248,244,0.12)_38%,rgba(249,248,244,0.28)_100%)]" />
+            <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(0,0,0,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.06)_1px,transparent_1px)] [background-size:34px_34px]" />
+            <div className="absolute left-[6%] top-[10%] h-28 w-28 rounded-full bg-[#FFD93D]/18 blur-3xl" />
+            <div className="absolute right-[10%] top-[18%] h-24 w-24 rounded-full bg-[#FF8C69]/16 blur-3xl" />
+            <div className="absolute bottom-[12%] left-[18%] h-28 w-28 rounded-full bg-[#B4F056]/16 blur-3xl" />
+
+            <div className="relative flex h-full items-end p-8 xl:p-10">
+              <div className="max-w-[540px] rounded-[30px] border-[3px] border-black bg-[#ECE8E1]/94 p-8 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] backdrop-blur-sm">
             <div className="mb-4 inline-flex rounded-full border-[3px] border-black bg-white px-4 py-2 text-sm font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
               {copy.eyebrow}
             </div>
@@ -208,33 +219,35 @@ export default function SignupPage() {
                 </div>
               ))}
             </div>
+              </div>
+            </div>
           </div>
-        </div>
 
-        <div className="flex w-[48%] items-center justify-center px-8 py-10 xl:px-14">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            className="w-full max-w-[440px]"
-          >
-            <SignupCard
-              eyebrow={copy.eyebrow}
-              title={copy.title}
-              subtitle={copy.subtitle}
-              formData={formData}
-              setFormData={setFormData}
-              showPassword={showPassword}
-              setShowPassword={setShowPassword}
-              showConfirmPassword={showConfirmPassword}
-              setShowConfirmPassword={setShowConfirmPassword}
-              handleSubmit={handleSubmit}
-              handleGoogleSignup={handleGoogleSignup}
-              loading={loading}
-              accentButtonClass={accentButtonClass}
-              isInfluencer={isInfluencer}
-            />
-          </motion.div>
+          <div className="flex min-h-[calc(100dvh-4rem)] items-center justify-center">
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="w-full max-w-[480px]"
+            >
+              <SignupCard
+                eyebrow={copy.eyebrow}
+                title={copy.title}
+                subtitle={copy.subtitle}
+                formData={formData}
+                setFormData={setFormData}
+                showPassword={showPassword}
+                setShowPassword={setShowPassword}
+                showConfirmPassword={showConfirmPassword}
+                setShowConfirmPassword={setShowConfirmPassword}
+                handleSubmit={handleSubmit}
+                handleGoogleSignup={handleGoogleSignup}
+                loading={loading}
+                accentButtonClass={accentButtonClass}
+                isInfluencer={isInfluencer}
+              />
+            </motion.div>
+          </div>
         </div>
       </div>
     </div>
