@@ -74,8 +74,8 @@ function LoginContent() {
     ? 'bg-[#FF8C69] hover:bg-[#ff9f80]'
     : 'bg-[#B4F056] hover:bg-[#c3f570]'
   const patternSurfaceClass = userType === 'influencer'
-    ? 'bg-[radial-gradient(circle_at_top_left,#ffd5c7_0%,#fff8ef_28%,#fffdf8_58%,#f8f1e6_100%)]'
-    : 'bg-[radial-gradient(circle_at_top_left,#e5f7b8_0%,#fffdf3_28%,#fffdf8_58%,#f3ecd9_100%)]'
+    ? 'bg-[radial-gradient(circle_at_12%_18%,rgba(255,140,105,0.16),transparent_18%),radial-gradient(circle_at_82%_16%,rgba(255,217,61,0.12),transparent_20%),radial-gradient(circle_at_68%_76%,rgba(255,140,105,0.10),transparent_18%),linear-gradient(180deg,#fffdf8_0%,#fbf6ee_100%)]'
+    : 'bg-[radial-gradient(circle_at_12%_18%,rgba(180,240,86,0.18),transparent_18%),radial-gradient(circle_at_82%_18%,rgba(255,217,61,0.12),transparent_20%),radial-gradient(circle_at_70%_78%,rgba(180,240,86,0.10),transparent_18%),linear-gradient(180deg,#fffdf8_0%,#f7f3e8_100%)]'
   const panelCopy = userType === 'influencer'
     ? {
         title: 'Welcome,',
@@ -209,8 +209,8 @@ function LoginContent() {
   return (
     <div className="relative min-h-[100dvh] w-full overflow-x-hidden bg-[#F9F8F4]">
       <div className={`absolute inset-0 ${patternSurfaceClass}`} />
-      <div className="absolute inset-0 opacity-70 [background-image:linear-gradient(rgba(0,0,0,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.06)_1px,transparent_1px)] [background-size:30px_30px]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(255,217,61,0.28),transparent_22%),radial-gradient(circle_at_85%_18%,rgba(255,140,105,0.22),transparent_18%),radial-gradient(circle_at_72%_78%,rgba(180,240,86,0.18),transparent_20%)]" />
+      <div className="absolute inset-0 opacity-50 [background-image:linear-gradient(rgba(0,0,0,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.05)_1px,transparent_1px)] [background-size:34px_34px]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_20%,rgba(255,217,61,0.18),transparent_22%),radial-gradient(circle_at_86%_18%,rgba(255,140,105,0.14),transparent_18%),radial-gradient(circle_at_70%_80%,rgba(180,240,86,0.14),transparent_20%)]" />
       <DecorativeShapes />
 
       <div className="relative z-10 lg:hidden">
@@ -256,14 +256,14 @@ function LoginContent() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5 }}
-              className={`absolute inset-0 ${patternSurfaceClass}`}
+              className="absolute inset-0"
             />
-            <div className="absolute inset-0 opacity-80 [background-image:linear-gradient(rgba(0,0,0,0.07)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.07)_1px,transparent_1px)] [background-size:34px_34px]" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,rgba(255,217,61,0.32),transparent_18%),radial-gradient(circle_at_78%_22%,rgba(255,140,105,0.20),transparent_16%),radial-gradient(circle_at_70%_76%,rgba(180,240,86,0.20),transparent_18%)]" />
-            <div className="absolute left-7 top-10 hidden h-40 w-40 rounded-full border-[4px] border-black/80 bg-white/40 lg:block" />
-            <div className="absolute left-24 top-24 hidden h-10 w-10 rounded-full border-[3px] border-black bg-[#FF8C69] lg:block" />
-            <div className="absolute bottom-16 right-16 hidden h-28 w-28 rotate-12 border-[4px] border-black/80 bg-[#FFD93D]/55 lg:block" />
-            <div className="absolute bottom-24 left-14 hidden h-20 w-20 rounded-[28px] border-[4px] border-black/80 bg-[#B4F056]/45 lg:block" />
+            <div className="absolute left-[2%] top-[6%] h-[72%] w-[78%] rounded-[42px] border border-black/6 bg-white/22 blur-[1px]" />
+            <div className="absolute right-[4%] top-[10%] h-[48%] w-[34%] rounded-[36px] border border-black/5 bg-white/18" />
+            <div className="absolute left-[12%] top-[14%] h-56 w-56 rounded-full border-[5px] border-black/70 bg-[radial-gradient(circle,rgba(255,255,255,0.28)_0%,rgba(255,255,255,0.10)_75%,transparent_100%)]" />
+            <div className="absolute left-[17%] top-[22%] h-14 w-14 rounded-full border-[4px] border-black bg-[#FF8C69]" />
+            <div className="absolute bottom-[10%] left-[18%] h-24 w-24 rounded-[28px] border-[4px] border-black/75 bg-[#B4F056]/45" />
+            <div className="absolute bottom-[6%] right-[10%] h-44 w-32 rotate-[10deg] border-[4px] border-black/75 bg-[#FFD93D]/45" />
             <div className="relative flex min-h-full items-center px-8 py-8 xl:px-12">
               <div className="max-w-[560px] rounded-[28px] border-[3px] border-black bg-[#ECE8E1]/92 p-6 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] backdrop-blur-sm xl:p-7">
                 <h1 className="text-[clamp(2.3rem,3.8vw,3.7rem)] font-black uppercase leading-[0.94] text-black">
