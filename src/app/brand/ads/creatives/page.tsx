@@ -390,7 +390,7 @@ function HistoryModal({
                     initial="initial"
                     animate="animate"
                     exit="exit"
-                    className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/55 p-3 pt-4 backdrop-blur-[2px] sm:p-4"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-3 backdrop-blur-[2px] sm:p-4"
                     onClick={onClose}
                 >
                     <motion.div
@@ -398,7 +398,7 @@ function HistoryModal({
                         initial="initial"
                         animate="animate"
                         exit="exit"
-                        className="w-full max-w-3xl overflow-hidden border-[3px] border-black bg-[#FFFDF5] shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]"
+                        className="flex max-h-[min(88dvh,860px)] w-full max-w-[min(92vw,940px)] flex-col overflow-hidden rounded-[24px] border-[3px] border-black bg-[#FFFDF5] shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]"
                         onClick={(event) => event.stopPropagation()}
                     >
                         <div className="flex items-center justify-between border-b-[3px] border-black bg-[#C3B1E1] px-4 py-3">
@@ -416,7 +416,7 @@ function HistoryModal({
                                 <X className="h-4 w-4" />
                             </button>
                         </div>
-                        <div className="max-h-[calc(100dvh-7.5rem)] space-y-3 overflow-y-auto p-4 sm:max-h-[calc(100dvh-8.5rem)]">
+                        <div className="min-h-0 space-y-3 overflow-y-auto p-4">
                             {items.map((item, index) => {
                                 const active = item.id === focusCreativeId
                                 return (
@@ -544,7 +544,7 @@ function Lightbox({
                     initial="initial"
                     animate="animate"
                     exit="exit"
-                    className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/55 p-3 pt-6 backdrop-blur-[2px] sm:items-center sm:p-4"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-3 backdrop-blur-[2px] sm:p-4"
                     onClick={onClose}
                 >
                     <motion.div
@@ -552,7 +552,7 @@ function Lightbox({
                         initial="initial"
                         animate="animate"
                         exit="exit"
-                        className="relative w-full max-w-[min(92vw,1100px)] bg-[#FFFDF8] rounded-2xl border-[4px] border-black shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] p-3 sm:p-4"
+                        className="relative flex max-h-[min(88dvh,920px)] w-full max-w-[min(88vw,980px)] flex-col rounded-2xl border-[4px] border-black bg-[#FFFDF8] p-3 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] sm:p-4"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="mb-3 flex items-center justify-between gap-2">
@@ -575,8 +575,8 @@ function Lightbox({
                             </button>
                         </div>
 
-                        <div className="overflow-hidden rounded-xl border-[2px] border-black bg-white/60 p-2 sm:p-3">
-                            <div className="relative mx-auto h-[calc(100dvh-9.5rem)] w-full max-w-full sm:h-[calc(100dvh-10.5rem)]">
+                        <div className="min-h-0 overflow-hidden rounded-xl border-[2px] border-black bg-white/60 p-2 sm:p-3">
+                            <div className="relative mx-auto aspect-[4/5] max-h-[calc(88dvh-8.5rem)] w-full max-w-full">
                                 <Image
                                     src={src}
                                     alt="Creative preview"
