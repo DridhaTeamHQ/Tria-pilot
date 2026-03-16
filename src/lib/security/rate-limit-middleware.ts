@@ -104,6 +104,10 @@ export function applyApiRateLimit(
   const pathname = request.nextUrl.pathname
   if (!pathname.startsWith('/api/')) return null
 
+  // Try-on studio should allow unlimited generation attempts.
+  // Keep the route-level duplicate-job guard, but skip shared API throttling here.
+  if (pathname.startsWith('/api/tryon')) return null
+
   maybeCleanup()
 
   const ip = getClientIp(request)

@@ -242,12 +242,12 @@ function LoginContent() {
       <LayoutGroup>
         <motion.div
           layout
-          className={`relative z-10 hidden h-[100dvh] w-full overflow-hidden lg:flex ${isLayoutFlipped ? 'flex-row-reverse' : 'flex-row'}`}
+          className={`relative z-10 hidden min-h-[100dvh] w-full overflow-hidden lg:flex lg:px-4 lg:py-5 ${isLayoutFlipped ? 'flex-row-reverse' : 'flex-row'}`}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
           <motion.div
             layout
-            className="relative hidden h-[100dvh] lg:block lg:w-[50%] xl:w-[54%]"
+            className="relative hidden lg:block lg:h-[calc(100dvh-2.5rem)] lg:w-[50%] xl:w-[54%]"
           >
             <motion.div
               key={userType}
@@ -285,7 +285,7 @@ function LoginContent() {
 
           <motion.div
             layout
-            className="flex h-full w-full items-center justify-center px-6 py-6 lg:w-[50%] xl:w-[46%] xl:px-10"
+            className="flex h-full w-full items-center justify-center px-6 py-6 lg:h-[calc(100dvh-2.5rem)] lg:w-[50%] xl:w-[46%] xl:px-10"
           >
             <motion.div
               layout
@@ -523,8 +523,8 @@ function AuthCardShell({
   accentColor: string
 }) {
   return (
-    <div className="relative w-full max-w-[440px] pt-7 sm:pt-8">
-      <div className="absolute left-1/2 top-0 z-30 w-[min(74%,300px)] -translate-x-1/2">
+    <div className="relative w-full max-w-[440px] pt-10 sm:pt-11">
+      <div className="absolute left-1/2 top-2 z-30 w-[min(74%,300px)] -translate-x-1/2">
         <div className="flex min-h-[52px] w-full items-center justify-center gap-3 rounded-full border-[3px] border-black bg-gradient-to-r from-[#FFE066] to-[#FFD93D] px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:min-h-[56px] sm:px-5">
           <div className="h-3 w-3 rounded-full border border-black" style={{ backgroundColor: accentColor }} />
           <span className="text-center text-xs font-black uppercase tracking-[0.18em] text-black sm:text-sm">{floatingLabel}</span>
