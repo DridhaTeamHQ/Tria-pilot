@@ -242,12 +242,12 @@ function LoginContent() {
       <LayoutGroup>
         <motion.div
           layout
-          className={`relative z-10 hidden min-h-[100dvh] w-full overflow-hidden lg:flex ${isLayoutFlipped ? 'flex-row-reverse' : 'flex-row'}`}
+          className={`relative z-10 hidden h-[100dvh] w-full overflow-hidden lg:flex ${isLayoutFlipped ? 'flex-row-reverse' : 'flex-row'}`}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
           <motion.div
             layout
-            className="relative hidden min-h-[100dvh] lg:block lg:w-[50%] xl:w-[54%]"
+            className="relative hidden h-[100dvh] lg:block lg:w-[50%] xl:w-[54%]"
           >
             <motion.div
               key={userType}
@@ -262,21 +262,21 @@ function LoginContent() {
             <div className="absolute left-24 top-24 hidden h-10 w-10 rounded-full border-[3px] border-black bg-[#FF8C69] lg:block" />
             <div className="absolute bottom-16 right-16 hidden h-28 w-28 rotate-12 border-[4px] border-black/80 bg-[#FFD93D]/55 lg:block" />
             <div className="absolute bottom-24 left-14 hidden h-20 w-20 rounded-[28px] border-[4px] border-black/80 bg-[#B4F056]/45 lg:block" />
-            <div className="relative flex min-h-[100dvh] items-end p-12 xl:p-16">
-              <div className="max-w-xl rounded-[30px] border-[3px] border-black bg-[#ECE8E1]/92 p-8 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] backdrop-blur-sm">
-                <div className="mb-4 inline-flex rounded-full border-[3px] border-black bg-white px-4 py-2 text-sm font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <div className="relative flex h-full items-center px-8 py-8 xl:px-12">
+              <div className="max-w-[560px] rounded-[28px] border-[3px] border-black bg-[#ECE8E1]/92 p-6 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] backdrop-blur-sm xl:p-7">
+                <div className="mb-3 inline-flex rounded-full border-[3px] border-black bg-white px-4 py-2 text-xs font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] xl:text-sm">
                   {panelCopy.eyebrow}
                 </div>
-                <h1 className="text-[clamp(2.5rem,4vw,4rem)] font-black uppercase leading-[0.95] text-black">
+                <h1 className="text-[clamp(2.3rem,3.8vw,3.7rem)] font-black uppercase leading-[0.94] text-black">
                   {panelCopy.sideTitle}
                 </h1>
                 <p
-                  className="mt-3 text-[clamp(1.4rem,2vw,2rem)] font-black italic leading-none"
+                  className="mt-2 text-[clamp(1.2rem,1.8vw,1.7rem)] font-black italic leading-none"
                   style={{ color: accentColor }}
                 >
                   {panelCopy.sideAccent}
                 </p>
-                <p className="mt-5 max-w-lg text-lg font-semibold leading-relaxed text-black/68">
+                <p className="mt-4 max-w-lg text-[clamp(0.98rem,1.25vw,1.15rem)] font-semibold leading-relaxed text-black/68">
                   {panelCopy.sideBody}
                 </p>
               </div>
@@ -285,14 +285,14 @@ function LoginContent() {
 
           <motion.div
             layout
-            className="flex w-full items-center justify-center px-8 py-10 lg:w-[50%] xl:w-[46%] xl:px-14"
+            className="flex h-full w-full items-center justify-center px-6 py-6 lg:w-[50%] xl:w-[46%] xl:px-10"
           >
             <motion.div
               layout
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
-              className="w-full max-w-[440px]"
+              className="w-full max-w-[430px]"
             >
               <AuthCardShell floatingLabel={floatingLabel} accentColor={accentColor}>
                 <AuthCard
@@ -372,16 +372,16 @@ function AuthCard({
   accentButtonClass,
 }: AuthCardProps) {
   return (
-    <div className="relative z-20 rounded-[30px] border-[4px] border-black bg-[#FFFDF8] p-6 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] backdrop-blur-sm sm:p-8">
+    <div className="relative z-20 rounded-[30px] border-[4px] border-black bg-[#FFFDF8] p-5 pt-6 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] backdrop-blur-sm sm:p-6 sm:pt-7">
       <div className="mb-3 inline-flex rounded-full border-[3px] border-black bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.22em] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
         {eyebrow}
       </div>
-      <div className="mb-6">
-        <h2 className="text-[2.2rem] font-black leading-none text-black">{title}</h2>
-        <p className="mt-1 text-base font-semibold text-black/65">{subtitle}</p>
+      <div className="mb-4">
+        <h2 className="text-[1.95rem] font-black leading-none text-black sm:text-[2.1rem]">{title}</h2>
+        <p className="mt-1 text-[0.98rem] font-semibold text-black/65">{subtitle}</p>
       </div>
 
-      <div className="mb-6 flex rounded-2xl border-[3px] border-black bg-white p-1.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+      <div className="mb-4 flex rounded-2xl border-[3px] border-black bg-white p-1.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
         <button
           type="button"
           onClick={() => onUserTypeChange('influencer')}
@@ -398,7 +398,7 @@ function AuthCard({
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-3.5">
         <div className="space-y-2">
           <label className="text-xs font-black uppercase tracking-[0.2em] text-black">Username / Email</label>
           <div className="relative">
@@ -409,7 +409,7 @@ function AuthCard({
               type="text"
               value={identifier}
               onChange={(e) => onIdentifierChange(e.target.value)}
-              className="h-14 w-full rounded-2xl border-[3px] border-black bg-white pl-16 pr-4 text-base font-semibold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none transition-all placeholder:text-black/35 focus:translate-x-[2px] focus:translate-y-[2px] focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+              className="h-13 w-full rounded-2xl border-[3px] border-black bg-white pl-16 pr-4 text-base font-semibold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none transition-all placeholder:text-black/35 focus:translate-x-[2px] focus:translate-y-[2px] focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:h-14"
               placeholder="username or email"
               required
             />
@@ -438,7 +438,7 @@ function AuthCard({
                   type="email"
                   value={recoveryEmail}
                   onChange={(e) => onRecoveryEmailChange(e.target.value)}
-                  className="h-14 w-full rounded-2xl border-[3px] border-black bg-white px-4 text-base font-semibold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none transition-all placeholder:text-black/35 focus:translate-x-[2px] focus:translate-y-[2px] focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                  className="h-13 w-full rounded-2xl border-[3px] border-black bg-white px-4 text-base font-semibold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none transition-all placeholder:text-black/35 focus:translate-x-[2px] focus:translate-y-[2px] focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:h-14"
                   placeholder="Add email for forgot password"
                 />
                 <p className="text-[11px] font-bold text-black/60">
@@ -464,7 +464,7 @@ function AuthCard({
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => onPasswordChange(e.target.value)}
-              className="h-14 w-full rounded-2xl border-[3px] border-black bg-white pl-16 pr-12 text-base font-semibold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none transition-all placeholder:text-black/35 focus:translate-x-[2px] focus:translate-y-[2px] focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+              className="h-13 w-full rounded-2xl border-[3px] border-black bg-white pl-16 pr-12 text-base font-semibold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none transition-all placeholder:text-black/35 focus:translate-x-[2px] focus:translate-y-[2px] focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:h-14"
               placeholder="password"
               required
             />
@@ -481,19 +481,19 @@ function AuthCard({
         <button
           type="submit"
           disabled={loading}
-          className={`flex h-14 w-full items-center justify-center gap-2 rounded-2xl border-[3px] border-black font-black text-sm uppercase tracking-[0.18em] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] ${accentButtonClass}`}
+          className={`flex h-13 w-full items-center justify-center gap-2 rounded-2xl border-[3px] border-black font-black text-sm uppercase tracking-[0.18em] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:h-14 ${accentButtonClass}`}
         >
           {loading ? <Loader2 className="h-5 w-5 animate-spin text-black" /> : <>Let&apos;s go <ArrowRight className="h-5 w-5 text-black" strokeWidth={3} /></>}
         </button>
       </form>
 
-      <div className="mt-6">
-        <p className="mb-3 text-center text-xs font-black uppercase tracking-[0.22em] text-black/45">Continue with</p>
+      <div className="mt-4">
+        <p className="mb-2 text-center text-[11px] font-black uppercase tracking-[0.22em] text-black/45 sm:text-xs">Continue with</p>
         <div className="flex justify-center">
           <button
             type="button"
             onClick={handleGoogleLogin}
-            className="flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+            className="flex h-12 w-12 items-center justify-center rounded-full border-[3px] border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:h-14 sm:w-14"
             aria-label="Continue with Google"
           >
             <GoogleIcon className="h-6 w-6" />
@@ -501,8 +501,8 @@ function AuthCard({
         </div>
       </div>
 
-      <div className="mt-5 text-center">
-        <p className="text-sm font-bold text-black/60">
+      <div className="mt-4 text-center">
+        <p className="text-[13px] font-bold text-black/60 sm:text-sm">
           Don&apos;t have an account?{' '}
           <Link href="/register" className="px-1 text-black underline decoration-2 transition-colors hover:bg-[#FFD93D]">
             Join Now
@@ -523,16 +523,16 @@ function AuthCardShell({
   accentColor: string
 }) {
   return (
-    <div className="relative w-full max-w-[440px]">
-      <div className="absolute left-1/2 top-0 z-30 w-[min(78%,320px)] -translate-x-1/2 -translate-y-1/2">
-        <div className="flex min-h-[58px] w-full items-center justify-center gap-3 rounded-full border-[3px] border-black bg-gradient-to-r from-[#FFE066] to-[#FFD93D] px-5 py-2.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+    <div className="relative w-full max-w-[440px] pt-7 sm:pt-8">
+      <div className="absolute left-1/2 top-0 z-30 w-[min(74%,300px)] -translate-x-1/2">
+        <div className="flex min-h-[52px] w-full items-center justify-center gap-3 rounded-full border-[3px] border-black bg-gradient-to-r from-[#FFE066] to-[#FFD93D] px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:min-h-[56px] sm:px-5">
           <div className="h-3 w-3 rounded-full border border-black" style={{ backgroundColor: accentColor }} />
           <span className="text-center text-xs font-black uppercase tracking-[0.18em] text-black sm:text-sm">{floatingLabel}</span>
         </div>
       </div>
       {children}
       <div
-        className="absolute right-[-12px] top-[14%] hidden h-[72%] w-12 overflow-hidden rounded-r-[28px] border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] lg:block"
+        className="absolute right-[-12px] top-[13%] hidden h-[70%] w-10 overflow-hidden rounded-r-[24px] border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] xl:block"
         style={{ background: `linear-gradient(180deg, ${accentColor} 0%, #FFD93D 100%)` }}
       >
         <div
@@ -543,7 +543,7 @@ function AuthCardShell({
           }}
         />
       </div>
-      <div className="absolute -bottom-4 left-8 right-8 hidden h-3 rounded-full border-[3px] border-black bg-[#FFD93D] lg:block" />
+      <div className="absolute -bottom-3 left-8 right-8 hidden h-2.5 rounded-full border-[3px] border-black bg-[#FFD93D] xl:block" />
     </div>
   )
 }
