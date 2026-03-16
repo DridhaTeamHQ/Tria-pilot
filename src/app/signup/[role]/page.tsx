@@ -149,8 +149,12 @@ export default function SignupPage() {
 
   return (
     <div className="relative min-h-[100dvh] w-full overflow-x-hidden bg-[#F9F8F4]">
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,#fffdf8_0%,#f7f2e7_100%)]" />
-      <div className="absolute inset-0 opacity-40 [background-image:linear-gradient(rgba(0,0,0,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.05)_1px,transparent_1px)] [background-size:34px_34px]" />
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: `url('${bgImage}')` }}
+      />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,253,248,0.74)_0%,rgba(247,242,231,0.78)_100%)]" />
+      <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(0,0,0,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.05)_1px,transparent_1px)] [background-size:34px_34px]" />
 
       <div className="relative z-10 lg:hidden">
         <div className="flex min-h-[100dvh] items-center justify-center px-4 py-8">
@@ -176,14 +180,10 @@ export default function SignupPage() {
       <div className="relative z-10 hidden min-h-[100dvh] lg:flex lg:px-5 lg:py-8 xl:px-8 xl:py-10">
         <div className="grid w-full grid-cols-[1.04fr_0.96fr] gap-8 xl:gap-10">
           <div
-            className="relative min-h-[calc(100dvh-4rem)] overflow-hidden rounded-[38px] border-[4px] border-black shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]"
+            className="relative min-h-[calc(100dvh-4rem)] overflow-hidden rounded-[38px] border-[4px] border-black bg-white/18 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] backdrop-blur-[1px]"
           >
-            <div
-              className="absolute inset-0 bg-cover bg-center"
-              style={{ backgroundImage: `url('${bgImage}')` }}
-            />
-            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(249,248,244,0.36)_0%,rgba(249,248,244,0.12)_38%,rgba(249,248,244,0.28)_100%)]" />
-            <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(0,0,0,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.06)_1px,transparent_1px)] [background-size:34px_34px]" />
+            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,253,248,0.34)_0%,rgba(255,253,248,0.08)_40%,rgba(255,253,248,0.24)_100%)]" />
+            <div className="absolute inset-0 opacity-15 [background-image:linear-gradient(rgba(0,0,0,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.06)_1px,transparent_1px)] [background-size:34px_34px]" />
             <div className="absolute left-[6%] top-[10%] h-28 w-28 rounded-full bg-[#FFD93D]/18 blur-3xl" />
             <div className="absolute right-[10%] top-[18%] h-24 w-24 rounded-full bg-[#FF8C69]/16 blur-3xl" />
             <div className="absolute bottom-[12%] left-[18%] h-28 w-28 rounded-full bg-[#B4F056]/16 blur-3xl" />
