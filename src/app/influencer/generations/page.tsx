@@ -509,7 +509,7 @@ export default function GenerationsPage() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.3 }}
-                        className="fixed inset-0 flex items-center justify-center bg-black/90 p-3 backdrop-blur-md sm:p-4"
+                        className="fixed inset-0 flex items-start justify-center bg-black/90 p-3 pt-[max(0.75rem,3vh)] backdrop-blur-md sm:p-4 sm:pt-[max(1rem,4vh)]"
                         onClick={closeLightbox}
                         data-lightbox="true"
                     >

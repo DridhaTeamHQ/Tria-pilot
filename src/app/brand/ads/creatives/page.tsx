@@ -390,7 +390,7 @@ function HistoryModal({
                     initial="initial"
                     animate="animate"
                     exit="exit"
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-3 backdrop-blur-[2px] sm:p-4"
+                    className="fixed inset-0 z-50 flex items-start justify-center bg-black/55 p-3 pt-[max(0.75rem,3vh)] backdrop-blur-[2px] sm:p-4 sm:pt-[max(1rem,4vh)]"
                     onClick={onClose}
                 >
                     <motion.div
@@ -544,7 +544,7 @@ function Lightbox({
                     initial="initial"
                     animate="animate"
                     exit="exit"
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-3 backdrop-blur-[2px] sm:p-4"
+                    className="fixed inset-0 z-50 flex items-start justify-center bg-black/55 p-3 pt-[max(0.75rem,3vh)] backdrop-blur-[2px] sm:p-4 sm:pt-[max(1rem,4vh)]"
                     onClick={onClose}
                 >
                     <motion.div
