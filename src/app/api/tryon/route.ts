@@ -44,7 +44,9 @@ export async function POST(request: Request) {
       .eq('id', authUser.id)
       .single()
 
-    if (profileError || !profile) {
+    let currentProfile = profile
+
+    if (profileError || !currentProfile) {
       console.error("❌ FATAL: Profile not found for user!", {
         sessionUserId: authUser.id,
         error: profileError
@@ -68,9 +70,9 @@ export async function POST(request: Request) {
           message: 'User initialization failed. Please log out and log in again.',
         }, { status: 400 })
       }
-    }
 
-    const currentProfile = profile
+      currentProfile = newProfile
+    }
 
     if (process.env.NODE_ENV !== 'production') {
       console.log('📋 User Status Check:', { userId: authUser.id, role: currentProfile?.role, status: currentProfile?.approval_status })
