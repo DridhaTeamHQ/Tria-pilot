@@ -509,11 +509,11 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
             {/* Product Form Modal */}
             {showForm && (
                 <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-[2px] p-4"
+                    className="fixed inset-0 z-[70] overflow-y-auto bg-black/55 backdrop-blur-[2px] px-4 pb-6 pt-24 md:pt-28"
                     onClick={resetForm}
                 >
                     <div
-                        className="bg-[#FFFDF8] rounded-2xl border-[3px] border-black shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-fade-in"
+                        className="mx-auto bg-[#FFFDF8] rounded-2xl border-[3px] border-black shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] w-full max-w-2xl max-h-[calc(100dvh-7rem)] md:max-h-[calc(100dvh-8rem)] overflow-y-auto animate-fade-in"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="flex items-center justify-between p-4 border-b-[3px] border-black">
@@ -986,11 +986,11 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
             {/* Delete confirmation modal */}
             {deleteConfirm && (
                 <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-[2px] p-4"
+                    className="fixed inset-0 z-[70] overflow-y-auto bg-black/55 backdrop-blur-[2px] px-4 pb-6 pt-24 md:pt-28"
                     onClick={() => setDeleteConfirm(null)}
                 >
                     <div
-                        className="bg-[#FFFDF8] rounded-2xl border-[3px] border-black shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] w-full max-w-md p-6"
+                        className="mx-auto bg-[#FFFDF8] rounded-2xl border-[3px] border-black shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] w-full max-w-md p-6"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <h3 className="text-xl font-black mb-2">Delete product?</h3>
