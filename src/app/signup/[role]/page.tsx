@@ -153,8 +153,9 @@ export default function SignupPage() {
         className="absolute inset-0 bg-cover bg-center"
         style={{ backgroundImage: `url('${bgImage}')` }}
       />
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,253,248,0.74)_0%,rgba(247,242,231,0.78)_100%)]" />
-      <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(0,0,0,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.05)_1px,transparent_1px)] [background-size:34px_34px]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,253,248,0.28)_0%,rgba(247,242,231,0.34)_100%)]" />
+      <div className="absolute inset-0 opacity-10 [background-image:linear-gradient(rgba(0,0,0,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.045)_1px,transparent_1px)] [background-size:34px_34px]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_24%,rgba(255,217,61,0.2),transparent_22%),radial-gradient(circle_at_80%_22%,rgba(180,240,86,0.18),transparent_20%),radial-gradient(circle_at_52%_78%,rgba(255,140,105,0.16),transparent_24%)]" />
 
       <div className="relative z-10 lg:hidden">
         <div className="flex min-h-[100dvh] items-center justify-center px-4 py-8">
@@ -179,46 +180,44 @@ export default function SignupPage() {
 
       <div className="relative z-10 hidden min-h-[100dvh] lg:flex lg:px-5 lg:py-8 xl:px-8 xl:py-10">
         <div className="grid w-full grid-cols-[1.04fr_0.96fr] gap-8 xl:gap-10">
-          <div
-            className="relative min-h-[calc(100dvh-4rem)] overflow-hidden rounded-[38px] border-[4px] border-black bg-white/18 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] backdrop-blur-[1px]"
-          >
-            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,253,248,0.34)_0%,rgba(255,253,248,0.08)_40%,rgba(255,253,248,0.24)_100%)]" />
-            <div className="absolute inset-0 opacity-15 [background-image:linear-gradient(rgba(0,0,0,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.06)_1px,transparent_1px)] [background-size:34px_34px]" />
-            <div className="absolute left-[6%] top-[10%] h-28 w-28 rounded-full bg-[#FFD93D]/18 blur-3xl" />
-            <div className="absolute right-[10%] top-[18%] h-24 w-24 rounded-full bg-[#FF8C69]/16 blur-3xl" />
-            <div className="absolute bottom-[12%] left-[18%] h-28 w-28 rounded-full bg-[#B4F056]/16 blur-3xl" />
+          <div className="relative min-h-[calc(100dvh-4rem)]">
+            <div className="absolute left-[2%] top-[9%] h-32 w-32 rounded-full border-[4px] border-black/75 bg-white/16 backdrop-blur-[1px]" />
+            <div className="absolute left-[10%] top-[16%] h-8 w-8 rounded-full border-[4px] border-black bg-[#FF8C69]" />
+            <div className="absolute right-[12%] top-[12%] h-24 w-24 rotate-[-12deg] rounded-[28px] border-[4px] border-black/75 bg-[#B4F056]/22 backdrop-blur-[1px]" />
+            <div className="absolute bottom-[12%] left-[12%] h-20 w-20 rounded-[26px] border-[4px] border-black/75 bg-[#FFD93D]/18 backdrop-blur-[1px]" />
+            <div className="absolute bottom-[8%] right-[10%] h-28 w-28 rotate-[9deg] rounded-[30px] border-[4px] border-black/75 bg-[#FF8C69]/14 backdrop-blur-[1px]" />
 
-            <div className="relative flex h-full items-end p-8 xl:p-10">
-              <div className="max-w-[540px] rounded-[30px] border-[3px] border-black bg-[#ECE8E1]/94 p-8 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] backdrop-blur-sm">
-            <div className="mb-4 inline-flex rounded-full border-[3px] border-black bg-white px-4 py-2 text-sm font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-              {copy.eyebrow}
-            </div>
-            <h1 className="text-[clamp(2.5rem,4vw,4rem)] font-black uppercase leading-[0.95] text-black">
-              {copy.sideTitle}
-            </h1>
-            <p className="mt-3 text-[clamp(1.4rem,2vw,2rem)] font-black italic leading-none" style={{ color: accentColor }}>
-              {copy.sideAccent}
-            </p>
-            <p className="mt-5 text-lg font-semibold leading-relaxed text-black/68">
-              {copy.sideBody}
-            </p>
-
-            <div className="mt-8 space-y-3">
-              {features.map((feature) => (
-                <div
-                  key={feature.text}
-                  className="flex items-center gap-3 rounded-2xl border-[3px] border-black bg-white px-4 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-                >
-                  <div
-                    className="flex h-10 w-10 items-center justify-center rounded-xl border-[2px] border-black"
-                    style={{ backgroundColor: feature.color }}
-                  >
-                    <feature.icon className="h-5 w-5 text-black" strokeWidth={2.5} />
-                  </div>
-                  <span className="font-bold text-black">{feature.text}</span>
+            <div className="relative flex min-h-[calc(100dvh-4rem)] items-end p-6 xl:p-8">
+              <div className="max-w-[560px] rounded-[34px] border-[4px] border-black bg-[#ECE8E1]/90 p-8 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] backdrop-blur-[2px] xl:p-10">
+                <div className="mb-4 inline-flex rounded-full border-[3px] border-black bg-white px-4 py-2 text-sm font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                  {copy.eyebrow}
                 </div>
-              ))}
-            </div>
+                <h1 className="max-w-[520px] text-[clamp(2.5rem,4vw,4rem)] font-black uppercase leading-[0.95] text-black">
+                  {copy.sideTitle}
+                </h1>
+                <p className="mt-3 text-[clamp(1.4rem,2vw,2rem)] font-black italic leading-none" style={{ color: accentColor }}>
+                  {copy.sideAccent}
+                </p>
+                <p className="mt-5 max-w-[520px] text-lg font-semibold leading-relaxed text-black/72">
+                  {copy.sideBody}
+                </p>
+
+                <div className="mt-8 space-y-3">
+                  {features.map((feature) => (
+                    <div
+                      key={feature.text}
+                      className="flex items-center gap-3 rounded-2xl border-[3px] border-black bg-white/96 px-4 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                    >
+                      <div
+                        className="flex h-10 w-10 items-center justify-center rounded-xl border-[2px] border-black"
+                        style={{ backgroundColor: feature.color }}
+                      >
+                        <feature.icon className="h-5 w-5 text-black" strokeWidth={2.5} />
+                      </div>
+                      <span className="font-bold text-black">{feature.text}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
