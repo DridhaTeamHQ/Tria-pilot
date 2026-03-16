@@ -37,7 +37,7 @@ const curatedPresets = [
     preset: 'CINEMATIC_STUDIO_EDITORIAL' as AdPresetId,
     label: 'Editorial Spotlight',
     extraDirection:
-      'VARIANT GOAL: Make this feel like a fashion editorial. Use a tighter composition such as a torso crop, detail crop, or dramatic spotlight setup. Avoid repeating the same pose, framing, or overall composition as the lifestyle image.',
+      'VARIANT GOAL: Make this a distinctive fashion showcase image with the product being worn from a clearly different angle than the lifestyle shot. Use a three-quarter side angle, over-the-shoulder angle, or dynamic walking turn so the garment is still readable but the perspective feels fresh. Give it a unique editorial style with stronger art direction, sculpted lighting, premium shadows, and a fashion-campaign mood. Avoid repeating the same pose, framing, or front-facing composition as the lifestyle image.',
   },
 ] as const
 
