@@ -39,6 +39,11 @@ function LoginContent() {
   const [showPassword, setShowPassword] = useState(false)
   const [userType, setUserType] = useState<'influencer' | 'brand'>('influencer')
 
+  const getSafeRedirectTarget = () => {
+    const redirectTarget = searchParams.get('redirect') || '/dashboard'
+    return redirectTarget.startsWith('/admin') ? '/dashboard' : redirectTarget
+  }
+
   useEffect(() => {
     const from = searchParams.get('from')
     if (from === 'brand') {
@@ -137,7 +142,7 @@ function LoginContent() {
       }
 
       const sessionUser = await waitForServerSession()
-      const redirectTarget = searchParams.get('redirect') || '/dashboard'
+      const redirectTarget = getSafeRedirectTarget()
       const normalizedRecoveryEmail = recoveryEmail.trim().toLowerCase()
 
       if (sessionUser && isSyntheticEmail(sessionUser.email) && normalizedRecoveryEmail) {
@@ -179,7 +184,7 @@ function LoginContent() {
     try {
       const supabase = createClient()
       const siteUrl = getPublicSiteUrlClient()
-      const redirectTarget = searchParams.get('redirect') || '/dashboard'
+      const redirectTarget = getSafeRedirectTarget()
       const callbackUrl = new URL('/auth/callback', siteUrl)
       callbackUrl.searchParams.set('next', redirectTarget)
       callbackUrl.searchParams.set('role', userType)
