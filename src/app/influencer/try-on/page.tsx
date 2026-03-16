@@ -813,6 +813,26 @@ function TryOnPageContent() {
                 return
             }
 
+            if (code === 'PROFILE_SETUP_FAILED') {
+                toast.error('Your creator profile is still being prepared. Please refresh once and try again.')
+                return
+            }
+
+            if (code === 'INVALID_TRYON_INPUT' || code === 'MISSING_IMAGES') {
+                toast.error('Please upload both a person photo and a clothing image, then try again.')
+                return
+            }
+
+            if (code === 'TRYON_STORAGE_FAILED') {
+                toast.error('The image was generated but saving it failed. Please try again.')
+                return
+            }
+
+            if (code === 'TRYON_GENERATION_FAILED' || code === 'TRYON_REQUEST_FAILED') {
+                toast.error('The try-on server hit an issue. Please try again in a moment.')
+                return
+            }
+
             toast.error(errorMessage)
         } finally {
             setLoading(false)

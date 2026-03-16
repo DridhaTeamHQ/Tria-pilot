@@ -331,7 +331,7 @@ export default function BrandProfilePage() {
       </div>
 
       <section className="mb-8 bg-white border-[3px] border-black shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] p-5 md:p-7">
-        <div className="flex flex-col items-start gap-5 md:flex-row md:items-center">
+        <div className="flex flex-col items-start gap-5 md:gap-6 lg:flex-row lg:items-center">
           <div className="relative w-[120px] h-[136px] md:w-[140px] md:h-[156px] border-[4px] border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] bg-[#FFD93D] overflow-hidden">
             {profileImageUrl ? (
               <img src={profileImageUrl} alt="Brand profile" className="w-full h-full object-cover" />

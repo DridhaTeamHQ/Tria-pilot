@@ -7,6 +7,7 @@ import { normalizeBase64 } from '@/lib/image-processing'
 import { saveUpload } from '@/lib/storage'
 import { runHybridTryOnPipeline } from '@/lib/tryon/hybrid-tryon-pipeline'
 import { GeminiRateLimitError } from '@/lib/gemini/executor'
+import { ZodError } from 'zod'
 
 export const maxDuration = 120
 const TRYON_RATE_LIMIT_DISABLED = true
@@ -17,6 +18,15 @@ const GLOBAL_ACTIVE_LIMIT = Math.max(
   Number.parseInt(process.env.TRYON_INLINE_GLOBAL_LIMIT || '8', 10) || 8
 )
 const GLOBAL_ACTIVE_KEY = 'tryon:inline:active_generations'
+
+function jsonError(
+  status: number,
+  code: string,
+  error: string,
+  extra?: Record<string, unknown>
+) {
+  return NextResponse.json({ code, error, ...extra }, { status })
+}
 
 export async function POST(request: Request) {
   let redisUserLockKey: string | null = null
@@ -65,10 +75,8 @@ export async function POST(request: Request) {
         .single()
 
       if (createError) {
-        return NextResponse.json({
-          code: 'USER_NOT_FOUND',
-          message: 'User initialization failed. Please log out and log in again.',
-        }, { status: 400 })
+        console.error('[tryon] profile auto-create failed:', createError)
+        return jsonError(400, 'USER_NOT_FOUND', 'User initialization failed. Please log out and log in again.')
       }
 
       currentProfile = newProfile
@@ -80,19 +88,18 @@ export async function POST(request: Request) {
 
     // Check approval status
     if ((currentProfile?.approval_status || '').toLowerCase() !== 'approved') {
-      return NextResponse.json({
-        code: 'NOT_APPROVED',
-        message: `Your account is ${currentProfile?.approval_status?.toLowerCase() || 'pending'}. Please wait for admin approval.`,
-      }, { status: 403 })
+      return jsonError(
+        403,
+        'NOT_APPROVED',
+        `Your account is ${currentProfile?.approval_status?.toLowerCase() || 'pending'}. Please wait for admin approval.`,
+        { approvalStatus: currentProfile?.approval_status?.toLowerCase() || 'pending' }
+      )
     }
 
     const role = (currentProfile?.role || 'influencer').toLowerCase()
 
     if (role !== 'influencer') {
-      return NextResponse.json({
-        code: 'PROFILE_INCOMPLETE',
-        message: 'Influencer account required for try-on generation.',
-      }, { status: 403 })
+      return jsonError(403, 'PROFILE_INCOMPLETE', 'Influencer account required for try-on generation.')
     }
 
     // Check InfluencerProfile exists
@@ -106,16 +113,29 @@ export async function POST(request: Request) {
     if (!influencerProfile) {
       if (process.env.NODE_ENV !== 'production') console.log('🔧 Auto-creating InfluencerProfile for approved user:', authUser.id)
       try {
-        await service
+        const { error: influencerProfileCreateError } = await service
           .from('influencer_profiles')
           .insert({
             user_id: authUser.id,
             niches: [],
             socials: {},
           })
+        if (influencerProfileCreateError) {
+          console.error('[tryon] failed to create influencer profile scaffold:', influencerProfileCreateError)
+          return jsonError(
+            500,
+            'PROFILE_SETUP_FAILED',
+            'We could not prepare your influencer profile for try-on yet. Please refresh once and try again.'
+          )
+        }
         if (process.env.NODE_ENV !== 'production') console.log('✅ InfluencerProfile created')
       } catch (profileError) {
         console.error('Failed to create InfluencerProfile:', profileError)
+        return jsonError(
+          500,
+          'PROFILE_SETUP_FAILED',
+          'We could not prepare your influencer profile for try-on yet. Please refresh once and try again.'
+        )
       }
     }
 
@@ -161,7 +181,7 @@ export async function POST(request: Request) {
     } = tryOnSchema.parse(body)
 
     if (!personImage || !clothingImage) {
-      return NextResponse.json({ error: 'Both person and clothing images are required.' }, { status: 400 })
+      return jsonError(400, 'MISSING_IMAGES', 'Both person and clothing images are required.')
     }
 
     const presetV3 = stylePreset ? getTryOnPresetV3(stylePreset) : undefined
@@ -194,10 +214,7 @@ export async function POST(request: Request) {
 
     if (jobError || !job) {
       console.error("❌ FATAL: Failed to create GenerationJob!", jobError)
-      return NextResponse.json({
-        code: 'JOB_CREATION_FAILED',
-        message: 'Failed to start generation job. Please try again.',
-      }, { status: 500 })
+      return jsonError(500, 'JOB_CREATION_FAILED', 'Failed to start generation job. Please try again.')
     }
 
     const preset = presetV3
@@ -272,8 +289,8 @@ export async function POST(request: Request) {
       if (pipelineResult.image) {
         try {
           imageUrl = await saveUpload(pipelineResult.image, imagePath, 'try-ons')
-        } catch {
-          // non-fatal
+        } catch (storageError) {
+          console.error('[tryon] failed to store generated image, falling back to base64 response:', storageError)
         }
       }
 
@@ -342,6 +359,12 @@ export async function POST(request: Request) {
 
       const errMsg = inlineError instanceof Error ? inlineError.message : 'Generation failed'
       const isTimeoutLikeError = /timeout|timed out|taking longer than expected|aborted|body timeout|function invocation/i.test(errMsg)
+      const isStorageLikeError = /storage|bucket|object|upload/i.test(errMsg)
+      const code = isTimeoutLikeError
+        ? 'GENERATION_TIMEOUT'
+        : isStorageLikeError
+          ? 'TRYON_STORAGE_FAILED'
+          : 'TRYON_GENERATION_FAILED'
       await service
         .from('generation_jobs')
         .update({ status: 'failed', error_message: errMsg })
@@ -350,7 +373,7 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             error: 'Generation is taking longer than expected. Please retry once or check the Generations page shortly.',
-            code: 'GENERATION_TIMEOUT',
+            code,
             retryAfterSeconds: 15,
             jobId: job.id,
             status: 'failed',
@@ -359,7 +382,14 @@ export async function POST(request: Request) {
         )
       }
       return NextResponse.json(
-        { error: errMsg, jobId: job.id, status: 'failed' },
+        {
+          error: isStorageLikeError
+            ? 'The try-on finished but we could not save the output image correctly. Please try again.'
+            : errMsg,
+          code,
+          jobId: job.id,
+          status: 'failed',
+        },
         { status: 500 }
       )
     } finally {
@@ -378,8 +408,11 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     console.error('Try-on generation error:', error)
+    if (error instanceof ZodError) {
+      return jsonError(400, 'INVALID_TRYON_INPUT', 'Try-on input is invalid. Please re-upload your images and try again.')
+    }
     const message = error instanceof Error ? error.message : 'Internal server error'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return jsonError(500, 'TRYON_REQUEST_FAILED', message)
   } finally {
     if (isRedisConfigured() && redisUserLockKey) {
       try {

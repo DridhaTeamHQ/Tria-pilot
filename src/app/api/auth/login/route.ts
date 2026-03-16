@@ -48,7 +48,7 @@ function buildFallbackProfile(user: { id: string; email?: string | null; user_me
     email: user.email || null,
     role,
     onboarding_completed: false,
-    approval_status: role === 'brand' ? 'approved' : 'none',
+    approval_status: role === 'brand' ? 'approved' : 'pending',
     full_name: (user.user_metadata?.name as string) || (user.user_metadata?.full_name as string) || (user.email ? emailLocalPart(user.email) : null),
     avatar_url: null,
   }
@@ -285,6 +285,23 @@ export async function POST(request: Request) {
     }
 
     const normalizedRole = (profile.role || 'influencer').toLowerCase()
+
+    if (normalizedRole === 'influencer') {
+      try {
+        await profileClient
+          .from('influencer_profiles')
+          .upsert(
+            {
+              user_id: data.user.id,
+              niches: [],
+              socials: {},
+            },
+            { onConflict: 'user_id' }
+          )
+      } catch (influencerProfileError) {
+        console.warn('Influencer profile scaffold failed during login:', influencerProfileError)
+      }
+    }
 
     return NextResponse.json({
       user: {

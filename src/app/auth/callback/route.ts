@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
   // Never overwrite an already valid role on login.
   if (!existingRole) {
     profilePayload.role = roleHint
-    profilePayload.approval_status = roleHint === 'influencer' ? 'none' : 'approved'
+    profilePayload.approval_status = roleHint === 'influencer' ? 'pending' : 'approved'
     if (!existingProfile) {
       profilePayload.onboarding_completed = false
     }
@@ -107,6 +107,23 @@ export async function GET(request: NextRequest) {
 
     if (profileError) {
       console.error('[AUTH CALLBACK] Profile upsert error:', profileError)
+    }
+  }
+
+  if ((existingRole || roleHint) === 'influencer') {
+    const { error: influencerProfileError } = await service
+      .from('influencer_profiles')
+      .upsert(
+        {
+          user_id: data.user.id,
+          niches: [],
+          socials: {},
+        },
+        { onConflict: 'user_id' }
+      )
+
+    if (influencerProfileError) {
+      console.error('[AUTH CALLBACK] Influencer profile scaffold error:', influencerProfileError)
     }
   }
 

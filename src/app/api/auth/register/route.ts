@@ -20,6 +20,42 @@ export async function POST(request: Request) {
 
     let createdUserId: string | null = null
 
+    const ensureRoleScaffolding = async (userId: string) => {
+      const profilePayload = {
+        id: userId,
+        email,
+        role: normalizedRole,
+        full_name: username,
+        onboarding_completed: false,
+        approval_status: normalizedRole === 'brand' ? 'approved' : 'pending',
+      }
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert(profilePayload, { onConflict: 'id' })
+
+      if (profileError) {
+        console.warn('Profile upsert failed during register fallback:', profileError)
+      }
+
+      if (normalizedRole === 'influencer') {
+        const { error: influencerProfileError } = await supabase
+          .from('influencer_profiles')
+          .upsert(
+            {
+              user_id: userId,
+              niches: [],
+              socials: {},
+            },
+            { onConflict: 'user_id' }
+          )
+
+        if (influencerProfileError) {
+          console.warn('Influencer profile scaffold failed during register:', influencerProfileError)
+        }
+      }
+    }
+
     try {
       const service = createServiceClient()
 
@@ -64,13 +100,30 @@ export async function POST(request: Request) {
             role: normalizedRole,
             full_name: username,
             onboarding_completed: false,
-            approval_status: normalizedRole === 'brand' ? 'approved' : 'none',
+            approval_status: normalizedRole === 'brand' ? 'approved' : 'pending',
           },
           { onConflict: 'id' }
         )
 
       if (profileError) {
         console.warn('Profile upsert failed during register:', profileError)
+      }
+
+      if (normalizedRole === 'influencer') {
+        const { error: influencerProfileError } = await service
+          .from('influencer_profiles')
+          .upsert(
+            {
+              user_id: createdUser.user.id,
+              niches: [],
+              socials: {},
+            },
+            { onConflict: 'user_id' }
+          )
+
+        if (influencerProfileError) {
+          console.warn('Influencer profile scaffold failed during register:', influencerProfileError)
+        }
       }
     } catch (serviceError) {
       console.warn('Service role unavailable; falling back to standard sign-up flow:', serviceError)
@@ -110,23 +163,7 @@ export async function POST(request: Request) {
     }
 
     if (createdUserId) {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert(
-          {
-            id: createdUserId,
-            email,
-            role: normalizedRole,
-            full_name: username,
-            onboarding_completed: false,
-            approval_status: normalizedRole === 'brand' ? 'approved' : 'none',
-          },
-          { onConflict: 'id' }
-        )
-
-      if (profileError) {
-        console.warn('Profile upsert failed during register fallback:', profileError)
-      }
+      await ensureRoleScaffolding(createdUserId)
     }
 
     const { data: signedIn, error: signInError } = await supabase.auth.signInWithPassword({

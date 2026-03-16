@@ -78,7 +78,6 @@ function LoginContent() {
     : 'bg-[radial-gradient(circle_at_top_left,#e5f7b8_0%,#fffdf3_28%,#fffdf8_58%,#f3ecd9_100%)]'
   const panelCopy = userType === 'influencer'
     ? {
-        eyebrow: 'Creator Access',
         title: 'Welcome,',
         subtitle: 'sign in to continue',
         sideTitle: 'Come back to the studio',
@@ -86,7 +85,6 @@ function LoginContent() {
         sideBody: 'Access try-ons, campaign requests, and your creator dashboard without losing the playful Kiwikoo energy.',
       }
     : {
-        eyebrow: 'Brand Access',
         title: 'Welcome,',
         subtitle: 'sign in to continue',
         sideTitle: 'Step back into the brand suite',
@@ -219,7 +217,6 @@ function LoginContent() {
         <div className="flex min-h-[100dvh] items-center justify-center px-4 py-8">
           <AuthCardShell floatingLabel={floatingLabel} accentColor={accentColor}>
             <AuthCard
-              eyebrow={panelCopy.eyebrow}
               title={panelCopy.title}
               subtitle={panelCopy.subtitle}
               userType={userType}
@@ -247,12 +244,12 @@ function LoginContent() {
       <LayoutGroup>
         <motion.div
           layout
-          className={`relative z-10 hidden min-h-[100dvh] w-full overflow-hidden lg:flex lg:px-4 lg:py-5 ${isLayoutFlipped ? 'flex-row-reverse' : 'flex-row'}`}
+          className={`relative z-10 hidden w-full lg:flex lg:min-h-[100dvh] lg:px-4 lg:py-8 xl:px-6 xl:py-10 ${isLayoutFlipped ? 'flex-row-reverse' : 'flex-row'}`}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
           <motion.div
             layout
-            className="relative hidden lg:block lg:h-[calc(100dvh-2.5rem)] lg:w-[50%] xl:w-[54%]"
+            className="relative hidden lg:block lg:w-[50%] xl:w-[54%]"
           >
             <motion.div
               key={userType}
@@ -267,11 +264,8 @@ function LoginContent() {
             <div className="absolute left-24 top-24 hidden h-10 w-10 rounded-full border-[3px] border-black bg-[#FF8C69] lg:block" />
             <div className="absolute bottom-16 right-16 hidden h-28 w-28 rotate-12 border-[4px] border-black/80 bg-[#FFD93D]/55 lg:block" />
             <div className="absolute bottom-24 left-14 hidden h-20 w-20 rounded-[28px] border-[4px] border-black/80 bg-[#B4F056]/45 lg:block" />
-            <div className="relative flex h-full items-center px-8 py-8 xl:px-12">
+            <div className="relative flex min-h-full items-center px-8 py-8 xl:px-12">
               <div className="max-w-[560px] rounded-[28px] border-[3px] border-black bg-[#ECE8E1]/92 p-6 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] backdrop-blur-sm xl:p-7">
-                <div className="mb-3 inline-flex rounded-full border-[3px] border-black bg-white px-4 py-2 text-xs font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] xl:text-sm">
-                  {panelCopy.eyebrow}
-                </div>
                 <h1 className="text-[clamp(2.3rem,3.8vw,3.7rem)] font-black uppercase leading-[0.94] text-black">
                   {panelCopy.sideTitle}
                 </h1>
@@ -290,7 +284,7 @@ function LoginContent() {
 
           <motion.div
             layout
-            className="flex h-full w-full items-center justify-center px-6 py-6 lg:h-[calc(100dvh-2.5rem)] lg:w-[50%] xl:w-[46%] xl:px-10"
+            className="flex w-full items-center justify-center px-6 py-6 lg:w-[50%] xl:w-[46%] xl:px-10"
           >
             <motion.div
               layout
@@ -301,7 +295,6 @@ function LoginContent() {
             >
               <AuthCardShell floatingLabel={floatingLabel} accentColor={accentColor}>
                 <AuthCard
-                  eyebrow={panelCopy.eyebrow}
                   title={panelCopy.title}
                   subtitle={panelCopy.subtitle}
                   userType={userType}
@@ -332,7 +325,6 @@ function LoginContent() {
 }
 
 type AuthCardProps = {
-  eyebrow: string
   title: string
   subtitle: string
   userType: 'influencer' | 'brand'
@@ -355,7 +347,6 @@ type AuthCardProps = {
 }
 
 function AuthCard({
-  eyebrow,
   title,
   subtitle,
   userType,
@@ -378,9 +369,6 @@ function AuthCard({
 }: AuthCardProps) {
   return (
     <div className="relative z-20 rounded-[30px] border-[4px] border-black bg-[#FFFDF8] p-5 pt-6 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] backdrop-blur-sm sm:p-6 sm:pt-7">
-      <div className="mb-3 inline-flex rounded-full border-[3px] border-black bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.22em] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-        {eyebrow}
-      </div>
       <div className="mb-4">
         <h2 className="text-[1.95rem] font-black leading-none text-black sm:text-[2.1rem]">{title}</h2>
         <p className="mt-1 text-[0.98rem] font-semibold text-black/65">{subtitle}</p>
