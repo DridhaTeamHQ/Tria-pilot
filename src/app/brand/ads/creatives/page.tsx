@@ -390,7 +390,7 @@ function HistoryModal({
                     initial="initial"
                     animate="animate"
                     exit="exit"
-                    className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/55 p-3 pt-6 backdrop-blur-[2px] sm:items-center sm:p-4"
+                    className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/55 p-3 pt-4 backdrop-blur-[2px] sm:p-4"
                     onClick={onClose}
                 >
                     <motion.div
@@ -398,7 +398,7 @@ function HistoryModal({
                         initial="initial"
                         animate="animate"
                         exit="exit"
-                        className="my-auto w-full max-w-3xl overflow-hidden border-[3px] border-black bg-[#FFFDF5] shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]"
+                        className="w-full max-w-3xl overflow-hidden border-[3px] border-black bg-[#FFFDF5] shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]"
                         onClick={(event) => event.stopPropagation()}
                     >
                         <div className="flex items-center justify-between border-b-[3px] border-black bg-[#C3B1E1] px-4 py-3">
@@ -416,7 +416,7 @@ function HistoryModal({
                                 <X className="h-4 w-4" />
                             </button>
                         </div>
-                        <div className="max-h-[calc(100dvh-8rem)] space-y-3 overflow-y-auto p-4 sm:max-h-[75vh]">
+                        <div className="max-h-[calc(100dvh-7.5rem)] space-y-3 overflow-y-auto p-4 sm:max-h-[calc(100dvh-8.5rem)]">
                             {items.map((item, index) => {
                                 const active = item.id === focusCreativeId
                                 return (
@@ -575,8 +575,8 @@ function Lightbox({
                             </button>
                         </div>
 
-                        <div className="max-h-[calc(100dvh-8rem)] overflow-y-auto overscroll-contain rounded-xl border-[2px] border-black bg-white/60 p-2 sm:max-h-[calc(100vh-10rem)] sm:p-3">
-                            <div className="relative mx-auto h-[calc(100dvh-12rem)] w-full max-w-full sm:h-[calc(100vh-13rem)]">
+                        <div className="overflow-hidden rounded-xl border-[2px] border-black bg-white/60 p-2 sm:p-3">
+                            <div className="relative mx-auto h-[calc(100dvh-9.5rem)] w-full max-w-full sm:h-[calc(100dvh-10.5rem)]">
                                 <Image
                                     src={src}
                                     alt="Creative preview"

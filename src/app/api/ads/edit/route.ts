@@ -6,7 +6,8 @@ import { editImageWithGemini } from '@/lib/gemini/image-edit'
 import { saveUpload } from '@/lib/storage'
 
 const adEditSchema = z.object({
-  imageBase64: z.string().min(1).max(30_000_000),
+  imageBase64: z.string().min(1).max(30_000_000).optional(),
+  imageUrl: z.string().url().max(4096).optional(),
   maskBase64: z.string().max(30_000_000).optional(),
   prompt: z.string().trim().min(3).max(2000),
   referenceImageBase64: z.string().min(1).max(30_000_000).optional(),
@@ -20,7 +21,60 @@ const adEditSchema = z.object({
   }).optional(),
   sourceAdId: z.string().trim().max(100).optional(),
   preset: z.string().trim().max(120).optional(),
-}).strict()
+}).strict().refine((value) => Boolean(value.imageBase64 || value.imageUrl), {
+  message: 'Either imageBase64 or imageUrl is required',
+  path: ['imageBase64'],
+})
+
+function getSupabaseHost(): string | null {
+  const raw = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim()
+  if (!raw) return null
+
+  try {
+    return new URL(raw).hostname.toLowerCase()
+  } catch {
+    return null
+  }
+}
+
+async function resolveInputImageDataUrl(imageBase64?: string, imageUrl?: string) {
+  if (imageBase64) return imageBase64
+  if (!imageUrl) {
+    throw new Error('No image provided for edit')
+  }
+
+  let target: URL
+  try {
+    target = new URL(imageUrl)
+  } catch {
+    throw new Error('Invalid image URL')
+  }
+
+  const supabaseHost = getSupabaseHost()
+  if (!supabaseHost || target.hostname.toLowerCase() !== supabaseHost) {
+    throw new Error('Only stored creative images can be edited')
+  }
+
+  if (!target.pathname.includes('/storage/v1/object/public/ads/')) {
+    throw new Error('Unsupported creative image source')
+  }
+
+  const response = await fetch(target.toString(), {
+    headers: { Accept: 'image/*' },
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to load creative image (${response.status})`)
+  }
+
+  const contentType = response.headers.get('content-type') || 'image/png'
+  if (!contentType.toLowerCase().startsWith('image/')) {
+    throw new Error('Creative image source is not an image')
+  }
+
+  const buffer = Buffer.from(await response.arrayBuffer())
+  return `data:${contentType};base64,${buffer.toString('base64')}`
+}
 
 export async function POST(request: Request) {
   try {
@@ -47,6 +101,7 @@ export async function POST(request: Request) {
 
     const body = await request.json().catch(() => null)
     const parsed = adEditSchema.parse(body)
+    const inputImageDataUrl = await resolveInputImageDataUrl(parsed.imageBase64, parsed.imageUrl)
 
     let sourceCreative: {
       title: string | null
@@ -71,7 +126,7 @@ export async function POST(request: Request) {
     }
 
     const editResult = await editImageWithGemini({
-      imageBase64: parsed.imageBase64,
+      imageBase64: inputImageDataUrl,
       maskBase64: parsed.maskBase64,
       prompt: parsed.prompt,
       referenceImageBase64: parsed.referenceImageBase64,
