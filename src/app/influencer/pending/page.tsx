@@ -296,14 +296,16 @@ export default function InfluencerPendingPage() {
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 mb-6">
-              <button type="button"
-                onClick={() => fetchStatus(true)}
-                disabled={refreshing}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-black text-white font-black border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,0.3)] hover:-translate-y-0.5 transition-all disabled:opacity-60"
-              >
-                <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} strokeWidth={2.5} />
-                Check Status
-              </button>
+              {!isRejected && (
+                <button type="button"
+                  onClick={() => fetchStatus(true)}
+                  disabled={refreshing}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-black text-white font-black border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,0.3)] hover:-translate-y-0.5 transition-all disabled:opacity-60"
+                >
+                  <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} strokeWidth={2.5} />
+                  Check Status
+                </button>
+              )}
 
               <Link
                 href="/marketplace"
@@ -338,10 +340,12 @@ export default function InfluencerPendingPage() {
                   <div className="w-1.5 h-1.5 rounded-full bg-[#FF8C69]" />
                   Keep your profile details updated
                 </li>
-                <li className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#FF8C69]" />
-                  Check this page for approval status
-                </li>
+                {!isRejected && (
+                  <li className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#FF8C69]" />
+                    Check this page for approval status
+                  </li>
+                )}
               </ul>
             </div>
           </motion.div>

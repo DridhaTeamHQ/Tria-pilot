@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
 import { z } from 'zod'
+import { sendEmail } from '@/lib/email/supabase-email'
+import { getPublicSiteUrlFromRequest, joinPublicUrl } from '@/lib/site-url'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -34,6 +36,34 @@ function normalizeStatus(value: unknown): 'none' | 'pending' | 'approved' | 'rej
 function normalizeInfluencerProfile(value: any) {
   if (Array.isArray(value)) return value[0] || {}
   return value || {}
+}
+
+function buildApprovalEmail(baseUrl: string, recipientName?: string | null) {
+  const dashboardUrl = joinPublicUrl(baseUrl, '/dashboard')
+  const safeName = recipientName?.trim() || 'Creator'
+
+  return {
+    subject: 'Your Kiwikoo account is now approved',
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#111">
+        <div style="display:inline-block;padding:8px 14px;border:3px solid #111;border-radius:999px;background:#B4F056;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;">
+          Kiwikoo Approval
+        </div>
+        <h1 style="font-size:32px;line-height:1.05;margin:24px 0 12px;">You are approved, ${safeName}.</h1>
+        <p style="font-size:16px;line-height:1.7;color:#444;margin:0 0 18px;">
+          Your influencer account has been reviewed and approved. You can now access your dashboard, create try-ons, and start collaborating on Kiwikoo.
+        </p>
+        <a href="${dashboardUrl}" style="display:inline-block;padding:14px 20px;border:3px solid #111;border-radius:16px;background:#FF8C69;color:#111;text-decoration:none;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;">
+          Open Dashboard
+        </a>
+        <p style="font-size:13px;line-height:1.6;color:#666;margin-top:24px;">
+          If the button does not work, use this link:<br />
+          <a href="${dashboardUrl}" style="color:#111;">${dashboardUrl}</a>
+        </p>
+      </div>
+    `,
+    text: `Your Kiwikoo influencer account is approved. Open your dashboard here: ${dashboardUrl}`,
+  }
 }
 
 export async function GET(request: Request) {
@@ -133,6 +163,16 @@ export async function PATCH(request: Request) {
       const { user_id, status } = updateSchema.parse(body)
       const approvalStatus = status === 'approved' ? 'approved' : 'rejected'
 
+      const { data: targetProfile, error: targetProfileError } = await service
+        .from('profiles')
+        .select('email, full_name')
+        .eq('id', user_id)
+        .maybeSingle()
+
+      if (targetProfileError) {
+        console.warn('Failed to fetch influencer profile for approval email:', targetProfileError)
+      }
+
       const { data, error } = await service
         .from('profiles')
         .update({ approval_status: approvalStatus })
@@ -141,6 +181,22 @@ export async function PATCH(request: Request) {
         .single()
 
       if (error) throw error
+
+      if (approvalStatus === 'approved' && targetProfile?.email) {
+        try {
+          const baseUrl = getPublicSiteUrlFromRequest(request)
+          const template = buildApprovalEmail(baseUrl, targetProfile.full_name)
+          await sendEmail({
+            to: targetProfile.email,
+            subject: template.subject,
+            html: template.html,
+            text: template.text,
+          })
+        } catch (emailError) {
+          console.warn('Failed to send influencer approval email:', emailError)
+        }
+      }
+
       return NextResponse.json(data)
     }
 
