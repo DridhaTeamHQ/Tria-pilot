@@ -2,18 +2,87 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { motion, LayoutGroup } from 'framer-motion'
+import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { ArrowRight, Camera, Building2, Check, Sparkles, Zap, Star, Users, Megaphone } from 'lucide-react'
+import {
+  ArrowRight,
+  Building2,
+  Camera,
+  Check,
+  Megaphone,
+  Sparkles,
+  Users,
+  Zap,
+} from 'lucide-react'
+
+type Role = 'INFLUENCER' | 'BRAND'
+
+const ROLE_CONTENT: Record<
+  Role,
+  {
+    title: string
+    kicker: string
+    description: string
+    accent: string
+    bg: string
+    iconBg: string
+    buttonBg: string
+    shadow: string
+    bullets: string[]
+    tags: { icon: typeof Zap; label: string }[]
+    Icon: typeof Camera
+  }
+> = {
+  INFLUENCER: {
+    title: 'Creator runway',
+    kicker: 'For influencers',
+    description: 'Create try-ons, pitch faster, and keep your content pipeline moving without the usual production drag.',
+    accent: '#FF8C69',
+    bg: 'bg-[linear-gradient(145deg,#fff6ef_0%,#fffdf8_42%,#ffe1d6_100%)]',
+    iconBg: 'bg-[#FF8C69]',
+    buttonBg: 'bg-[#FF8C69] hover:bg-[#ff9f80]',
+    shadow: 'shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]',
+    bullets: [
+      'Generate virtual try-ons in minutes',
+      'Build a sharper content portfolio',
+      'Access campaign requests and brand deals',
+    ],
+    tags: [
+      { icon: Zap, label: 'Try-ons' },
+      { icon: Sparkles, label: 'Content' },
+    ],
+    Icon: Camera,
+  },
+  BRAND: {
+    title: 'Campaign control',
+    kicker: 'For brands',
+    description: 'Launch products, find creators, and turn scattered workflows into one clear performance engine.',
+    accent: '#B4F056',
+    bg: 'bg-[linear-gradient(145deg,#f6ffe8_0%,#fffdf8_42%,#edf8cb_100%)]',
+    iconBg: 'bg-[#B4F056]',
+    buttonBg: 'bg-[#B4F056] hover:bg-[#c3f570]',
+    shadow: 'shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]',
+    bullets: [
+      'Discover and brief the right creators faster',
+      'Generate ad creatives and product visuals',
+      'Keep campaigns, products, and inbox in one flow',
+    ],
+    tags: [
+      { icon: Users, label: 'Discovery' },
+      { icon: Megaphone, label: 'Campaigns' },
+    ],
+    Icon: Building2,
+  },
+}
 
 export default function RegisterPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-[#F9F8F4]">
+        <div className="flex min-h-screen items-center justify-center bg-[#F9F8F4]">
           <div className="text-center">
-            <div className="w-12 h-12 border-4 border-[#FF8C69] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-black/60 font-medium">Loading...</p>
+            <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-[#FF8C69] border-t-transparent" />
+            <p className="font-medium text-black/60">Loading...</p>
           </div>
         </div>
       }
@@ -26,252 +95,222 @@ export default function RegisterPage() {
 function RegisterContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [selectedRole, setSelectedRole] = useState<'INFLUENCER' | 'BRAND' | null>(null)
+  const [selectedRole, setSelectedRole] = useState<Role>('INFLUENCER')
 
-  // Check URL params for role preselection
   useEffect(() => {
     const roleParam = searchParams.get('role')
-    if (roleParam === 'influencer') {
-      setSelectedRole('INFLUENCER')
-    } else if (roleParam === 'brand') {
+    if (roleParam === 'brand') {
       setSelectedRole('BRAND')
+    } else if (roleParam === 'influencer') {
+      setSelectedRole('INFLUENCER')
     }
   }, [searchParams])
 
-  const handleJoin = (role: 'INFLUENCER' | 'BRAND') => {
-    const routeRole = role.toLowerCase()
-    router.push(`/signup/${routeRole}`)
+  const handleJoin = (role: Role) => {
+    router.push(`/signup/${role.toLowerCase()}`)
   }
 
-  // Dynamic Background & Layout Logic
-  // SWAPPED MAPPING:
-  // Brand Role -> uses 'influencer.png' (Brand Studio) -> Layout: Flipped (Form Left)
-  // Influencer Role -> uses 'brand.png' (Welcome Back) -> Layout: Normal (Form Right)
-  const bgImage = selectedRole === 'BRAND'
-    ? '/assets/auth-bg-influencer.png'
-    : '/assets/auth-bg-brand.png'
-
-  const isLayoutFlipped = selectedRole === 'BRAND'
+  const selectedContent = ROLE_CONTENT[selectedRole]
 
   return (
-    <div className="min-h-screen w-full relative bg-[#F9F8F4]">
-      {/* MOBILE BACKGROUND */}
-      <div
-        className="lg:hidden absolute inset-0 z-0 bg-cover bg-center"
-        style={{ backgroundImage: `url('${bgImage}')` }}
-      >
-        <div className="absolute inset-0 bg-white/95 backdrop-blur-sm" />
+    <div className="relative min-h-[100dvh] overflow-hidden bg-[#F9F8F4]">
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,#fffdf8_0%,#f8f3e8_100%)]" />
+      <div className="absolute inset-0 opacity-50 [background-image:linear-gradient(rgba(0,0,0,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.05)_1px,transparent_1px)] [background-size:34px_34px]" />
+      <div className="absolute left-[6%] top-[10%] h-48 w-48 rounded-full bg-[#FFD93D]/20 blur-3xl" />
+      <div className="absolute right-[8%] top-[14%] h-40 w-40 rounded-full bg-[#FF8C69]/18 blur-3xl" />
+      <div className="absolute bottom-[10%] left-[18%] h-44 w-44 rounded-full bg-[#B4F056]/18 blur-3xl" />
+      <div className="absolute bottom-[12%] right-[12%] h-40 w-40 rounded-full bg-[#FFD93D]/14 blur-3xl" />
+
+      <div className="pointer-events-none absolute left-[4%] top-[16%] hidden h-5 w-5 rounded-full bg-black lg:block" />
+      <div className="pointer-events-none absolute right-[6%] top-[8%] hidden h-16 w-16 text-[#FF8C69] lg:block">
+        <svg viewBox="0 0 24 24" fill="currentColor" stroke="black" strokeWidth="0.7">
+          <path d="M12 0L14.5 9L24 12L14.5 15L12 24L9.5 15L0 12L9.5 9L12 0Z" />
+        </svg>
       </div>
+      <div className="pointer-events-none absolute bottom-[14%] right-[10%] hidden h-28 w-24 rotate-12 border-[4px] border-black/75 bg-[#FFD93D]/45 lg:block" />
+      <div className="pointer-events-none absolute bottom-[18%] left-[8%] hidden h-20 w-20 rounded-[26px] border-[4px] border-black/75 bg-[#B4F056]/40 lg:block" />
 
-      {/* MOBILE CONTENT */}
-      <div className="lg:hidden relative z-10 min-h-screen px-4 py-6 flex items-center justify-center">
-        <div className="w-full max-w-md bg-white/95 border-[3px] border-black p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-          <div className="mb-6">
-            <h2 className="text-3xl font-black text-black mb-2 uppercase tracking-tight">Join Us</h2>
-            <p className="text-black/60 font-medium">Choose your path to get started.</p>
+      <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-7xl flex-col justify-center px-4 py-10 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-6xl">
+          <div className="mb-8 max-w-2xl">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.22em] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              <Sparkles className="h-4 w-4" />
+              Start with a side
+            </div>
+            <h1 className="text-[clamp(2.6rem,6vw,5rem)] font-black uppercase leading-[0.92] text-black">
+              Join the
+              <br />
+              Kiwikoo flow
+            </h1>
+            <p className="mt-4 max-w-2xl text-base font-semibold leading-relaxed text-black/65 sm:text-lg">
+              Pick the mode that fits you best. Influencers get a faster content engine. Brands get a sharper campaign workspace.
+            </p>
           </div>
 
-          <div className="space-y-4">
-            <div
-              onClick={() => setSelectedRole('INFLUENCER')}
-              className={`cursor-pointer relative bg-white border-[3px] border-black p-4 transition-all ${selectedRole === 'INFLUENCER' ? 'shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] bg-[#FFF5EE]' : 'shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'}`}
-            >
-              {selectedRole === 'INFLUENCER' && (
-                <div className="absolute top-3 right-3 w-7 h-7 bg-[#FF8C69] border-2 border-black flex items-center justify-center">
-                  <Check className="w-4 h-4 text-black" strokeWidth={3} />
-                </div>
-              )}
-              <div className="flex items-start gap-4">
-                <div className={`w-12 h-12 border-2 border-black flex items-center justify-center ${selectedRole === 'INFLUENCER' ? 'bg-[#FF8C69]' : 'bg-gray-100'}`}>
-                  <Camera className="w-6 h-6 text-black" strokeWidth={2} />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-black text-black uppercase">Influencer</h3>
-                  <p className="text-xs text-black/60 font-medium mt-1">Create content, grow your audience, and earn.</p>
-                </div>
-              </div>
-              <button type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleJoin('INFLUENCER')
-                }}
-                className="w-full mt-4 py-2 border-2 border-black font-black uppercase text-xs flex items-center justify-center gap-2 bg-black text-white hover:bg-[#FF8C69] hover:text-black transition-all"
-              >
-                Continue as Influencer <ArrowRight className="w-4 h-4" />
-              </button>
+          <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-stretch">
+            <div className="grid gap-5">
+              <RoleCard
+                role="INFLUENCER"
+                active={selectedRole === 'INFLUENCER'}
+                onSelect={() => setSelectedRole('INFLUENCER')}
+                onContinue={() => handleJoin('INFLUENCER')}
+              />
+              <RoleCard
+                role="BRAND"
+                active={selectedRole === 'BRAND'}
+                onSelect={() => setSelectedRole('BRAND')}
+                onContinue={() => handleJoin('BRAND')}
+              />
             </div>
 
-            <div
-              onClick={() => setSelectedRole('BRAND')}
-              className={`cursor-pointer relative bg-white border-[3px] border-black p-4 transition-all ${selectedRole === 'BRAND' ? 'shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] bg-[#F8FFED]' : 'shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'}`}
+            <motion.aside
+              key={selectedRole}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35 }}
+              className={`relative overflow-hidden rounded-[34px] border-[4px] border-black p-6 sm:p-7 ${selectedContent.bg} ${selectedContent.shadow}`}
             >
-              {selectedRole === 'BRAND' && (
-                <div className="absolute top-3 right-3 w-7 h-7 bg-[#B4F056] border-2 border-black flex items-center justify-center">
-                  <Check className="w-4 h-4 text-black" strokeWidth={3} />
+              <div className="absolute right-6 top-6 h-16 w-16 rounded-full border-[4px] border-black/80 bg-white/35" />
+              <div
+                className="absolute right-11 top-11 h-7 w-7 rounded-full border-[3px] border-black"
+                style={{ backgroundColor: selectedContent.accent }}
+              />
+              <div className="absolute bottom-6 left-6 h-14 w-14 rounded-[20px] border-[4px] border-black/75 bg-white/35" />
+
+              <div className="relative z-10">
+                <div
+                  className="mb-5 inline-flex items-center rounded-full border-[3px] border-black bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.22em] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                >
+                  {selectedContent.kicker}
                 </div>
-              )}
-              <div className="flex items-start gap-4">
-                <div className={`w-12 h-12 border-2 border-black flex items-center justify-center ${selectedRole === 'BRAND' ? 'bg-[#B4F056]' : 'bg-gray-100'}`}>
-                  <Building2 className="w-6 h-6 text-black" strokeWidth={2} />
+
+                <h2 className="max-w-xl text-[clamp(2.4rem,5vw,4.4rem)] font-black uppercase leading-[0.92] text-black">
+                  {selectedContent.title}
+                </h2>
+                <p
+                  className="mt-3 text-[clamp(1.15rem,1.8vw,1.55rem)] font-black italic leading-none"
+                  style={{ color: selectedContent.accent }}
+                >
+                  {selectedRole === 'INFLUENCER' ? 'Make content move quicker' : 'Run campaigns with less drag'}
+                </p>
+                <p className="mt-5 max-w-xl text-base font-semibold leading-relaxed text-black/68 sm:text-lg">
+                  {selectedContent.description}
+                </p>
+
+                <div className="mt-7 grid gap-3">
+                  {selectedContent.bullets.map((bullet) => (
+                    <div
+                      key={bullet}
+                      className="flex items-center gap-3 rounded-2xl border-[3px] border-black bg-white/90 px-4 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                    >
+                      <div
+                        className="h-4 w-4 rounded-full border-[2px] border-black"
+                        style={{ backgroundColor: selectedContent.accent }}
+                      />
+                      <span className="font-bold text-black">{bullet}</span>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-black text-black uppercase">Brand</h3>
-                  <p className="text-xs text-black/60 font-medium mt-1">Launch campaigns and find top talent.</p>
-                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleJoin(selectedRole)}
+                  className={`mt-7 flex h-14 w-full items-center justify-center gap-2 rounded-2xl border-[3px] border-black font-black uppercase tracking-[0.18em] text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] ${selectedContent.buttonBg}`}
+                >
+                  Continue as {selectedRole.toLowerCase()}
+                  <ArrowRight className="h-5 w-5" strokeWidth={3} />
+                </button>
               </div>
-              <button type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleJoin('BRAND')
-                }}
-                className="w-full mt-4 py-2 border-2 border-black font-black uppercase text-xs flex items-center justify-center gap-2 bg-black text-white hover:bg-[#B4F056] hover:text-black transition-all"
-              >
-                Continue as Brand <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
+            </motion.aside>
           </div>
 
-          <div className="mt-6 text-center">
-            <Link href="/login" className="inline-block text-black font-bold uppercase tracking-wide border-b-2 border-transparent hover:border-black transition-all">
-              Already have an account? Sign In
+          <div className="mt-8 text-center">
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-white px-5 py-2 text-sm font-black uppercase tracking-[0.18em] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+            >
+              Already have an account
+              <span className="underline">Sign in</span>
             </Link>
           </div>
         </div>
       </div>
-
-      {/* DESKTOP LAYOUT - Dynamic Direction with Animation */}
-      <LayoutGroup>
-        <motion.div
-          layout
-          className={`hidden lg:flex w-full relative z-0 h-screen overflow-hidden ${isLayoutFlipped ? 'flex-row-reverse' : 'flex-row'}`}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        >
-
-          {/* IMAGE SIDE */}
-          <motion.div
-            layout
-            className="flex-1 relative overflow-hidden bg-black h-full"
-          >
-            <motion.div
-              key={selectedRole || 'default'}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5 }}
-              className="absolute inset-0 z-0 bg-cover bg-no-repeat transition-all duration-700"
-              style={{
-                backgroundImage: `url('${bgImage}')`,
-                backgroundPosition: isLayoutFlipped ? 'right center' : 'left center'
-              }}
-            />
-          </motion.div>
-
-          {/* CONTENT SIDE */}
-          <motion.div
-            layout
-            className="w-full lg:w-[50%] xl:w-[45%] flex items-center justify-center p-6 lg:p-12 relative z-10 bg-transparent"
-          >
-            <motion.div
-              layout
-              className="w-full max-w-[500px]"
-            >
-              <div className="mb-8">
-                <h2 className="text-4xl font-black text-black mb-3 uppercase tracking-tight">Join Us</h2>
-                <p className="text-black/60 font-medium text-lg">Choose your path to get started.</p>
-              </div>
-
-              <div className="space-y-6">
-                {/* Influencer Card */}
-                <motion.div
-                  layout
-                  onClick={() => setSelectedRole('INFLUENCER')}
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
-                  className={`group cursor-pointer relative bg-white border-[3px] border-black p-6 transition-all ${selectedRole === 'INFLUENCER' ? 'shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-[#FFF5EE]' : 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]'}`}
-                >
-                  {selectedRole === 'INFLUENCER' && (
-                    <div className="absolute top-4 right-4 w-8 h-8 bg-[#FF8C69] border-2 border-black flex items-center justify-center">
-                      <Check className="w-5 h-5 text-black" strokeWidth={3} />
-                    </div>
-                  )}
-
-                  <div className="flex items-start gap-5">
-                    <div className={`w-16 h-16 border-2 border-black flex items-center justify-center transition-colors ${selectedRole === 'INFLUENCER' ? 'bg-[#FF8C69]' : 'bg-gray-100 group-hover:bg-[#FF8C69]/20'}`}>
-                      <Camera className="w-8 h-8 text-black" strokeWidth={2} />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-2xl font-black text-black mb-1 uppercase">Influencer</h3>
-                      <p className="text-sm text-black/60 font-medium mb-3">Create content, grow your audience, and earn.</p>
-
-                      <div className="flex gap-2 flex-wrap">
-                        <span className="px-2 py-1 bg-black/5 border border-black/10 rounded text-xs font-bold uppercase flex items-center gap-1">
-                          <Zap className="w-3 h-3" /> Try-Ons
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <button type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleJoin('INFLUENCER')
-                    }}
-                    className={`w-full mt-6 py-3 border-2 border-black font-black uppercase text-sm flex items-center justify-center gap-2 transition-all ${selectedRole === 'INFLUENCER' ? 'bg-black text-white hover:bg-[#FF8C69] hover:text-black' : 'bg-transparent text-black opacity-0 group-hover:opacity-100'}`}
-                  >
-                    Continue as Influencer <ArrowRight className="w-4 h-4" />
-                  </button>
-                </motion.div>
-
-                {/* Brand Card */}
-                <motion.div
-                  layout
-                  onClick={() => setSelectedRole('BRAND')}
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
-                  className={`group cursor-pointer relative bg-white border-[3px] border-black p-6 transition-all ${selectedRole === 'BRAND' ? 'shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-[#F8FFED]' : 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]'}`}
-                >
-                  {selectedRole === 'BRAND' && (
-                    <div className="absolute top-4 right-4 w-8 h-8 bg-[#B4F056] border-2 border-black flex items-center justify-center">
-                      <Check className="w-5 h-5 text-black" strokeWidth={3} />
-                    </div>
-                  )}
-
-                  <div className="flex items-start gap-5">
-                    <div className={`w-16 h-16 border-2 border-black flex items-center justify-center transition-colors ${selectedRole === 'BRAND' ? 'bg-[#B4F056]' : 'bg-gray-100 group-hover:bg-[#B4F056]/20'}`}>
-                      <Building2 className="w-8 h-8 text-black" strokeWidth={2} />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-2xl font-black text-black mb-1 uppercase">Brand</h3>
-                      <p className="text-sm text-black/60 font-medium mb-3">Launch campaigns and find top talent.</p>
-
-                      <div className="flex gap-2 flex-wrap">
-                        <span className="px-2 py-1 bg-black/5 border border-black/10 rounded text-xs font-bold uppercase flex items-center gap-1">
-                          <Users className="w-3 h-3" /> Discovery
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <button type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleJoin('BRAND')
-                    }}
-                    className={`w-full mt-6 py-3 border-2 border-black font-black uppercase text-sm flex items-center justify-center gap-2 transition-all ${selectedRole === 'BRAND' ? 'bg-black text-white hover:bg-[#B4F056] hover:text-black' : 'bg-transparent text-black opacity-0 group-hover:opacity-100'}`}
-                  >
-                    Continue as Brand <ArrowRight className="w-4 h-4" />
-                  </button>
-                </motion.div>
-              </div>
-
-              <div className="mt-12 text-center">
-                <Link href="/login" className="inline-block text-black font-bold uppercase tracking-wide border-b-2 border-transparent hover:border-black transition-all">
-                  Already have an account? Sign In
-                </Link>
-              </div>
-            </motion.div>
-          </motion.div>
-        </motion.div>
-      </LayoutGroup>
     </div>
+  )
+}
+
+function RoleCard({
+  role,
+  active,
+  onSelect,
+  onContinue,
+}: {
+  role: Role
+  active: boolean
+  onSelect: () => void
+  onContinue: () => void
+}) {
+  const content = ROLE_CONTENT[role]
+  const Icon = content.Icon
+
+  return (
+    <motion.button
+      type="button"
+      onClick={onSelect}
+      whileHover={{ y: -2 }}
+      whileTap={{ scale: 0.995 }}
+      className={`w-full rounded-[30px] border-[4px] border-black p-5 text-left transition-all sm:p-6 ${active ? `${content.bg} shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]` : 'bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]'}`}
+    >
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+        <div className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border-[3px] border-black ${active ? content.iconBg : 'bg-[#F1EEE6]'}`}>
+          <Icon className="h-8 w-8 text-black" strokeWidth={2.5} />
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-3">
+            <h3 className="text-2xl font-black uppercase text-black sm:text-3xl">
+              {role === 'INFLUENCER' ? 'Influencer' : 'Brand'}
+            </h3>
+            {active && (
+              <div
+                className="inline-flex items-center gap-1 rounded-full border-[2px] border-black px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em]"
+                style={{ backgroundColor: content.accent }}
+              >
+                <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                Selected
+              </div>
+            )}
+          </div>
+
+          <p className="mt-2 max-w-xl text-sm font-semibold leading-relaxed text-black/65 sm:text-base">
+            {content.description}
+          </p>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            {content.tags.map(({ icon: TagIcon, label }) => (
+              <span
+                key={label}
+                className="inline-flex items-center gap-1 rounded-full border-[2px] border-black bg-white px-3 py-1 text-[11px] font-black uppercase tracking-[0.15em]"
+              >
+                <TagIcon className="h-3.5 w-3.5" />
+                {label}
+              </span>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation()
+              onContinue()
+            }}
+            className={`mt-5 inline-flex h-12 items-center justify-center gap-2 rounded-2xl border-[3px] border-black px-5 font-black uppercase tracking-[0.16em] text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] ${content.buttonBg}`}
+          >
+            Continue
+            <ArrowRight className="h-4 w-4" strokeWidth={3} />
+          </button>
+        </div>
+      </div>
+    </motion.button>
   )
 }
