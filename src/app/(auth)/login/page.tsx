@@ -64,13 +64,13 @@ function LoginContent() {
     }
   }, [searchParams])
 
-  const bgImage = userType === 'influencer'
-    ? '/assets/auth-bg-influencer.png'
-    : '/assets/auth-bg-brand.png'
   const accentColor = userType === 'influencer' ? '#FF8C69' : '#B4F056'
   const accentButtonClass = userType === 'influencer'
     ? 'bg-[#FF8C69] hover:bg-[#ff9f80]'
     : 'bg-[#B4F056] hover:bg-[#c3f570]'
+  const patternSurfaceClass = userType === 'influencer'
+    ? 'bg-[radial-gradient(circle_at_top_left,#ffd5c7_0%,#fff8ef_28%,#fffdf8_58%,#f8f1e6_100%)]'
+    : 'bg-[radial-gradient(circle_at_top_left,#e5f7b8_0%,#fffdf3_28%,#fffdf8_58%,#f3ecd9_100%)]'
   const panelCopy = userType === 'influencer'
     ? {
         eyebrow: 'Creator Access',
@@ -205,11 +205,9 @@ function LoginContent() {
 
   return (
     <div className="relative min-h-[100dvh] w-full overflow-x-hidden bg-[#F9F8F4]">
-      <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url('${bgImage}')` }}
-      />
-      <div className="absolute inset-0 bg-[#f9f8f4]/78 backdrop-blur-[2px]" />
+      <div className={`absolute inset-0 ${patternSurfaceClass}`} />
+      <div className="absolute inset-0 opacity-70 [background-image:linear-gradient(rgba(0,0,0,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.06)_1px,transparent_1px)] [background-size:30px_30px]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(255,217,61,0.28),transparent_22%),radial-gradient(circle_at_85%_18%,rgba(255,140,105,0.22),transparent_18%),radial-gradient(circle_at_72%_78%,rgba(180,240,86,0.18),transparent_20%)]" />
       <DecorativeShapes />
 
       <div className="relative z-10 lg:hidden">
@@ -256,13 +254,14 @@ function LoginContent() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5 }}
-              className="absolute inset-0 bg-cover bg-no-repeat"
-              style={{
-                backgroundImage: `url('${bgImage}')`,
-                backgroundPosition: isLayoutFlipped ? 'right center' : 'left center',
-              }}
+              className={`absolute inset-0 ${patternSurfaceClass}`}
             />
-            <div className="absolute inset-0 bg-black/18" />
+            <div className="absolute inset-0 opacity-80 [background-image:linear-gradient(rgba(0,0,0,0.07)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.07)_1px,transparent_1px)] [background-size:34px_34px]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,rgba(255,217,61,0.32),transparent_18%),radial-gradient(circle_at_78%_22%,rgba(255,140,105,0.20),transparent_16%),radial-gradient(circle_at_70%_76%,rgba(180,240,86,0.20),transparent_18%)]" />
+            <div className="absolute left-7 top-10 hidden h-40 w-40 rounded-full border-[4px] border-black/80 bg-white/40 lg:block" />
+            <div className="absolute left-24 top-24 hidden h-10 w-10 rounded-full border-[3px] border-black bg-[#FF8C69] lg:block" />
+            <div className="absolute bottom-16 right-16 hidden h-28 w-28 rotate-12 border-[4px] border-black/80 bg-[#FFD93D]/55 lg:block" />
+            <div className="absolute bottom-24 left-14 hidden h-20 w-20 rounded-[28px] border-[4px] border-black/80 bg-[#B4F056]/45 lg:block" />
             <div className="relative flex min-h-[100dvh] items-end p-12 xl:p-16">
               <div className="max-w-xl rounded-[30px] border-[3px] border-black bg-[#ECE8E1]/92 p-8 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] backdrop-blur-sm">
                 <div className="mb-4 inline-flex rounded-full border-[3px] border-black bg-white px-4 py-2 text-sm font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
@@ -525,10 +524,10 @@ function AuthCardShell({
 }) {
   return (
     <div className="relative w-full max-w-[440px]">
-      <div className="absolute -top-5 left-1/2 z-30 -translate-x-1/2">
-        <div className="flex items-center gap-3 rounded-full border-[3px] border-black bg-gradient-to-r from-[#FFE066] to-[#FFD93D] px-5 py-2.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+      <div className="absolute left-1/2 top-0 z-30 w-[min(78%,320px)] -translate-x-1/2 -translate-y-1/2">
+        <div className="flex min-h-[58px] w-full items-center justify-center gap-3 rounded-full border-[3px] border-black bg-gradient-to-r from-[#FFE066] to-[#FFD93D] px-5 py-2.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
           <div className="h-3 w-3 rounded-full border border-black" style={{ backgroundColor: accentColor }} />
-          <span className="text-xs font-black uppercase tracking-[0.18em] text-black">{floatingLabel}</span>
+          <span className="text-center text-xs font-black uppercase tracking-[0.18em] text-black sm:text-sm">{floatingLabel}</span>
         </div>
       </div>
       {children}
