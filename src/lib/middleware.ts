@@ -120,7 +120,7 @@ export async function updateSession(request: NextRequest) {
     // SESSION CHECK ONLY: Redirect to /login if not authenticated and accessing protected route
     if (!user && !isPublicPath(pathname)) {
         const url = request.nextUrl.clone()
-        url.pathname = '/login'
+        url.pathname = pathname.startsWith('/admin') ? '/admin/login' : '/login'
         url.searchParams.set('redirect', pathname)
         const redirectResponse = NextResponse.redirect(url)
 
