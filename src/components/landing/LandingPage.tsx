@@ -414,34 +414,8 @@ export default function LandingPage() {
           className="w-full relative flex flex-col justify-start border-strong-b overflow-hidden bg-transparent"
           style={{ height: 'clamp(180px, 34vh, 340px)' }}
         >
-          {/* SVG Knockout Layer */}
-          <svg
-            className="absolute inset-0 w-full h-full z-0 pointer-events-none"
-            aria-hidden
-          >
-            <defs>
-              <mask id="k-knockout">
-                {/* White → draws solid background */}
-                <rect width="100%" height="100%" fill="white" />
-                {/* Black text → punches transparent hole */}
-                <text
-                  x="50%"
-                  y="50%"
-                  dy=".35em"
-                  textAnchor="middle"
-                  fontFamily="'Plus Jakarta Sans', sans-serif"
-                  fontWeight="900"
-                  letterSpacing="-0.05em"
-                  fill="black"
-                  style={{ fontSize: 'clamp(10rem, 60vw, 75vh)' }}
-                >
-                  K
-                </text>
-              </mask>
-            </defs>
-            {/* #faf9f6 background with K punched out */}
-            <rect width="100%" height="100%" fill="#faf9f6" mask="url(#k-knockout)" />
-          </svg>
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(250,249,246,0.96)_0%,rgba(248,246,240,0.98)_100%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_18%,rgba(180,240,86,0.1),transparent_24%),radial-gradient(circle_at_76%_22%,rgba(255,140,105,0.08),transparent_22%)]" />
 
           {/* "Our Features" pill */}
           <div className="relative z-10 flex h-full w-full items-start justify-center pt-8 md:pt-10 pointer-events-none">
