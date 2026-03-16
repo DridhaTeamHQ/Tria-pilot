@@ -509,7 +509,7 @@ export default function GenerationsPage() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.3 }}
-                        className="fixed inset-0 bg-black/90 backdrop-blur-md flex flex-col"
+                        className="fixed inset-0 flex flex-col bg-black/90 backdrop-blur-md"
                         onClick={closeLightbox}
                         data-lightbox="true"
                     >
@@ -519,7 +519,7 @@ export default function GenerationsPage() {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -20 }}
                             transition={{ delay: 0.1, type: "spring", stiffness: 300, damping: 25 }}
-                            className="flex flex-wrap items-center justify-between gap-3 px-3 sm:px-6 py-3 sm:py-4 border-b border-white/10 relative z-[200]"
+                            className="relative z-[200] flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-3 py-3 sm:px-6 sm:py-4"
                             onClick={(e) => e.stopPropagation()}
                         >
                             {/* Left side - Action buttons */}
@@ -594,12 +594,12 @@ export default function GenerationsPage() {
                         </motion.div>
 
                         {/* Image container - Centered & Full Size */}
-                        <div className="flex-1 overflow-y-auto overscroll-contain p-3 sm:p-4 relative z-[100] w-full min-h-0">
+                        <div className="relative z-[100] flex-1 overflow-y-auto overscroll-contain p-3 sm:p-4 w-full min-h-0">
                             {!imageError ? (
                                 <img
                                     src={getImageUrl(selectedImage)}
                                     alt="Generation Result"
-                                    className="w-full max-w-5xl h-auto object-contain shadow-2xl rounded-lg mx-auto"
+                                    className="mx-auto h-auto max-h-[calc(100dvh-11rem)] w-full max-w-5xl rounded-lg object-contain shadow-2xl sm:max-h-none"
                                     onClick={(e) => e.stopPropagation()}
                                     draggable={false}
                                     onError={() => setImageError(true)}
