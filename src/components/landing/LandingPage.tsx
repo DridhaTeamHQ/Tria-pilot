@@ -412,7 +412,7 @@ export default function LandingPage() {
             revealing #global-bg through the letter K.                              */}
         <section
           className="w-full relative flex flex-col justify-start border-strong-b overflow-hidden bg-transparent"
-          style={{ height: 'clamp(280px, 60vh, 700px)' }}
+          style={{ height: 'clamp(180px, 34vh, 340px)' }}
         >
           {/* SVG Knockout Layer */}
           <svg
@@ -444,7 +444,7 @@ export default function LandingPage() {
           </svg>
 
           {/* "Our Features" pill */}
-          <div className="relative z-10 w-full text-center pt-16 md:pt-20 pointer-events-none">
+          <div className="relative z-10 flex h-full w-full items-start justify-center pt-8 md:pt-10 pointer-events-none">
             <h3 className="font-bold tracking-[0.4em] text-sm text-gray-500 uppercase bg-[#faf9f6]/90 px-4 py-2 rounded-full inline-block backdrop-blur-sm shadow-sm border border-black/5">
               Our Features
             </h3>
@@ -454,7 +454,7 @@ export default function LandingPage() {
         {/* ━━━━━━━━━━ SOLUTIONS CARDS GRID ━━━━━━━━━━ */}
         <section className="grid grid-cols-1 md:grid-cols-3 w-full border-strong-b bg-[#faf9f6]">
           {/* Card 1 */}
-          <div className="grid-line-y flex flex-col justify-start gap-8 p-6 hover:bg-white transition-colors min-h-[260px] md:min-h-[400px] md:justify-between md:gap-0 md:p-10 border-b md:border-b-0 border-black/10">
+          <div className="grid-line-y flex flex-col justify-start gap-6 p-6 hover:bg-white transition-colors min-h-[240px] md:min-h-[300px] md:gap-8 md:p-10 border-b md:border-b-0 border-black/10">
             <div className="flex justify-between items-start">
               <div className="w-10 h-10 rounded-full border-2 border-[#111111] flex items-center justify-center bg-[#ff8a73] text-[#111111] font-bold">
                 1
@@ -470,7 +470,7 @@ export default function LandingPage() {
             </div>
           </div>
           {/* Card 2 */}
-          <div className="grid-line-y flex flex-col justify-start gap-8 p-6 hover:bg-white transition-colors min-h-[260px] md:min-h-[400px] md:justify-between md:gap-0 md:p-10 border-b md:border-b-0 border-black/10">
+          <div className="grid-line-y flex flex-col justify-start gap-6 p-6 hover:bg-white transition-colors min-h-[240px] md:min-h-[300px] md:gap-8 md:p-10 border-b md:border-b-0 border-black/10">
             <div className="flex justify-between items-start">
               <div className="w-10 h-10 rounded-full border-2 border-[#111111] flex items-center justify-center bg-[#b3f500] text-[#111111] font-bold">
                 2
@@ -486,7 +486,7 @@ export default function LandingPage() {
             </div>
           </div>
           {/* Card 3 */}
-          <div className="flex flex-col justify-start gap-8 p-6 hover:bg-white transition-colors min-h-[260px] md:min-h-[400px] md:justify-between md:gap-0 md:p-10">
+          <div className="flex flex-col justify-start gap-6 p-6 hover:bg-white transition-colors min-h-[240px] md:min-h-[300px] md:gap-8 md:p-10">
             <div className="flex justify-between items-start">
               <div className="w-10 h-10 rounded-full border-2 border-[#111111] flex items-center justify-center bg-[#d8b4fe] text-[#111111] font-bold">
                 3
