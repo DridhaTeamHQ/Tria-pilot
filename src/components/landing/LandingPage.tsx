@@ -294,7 +294,7 @@ export default function LandingPage() {
             >
               <h1
                 className="leading-none font-black tracking-tighter text-[#111111] opacity-90 mix-blend-multiply relative"
-                style={{ fontSize: 'clamp(2.5rem, 16vw, 15rem)' }}
+                style={{ fontSize: 'clamp(2.5rem, 12vw, 15rem)' }}
               >
                 KIWIKOO
                 <span
@@ -351,9 +351,15 @@ export default function LandingPage() {
             <span>\/\/</span><span>\/\/</span><span>\/\/</span>
           </div>
           <div className="col-span-1 grid-line-y flex flex-col items-center gap-2 text-[#111111]">
-            <span ref={(el) => { if (el) arrows1Ref.current[0] = el }} className="arrow-down-main">\/\/</span>
-            <span ref={(el) => { if (el) arrows1Ref.current[1] = el }} className="arrow-down-main">\/\/</span>
-            <span ref={(el) => { if (el) arrows1Ref.current[2] = el }} className="arrow-down-main">\/\/</span>
+            <span ref={(el) => { if (el) arrows1Ref.current[0] = el }} className="arrow-down-main block">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+            </span>
+            <span ref={(el) => { if (el) arrows1Ref.current[1] = el }} className="arrow-down-main block">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+            </span>
+            <span ref={(el) => { if (el) arrows1Ref.current[2] = el }} className="arrow-down-main block">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+            </span>
           </div>
           <div className="col-span-1 flex flex-col items-center gap-2">
             <span>\/\/</span><span>\/\/</span><span>\/\/</span>
@@ -386,7 +392,7 @@ export default function LandingPage() {
               >ARTIFICIAL</span>{' '}
               <span
                 ref={(el) => { if (el) wordsRef.current[4] = el }}
-                className="reveal-word opacity-20 text-[#caff33] inline-block"
+                className="reveal-word opacity-20 text-[#b3f500] inline-block"
               >INTELLIGENCE.</span>
             </h2>
           </div>
@@ -427,7 +433,7 @@ export default function LandingPage() {
                   fontWeight="900"
                   letterSpacing="-0.05em"
                   fill="black"
-                  style={{ fontSize: 'min(65vw, 75vh)' }}
+                  style={{ fontSize: 'clamp(10rem, 60vw, 75vh)' }}
                 >
                   K
                 </text>
@@ -466,7 +472,7 @@ export default function LandingPage() {
           {/* Card 2 */}
           <div className="grid-line-y p-10 flex flex-col justify-between hover:bg-white transition-colors min-h-[400px] border-b md:border-b-0 border-black/10">
             <div className="flex justify-between items-start mb-12">
-              <div className="w-10 h-10 rounded-full border-2 border-[#111111] flex items-center justify-center bg-[#caff33] text-[#111111] font-bold">
+              <div className="w-10 h-10 rounded-full border-2 border-[#111111] flex items-center justify-center bg-[#b3f500] text-[#111111] font-bold">
                 2
               </div>
             </div>
@@ -503,9 +509,15 @@ export default function LandingPage() {
             <span>\/\/</span><span>\/\/</span><span>\/\/</span>
           </div>
           <div className="col-span-1 grid-line-y flex flex-col items-center gap-2 text-[#111111]">
-            <span ref={(el) => { if (el) arrows2Ref.current[0] = el }} className="arrow-down-main-2">\/\/</span>
-            <span ref={(el) => { if (el) arrows2Ref.current[1] = el }} className="arrow-down-main-2">\/\/</span>
-            <span ref={(el) => { if (el) arrows2Ref.current[2] = el }} className="arrow-down-main-2">\/\/</span>
+            <span ref={(el) => { if (el) arrows2Ref.current[0] = el }} className="arrow-down-main-2 block">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+            </span>
+            <span ref={(el) => { if (el) arrows2Ref.current[1] = el }} className="arrow-down-main-2 block">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+            </span>
+            <span ref={(el) => { if (el) arrows2Ref.current[2] = el }} className="arrow-down-main-2 block">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+            </span>
           </div>
           <div className="col-span-1 flex flex-col items-center gap-2">
             <span>\/\/</span><span>\/\/</span><span>\/\/</span>

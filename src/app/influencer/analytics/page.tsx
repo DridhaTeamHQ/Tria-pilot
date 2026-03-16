@@ -109,7 +109,7 @@ export default function InfluencerAnalyticsPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#FDFBF7] pt-24 flex items-center justify-center">
-        <BrutalLoader size="lg" />
+        <BrutalLoader size="lg" tone="influencer" label="Loading analytics" />
       </div>
     )
   }

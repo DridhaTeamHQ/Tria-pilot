@@ -812,7 +812,7 @@ export default function AdsPage() {
                 <span>Wait {retryAfterSeconds}s</span>
               ) : loading ? (
                 <>
-                  <BrutalLoader size="sm" />
+                  <BrutalLoader size="sm" tone="brand" />
                   <span>Generating</span>
                 </>
               ) : (
@@ -841,7 +841,7 @@ export default function AdsPage() {
               {loading ? (
                 <motion.div key="load" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                   <BrutalCard className="flex min-h-[420px] flex-col items-center justify-center rounded-2xl bg-[#FFF3BF] p-6 sm:min-h-[560px] sm:p-8">
-                    <BrutalLoader size="lg" showLabel={false} />
+                    <BrutalLoader size="lg" showLabel={false} tone="brand" />
                     <p className="mt-6 text-xs font-black uppercase tracking-[0.2em] text-black/70">Generating your creative</p>
                     <p className="mt-2 text-[11px] font-semibold text-black/55">Balancing lighting, composition, and product focus.</p>
                   </BrutalCard>

@@ -126,7 +126,7 @@ export default function SignupPage() {
     }
 
     return (
-        <div className="min-h-screen w-full relative flex overflow-hidden">
+        <div className="min-h-[100dvh] w-full relative flex overflow-x-hidden overflow-y-auto">
             {/* BACKGROUND */}
             <div
                 className="absolute inset-0 z-0"
@@ -142,10 +142,10 @@ export default function SignupPage() {
             <div className="absolute inset-0 z-[1] pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(0,0,0,0.2)_100%)]" />
 
             {/* CONTENT CONTAINER */}
-            <div className="relative z-10 w-full flex">
+            <div className="relative z-10 w-full flex min-h-[100dvh]">
 
                 {/* LEFT SIDE - Text Content */}
-                <div className="hidden lg:flex lg:w-1/2 flex-col justify-center px-12 xl:px-20 py-12">
+                <div className="hidden lg:flex lg:w-1/2 flex-col justify-center px-12 xl:px-20 py-10 xl:py-12">
                     {/* Logo - Neo-brutal style */}
                     <motion.div
                         initial={{ opacity: 0, y: -20, rotate: -2 }}
@@ -165,7 +165,7 @@ export default function SignupPage() {
                         transition={{ duration: 0.8, delay: 0.1 }}
                         className="mb-6"
                     >
-                        <h1 className="text-5xl xl:text-6xl font-black text-white leading-[1.1] drop-shadow-[3px_3px_0px_rgba(0,0,0,0.8)]">
+                        <h1 className="text-[clamp(2.8rem,5vw,4.5rem)] font-black text-white leading-[1.05] drop-shadow-[3px_3px_0px_rgba(0,0,0,0.8)]">
                             Join the<br />
                             <span className="text-[#FF8C69] italic font-serif">
                                 {isInfluencer ? 'fashion studio' : 'brand portal'}
@@ -212,12 +212,12 @@ export default function SignupPage() {
                 </div>
 
                 {/* RIGHT SIDE - Form Card */}
-                <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12 lg:pr-12 xl:pr-20">
+                <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-8 lg:pr-12 xl:pr-20 xl:py-10">
                     <motion.div
                         initial={{ opacity: 0, y: 40, rotate: 2 }}
                         animate={{ opacity: 1, y: 0, rotate: 0 }}
                         transition={{ duration: 0.8, type: "spring", bounce: 0.3 }}
-                        className="w-full max-w-[420px]"
+                        className="w-full max-w-[420px] my-6"
                     >
                         {/* Neo-Brutal Card */}
                         <div className="bg-[#F9F8F4] rounded-2xl p-8 border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">

@@ -15,6 +15,7 @@ import {
     TrendingUp,
     ChevronDown
 } from 'lucide-react'
+import { BrutalLoader } from '@/components/ui/BrutalLoader'
 
 interface Influencer {
     id: string

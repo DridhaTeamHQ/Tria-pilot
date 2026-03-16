@@ -166,7 +166,7 @@ function CreativeCard({
                 >
                     {imageLoading && !imageError && (
                         <div className="absolute inset-0 flex items-center justify-center bg-white/90 border-b-[3px] border-black">
-                            <BrutalLoader size="sm" />
+                            <BrutalLoader size="sm" tone="brand" />
                         </div>
                     )}
                     {imageError ? (
@@ -301,7 +301,7 @@ function CreativeCard({
                                     : 'bg-[#FF8C69] hover:bg-[#ff9d7d] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
                             )}
                         >
-                            {regenerating ? <BrutalLoader size="sm" className="!min-h-0" /> : <RefreshCw className="h-3.5 w-3.5 shrink-0" />}
+                            {regenerating ? <BrutalLoader size="sm" tone="brand" className="!min-h-0" /> : <RefreshCw className="h-3.5 w-3.5 shrink-0" />}
                             <span className="hidden sm:inline">Redo</span>
                         </button>
                         <button
@@ -929,7 +929,7 @@ export default function CreativesPage() {
                 {/* Content */}
                 {loading ? (
                     <BrutalCard className="flex flex-col items-center justify-center py-24">
-                        <BrutalLoader size="lg" />
+                        <BrutalLoader size="lg" tone="brand" />
                         <p className="mt-6 text-xs font-black uppercase text-black/50">
                             Loading creatives
                         </p>

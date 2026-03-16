@@ -21,6 +21,7 @@ import {
     ImageIcon,
     Share2
 } from 'lucide-react'
+import { BrutalLoader } from '@/components/ui/BrutalLoader'
 import { useDeleteGeneration, useGenerations } from '@/lib/react-query/hooks'
 import { toast } from 'sonner'
 import { ShareModal } from '@/components/tryon/ShareModal'

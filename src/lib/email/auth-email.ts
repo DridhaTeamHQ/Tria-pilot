@@ -69,28 +69,6 @@ export function buildVerifyOtpUrl(baseUrl: string, params: { tokenHash: string; 
   return url.toString()
 }
 
-export function buildResetPasswordUrl(baseUrl: string, params: { tokenHash: string; type: string }) {
-  const url = new URL(joinPublicUrl(baseUrl, '/reset-password'))
-  url.searchParams.set('token_hash', params.tokenHash)
-  url.searchParams.set('type', params.type)
-  return url.toString()
-}
-
-export function buildPasswordResetEmail(params: { resetUrl: string }): EmailTemplate {
-  const content = renderLayout(
-    'Reset your password',
-    'We received a request to reset your password. If that was you, use the button below to choose a new one.',
-    'Reset password',
-    params.resetUrl,
-    'If you did not request this, you can safely ignore this email.'
-  )
-
-  return {
-    subject: 'Reset your Kiwikoo password',
-    ...content,
-  }
-}
-
 export function buildEmailConfirmationEmail(params: { confirmUrl: string }): EmailTemplate {
   const content = renderLayout(
     'Confirm your email',

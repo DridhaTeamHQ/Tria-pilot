@@ -138,7 +138,7 @@ export default function InfluencerCollaborationsPage() {
         {/* Content */}
         {loading ? (
           <div className="flex justify-center py-20">
-            <BrutalLoader size="lg" />
+            <BrutalLoader size="lg" tone="influencer" label="Loading collaborations" />
           </div>
         ) : filteredCollaborations.length === 0 ? (
           <div className="bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-16 text-center">

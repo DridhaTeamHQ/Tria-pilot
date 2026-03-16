@@ -29,9 +29,9 @@ export default function LogoutButton({
         data-cursor={dataCursor}
         className={[
           'flex w-full items-center justify-center gap-3 rounded-xl border-2 border-black',
-          'bg-[#FF6B57] px-4 py-3 text-sm font-black uppercase tracking-wide text-white',
+          'bg-[#FF9B8F] px-4 py-3 text-sm font-black uppercase tracking-wide text-white',
           'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all',
-          'hover:bg-[#FF5A45] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]',
+          'hover:bg-[#FF8A7D] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]',
           'active:translate-x-[2px] active:translate-y-[2px] active:shadow-none',
           'disabled:cursor-not-allowed disabled:opacity-60',
           className,
@@ -52,8 +52,8 @@ export default function LogoutButton({
       data-cursor={dataCursor}
       className={[
         'group relative flex h-[45px] w-[45px] items-center justify-start overflow-hidden rounded-full border-2 border-black',
-        'bg-[#FF6B57] text-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all duration-300',
-        'hover:w-[125px] hover:rounded-[999px] hover:bg-[#FF5A45]',
+        'bg-[#FF9B8F] text-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all duration-300',
+        'hover:w-[125px] hover:rounded-[999px] hover:bg-[#FF8A7D]',
         'active:translate-x-[2px] active:translate-y-[2px] active:shadow-none',
         'disabled:cursor-not-allowed disabled:opacity-60',
         className,

@@ -51,7 +51,7 @@ export default function LandingNav() {
         <div className="flex items-center gap-3">
           <Link
             href={isAuthenticated ? "/dashboard" : "/login"}
-            className="bg-[#111111] text-white px-4 py-2 rounded-full text-[10px] font-bold hover:bg-[#ff8a73] transition-colors"
+            className="bg-[#111111] text-white px-5 py-2.5 rounded-full text-xs font-bold hover:bg-[#ff8a73] transition-colors"
           >
             {isAuthenticated ? "DASHBOARD" : "LOG IN"}
           </Link>

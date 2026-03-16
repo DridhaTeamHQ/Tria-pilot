@@ -182,7 +182,7 @@ function LoginContent() {
   }
 
   return (
-    <div className="min-h-screen w-full relative bg-[#F9F8F4]">
+    <div className="min-h-[100dvh] w-full relative bg-[#F9F8F4] overflow-x-hidden">
       {/* MOBILE BACKGROUND */}
       <div
         className="lg:hidden absolute inset-0 z-0 bg-cover bg-center"
@@ -192,7 +192,7 @@ function LoginContent() {
       </div>
 
       {/* MOBILE FORM */}
-      <div className="lg:hidden relative z-10 min-h-screen px-4 py-6 flex items-center justify-center">
+      <div className="lg:hidden relative z-10 min-h-[100dvh] px-4 py-6 flex items-center justify-center">
         <div className="w-full max-w-md bg-white/95 border-[3px] border-black p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
           <div className="mb-6">
             <h2 className="text-3xl font-black text-black mb-1 uppercase tracking-tight">Sign In</h2>
@@ -353,14 +353,14 @@ function LoginContent() {
       <LayoutGroup>
         <motion.div
           layout
-          className={`hidden lg:flex min-h-screen w-full relative z-0 overflow-x-hidden ${isLayoutFlipped ? 'flex-row-reverse' : 'flex-row'}`}
+          className={`hidden lg:flex min-h-[100dvh] w-full relative z-0 overflow-x-hidden overflow-y-auto ${isLayoutFlipped ? 'flex-row-reverse' : 'flex-row'}`}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
 
           {/* IMAGE SIDE */}
           <motion.div
             layout
-            className="relative hidden min-h-screen lg:block lg:w-[52%] xl:w-[56%] overflow-hidden"
+            className="relative hidden min-h-[100dvh] lg:block lg:w-[52%] xl:w-[56%] overflow-hidden"
           >
             <motion.div
               key={userType}
@@ -378,17 +378,17 @@ function LoginContent() {
           {/* FORM SIDE */}
           <motion.div
             layout
-            className="w-full lg:w-[48%] xl:w-[44%] min-w-0 flex items-center justify-center px-8 py-10 xl:px-14 relative z-10 bg-transparent overflow-y-auto"
+            className="w-full lg:w-[48%] xl:w-[44%] min-w-0 flex items-center justify-center px-8 py-8 xl:px-14 xl:py-10 relative z-10 bg-transparent overflow-y-auto"
           >
             <motion.div
               layout
-              className="w-full max-w-[520px]"
+              className="w-full max-w-[520px] my-6"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
             >
               <div className="mb-10">
-                <h2 className="text-4xl font-black text-black mb-2 uppercase tracking-tight">
+                <h2 className="text-[clamp(2rem,4vw,2.75rem)] font-black text-black mb-2 uppercase tracking-tight leading-none">
                   Sign In
                 </h2>
                 <p className="text-black/60 font-medium text-lg">
