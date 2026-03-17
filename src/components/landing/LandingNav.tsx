@@ -17,21 +17,21 @@ export default function LandingNav() {
       style={{ fontFamily: 'var(--font-plus-jakarta-sans), sans-serif' }}
     >
       {/* ─── Desktop 3-col grid ─── */}
-      <div className="hidden md:flex text-[11px] tracking-widest uppercase font-bold">
+      <div className="hidden lg:flex text-[11px] tracking-widest uppercase font-bold">
         <Link
-          href="/register"
+          href="/signup/influencer"
           className="flex-1 px-6 py-[18px] border-r border-black/10 hover:text-[#ff8a73] transition-colors flex items-center text-[#111111]"
         >
-          FOR CREATORS
+          FOR INFLUENCERS
         </Link>
         <Link
-          href="/marketplace"
+          href="/register"
           className="flex-1 px-6 py-[18px] border-r border-black/10 hover:text-[#caff33] transition-colors flex items-center justify-center text-[#111111]"
         >
           PLATFORM
         </Link>
         <div className="flex-1 px-6 py-[18px] flex items-center justify-between">
-          <Link href="/onboarding/brand" className="hover:text-[#d8b4fe] transition-colors text-[#111111]">
+          <Link href="/signup/brand" className="hover:text-[#d8b4fe] transition-colors text-[#111111]">
             FOR BRANDS
           </Link>
           <Link
@@ -44,14 +44,14 @@ export default function LandingNav() {
       </div>
 
       {/* ─── Mobile single row ─── */}
-      <div className="flex md:hidden items-center justify-between px-5 py-4">
-        <Link href="/" className="text-xs font-black tracking-[0.25em] uppercase text-[#111111]">
+      <div className="flex lg:hidden items-center justify-between gap-3 px-4 py-4 sm:px-5">
+        <Link href="/" className="min-w-0 text-[11px] font-black tracking-[0.22em] uppercase text-[#111111] sm:text-xs sm:tracking-[0.25em]">
           KIWIKOO
         </Link>
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <Link
             href={isAuthenticated ? "/dashboard" : "/login"}
-            className="bg-[#111111] text-white px-5 py-2.5 rounded-full text-xs font-bold hover:bg-[#ff8a73] transition-colors"
+            className="bg-[#111111] text-white px-3 py-2.5 rounded-full text-[11px] font-bold hover:bg-[#ff8a73] transition-colors sm:px-5 sm:text-xs"
           >
             {isAuthenticated ? "DASHBOARD" : "LOG IN"}
           </Link>
@@ -78,26 +78,26 @@ export default function LandingNav() {
 
       {/* ─── Mobile dropdown ─── */}
       <div
-        className="md:hidden overflow-hidden transition-all duration-300"
-        style={{ maxHeight: open ? '240px' : '0' }}
+        className="lg:hidden overflow-hidden transition-all duration-300"
+        style={{ maxHeight: open ? 'calc(100vh - 72px)' : '0' }}
       >
-        <div className="bg-[#faf9f6] border-t border-black/10 text-[11px] tracking-widest uppercase font-bold">
+        <div className="max-h-[calc(100vh-72px)] overflow-y-auto bg-[#faf9f6] border-t border-black/10 text-[11px] tracking-widest uppercase font-bold">
           <Link
-            href="/register"
+            href="/signup/influencer"
             onClick={() => setOpen(false)}
             className="flex items-center px-5 py-5 border-b border-black/10 hover:text-[#ff8a73] transition-colors text-[#111111]"
           >
-            For Creators
+            For Influencers
           </Link>
           <Link
-            href="/marketplace"
+            href="/register"
             onClick={() => setOpen(false)}
             className="flex items-center px-5 py-5 border-b border-black/10 hover:text-[#caff33] transition-colors text-[#111111]"
           >
             Platform
           </Link>
           <Link
-            href="/onboarding/brand"
+            href="/signup/brand"
             onClick={() => setOpen(false)}
             className="flex items-center px-5 py-5 hover:text-[#d8b4fe] transition-colors text-[#111111]"
           >

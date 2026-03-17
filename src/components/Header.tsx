@@ -143,8 +143,8 @@ export default function Header() {
     const publicLinks = [
         { href: '/#features', label: 'Features' },
         { href: '/influencer/try-on', label: 'Virtual Try-On' },
-        { href: '/register?role=brand', label: 'For Brands' },
-        { href: '/register?role=influencer', label: 'For Influencers' },
+        { href: '/signup/brand', label: 'For Brands' },
+        { href: '/signup/influencer', label: 'For Influencers' },
     ]
 
     let links: typeof influencerLinks | typeof brandLinks = []
@@ -178,7 +178,7 @@ export default function Header() {
 
                     {/* Desktop Navigation */}
                     {isLoggedIn ? (
-                        <nav className="hidden md:flex items-center gap-1">
+                        <nav className="hidden lg:flex items-center gap-1">
                             {links.map((link) => {
                                 const Icon = link.icon
                                 const active = isActive(link.href)
@@ -200,7 +200,7 @@ export default function Header() {
                             })}
                         </nav>
                     ) : (
-                        <nav className={`hidden md:flex items-center gap-8 text-sm font-medium ${isHomePage && !scrolled ? 'text-white/90' : 'text-charcoal/70'}`}>
+                        <nav className={`hidden lg:flex items-center gap-8 text-sm font-medium ${isHomePage && !scrolled ? 'text-white/90' : 'text-charcoal/70'}`}>
                             {publicLinks.map((link) => (
                                 <Link
                                     key={link.href}
@@ -216,7 +216,7 @@ export default function Header() {
                     {/* Right Side Actions */}
                     <div className="flex items-center gap-4">
                         {isLoggedIn ? (
-                            <div className="hidden md:flex items-center gap-3">
+                            <div className="hidden lg:flex items-center gap-3">
                                 <div
                                     className="w-10 h-10 rounded-full bg-gradient-to-br from-peach to-orange-300 flex items-center justify-center text-charcoal font-semibold"
                                     data-cursor={user?.name || 'Profile'}
@@ -231,7 +231,7 @@ export default function Header() {
                                 />
                             </div>
                         ) : (
-                            <div className="hidden md:flex items-center gap-4">
+                            <div className="hidden lg:flex items-center gap-4">
                                 <Link
                                     href="/login"
                                     prefetch={true}
@@ -253,7 +253,7 @@ export default function Header() {
 
                         {/* Mobile Menu Toggle */}
                         <button type="button"
-                            className={`md:hidden p-2 rounded-lg transition-colors ${isHomePage && !scrolled ? 'hover:bg-white/10 text-white' : 'hover:bg-charcoal/5 text-charcoal'}`}
+                            className={`lg:hidden p-2 rounded-lg transition-colors ${isHomePage && !scrolled ? 'hover:bg-white/10 text-white' : 'hover:bg-charcoal/5 text-charcoal'}`}
                             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                         >
                             {mobileMenuOpen ? (
@@ -274,7 +274,7 @@ export default function Header() {
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="md:hidden bg-cream/95 backdrop-blur-md border-t border-subtle"
+                        className="lg:hidden bg-cream/95 backdrop-blur-md border-t border-subtle"
                     >
                         <div className="container mx-auto px-6 py-6 space-y-3">
                             {isLoggedIn ? (
