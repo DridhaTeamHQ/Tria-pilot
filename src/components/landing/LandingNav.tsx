@@ -20,20 +20,20 @@ export default function LandingNav() {
       <div className="hidden lg:grid lg:grid-cols-3 lg:items-stretch text-[14px] tracking-[0.18em] uppercase font-black">
         <Link
           href="/signup/influencer"
-          className="flex items-center border-r border-black/10 px-8 py-6 text-[#111111] transition-colors hover:text-[#ff8a73]"
+          className="flex items-center border-r border-black/10 px-8 py-6 text-[#111111]"
         >
           FOR INFLUENCERS
         </Link>
         <Link
           href="/register"
-          className="flex items-center justify-center border-r border-black/10 px-8 py-6 text-[#111111] transition-colors hover:text-[#caff33]"
+          className="flex items-center justify-center border-r border-black/10 px-8 py-6 text-[#111111]"
         >
           PLATFORM
         </Link>
         <div className="flex items-center justify-between px-8 py-4">
           <Link
             href="/signup/brand"
-            className="text-[#111111] transition-colors hover:text-[#d8b4fe]"
+            className="text-[#111111]"
           >
             FOR BRANDS
           </Link>
