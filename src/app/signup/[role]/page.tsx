@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
-import { ArrowRight, Eye, EyeOff, Loader2, Lock, Sparkles, User, Users, Zap } from 'lucide-react'
+import { ArrowRight, Eye, EyeOff, Loader2, Lock, User } from 'lucide-react'
 import { createClient } from '@/lib/auth-client'
 import { getPublicSiteUrlClient } from '@/lib/site-url'
 
@@ -15,13 +15,23 @@ export default function SignupPage() {
   const role = (params.role as string)?.toLowerCase() || 'influencer'
   const isInfluencer = role === 'influencer'
 
-  const bgImage = isInfluencer
-    ? '/assets/signup-influencer-background.png'
-    : '/assets/signup-brand-background.png'
   const accentButtonClass = isInfluencer
     ? 'bg-[#FF8C69] hover:bg-[#ff9f80]'
     : 'bg-[#B4F056] hover:bg-[#c3f570]'
   const accentColor = isInfluencer ? '#FF8C69' : '#B4F056'
+  const blobPalette = isInfluencer
+    ? {
+        pageBg: '#FFF7F1',
+        overlay: 'bg-[linear-gradient(180deg,rgba(255,249,244,0.72)_0%,rgba(255,245,238,0.76)_100%)]',
+        grid: 'opacity-[0.07]',
+        blobs: ['#FF8C69', '#FFB38A', '#FFD166', '#F97316'],
+      }
+    : {
+        pageBg: '#F7FDED',
+        overlay: 'bg-[linear-gradient(180deg,rgba(248,255,241,0.72)_0%,rgba(242,251,231,0.76)_100%)]',
+        grid: 'opacity-[0.07]',
+        blobs: ['#B4F056', '#7DDC73', '#D9FF8A', '#65C466'],
+      }
 
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -32,18 +42,6 @@ export default function SignupPage() {
     confirmPassword: '',
     agreeTerms: false,
   })
-
-  const features = isInfluencer
-    ? [
-        { icon: Sparkles, text: 'AI-powered try-on content', color: '#FF8C69' },
-        { icon: Users, text: 'Brand-ready collaboration profile', color: '#B4F056' },
-        { icon: Zap, text: 'Fast creator onboarding', color: '#FFD93D' },
-      ]
-    : [
-        { icon: Users, text: 'Discover verified influencers', color: '#B4F056' },
-        { icon: Sparkles, text: 'Generate polished campaign assets', color: '#FF8C69' },
-        { icon: Zap, text: 'Launch products with less friction', color: '#FFD93D' },
-      ]
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -148,13 +146,10 @@ export default function SignupPage() {
       }
 
   return (
-    <div className="relative min-h-[100dvh] w-full overflow-x-hidden bg-[#F9F8F4]">
-      <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url('${bgImage}')` }}
-      />
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,253,248,0.28)_0%,rgba(247,242,231,0.34)_100%)]" />
-      <div className="absolute inset-0 opacity-10 [background-image:linear-gradient(rgba(0,0,0,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.045)_1px,transparent_1px)] [background-size:34px_34px]" />
+    <div className="relative min-h-[100dvh] w-full overflow-x-hidden" style={{ backgroundColor: blobPalette.pageBg }}>
+      <AnimatedBlobBackground colors={blobPalette.blobs} />
+      <div className={`absolute inset-0 ${blobPalette.overlay}`} />
+      <div className={`absolute inset-0 ${blobPalette.grid} [background-image:linear-gradient(rgba(0,0,0,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.045)_1px,transparent_1px)] [background-size:34px_34px]`} />
 
       <div className="relative z-10 lg:hidden">
         <div className="flex min-h-[100dvh] items-center justify-center px-4 py-8">
@@ -194,22 +189,15 @@ export default function SignupPage() {
                 <p className="mt-5 max-w-[520px] text-lg font-semibold leading-relaxed text-black/72">
                   {copy.sideBody}
                 </p>
-
-                <div className="mt-8 space-y-3">
-                  {features.map((feature) => (
-                    <div
-                      key={feature.text}
-                      className="flex items-center gap-3 rounded-2xl border-[3px] border-black bg-white/96 px-4 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-                    >
-                      <div
-                        className="flex h-10 w-10 items-center justify-center rounded-xl border-[2px] border-black"
-                        style={{ backgroundColor: feature.color }}
-                      >
-                        <feature.icon className="h-5 w-5 text-black" strokeWidth={2.5} />
-                      </div>
-                      <span className="font-bold text-black">{feature.text}</span>
-                    </div>
-                  ))}
+                <div className="mt-8 max-w-[520px] rounded-[24px] border-[3px] border-black bg-white/92 px-5 py-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                  <p className="text-[11px] font-black uppercase tracking-[0.28em] text-black/55">
+                    What you unlock
+                  </p>
+                  <p className="mt-2 text-base font-bold leading-relaxed text-black/80">
+                    {isInfluencer
+                      ? 'Personalized try-ons, a polished creator profile, and a cleaner runway into brand collaborations.'
+                      : 'A focused brand workspace for products, campaigns, influencer discovery, and polished launch assets.'}
+                  </p>
                 </div>
               </div>
             </div>
@@ -242,6 +230,45 @@ export default function SignupPage() {
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+function AnimatedBlobBackground({ colors }: { colors: string[] }) {
+  return (
+    <div className="absolute inset-0 overflow-hidden">
+      <svg preserveAspectRatio="xMidYMid slice" viewBox="10 10 80 80" className="absolute inset-0 h-full w-full">
+        <defs>
+          <style>
+            {`
+              @keyframes signupBlobRotate {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+              .signup-out-top {
+                animation: signupBlobRotate 22s linear infinite;
+                transform-origin: 13px 25px;
+              }
+              .signup-in-top {
+                animation: signupBlobRotate 12s linear infinite;
+                transform-origin: 13px 25px;
+              }
+              .signup-out-bottom {
+                animation: signupBlobRotate 28s linear infinite;
+                transform-origin: 84px 93px;
+              }
+              .signup-in-bottom {
+                animation: signupBlobRotate 16s linear infinite;
+                transform-origin: 84px 93px;
+              }
+            `}
+          </style>
+        </defs>
+        <path fill={colors[0]} fillOpacity="0.22" className="signup-out-top" d="M37-5C25.1-14.7,5.7-19.1-9.2-10-28.5,1.8-32.7,31.1-19.8,49c15.5,21.5,52.6,22,67.2,2.3C59.4,35,53.7,8.5,37-5Z" />
+        <path fill={colors[1]} fillOpacity="0.18" className="signup-in-top" d="M20.6,4.1C11.6,1.5-1.9,2.5-8,11.2-16.3,23.1-8.2,45.6,7.4,50S42.1,38.9,41,24.5C40.2,14.1,29.4,6.6,20.6,4.1Z" />
+        <path fill={colors[2]} fillOpacity="0.2" className="signup-out-bottom" d="M105.9,48.6c-12.4-8.2-29.3-4.8-39.4.8-23.4,12.8-37.7,51.9-19.1,74.1s63.9,15.3,76-5.6c7.6-13.3,1.8-31.1-2.3-43.8C117.6,63.3,114.7,54.3,105.9,48.6Z" />
+        <path fill={colors[3]} fillOpacity="0.16" className="signup-in-bottom" d="M102,67.1c-9.6-6.1-22-3.1-29.5,2-15.4,10.7-19.6,37.5-7.6,47.8s35.9,3.9,44.5-12.5C115.5,92.6,113.9,74.6,102,67.1Z" />
+      </svg>
     </div>
   )
 }
