@@ -4,115 +4,117 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useUser } from '@/lib/react-query/hooks'
 
+const PRIMARY_LINKS = [
+  { href: '/signup/influencer', label: 'FOR INFLUENCERS' },
+  { href: '/register', label: 'PLATFORM' },
+  { href: '/signup/brand', label: 'FOR BRANDS' },
+]
+
 export default function LandingNav() {
   const [open, setOpen] = useState(false)
+  const [hoveredItem, setHoveredItem] = useState<number | null>(null)
   const { data: user, isLoading } = useUser()
   const isAuthenticated = !isLoading && !!user
-
 
   return (
     <nav
       aria-label="Main navigation"
-      className="fixed top-0 left-0 right-0 w-full z-50 bg-[#faf9f6] border-b border-black/10"
+      className="fixed left-0 right-0 top-0 z-50 w-full border-b border-black/10 bg-[#faf9f6]"
       style={{ fontFamily: 'var(--font-plus-jakarta-sans), sans-serif' }}
     >
-      {/* ─── Desktop 3-col grid ─── */}
-      <div className="hidden lg:grid lg:grid-cols-[1fr_1fr_1fr_auto] lg:items-stretch text-[14px] tracking-[0.18em] uppercase font-black">
-        <Link
-          href="/signup/influencer"
-          className="flex items-center justify-start border-r border-black/10 px-10 py-6 text-[#111111]"
+      <div className="hidden lg:flex items-center justify-between gap-5 px-6 py-4 xl:px-8">
+        <div
+          className="relative grid flex-1 grid-cols-3 rounded-[28px] border-[3px] border-black bg-white/88 p-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] backdrop-blur-sm"
+          onMouseLeave={() => setHoveredItem(null)}
         >
-          FOR INFLUENCERS
-        </Link>
-        <Link
-          href="/register"
-          className="flex items-center justify-center border-r border-black/10 px-10 py-6 text-[#111111]"
-        >
-          PLATFORM
-        </Link>
-        <Link
-          href="/signup/brand"
-          className="flex items-center justify-start border-r border-black/10 px-10 py-6 text-[#111111]"
-        >
-          FOR BRANDS
-        </Link>
-        <div className="flex items-center justify-center px-6 py-4">
+          <div
+            className="pointer-events-none absolute inset-y-2 left-2 w-[calc((100%-1rem)/3)] rounded-[20px] border-[3px] border-black bg-[#FFF4DB] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 ease-out"
+            style={{
+              opacity: hoveredItem === null ? 0 : 1,
+              transform: `translateX(${(hoveredItem ?? 0) * 100}%)`,
+            }}
+          />
+          {PRIMARY_LINKS.map((link, index) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              onMouseEnter={() => setHoveredItem(index)}
+              onFocus={() => setHoveredItem(index)}
+              className="relative z-10 flex min-h-[60px] items-center justify-center px-6 text-center text-[15px] font-black uppercase tracking-[0.18em] text-[#111111]"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </div>
+
+        <div className="flex shrink-0 items-center rounded-[28px] border-[3px] border-black bg-white/90 p-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
           <Link
-            href={isAuthenticated ? "/dashboard" : "/login"}
-            className="inline-flex min-w-[148px] items-center justify-center rounded-full bg-[#111111] px-8 py-3 text-[13px] leading-none text-white transition-colors hover:bg-[#2a2a2a]"
+            href={isAuthenticated ? '/dashboard' : '/login'}
+            className="inline-flex min-w-[168px] items-center justify-center rounded-[20px] bg-[#111111] px-8 py-4 text-[14px] font-black uppercase tracking-[0.18em] leading-none text-white transition-colors duration-200 hover:bg-[#2a2a2a]"
           >
-            {isAuthenticated ? "DASHBOARD" : "LOG IN"}
+            {isAuthenticated ? 'DASHBOARD' : 'LOG IN'}
           </Link>
         </div>
       </div>
 
-      {/* ─── Mobile single row ─── */}
-      <div className="flex lg:hidden items-center justify-between gap-3 px-4 py-4 sm:px-5">
-        <Link href="/" className="min-w-0 text-[11px] font-black tracking-[0.22em] uppercase text-[#111111] sm:text-xs sm:tracking-[0.25em]">
+      <div className="flex items-center justify-between gap-3 px-4 py-4 sm:px-5 lg:hidden">
+        <Link
+          href="/"
+          className="min-w-0 text-[11px] font-black uppercase tracking-[0.22em] text-[#111111] sm:text-xs sm:tracking-[0.25em]"
+        >
           KIWIKOO
         </Link>
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <Link
-            href={isAuthenticated ? "/dashboard" : "/login"}
-            className="bg-[#111111] text-white px-3 py-2.5 rounded-full text-[11px] font-bold hover:bg-[#ff8a73] transition-colors sm:px-5 sm:text-xs"
+            href={isAuthenticated ? '/dashboard' : '/login'}
+            className="rounded-full bg-[#111111] px-3 py-2.5 text-[11px] font-bold text-white transition-colors hover:bg-[#2a2a2a] sm:px-5 sm:text-xs"
           >
-            {isAuthenticated ? "DASHBOARD" : "LOG IN"}
+            {isAuthenticated ? 'DASHBOARD' : 'LOG IN'}
           </Link>
-          <button type="button"
+          <button
+            type="button"
             onClick={() => setOpen(!open)}
             aria-label="Toggle menu"
-            className="w-9 h-9 flex flex-col items-center justify-center gap-[5px] shrink-0"
+            className="flex h-9 w-9 shrink-0 flex-col items-center justify-center gap-[5px]"
           >
             <span
-              className="w-[22px] h-[2px] bg-[#111111] rounded-full transition-all duration-300 origin-center"
+              className="h-[2px] w-[22px] rounded-full bg-[#111111] transition-all duration-300 origin-center"
               style={{ transform: open ? 'rotate(45deg) translateY(7px)' : 'none' }}
             />
             <span
-              className="w-[22px] h-[2px] bg-[#111111] rounded-full transition-all duration-300"
+              className="h-[2px] w-[22px] rounded-full bg-[#111111] transition-all duration-300"
               style={{ opacity: open ? 0 : 1 }}
             />
             <span
-              className="w-[22px] h-[2px] bg-[#111111] rounded-full transition-all duration-300 origin-center"
+              className="h-[2px] w-[22px] rounded-full bg-[#111111] transition-all duration-300 origin-center"
               style={{ transform: open ? 'rotate(-45deg) translateY(-7px)' : 'none' }}
             />
           </button>
         </div>
       </div>
 
-      {/* ─── Mobile dropdown ─── */}
       <div
-        className="lg:hidden overflow-hidden transition-all duration-300"
+        className="overflow-hidden transition-all duration-300 lg:hidden"
         style={{ maxHeight: open ? 'calc(100vh - 72px)' : '0' }}
       >
-        <div className="max-h-[calc(100vh-72px)] overflow-y-auto bg-[#faf9f6] border-t border-black/10 text-[11px] tracking-widest uppercase font-bold">
-          <Link
-            href="/signup/influencer"
-            onClick={() => setOpen(false)}
-            className="flex items-center px-5 py-5 border-b border-black/10 text-[#111111]"
-          >
-            For Influencers
-          </Link>
-          <Link
-            href="/register"
-            onClick={() => setOpen(false)}
-            className="flex items-center px-5 py-5 border-b border-black/10 text-[#111111]"
-          >
-            Platform
-          </Link>
-          <Link
-            href="/signup/brand"
-            onClick={() => setOpen(false)}
-            className="flex items-center px-5 py-5 border-b border-black/10 text-[#111111]"
-          >
-            For Brands
-          </Link>
-          <div className="px-5 py-5">
+        <div className="max-h-[calc(100vh-72px)] overflow-y-auto border-t border-black/10 bg-[#faf9f6] text-[11px] font-bold uppercase tracking-widest">
+          {PRIMARY_LINKS.map((link, index) => (
             <Link
-              href={isAuthenticated ? "/dashboard" : "/login"}
+              key={link.href}
+              href={link.href}
+              onClick={() => setOpen(false)}
+              className={`flex items-center px-5 py-5 text-[#111111] ${index < PRIMARY_LINKS.length - 1 ? 'border-b border-black/10' : ''}`}
+            >
+              {link.label}
+            </Link>
+          ))}
+          <div className="border-t border-black/10 px-5 py-5">
+            <Link
+              href={isAuthenticated ? '/dashboard' : '/login'}
               onClick={() => setOpen(false)}
               className="flex w-full items-center justify-center rounded-full bg-[#111111] px-5 py-3 text-center text-xs text-white"
             >
-              {isAuthenticated ? "Dashboard" : "Log In"}
+              {isAuthenticated ? 'Dashboard' : 'Log In'}
             </Link>
           </div>
         </div>
