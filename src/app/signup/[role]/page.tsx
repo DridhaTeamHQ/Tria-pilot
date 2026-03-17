@@ -133,7 +133,7 @@ export default function SignupPage() {
         title: 'Welcome,',
         subtitle: 'sign up to continue',
         sideTitle: 'Build your creator front row',
-        sideAccent: 'lookbook access',
+        sideAccent: 'try-on access',
         sideBody: 'Create a profile that feels premium from the first click, then move straight into products, try-ons, and collaborations.',
         sideNote: 'Sharper creator setup. Less friction. Faster runway.',
       }
@@ -188,9 +188,6 @@ export default function SignupPage() {
                   className="absolute bottom-6 right-8 h-24 w-24 rounded-[28px] border-[3px] border-black/20 rotate-12"
                   style={{ backgroundColor: `${accentColor}1F` }}
                 />
-                <div className="absolute left-8 top-8 h-[2px] w-24 bg-black/12" />
-                <div className="absolute left-8 top-12 h-[2px] w-16 bg-black/10" />
-
                 <div className="relative z-10">
                 <h1 className="max-w-[520px] text-[clamp(2.5rem,4vw,4rem)] font-black uppercase leading-[0.95] text-black">
                   {copy.sideTitle}
