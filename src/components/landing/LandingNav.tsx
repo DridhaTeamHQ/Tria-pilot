@@ -22,13 +22,13 @@ export default function LandingNav() {
       className="fixed left-0 right-0 top-0 z-50 w-full border-b border-black/10 bg-[#faf9f6]"
       style={{ fontFamily: 'var(--font-plus-jakarta-sans), sans-serif' }}
     >
-      <div className="hidden lg:flex items-center justify-between gap-5 px-6 py-4 xl:px-8">
+      <div className="mx-auto hidden max-w-7xl items-center justify-between gap-4 px-5 py-3 xl:px-6 lg:flex">
         <div
-          className="relative grid flex-1 grid-cols-3 rounded-[28px] border-[3px] border-black bg-white/88 p-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] backdrop-blur-sm"
+          className="relative grid flex-1 grid-cols-3 rounded-[22px] border-[3px] border-black bg-white/92 p-1.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] backdrop-blur-sm"
           onMouseLeave={() => setHoveredItem(null)}
         >
           <div
-            className="pointer-events-none absolute inset-y-2 left-2 w-[calc((100%-1rem)/3)] rounded-[20px] border-[3px] border-black bg-[#FFF4DB] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 ease-out"
+            className="pointer-events-none absolute inset-y-1.5 left-1.5 w-[calc((100%-0.75rem)/3)] rounded-[16px] border-[2px] border-black bg-[#FFF4DB] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 ease-out"
             style={{
               opacity: hoveredItem === null ? 0 : 1,
               transform: `translateX(${(hoveredItem ?? 0) * 100}%)`,
@@ -40,17 +40,17 @@ export default function LandingNav() {
               href={link.href}
               onMouseEnter={() => setHoveredItem(index)}
               onFocus={() => setHoveredItem(index)}
-              className="relative z-10 flex min-h-[60px] items-center justify-center px-6 text-center text-[15px] font-black uppercase tracking-[0.18em] text-[#111111]"
+              className="relative z-10 flex min-h-[48px] items-center justify-center px-4 text-center text-[12px] font-black uppercase tracking-[0.16em] text-[#111111] xl:text-[13px]"
             >
               {link.label}
             </Link>
           ))}
         </div>
 
-        <div className="flex shrink-0 items-center rounded-[28px] border-[3px] border-black bg-white/90 p-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+        <div className="flex shrink-0 items-center rounded-[22px] border-[3px] border-black bg-white/92 p-1.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
           <Link
             href={isAuthenticated ? '/dashboard' : '/login'}
-            className="inline-flex min-w-[168px] items-center justify-center rounded-[20px] bg-[#111111] px-8 py-4 text-[14px] font-black uppercase tracking-[0.18em] leading-none text-white transition-colors duration-200 hover:bg-[#2a2a2a]"
+            className="inline-flex min-w-[138px] items-center justify-center rounded-[16px] bg-[#111111] px-6 py-3 text-[12px] font-black uppercase tracking-[0.16em] leading-none text-white transition-colors duration-200 hover:bg-[#2a2a2a] xl:min-w-[150px]"
           >
             {isAuthenticated ? 'DASHBOARD' : 'LOG IN'}
           </Link>
