@@ -9,7 +9,6 @@ import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react'
 import { createClient } from '@/lib/auth-client'
 import { getPublicSiteUrlClient } from '@/lib/site-url'
 import { isSyntheticEmail } from '@/lib/auth-username'
-import { DecorativeShapes } from '@/components/brutal/onboarding/DecorativeShapes'
 
 export default function LoginPage() {
   return (
@@ -209,9 +208,8 @@ function LoginContent() {
   return (
     <div className="relative min-h-[100dvh] w-full overflow-x-hidden bg-[#F9F8F4]">
       <div className={`absolute inset-0 ${patternSurfaceClass}`} />
-      <div className="absolute inset-0 opacity-50 [background-image:linear-gradient(rgba(0,0,0,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.05)_1px,transparent_1px)] [background-size:34px_34px]" />
+      <div className="absolute inset-0 opacity-35 [background-image:linear-gradient(rgba(0,0,0,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.05)_1px,transparent_1px)] [background-size:34px_34px]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_20%,rgba(255,217,61,0.18),transparent_22%),radial-gradient(circle_at_86%_18%,rgba(255,140,105,0.14),transparent_18%),radial-gradient(circle_at_70%_80%,rgba(180,240,86,0.14),transparent_20%)]" />
-      <DecorativeShapes />
 
       <div className="relative z-10 lg:hidden">
         <div className="flex min-h-[100dvh] items-center justify-center px-4 py-8">
@@ -249,7 +247,7 @@ function LoginContent() {
         >
           <motion.div
             layout
-            className="relative hidden lg:block lg:w-[50%] xl:w-[54%]"
+            className="relative hidden overflow-hidden lg:block lg:w-[50%] xl:w-[54%]"
           >
             <motion.div
               key={userType}
@@ -258,12 +256,19 @@ function LoginContent() {
               transition={{ duration: 0.5 }}
               className="absolute inset-0"
             />
-            <div className="absolute left-[2%] top-[6%] h-[72%] w-[78%] rounded-[42px] border border-black/6 bg-white/22 blur-[1px]" />
-            <div className="absolute right-[4%] top-[10%] h-[48%] w-[34%] rounded-[36px] border border-black/5 bg-white/18" />
-            <div className="absolute left-[12%] top-[14%] h-56 w-56 rounded-full border-[5px] border-black/70 bg-[radial-gradient(circle,rgba(255,255,255,0.28)_0%,rgba(255,255,255,0.10)_75%,transparent_100%)]" />
-            <div className="absolute left-[17%] top-[22%] h-14 w-14 rounded-full border-[4px] border-black bg-[#FF8C69]" />
-            <div className="absolute bottom-[10%] left-[18%] h-24 w-24 rounded-[28px] border-[4px] border-black/75 bg-[#B4F056]/45" />
-            <div className="absolute bottom-[6%] right-[10%] h-44 w-32 rotate-[10deg] border-[4px] border-black/75 bg-[#FFD93D]/45" />
+            <div className="absolute left-[4%] top-[8%] h-[68%] w-[72%] rounded-[42px] border border-black/6 bg-white/16 blur-[1px]" />
+            <div className="absolute right-[8%] top-[8%] h-[42%] w-[28%] rounded-[36px] border border-black/5 bg-white/14" />
+            <div className="absolute left-[10%] top-[16%] h-[clamp(10rem,18vw,15rem)] w-[clamp(10rem,18vw,15rem)] rounded-full border-[5px] border-black/65 bg-[radial-gradient(circle,rgba(255,255,255,0.34)_0%,rgba(255,255,255,0.12)_72%,transparent_100%)]" />
+            <div className="absolute left-[15%] top-[24%] h-[clamp(2.75rem,4.2vw,3.8rem)] w-[clamp(2.75rem,4.2vw,3.8rem)] rounded-full border-[4px] border-black bg-[#FF8C69]" />
+            <div className="absolute bottom-[14%] left-[12%] h-[clamp(4.5rem,7vw,6rem)] w-[clamp(4.5rem,7vw,6rem)] rounded-[28px] border-[4px] border-black/70 bg-[#B4F056]/38" />
+            <div className="absolute bottom-[4%] left-[34%] h-6 w-6 rotate-45 border-[3px] border-black/80 bg-[#FFD93D]/70" />
+            <div className="absolute bottom-[8%] right-[10%] h-[clamp(10rem,18vw,14rem)] w-[clamp(7rem,12vw,9rem)] rotate-[8deg] border-[4px] border-black/70 bg-[#FFD93D]/40" />
+            <div className="absolute right-[6%] top-[4%] h-16 w-16 text-[#FF8C69]">
+              <svg viewBox="0 0 24 24" fill="currentColor" stroke="black" strokeWidth="0.8">
+                <path d="M12 0L14.5 9L24 12L14.5 15L12 24L9.5 15L0 12L9.5 9L12 0Z" />
+              </svg>
+            </div>
+            <div className="absolute left-[2%] top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-black/75" />
             <div className="relative flex min-h-full items-center px-8 py-8 xl:px-12">
               <div className="max-w-[560px] rounded-[28px] border-[3px] border-black bg-[#ECE8E1]/92 p-6 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] backdrop-blur-sm xl:p-7">
                 <h1 className="text-[clamp(2.3rem,3.8vw,3.7rem)] font-black uppercase leading-[0.94] text-black">

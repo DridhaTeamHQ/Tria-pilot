@@ -64,7 +64,7 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#F9F8F4] border-b-[3px] border-black">
       <div className="w-full max-w-[2000px] mx-auto px-3 sm:px-5 lg:px-6 xl:px-8">
-        <div className="grid h-14 grid-cols-[auto_1fr_auto] items-center gap-2 md:h-16 md:gap-4">
+        <div className="grid h-14 grid-cols-[auto_1fr_auto] items-center gap-2 lg:h-16 lg:gap-4">
           <Link
             href="/brand/dashboard"
             className="text-[2rem] md:text-[1.9rem] lg:text-[2.1rem] font-black tracking-tight text-black hover:text-[#B4F056] transition-colors shrink-0 leading-none"
@@ -72,7 +72,7 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
             Kiwikoo
           </Link>
 
-          <nav className="hidden md:flex min-w-0 items-center justify-center gap-1 lg:gap-1.5 px-2">
+          <nav className="hidden lg:flex min-w-0 items-center justify-center gap-1 lg:gap-1.5 px-2">
             {navItems.map((item) => {
               const Icon = item.icon
               const active = isActive(item.href)
@@ -93,7 +93,7 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
             })}
           </nav>
 
-          <div className="hidden md:flex items-center justify-end gap-2 shrink-0">
+          <div className="hidden lg:flex items-center justify-end gap-2 shrink-0">
             <div className="w-9 h-9 rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black text-sm">
               {brandName?.charAt(0)?.toUpperCase() || 'B'}
             </div>
@@ -106,7 +106,7 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
 
           <button
             type="button"
-            className="md:hidden p-2 rounded-xl border-2 border-black bg-white hover:bg-gray-50 transition-colors"
+            className="lg:hidden p-2 rounded-xl border-2 border-black bg-white hover:bg-gray-50 transition-colors"
             onClick={() => setMobileOpen((v) => !v)}
             aria-label="Toggle menu"
           >
@@ -116,7 +116,7 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
       </div>
 
       {mobileOpen && (
-        <div className="md:hidden bg-white border-t-2 border-black">
+        <div className="lg:hidden bg-white border-t-2 border-black">
           <div className="container mx-auto px-4 py-3 space-y-2 max-h-[calc(100dvh-3.5rem)] overflow-y-auto">
             {navItems.map((item) => {
               const Icon = item.icon
