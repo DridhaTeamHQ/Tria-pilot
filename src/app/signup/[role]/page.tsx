@@ -135,6 +135,7 @@ export default function SignupPage() {
         sideTitle: 'Build your creator front row',
         sideAccent: 'lookbook access',
         sideBody: 'Create a profile that feels premium from the first click, then move straight into products, try-ons, and collaborations.',
+        sideNote: 'Sharper creator setup. Less friction. Faster runway.',
       }
     : {
         eyebrow: 'Brand Sign Up',
@@ -143,6 +144,7 @@ export default function SignupPage() {
         sideTitle: 'Open your campaign command center',
         sideAccent: 'brand access',
         sideBody: 'Set up products, discover creators, and keep every launch in one place with a bold Kiwikoo workflow.',
+        sideNote: 'Products, creators, campaigns, and assets in one clean flow.',
       }
 
   return (
@@ -176,16 +178,39 @@ export default function SignupPage() {
         <div className="grid w-full grid-cols-[1.04fr_0.96fr] gap-8 xl:gap-10">
           <div className="relative min-h-[calc(100dvh-4rem)]">
             <div className="relative flex min-h-[calc(100dvh-4rem)] items-end p-6 xl:p-8">
-              <div className="max-w-[560px] rounded-[34px] border-[4px] border-black bg-[#ECE8E1]/90 p-8 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] backdrop-blur-[2px] xl:p-10">
+              <div className="relative max-w-[580px] overflow-hidden rounded-[34px] border-[4px] border-black bg-[#ECE8E1]/88 p-8 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] backdrop-blur-[2px] xl:p-10">
+                <div className="absolute inset-0 bg-[linear-gradient(145deg,rgba(255,255,255,0.16)_0%,rgba(255,255,255,0.04)_32%,rgba(255,255,255,0)_100%)]" />
+                <div
+                  className="absolute -right-10 -top-8 h-40 w-40 rounded-full blur-3xl"
+                  style={{ backgroundColor: `${accentColor}40` }}
+                />
+                <div
+                  className="absolute bottom-6 right-8 h-24 w-24 rounded-[28px] border-[3px] border-black/20 rotate-12"
+                  style={{ backgroundColor: `${accentColor}1F` }}
+                />
+                <div className="absolute left-8 top-8 h-[2px] w-24 bg-black/12" />
+                <div className="absolute left-8 top-12 h-[2px] w-16 bg-black/10" />
+
+                <div className="relative z-10">
                 <h1 className="max-w-[520px] text-[clamp(2.5rem,4vw,4rem)] font-black uppercase leading-[0.95] text-black">
                   {copy.sideTitle}
                 </h1>
-                <p className="mt-3 text-[clamp(1.4rem,2vw,2rem)] font-black italic leading-none" style={{ color: accentColor }}>
+                <p
+                  className="mt-4 inline-block rounded-full border-[2px] border-black/15 px-3 py-1 text-[clamp(1.05rem,1.5vw,1.25rem)] font-black italic leading-none"
+                  style={{
+                    color: isInfluencer ? '#E86E4E' : '#5C8F1A',
+                    backgroundColor: isInfluencer ? 'rgba(255,140,105,0.14)' : 'rgba(180,240,86,0.18)',
+                  }}
+                >
                   {copy.sideAccent}
                 </p>
                 <p className="mt-5 max-w-[520px] text-lg font-semibold leading-relaxed text-black/72">
                   {copy.sideBody}
                 </p>
+                <p className="mt-7 max-w-[460px] text-sm font-black uppercase tracking-[0.2em] text-black/42">
+                  {copy.sideNote}
+                </p>
+                </div>
               </div>
             </div>
           </div>
