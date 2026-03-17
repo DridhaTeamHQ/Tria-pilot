@@ -335,7 +335,8 @@ async function analyzeWithGemini(
     },
   })
 
-  const text = typeof response.text === 'function' ? response.text() : (response as any).text || ''
+  const responseText = (response as { text?: string }).text
+  const text = typeof responseText === 'string' ? responseText : ''
   const jsonMatch = text.match(/\{[\s\S]*\}/)
   if (!jsonMatch) {
     console.error('🧬 Gemini did not return valid JSON for Soul ID extraction')

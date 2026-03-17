@@ -560,7 +560,7 @@ export async function POST(request: Request) {
     // ═══════════════════════════════════════════════════════
     let generatedImage = ''
     let compositionPrompt = ''
-    let promptUsed = input.imageModel || 'gpt'
+    let promptUsed: string = input.imageModel || 'gpt'
 
     // Auto face-lock: always lock when influencer image is present
     const shouldLockFace = Boolean(input.influencerImage)
