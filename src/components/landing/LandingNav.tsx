@@ -17,29 +17,29 @@ export default function LandingNav() {
       style={{ fontFamily: 'var(--font-plus-jakarta-sans), sans-serif' }}
     >
       {/* ─── Desktop 3-col grid ─── */}
-      <div className="hidden lg:grid lg:grid-cols-3 lg:items-stretch text-[14px] tracking-[0.18em] uppercase font-black">
+      <div className="hidden lg:grid lg:grid-cols-[1fr_1fr_1fr_auto] lg:items-stretch text-[14px] tracking-[0.18em] uppercase font-black">
         <Link
           href="/signup/influencer"
-          className="flex items-center border-r border-black/10 px-8 py-6 text-[#111111]"
+          className="flex items-center justify-start border-r border-black/10 px-10 py-6 text-[#111111]"
         >
           FOR INFLUENCERS
         </Link>
         <Link
           href="/register"
-          className="flex items-center justify-center border-r border-black/10 px-8 py-6 text-[#111111]"
+          className="flex items-center justify-center border-r border-black/10 px-10 py-6 text-[#111111]"
         >
           PLATFORM
         </Link>
-        <div className="flex items-center justify-between px-8 py-4">
-          <Link
-            href="/signup/brand"
-            className="text-[#111111]"
-          >
-            FOR BRANDS
-          </Link>
+        <Link
+          href="/signup/brand"
+          className="flex items-center justify-start border-r border-black/10 px-10 py-6 text-[#111111]"
+        >
+          FOR BRANDS
+        </Link>
+        <div className="flex items-center justify-center px-6 py-4">
           <Link
             href={isAuthenticated ? "/dashboard" : "/login"}
-            className="rounded-full bg-[#111111] px-6 py-3 text-[13px] leading-none text-white transition-colors hover:bg-[#ff8a73]"
+            className="inline-flex min-w-[148px] items-center justify-center rounded-full bg-[#111111] px-8 py-3 text-[13px] leading-none text-white transition-colors hover:bg-[#2a2a2a]"
           >
             {isAuthenticated ? "DASHBOARD" : "LOG IN"}
           </Link>
@@ -88,24 +88,33 @@ export default function LandingNav() {
           <Link
             href="/signup/influencer"
             onClick={() => setOpen(false)}
-            className="flex items-center px-5 py-5 border-b border-black/10 hover:text-[#ff8a73] transition-colors text-[#111111]"
+            className="flex items-center px-5 py-5 border-b border-black/10 text-[#111111]"
           >
             For Influencers
           </Link>
           <Link
             href="/register"
             onClick={() => setOpen(false)}
-            className="flex items-center px-5 py-5 border-b border-black/10 hover:text-[#caff33] transition-colors text-[#111111]"
+            className="flex items-center px-5 py-5 border-b border-black/10 text-[#111111]"
           >
             Platform
           </Link>
           <Link
             href="/signup/brand"
             onClick={() => setOpen(false)}
-            className="flex items-center px-5 py-5 hover:text-[#d8b4fe] transition-colors text-[#111111]"
+            className="flex items-center px-5 py-5 border-b border-black/10 text-[#111111]"
           >
             For Brands
           </Link>
+          <div className="px-5 py-5">
+            <Link
+              href={isAuthenticated ? "/dashboard" : "/login"}
+              onClick={() => setOpen(false)}
+              className="flex w-full items-center justify-center rounded-full bg-[#111111] px-5 py-3 text-center text-xs text-white"
+            >
+              {isAuthenticated ? "Dashboard" : "Log In"}
+            </Link>
+          </div>
         </div>
       </div>
     </nav>
