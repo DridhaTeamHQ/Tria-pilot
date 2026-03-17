@@ -6,106 +6,208 @@ import { tryAcquireInFlight } from '@/lib/traffic-guard'
 import { generateIntelligentAdComposition } from '@/lib/gemini'
 import { GeminiRateLimitError } from '@/lib/gemini/executor'
 import { saveUpload } from '@/lib/storage'
-import {
-  type AdGenerationInput,
-  type AdPresetId,
-  type AspectRatio,
-  type CharacterType,
-  type Platform,
-  type CtaType,
-  resolveStylePackForPreset,
-  validateAdInput,
-} from '@/lib/ads/ad-styles'
-import { buildAdPrompt } from '@/lib/ads/ad-prompt-builder'
+import { getOpenAI } from '@/lib/openai'
 
 export const maxDuration = 180
 
-const curatedPresets = [
+// ═══════════════════════════════════════════════════════════════
+// PRODUCT-SPECIFIC VISUAL VARIANTS
+// Each variant has a distinct purpose and composition direction.
+// Unlike the ad pipeline, these are concise & product-focused.
+// ═══════════════════════════════════════════════════════════════
+
+interface ProductVariant {
+  id: string
+  label: string
+  buildPrompt: (analysis: ProductAnalysis, meta: ProductMeta) => string
+}
+
+interface ProductAnalysis {
+  garmentType: string
+  fabric: string
+  color: string
+  pattern: string
+  silhouette: string
+  keyDetails: string[]
+  category: string
+}
+
+interface ProductMeta {
+  name?: string
+  category?: string
+  description?: string
+  audience?: string
+  tags?: string[]
+  price?: number
+}
+
+const ANTI_HALLUCINATION = `CRITICAL: Do NOT add any text, letters, numbers, logos, watermarks, or typography. Do NOT invent brand marks, extra accessories, or additional products not in the source image. Preserve the EXACT product: same color, material, trim, pattern, and shape.`
+
+const PRODUCT_VARIANTS: ProductVariant[] = [
   {
-    preset: 'PERF_BEST_QUALITY' as AdPresetId,
-    label: 'Studio Hero',
-    extraDirection:
-      'VARIANT GOAL: Make this a clean ecommerce packshot. Show only the product with no human model. Use a ghost mannequin, hanger, flat-lay, or invisible support if needed. Place it on an off-white seamless background with soft premium shadows and accurate product color.',
+    id: 'studio_packshot',
+    label: 'Studio Packshot',
+    buildPrompt: (analysis, meta) => {
+      const positioning = meta.price && meta.price > 2000 ? 'luxury' : 'premium'
+      return `Create a clean, ${positioning} ecommerce product photograph of this ${analysis.garmentType}.
+
+COMPOSITION: Product displayed on a ghost mannequin, invisible support, or flat-lay arrangement on a seamless off-white/light gray background. No human model. The product floats or stands naturally as if photographed in a professional product studio.
+
+PRODUCT DETAILS TO PRESERVE: ${analysis.color} ${analysis.fabric} ${analysis.garmentType}. ${analysis.pattern !== 'solid' ? `Pattern: ${analysis.pattern}.` : ''} Silhouette: ${analysis.silhouette}. ${analysis.keyDetails.length > 0 ? `Key details: ${analysis.keyDetails.join(', ')}.` : ''}
+
+LIGHTING: Soft studio lighting from 45° front-left with fill. Premium product shadows — natural contact shadow on the surface, soft ambient occlusion. Fabric texture and material sheen fully visible. No harsh highlights.
+
+CAMERA: Straight-on or slight 15° angle. Product fills 70–80% of frame. Tack-sharp focus across entire product. Clean, distraction-free composition.${meta.name ? `\nThis is "${meta.name}".` : ''}
+
+${ANTI_HALLUCINATION}`
+    },
   },
   {
-    preset: 'PRODUCT_LIFESTYLE' as AdPresetId,
+    id: 'lifestyle_context',
     label: 'Lifestyle Scene',
-    extraDirection:
-      'VARIANT GOAL: Make this a lifestyle image in a believable real-world setting. Use a human model only for this variant. Show more environment and storytelling than the other variants, but keep styling minimal so the product stays dominant.',
+    buildPrompt: (analysis, meta) => {
+      const audienceContext = meta.audience
+        ? `Target audience: ${meta.audience}. `
+        : ''
+      const seasonTags = meta.tags?.filter(t =>
+        /summer|winter|spring|autumn|fall|monsoon|rain|festive|casual|formal|party|office|beach|outdoor/i.test(t)
+      )
+      const seasonHint = seasonTags && seasonTags.length > 0
+        ? `Setting should feel ${seasonTags.join(', ')}.`
+        : ''
+
+      return `Create a lifestyle product photograph showing this ${analysis.garmentType} being worn by a model in a natural, aspirational real-world setting.
+
+SCENE: Place a single model wearing this exact product in a curated but believable environment — a sunlit café, boutique interior, city sidewalk, or styled room. The setting should tell a story about the lifestyle this product belongs to. ${audienceContext}${seasonHint}
+
+PRODUCT TO PRESERVE: ${analysis.color} ${analysis.fabric} ${analysis.garmentType}. ${analysis.pattern !== 'solid' ? `Pattern: ${analysis.pattern}.` : ''} Silhouette: ${analysis.silhouette}. ${analysis.keyDetails.length > 0 ? `Details: ${analysis.keyDetails.join(', ')}.` : ''}
+
+MODEL: One model, natural relaxed pose, genuine expression. Hands doing something natural (holding coffee, adjusting sleeve, light walk). Product is the hero — model is secondary. Keep styling minimal so the product dominates.
+
+LIGHTING: Natural daylight or warm interior light. Soft directional key, realistic shadows. Skin and fabric textures fully visible. No artificial beauty-filter smoothing.
+
+CAMERA: 50mm, f/2.8–4. Three-quarter or full body. Product and key details tack-sharp. Background readable but secondary.${meta.name ? `\nThis is "${meta.name}".` : ''}
+
+${ANTI_HALLUCINATION}`
+    },
   },
   {
-    preset: 'CINEMATIC_STUDIO_EDITORIAL' as AdPresetId,
+    id: 'editorial_spotlight',
     label: 'Editorial Spotlight',
-    extraDirection:
-      'VARIANT GOAL: Make this a distinctive fashion showcase image with the product being worn from a clearly different angle than the lifestyle shot. Use a three-quarter side angle, over-the-shoulder angle, or dynamic walking turn so the garment is still readable but the perspective feels fresh. Give it a unique editorial style with stronger art direction, sculpted lighting, premium shadows, and a fashion-campaign mood. Avoid repeating the same pose, framing, or front-facing composition as the lifestyle image.',
+    buildPrompt: (analysis, meta) => {
+      return `Create a dramatic editorial fashion photograph showcasing this ${analysis.garmentType} as the hero subject.
+
+COMPOSITION: Product worn by a model with a distinctly different angle and mood than a standard catalog shot. Choose ONE: overhead flat angle looking down, dramatic side-profile silhouette, tight crop focusing on fabric texture and construction details, or three-quarter turn with strong directional light creating sculptural shadows. The image should feel like it belongs in a fashion magazine spread.
+
+PRODUCT TO PRESERVE: ${analysis.color} ${analysis.fabric} ${analysis.garmentType}. ${analysis.pattern !== 'solid' ? `Pattern: ${analysis.pattern}.` : ''} Silhouette: ${analysis.silhouette}. ${analysis.keyDetails.length > 0 ? `Details: ${analysis.keyDetails.join(', ')}.` : ''}
+
+LIGHTING: Dramatic, sculpted studio lighting. Strong key light with deep shadows for dimensionality. Rim light for edge separation. The lighting should reveal material quality — fabric texture, stitching, hardware, sheen. High contrast, fashion-campaign mood.
+
+MODEL: Confident editorial pose with attitude. Strong body language. Expression: editorial intensity — not a catalog smile. The model serves the garment, not the other way around.
+
+CAMERA: 85mm, f/2–2.8. Tight or three-quarter framing. Cinematic composition with strong visual hierarchy. 8K detail on product.${meta.name ? `\nThis is "${meta.name}".` : ''}
+
+${ANTI_HALLUCINATION}`
+    },
   },
-] as const
+]
+
+// ═══════════════════════════════════════════════════════════════
+// GPT-4o VISION: Adaptive Product Analysis
+// Extracts product attributes to feed into prompt construction.
+// ═══════════════════════════════════════════════════════════════
+
+async function analyzeProductImage(
+  imageBase64: string,
+  meta: ProductMeta
+): Promise<ProductAnalysis> {
+  const openai = getOpenAI()
+
+  const metaHints = [meta.name, meta.category, meta.description]
+    .filter(Boolean)
+    .join(' | ')
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a fashion product analyst. Analyze the product image with precision. Return JSON only.`,
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: `Analyze this product image for ecommerce visual generation.${metaHints ? ` Context: ${metaHints}` : ''}
+
+Return JSON:
+{
+  "garmentType": "specific type (e.g. oversized linen shirt, cropped denim jacket, pleated midi skirt)",
+  "fabric": "material and texture (e.g. soft brushed cotton, smooth silk charmeuse, raw selvedge denim)",
+  "color": "exact color description (e.g. dusty rose pink, washed indigo blue, charcoal heather gray)",
+  "pattern": "solid or describe pattern (e.g. micro houndstooth, ditsy floral, color-block navy/white)",
+  "silhouette": "shape when worn (e.g. relaxed oversized fit, tailored slim fit, A-line flared)",
+  "keyDetails": ["array of visible construction/design details like buttons, zippers, embroidery, pockets, collar style, cuffs, stitching"],
+  "category": "broad category (tops, bottoms, dresses, outerwear, footwear, accessories, bags)"
+}`,
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: imageBase64.startsWith('data:') ? imageBase64 : `data:image/jpeg;base64,${imageBase64}`,
+                detail: 'high',
+              },
+            },
+          ],
+        },
+      ],
+      response_format: { type: 'json_object' },
+      max_tokens: 500,
+      temperature: 0.15,
+    })
+
+    const content = response.choices[0]?.message?.content
+    if (!content) throw new Error('Empty analysis response')
+
+    const parsed = JSON.parse(content)
+    return {
+      garmentType: parsed.garmentType || 'fashion product',
+      fabric: parsed.fabric || 'standard fabric',
+      color: parsed.color || 'as shown',
+      pattern: parsed.pattern || 'solid',
+      silhouette: parsed.silhouette || 'standard fit',
+      keyDetails: Array.isArray(parsed.keyDetails) ? parsed.keyDetails : [],
+      category: parsed.category || meta.category || 'clothing',
+    }
+  } catch (error) {
+    console.warn('[ProductVisuals] GPT-4o analysis failed, using defaults:', error)
+    return {
+      garmentType: meta.category || 'fashion product',
+      fabric: 'standard fabric',
+      color: 'as shown in image',
+      pattern: 'as shown',
+      silhouette: 'standard fit',
+      keyDetails: [],
+      category: meta.category || 'clothing',
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REQUEST SCHEMA & HANDLER
+// ═══════════════════════════════════════════════════════════════
 
 const requestSchema = z.object({
   productImage: z.string().min(1).max(15_000_000),
   productName: z.string().trim().max(120).optional(),
   category: z.string().trim().max(80).optional(),
   description: z.string().trim().max(600).optional(),
+  audience: z.string().trim().max(80).optional(),
+  tags: z.array(z.string()).optional(),
+  price: z.number().optional(),
 })
-
-function buildQualityPreamble() {
-  return `Create one single, production-grade product image for an ecommerce-ready fashion catalog.
-The result must be photoreal, premium, and cleanly composed with sharp product readability.
-Preserve the exact product shape, material, trim, pattern, and color from the uploaded image.
-Improve background, lighting, reflections, and presentation while keeping the product itself faithful.
-Do NOT invent logos, typography, labels, extra accessories, or additional products unless physically implied by the source.
-The composition should feel polished, premium, and conversion-ready for a brand storefront.
-Return exactly one final product image. CRITICAL: Do NOT include any text, letters, numbers, logos, watermarks, UI, or typography anywhere in the image.
-
-`
-}
-
-async function generateVisual({
-  preset,
-  productImage,
-  productName,
-  category,
-  description,
-  variationIndex,
-  extraDirection,
-}: {
-  preset: AdPresetId
-  productImage: string
-  productName?: string
-  category?: string
-  description?: string
-  variationIndex: number
-  extraDirection: string
-}) {
-  const generationInput: AdGenerationInput = {
-    preset,
-    variationIndex,
-    stylePack: resolveStylePackForPreset(preset),
-    productImage,
-    strictRealism: true,
-    characterType: 'none' as CharacterType,
-    aspectRatio: '1:1' as AspectRatio,
-    ctaType: 'shop_now' as CtaType,
-    platforms: ['instagram'] as Platform[],
-    headline: productName,
-  }
-
-  const validation = validateAdInput(generationInput)
-  if (!validation.valid) {
-    throw new Error(validation.error || 'Invalid generation input')
-  }
-
-  const { prompt: rawPrompt } = await buildAdPrompt(generationInput, productImage, null)
-  const productContext = [productName, category, description].filter(Boolean).join(' | ')
-  const compositionPrompt = `${buildQualityPreamble()}${
-    productContext ? `PRODUCT CONTEXT: ${productContext}\n\n` : ''
-  }${extraDirection}\n\n${rawPrompt}`
-
-  return await generateIntelligentAdComposition(productImage, undefined, compositionPrompt, {
-    lockFaceIdentity: false,
-    aspectRatio: '1:1',
-  })
-}
 
 export async function POST(request: Request) {
   let inFlight: { allowed: boolean; retryAfterSeconds?: number; release?: () => Promise<void> } | null = null
@@ -153,41 +255,69 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => null)
     const input = requestSchema.parse(body)
 
+    const meta: ProductMeta = {
+      name: input.productName,
+      category: input.category,
+      description: input.description,
+      audience: input.audience,
+      tags: input.tags,
+      price: input.price,
+    }
+
+    // ─── Step 1: Adaptive product analysis via GPT-4o vision ───
+    console.log('[ProductVisuals] Analyzing product with GPT-4o vision...')
+    const analysis = await analyzeProductImage(input.productImage, meta)
+    console.log('[ProductVisuals] Analysis:', JSON.stringify(analysis, null, 2))
+
+    // ─── Step 2: Generate all 3 variants in PARALLEL ───
+    console.log('[ProductVisuals] Generating 3 variants in parallel...')
+
+    const results = await Promise.allSettled(
+      PRODUCT_VARIANTS.map(async (variant) => {
+        const prompt = variant.buildPrompt(analysis, meta)
+        console.log(`[ProductVisuals] ${variant.label} prompt length: ${prompt.length} chars`)
+
+        const generatedImage = await generateIntelligentAdComposition(
+          input.productImage,
+          undefined,
+          prompt,
+          {
+            lockFaceIdentity: false,
+            aspectRatio: '1:1',
+          }
+        )
+
+        const imagePath = `${user.id}/product-visuals/${Date.now()}-${variant.id}.jpg`
+        const imageUrl = await saveUpload(generatedImage, imagePath, 'products', 'image/jpeg')
+
+        return {
+          id: variant.id,
+          label: variant.label,
+          preset: variant.id,
+          imageUrl,
+          imageBase64: generatedImage,
+        }
+      })
+    )
+
+    // ─── Step 3: Collect results ───
     const visuals: Array<{
       id: string
       label: string
-      preset: AdPresetId
+      preset: string
       imageUrl: string
       imageBase64: string
     }> = []
 
     const failures: string[] = []
 
-    for (const [index, config] of curatedPresets.entries()) {
-      try {
-        const generatedImage = await generateVisual({
-          preset: config.preset,
-          productImage: input.productImage,
-          productName: input.productName,
-          category: input.category,
-          description: input.description,
-          variationIndex: index,
-          extraDirection: config.extraDirection,
-        })
-
-        const imagePath = `${user.id}/product-visuals/${Date.now()}-${index + 1}.jpg`
-        const imageUrl = await saveUpload(generatedImage, imagePath, 'products', 'image/jpeg')
-
-        visuals.push({
-          id: `${config.preset}-${index + 1}`,
-          label: config.label,
-          preset: config.preset,
-          imageUrl,
-          imageBase64: generatedImage,
-        })
-      } catch (error) {
-        console.error(`[ProductVisuals] Failed for preset ${config.preset}:`, error)
-        failures.push(config.label)
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i]
+      if (result.status === 'fulfilled') {
+        visuals.push(result.value)
+      } else {
+        console.error(`[ProductVisuals] Failed for ${PRODUCT_VARIANTS[i].label}:`, result.reason)
+        failures.push(PRODUCT_VARIANTS[i].label)
       }
     }
 

@@ -12,11 +12,15 @@ import { createClient, createServiceClient } from '@/lib/auth'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { tryAcquireInFlight } from '@/lib/traffic-guard'
 import { rateAdCreative, generateAdCopy } from '@/lib/openai'
+import OpenAI from 'openai'
+import { getOpenAIKey } from '@/lib/config/api-keys'
 import { generateIntelligentAdComposition } from '@/lib/gemini'
 import { GeminiRateLimitError } from '@/lib/gemini/executor'
 import { saveUpload } from '@/lib/storage'
 import {
   AD_PRESET_IDS,
+  AD_PRESETS,
+  type AdPreset,
   type AdGenerationInput,
   type AdPresetId,
   type Platform,
@@ -30,11 +34,10 @@ import {
   resolveStylePackForPreset,
 } from '@/lib/ads/ad-styles'
 import { buildAdPrompt } from '@/lib/ads/ad-prompt-builder'
-import { buildForensicFaceAnchor } from '@/lib/tryon/face-forensics'
 import { z } from 'zod'
 
 // Increase serverless timeout for Vercel (ad pipeline: GPT + Gemini + image gen can exceed 60s under load)
-export const maxDuration = 120
+export const maxDuration = 180
 
 // Schema for the expanded preset-based generation
 const adGenerationSchema = z
@@ -47,8 +50,11 @@ const adGenerationSchema = z
     // Image inputs
     productImage: z.string().min(1).max(15_000_000).optional(),
     influencerImage: z.string().min(1).max(15_000_000).optional(),
-    lockFaceIdentity: z.boolean().optional().default(false),
+    lockFaceIdentity: z.boolean().optional(), // Auto-derived: true when influencerImage is present
     strictRealism: z.boolean().optional().default(true),
+
+    // Model selection: GPT Image 1.5 or Gemini
+    imageModel: z.enum(['gpt', 'gemini']).optional().default('gpt'),
 
     // Character config
     characterType: z
@@ -126,6 +132,291 @@ const adGenerationSchema = z
       .optional(),
   })
   .strict()
+
+function stripDataUri(value: string): string {
+  return value.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '')
+}
+
+/** Shared quality preamble — composition, text, product, and photographic fidelity rules */
+function buildQualityPreamble(hasTextOverlay: boolean): string {
+  const textRule = hasTextOverlay
+    ? `\nTEXT RENDERING: All text must be crisp, legible, and properly kerned. Use clean sans-serif or serif fonts with high contrast against background. No warped, melted, blurred, or misspelled text. Text should integrate naturally into the composition — printed on signage, embossed on surfaces, or cleanly overlaid with proper drop shadow or contrast panel.`
+    : `\nCRITICAL: Do NOT include any text, letters, numbers, words, brand names, slogans, watermarks, or typography in the image. ZERO written content.`
+  return `PHOTOGRAPHIC FIDELITY & COMPOSITION (MANDATORY):
+OUTPUT STYLE: This MUST look like a REAL PHOTOGRAPH taken by a professional photographer with a REAL CAMERA. NOT an illustration, NOT digital art, NOT a painting, NOT a render, NOT stylized, NOT cartoon, NOT anime, NOT CGI. RAW EDITORIAL PHOTOGRAPHY ONLY.
+SKIN: Natural pore-level texture, sharp wet-look corneal reflections, realistic subsurface scattering, visible micro-imperfections (moles, pores, fine lines). No plastic/waxy/CGI/airbrushed skin. No beauty filter smoothing.
+HANDS: Correct anatomy — five fingers per hand, natural bone structure, realistic nail beds. No extra or fused fingers.
+COMPOSITION: Strong focal hierarchy with clear subject separation from background. Use depth layering (foreground interest, mid-ground subject, background context). Balanced negative space.
+PRODUCT: The uploaded product garment/item must be the visual hero — accurate color, fabric texture, pattern, cut, and design details preserved exactly. Product must be clearly visible and well-lit.
+FABRIC: Realistic drape, wrinkles, material sheen matching the actual textile (matte cotton, glossy silk, textured denim, etc.).
+CAMERA REALISM: Subtle natural sensor grain, mild lens imperfection, natural vignetting. These are signs of REAL cameras — include them.${textRule}
+Return exactly one final ad image.\n`
+}
+
+function resolveOpenAIImageSize(aspectRatio?: AspectRatio): '1024x1024' | '1024x1536' | '1536x1024' | '1024x1280' {
+  if (aspectRatio === '9:16') return '1024x1536'
+  if (aspectRatio === '16:9') return '1536x1024'
+  if (aspectRatio === '4:5') return '1024x1280'
+  return '1024x1024'
+}
+
+/**
+ * Use GPT-4o vision to extract a structured face anchor description from a photo.
+ * This creates a stable identity string that locks facial geometry across generations.
+ */
+async function extractFaceAnchorDescription(
+  openaiClient: OpenAI,
+  faceImageBase64: string,
+): Promise<string> {
+  const imageUrl = faceImageBase64.startsWith('data:')
+    ? faceImageBase64
+    : `data:image/jpeg;base64,${faceImageBase64}`
+
+  const response = await openaiClient.chat.completions.create({
+    model: 'gpt-4o',
+    max_tokens: 200,
+    temperature: 0.2,
+    messages: [
+      {
+        role: 'system',
+        content: [
+          'You are a face identity analyst. Output a concise physical description of the person.',
+          'Focus on GEOMETRY: face shape, eyes, nose, lips, skin tone, hair.',
+          'Use geometric terms (oval, almond, narrow, wide, pointed).',
+          'Do NOT use beauty adjectives. Keep under 80 words. Output ONLY the description.',
+        ].join('\n'),
+      },
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image_url' as const,
+            image_url: { url: imageUrl, detail: 'low' as const },
+          },
+          {
+            type: 'text' as const,
+            text: 'Describe this person\'s face with precise geometric detail for identity consistency.',
+          },
+        ],
+      },
+    ],
+  })
+
+  const description = response.choices[0]?.message?.content?.trim()
+  if (!description) {
+    throw new Error('GPT-4o failed to extract face description')
+  }
+
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[FaceAnchor] Extracted face description:', description.substring(0, 120) + '...')
+  }
+
+  return description
+}
+
+/**
+ * Score face similarity between original and generated image using GPT-4o vision.
+ * Returns a 0-100 score where 100 = identical face, 90+ = very similar.
+ */
+async function scoreFaceSimilarity(
+  openaiClient: OpenAI,
+  originalImage: string,
+  generatedImage: string
+): Promise<number> {
+  try {
+    const originalUri = originalImage.startsWith('data:')
+      ? originalImage
+      : `data:image/png;base64,${originalImage}`
+    const generatedUri = generatedImage.startsWith('data:')
+      ? generatedImage
+      : `data:image/png;base64,${generatedImage}`
+
+    const response = await openaiClient.chat.completions.create({
+      model: 'gpt-4o',
+      max_tokens: 10,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image_url',
+              image_url: { url: originalUri, detail: 'low' },
+            },
+            {
+              type: 'image_url',
+              image_url: { url: generatedUri, detail: 'low' },
+            },
+            {
+              type: 'text',
+              text: `Compare faces in Image 1 (original) and Image 2 (generated). Score face IDENTITY similarity 0-100. Focus only on face shape, eyes, nose, lips, skin tone. Ignore outfit/background/pose. Reply with ONLY a number.`,
+            },
+          ],
+        },
+      ],
+    })
+
+    const scoreText = response.choices[0]?.message?.content?.trim() || '50'
+    const score = parseInt(scoreText.replace(/[^0-9]/g, ''), 10)
+    return isNaN(score) ? 50 : Math.min(100, Math.max(0, score))
+  } catch (err) {
+    console.error('[FaceScore] Error scoring face similarity:', err)
+    return 50
+  }
+}
+
+/**
+ * Build the face-locked ad edit prompt using the face anchor description.
+ * Follows production-grade patterns:
+ * [FACE DESCRIPTION] + [PRODUCT] + [STYLE] + [SCENE] + [CONSISTENCY RULES]
+ */
+function buildFaceLockedAdEditPrompt(opts: {
+  faceAnchor: string
+  preset: AdPreset
+  cameraAngle?: string
+  subject?: { pose?: string; expression?: string }
+  textOverlay?: { headline?: string; subline?: string; tagline?: string }
+}): string {
+  const { faceAnchor, preset, cameraAngle, subject, textOverlay } = opts
+
+  const parts: string[] = []
+
+  // Frame as EDITING the existing photo (not generating new)
+  parts.push(`Edit this photo. Do NOT generate a new person. Modify ONLY the outfit, pose, and background.`)
+  parts.push(``)
+
+  // Identity anchor from GPT-4o analysis
+  parts.push(`This person's face identity (DO NOT ALTER):`)
+  parts.push(faceAnchor)
+  parts.push(``)
+
+  // Editing instructions
+  parts.push(`EDIT INSTRUCTIONS:`)
+  parts.push(`1. Keep this exact person's face, head, and hair completely unchanged — same face shape, same eyes, same nose, same lips, same skin, same hair.`)
+  parts.push(`2. Change ONLY their outfit to match the garment in Image 2 — same color, fabric, cut, pattern, design details.`)
+
+  // Scene from preset
+  parts.push(`3. SCENE: ${preset.sceneGuide}`)
+  parts.push(``)
+
+  // Lighting from preset
+  parts.push(`LIGHTING: ${preset.lightingGuide}`)
+
+  // Camera from preset + user override
+  const cameraDesc = cameraAngle && cameraAngle !== 'auto'
+    ? `${preset.cameraGuide}. Camera angle: ${cameraAngle}.`
+    : preset.cameraGuide
+  parts.push(`CAMERA: ${cameraDesc}`)
+  parts.push(``)
+
+  // Pose/expression from user input
+  if (subject?.pose) {
+    parts.push(`POSE: ${subject.pose}`)
+  }
+  if (subject?.expression) {
+    parts.push(`EXPRESSION: ${subject.expression}`)
+  }
+
+  // Style anchors (stabilize output — anti-cartoon)
+  parts.push(`Real editorial photograph shot on Canon EOS R5 85mm f/1.8. NOT an illustration, NOT digital art, NOT cartoon, NOT CGI. Raw photojournalistic quality with natural skin pores, film grain, and lens imperfections. Photorealistic skin texture, high detail facial features, sharp focus.`)
+  parts.push(``)
+
+  // Handle text overlay vs no-text
+  const hasText = textOverlay?.headline || textOverlay?.subline || textOverlay?.tagline
+  if (hasText) {
+    if (textOverlay?.headline) parts.push(`Include headline text: "${textOverlay.headline}"`)
+    if (textOverlay?.subline) parts.push(`Include subline text: "${textOverlay.subline}"`)
+    if (textOverlay?.tagline) parts.push(`Include tagline text: "${textOverlay.tagline}"`)
+  } else {
+    parts.push(`Do NOT add any text, logos, watermarks, or typography.`)
+  }
+  parts.push(``)
+
+  // Negative / avoid instructions from preset
+  parts.push(`Do NOT change the face. Do NOT reimagine facial features. Do NOT generate a different person.`)
+  parts.push(`Same person. Same face. Edit only outfit and background.`)
+  if (preset.avoid.length > 0) {
+    parts.push(`AVOID: ${preset.avoid.join(', ')}`)
+  }
+
+  return parts.join('\n')
+}
+
+async function generateFaceLockedAdWithOpenAI(params: {
+  influencerImage: string
+  productImage?: string
+  preset: AdPreset
+  aspectRatio?: AspectRatio
+  cameraAngle?: string
+  subject?: { pose?: string; expression?: string }
+  textOverlay?: { headline?: string; subline?: string; tagline?: string }
+}): Promise<{ image: string; prompt: string }> {
+  const openaiClient = new OpenAI({ apiKey: getOpenAIKey() })
+
+  // Step 1: Extract face anchor description using GPT-4o vision
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[FaceAnchor] Extracting face identity description...')
+  }
+  const faceAnchor = await extractFaceAnchorDescription(openaiClient, params.influencerImage)
+
+  // Step 2: Build prompt with face anchor + full preset data + user options
+  const rawEditPrompt = buildFaceLockedAdEditPrompt({
+    faceAnchor,
+    preset: params.preset,
+    cameraAngle: params.cameraAngle,
+    subject: params.subject,
+    textOverlay: params.textOverlay,
+  })
+
+  // Prepend anti-cartoon realism mandate
+  const editPrompt = `CRITICAL: Output a RAW PHOTOGRAPH — NOT illustration, NOT digital art, NOT cartoon, NOT CGI, NOT stylized. Must be INDISTINGUISHABLE from a real DSLR photo with natural film grain, real skin pores, and authentic lighting.\n\n` + rawEditPrompt
+
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[FaceAnchor] Full prompt length:', editPrompt.length, 'chars')
+  }
+
+  // Step 3: Build multipart form data — person image first (identity anchor)
+  const apiKey = getOpenAIKey()
+  const formData = new FormData()
+  formData.append('model', 'gpt-image-1.5')
+  formData.append('prompt', editPrompt)
+  formData.append('n', '1')
+  formData.append('size', resolveOpenAIImageSize(params.aspectRatio))
+  formData.append('quality', 'high')
+  formData.append('input_fidelity', 'high')
+
+  const cleanPerson = stripDataUri(params.influencerImage)
+  const personBlob = new Blob([Buffer.from(cleanPerson, 'base64')], { type: 'image/png' })
+  formData.append('image[]', personBlob, 'person.png')
+
+  if (params.productImage) {
+    const cleanProduct = stripDataUri(params.productImage)
+    const productBlob = new Blob([Buffer.from(cleanProduct, 'base64')], { type: 'image/png' })
+    formData.append('image[]', productBlob, 'product.png')
+  }
+
+  // Step 4: Call GPT Image 1.5 directly via /v1/images/edits
+  const gptResponse = await fetch('https://api.openai.com/v1/images/edits', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiKey}` },
+    body: formData,
+  })
+
+  if (!gptResponse.ok) {
+    const errBody = await gptResponse.json().catch(() => ({}))
+    throw new Error(`GPT Image error ${gptResponse.status}: ${errBody?.error?.message || gptResponse.statusText}`)
+  }
+
+  const gptResult = await gptResponse.json()
+  const imgData = gptResult?.data?.[0]
+  if (!imgData?.b64_json) {
+    throw new Error('GPT Image returned no image data')
+  }
+
+  return {
+    image: `data:image/png;base64,${imgData.b64_json}`,
+    prompt: editPrompt,
+  }
+}
 
 export async function POST(request: Request) {
   let inFlight: { allowed: boolean; retryAfterSeconds?: number; release?: () => Promise<void> } | null = null
@@ -262,70 +553,167 @@ export async function POST(request: Request) {
     const validation = validateAdInput(generationInput)
     if (!validation.valid) {
       return NextResponse.json({ error: validation.error }, { status: 400 })
-    }
+    }    
 
-    // ── Face forensics (only when face-lock enabled) ──
-    let forensicResult = null
-    if (input.lockFaceIdentity && input.influencerImage) {
-      if (process.env.NODE_ENV !== 'production') console.log('[AdsAPI] Running face forensics...')
-      forensicResult = await buildForensicFaceAnchor({
-        personImageBase64: input.influencerImage,
-        garmentDescription: 'product from ad image',
-      }).catch((err) => {
-        console.warn('[AdsAPI] Face forensics failed:', err)
-        return null
-      })
-    }
+    // ═══════════════════════════════════════════════════════
+    // IMAGE GENERATION: GPT Image 1.5 or Gemini (user choice)
+    // ═══════════════════════════════════════════════════════
+    let generatedImage = ''
+    let compositionPrompt = ''
+    let promptUsed = input.imageModel || 'gpt'
 
-    // ── Build intelligent prompt with GPT-4o VISION ──
-    // GPT-4o sees the product image directly — no separate analysis needed
-    if (process.env.NODE_ENV !== 'production') console.log('[AdsAPI] Building prompt with GPT-4o vision...')
+    // Auto face-lock: always lock when influencer image is present
+    const shouldLockFace = Boolean(input.influencerImage)
 
-    const faceAnchorText = forensicResult?.faceAnchor || null
-
-    const { prompt: rawCompositionPrompt, fallback } = await buildAdPrompt(
-      generationInput,
-      input.productImage || null,
-      faceAnchorText
-    )
-
-    // Prepend a hard quality-enforcement preamble optimized for Gemini 3 Pro (Nano Banana Pro).
-    const hasTextContent = !!(input.textOverlay && (input.textOverlay.headline || input.textOverlay.subline || input.textOverlay.tagline))
-    const noTextRule = hasTextContent ? '' : ' CRITICAL: Do NOT include any text, letters, numbers, logos, watermarks, UI, or typography anywhere in the image.'
-    const QUALITY_PREAMBLE = `Create one single, production-grade ad photograph for a premium brand campaign.
-The result must be photoreal, commercial, and human-shot in style (not AI-looking, not illustration, not 3D render).
-Use clean composition with a clear hero subject, natural anatomy, realistic hands with correct finger count, and physically correct lighting.
-Preserve micro details: skin pores, vellus hair (peach fuzz), fabric weave, material reflections, and true-to-life color.
-Professional camera language: intentional framing, depth, and focus falloff with strong subject-product readability.
-Background realism lock: keep environment structure readable (architecture, roads, textures); avoid generic creamy blur or background mush unless physically motivated by motion.
-POSE MANDATE: If a human is present, they must be in a DYNAMIC, ASYMMETRIC pose - NOT standing straight with arms at sides. Body must show weight distribution, one hand must be engaged (touching hair, gripping fabric, adjusting accessory), and the body must show natural gravitational pull. NO static catalog poses, NO symmetrical stiffness.
-EXPRESSION MANDATE: If a human is present, the face must express a SPECIFIC EMOTION with micro-muscle engagement - crinkled eyes, lifted cheek, parted lips, furrowed brow, jaw tension. NO blank stares, NO flat neutral faces, NO dead mannequin eyes.
-Output should feel editorial plus conversion-ready, suitable for top-tier social ads and landing pages.
-Avoid low-quality artifacts: blur mush, warped geometry, duplicate limbs, extra fingers, over-smoothing, posterization, and noisy edges.
-If humans are present, facial realism is non-negotiable: visible pores, natural asymmetry, realistic under-eye texture with fine creases and slight puffiness, consistent skin tone across face and neck, natural sebaceous shine on forehead and nose, individual eyelash strands at varying angles.
-Do NOT output waxy/plastic/clay skin, porcelain beauty-filter faces, mannequin-like expressions, CGI facial surfaces, or perfectly symmetrical features.
-Return exactly one final ad image.${noTextRule}
-
-`
-
-    const compositionPrompt = QUALITY_PREAMBLE + rawCompositionPrompt
-
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`[AdsAPI] Prompt built (${fallback ? 'fallback' : 'GPT-4o'}): ${compositionPrompt.length} chars`)
-    }
-
-    // Generate ad image with Gemini
-    if (process.env.NODE_ENV !== 'production') console.log('[AdsAPI] Generating ad image...')
-
-    let generatedImage = await generateIntelligentAdComposition(
-      input.productImage,
-      input.influencerImage,
-      compositionPrompt,
-      {
-        lockFaceIdentity: input.lockFaceIdentity,
-        aspectRatio: input.aspectRatio as AspectRatio | undefined,
+    if (shouldLockFace && input.influencerImage) {
+      // ── FACE-LOCKED: GPT Image 1.5 (always, regardless of model choice) ──
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[AdsAPI] FACE-LOCKED mode with GPT Image 1.5 + Face Anchor')
       }
-    )
+
+      const presetObj = AD_PRESETS.find(p => p.id === input.preset) ?? AD_PRESETS[0]
+      const openaiClient = new OpenAI({ apiKey: getOpenAIKey() })
+
+      // Retry loop: generate up to 2 attempts, pick best face match
+      const MAX_FACE_ATTEMPTS = 2
+      const FACE_THRESHOLD = 85
+      let bestImage = ''
+      let bestPrompt = ''
+      let bestScore = 0
+
+      for (let attempt = 1; attempt <= MAX_FACE_ATTEMPTS; attempt++) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`[FaceLock] Attempt ${attempt}/${MAX_FACE_ATTEMPTS}...`)
+        }
+
+        try {
+          const result = await generateFaceLockedAdWithOpenAI({
+            influencerImage: input.influencerImage,
+            productImage: input.productImage,
+            preset: presetObj,
+            aspectRatio: input.aspectRatio as AspectRatio | undefined,
+            cameraAngle: input.cameraAngle,
+            subject: input.subject,
+            textOverlay: input.textOverlay,
+          })
+
+          // Score face similarity using GPT-4o
+          const faceScore = await scoreFaceSimilarity(openaiClient, input.influencerImage, result.image)
+
+          if (process.env.NODE_ENV !== 'production') {
+            console.log(`[FaceLock] Attempt ${attempt} face similarity: ${faceScore}%`)
+          }
+
+          if (faceScore > bestScore) {
+            bestScore = faceScore
+            bestImage = result.image
+            bestPrompt = result.prompt
+          }
+
+          if (faceScore >= FACE_THRESHOLD) {
+            if (process.env.NODE_ENV !== 'production') {
+              console.log(`[FaceLock] Face score ${faceScore}% >= ${FACE_THRESHOLD}%. Accepting.`)
+            }
+            break
+          }
+
+          if (attempt < MAX_FACE_ATTEMPTS && timeRemaining() < 30_000) {
+            if (process.env.NODE_ENV !== 'production') {
+              console.log('[FaceLock] Not enough time for retry. Using best so far.')
+            }
+            break
+          }
+        } catch (err: any) {
+          console.error(`[FaceLock] Attempt ${attempt} failed:`, err?.message || err)
+          if (attempt === MAX_FACE_ATTEMPTS && !bestImage) throw err
+        }
+      }
+
+      generatedImage = bestImage
+      compositionPrompt = bestPrompt
+      promptUsed = 'gpt-image-1.5-face'
+
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[AdsAPI] GPT Image 1.5 face-locked complete (best face score: ${bestScore}%)`)
+      }
+    } else if (input.imageModel === 'gpt') {
+      // ── NORMAL GPT: GPT Image 1.5 without face lock ──
+      if (process.env.NODE_ENV !== 'production') console.log('[AdsAPI] Building prompt with GPT-4o vision...')
+      const { prompt: rawCompositionPrompt, fallback } = await buildAdPrompt(
+        generationInput,
+        input.productImage
+      )
+
+      const hasText = Boolean(input.textOverlay?.headline || input.textOverlay?.subline || input.textOverlay?.tagline)
+      const gptRealismPrefix = `CRITICAL STYLE MANDATE: Generate a RAW PHOTOGRAPH — NOT an illustration, NOT digital art, NOT a stylized rendering, NOT cartoon, NOT anime, NOT CGI. This must be indistinguishable from a real photo shot on a professional DSLR camera. Include natural film grain, real skin texture with visible pores, lens imperfections, and authentic lighting. If the result looks even slightly illustrated or digitally painted, it is a FAILURE.\n\n`
+      compositionPrompt = gptRealismPrefix + buildQualityPreamble(hasText) + rawCompositionPrompt
+      promptUsed = fallback ? 'fallback' : 'gpt-image-1.5'
+
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[AdsAPI] Prompt built (' + promptUsed + '): ' + compositionPrompt.length + ' chars')
+        console.log('[AdsAPI] Generating ad with GPT Image 1.5...')
+      }
+
+      // Use GPT Image 1.5 via direct /v1/images/edits API
+      const apiKey = getOpenAIKey()
+      const formData = new FormData()
+      formData.append('model', 'gpt-image-1.5')
+      formData.append('prompt', compositionPrompt)
+      formData.append('n', '1')
+      formData.append('size', resolveOpenAIImageSize(input.aspectRatio as AspectRatio | undefined))
+      formData.append('quality', 'high')
+
+      if (input.productImage) {
+        const cleanProduct = stripDataUri(input.productImage)
+        const productBlob = new Blob([Buffer.from(cleanProduct, 'base64')], { type: 'image/png' })
+        formData.append('image[]', productBlob, 'product.png')
+      }
+
+      const gptResp = await fetch('https://api.openai.com/v1/images/edits', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiKey}` },
+        body: formData,
+      })
+
+      if (!gptResp.ok) {
+        const errBody = await gptResp.json().catch(() => ({}))
+        throw new Error(`GPT Image error ${gptResp.status}: ${errBody?.error?.message || gptResp.statusText}`)
+      }
+
+      const gptResult = await gptResp.json()
+      const imgData = gptResult?.data?.[0]
+      if (!imgData?.b64_json) {
+        throw new Error('GPT Image returned no image data')
+      }
+      generatedImage = `data:image/png;base64,${imgData.b64_json}`
+    } else {
+      // ── NORMAL GEMINI: Gemini-based generation ──
+      if (process.env.NODE_ENV !== 'production') console.log('[AdsAPI] Building prompt with GPT-4o vision...')
+      const { prompt: rawCompositionPrompt, fallback } = await buildAdPrompt(
+        generationInput,
+        input.productImage
+      )
+
+      const hasText = Boolean(input.textOverlay?.headline || input.textOverlay?.subline || input.textOverlay?.tagline)
+      compositionPrompt = buildQualityPreamble(hasText) + rawCompositionPrompt
+      promptUsed = fallback ? 'fallback' : 'gemini'
+
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[AdsAPI] Prompt built (' + promptUsed + '): ' + compositionPrompt.length + ' chars')
+        console.log('[AdsAPI] Generating ad with Gemini...')
+      }
+
+      generatedImage = await generateIntelligentAdComposition(
+        input.productImage,
+        undefined,
+        compositionPrompt,
+        {
+          lockFaceIdentity: false,
+          aspectRatio: input.aspectRatio as AspectRatio | undefined,
+        }
+      )
+    }
+
 
     // Score first pass and optionally run a quality recovery pass.
     // In production, we default to one pass to avoid 504 timeouts.
@@ -336,7 +724,7 @@ Return exactly one final ad image.${noTextRule}
     )
     let qualityScore = Number((rating as any)?.score || 75)
 
-    if (enableRecoveryPass && qualityScore < 82 && timeRemaining() > 18_000) {
+    if (enableRecoveryPass && input.imageModel === 'gemini' && qualityScore < 82 && timeRemaining() > 18_000) {
       if (process.env.NODE_ENV !== 'production') {
         console.log(`[AdsAPI] Low quality score (${qualityScore}). Running recovery pass...`)
       }
@@ -448,7 +836,7 @@ QUALITY RECOVERY PASS:
       rating,
       qualityScore,
       preset: input.preset,
-      promptUsed: fallback ? 'fallback' : 'gpt-4o',
+      promptUsed,
     })
   } catch (error) {
     console.error('Ad generation error:', error)

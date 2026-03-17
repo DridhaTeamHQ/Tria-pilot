@@ -132,7 +132,7 @@ export default function AdsPage() {
   const [activeCategory, setActiveCategory] = useState<AdPresetCategory | 'all'>('all')
   const [productImage, setProductImage] = useState('')
   const [influencerImage, setInfluencerImage] = useState('')
-  const [lockFaceIdentity, setLockFaceIdentity] = useState(false)
+  const [imageModel, setImageModel] = useState<'gpt' | 'gemini'>('gpt')
   const [characterType, setCharacterType] = useState<CharacterType>('none')
   const [characterIdentity, setCharacterIdentity] = useState<CharacterIdentity>('global_modern')
   const [animalType, setAnimalType] = useState('')
@@ -210,7 +210,7 @@ export default function AdsPage() {
         if (type === 'product') setProductImage(normalizedImage)
         else {
           setInfluencerImage(normalizedImage)
-          if (!normalizedImage) setLockFaceIdentity(false)
+          // Face lock is auto-derived from influencerImage presence
         }
       } catch (error) {
         toast.error(
@@ -219,7 +219,7 @@ export default function AdsPage() {
             : 'This image format is not supported. Use PNG, JPG, GIF, or WebP.'
         )
         if (type === 'influencer') {
-          setLockFaceIdentity(false)
+          // Face lock is auto-derived from influencerImage presence
         }
       }
     }, []
@@ -242,8 +242,9 @@ export default function AdsPage() {
       stylePack: resolveStylePackForPreset(selectedPreset),
       productImage: productImage || undefined,
       influencerImage: influencerImage || undefined,
-      lockFaceIdentity,
+      lockFaceIdentity: Boolean(influencerImage),
       strictRealism,
+      imageModel,
       characterType,
       characterIdentity: isHuman ? characterIdentity : undefined,
       animalType: characterType === 'animal' ? (animalType || 'Fox') : undefined,
@@ -484,18 +485,26 @@ export default function AdsPage() {
                   <div className="flex flex-col gap-3 rounded-xl border-[3px] border-black bg-[#FFE1D6] p-3">
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-[11px] font-black uppercase tracking-wider">Model / Character</p>
-                      {influencerImage && (
+                      <div className="inline-flex overflow-hidden rounded-md border-2 border-black">
                         <button type="button"
-                          onClick={() => setLockFaceIdentity(!lockFaceIdentity)}
+                          onClick={() => setImageModel('gpt')}
                           className={cn(
-                            'inline-flex items-center gap-1 rounded-md border-2 border-black px-2 py-1 text-[10px] font-black uppercase',
-                            lockFaceIdentity ? 'bg-[#FFD93D]' : 'bg-white'
+                            'px-2 py-1 text-[10px] font-black uppercase transition-colors',
+                            imageModel === 'gpt' ? 'bg-[#FFD93D] text-black' : 'bg-white text-gray-500 hover:bg-gray-50'
                           )}
                         >
-                          {lockFaceIdentity ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
-                          {lockFaceIdentity ? 'Locked' : 'Lock Face'}
+                          GPT
                         </button>
-                      )}
+                        <button type="button"
+                          onClick={() => setImageModel('gemini')}
+                          className={cn(
+                            'border-l-2 border-black px-2 py-1 text-[10px] font-black uppercase transition-colors',
+                            imageModel === 'gemini' ? 'bg-[#FFD93D] text-black' : 'bg-white text-gray-500 hover:bg-gray-50'
+                          )}
+                        >
+                          Gemini
+                        </button>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
@@ -621,7 +630,6 @@ export default function AdsPage() {
                         <button type="button"
                           onClick={() => {
                             setInfluencerImage('')
-                            setLockFaceIdentity(false)
                           }}
                           className="absolute top-2 right-2 inline-flex h-7 w-7 items-center justify-center rounded-md border-2 border-black bg-white"
                         >
@@ -850,7 +858,9 @@ export default function AdsPage() {
                 <motion.div key="result" variants={imageRevealVariants} initial="initial" animate="animate">
                   <BrutalCard className="overflow-hidden rounded-2xl">
                     <div className="relative border-b-[3px] border-black bg-black/5">
-                      <Image unoptimized width={1400} height={1400} src={result.imageBase64 || result.imageUrl} alt="Generated Ad" className="w-full object-cover" />
+                      {(result.imageBase64 || result.imageUrl) && (
+                        <Image unoptimized width={1400} height={1400} src={result.imageBase64 || result.imageUrl} alt="Generated Ad" className="w-full object-cover" />
+                      )}
                       <div className="absolute left-3 top-3 rounded-md border-2 border-black bg-[#FFD93D] px-2 py-1 text-[10px] font-black uppercase">
                         {result.qualityScore}/100 Quality
                       </div>

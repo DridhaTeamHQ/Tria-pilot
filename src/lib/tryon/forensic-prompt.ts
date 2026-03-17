@@ -9,6 +9,8 @@
  * - Positive framing only — negative "DO NOT" rules paradoxically increase drift.
  * - Scene description kept to one short line max.
  * - Total prompt target: ~600-900 chars (vs ~4500 before).
+ *
+ * Supports both Gemini (Image 1/2/3 references) and GPT Image (descriptive references).
  */
 
 import 'server-only'
@@ -50,16 +52,25 @@ export interface ForensicPromptInput {
     ymax: number
     xmax: number
   }
+  /** When true, uses GPT Image-compatible descriptive references instead of "Image 1/2/3" */
+  useGPTImageFormat?: boolean
 }
 
 export function buildForensicPrompt(input: ForensicPromptInput): string {
-  const garment = input.garmentDescription?.trim() || 'garment from Image 2'
+  const isGPT = Boolean(input.useGPTImageFormat)
   const aspectRatio = input.aspectRatio || '1:1'
   const hasFaceReference = Boolean(input.hasFaceReference)
 
+  // Image references differ between Gemini and GPT Image
+  const personRef = isGPT ? 'the person photo' : 'Image 1'
+  const garmentRef = isGPT ? 'the garment photo' : 'Image 2'
+  const faceCropRef = isGPT ? 'the face close-up photo' : 'Image 3 (close-up)'
+  const garment = input.garmentDescription?.trim() || `garment from ${garmentRef}`
+
   // Extract a SHORT scene description (max 120 chars) from the preset
   const rawPreset = input.preset?.trim() || ''
-  const isSceneChange = rawPreset && rawPreset !== 'keep background from Image 1'
+  const keepBgPhrase = isGPT ? 'keep the original background' : 'keep background from Image 1'
+  const isSceneChange = rawPreset && rawPreset !== keepBgPhrase
   // Condense scene to just the key environment phrase, strip lighting details
   const sceneBrief = isSceneChange ? condenseScene(rawPreset, 120) : ''
 
@@ -76,7 +87,7 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
 
   // ── LINE 1: Core task (identity first) ──
   lines.push(
-    `Generate a photorealistic photo of the EXACT person from Image 1 wearing the garment from Image 2.`
+    `Generate a photorealistic photo of the EXACT person from ${personRef} wearing the garment from ${garmentRef}.`
   )
   lines.push('')
 
@@ -85,34 +96,34 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     // Soul ID available — use frozen identity paragraph for consistency
     if (hasFaceReference) {
       lines.push(
-        `IDENTITY: ${input.identityDNA} Copy these EXACT features from Image 1 and Image 3 (close-up). Do not change any facial feature.`
+        `IDENTITY: ${input.identityDNA} Copy these EXACT features from ${personRef} and ${faceCropRef}. Do not change any facial feature.`
       )
     } else {
       lines.push(
-        `IDENTITY: ${input.identityDNA} Copy these EXACT features from Image 1. Do not change any facial feature.`
+        `IDENTITY: ${input.identityDNA} Copy these EXACT features from ${personRef}. Do not change any facial feature.`
       )
     }
   } else {
     // No Soul ID — generic identity instruction
     if (hasFaceReference) {
       lines.push(
-        `IDENTITY: Copy the face from Image 1 and Image 3 (close-up) exactly — same bone structure, eyes, nose, lips, jaw, skin texture, pores, skin tone, and perceived age.`
+        `IDENTITY: Copy the face from ${personRef} and ${faceCropRef} exactly — same bone structure, eyes, nose, lips, jaw, skin texture, pores, skin tone, and perceived age.`
       )
     } else {
       lines.push(
-        `IDENTITY: Copy the face from Image 1 exactly — same bone structure, eyes, nose, lips, jaw, skin texture, pores, skin tone, and perceived age.`
+        `IDENTITY: Copy the face from ${personRef} exactly — same bone structure, eyes, nose, lips, jaw, skin texture, pores, skin tone, and perceived age.`
       )
     }
   }
   lines.push('')
 
   // ── LINE 3: Body (one line) ──
-  lines.push(`BODY: Same body shape, weight, and proportions as Image 1.`)
+  lines.push(`BODY: Same body shape, weight, and proportions as ${personRef}.`)
   lines.push('')
 
-  // ── LINE 4: Garment (explicit — ONLY from Image 2, full outfit) ──
+  // ── LINE 4: Garment (explicit — ONLY from garment ref, full outfit) ──
   lines.push(
-    `GARMENT: Apply the FULL OUTFIT from Image 2 — ${garment}. Include ALL pieces (top, bottom, layers, accessories) visible in Image 2. Match the exact color of each piece, pattern, fabric, and design. IGNORE any clothing visible in other images.`
+    `GARMENT: Apply the FULL OUTFIT from ${garmentRef} — ${garment}. Include ALL pieces (top, bottom, layers, accessories) visible in ${garmentRef}. Match the exact color of each piece, pattern, fabric, and design. IGNORE any clothing visible in other images.`
   )
   lines.push('')
 
@@ -123,7 +134,7 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
       : `SCENE: ${sceneBrief}.`
     lines.push(sceneLine)
   } else {
-    lines.push(`SCENE: Keep the original background from Image 1.`)
+    lines.push(`SCENE: Keep the original background from ${personRef}.`)
   }
   lines.push('')
 
@@ -141,7 +152,7 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
 
   // ── LINE 7: Retry (only on retry, minimal) ──
   if (input.retryMode) {
-    lines.push(`RETRY: Previous attempt altered the face. Copy face pixels from Image 1 exactly this time.`)
+    lines.push(`RETRY: Previous attempt altered the face. Copy face pixels from ${personRef} exactly this time.`)
   }
 
   // ── LINE 8: Concise avoid (3 critical items only) ──

@@ -275,6 +275,9 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                     productName: name.trim() || undefined,
                     category: category || undefined,
                     description: description.trim() || undefined,
+                    audience: audience || undefined,
+                    tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : undefined,
+                    price: price ? parseFloat(price) : undefined,
                 }),
             })
 

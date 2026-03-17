@@ -762,7 +762,11 @@ export function getPresetsByCategory(category: AdPresetCategory): AdPresetDispla
 // ═══════════════════════════════════════════════════════════════
 
 const SAFETY_SUFFIX = `
-No surreal elements (unless preset requires it), no fantasy effects, no glitch art, no collage, no duplicated features, no floating objects (unless preset requires it), no exaggerated anatomy, no body distortion, no extra unplanned text, no unplanned logos, no watermarks, no unrealistic lighting (unless preset requires it), no painterly or illustrated style (unless preset requires it). Photorealistic commercial photography unless preset explicitly specifies otherwise.`
+No surreal elements (unless preset requires it), no fantasy effects, no glitch art, no collage, no duplicated features, no floating objects (unless preset requires it), no exaggerated anatomy, no body distortion, no extra unplanned text, no unplanned logos, no watermarks, no unrealistic lighting (unless preset requires it), no painterly or illustrated style (unless preset requires it). Photorealistic commercial photography unless preset explicitly specifies otherwise.
+COMPOSITION: Use strong focal hierarchy — subject and product are the visual anchors. Depth layering with foreground, mid-ground, background. Balanced negative space. No cluttered or chaotic frames.
+PRODUCT: The uploaded product must be the hero — accurate color, texture, pattern, design details. Must be clearly visible, well-lit, and prominent in the frame.
+TEXT: If text is requested, render it crisp, properly spelled, well-kerned, and naturally integrated. If no text requested, include ZERO text of any kind.
+HANDS: Five fingers per hand, correct anatomy, natural bone structure, realistic nail beds. No extra, fused, or missing fingers.`
 
 /**
  * Build a basic fallback prompt from preset + input (no GPT).

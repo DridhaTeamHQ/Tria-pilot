@@ -12,7 +12,7 @@
  */
 
 import 'server-only'
-import { generateTryOnDirect } from '@/lib/nanobanana'
+import { generateTryOnDirect, generateTryOnGPT } from '@/lib/nanobanana'
 import { resolveCharacterReferences, fetchImageAsBase64 } from '@/lib/tryon/character-resolver'
 import { loadIdentityEmbedding, type IdentityEmbedding } from '@/lib/tryon/identity-embedding'
 import { buildForensicPrompt } from './forensic-prompt'
@@ -26,7 +26,7 @@ import { computeMicroFaceDrift, getDriftRetryParams } from './micro-face-drift'
 import { getPresetExampleGuidance, getRequestExampleGuidance } from './presets/example-prompts-reference'
 import { getPresetStrengthProfile } from './preset-strength-profile'
 
-const MAIN_RENDER_MODEL = 'gemini-3-pro-image-preview' as const
+const MAIN_RENDER_MODEL = 'gpt-image-1.5' as const
 const ENABLE_QUALITY_RETRY =
   process.env.TRYON_ENABLE_QUALITY_RETRY === 'true' ||
   process.env.NODE_ENV !== 'production'
@@ -257,6 +257,7 @@ export async function generateWithNanoBananaPro(
       retryMode: false, // Only set true during actual retries, not first pass
       cameraGuidance: presetCamera, // Pass preset camera/pose to the prompt
       identityDNA: identityEmbedding?.identityDNA, // Soul ID — frozen identity paragraph
+      useGPTImageFormat: true, // GPT Image uses descriptive refs, not Image 1/2/3
     }
     const prompt = buildForensicPrompt(promptInput)
 
@@ -272,15 +273,13 @@ export async function generateWithNanoBananaPro(
     const aspectRatio = input.aspectRatio || '1:1'
     if (isDev) console.log(`   aspectRatio=${aspectRatio}`)
 
-    let generatedImage = await generateTryOnDirect({
+    let generatedImage = await generateTryOnGPT({
       personImageBase64: input.personImageBase64,
       garmentImageBase64: input.garmentImageBase64,
-      // Secondary identity reference improves eye geometry and face fidelity without post-processing.
+      // Secondary identity reference improves eye geometry and face fidelity.
       faceCropBase64: faceCropResult.success ? faceCropResult.faceCropBase64 : undefined,
-      characterReferenceBase64s,
       prompt,
       aspectRatio,
-      resolution: '2K',
     })
 
     // One-shot retry strategy for face drift: keep base pipeline simple,
@@ -371,8 +370,10 @@ export async function generateWithNanoBananaPro(
     // Stage 4 handles face identity correction via inpainting, which is faster
     // and more effective than re-generating the entire image.
     const FACE_RESTORE_ENABLED =
-      process.env.TRYON_ENABLE_FACE_RESTORE === 'true' ||
-      process.env.NODE_ENV !== 'production'
+      MAIN_RENDER_MODEL !== 'gpt-image-1.5' && (
+        process.env.TRYON_ENABLE_FACE_RESTORE === 'true' ||
+        process.env.NODE_ENV !== 'production'
+      )
     const skipRetryForFaceRestore = FACE_RESTORE_ENABLED && !hardFaceFailure
 
     if (skipRetryForFaceRestore && hasRetrySignal && isDev) {
@@ -396,13 +397,12 @@ export async function generateWithNanoBananaPro(
         retryMode: true,
       })
 
-      generatedImage = await generateTryOnDirect({
+      generatedImage = await generateTryOnGPT({
         personImageBase64: input.personImageBase64,
         garmentImageBase64: input.garmentImageBase64,
         faceCropBase64: faceCropResult.success ? faceCropResult.faceCropBase64 : undefined,
         prompt: retryPrompt,
         aspectRatio,
-        resolution: '2K',
       })
 
       const [retryFace, retrySceneAssessment] = await Promise.all([
@@ -464,10 +464,15 @@ export async function generateWithNanoBananaPro(
 
     // ═════════════════════════════════════════════════════════════════════════
     // STAGE 4: Face Identity Restoration (Two-Pass Gemini Inpainting)
+    // SKIP for GPT Image 1.5 — it preserves face identity natively via input_fidelity: 'high'
+    // The Gemini inpainting stage is redundant and adds ~5-10s latency.
     // ═════════════════════════════════════════════════════════════════════════
+    const isGPTModel = MAIN_RENDER_MODEL === 'gpt-image-1.5'
     const ENABLE_FACE_RESTORE =
-      process.env.TRYON_ENABLE_FACE_RESTORE === 'true' ||
-      process.env.NODE_ENV !== 'production'
+      !isGPTModel && (
+        process.env.TRYON_ENABLE_FACE_RESTORE === 'true' ||
+        process.env.NODE_ENV !== 'production'
+      )
     let faceRestoreResult: { success: boolean; processingTimeMs: number; error?: string } | null = null
 
     // Production-safe thresholds:

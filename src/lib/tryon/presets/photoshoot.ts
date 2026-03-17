@@ -13,39 +13,39 @@ const STUDIO_PRESETS: ScenePreset[] = [
     label: 'Seamless White Studio',
     category: 'lifestyle',
     region: 'global',
-    scene: 'Professional photo studio with seamless white cyclorama, curved infinity wall, polished white epoxy floor, and no visible equipment in frame.',
-    lighting: 'Key: large softbox front-left at 45 degrees. Fill: matched softbox front-right at lower power. Rim: overhead diffusion panel for gentle edge lift. Neutral 5400-5600K with soft floor bounce and controlled highlights.',
-    camera: '85mm portrait lens, chest-up to full-body framing, shallow depth of field with clean backdrop falloff.',
+    scene: 'Professional photo studio with seamless white cyclorama, curved infinity wall creating a shadowless horizon, polished white epoxy floor with subtle reflections, and absolutely no visible equipment, cables, or stands in frame. The backdrop should feel infinite with a smooth gradient from pure white to light grey at the edges.',
+    lighting: 'Key: large 4-foot softbox positioned front-left at 45 degrees creating soft, wrap-around illumination. Fill: matched softbox front-right at 1-stop lower power for gentle shadow fill. Rim: overhead silk diffusion panel providing delicate edge separation. Color temperature precisely 5400-5600K neutral daylight with controlled floor bounce and zero specular hotspots on skin.',
+    camera: '85mm f/1.8 portrait lens, chest-up to full-body framing with subject at optimal distance for natural perspective. Shallow depth of field with clean backdrop falloff. Sharp focus on eyes with gentle bokeh transition. ISO 200, 1/200s shutter.',
     motion: 'static',
     mood: 'candid',
     style: 'realism',
-    negative_bias: 'No colored gels, no harsh shadows, no visible stands or cables, no oversaturation, no plastic skin texture.'
+    negative_bias: 'No colored gels, no harsh contrasty shadows, no visible stands or cables, no oversaturation, no plastic skin texture, no beauty filter smoothing, no HDR artifacts, no lens flare.'
   },
   {
     id: 'studio_cream',
     label: 'Warm Cream Backdrop',
     category: 'lifestyle',
     region: 'global',
-    scene: 'Warm cream seamless paper backdrop with visible paper grain, matte floor with natural scuff variation, and practical studio minimalism.',
-    lighting: 'Key: broad diffused source from camera-left. Fill: cream wall bounce on camera-right with realistic contrast retention. Rim: gentle top spill for shoulder separation. Warm-neutral 4800-5100K with true skin texture.',
-    camera: '85mm portrait lens, three-quarter framing, medium-deep focus preserving backdrop texture and garment edges.',
+    scene: 'Warm cream seamless paper backdrop with visible paper grain and natural fiber texture, matte concrete or wood floor with authentic scuff variation and wear marks, minimal studio props. The backdrop should show realistic paper roll curvature at floor transition.',
+    lighting: 'Key: broad 3-foot diffused source from camera-left creating gentle directional modeling. Fill: cream wall bounce on camera-right preserving realistic shadow contrast without lifting too much. Rim: gentle overhead spill creating subtle shoulder and hair separation. Warm-neutral 4800-5100K emphasizing natural warm skin undertones with true texture retention.',
+    camera: '85mm f/2.0 portrait lens, three-quarter framing from chest to knees. Medium-deep focus preserving backdrop paper texture and garment edge detail. Natural perspective without wide-angle distortion. ISO 160, balanced exposure.',
     motion: 'static',
     mood: 'candid',
     style: 'realism',
-    negative_bias: 'No cool blue cast, no hard specular flash, no clipped highlights, no heavy orange grade, no synthetic bokeh wash.'
+    negative_bias: 'No cool blue cast, no hard specular flash bouncing off paper, no clipped highlights on cheekbones, no heavy orange color grade, no synthetic bokeh wash, no skin smoothing.'
   },
   {
     id: 'studio_editorial',
     label: 'Fashion Editorial Studio',
     category: 'lifestyle',
     region: 'global',
-    scene: 'High-end editorial studio with white painted brick or plaster wall options, polished concrete floor, and sparse directional-set styling.',
-    lighting: 'Key: diffused directional window source from frame-left. Fill: controlled bounce preserving pore-level and fabric detail in shadows. Rim: narrow overhead edge for contour separation. Daylight balance 5300-5600K with realistic micro-contrast.',
-    camera: '85-100mm editorial framing with clean geometry and legible background material texture.',
+    scene: 'High-end editorial studio with white painted brick or hand-troweled plaster wall showing authentic texture, polished concrete floor with visible aggregate pattern, sparse directional set styling with maybe one architectural element. The space should feel minimal, intentional, and curated.',
+    lighting: 'Key: large diffused directional window-style source from frame-left creating sculptural facial modeling. Fill: controlled white card bounce preserving pore-level skin detail and fabric weave in shadows. Rim: narrow overhead strip light for precise contour separation on shoulders and jawline. Daylight balance 5300-5600K with editorial micro-contrast and realistic shadow falloff.',
+    camera: '85-100mm f/2.8 editorial framing with clean geometry, legible background material texture, and architectural precision. Subject positioned with intentional negative space. Sharp throughout garment detail.',
     motion: 'static',
     mood: 'candid',
     style: 'realism',
-    negative_bias: 'No cluttered props, no visible strobes, no hard paparazzi flash, no excessive sharpening, no fake depth blur.'
+    negative_bias: 'No cluttered props, no visible strobes or light stands, no harsh direct flash creating raccoon eyes, no excessive capture sharpening, no fake gaussian depth blur, no retouched poreless skin.'
   },
 ]
 
@@ -55,26 +55,26 @@ const LIFESTYLE_PRESETS: ScenePreset[] = [
     label: 'Modern Cafe',
     category: 'lifestyle',
     region: 'india',
-    scene: 'Contemporary Indian cafe with exposed brick accent wall, light wood tables, matte stone floor, pendant fixtures, and a window-side plant near the storefront glass.',
-    lighting: 'Key: window daylight from left storefront glazing. Fill: pendant spill and warm interior wall bounce. Rim: subtle practical edge from hanging lights. Warm-neutral 4800-5200K with no fluorescent green cast.',
-    camera: '50mm eye-level framing, standing or seated three-quarter composition, natural cafe depth blur.',
+    scene: 'Contemporary Indian cafe with exposed red-brown brick accent wall showing mortar texture, light oak wood tables with visible grain, matte terrazzo or stone floor, brass and black metal pendant light fixtures, and a lush monstera plant near the storefront glass window. Coffee cups and a small dessert plate visible on the table surface.',
+    lighting: 'Key: soft natural daylight streaming through left storefront glazing creating directional warmth. Fill: pendant fixture spill and warm interior masonry wall bounce holding facial shadow detail. Rim: subtle practical warm edge from hanging Edison fixtures. Warm-neutral 4800-5200K with no fluorescent green cast and natural interior ambiance.',
+    camera: '50mm f/2.0 eye-level framing, standing or seated three-quarter composition (waist to head). Natural cafe depth rendering with blurred background patrons and fixtures. Smartphone-quality casual feel with intentional composition. ISO 400 indoor ambient.',
     motion: 'subtle motion',
     mood: 'candid',
     style: 'realism',
-    negative_bias: 'No messy tabletops, no neon tint, no flat front lighting, no pasted-subject look.'
+    negative_bias: 'No messy tabletops with scattered items, no neon color tint, no flat front-on lighting destroying depth, no pasted-on subject look with mismatched shadows, no harsh overhead spots.'
   },
   {
     id: 'lifestyle_living_room',
     label: 'Modern Living Room',
     category: 'home',
     region: 'india',
-    scene: 'Contemporary living room with floor-to-ceiling windows, neutral sofa, warm wooden floorboards, sheer curtains, one accent plant, and tidy side surfaces.',
-    lighting: 'Key: broad window daylight from left through sheer curtains. Fill: warm wall and ceiling bounce to hold shadow detail. Rim: rear window spill for soft silhouette edge. Balanced warm daylight around 4900-5300K.',
-    camera: '50mm eye-level, three-quarter body framing, natural deep focus with clear room materials and no blur wall effect.',
+    scene: 'Contemporary living room with floor-to-ceiling windows showing a soft cityscape beyond, neutral linen sofa with throw pillows, warm oak hardwood floorboards with visible wood grain, sheer white curtains gently filtering light, one large fiddle-leaf fig plant in a ceramic planter, and clean side surfaces with minimal decor.',
+    lighting: 'Key: broad soft window daylight from left through sheer curtains creating diffused directional light. Fill: warm off-white wall and ceiling bounce holding shadow detail on face and body. Rim: rear window spill creating a soft luminous edge separating subject from background. Balanced warm daylight around 4900-5300K with residential warmth.',
+    camera: '50mm f/2.0 eye-level, three-quarter body framing. Natural deep focus with clear room materials visible — wood grain, fabric texture, plant leaves. No heavy background blur; room should feel real and lived-in.',
     motion: 'static',
     mood: 'candid',
     style: 'realism',
-    negative_bias: 'No overhead fluorescent dominance, no clutter, no competing mixed light sources, no sticker-edge compositing, no synthetic background blur.'
+    negative_bias: 'No overhead fluorescent dominance creating green cast, no clutter or mess, no competing mixed-temperature light sources, no sticker-edge compositing artifacts, no synthetic portrait-mode blur destroying room context.'
   },
 ]
 
@@ -84,39 +84,39 @@ const OUTDOOR_PRESETS: ScenePreset[] = [
     label: 'Golden Hour Walkway',
     category: 'outdoor',
     region: 'global',
-    scene: 'Clean promenade with warm paving stones, low safety railing, distant trees, and open sunset sky with soft cloud texture.',
-    lighting: 'Key: low sun from camera-left near horizon. Fill: open-sky ambient from opposite side. Rim: warm back edge on shoulders and hair. Golden-hour mix around 3500-4500K with long natural shadows.',
-    camera: '85mm portrait lens, three-quarter body, sunset bokeh layers in background.',
+    scene: 'Clean waterfront promenade with warm honey-toned paving stones, low brushed-steel safety railing, distant mature trees with backlit foliage, and expansive sunset sky with layered soft cirrus cloud texture painted in gold and peach tones. Ocean or lake visible beyond railing.',
+    lighting: 'Key: low warm sun positioned camera-left near horizon casting long directional shadows. Fill: open sky ambient from opposite side providing cool-toned shadow fill. Rim: warm golden back edge wrapping around shoulders, hair, and garment edges. Golden-hour color mix around 3500-4500K with natural long shadows and warm skin glow.',
+    camera: '85mm f/1.8 portrait lens, three-quarter body framing from knees up. Beautiful sunset bokeh layers in background with golden circles from distant lights. Focus locked on subject with dreamy atmospheric separation. ISO 200.',
     motion: 'subtle motion',
     mood: 'candid',
     style: 'realism',
-    negative_bias: 'No crowds, no harsh midday light, no crushed blacks, no overcooked orange saturation.'
+    negative_bias: 'No crowds or other people, no harsh midday overhead light, no crushed black shadows, no overcooked orange saturation turning skin unnatural, no fake lens flare overlays.'
   },
   {
     id: 'outdoor_beach',
     label: 'Beach Evening',
     category: 'outdoor',
     region: 'india',
-    scene: 'Indian shoreline with fine warm sand, gentle shoreline foam, sparse footprints, and horizon sky gradient from amber to blue.',
-    lighting: 'Key: sunset source from rear-side angle. Fill: sky dome and sand bounce to open facial shadows. Rim: warm sun edge from horizon line. Mixed 3800-5200K balance between warm skin and cool sky.',
-    camera: '50mm lens, three-quarter framing with visible ocean horizon and depth.',
+    scene: 'Indian coastline with fine warm golden sand showing natural ripple patterns, gentle turquoise shoreline foam lapping at the beach, sparse footprints leading away, and a dramatic horizon sky gradient transitioning from deep amber through salmon to steel blue. Distant fishing boats or rock formations for depth.',
+    lighting: 'Key: setting sun positioned at rear-side angle creating a warm rim-lit silhouette outline. Fill: sky dome light and sand bounce opening up facial shadows with warm reflected glow. Rim: warm sun edge from horizon line creating hair and shoulder luminance. Mixed 3800-5200K balance between warm skin tones and cool sky atmosphere.',
+    camera: '50mm f/2.0 lens, three-quarter framing with visible ocean horizon line and foreground sand texture providing depth. Subject positioned using rule of thirds against the dramatic sky.',
     motion: 'subtle motion',
     mood: 'candid',
     style: 'realism',
-    negative_bias: 'No beach crowd clutter, no umbrellas near subject, no harsh direct noon sun, no unrealistic teal-orange push.'
+    negative_bias: 'No beach crowd clutter or other people, no beach umbrellas near subject, no harsh direct noon sun creating squinting, no unrealistic teal-orange color push, no HDR tonemapping.'
   },
   {
     id: 'outdoor_park',
     label: 'Morning Park',
     category: 'outdoor',
     region: 'india',
-    scene: 'Maintained park with trimmed lawn, paved walking path, mature trees, wooden benches, and light morning mist over ground surfaces.',
-    lighting: 'Key: low morning sun filtered by tree canopy. Fill: grass and path bounce for gentle under-shadow lift. Rim: dappled backlight through leaves. Natural 4300-5200K with soft mist diffusion and true greens.',
-    camera: '50mm environmental framing with visible foreground-midground-background park depth.',
+    scene: 'Well-maintained urban park with trimmed emerald lawn showing morning dew, paved stone walking path with visible wear, mature banyan or neem trees with textured bark, wooden park benches with iron armrests, and light morning mist hovering low over ground surfaces. Distant joggers as tiny background elements.',
+    lighting: 'Key: low morning sun filtered through tree canopy creating dappled light patterns. Fill: grass and path bounce providing gentle under-shadow lift with green-reflected warmth. Rim: dappled warm backlight through leaves creating bokeh spots. Natural 4300-5200K with soft mist diffusion and true saturated greens.',
+    camera: '50mm f/2.8 environmental framing with visible foreground-midground-background depth through the park. Path leading into frame creates natural composition. Deep focus keeping trees and park features recognizable.',
     motion: 'subtle motion',
     mood: 'candid',
     style: 'realism',
-    negative_bias: 'No crowded pathways, no neon greens, no hard midday overhead, no synthetic CGI foliage texture.'
+    negative_bias: 'No crowded pathways, no neon-bright artificial greens, no hard midday overhead light, no synthetic CGI foliage texture, no oversaturated processing.'
   },
 ]
 
@@ -126,15 +126,14 @@ const URBAN_PRESETS: ScenePreset[] = [
     label: 'Rooftop Terrace Day',
     category: 'outdoor',
     region: 'india',
-    scene: 'Modern rooftop terrace with glass railing, clean concrete deck, potted plants, minimalist outdoor seating, and open skyline backdrop.',
-    lighting: 'Key: open daylight from high front-left with mild cloud diffusion. Fill: concrete floor and glass railing bounce. Rim: subtle skyline back edge. Neutral-cool 5500-6000K with clean daylight contrast.',
-    camera: '48mm smartphone-equivalent perspective, lifestyle standing composition with skyline depth.',
+    scene: 'Modern high-rise rooftop terrace with frameless glass railing, clean light concrete deck with expansion joints visible, manicured potted plants in geometric planters, minimalist outdoor teak lounge seating, and a sweeping city skyline backdrop with buildings at varying distances. Clear blue sky with wispy clouds.',
+    lighting: 'Key: open daylight from high front-left with mild cloud diffusion softening shadows. Fill: concrete floor and glass railing bounce creating gentle uplight. Rim: subtle skyline back edge separating subject from buildings. Neutral-cool 5500-6000K with clean urban daylight contrast and crisp shadow definition.',
+    camera: '35-50mm smartphone-equivalent perspective, lifestyle standing composition with skyline providing dramatic background depth. Full body or three-quarter framing with architectural context.',
     motion: 'static',
     mood: 'candid',
     style: 'realism',
-    negative_bias: 'No rooftop clutter, no industrial tanks, no flat overcast haze, no clipped sky highlights.'
+    negative_bias: 'No rooftop clutter or industrial equipment, no water tanks or AC units, no flat overcast haze washing out sky, no clipped sky highlights, no HDR halos.'
   },
-  // Removed: urban_street_dusk — dual color temperature (3200K+6800K) forces face recoloring
 ]
 
 const CELEBRATION_PRESETS: ScenePreset[] = [
@@ -143,13 +142,13 @@ const CELEBRATION_PRESETS: ScenePreset[] = [
     label: 'Festive Evening',
     category: 'lifestyle',
     region: 'india',
-    scene: 'Festive interior with marigold floral accents, brass diyas, candle points at multiple depths, silk drapes, and polished floor reflecting warm practicals.',
-    lighting: 'Key: clustered diya and candle practicals near foreground plane. Fill: warm reflected bounce from drapes and walls. Rim: string-light back edge producing soft bokeh halos. Warm 2600-3200K festive color temperature with controlled highlights.',
-    camera: '50mm eye-level framing, chest-up to three-quarter composition with layered festive bokeh.',
+    scene: 'Festive interior with fresh marigold garland accents in vibrant orange and yellow, polished brass diyas with flickering flames, clustered tea-light candles at multiple depths creating layered warmth, rich silk drapes in deep red or gold, and polished marble floor reflecting the warm practical lights. Rangoli or traditional decor elements visible.',
+    lighting: 'Key: clustered diya and candle practicals near foreground plane creating warm intimate illumination. Fill: warm reflected bounce from silk drapes and painted walls. Rim: string-light back edge producing soft circular bokeh halos at multiple distances. Warm 2600-3200K festive color temperature with controlled highlights and rich deep shadows.',
+    camera: '50mm f/1.8 eye-level framing, chest-up to three-quarter composition. Layered festive bokeh from candles and string lights creating magical background atmosphere. Rich warm tones throughout.',
     motion: 'static',
     mood: 'candid',
     style: 'realism',
-    negative_bias: 'No harsh direct flash, no garish decoration overload, no plastic decor texture, no flat single-source illumination.'
+    negative_bias: 'No harsh direct camera flash washing out ambiance, no garish plastic decoration overload, no cheap plastic decor texture, no flat single-source illumination destroying festive mood, no cool white light.'
   },
 ]
 
@@ -159,146 +158,107 @@ const CASUAL_PRESETS: ScenePreset[] = [
     label: 'Mirror Selfie',
     category: 'lifestyle',
     region: 'india',
-    scene: 'Bedroom or wardrobe mirror corner with visible frame edge, neutral painted wall, clean tiled or wood floor, and everyday home objects kept minimal.',
-    lighting: 'Key: window side light reflected in mirror from camera-left. Fill: soft room bounce plus weak ceiling practical. Rim: faint rear practical edge. Mixed indoor 3800-4600K with authentic phone-capture realism.',
-    camera: '26mm smartphone wide lens, handheld mirror perspective, slight natural tilt.',
+    scene: 'Bedroom or wardrobe mirror corner with visible wood or metal frame edge, neutral matte-painted wall in off-white or light grey, clean ceramic tile or warm wood laminate floor, and minimal everyday home objects (a shoe rack edge, a hanging jacket, a small plant). The mirror should show realistic reflection with slight glass imperfections.',
+    lighting: 'Key: window side light reflected in mirror from camera-left creating natural directional warmth. Fill: soft room bounce from ceiling and walls plus weak warm-tone ceiling practical light. Rim: faint rear practical edge from a bedside lamp. Mixed indoor 3800-4600K with authentic phone-capture realism and slight color fringing.',
+    camera: '26mm smartphone wide-angle selfie lens, handheld mirror perspective with phone visible in reflection. Slight natural tilt and off-center framing. Authentic phone camera quality with natural noise at ISO 800+.',
     motion: 'static',
     mood: 'candid',
     style: 'realism',
-    negative_bias: 'No pro studio setup, no perfect symmetry, no beauty-portrait framing, no synthetic mirror-clean CGI look.'
+    negative_bias: 'No professional studio setup visible, no perfect bilateral symmetry, no beauty-portrait framing, no synthetic mirror-clean CGI look, no portrait-mode blur, no beauty filter skin smoothing.'
   },
   {
     id: 'casual_street_candid',
     label: 'Street Candid',
     category: 'street',
     region: 'india',
-    scene: 'Clean sidewalk lane with textured wall, muted storefront depth, smooth pavement, and sparse background traffic blur.',
-    lighting: 'Key: soft side light from overcast sky corridor. Fill: pavement and wall bounce to keep natural facial shadow detail. Rim: faint ambient from open street end. Neutral daylight around 5200-5800K.',
-    camera: '48mm smartphone main camera, eye-level casual framing with natural portrait depth.',
+    scene: 'Clean Indian sidewalk lane with textured painted or plastered wall in warm cream or terracotta tones, muted colorful storefront depth with shop signage, smooth concrete or flagstone pavement with natural patina, and sparse background traffic blur suggesting urban life without crowding.',
+    lighting: 'Key: soft directional light from overcast sky filtered through urban corridor creating even illumination. Fill: pavement and wall bounce preserving natural facial shadow detail without harsh contrast. Rim: faint ambient glow from open street end creating gentle edge separation. Neutral daylight around 5200-5800K with urban documentary feel.',
+    camera: '48mm smartphone main camera f/1.8, eye-level casual framing with natural shallow depth. Candid composition as if a friend took the photo while walking. Slight motion energy without blur. ISO 200-400.',
     motion: 'subtle motion',
     mood: 'candid',
     style: 'realism',
-    negative_bias: 'No fashion-runway posing, no dramatic theatrical lighting, no HDR halos, no over-smoothed street textures.'
+    negative_bias: 'No fashion-runway stiff posing, no dramatic theatrical lighting with colored gels, no HDR halos around buildings, no over-smoothed road and wall textures, no oversaturated colors.'
   },
 ]
 
 const EXTENDED_PRESETS: ScenePreset[] = [
-  // ─── SAFE EXTENDED PRESETS ─────────────────────────────────────────────────
-  // Only presets with natural/neutral lighting and standard camera angles.
-  // Removed 18 presets that caused face drift due to:
-  //   - Colored gels/backdrops bleeding onto face (crimson, green-red, orange, red)
-  //   - Night mixed-color-temp lighting (gas station, fast-food, dusk, night garden)
-  //   - Unusual angles warping face geometry (fisheye, drone aerial, low-frame)
-  //   - B&W conversion reprocessing skin tones
-  //   - Hard directional light creating face shadows (beam split, court sun, dark study)
-  //   - Mirror reflection physics complicating identity
-  //   - High-contrast flash overriding face detail (mafia office, newspaper set)
-  // ──────────────────────────────────────────────────────────────────────────
-  /*
   {
     id: 'golden_hour_bedroom',
-    label: 'Golden Hour Bed (Blinds)',
+    label: 'Golden Hour Bed',
     category: 'home',
     region: 'global',
-    scene: 'Cozy bedroom with wrinkled off-white linen bedding, slatted blinds on side window, matte painted walls, and minimal bedside clutter.',
-    lighting: 'Key: low golden sun passing through blinds creating stripe pattern. Fill: soft wall bounce preserving shadow detail in bedding folds. Rim: narrow warm edge from blind slits. Warm 3400-4200K with natural falloff.',
-    camera: 'Top-down selfie POV with deep-to-moderate focus; keep bedding texture and room context legible, subtle grain only.',
+    scene: 'Cozy bedroom with rumpled off-white linen bedding showing natural fabric creases, slatted wooden blinds on a side window casting warm stripe patterns across the bed, matte warm-toned walls in cream or soft taupe, and minimal bedside clutter — just a small plant, a book, and a coffee mug on the nightstand.',
+    lighting: 'Key: low golden afternoon sun passing through blinds creating warm stripe pattern across bedding and subject. Fill: soft wall and ceiling bounce preserving shadow detail in bedding folds. Rim: narrow warm edge from blind slits creating graphic light patterns. Warm 3400-4200K with natural golden falloff.',
+    camera: 'Selfie POV from above, slightly angled. Deep-to-moderate focus keeping bedding texture and room context legible. Authentic phone camera quality with subtle grain and warm processing.',
     motion: 'static',
     mood: 'candid',
     style: 'realism',
-    negative_bias: 'No hard overhead flash, no cold blue cast, no perfectly flat bedding, no sterile hotel-room look.'
+    negative_bias: 'No harsh overhead flash, no cold blue cast, no perfectly flat ironed bedding, no sterile hotel-room look, no beauty filter smoothing.'
   },
   {
     id: 'studio_gray_flash',
     label: 'Gray Flash Editorial',
     category: 'lifestyle',
     region: 'global',
-    scene: 'Gray gradient studio backdrop with clean matte floor, no props, and visible tonal roll-off from center to edges.',
-    lighting: 'Key: direct frontal flash for crisp detail. Fill: low ambient bounce from gray floor and backdrop. Rim: gentle side kicker to separate garment edges. Neutral 5200-5600K with analog-like grain tolerance.',
-    camera: '85mm chest-up to mid-shot framing, shallow depth.',
+    scene: 'Medium gray gradient studio backdrop with clean matte floor, no props, and visible tonal roll-off from center to edges creating depth. The gray should be a true neutral 50% without color bias.',
+    lighting: 'Key: controlled direct frontal flash for crisp detail and catchlights. Fill: low ambient bounce from gray floor and backdrop providing subtle shadow fill. Rim: narrow side kicker to separate garment edges from gray backdrop. Neutral 5200-5600K with analog-like grain tolerance and punchy contrast.',
+    camera: '85mm f/2.0 chest-up to mid-shot framing with shallow depth of field. Fashion editorial composition with intentional negative space. Sharp focus on face and garment with smooth backdrop falloff.',
     motion: 'static',
     mood: 'candid',
     style: 'realism',
-    negative_bias: 'No soft beauty flattening, no pastel haze, no overexposed forehead hotspots, no plastic texture.'
+    negative_bias: 'No soft beauty flattening, no pastel haze overlays, no overexposed forehead hotspots, no plastic skin texture, no oversharpening artifacts.'
   },
   {
     id: 'lifestyle_airport_terminal',
     label: 'Airport Travel Candid',
     category: 'travel',
     region: 'global',
-    scene: 'Airport concourse with floor-to-ceiling glass, visible tarmac activity, brushed metal columns, handrails, rolling luggage, and polished tile walkways.',
-    lighting: 'Key: broad overcast daylight through glass walls. Fill: reflective bounce from tile floor and metal surfaces. Rim: back-side window edge on silhouette. Cool-neutral 5200-6200K with soft travel-documentary contrast.',
-    camera: 'Smartphone-style mid-shot with slight tilt and off-center framing.',
+    scene: 'Modern airport terminal concourse with floor-to-ceiling glass walls showing tarmac activity, brushed stainless steel columns, chrome handrails, a rolling cabin suitcase nearby, and polished terrazzo tile walkways with wayfinding line markings. Distant departure boards and gate signage visible.',
+    lighting: 'Key: broad overcast daylight flooding through glass curtain walls. Fill: reflective bounce from polished tile floor and metal surfaces creating soft uplight. Rim: back-side window edge creating a luminous silhouette outline. Cool-neutral 5200-6200K with travel-documentary soft contrast.',
+    camera: 'Smartphone-style mid-shot with slight casual tilt and off-center framing. Travel influencer aesthetic — candid and effortless. Natural phone depth rendering.',
     motion: 'subtle motion',
     mood: 'candid',
     style: 'realism',
-    negative_bias: 'No catalog-style posing, no flash hotspot look, no overly saturated airport signage, no fake motion blur artifacts.'
+    negative_bias: 'No catalog-style stiff posing, no flash hotspot look, no overly saturated airport signage, no fake motion blur artifacts, no crowds near subject.'
   },
   {
     id: 'lifestyle_tropical_patio',
     label: 'Tropical Patio Lunch',
     category: 'lifestyle',
     region: 'global',
-    scene: 'Upscale patio dining area with dark green umbrella canopy, marble-pattern table surface, white dishware, food bowl, glassware, and dense tropical foliage behind.',
-    lighting: 'Key: soft shaded daylight under umbrella. Fill: table and light stone surfaces bouncing neutral light upward. Rim: bright sunlit foliage edge behind subject separation. Mixed 4500-6000K with shaded foreground and bright background contrast.',
-    camera: 'Smartphone medium close-up from slight high angle with food props in foreground.',
+    scene: 'Upscale resort patio dining area with dark green canvas umbrella canopy providing shade, marble-pattern round table surface, white ceramic dishware with artful food plating, a clear glass of water with ice and lime, and dense tropical foliage (palms, banana leaves, bougainvillea) creating a lush green backdrop.',
+    lighting: 'Key: soft shaded daylight under umbrella creating even facial illumination. Fill: table surface and light stone surfaces bouncing neutral light upward. Rim: bright sunlit foliage edge behind subject creating luminous green separation. Mixed 4500-6000K with cool shaded foreground and bright warm background contrast.',
+    camera: 'Smartphone-style medium close-up from slight high angle looking down at table. Food props in foreground creating depth layers. Casual influencer lunch content style.',
     motion: 'static',
     mood: 'candid',
     style: 'realism',
-    negative_bias: 'No empty table, no sterile studio ambiance, no over-sharpened food details, no flat one-zone exposure.'
-  },
-  {
-    id: 'lifestyle_european_bench',
-    label: 'European Street Bench',
-    category: 'travel',
-    region: 'global',
-    scene: 'European sidewalk with stone facades, wrought-iron balconies, wooden bench, cafe details, and textured paving stones.',
-    lighting: 'Key: soft directional daylight from open street side. Fill: stone wall and pavement bounce to keep tonal continuity. Rim: subtle back edge from sky opening at street end. Neutral-warm 5000-5700K.',
-    camera: 'Phone-style seated three-quarter composition, casual off-center travel framing.',
-    motion: 'subtle motion',
-    mood: 'candid',
-    style: 'realism',
-    negative_bias: 'No aggressive HDR, no heavy crowd congestion, no over-posed stance, no unrealistic architectural blur.'
+    negative_bias: 'No empty table surface, no sterile studio ambiance, no over-sharpened food details, no flat single-zone exposure, no oversaturated tropical colors.'
   },
   {
     id: 'home_cozy_teddy_selfie',
-    label: 'Cozy Teddy Selfie',
+    label: 'Cozy Home Selfie',
     category: 'home',
     region: 'global',
-    scene: 'Apartment living-room couch with textured throw blanket, pastel cushion accents, neutral wall, and natural lived-in scale.',
-    lighting: 'Key: diffused window-style light at 45 degrees camera-left. Fill: couch fabric bounce preserving skin texture and plush fiber detail. Rim: mild ambient wrap from room walls.',
-    camera: 'Front-facing selfie perspective with realistic phone optics; subject and nearby props sharp, background detail present without blur smearing.',
+    scene: 'Apartment living-room plush sofa with a chunky knit throw blanket, pastel and earth-tone cushion accents, neutral painted wall in warm white or light sage, and natural lived-in scale — a remote control on the armrest, a mug on the coffee table, soft afternoon light.',
+    lighting: 'Key: diffused window-style light at 45 degrees camera-left creating warm directional glow. Fill: sofa fabric and wall bounce preserving skin texture and plush fiber detail. Rim: mild ambient wrap from room walls providing gentle separation.',
+    camera: 'Front-facing smartphone selfie perspective with realistic wide-angle phone optics. Subject and nearby cushions sharp, background room detail present without heavy blur. Natural phone processing with slight warmth.',
     motion: 'static',
     mood: 'candid',
     style: 'realism',
-    negative_bias: 'No over-smoothed pores, no CGI plush texture, no waxy fabric, no fake portrait-mode blur.'
+    negative_bias: 'No over-smoothed skin pores, no CGI plush texture on fabrics, no waxy shiny fabric look, no fake portrait-mode edge blur, no beauty filter.'
   },
-  {
-    id: 'travel_scene_lock_realism',
-    label: 'Travel Scene Lock',
-    category: 'travel',
-    region: 'global',
-    scene: 'Travel location remains fixed from source: consistent architecture, road/floor geometry, and environmental objects in true perspective.',
-    lighting: 'Key/fill/rim must match the original travel scene exactly, preserving source light direction and shadow behavior on all surfaces.',
-    camera: 'Preserve source camera perspective and depth behavior with natural deep focus and crisp environmental detail.',
-    motion: 'static',
-    mood: 'candid',
-    style: 'realism',
-    negative_bias: 'No scene replacement, no perspective drift, no extra people, no fake depth blur or bokeh overlays.'
-  },
-  */
   {
     id: 'studio_white_brick_bench',
     label: 'White Brick Bench Studio',
     category: 'lifestyle',
     region: 'global',
-    scene: 'Minimal white brick wall studio with dark bench seating and matte light floor, clean architectural geometry and neutral tone control.',
-    lighting: 'Key: broad diffused front source. Fill: wall and floor bounce for gentle tonal continuity. Rim: subtle side contour to maintain body separation from wall.',
-    camera: '35-50mm symmetric editorial composition with deep focus across wall texture and seating.',
+    scene: 'Minimal studio with painted white brick wall showing authentic mortar lines and texture variation, dark wooden or metal bench seating as the only prop, matte light concrete floor, clean architectural geometry with intentional negative space and neutral tonal control throughout.',
+    lighting: 'Key: broad diffused front source creating even, flattering illumination. Fill: white brick wall and floor bounce for gentle tonal continuity across the scene. Rim: subtle side contour light maintaining body separation from the textured wall.',
+    camera: '35-50mm symmetric editorial composition with deep focus preserving wall brick texture and bench material detail. Full body seated or perched pose showing complete outfit.',
     motion: 'static',
     mood: 'candid',
     style: 'realism',
-    negative_bias: 'No overexposed wall clipping, no hazy blur haze, no artificial texture smoothing.'
+    negative_bias: 'No overexposed wall clipping losing brick detail, no hazy blur haze, no artificial texture smoothing on brick, no plastic skin look.'
   },
 ]
 

@@ -205,7 +205,7 @@ export async function POST(request: Request) {
           userRequest,
           aspectRatio: reqAspectRatio ?? '1:1',
           resolution: reqResolution ?? '2K',
-          model: 'gemini-3-pro-image-preview',
+          model: 'gpt-image-1.5',
         },
         status: 'pending',
       })

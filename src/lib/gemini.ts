@@ -76,6 +76,8 @@ export async function generateIntelligentAdComposition(
     lockFaceIdentity?: boolean
     /** Output aspect ratio — injected into prompt as composition instruction */
     aspectRatio?: '1:1' | '9:16' | '16:9' | '4:5'
+    /** Override temperature for face-lock (lower = more deterministic / less face drift) */
+    temperature?: number
   }
 ): Promise<string> {
   try {
@@ -94,10 +96,10 @@ export async function generateIntelligentAdComposition(
       generationConfig: {
         // @ts-ignore - responseModalities is valid for image models
         responseModalities: ['image', 'text'],
-        // Lower randomness for more stable, production-grade ad outputs
-        temperature: 0.4,
-        topP: 0.9,
-        topK: 64,
+        // Lower randomness for face-lock (0.2) vs normal (0.4)
+        temperature: options?.temperature ?? 0.4,
+        topP: options?.lockFaceIdentity ? 0.8 : 0.9,
+        topK: options?.lockFaceIdentity ? 32 : 64,
       },
     })
 
