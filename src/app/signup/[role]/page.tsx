@@ -22,14 +22,14 @@ export default function SignupPage() {
   const blobPalette = isInfluencer
     ? {
         pageBg: '#FFF7F1',
-        overlay: 'bg-[linear-gradient(180deg,rgba(255,249,244,0.72)_0%,rgba(255,245,238,0.76)_100%)]',
-        grid: 'opacity-[0.07]',
+        overlay: 'bg-[linear-gradient(180deg,rgba(255,249,244,0.38)_0%,rgba(255,245,238,0.46)_100%)]',
+        grid: 'opacity-[0.05]',
         blobs: ['#FF8C69', '#FFB38A', '#FFD166', '#F97316'],
       }
     : {
         pageBg: '#F7FDED',
-        overlay: 'bg-[linear-gradient(180deg,rgba(248,255,241,0.72)_0%,rgba(242,251,231,0.76)_100%)]',
-        grid: 'opacity-[0.07]',
+        overlay: 'bg-[linear-gradient(180deg,rgba(248,255,241,0.38)_0%,rgba(242,251,231,0.46)_100%)]',
+        grid: 'opacity-[0.05]',
         blobs: ['#B4F056', '#7DDC73', '#D9FF8A', '#65C466'],
       }
 
@@ -177,9 +177,6 @@ export default function SignupPage() {
           <div className="relative min-h-[calc(100dvh-4rem)]">
             <div className="relative flex min-h-[calc(100dvh-4rem)] items-end p-6 xl:p-8">
               <div className="max-w-[560px] rounded-[34px] border-[4px] border-black bg-[#ECE8E1]/90 p-8 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] backdrop-blur-[2px] xl:p-10">
-                <div className="mb-4 inline-flex rounded-full border-[3px] border-black bg-white px-4 py-2 text-sm font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                  {copy.eyebrow}
-                </div>
                 <h1 className="max-w-[520px] text-[clamp(2.5rem,4vw,4rem)] font-black uppercase leading-[0.95] text-black">
                   {copy.sideTitle}
                 </h1>
@@ -189,16 +186,6 @@ export default function SignupPage() {
                 <p className="mt-5 max-w-[520px] text-lg font-semibold leading-relaxed text-black/72">
                   {copy.sideBody}
                 </p>
-                <div className="mt-8 max-w-[520px] rounded-[24px] border-[3px] border-black bg-white/92 px-5 py-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                  <p className="text-[11px] font-black uppercase tracking-[0.28em] text-black/55">
-                    What you unlock
-                  </p>
-                  <p className="mt-2 text-base font-bold leading-relaxed text-black/80">
-                    {isInfluencer
-                      ? 'Personalized try-ons, a polished creator profile, and a cleaner runway into brand collaborations.'
-                      : 'A focused brand workspace for products, campaigns, influencer discovery, and polished launch assets.'}
-                  </p>
-                </div>
               </div>
             </div>
           </div>
@@ -264,10 +251,10 @@ function AnimatedBlobBackground({ colors }: { colors: string[] }) {
             `}
           </style>
         </defs>
-        <path fill={colors[0]} fillOpacity="0.22" className="signup-out-top" d="M37-5C25.1-14.7,5.7-19.1-9.2-10-28.5,1.8-32.7,31.1-19.8,49c15.5,21.5,52.6,22,67.2,2.3C59.4,35,53.7,8.5,37-5Z" />
-        <path fill={colors[1]} fillOpacity="0.18" className="signup-in-top" d="M20.6,4.1C11.6,1.5-1.9,2.5-8,11.2-16.3,23.1-8.2,45.6,7.4,50S42.1,38.9,41,24.5C40.2,14.1,29.4,6.6,20.6,4.1Z" />
-        <path fill={colors[2]} fillOpacity="0.2" className="signup-out-bottom" d="M105.9,48.6c-12.4-8.2-29.3-4.8-39.4.8-23.4,12.8-37.7,51.9-19.1,74.1s63.9,15.3,76-5.6c7.6-13.3,1.8-31.1-2.3-43.8C117.6,63.3,114.7,54.3,105.9,48.6Z" />
-        <path fill={colors[3]} fillOpacity="0.16" className="signup-in-bottom" d="M102,67.1c-9.6-6.1-22-3.1-29.5,2-15.4,10.7-19.6,37.5-7.6,47.8s35.9,3.9,44.5-12.5C115.5,92.6,113.9,74.6,102,67.1Z" />
+        <path fill={colors[0]} fillOpacity="0.34" className="signup-out-top" d="M37-5C25.1-14.7,5.7-19.1-9.2-10-28.5,1.8-32.7,31.1-19.8,49c15.5,21.5,52.6,22,67.2,2.3C59.4,35,53.7,8.5,37-5Z" />
+        <path fill={colors[1]} fillOpacity="0.28" className="signup-in-top" d="M20.6,4.1C11.6,1.5-1.9,2.5-8,11.2-16.3,23.1-8.2,45.6,7.4,50S42.1,38.9,41,24.5C40.2,14.1,29.4,6.6,20.6,4.1Z" />
+        <path fill={colors[2]} fillOpacity="0.3" className="signup-out-bottom" d="M105.9,48.6c-12.4-8.2-29.3-4.8-39.4.8-23.4,12.8-37.7,51.9-19.1,74.1s63.9,15.3,76-5.6c7.6-13.3,1.8-31.1-2.3-43.8C117.6,63.3,114.7,54.3,105.9,48.6Z" />
+        <path fill={colors[3]} fillOpacity="0.24" className="signup-in-bottom" d="M102,67.1c-9.6-6.1-22-3.1-29.5,2-15.4,10.7-19.6,37.5-7.6,47.8s35.9,3.9,44.5-12.5C115.5,92.6,113.9,74.6,102,67.1Z" />
       </svg>
     </div>
   )

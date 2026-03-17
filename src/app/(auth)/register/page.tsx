@@ -8,7 +8,6 @@ import {
   ArrowRight,
   Building2,
   Camera,
-  Check,
   Megaphone,
   Sparkles,
   Users,
@@ -114,21 +113,12 @@ function RegisterContent() {
 
   return (
     <div className="relative min-h-[100dvh] overflow-hidden bg-[#F9F8F4]">
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,#fffdf8_0%,#f8f3e8_100%)]" />
-      <div className="absolute inset-0 opacity-50 [background-image:linear-gradient(rgba(0,0,0,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.05)_1px,transparent_1px)] [background-size:34px_34px]" />
-      <div className="absolute left-[6%] top-[10%] h-48 w-48 rounded-full bg-[#FFD93D]/20 blur-3xl" />
-      <div className="absolute right-[8%] top-[14%] h-40 w-40 rounded-full bg-[#FF8C69]/18 blur-3xl" />
-      <div className="absolute bottom-[10%] left-[18%] h-44 w-44 rounded-full bg-[#B4F056]/18 blur-3xl" />
-      <div className="absolute bottom-[12%] right-[12%] h-40 w-40 rounded-full bg-[#FFD93D]/14 blur-3xl" />
-
-      <div className="pointer-events-none absolute left-[4%] top-[16%] hidden h-5 w-5 rounded-full bg-black lg:block" />
-      <div className="pointer-events-none absolute right-[6%] top-[8%] hidden h-16 w-16 text-[#FF8C69] lg:block">
-        <svg viewBox="0 0 24 24" fill="currentColor" stroke="black" strokeWidth="0.7">
-          <path d="M12 0L14.5 9L24 12L14.5 15L12 24L9.5 15L0 12L9.5 9L12 0Z" />
-        </svg>
-      </div>
-      <div className="pointer-events-none absolute bottom-[14%] right-[10%] hidden h-28 w-24 rotate-12 border-[4px] border-black/75 bg-[#FFD93D]/45 lg:block" />
-      <div className="pointer-events-none absolute bottom-[18%] left-[8%] hidden h-20 w-20 rounded-[26px] border-[4px] border-black/75 bg-[#B4F056]/40 lg:block" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,#fffaf3_0%,#f6efe1_100%)]" />
+      <div className="absolute inset-0 opacity-35 [background-image:linear-gradient(rgba(0,0,0,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.045)_1px,transparent_1px)] [background-size:34px_34px]" />
+      <div className="absolute left-[-8%] top-[-4%] h-[30rem] w-[30rem] rounded-full bg-[#FF8C69]/28 blur-3xl" />
+      <div className="absolute right-[-6%] top-[8%] h-[28rem] w-[28rem] rounded-full bg-[#B4F056]/24 blur-3xl" />
+      <div className="absolute bottom-[-10%] left-[12%] h-[24rem] w-[24rem] rounded-full bg-[#FFD93D]/22 blur-3xl" />
+      <div className="absolute bottom-[0%] right-[16%] h-[20rem] w-[20rem] rounded-full bg-[#FF8C69]/18 blur-3xl" />
 
       <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-7xl flex-col justify-center px-4 py-10 sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-6xl">
@@ -178,12 +168,6 @@ function RegisterContent() {
               <div className="absolute bottom-6 left-6 h-14 w-14 rounded-[20px] border-[4px] border-black/75 bg-white/35" />
 
               <div className="relative z-10">
-                <div
-                  className="mb-5 inline-flex items-center rounded-full border-[3px] border-black bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.22em] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-                >
-                  {selectedContent.kicker}
-                </div>
-
                 <h2 className="max-w-xl text-[clamp(2.4rem,5vw,4.4rem)] font-black uppercase leading-[0.92] text-black">
                   {selectedContent.title}
                 </h2>
@@ -197,20 +181,17 @@ function RegisterContent() {
                   {selectedContent.description}
                 </p>
 
-                <div className="mt-7 grid gap-3">
+                <ul className="mt-7 space-y-3">
                   {selectedContent.bullets.map((bullet) => (
-                    <div
-                      key={bullet}
-                      className="flex items-center gap-3 rounded-2xl border-[3px] border-black bg-white/90 px-4 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-                    >
-                      <div
-                        className="h-4 w-4 rounded-full border-[2px] border-black"
+                    <li key={bullet} className="flex items-start gap-3 text-base font-bold text-black/82">
+                      <span
+                        className="mt-1.5 h-3.5 w-3.5 shrink-0 rounded-full border-[2px] border-black"
                         style={{ backgroundColor: selectedContent.accent }}
                       />
-                      <span className="font-bold text-black">{bullet}</span>
-                    </div>
+                      <span>{bullet}</span>
+                    </li>
                   ))}
-                </div>
+                </ul>
 
                 <button
                   type="button"
@@ -271,32 +252,11 @@ function RoleCard({
             <h3 className="text-2xl font-black uppercase text-black sm:text-3xl">
               {role === 'INFLUENCER' ? 'Influencer' : 'Brand'}
             </h3>
-            {active && (
-              <div
-                className="inline-flex items-center gap-1 rounded-full border-[2px] border-black px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em]"
-                style={{ backgroundColor: content.accent }}
-              >
-                <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                Selected
-              </div>
-            )}
           </div>
 
           <p className="mt-2 max-w-xl text-sm font-semibold leading-relaxed text-black/65 sm:text-base">
             {content.description}
           </p>
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            {content.tags.map(({ icon: TagIcon, label }) => (
-              <span
-                key={label}
-                className="inline-flex items-center gap-1 rounded-full border-[2px] border-black bg-white px-3 py-1 text-[11px] font-black uppercase tracking-[0.15em]"
-              >
-                <TagIcon className="h-3.5 w-3.5" />
-                {label}
-              </span>
-            ))}
-          </div>
 
           <button
             type="button"
