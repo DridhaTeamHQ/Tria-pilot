@@ -62,9 +62,10 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   const hasFaceReference = Boolean(input.hasFaceReference)
 
   // Image references differ between Gemini and GPT Image
+  // GPT order: face close-up (1st) → person full-body (2nd) → garment (3rd)
+  const faceCropRef = isGPT ? 'the face close-up photo (first image)' : 'Image 3 (close-up)'
   const personRef = isGPT ? 'the person photo' : 'Image 1'
   const garmentRef = isGPT ? 'the garment photo' : 'Image 2'
-  const faceCropRef = isGPT ? 'the face close-up photo' : 'Image 3 (close-up)'
   const garment = input.garmentDescription?.trim() || `garment from ${garmentRef}`
 
   // Extract a SHORT scene description (max 120 chars) from the preset

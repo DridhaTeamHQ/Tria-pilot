@@ -633,30 +633,34 @@ export async function generateTryOnGPT(options: DirectTryOnOptions): Promise<str
   const { toFile } = await import('openai')
   const client = new OpenAI({ apiKey: getOpenAIKey() })
 
-  // Concise prefix — the detailed face-lock is now in the forensic prompt itself
-  // Research: shorter prompts = better face consistency (avoid over-prompting)
-  const faceFirstPrefix = `RULE #1: The person's face must be IDENTICAL to the first input image. Do not alter, beautify, or reshape any facial feature.\n\n`
+  // Concise prefix — references face crop which is now the FIRST image
+  const faceFirstPrefix = `RULE #1: The person's face must be IDENTICAL to the close-up face reference (first input image). Do not alter, beautify, or reshape any facial feature.\n\n`
   const fullPrompt = faceFirstPrefix + prompt
 
   // Build image array using toFile() — the official SDK approach
-  // Person image FIRST — GPT Image preserves first image with highest fidelity
+  // FACE CROP FIRST — GPT Image preserves first image with highest fidelity
+  // This gives face identity the strongest signal possible
   const images: any[] = []
 
-  const personFile = await toFile(Buffer.from(cleanPerson, 'base64'), 'person.png', { type: 'image/png' })
-  images.push(personFile)
-
-  const garmentFile = await toFile(Buffer.from(cleanGarment, 'base64'), 'garment.png', { type: 'image/png' })
-  images.push(garmentFile)
-
-  // Add face crop as third image if available (identity reinforcement)
+  // 1. Face crop FIRST (if available) — identity anchor gets highest priority position
+  let hasFaceCropFirst = false
   if (faceCropBase64 && faceCropBase64.length > 100) {
     const cleanFaceCrop = faceCropBase64.replace(/^data:image\/[a-z]+;base64,/, '')
     if (cleanFaceCrop.length > 100) {
-      const faceCropFile = await toFile(Buffer.from(cleanFaceCrop, 'base64'), 'face_crop.png', { type: 'image/png' })
+      const faceCropFile = await toFile(Buffer.from(cleanFaceCrop, 'base64'), 'face_reference.png', { type: 'image/png' })
       images.push(faceCropFile)
-      if (isDev) console.log('👤 Added face crop for identity reinforcement')
+      hasFaceCropFirst = true
+      if (isDev) console.log('👤 Face crop placed FIRST for maximum identity fidelity')
     }
   }
+
+  // 2. Person full-body (second — provides body proportions and pose)
+  const personFile = await toFile(Buffer.from(cleanPerson, 'base64'), 'person.png', { type: 'image/png' })
+  images.push(personFile)
+
+  // 3. Garment (last — lowest priority, just for clothing reference)
+  const garmentFile = await toFile(Buffer.from(cleanGarment, 'base64'), 'garment.png', { type: 'image/png' })
+  images.push(garmentFile)
 
   if (isDev) console.log(`📡 Sending to GPT Image 1.5 via SDK images.edit (${fullPrompt.length} chars)`)
 
