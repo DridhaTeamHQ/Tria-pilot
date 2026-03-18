@@ -626,65 +626,53 @@ export async function generateTryOnGPT(options: DirectTryOnOptions): Promise<str
     throw new Error('Invalid garment image')
   }
 
-  if (isDev) console.log(`🎯 GPT IMAGE (Direct API) TRANSPORT: prompt ${prompt.length} chars`)
+  if (isDev) console.log(`🎯 GPT IMAGE (SDK) TRANSPORT: prompt ${prompt.length} chars`)
 
   const { getOpenAIKey } = await import('@/lib/config/api-keys')
-  const apiKey = getOpenAIKey()
+  const OpenAI = (await import('openai')).default
+  const { toFile } = await import('openai')
+  const client = new OpenAI({ apiKey: getOpenAIKey() })
 
   // Prepend strong anti-cartoon realism mandate
   const realismPrefix = `CRITICAL: Output a RAW PHOTOGRAPH — NOT illustration, NOT digital art, NOT cartoon, NOT CGI, NOT stylized, NOT anime. Must be INDISTINGUISHABLE from a real photo shot on a Canon EOS R5 DSLR with natural film grain, real skin pores, and authentic lighting. If it looks even slightly AI-generated or illustrated, it is a FAILURE.\n\n`
   const fullPrompt = realismPrefix + prompt
 
-  // Build multipart form data — bypasses SDK model validation
-  // Using the raw /v1/images/edits endpoint which accepts gpt-image-1.5 directly
-  const formData = new FormData()
-  formData.append('model', 'gpt-image-1.5')
-  formData.append('prompt', fullPrompt)
-  formData.append('n', '1')
-  formData.append('size', resolveGPTImageSize(aspectRatio))
-  formData.append('response_format', 'b64_json')
-
+  // Build image array using toFile() — the official SDK approach
   // Person image FIRST — GPT Image preserves first image with highest fidelity
-  const personBlob = new Blob([Buffer.from(cleanPerson, 'base64')], { type: 'image/png' })
-  formData.append('image[]', personBlob, 'person.png')
+  const images: any[] = []
 
-  const garmentBlob = new Blob([Buffer.from(cleanGarment, 'base64')], { type: 'image/png' })
-  formData.append('image[]', garmentBlob, 'garment.png')
+  const personFile = await toFile(Buffer.from(cleanPerson, 'base64'), 'person.png', { type: 'image/png' })
+  images.push(personFile)
+
+  const garmentFile = await toFile(Buffer.from(cleanGarment, 'base64'), 'garment.png', { type: 'image/png' })
+  images.push(garmentFile)
 
   // Add face crop as third image if available (identity reinforcement)
   if (faceCropBase64 && faceCropBase64.length > 100) {
     const cleanFaceCrop = faceCropBase64.replace(/^data:image\/[a-z]+;base64,/, '')
     if (cleanFaceCrop.length > 100) {
-      const faceCropBlob = new Blob([Buffer.from(cleanFaceCrop, 'base64')], { type: 'image/png' })
-      formData.append('image[]', faceCropBlob, 'face_crop.png')
+      const faceCropFile = await toFile(Buffer.from(cleanFaceCrop, 'base64'), 'face_crop.png', { type: 'image/png' })
+      images.push(faceCropFile)
       if (isDev) console.log('👤 Added face crop for identity reinforcement')
     }
   }
 
-  if (isDev) console.log(`📡 Sending to GPT Image 1.5 via direct API (${fullPrompt.length} chars)`)
+  if (isDev) console.log(`📡 Sending to GPT Image 1.5 via SDK images.edit (${fullPrompt.length} chars)`)
 
   const startTime = Date.now()
 
-  const response = await fetch('https://api.openai.com/v1/images/edits', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: formData,
+  const response = await client.images.edit({
+    model: 'gpt-image-1.5',
+    image: images,
+    prompt: fullPrompt,
+    size: resolveGPTImageSize(aspectRatio) as any,
+    n: 1,
   })
 
   const duration = ((Date.now() - startTime) / 1000).toFixed(2)
-
-  if (!response.ok) {
-    const errBody = await response.json().catch(() => ({}))
-    if (isDev) console.error(`❌ GPT Image 1.5 error (${response.status}):`, JSON.stringify(errBody))
-    throw new Error(`GPT Image 1.5 error ${response.status}: ${errBody?.error?.message || response.statusText}`)
-  }
-
-  const result = await response.json()
   if (isDev) console.log(`🎯 GPT IMAGE 1.5: responded in ${duration}s`)
 
-  const imgData = result?.data?.[0]
+  const imgData = response?.data?.[0]
   if (!imgData?.b64_json) {
     throw new Error('GPT Image 1.5 returned no image data')
   }

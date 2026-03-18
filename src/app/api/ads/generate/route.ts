@@ -12,7 +12,7 @@ import { createClient, createServiceClient } from '@/lib/auth'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { tryAcquireInFlight } from '@/lib/traffic-guard'
 import { rateAdCreative, generateAdCopy } from '@/lib/openai'
-import OpenAI from 'openai'
+import OpenAI, { toFile } from 'openai'
 import { getOpenAIKey } from '@/lib/config/api-keys'
 import { generateIntelligentAdComposition } from '@/lib/gemini'
 import { GeminiRateLimitError } from '@/lib/gemini/executor'
@@ -374,39 +374,29 @@ async function generateFaceLockedAdWithOpenAI(params: {
     console.log('[FaceAnchor] Full prompt length:', editPrompt.length, 'chars')
   }
 
-  // Step 3: Build multipart form data — person image first (identity anchor)
-  const apiKey = getOpenAIKey()
-  const formData = new FormData()
-  formData.append('model', 'gpt-image-1.5')
-  formData.append('prompt', editPrompt)
-  formData.append('n', '1')
-  formData.append('size', resolveOpenAIImageSize(params.aspectRatio))
-  formData.append('response_format', 'b64_json')
+  // Step 3: Build image array using toFile() — official SDK approach
+  const images: any[] = []
 
   const cleanPerson = stripDataUri(params.influencerImage)
-  const personBlob = new Blob([Buffer.from(cleanPerson, 'base64')], { type: 'image/png' })
-  formData.append('image[]', personBlob, 'person.png')
+  const personFile = await toFile(Buffer.from(cleanPerson, 'base64'), 'person.png', { type: 'image/png' })
+  images.push(personFile)
 
   if (params.productImage) {
     const cleanProduct = stripDataUri(params.productImage)
-    const productBlob = new Blob([Buffer.from(cleanProduct, 'base64')], { type: 'image/png' })
-    formData.append('image[]', productBlob, 'product.png')
+    const productFile = await toFile(Buffer.from(cleanProduct, 'base64'), 'product.png', { type: 'image/png' })
+    images.push(productFile)
   }
 
-  // Step 4: Call GPT Image 1.5 directly via /v1/images/edits
-  const gptResponse = await fetch('https://api.openai.com/v1/images/edits', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${apiKey}` },
-    body: formData,
+  // Step 4: Call GPT Image 1.5 via SDK images.edit()
+  const gptResponse = await openaiClient.images.edit({
+    model: 'gpt-image-1.5',
+    image: images,
+    prompt: editPrompt,
+    size: resolveOpenAIImageSize(params.aspectRatio) as any,
+    n: 1,
   })
 
-  if (!gptResponse.ok) {
-    const errBody = await gptResponse.json().catch(() => ({}))
-    throw new Error(`GPT Image error ${gptResponse.status}: ${errBody?.error?.message || gptResponse.statusText}`)
-  }
-
-  const gptResult = await gptResponse.json()
-  const imgData = gptResult?.data?.[0]
+  const imgData = gptResponse?.data?.[0]
   if (!imgData?.b64_json) {
     throw new Error('GPT Image returned no image data')
   }
@@ -653,34 +643,25 @@ export async function POST(request: Request) {
         console.log('[AdsAPI] Generating ad with GPT Image 1.5...')
       }
 
-      // Use GPT Image 1.5 via direct /v1/images/edits API
-      const apiKey = getOpenAIKey()
-      const formData = new FormData()
-      formData.append('model', 'gpt-image-1.5')
-      formData.append('prompt', compositionPrompt)
-      formData.append('n', '1')
-      formData.append('size', resolveOpenAIImageSize(input.aspectRatio as AspectRatio | undefined))
-      formData.append('response_format', 'b64_json')
+      // Use GPT Image 1.5 via SDK images.edit()
+      const gptClient = new OpenAI({ apiKey: getOpenAIKey() })
+      const gptImages: any[] = []
 
       if (input.productImage) {
         const cleanProduct = stripDataUri(input.productImage)
-        const productBlob = new Blob([Buffer.from(cleanProduct, 'base64')], { type: 'image/png' })
-        formData.append('image[]', productBlob, 'product.png')
+        const productFile = await toFile(Buffer.from(cleanProduct, 'base64'), 'product.png', { type: 'image/png' })
+        gptImages.push(productFile)
       }
 
-      const gptResp = await fetch('https://api.openai.com/v1/images/edits', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${apiKey}` },
-        body: formData,
+      const gptResp = await gptClient.images.edit({
+        model: 'gpt-image-1.5',
+        image: gptImages.length > 0 ? gptImages : undefined as any,
+        prompt: compositionPrompt,
+        size: resolveOpenAIImageSize(input.aspectRatio as AspectRatio | undefined) as any,
+        n: 1,
       })
 
-      if (!gptResp.ok) {
-        const errBody = await gptResp.json().catch(() => ({}))
-        throw new Error(`GPT Image error ${gptResp.status}: ${errBody?.error?.message || gptResp.statusText}`)
-      }
-
-      const gptResult = await gptResp.json()
-      const imgData = gptResult?.data?.[0]
+      const imgData = gptResp?.data?.[0]
       if (!imgData?.b64_json) {
         throw new Error('GPT Image returned no image data')
       }
