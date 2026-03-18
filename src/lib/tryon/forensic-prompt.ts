@@ -72,7 +72,8 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   const keepBgPhrase = isGPT ? 'keep the original background' : 'keep background from Image 1'
   const isSceneChange = rawPreset && rawPreset !== keepBgPhrase
   // Condense scene to just the key environment phrase, strip lighting details
-  const sceneBrief = isSceneChange ? condenseScene(rawPreset, 120) : ''
+  // Increased from 120→250 to preserve texture/material keywords critical for realistic backgrounds
+  const sceneBrief = isSceneChange ? condenseScene(rawPreset, 250) : ''
 
   // Condense lighting to a very short phrase
   const lightingBrief = isSceneChange && input.lightingBlueprint
@@ -124,9 +125,9 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   lines.push(`BODY: Same body shape, weight, and proportions as ${personRef}.`)
   lines.push('')
 
-  // ── LINE 4: Garment ──
+  // ── LINE 4: Garment (brand-level detail to prevent missing collars/buttons) ──
   lines.push(
-    `GARMENT: Apply the outfit from ${garmentRef} — ${garment}. Match exact color, pattern, fabric, and design. IGNORE any clothing visible in other images.`
+    `GARMENT: Apply the EXACT outfit from ${garmentRef} — ${garment}. Reproduce EVERY construction detail: collars, buttons, cuffs, hems, pockets, zippers, seams, stitching, and closures exactly as shown. Match exact color, pattern, weave, and fabric texture. Do NOT simplify, omit, or reinterpret any garment feature. IGNORE any clothing visible in other images.`
   )
   lines.push('')
 
@@ -147,9 +148,9 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     lines.push('')
   }
 
-  // ── LINE 6: Quality (concise — over-prompting causes drift) ──
+  // ── LINE 6: Quality (brand-level realism keywords) ──
   lines.push(
-    `OUTPUT: Photorealistic DSLR photo, natural film grain, visible skin pores, natural depth of field, aspect ratio ${aspectRatio}.`
+    `OUTPUT: Photorealistic DSLR photo with real-world surface textures (visible fabric weave, material grain, environmental texture detail), natural film grain, visible skin pores, natural depth of field, aspect ratio ${aspectRatio}.`
   )
 
   // ── LINE 7: Retry (only on retry, minimal) ──
