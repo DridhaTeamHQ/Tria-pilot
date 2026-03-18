@@ -633,9 +633,9 @@ export async function generateTryOnGPT(options: DirectTryOnOptions): Promise<str
   const { toFile } = await import('openai')
   const client = new OpenAI({ apiKey: getOpenAIKey() })
 
-  // Prepend strong anti-cartoon realism mandate
-  const realismPrefix = `CRITICAL: Output a RAW PHOTOGRAPH — NOT illustration, NOT digital art, NOT cartoon, NOT CGI, NOT stylized, NOT anime. Must be INDISTINGUISHABLE from a real photo shot on a Canon EOS R5 DSLR with natural film grain, real skin pores, and authentic lighting. If it looks even slightly AI-generated or illustrated, it is a FAILURE.\n\n`
-  const fullPrompt = realismPrefix + prompt
+  // Prepend FACE-FIRST identity mandate, then anti-cartoon realism
+  const faceFirstPrefix = `ABSOLUTE PRIORITY — FACE IDENTITY: The face in the output MUST be a pixel-perfect copy of the face in the first input image. Do NOT alter, beautify, reshape, or reinterpret ANY facial feature. The jawline, eye shape, nose bridge, lip shape, skin tone, skin texture (pores, marks, lines), and hair MUST match the input exactly. This is the #1 requirement — everything else is secondary.\n\nSTYLE: Output a RAW PHOTOGRAPH — NOT illustration, NOT digital art, NOT cartoon. Must look like a real DSLR photo with natural film grain and authentic lighting.\n\n`
+  const fullPrompt = faceFirstPrefix + prompt
 
   // Build image array using toFile() — the official SDK approach
   // Person image FIRST — GPT Image preserves first image with highest fidelity
@@ -667,7 +667,8 @@ export async function generateTryOnGPT(options: DirectTryOnOptions): Promise<str
     prompt: fullPrompt,
     size: resolveGPTImageSize(aspectRatio) as any,
     n: 1,
-  })
+    input_fidelity: 'high',
+  } as any)
 
   const duration = ((Date.now() - startTime) / 1000).toFixed(2)
   if (isDev) console.log(`🎯 GPT IMAGE 1.5: responded in ${duration}s`)
