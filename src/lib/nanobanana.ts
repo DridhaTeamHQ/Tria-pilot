@@ -642,9 +642,7 @@ export async function generateTryOnGPT(options: DirectTryOnOptions): Promise<str
   formData.append('prompt', fullPrompt)
   formData.append('n', '1')
   formData.append('size', resolveGPTImageSize(aspectRatio))
-  formData.append('quality', 'high')
   formData.append('response_format', 'b64_json')
-  formData.append('input_fidelity', 'high')
 
   // Person image FIRST — GPT Image preserves first image with highest fidelity
   const personBlob = new Blob([Buffer.from(cleanPerson, 'base64')], { type: 'image/png' })

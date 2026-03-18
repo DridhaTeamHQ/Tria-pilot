@@ -19,19 +19,6 @@ export default function SignupPage() {
     ? 'bg-[#FF8C69] hover:bg-[#ff9f80]'
     : 'bg-[#B4F056] hover:bg-[#c3f570]'
   const accentColor = isInfluencer ? '#FF8C69' : '#B4F056'
-  const blobPalette = isInfluencer
-    ? {
-        pageBg: '#FFF7F1',
-        overlay: 'bg-[linear-gradient(180deg,rgba(255,249,244,0.38)_0%,rgba(255,245,238,0.46)_100%)]',
-        grid: 'opacity-[0.05]',
-        blobs: ['#FF8C69', '#FFB38A', '#FFD166', '#F97316'],
-      }
-    : {
-        pageBg: '#F7FDED',
-        overlay: 'bg-[linear-gradient(180deg,rgba(248,255,241,0.38)_0%,rgba(242,251,231,0.46)_100%)]',
-        grid: 'opacity-[0.05]',
-        blobs: ['#B4F056', '#7DDC73', '#D9FF8A', '#65C466'],
-      }
 
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -148,71 +135,92 @@ export default function SignupPage() {
       }
 
   return (
-    <div className="relative min-h-[100dvh] w-full overflow-x-hidden" style={{ backgroundColor: blobPalette.pageBg }}>
-      <AnimatedBlobBackground colors={blobPalette.blobs} />
-      <div className={`absolute inset-0 ${blobPalette.overlay}`} />
-      <div className={`absolute inset-0 ${blobPalette.grid} [background-image:linear-gradient(rgba(0,0,0,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.045)_1px,transparent_1px)] [background-size:34px_34px]`} />
+    <div className="relative min-h-[100dvh] w-full overflow-hidden bg-[#F4F4F0]">
+      {/* Background Grid */}
+      <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(0,0,0,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.2)_1px,transparent_1px)] [background-size:40px_40px]" />
+      
+      {/* Background decorative shapes */}
+      <div className="absolute -left-20 top-20 h-64 w-64 rounded-full border-[4px] border-black bg-[#FF8C69] opacity-20" />
+      <div className="absolute -right-20 bottom-20 h-80 w-80 rotate-12 rounded-[40px] border-[4px] border-black bg-[#B4F056] opacity-20" />
 
       <div className="relative z-10 lg:hidden">
         <div className="flex min-h-[100dvh] items-center justify-center px-4 py-8">
-          <SignupCard
-            eyebrow={copy.eyebrow}
-            title={copy.title}
-            subtitle={copy.subtitle}
-            formData={formData}
-            setFormData={setFormData}
-            showPassword={showPassword}
-            setShowPassword={setShowPassword}
-            showConfirmPassword={showConfirmPassword}
-            setShowConfirmPassword={setShowConfirmPassword}
-            handleSubmit={handleSubmit}
-            handleGoogleSignup={handleGoogleSignup}
-            loading={loading}
-            accentButtonClass={accentButtonClass}
-            isInfluencer={isInfluencer}
-          />
+          <div className="w-full max-w-[440px]">
+            <SignupCard
+              eyebrow={copy.eyebrow}
+              title={copy.title}
+              subtitle={copy.subtitle}
+              formData={formData}
+              setFormData={setFormData}
+              showPassword={showPassword}
+              setShowPassword={setShowPassword}
+              showConfirmPassword={showConfirmPassword}
+              setShowConfirmPassword={setShowConfirmPassword}
+              handleSubmit={handleSubmit}
+              handleGoogleSignup={handleGoogleSignup}
+              loading={loading}
+              accentButtonClass={accentButtonClass}
+              isInfluencer={isInfluencer}
+              accentColor={accentColor}
+            />
+          </div>
         </div>
       </div>
 
-      <div className="relative z-10 hidden min-h-[100dvh] lg:flex lg:px-5 lg:py-8 xl:px-8 xl:py-10">
-        <div className="grid w-full grid-cols-[1.04fr_0.96fr] gap-8 xl:gap-10">
-          <div className="relative min-h-[calc(100dvh-4rem)]">
-            <div className="relative flex min-h-[calc(100dvh-4rem)] items-end p-6 xl:p-8">
-              <div className="relative max-w-[580px] overflow-hidden rounded-[34px] border-[4px] border-black bg-[#ECE8E1]/88 p-8 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] backdrop-blur-[2px] xl:p-10">
-                <div className="absolute inset-0 bg-[linear-gradient(145deg,rgba(255,255,255,0.16)_0%,rgba(255,255,255,0.04)_32%,rgba(255,255,255,0)_100%)]" />
-                <div
-                  className="absolute -right-10 -top-8 h-40 w-40 rounded-full blur-3xl"
-                  style={{ backgroundColor: `${accentColor}40` }}
-                />
-                <div
-                  className="absolute bottom-6 right-8 h-24 w-24 rounded-[28px] border-[3px] border-black/20 rotate-12"
-                  style={{ backgroundColor: `${accentColor}1F` }}
-                />
-                <div className="relative z-10">
-                <h1 className="max-w-[520px] text-[clamp(2.5rem,4vw,4rem)] font-black uppercase leading-[0.95] text-black">
-                  {copy.sideTitle}
-                </h1>
-                <p
-                  className="mt-4 inline-block rounded-full border-[2px] border-black/15 px-3 py-1 text-[clamp(1.05rem,1.5vw,1.25rem)] font-black italic leading-none"
-                  style={{
-                    color: isInfluencer ? '#E86E4E' : '#5C8F1A',
-                    backgroundColor: isInfluencer ? 'rgba(255,140,105,0.14)' : 'rgba(180,240,86,0.18)',
-                  }}
-                >
+      <div className="relative z-10 hidden min-h-[100dvh] lg:flex lg:p-6 xl:p-8">
+        <div className="flex w-full flex-row gap-8 xl:gap-10">
+          {/* Left Panel - Branding/Info */}
+          <motion.div
+            layout
+            className="relative flex w-full flex-col justify-center overflow-hidden rounded-[40px] border-[4px] border-black p-12 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] lg:w-[50%] xl:w-[54%]"
+            style={{ backgroundColor: isInfluencer ? '#FFF4F0' : '#F7FCEB' }}
+          >
+            {/* Decorative elements inside the panel */}
+            <motion.div
+              className="absolute right-12 top-12 h-24 w-24 rounded-full border-[4px] border-black bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+              animate={{ y: [0, -10, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <div className="absolute inset-0 m-auto h-8 w-8 rounded-full border-[3px] border-black" style={{ backgroundColor: accentColor }} />
+            </motion.div>
+            
+            <motion.div
+              className="absolute bottom-12 right-24 h-32 w-32 rotate-12 rounded-2xl border-[4px] border-black bg-[#FFD93D] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
+              animate={{ rotate: [12, 20, 12] }}
+              transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+            />
+
+            <motion.div
+              className="absolute bottom-24 left-12 h-16 w-16 -rotate-12 border-[4px] border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+              animate={{ rotate: [-12, -25, -12] }}
+              transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+            />
+
+            <div className="relative z-10 max-w-xl">
+              <div className="mb-6 inline-flex items-center gap-3 rounded-full border-[3px] border-black bg-white px-5 py-2.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <div className="h-3.5 w-3.5 rounded-full border-[2px] border-black" style={{ backgroundColor: accentColor }} />
+                <span className="text-sm font-black uppercase tracking-[0.15em] text-black">
                   {copy.sideAccent}
-                </p>
-                <p className="mt-5 max-w-[520px] text-lg font-semibold leading-relaxed text-black/72">
+                </span>
+              </div>
+              
+              <h1 className="text-[clamp(3rem,5vw,5rem)] font-black uppercase leading-[0.9] text-black">
+                {copy.sideTitle}
+              </h1>
+              
+              <div className="mt-8 rounded-2xl border-[4px] border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                <p className="text-xl font-bold leading-relaxed text-black/80">
                   {copy.sideBody}
                 </p>
-                <p className="mt-7 max-w-[460px] text-sm font-black uppercase tracking-[0.2em] text-black/42">
+                <p className="mt-4 text-sm font-black uppercase tracking-[0.15em] text-black/40">
                   {copy.sideNote}
                 </p>
-                </div>
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="flex min-h-[calc(100dvh-4rem)] items-center justify-center">
+          {/* Right Panel - Signup Form */}
+          <div className="flex w-full items-center justify-center p-8 lg:w-[50%] xl:w-[46%]">
             <motion.div
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
@@ -234,6 +242,7 @@ export default function SignupPage() {
                 loading={loading}
                 accentButtonClass={accentButtonClass}
                 isInfluencer={isInfluencer}
+                accentColor={accentColor}
               />
             </motion.div>
           </div>
@@ -243,44 +252,6 @@ export default function SignupPage() {
   )
 }
 
-function AnimatedBlobBackground({ colors }: { colors: string[] }) {
-  return (
-    <div className="absolute inset-0 overflow-hidden">
-      <svg preserveAspectRatio="xMidYMid slice" viewBox="10 10 80 80" className="absolute inset-0 h-full w-full">
-        <defs>
-          <style>
-            {`
-              @keyframes signupBlobRotate {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-              }
-              .signup-out-top {
-                animation: signupBlobRotate 22s linear infinite;
-                transform-origin: 13px 25px;
-              }
-              .signup-in-top {
-                animation: signupBlobRotate 12s linear infinite;
-                transform-origin: 13px 25px;
-              }
-              .signup-out-bottom {
-                animation: signupBlobRotate 28s linear infinite;
-                transform-origin: 84px 93px;
-              }
-              .signup-in-bottom {
-                animation: signupBlobRotate 16s linear infinite;
-                transform-origin: 84px 93px;
-              }
-            `}
-          </style>
-        </defs>
-        <path fill={colors[0]} fillOpacity="0.34" className="signup-out-top" d="M37-5C25.1-14.7,5.7-19.1-9.2-10-28.5,1.8-32.7,31.1-19.8,49c15.5,21.5,52.6,22,67.2,2.3C59.4,35,53.7,8.5,37-5Z" />
-        <path fill={colors[1]} fillOpacity="0.28" className="signup-in-top" d="M20.6,4.1C11.6,1.5-1.9,2.5-8,11.2-16.3,23.1-8.2,45.6,7.4,50S42.1,38.9,41,24.5C40.2,14.1,29.4,6.6,20.6,4.1Z" />
-        <path fill={colors[2]} fillOpacity="0.3" className="signup-out-bottom" d="M105.9,48.6c-12.4-8.2-29.3-4.8-39.4.8-23.4,12.8-37.7,51.9-19.1,74.1s63.9,15.3,76-5.6c7.6-13.3,1.8-31.1-2.3-43.8C117.6,63.3,114.7,54.3,105.9,48.6Z" />
-        <path fill={colors[3]} fillOpacity="0.24" className="signup-in-bottom" d="M102,67.1c-9.6-6.1-22-3.1-29.5,2-15.4,10.7-19.6,37.5-7.6,47.8s35.9,3.9,44.5-12.5C115.5,92.6,113.9,74.6,102,67.1Z" />
-      </svg>
-    </div>
-  )
-}
 
 type FormState = {
   username: string
@@ -304,6 +275,7 @@ type SignupCardProps = {
   loading: boolean
   accentButtonClass: string
   isInfluencer: boolean
+  accentColor: string
 }
 
 function SignupCard({
@@ -321,15 +293,18 @@ function SignupCard({
   loading,
   accentButtonClass,
   isInfluencer,
+  accentColor,
 }: SignupCardProps) {
   return (
-    <div className="rounded-[30px] border-[3px] border-black bg-[#ECE8E1]/95 p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] backdrop-blur-sm sm:p-8">
-      <div className="mb-3 inline-flex rounded-full border-[3px] border-black bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.22em] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-        {eyebrow}
+    <div className="relative z-20 rounded-[30px] border-[4px] border-black bg-white p-6 pt-8 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] sm:p-8">
+      <div className="absolute -top-5 left-8 inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-[#FFD93D] px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+        <div className="h-2.5 w-2.5 rounded-full border-[2px] border-black" style={{ backgroundColor: accentColor }} />
+        <span className="text-xs font-black uppercase tracking-[0.15em] text-black">{eyebrow}</span>
       </div>
-      <div className="mb-6">
-        <h2 className="text-[2.2rem] font-black leading-none text-black">{title}</h2>
-        <p className="mt-1 text-base font-semibold text-black/65">{subtitle}</p>
+
+      <div className="mb-6 mt-2">
+        <h2 className="text-[2.2rem] font-black leading-none text-black sm:text-[2.5rem]">{title}</h2>
+        <p className="mt-2 text-base font-bold text-black/60">{subtitle}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">

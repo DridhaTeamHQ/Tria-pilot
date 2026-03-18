@@ -72,9 +72,6 @@ function LoginContent() {
   const accentButtonClass = userType === 'influencer'
     ? 'bg-[#FF8C69] hover:bg-[#ff9f80]'
     : 'bg-[#B4F056] hover:bg-[#c3f570]'
-  const patternSurfaceClass = userType === 'influencer'
-    ? 'bg-[radial-gradient(circle_at_12%_18%,rgba(255,140,105,0.16),transparent_18%),radial-gradient(circle_at_82%_16%,rgba(255,217,61,0.12),transparent_20%),radial-gradient(circle_at_68%_76%,rgba(255,140,105,0.10),transparent_18%),linear-gradient(180deg,#fffdf8_0%,#fbf6ee_100%)]'
-    : 'bg-[radial-gradient(circle_at_12%_18%,rgba(180,240,86,0.18),transparent_18%),radial-gradient(circle_at_82%_18%,rgba(255,217,61,0.12),transparent_20%),radial-gradient(circle_at_70%_78%,rgba(180,240,86,0.10),transparent_18%),linear-gradient(180deg,#fffdf8_0%,#f7f3e8_100%)]'
   const panelCopy = userType === 'influencer'
     ? {
         title: 'Welcome,',
@@ -206,14 +203,17 @@ function LoginContent() {
   }
 
   return (
-    <div className="relative min-h-[100dvh] w-full overflow-x-hidden bg-[#F9F8F4]">
-      <div className={`absolute inset-0 ${patternSurfaceClass}`} />
-      <div className="absolute inset-0 opacity-35 [background-image:linear-gradient(rgba(0,0,0,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.05)_1px,transparent_1px)] [background-size:34px_34px]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_20%,rgba(255,217,61,0.18),transparent_22%),radial-gradient(circle_at_86%_18%,rgba(255,140,105,0.14),transparent_18%),radial-gradient(circle_at_70%_80%,rgba(180,240,86,0.14),transparent_20%)]" />
+    <div className="relative min-h-[100dvh] w-full overflow-hidden bg-[#F4F4F0]">
+      {/* Background Grid */}
+      <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(0,0,0,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.2)_1px,transparent_1px)] [background-size:40px_40px]" />
+      
+      {/* Background decorative shapes */}
+      <div className="absolute -left-20 top-20 h-64 w-64 rounded-full border-[4px] border-black bg-[#FF8C69] opacity-20" />
+      <div className="absolute -right-20 bottom-20 h-80 w-80 rotate-12 rounded-[40px] border-[4px] border-black bg-[#B4F056] opacity-20" />
 
       <div className="relative z-10 lg:hidden">
         <div className="flex min-h-[100dvh] items-center justify-center px-4 py-8">
-          <AuthCardShell floatingLabel={floatingLabel} accentColor={accentColor}>
+          <div className="w-full max-w-[430px]">
             <AuthCard
               title={panelCopy.title}
               subtitle={panelCopy.subtitle}
@@ -234,129 +234,101 @@ function LoginContent() {
               onRecoveryEmailChange={setRecoveryEmail}
               handleGoogleLogin={handleGoogleLogin}
               accentButtonClass={accentButtonClass}
+              floatingLabel={floatingLabel}
+              accentColor={accentColor}
             />
-          </AuthCardShell>
+          </div>
         </div>
       </div>
 
       <LayoutGroup>
         <motion.div
           layout
-          className={`relative z-10 hidden w-full lg:flex lg:min-h-[100dvh] lg:px-4 lg:py-8 xl:px-6 xl:py-10 ${isLayoutFlipped ? 'flex-row-reverse' : 'flex-row'}`}
+          className={`relative z-10 hidden w-full lg:flex lg:min-h-[100dvh] lg:p-6 xl:p-8 ${isLayoutFlipped ? 'flex-row-reverse' : 'flex-row'}`}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
+          {/* Left Panel - Branding/Info */}
           <motion.div
             layout
-            className="relative hidden overflow-hidden lg:block lg:w-[50%] xl:w-[54%]"
+            className="relative flex w-full flex-col justify-center overflow-hidden rounded-[40px] border-[4px] border-black p-12 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] lg:w-[50%] xl:w-[54%]"
+            style={{ backgroundColor: userType === 'influencer' ? '#FFF4F0' : '#F7FCEB' }}
           >
+            {/* Decorative elements inside the panel */}
             <motion.div
-              key={userType}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5 }}
-              className="absolute inset-0"
-            />
-            <motion.div
-              className="absolute left-[4%] top-[8%] h-[68%] w-[72%] rounded-[42px] border border-black/6 bg-white/16 blur-[1px]"
-              animate={{ y: [0, -10, 0], x: [0, 6, 0] }}
-              transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
-            />
-            <motion.div
-              className="absolute right-[8%] top-[8%] h-[42%] w-[28%] rounded-[36px] border border-black/5 bg-white/14"
-              animate={{ y: [0, 12, 0] }}
-              transition={{ duration: 11, repeat: Infinity, ease: 'easeInOut' }}
-            />
-            <motion.div
-              className="absolute left-[10%] top-[16%] h-[clamp(10rem,18vw,15rem)] w-[clamp(10rem,18vw,15rem)] rounded-full border-[5px] border-black/65 bg-[radial-gradient(circle,rgba(255,255,255,0.34)_0%,rgba(255,255,255,0.12)_72%,transparent_100%)]"
-              animate={{ rotate: [0, 5, 0], y: [0, -12, 0] }}
-              transition={{ duration: 16, repeat: Infinity, ease: 'easeInOut' }}
-            />
-            <motion.div
-              className="absolute left-[15%] top-[24%] h-[clamp(2.75rem,4.2vw,3.8rem)] w-[clamp(2.75rem,4.2vw,3.8rem)] rounded-full border-[4px] border-black bg-[#FF8C69]"
-              animate={{ y: [0, -10, 0], x: [0, 8, 0] }}
-              transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-            />
-            <motion.div
-              className="absolute bottom-[14%] left-[12%] h-[clamp(4.5rem,7vw,6rem)] w-[clamp(4.5rem,7vw,6rem)] rounded-[28px] border-[4px] border-black/70 bg-[#B4F056]/38"
-              animate={{ y: [0, 10, 0], rotate: [0, -4, 0] }}
-              transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
-            />
-            <motion.div
-              className="absolute bottom-[4%] left-[34%] h-6 w-6 rotate-45 border-[3px] border-black/80 bg-[#FFD93D]/70"
-              animate={{ y: [0, -8, 0], rotate: [45, 65, 45] }}
-              transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
-            />
-            <motion.div
-              className="absolute bottom-[8%] right-[10%] h-[clamp(10rem,18vw,14rem)] w-[clamp(7rem,12vw,9rem)] rotate-[8deg] border-[4px] border-black/70 bg-[#FFD93D]/40"
-              animate={{ y: [0, 14, 0], rotate: [8, 12, 8] }}
-              transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
-            />
-            <motion.div
-              className="absolute right-[6%] top-[4%] h-16 w-16 text-[#FF8C69]"
-              animate={{ rotate: [0, 360] }}
-              transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
+              className="absolute right-12 top-12 h-24 w-24 rounded-full border-[4px] border-black bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+              animate={{ y: [0, -10, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
             >
-              <svg viewBox="0 0 24 24" fill="currentColor" stroke="black" strokeWidth="0.8">
-                <path d="M12 0L14.5 9L24 12L14.5 15L12 24L9.5 15L0 12L9.5 9L12 0Z" />
-              </svg>
+              <div className="absolute inset-0 m-auto h-8 w-8 rounded-full border-[3px] border-black" style={{ backgroundColor: accentColor }} />
             </motion.div>
+            
             <motion.div
-              className="absolute left-[2%] top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-black/75"
-              animate={{ y: ['-50%', 'calc(-50% - 10px)', '-50%'] }}
-              transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+              className="absolute bottom-12 right-24 h-32 w-32 rotate-12 rounded-2xl border-[4px] border-black bg-[#FFD93D] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
+              animate={{ rotate: [12, 20, 12] }}
+              transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
             />
-            <div className="relative flex min-h-full items-center px-8 py-8 xl:px-12">
-              <div className="max-w-[560px] rounded-[28px] border-[3px] border-black bg-[#ECE8E1]/92 p-6 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] backdrop-blur-sm xl:p-7">
-                <h1 className="text-[clamp(2.3rem,3.8vw,3.7rem)] font-black uppercase leading-[0.94] text-black">
-                  {panelCopy.sideTitle}
-                </h1>
-                <p
-                  className="mt-2 text-[clamp(1.2rem,1.8vw,1.7rem)] font-black italic leading-none"
-                  style={{ color: accentColor }}
-                >
-                  {panelCopy.sideAccent}
-                </p>
-                <p className="mt-4 max-w-lg text-[clamp(0.98rem,1.25vw,1.15rem)] font-semibold leading-relaxed text-black/68">
+
+            <motion.div
+              className="absolute bottom-24 left-12 h-16 w-16 -rotate-12 border-[4px] border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+              animate={{ rotate: [-12, -25, -12] }}
+              transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+            />
+
+            <div className="relative z-10 max-w-xl">
+              <div className="mb-6 inline-flex items-center gap-3 rounded-full border-[3px] border-black bg-white px-5 py-2.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <div className="h-3.5 w-3.5 rounded-full border-[2px] border-black" style={{ backgroundColor: accentColor }} />
+                <span className="text-sm font-black uppercase tracking-[0.15em] text-black">
+                  {userType === 'influencer' ? 'Creator Mode' : 'Brand Mode'}
+                </span>
+              </div>
+              
+              <h1 className="text-[clamp(3rem,5vw,5rem)] font-black uppercase leading-[0.9] text-black">
+                {panelCopy.sideTitle}
+              </h1>
+              
+              <div className="mt-8 rounded-2xl border-[4px] border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                <p className="text-xl font-bold leading-relaxed text-black/80">
                   {panelCopy.sideBody}
                 </p>
               </div>
             </div>
           </motion.div>
 
+          {/* Right Panel - Login Form */}
           <motion.div
             layout
-            className="flex w-full items-center justify-center px-6 py-6 lg:w-[50%] xl:w-[46%] xl:px-10"
+            className="flex w-full items-center justify-center p-8 lg:w-[50%] xl:w-[46%]"
           >
             <motion.div
               layout
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
-              className="w-full max-w-[430px]"
+              className="w-full max-w-[440px]"
             >
-              <AuthCardShell floatingLabel={floatingLabel} accentColor={accentColor}>
-                <AuthCard
-                  title={panelCopy.title}
-                  subtitle={panelCopy.subtitle}
-                  userType={userType}
-                  onUserTypeChange={setUserType}
-                  identifier={identifier}
-                  onIdentifierChange={setIdentifier}
-                  password={password}
-                  onPasswordChange={setPassword}
-                  showPassword={showPassword}
-                  onTogglePassword={() => setShowPassword((prev) => !prev)}
-                  loading={loading}
-                  handleSubmit={handleSubmit}
-                  isUsernameEntry={isUsernameEntry}
-                  showRecoveryEmailInput={showRecoveryEmailInput}
-                  onToggleRecoveryEmail={() => setShowRecoveryEmailInput((prev) => !prev)}
-                  recoveryEmail={recoveryEmail}
-                  onRecoveryEmailChange={setRecoveryEmail}
-                  handleGoogleLogin={handleGoogleLogin}
-                  accentButtonClass={accentButtonClass}
-                />
-              </AuthCardShell>
+              <AuthCard
+                title={panelCopy.title}
+                subtitle={panelCopy.subtitle}
+                userType={userType}
+                onUserTypeChange={setUserType}
+                identifier={identifier}
+                onIdentifierChange={setIdentifier}
+                password={password}
+                onPasswordChange={setPassword}
+                showPassword={showPassword}
+                onTogglePassword={() => setShowPassword((prev) => !prev)}
+                loading={loading}
+                handleSubmit={handleSubmit}
+                isUsernameEntry={isUsernameEntry}
+                showRecoveryEmailInput={showRecoveryEmailInput}
+                onToggleRecoveryEmail={() => setShowRecoveryEmailInput((prev) => !prev)}
+                recoveryEmail={recoveryEmail}
+                onRecoveryEmailChange={setRecoveryEmail}
+                handleGoogleLogin={handleGoogleLogin}
+                accentButtonClass={accentButtonClass}
+                floatingLabel={floatingLabel}
+                accentColor={accentColor}
+              />
             </motion.div>
           </motion.div>
         </motion.div>
@@ -385,6 +357,8 @@ type AuthCardProps = {
   onRecoveryEmailChange: (value: string) => void
   handleGoogleLogin: () => void
   accentButtonClass: string
+  floatingLabel: string
+  accentColor: string
 }
 
 function AuthCard({
@@ -407,26 +381,33 @@ function AuthCard({
   onRecoveryEmailChange,
   handleGoogleLogin,
   accentButtonClass,
+  floatingLabel,
+  accentColor,
 }: AuthCardProps) {
   return (
-    <div className="relative z-20 rounded-[30px] border-[4px] border-black bg-[#FFFDF8] p-5 pt-6 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] backdrop-blur-sm sm:p-6 sm:pt-7">
-      <div className="mb-4">
-        <h2 className="text-[1.95rem] font-black leading-none text-black sm:text-[2.1rem]">{title}</h2>
-        <p className="mt-1 text-[0.98rem] font-semibold text-black/65">{subtitle}</p>
+    <div className="relative z-20 rounded-[30px] border-[4px] border-black bg-white p-6 pt-8 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] sm:p-8">
+      <div className="absolute -top-5 left-8 inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-[#FFD93D] px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+        <div className="h-2.5 w-2.5 rounded-full border-[2px] border-black" style={{ backgroundColor: accentColor }} />
+        <span className="text-xs font-black uppercase tracking-[0.15em] text-black">{floatingLabel}</span>
       </div>
 
-      <div className="mb-4 flex rounded-2xl border-[3px] border-black bg-white p-1.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+      <div className="mb-6 mt-2">
+        <h2 className="text-[2.2rem] font-black leading-none text-black sm:text-[2.5rem]">{title}</h2>
+        <p className="mt-2 text-base font-bold text-black/60">{subtitle}</p>
+      </div>
+
+      <div className="mb-6 flex rounded-2xl border-[3px] border-black bg-[#F4F4F0] p-1.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
         <button
           type="button"
           onClick={() => onUserTypeChange('influencer')}
-          className={`flex-1 rounded-xl py-2.5 text-xs font-black uppercase tracking-[0.22em] transition-all ${userType === 'influencer' ? 'bg-[#FF8C69] text-black' : 'text-black/40 hover:bg-black/[0.04] hover:text-black'}`}
+          className={`flex-1 rounded-xl py-3 text-xs font-black uppercase tracking-[0.2em] transition-all ${userType === 'influencer' ? 'border-[2px] border-black bg-[#FF8C69] text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'text-black/50 hover:text-black'}`}
         >
           Influencer
         </button>
         <button
           type="button"
           onClick={() => onUserTypeChange('brand')}
-          className={`flex-1 rounded-xl py-2.5 text-xs font-black uppercase tracking-[0.22em] transition-all ${userType === 'brand' ? 'bg-[#B4F056] text-black' : 'text-black/40 hover:bg-black/[0.04] hover:text-black'}`}
+          className={`flex-1 rounded-xl py-3 text-xs font-black uppercase tracking-[0.2em] transition-all ${userType === 'brand' ? 'border-[2px] border-black bg-[#B4F056] text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'text-black/50 hover:text-black'}`}
         >
           Brand
         </button>
@@ -547,40 +528,6 @@ function AuthCard({
   )
 }
 
-function AuthCardShell({
-  children,
-  floatingLabel,
-  accentColor,
-}: {
-  children: React.ReactNode
-  floatingLabel: string
-  accentColor: string
-}) {
-  return (
-    <div className="relative w-full max-w-[440px] pt-10 sm:pt-11">
-      <div className="absolute left-1/2 top-2 z-30 w-[min(74%,300px)] -translate-x-1/2">
-        <div className="flex min-h-[52px] w-full items-center justify-center gap-3 rounded-full border-[3px] border-black bg-gradient-to-r from-[#FFE066] to-[#FFD93D] px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:min-h-[56px] sm:px-5">
-          <div className="h-3 w-3 rounded-full border border-black" style={{ backgroundColor: accentColor }} />
-          <span className="text-center text-xs font-black uppercase tracking-[0.18em] text-black sm:text-sm">{floatingLabel}</span>
-        </div>
-      </div>
-      {children}
-      <div
-        className="absolute right-[-12px] top-[13%] hidden h-[70%] w-10 overflow-hidden rounded-r-[24px] border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] xl:block"
-        style={{ background: `linear-gradient(180deg, ${accentColor} 0%, #FFD93D 100%)` }}
-      >
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: 'radial-gradient(circle, rgba(0,0,0,0.15) 2px, transparent 2px)',
-            backgroundSize: '10px 10px',
-          }}
-        />
-      </div>
-      <div className="absolute -bottom-3 left-8 right-8 hidden h-2.5 rounded-full border-[3px] border-black bg-[#FFD93D] xl:block" />
-    </div>
-  )
-}
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
