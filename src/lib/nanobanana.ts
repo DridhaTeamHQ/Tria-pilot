@@ -633,52 +633,76 @@ export async function generateTryOnGPT(options: DirectTryOnOptions): Promise<str
   const { toFile } = await import('openai')
   const client = new OpenAI({ apiKey: getOpenAIKey() })
 
-  // Prepend FACE-FIRST identity mandate, then anti-cartoon realism
+  // Prepend FACE-FIRST identity mandate
   const faceFirstPrefix = `ABSOLUTE PRIORITY — FACE IDENTITY: The face in the output MUST be a pixel-perfect copy of the face in the first input image. Do NOT alter, beautify, reshape, or reinterpret ANY facial feature. The jawline, eye shape, nose bridge, lip shape, skin tone, skin texture (pores, marks, lines), and hair MUST match the input exactly. This is the #1 requirement — everything else is secondary.\n\nSTYLE: Output a RAW PHOTOGRAPH — NOT illustration, NOT digital art, NOT cartoon. Must look like a real DSLR photo with natural film grain and authentic lighting.\n\n`
   const fullPrompt = faceFirstPrefix + prompt
 
-  // Build image array using toFile() — the official SDK approach
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Use RESPONSES API — OpenAI's recommended approach for input_fidelity
+  // This ensures face/detail preservation via the input_fidelity: 'high' tool
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  // Build content array with images as base64 data URLs
+  const content: any[] = [
+    { type: 'input_text', text: fullPrompt },
+  ]
+
   // Person image FIRST — GPT Image preserves first image with highest fidelity
-  const images: any[] = []
+  content.push({
+    type: 'input_image',
+    image_url: `data:image/png;base64,${cleanPerson}`,
+  })
 
-  const personFile = await toFile(Buffer.from(cleanPerson, 'base64'), 'person.png', { type: 'image/png' })
-  images.push(personFile)
-
-  const garmentFile = await toFile(Buffer.from(cleanGarment, 'base64'), 'garment.png', { type: 'image/png' })
-  images.push(garmentFile)
-
-  // Add face crop as third image if available (identity reinforcement)
+  // Add face crop as second image (identity reinforcement — close-up gets high fidelity)
   if (faceCropBase64 && faceCropBase64.length > 100) {
     const cleanFaceCrop = faceCropBase64.replace(/^data:image\/[a-z]+;base64,/, '')
     if (cleanFaceCrop.length > 100) {
-      const faceCropFile = await toFile(Buffer.from(cleanFaceCrop, 'base64'), 'face_crop.png', { type: 'image/png' })
-      images.push(faceCropFile)
+      content.push({
+        type: 'input_image',
+        image_url: `data:image/png;base64,${cleanFaceCrop}`,
+      })
       if (isDev) console.log('👤 Added face crop for identity reinforcement')
     }
   }
 
-  if (isDev) console.log(`📡 Sending to GPT Image 1.5 via SDK images.edit (${fullPrompt.length} chars)`)
+  // Garment image
+  content.push({
+    type: 'input_image',
+    image_url: `data:image/png;base64,${cleanGarment}`,
+  })
+
+  if (isDev) console.log(`📡 Sending to Responses API with input_fidelity: high (${fullPrompt.length} chars)`)
 
   const startTime = Date.now()
 
-  const response = await client.images.edit({
-    model: 'gpt-image-1.5',
-    image: images,
-    prompt: fullPrompt,
-    size: resolveGPTImageSize(aspectRatio) as any,
-    n: 1,
-    input_fidelity: 'high',
+  const response = await client.responses.create({
+    model: 'gpt-4.1',
+    input: [
+      {
+        role: 'user',
+        content,
+      },
+    ],
+    tools: [{
+      type: 'image_generation' as any,
+      input_fidelity: 'high',
+    }],
   } as any)
 
   const duration = ((Date.now() - startTime) / 1000).toFixed(2)
-  if (isDev) console.log(`🎯 GPT IMAGE 1.5: responded in ${duration}s`)
+  if (isDev) console.log(`🎯 Responses API: responded in ${duration}s`)
 
-  const imgData = response?.data?.[0]
-  if (!imgData?.b64_json) {
-    throw new Error('GPT Image 1.5 returned no image data')
+  // Extract the generated image from the response output
+  const imageOutput = (response as any).output?.find(
+    (o: any) => o.type === 'image_generation_call'
+  )
+  const imageBase64 = imageOutput?.result
+
+  if (!imageBase64) {
+    throw new Error('Responses API returned no image data')
   }
 
-  return `data:image/png;base64,${imgData.b64_json}`
+  return `data:image/png;base64,${imageBase64}`
 }
 
 /**
