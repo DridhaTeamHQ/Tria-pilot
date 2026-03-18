@@ -382,6 +382,7 @@ async function generateFaceLockedAdWithOpenAI(params: {
   formData.append('n', '1')
   formData.append('size', resolveOpenAIImageSize(params.aspectRatio))
   formData.append('quality', 'high')
+  formData.append('response_format', 'b64_json')
   formData.append('input_fidelity', 'high')
 
   const cleanPerson = stripDataUri(params.influencerImage)
@@ -662,6 +663,7 @@ export async function POST(request: Request) {
       formData.append('n', '1')
       formData.append('size', resolveOpenAIImageSize(input.aspectRatio as AspectRatio | undefined))
       formData.append('quality', 'high')
+      formData.append('response_format', 'b64_json')
 
       if (input.productImage) {
         const cleanProduct = stripDataUri(input.productImage)
