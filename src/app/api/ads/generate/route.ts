@@ -394,8 +394,7 @@ async function generateFaceLockedAdWithOpenAI(params: {
     prompt: editPrompt,
     size: resolveOpenAIImageSize(params.aspectRatio) as any,
     n: 1,
-    input_fidelity: 'high',
-  } as any)
+  })
 
   const imgData = gptResponse?.data?.[0]
   if (!imgData?.b64_json) {
@@ -660,8 +659,7 @@ export async function POST(request: Request) {
         prompt: compositionPrompt,
         size: resolveOpenAIImageSize(input.aspectRatio as AspectRatio | undefined) as any,
         n: 1,
-        input_fidelity: 'high',
-      } as any)
+      })
 
       const imgData = gptResp?.data?.[0]
       if (!imgData?.b64_json) {

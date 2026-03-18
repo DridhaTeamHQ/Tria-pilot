@@ -668,8 +668,7 @@ export async function generateTryOnGPT(options: DirectTryOnOptions): Promise<str
     prompt: fullPrompt,
     size: resolveGPTImageSize(aspectRatio) as any,
     n: 1,
-    input_fidelity: 'high',
-  } as any)
+  })
 
   const duration = ((Date.now() - startTime) / 1000).toFixed(2)
   if (isDev) console.log(`🎯 GPT IMAGE 1.5: responded in ${duration}s`)
