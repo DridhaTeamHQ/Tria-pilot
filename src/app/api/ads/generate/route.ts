@@ -387,14 +387,30 @@ async function generateFaceLockedAdWithOpenAI(params: {
     images.push(productFile)
   }
 
-  // Step 4: Call GPT Image 1.5 via SDK images.edit()
-  const gptResponse = await openaiClient.images.edit({
-    model: 'gpt-image-1.5',
-    image: images,
-    prompt: editPrompt,
-    size: resolveOpenAIImageSize(params.aspectRatio) as any,
-    n: 1,
-  })
+  // Try with input_fidelity first for face preservation, fallback without it
+  let gptResponse: any
+  try {
+    gptResponse = await openaiClient.images.edit({
+      model: 'gpt-image-1.5',
+      image: images,
+      prompt: editPrompt,
+      size: resolveOpenAIImageSize(params.aspectRatio) as any,
+      n: 1,
+      input_fidelity: 'high',
+    } as any)
+  } catch (err: any) {
+    if (err?.status === 400 && err?.message?.includes('input_fidelity')) {
+      gptResponse = await openaiClient.images.edit({
+        model: 'gpt-image-1.5',
+        image: images,
+        prompt: editPrompt,
+        size: resolveOpenAIImageSize(params.aspectRatio) as any,
+        n: 1,
+      })
+    } else {
+      throw err
+    }
+  }
 
   const imgData = gptResponse?.data?.[0]
   if (!imgData?.b64_json) {
@@ -653,13 +669,30 @@ export async function POST(request: Request) {
         gptImages.push(productFile)
       }
 
-      const gptResp = await gptClient.images.edit({
-        model: 'gpt-image-1.5',
-        image: gptImages.length > 0 ? gptImages : undefined as any,
-        prompt: compositionPrompt,
-        size: resolveOpenAIImageSize(input.aspectRatio as AspectRatio | undefined) as any,
-        n: 1,
-      })
+      // Try with input_fidelity first for face preservation, fallback without it
+      let gptResp: any
+      try {
+        gptResp = await gptClient.images.edit({
+          model: 'gpt-image-1.5',
+          image: gptImages.length > 0 ? gptImages : undefined as any,
+          prompt: compositionPrompt,
+          size: resolveOpenAIImageSize(input.aspectRatio as AspectRatio | undefined) as any,
+          n: 1,
+          input_fidelity: 'high',
+        } as any)
+      } catch (err: any) {
+        if (err?.status === 400 && err?.message?.includes('input_fidelity')) {
+          gptResp = await gptClient.images.edit({
+            model: 'gpt-image-1.5',
+            image: gptImages.length > 0 ? gptImages : undefined as any,
+            prompt: compositionPrompt,
+            size: resolveOpenAIImageSize(input.aspectRatio as AspectRatio | undefined) as any,
+            n: 1,
+          })
+        } else {
+          throw err
+        }
+      }
 
       const imgData = gptResp?.data?.[0]
       if (!imgData?.b64_json) {

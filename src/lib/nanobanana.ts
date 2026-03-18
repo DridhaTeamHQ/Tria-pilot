@@ -666,13 +666,33 @@ export async function generateTryOnGPT(options: DirectTryOnOptions): Promise<str
 
   const startTime = Date.now()
 
-  const response = await client.images.edit({
-    model: 'gpt-image-1.5',
-    image: images,
-    prompt: fullPrompt,
-    size: resolveGPTImageSize(aspectRatio) as any,
-    n: 1,
-  })
+  // Try with input_fidelity: 'high' first (critical for face preservation)
+  // If the API rejects it, fall back to without it
+  let response: any
+  try {
+    response = await client.images.edit({
+      model: 'gpt-image-1.5',
+      image: images,
+      prompt: fullPrompt,
+      size: resolveGPTImageSize(aspectRatio) as any,
+      n: 1,
+      input_fidelity: 'high',
+    } as any)
+  } catch (err: any) {
+    // If 400 Unknown parameter, retry without input_fidelity
+    if (err?.status === 400 && err?.message?.includes('input_fidelity')) {
+      if (isDev) console.log('⚠️ input_fidelity not supported, retrying without it')
+      response = await client.images.edit({
+        model: 'gpt-image-1.5',
+        image: images,
+        prompt: fullPrompt,
+        size: resolveGPTImageSize(aspectRatio) as any,
+        n: 1,
+      })
+    } else {
+      throw err
+    }
+  }
 
   const duration = ((Date.now() - startTime) / 1000).toFixed(2)
   if (isDev) console.log(`🎯 GPT IMAGE 1.5: responded in ${duration}s`)
