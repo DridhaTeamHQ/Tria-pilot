@@ -633,8 +633,9 @@ export async function generateTryOnGPT(options: DirectTryOnOptions): Promise<str
   const { toFile } = await import('openai')
   const client = new OpenAI({ apiKey: getOpenAIKey() })
 
-  // Prepend FACE-FIRST identity mandate, then anti-cartoon realism
-  const faceFirstPrefix = `ABSOLUTE PRIORITY — FACE IDENTITY: The face in the output MUST be a pixel-perfect copy of the face in the first input image. Do NOT alter, beautify, reshape, or reinterpret ANY facial feature. The jawline, eye shape, nose bridge, lip shape, skin tone, skin texture (pores, marks, lines), and hair MUST match the input exactly. This is the #1 requirement — everything else is secondary.\n\nSTYLE: Output a RAW PHOTOGRAPH — NOT illustration, NOT digital art, NOT cartoon. Must look like a real DSLR photo with natural film grain and authentic lighting.\n\n`
+  // Concise prefix — the detailed face-lock is now in the forensic prompt itself
+  // Research: shorter prompts = better face consistency (avoid over-prompting)
+  const faceFirstPrefix = `RULE #1: The person's face must be IDENTICAL to the first input image. Do not alter, beautify, or reshape any facial feature.\n\n`
   const fullPrompt = faceFirstPrefix + prompt
 
   // Build image array using toFile() — the official SDK approach

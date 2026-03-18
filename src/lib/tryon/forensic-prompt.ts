@@ -80,40 +80,43 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     : ''
 
   // ═══════════════════════════════════════════════════════════════════════
-  // MINIMAL POSITIVE PROMPT — ~600-900 chars total
+  // FACE-FIRST PROMPT (research-backed structure)
+  // Key insight: front-load face preservation, use drift shield, keep short
   // ═══════════════════════════════════════════════════════════════════════
 
   const lines: string[] = []
 
-  // ── LINE 1: Core task (identity first) ──
+  // ── LINE 0: DRIFT SHIELD — hard constraint that prevents identity wander ──
+  // Research: "Change only what I specify; keep likeness" as first line
+  // dramatically reduces face drift in GPT Image models
   lines.push(
-    `Generate a photorealistic photo of the EXACT person from ${personRef} wearing the garment from ${garmentRef}.`
+    `HARD CONSTRAINT: Keep the face from ${personRef} 100% unchanged. Change ONLY the clothing and background. Preserve original facial features, facial symmetry, bone structure, and natural skin texture exactly as they appear in ${personRef}.`
+  )
+  lines.push('')
+
+  // ── LINE 1: Core task ──
+  lines.push(
+    `Generate a photorealistic photo of the EXACT same person from ${personRef} wearing the garment from ${garmentRef}.`
   )
   lines.push('')
 
   // ── LINE 2: Identity anchor (concise + Soul ID) ──
   if (input.identityDNA) {
-    // Soul ID available — use frozen identity paragraph for consistency
-    if (hasFaceReference) {
-      lines.push(
-        `IDENTITY: ${input.identityDNA} Copy these EXACT features from ${personRef} and ${faceCropRef}. Do not change any facial feature.`
-      )
-    } else {
-      lines.push(
-        `IDENTITY: ${input.identityDNA} Copy these EXACT features from ${personRef}. Do not change any facial feature.`
-      )
-    }
+    // Soul ID available — frozen identity paragraph
+    const faceLock = hasFaceReference
+      ? `Match the likeness of ${personRef} and ${faceCropRef} exactly.`
+      : `Match the likeness of ${personRef} exactly.`
+    lines.push(
+      `FACE IDENTITY: ${input.identityDNA} ${faceLock} Do not alter eye shape, jawline, nose bridge, lip shape, or skin texture.`
+    )
   } else {
-    // No Soul ID — generic identity instruction
-    if (hasFaceReference) {
-      lines.push(
-        `IDENTITY: Copy the face from ${personRef} and ${faceCropRef} exactly — same bone structure, eyes, nose, lips, jaw, skin texture, pores, skin tone, and perceived age.`
-      )
-    } else {
-      lines.push(
-        `IDENTITY: Copy the face from ${personRef} exactly — same bone structure, eyes, nose, lips, jaw, skin texture, pores, skin tone, and perceived age.`
-      )
-    }
+    // No Soul ID — generic but strong identity instruction
+    const faceLock = hasFaceReference
+      ? `Match the likeness of ${personRef} and ${faceCropRef} exactly`
+      : `Match the likeness of ${personRef} exactly`
+    lines.push(
+      `FACE IDENTITY: ${faceLock} — preserve original facial proportions, bone structure, eye shape, nose shape, jawline, skin tone, pores, and perceived age. Do not alter any facial feature.`
+    )
   }
   lines.push('')
 
@@ -121,9 +124,9 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   lines.push(`BODY: Same body shape, weight, and proportions as ${personRef}.`)
   lines.push('')
 
-  // ── LINE 4: Garment (explicit — ONLY from garment ref, full outfit) ──
+  // ── LINE 4: Garment ──
   lines.push(
-    `GARMENT: Apply the FULL OUTFIT from ${garmentRef} — ${garment}. Include ALL pieces (top, bottom, layers, accessories) visible in ${garmentRef}. Match the exact color of each piece, pattern, fabric, and design. IGNORE any clothing visible in other images.`
+    `GARMENT: Apply the outfit from ${garmentRef} — ${garment}. Match exact color, pattern, fabric, and design. IGNORE any clothing visible in other images.`
   )
   lines.push('')
 
@@ -140,23 +143,22 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
 
   // ── LINE 5b: Pose/Camera (from preset camera guidance) ──
   if (input.cameraGuidance) {
-    lines.push(`POSE: Use the framing and composition from the preset: ${input.cameraGuidance}. The person should naturally fit this scene.`)
+    lines.push(`POSE: ${input.cameraGuidance}.`)
     lines.push('')
   }
 
-  // ── LINE 6: Quality (anti-AI specs + sharp background) ──
-  // Camera specs prevent cartoonish/CGI look — key Nano Banana best practice
+  // ── LINE 6: Quality (concise — over-prompting causes drift) ──
   lines.push(
-    `OUTPUT: Shot on Canon EOS R5, 85mm f/1.8 lens, ISO 200. Photorealistic candid photo with natural film grain, real skin with visible pores and micro-imperfections, sharp in-focus background with realistic texture and detail, natural depth of field, aspect ratio ${aspectRatio}.`
+    `OUTPUT: Photorealistic DSLR photo, natural film grain, visible skin pores, natural depth of field, aspect ratio ${aspectRatio}.`
   )
 
   // ── LINE 7: Retry (only on retry, minimal) ──
   if (input.retryMode) {
-    lines.push(`RETRY: Previous attempt altered the face. Copy face pixels from ${personRef} exactly this time.`)
+    lines.push(`RETRY: Previous attempt altered the face. This time keep the face IDENTICAL to ${personRef} — same jawline, same eyes, same nose.`)
   }
 
-  // ── LINE 8: Concise avoid (3 critical items only) ──
-  lines.push(`AVOID: beautification, skin smoothing, face reshaping.`)
+  // ── LINE 8: Strong avoid (research-backed negatives) ──
+  lines.push(`AVOID: face reshaping, face beautification, skin smoothing, altering eye shape, changing jawline, modifying facial proportions, beauty filters.`)
 
   return lines.join('\n')
 }
