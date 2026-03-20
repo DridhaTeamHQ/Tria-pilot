@@ -323,7 +323,7 @@ export default function BrandProfilePage() {
           </p>
           <Link
             href="/settings/billing"
-            className="inline-flex items-center justify-center rounded-xl border-[3px] border-black bg-[#FFD93D] px-4 py-2 text-sm font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+            className="inline-flex w-full items-center justify-center rounded-xl border-[3px] border-black bg-[#FFD93D] px-4 py-2 text-sm font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:w-auto"
           >
             Billing
           </Link>
@@ -331,8 +331,8 @@ export default function BrandProfilePage() {
       </div>
 
       <section className="mb-8 bg-white border-[3px] border-black shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] p-5 md:p-7">
-        <div className="flex flex-col items-center gap-5 text-center md:gap-6 md:text-left lg:flex-row lg:items-center">
-          <div className="relative w-[120px] h-[136px] shrink-0 md:w-[140px] md:h-[156px] border-[4px] border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] bg-[#FFD93D] overflow-hidden">
+        <div className="flex flex-col items-center gap-4 text-center sm:gap-5 xl:flex-row xl:items-center xl:text-left">
+          <div className="relative mx-auto h-[116px] w-[104px] shrink-0 overflow-hidden border-[4px] border-black bg-[#FFD93D] shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:h-[136px] sm:w-[120px] xl:mx-0 xl:h-[156px] xl:w-[140px]">
             {profileImageUrl ? (
               <img src={profileImageUrl} alt="Brand profile" className="w-full h-full object-cover" />
             ) : (
@@ -368,9 +368,9 @@ export default function BrandProfilePage() {
             />
           </div>
 
-          <div className="w-full min-w-0">
+          <div className="w-full min-w-0 max-w-xl">
             <h2 className="text-xl md:text-2xl font-black uppercase text-black">Brand Avatar</h2>
-            <p className="mt-1 mx-auto max-w-2xl text-sm md:mx-0 md:text-base font-medium leading-relaxed text-black/65">
+            <p className="mt-1 text-sm font-medium leading-relaxed text-black/65 md:text-base">
               Upload a logo or brand profile image. This updates instantly across your account.
             </p>
           </div>
