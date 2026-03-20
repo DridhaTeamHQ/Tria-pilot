@@ -161,22 +161,6 @@ export default async function BrandDashboard({
             <p className="mt-3 text-sm sm:text-base font-semibold text-black/70 max-w-2xl">
               Add a product if you want creators trying real items first, or launch a campaign if you already know the story you want to push.
             </p>
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-              <Link
-                href="/brand/products"
-                className="inline-flex items-center justify-center gap-2 rounded-full border-[3px] border-black bg-[#B4F056] px-5 py-3 text-sm font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
-              >
-                <Package className="h-4 w-4" />
-                Add Product
-              </Link>
-              <Link
-                href="/brand/campaigns/new"
-                className="inline-flex items-center justify-center gap-2 rounded-full border-[3px] border-black bg-[#A78BFA] px-5 py-3 text-sm font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
-              >
-                <Target className="h-4 w-4" />
-                Create Campaign
-              </Link>
-            </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
             <Link
@@ -265,23 +249,24 @@ export default async function BrandDashboard({
         </div>
       </div>
 
-      {/* Quick action buttons */}
-      <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 mb-8 sm:mb-10">
-        <Link
-          href="/brand/campaigns/new"
-          className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-[#A78BFA] border-[3px] border-black font-black text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          Create Campaign
-        </Link>
-        <Link
-          href="/brand/products"
-          className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-[#B4F056] border-[3px] border-black font-black text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          Add Product
-        </Link>
-      </div>
+      {!needsQuickStart && (
+        <div className="mb-8 flex flex-col flex-wrap gap-3 sm:mb-10 sm:flex-row sm:gap-4">
+          <Link
+            href="/brand/campaigns/new"
+            className="inline-flex items-center justify-center gap-2 border-[3px] border-black bg-[#A78BFA] px-5 py-3 text-sm font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+          >
+            <Plus className="w-4 h-4" />
+            Create Campaign
+          </Link>
+          <Link
+            href="/brand/products"
+            className="inline-flex items-center justify-center gap-2 border-[3px] border-black bg-[#B4F056] px-5 py-3 text-sm font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+          >
+            <Plus className="w-4 h-4" />
+            Add Product
+          </Link>
+        </div>
+      )}
 
       {/* Recent campaigns table */}
       <div className="mb-8 sm:mb-10">
