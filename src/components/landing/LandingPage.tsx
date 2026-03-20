@@ -284,23 +284,21 @@ export default function LandingPage() {
             </div>
 
             <div className="relative z-20 flex flex-col md:flex-row w-full text-sm bg-[#faf9f6] border-strong-t">
-              <div className="md:w-3/4 p-8 md:p-12 grid-line-y flex flex-col justify-center gap-6">
-                <div className="space-y-2">
-                  <p className="text-sm font-black uppercase tracking-[0.28em] text-gray-500">
-                    Where Fashion Meets AI
-                  </p>
-                  <p className="max-w-2xl text-base md:text-lg font-bold leading-relaxed text-gray-700">
-                    For creators who want to earn.
-                    <br />
-                    For brands that want to scale.
-                    <br />
-                    This is where it happens.
-                  </p>
-                </div>
-                <p className="max-w-2xl text-gray-800 text-lg md:text-xl font-bold leading-relaxed">
+              <div className="md:w-3/4 p-8 md:p-12 grid-line-y flex flex-col justify-center min-w-0">
+                <h2
+                  className="font-black uppercase tracking-tight leading-[0.9] text-[#111111]"
+                  style={{ fontSize: 'clamp(2.4rem, 6vw, 5.5rem)' }}
+                >
+                  Where Fashion Meets
+                  <br />
+                  <span className="text-[#ff8a73]">AI.</span>
+                  <br />
+                  <span className="text-[#b3f500]">This is where it happens.</span>
+                </h2>
+                <p className="hidden max-w-2xl text-gray-800 text-lg md:text-xl font-bold leading-relaxed">
                   The ultimate fashion marketplace where influencers and brands connect, create, and convert — powered by AI.
                 </p>
-                <div className="flex flex-col sm:flex-row gap-4">
+                <div className="hidden flex-col sm:flex-row gap-4">
                   <Link
                     href="/signup/influencer"
                     className="neo-btn border-2 border-[#111111] bg-[#ff8a73] px-8 py-4 font-extrabold text-[#111111] inline-flex items-center justify-center gap-3 rounded-xl"
@@ -317,11 +315,11 @@ export default function LandingPage() {
                   </Link>
                 </div>
               </div>
-              <div className="md:w-1/4 p-8 flex flex-col justify-center bg-white relative overflow-hidden">
-                <div className="absolute -right-4 -top-4 text-9xl font-black text-gray-100 pointer-events-none select-none leading-none">
+              <div className="md:w-1/4 p-8 md:p-10 flex flex-col justify-center bg-white relative overflow-hidden">
+                <div className="hidden absolute -right-4 -top-4 text-9xl font-black text-gray-100 pointer-events-none select-none leading-none">
                   AI
                 </div>
-                <div className="relative z-10">
+                <div className="hidden relative z-10">
                   <div className="text-[#ff8a73] font-black text-4xl md:text-5xl mb-2 tracking-tighter">
                     No shoots.
                   </div>
@@ -332,32 +330,73 @@ export default function LandingPage() {
                     <div className="w-full h-full bg-[#ff8a73] animate-pulse" />
                   </div>
                 </div>
+                <div className="relative z-10 space-y-5">
+                  <p className="font-black text-[#111111] uppercase tracking-[0.22em] text-xs">KIWIKOO</p>
+                  <p className="font-bold leading-relaxed text-base text-gray-700">
+                    For creators who want to earn. For brands that want to scale.
+                  </p>
+                  <p className="font-bold leading-relaxed text-base text-gray-700">
+                    This is where content, commerce, and AI finally work in one flow.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
         <section className="grid grid-cols-1 md:grid-cols-4 w-full grid-line-x bg-white">
-          <div className="md:col-span-3 p-10 md:p-20 grid-line-y min-w-0">
-            <h2
-              className="font-black uppercase tracking-tighter leading-[0.9] text-[#111111]"
-              style={{ fontSize: 'clamp(2.2rem, 7vw, 5.5rem)' }}
-            >
-              Where Fashion Meets
-              <br />
-              <span className="text-[#ff8a73]">AI.</span>
-              <br />
-              <span className="text-[#b3f500]">This is where it happens.</span>
-            </h2>
+          <div className="md:col-span-3 p-8 md:p-12 grid-line-y min-w-0 flex flex-col justify-center gap-6">
+            <div className="space-y-2">
+              <p className="text-sm font-black uppercase tracking-[0.28em] text-gray-500">
+                Where Fashion Meets AI
+              </p>
+              <p className="max-w-2xl text-lg md:text-[1.65rem] font-bold leading-relaxed text-gray-700">
+                For creators who want to earn.
+                <br />
+                For brands that want to scale.
+                <br />
+                This is where it happens.
+              </p>
+            </div>
+            <p className="max-w-3xl text-gray-800 text-xl md:text-[2rem] font-bold leading-[1.5]">
+              The ultimate fashion marketplace where influencers and brands connect, create, and convert - powered by AI.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Link
+                href="/signup/influencer"
+                className="neo-btn border-2 border-[#111111] bg-[#ff8a73] px-8 py-4 font-extrabold text-[#111111] inline-flex items-center justify-center gap-3 rounded-xl"
+                style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
+              >
+                Join as Influencer
+              </Link>
+              <Link
+                href="/signup/brand"
+                className="neo-btn border-2 border-[#111111] bg-[#caff33] px-8 py-4 font-extrabold text-[#111111] inline-flex items-center justify-center gap-3 rounded-xl"
+                style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
+              >
+                Join as Brand
+              </Link>
+            </div>
           </div>
-          <div className="md:col-span-1 p-10 text-sm text-gray-800 flex flex-col justify-center bg-[#faf9f6] border-t md:border-t-0 border-black/10">
-            <p className="mb-6 font-black text-[#111111] uppercase tracking-widest text-xs">KIWIKOO</p>
-            <p className="mb-6 font-bold leading-relaxed">
+          <div className="md:col-span-1 p-8 md:p-10 text-sm text-gray-800 flex flex-col justify-center bg-[#faf9f6] border-t md:border-t-0 border-black/10">
+            <p className="hidden mb-6 font-black text-[#111111] uppercase tracking-widest text-xs">KIWIKOO</p>
+            <p className="hidden mb-6 font-bold leading-relaxed">
               For creators who want to earn. For brands that want to scale.
             </p>
-            <p className="font-bold leading-relaxed">
+            <p className="hidden font-bold leading-relaxed">
               This is where content, commerce, and AI finally work in one flow.
             </p>
+            <div className="relative z-10">
+              <div className="text-[#ff8a73] font-black text-4xl md:text-5xl mb-2 tracking-tighter">
+                No shoots.
+              </div>
+              <div className="text-[#111111] font-bold text-xs tracking-widest uppercase mb-4">
+                No stress. Just results.
+              </div>
+              <div className="w-full h-1 bg-gray-200 rounded-full overflow-hidden">
+                <div className="w-full h-full bg-[#ff8a73] animate-pulse" />
+              </div>
+            </div>
           </div>
         </section>
 
