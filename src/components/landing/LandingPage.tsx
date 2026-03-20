@@ -260,6 +260,10 @@ export default function LandingPage() {
   } as const
 
   const activeAudience = audienceContent[audienceView]
+  const eyebrowClass = 'text-[11px] font-black uppercase tracking-[0.24em] text-gray-500 md:text-xs md:tracking-[0.28em]'
+  const sectionHeadingClass = 'mt-6 text-[clamp(1.85rem,4vw,3.8rem)] font-black leading-[0.95] tracking-tight text-[#111111]'
+  const bodyTextClass = 'text-[15px] md:text-lg font-semibold leading-[1.6] text-gray-700'
+  const bodyCompactClass = 'text-[15px] md:text-base font-semibold leading-[1.65] text-gray-700'
 
   return (
     <div
@@ -379,10 +383,10 @@ export default function LandingPage() {
         <section className="grid grid-cols-1 md:grid-cols-4 w-full grid-line-x bg-white">
           <div className="md:col-span-3 p-8 md:p-12 grid-line-y min-w-0 flex flex-col justify-center gap-5 md:gap-6">
             <div className="space-y-2">
-              <p className="text-sm font-black uppercase tracking-[0.28em] text-gray-500">
+              <p className={eyebrowClass}>
                 Where Fashion Meets AI
               </p>
-              <p className="max-w-2xl text-[1.05rem] md:text-[1.38rem] font-bold leading-[1.45] text-gray-700">
+              <p className="max-w-2xl text-[1rem] md:text-[1.22rem] font-bold leading-[1.45] text-gray-700">
                 For creators who want to earn.
                 <br />
                 For brands that want to scale.
@@ -390,7 +394,7 @@ export default function LandingPage() {
                 This is where it happens.
               </p>
             </div>
-            <p className="max-w-3xl text-gray-800 text-[1.08rem] md:text-[1.42rem] font-bold leading-[1.48]">
+            <p className="max-w-3xl text-[1rem] md:text-[1.22rem] font-bold leading-[1.5] text-[#111111]">
               The ultimate fashion marketplace where influencers and brands connect, create, and convert — powered by AI.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
@@ -435,18 +439,18 @@ export default function LandingPage() {
         <section className="w-full border-strong-b bg-[#faf9f6]">
           <div className="grid grid-cols-1 md:grid-cols-[1.15fr_0.85fr]">
             <div className="grid-line-y border-b border-black/10 p-6 sm:p-8 md:border-b-0 md:p-12">
-              <div className="inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-white px-4 py-2 text-[11px] font-black uppercase tracking-[0.28em] text-gray-500 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              <div className="inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-white px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                 <span className="h-3.5 w-3.5 rounded-full bg-[#ff8a73] border-2 border-black" />
-                What We Give You
+                <span className={eyebrowClass}>What We Give You</span>
               </div>
-              <h3 className="mt-6 text-[clamp(2.2rem,5vw,4.8rem)] font-black uppercase tracking-tight leading-[0.9] text-[#111111]">
+              <h3 className={`${sectionHeadingClass} uppercase`}>
                 Everything changes
                 <br />
                 from here.
               </h3>
             </div>
             <div className="p-6 sm:p-8 md:p-12">
-              <p className="mt-4 text-[15px] font-semibold leading-relaxed text-gray-600 md:text-lg">
+              <p className="mt-4 text-[15px] font-semibold leading-[1.65] text-gray-700 md:text-lg">
                 You don&apos;t need more tools.
                 <br />
                 You need something that actually works.
@@ -543,15 +547,15 @@ export default function LandingPage() {
               >
                 {activeAudience.label}
               </div>
-              <h3 className="mt-3 max-w-3xl text-[clamp(1.55rem,3vw,3rem)] font-black leading-[1] tracking-tight text-[#111111] md:mt-4">
+              <h3 className="mt-3 max-w-3xl text-[clamp(1.45rem,2.8vw,2.65rem)] font-black leading-[1.02] tracking-tight text-[#111111] md:mt-4">
                 {activeAudience.title}
               </h3>
-              <div className="mt-4 space-y-1.5 text-[15px] font-semibold leading-relaxed text-gray-600 md:mt-5 md:space-y-2 md:text-[1.02rem]">
+              <div className="mt-4 space-y-1.5 text-[15px] font-semibold leading-[1.65] text-gray-700 md:mt-5 md:space-y-2 md:text-base">
                 {activeAudience.intro.map((line) => (
                   <p key={line}>{line}</p>
                 ))}
               </div>
-              <p className="mt-5 max-w-3xl text-[14px] font-semibold leading-[1.7] text-gray-700 md:mt-6 md:text-[1rem]">
+              <p className={`mt-5 max-w-3xl md:mt-6 ${bodyCompactClass}`}>
                 {activeAudience.body}
               </p>
               <Link
@@ -570,19 +574,19 @@ export default function LandingPage() {
 
         <section className="grid grid-cols-1 md:grid-cols-[1.1fr_0.9fr] w-full border-strong-b bg-[#faf9f6]">
           <div className="grid-line-y p-8 md:p-12 border-b md:border-b-0 border-black/10">
-            <div className="text-xs font-black uppercase tracking-[0.28em] text-[#111111]">Why Us</div>
-            <h3 className="mt-6 text-[clamp(2rem,4vw,4.4rem)] font-black leading-[0.95] tracking-tight text-[#111111]">
+            <div className={eyebrowClass}>Why Us</div>
+            <h3 className={sectionHeadingClass}>
               Built different.
               <br />
               Because the old way doesn&apos;t work anymore.
             </h3>
-            <div className="mt-6 space-y-2 text-lg font-semibold text-gray-600">
+            <div className="mt-6 space-y-2 text-[15px] md:text-lg font-semibold text-gray-700">
               <p>You&apos;ve seen how it usually goes.</p>
               <p>Expensive shoots.</p>
               <p>Endless coordination.</p>
               <p>Campaigns that don&apos;t convert.</p>
             </div>
-            <p className="mt-6 max-w-2xl text-base md:text-lg font-semibold leading-relaxed text-gray-700">
+            <p className={`mt-6 max-w-2xl ${bodyTextClass}`}>
               We changed that.
               <br />
               <br />
@@ -612,7 +616,7 @@ export default function LandingPage() {
                 </div>
               ))}
             </div>
-            <div className="mt-8 rounded-2xl border-2 border-[#111111] bg-[#111111] px-6 py-6 text-center text-xl font-black text-white">
+            <div className="mt-8 rounded-2xl border-2 border-[#111111] bg-[#111111] px-6 py-6 text-center text-lg md:text-xl font-black text-white">
               Create → Share → Earn. That&apos;s it.
             </div>
           </div>
@@ -811,7 +815,7 @@ function FeatureCard({
 
   return (
     <div
-      className={`flex min-h-[220px] flex-col justify-between rounded-[28px] border-[3px] border-black bg-white p-6 shadow-[6px_6px_0px_0px_rgba(17,17,17,1)] transition-transform duration-200 hover:-translate-y-1 md:min-h-[260px] md:p-8 ${bordered ? 'md:translate-y-1' : ''}`}
+      className={`flex min-h-[220px] flex-col justify-between rounded-[28px] border-[3px] border-black bg-white p-5 shadow-[6px_6px_0px_0px_rgba(17,17,17,1)] transition-transform duration-200 hover:-translate-y-1 sm:p-6 md:min-h-[260px] md:p-8 ${bordered ? 'md:translate-y-1' : ''}`}
     >
       <div className="space-y-5">
         <div
@@ -825,12 +829,12 @@ function FeatureCard({
           {label}
         </div>
         <div>
-          <h4 className="mb-3 text-[1.8rem] font-black uppercase tracking-tight leading-[0.92] text-[#111111] md:text-[2.15rem]">
+          <h4 className="mb-3 break-words text-[clamp(1.6rem,3.1vw,2.15rem)] font-black uppercase tracking-tight leading-[0.94] text-[#111111]">
             {head}
             {tail ? <br /> : null}
             {tail}
           </h4>
-          <p className="max-w-[28ch] text-[15px] font-semibold leading-relaxed text-gray-600 md:text-base">
+          <p className="max-w-[26ch] text-[14px] font-semibold leading-relaxed text-gray-600 sm:text-[15px] md:max-w-[28ch] md:text-base">
             {description}
           </p>
         </div>
