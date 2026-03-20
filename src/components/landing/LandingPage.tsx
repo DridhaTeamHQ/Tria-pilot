@@ -255,7 +255,7 @@ export default function LandingPage() {
       <div
         ref={globalBgRef}
         id="global-bg"
-        className="fixed top-0 left-0 w-full h-[120vh] z-[-2] bg-cover bg-center will-change-transform"
+        className="fixed top-0 left-0 z-[-2] h-screen w-full bg-cover bg-center will-change-transform md:h-[120vh]"
         style={{
           backgroundImage:
             "url('https://images.unsplash.com/photo-1550614000-4b95d85824b0?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80')",

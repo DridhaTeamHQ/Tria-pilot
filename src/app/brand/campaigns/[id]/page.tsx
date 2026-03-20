@@ -511,7 +511,7 @@ function RefineChatPanel({ campaignId, onStrategyUpdated, onClose }: {
             {/* Backdrop */}
             <div className="fixed inset-0 bg-black/10 backdrop-blur-[2px] z-40 animate-fadeIn" onClick={onClose} />
 
-            <div className="fixed bottom-4 right-4 w-[320px] h-[480px] bg-white rounded-2xl shadow-2xl border border-black/10 z-50 flex flex-col animate-slideInRight overflow-hidden">
+            <div className="fixed inset-x-3 bottom-3 z-50 flex h-[min(72vh,520px)] w-auto flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-2xl animate-slideInRight sm:inset-x-auto sm:bottom-4 sm:right-4 sm:w-[320px] sm:h-[480px]">
                 <style>{`@keyframes slideInRight { from { opacity: 0; transform: translateY(16px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
                     .animate-slideInRight { animation: slideInRight 0.25s ease-out both; }`}</style>
 
