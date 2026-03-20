@@ -4,14 +4,13 @@ import { collaborationSchema } from '@/lib/validation'
 import { generateCollaborationProposal } from '@/lib/openai'
 import { sendEmail } from '@/lib/email/supabase-email'
 import {
-  buildCollaborationRequestEmail,
   buildCollaborationAcceptedEmail,
   buildCollaborationDeclinedEmail,
+  buildCollaborationRequestEmail,
 } from '@/lib/email/templates'
 import { getPublicSiteUrlFromRequest } from '@/lib/site-url'
 import { z } from 'zod'
 
-// Collaboration Request Schema
 const requestSchema = collaborationSchema
   .extend({
     influencerId: z.string().min(1).max(100).optional(),
@@ -19,6 +18,86 @@ const requestSchema = collaborationSchema
     productId: z.string().min(1).max(100).optional(),
   })
   .strict()
+
+type UserRole = 'brand' | 'influencer'
+type CollaborationStatus = 'pending' | 'accepted' | 'declined'
+
+function normalizeRole(value: unknown): UserRole | null {
+  const role = typeof value === 'string' ? value.toLowerCase() : ''
+  if (role === 'brand' || role === 'influencer') return role
+  return null
+}
+
+function asObject(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>
+  }
+  return {}
+}
+
+function normalizeInfluencerProfile(value: unknown) {
+  if (Array.isArray(value)) return value[0] || null
+  return value || null
+}
+
+function getCollaborationMeta(collab: any) {
+  const details = asObject(collab?.proposal_details)
+  const explicitInitiatedBy = typeof details.initiated_by === 'string' ? details.initiated_by : null
+  const explicitInitiatedRole = normalizeRole(details.initiated_role)
+  const explicitReceiverId = typeof details.receiver_id === 'string' ? details.receiver_id : null
+  const hasExplicitInitiator = Boolean(explicitInitiatedBy && explicitInitiatedRole)
+
+  const initiatedBy = explicitInitiatedBy || collab.brand_id
+  const initiatedRole = explicitInitiatedRole || 'brand'
+  const receiverId = explicitReceiverId || (initiatedBy === collab.brand_id ? collab.influencer_id : collab.brand_id)
+  const senderId = initiatedBy
+  const senderRole: UserRole = initiatedRole
+  const receiverRole: UserRole = senderRole === 'brand' ? 'influencer' : 'brand'
+
+  return {
+    details,
+    hasExplicitInitiator,
+    initiatedBy,
+    initiatedRole,
+    receiverId,
+    senderId,
+    senderRole,
+    receiverRole,
+  }
+}
+
+function getBrandDisplayName(profile: any) {
+  return (profile?.brand_data?.companyName as string | undefined) || profile?.full_name || 'Brand'
+}
+
+function getInfluencerDisplayName(profile: any) {
+  return profile?.full_name || 'Influencer'
+}
+
+function serializeCollaboration(collab: any) {
+  return {
+    id: collab.id,
+    message: collab.message,
+    status: collab.status,
+    createdAt: collab.created_at,
+    updatedAt: collab.updated_at,
+    proposalDetails: asObject(collab.proposal_details),
+    brand: collab.brand
+      ? {
+          id: collab.brand.id,
+          name: collab.brand.full_name || null,
+          brandProfile: asObject(collab.brand.brand_data),
+        }
+      : null,
+    influencer: collab.influencer
+      ? {
+          id: collab.influencer.id,
+          name: collab.influencer.full_name || null,
+          influencerProfile: normalizeInfluencerProfile(collab.influencer.influencer_profiles),
+        }
+      : null,
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -31,7 +110,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user profile (Source of Truth)
     const { data: profile } = await supabase
       .from('profiles')
       .select('*, influencer_profiles(*)')
@@ -48,30 +126,27 @@ export async function POST(request: Request) {
 
     let targetBrandId: string
     let targetInfluencerId: string
-    const service = createServiceClient() // Use service client for cross-user ops if needed
-
-    const role = (profile.role || '').toLowerCase()
+    const service = createServiceClient()
+    const role = normalizeRole(profile.role)
 
     if (role === 'brand') {
-      // Brand -> Influencer
       if (!influencerId) {
         return NextResponse.json({ error: 'Influencer ID required' }, { status: 400 })
       }
+
       targetBrandId = profile.id
       targetInfluencerId = influencerId
 
-      // Fetch Influencer Profile
       const { data: influencer } = await service
         .from('profiles')
         .select('*, influencer_profiles(*)')
         .eq('id', influencerId)
         .single()
 
-      if (!influencer || (influencer.role || '').toLowerCase() !== 'influencer') {
+      if (!influencer || normalizeRole(influencer.role) !== 'influencer') {
         return NextResponse.json({ error: 'Influencer not found' }, { status: 404 })
       }
 
-      // Generate AI Proposal
       const brandData = profile.brand_data || {}
       const message = await generateCollaborationProposal(
         {
@@ -87,7 +162,6 @@ export async function POST(request: Request) {
         { budget, timeline, goals, notes }
       )
 
-      // Create Request
       const { data: collaboration, error: createError } = await service
         .from('collaboration_requests')
         .insert({
@@ -101,30 +175,35 @@ export async function POST(request: Request) {
             goals,
             notes,
             productId,
+            initiated_by: profile.id,
+            initiated_role: 'brand',
+            receiver_id: targetInfluencerId,
           },
           status: 'pending',
         })
-        .select()
+        .select(`
+          *,
+          brand:brand_id(id, full_name, brand_data),
+          influencer:influencer_id(id, full_name, influencer_profiles(*))
+        `)
         .single()
 
       if (createError) throw createError
 
-      // Notify Influencer
       await service.from('notifications').insert({
         user_id: targetInfluencerId,
         type: 'collab_request',
-        content: `New collaboration request from ${brandData.companyName || profile.full_name || 'a brand'}`,
+        content: `New collaboration request from ${getBrandDisplayName(profile)}`,
         metadata: { requestId: collaboration.id },
       })
 
-      // Send Email
       try {
         if (influencer.email) {
           const baseUrl = getPublicSiteUrlFromRequest(request)
           const template = buildCollaborationRequestEmail({
             baseUrl,
             recipientName: influencer.full_name,
-            senderName: brandData.companyName || profile.full_name,
+            senderName: getBrandDisplayName(profile),
             senderRole: 'brand',
             messagePreview: message,
           })
@@ -136,24 +215,24 @@ export async function POST(request: Request) {
             text: template.text,
           })
         }
-      } catch (e) {
-        console.warn('Email failed', e)
+      } catch (error) {
+        console.warn('Collaboration request email failed:', error)
       }
 
-      return NextResponse.json(collaboration, { status: 201 })
+      return NextResponse.json(serializeCollaboration(collaboration), { status: 201 })
+    }
 
-    } else if (role === 'influencer') {
-      // Influencer -> Brand
+    if (role === 'influencer') {
       if (!brandId && !productId) {
         return NextResponse.json({ error: 'Brand ID or Product ID required' }, { status: 400 })
       }
+
       targetInfluencerId = profile.id
 
       if (productId) {
-        // Get Brand from Product
         const { data: product } = await service
           .from('products')
-          .select('brand_id, brand:brand_id(*)')
+          .select('brand_id')
           .eq('id', productId)
           .single()
 
@@ -163,22 +242,18 @@ export async function POST(request: Request) {
         targetBrandId = brandId!
       }
 
-      // Get Brand Profile
       const { data: brand } = await service
         .from('profiles')
         .select('*')
         .eq('id', targetBrandId)
         .single()
 
-      if (!brand || (brand.role || '').toLowerCase() !== 'brand') {
+      if (!brand || normalizeRole(brand.role) !== 'brand') {
         return NextResponse.json({ error: 'Brand not found' }, { status: 404 })
       }
 
-      // Simple Message
-      const brandData = (brand.brand_data || {}) as any
-      const message = notes || `I'm interested in collaborating with ${brandData.companyName || 'your brand'}.`
+      const message = notes || `I'm interested in collaborating with ${getBrandDisplayName(brand)}.`
 
-      // Create Request
       const { data: collaboration, error: createError } = await service
         .from('collaboration_requests')
         .insert({
@@ -192,30 +267,35 @@ export async function POST(request: Request) {
             goals: goals || [],
             notes,
             productId,
+            initiated_by: profile.id,
+            initiated_role: 'influencer',
+            receiver_id: targetBrandId,
           },
           status: 'pending',
         })
-        .select()
+        .select(`
+          *,
+          brand:brand_id(id, full_name, brand_data),
+          influencer:influencer_id(id, full_name, influencer_profiles(*))
+        `)
         .single()
 
       if (createError) throw createError
 
-      // Notify Brand
       await service.from('notifications').insert({
         user_id: targetBrandId,
         type: 'collab_request',
-        content: `New collaboration request from ${profile.full_name || 'an influencer'}`,
+        content: `New collaboration request from ${getInfluencerDisplayName(profile)}`,
         metadata: { requestId: collaboration.id },
       })
 
-      // Send Email
       try {
         if (brand.email) {
           const baseUrl = getPublicSiteUrlFromRequest(request)
           const template = buildCollaborationRequestEmail({
             baseUrl,
             recipientName: brand.full_name || 'Brand',
-            senderName: profile.full_name || 'Influencer',
+            senderName: getInfluencerDisplayName(profile),
             senderRole: 'influencer',
             messagePreview: message,
           })
@@ -227,15 +307,14 @@ export async function POST(request: Request) {
             text: template.text,
           })
         }
-      } catch (e) {
-        console.warn('Email failed', e)
+      } catch (error) {
+        console.warn('Collaboration request email failed:', error)
       }
 
-      return NextResponse.json(collaboration, { status: 201 })
+      return NextResponse.json(serializeCollaboration(collaboration), { status: 201 })
     }
 
     return NextResponse.json({ error: 'Unauthorized role' }, { status: 403 })
-
   } catch (error) {
     console.error('Collaboration creation error:', error)
     return NextResponse.json(
@@ -257,55 +336,49 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url)
-    const type = searchParams.get('type') // 'sent' | 'received'
+    const type = searchParams.get('type')
+    const { data: viewerProfile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', authUser.id)
+      .single()
+    const viewerRole = normalizeRole(viewerProfile?.role)
 
-    let query = supabase
+    const { data: collaborations, error } = await supabase
       .from('collaboration_requests')
       .select(`
         *,
         brand:brand_id(id, full_name, brand_data),
         influencer:influencer_id(id, full_name, influencer_profiles(*))
       `)
+      .or(`brand_id.eq.${authUser.id},influencer_id.eq.${authUser.id}`)
       .order('created_at', { ascending: false })
-
-    if (type === 'sent') {
-      // Sent by Brand? Or sent by user? Logic was ambiguous in original.
-      // Assuming 'sent' means "I initiated it".
-      // But implementation checked brandId vs influencerId. 
-      // Original logic:
-      // If BRAND -> type='sent' -> where brandId = me
-      // If INFLUENCER -> type='received' -> where influencerId = me
-      // This assumption was simplistic. 
-      // Let's stick to simple Role checks.
-
-      // We need to know who 'I' am.
-      // We can check authUser.id against columns.
-      // But RLS handles visibility.
-      // Just return everything visible? No, usually filtered by UI tab.
-
-      // Let's rely on RLS and just filter by user ID if type is provided?
-      // Actually, original code had specific logic for Brand Portal vs Influencer Dashboard.
-
-      // If I am a Brand, I want to see requests.
-      // If I am Influencer, I want to see requests.
-      // Let's just return all requests for this user.
-      query = query.or(`brand_id.eq.${authUser.id},influencer_id.eq.${authUser.id}`)
-
-    } else {
-      // Default behavior: return all my collaborations
-      query = query.or(`brand_id.eq.${authUser.id},influencer_id.eq.${authUser.id}`)
-    }
-
-    const { data: collaborations, error } = await query
 
     if (error) throw error
 
-    return NextResponse.json(collaborations, {
+    const filtered = (collaborations || []).filter((collab: any) => {
+      const meta = getCollaborationMeta(collab)
+
+      if (type === 'sent') {
+        if (meta.hasExplicitInitiator) return meta.initiatedBy === authUser.id
+        return viewerRole === 'brand' ? collab.brand_id === authUser.id : false
+      }
+
+      if (type === 'received') {
+        if (meta.hasExplicitInitiator) return meta.receiverId === authUser.id
+        return viewerRole === 'influencer' ? collab.influencer_id === authUser.id : false
+      }
+
+      return collab.brand_id === authUser.id || collab.influencer_id === authUser.id
+    })
+
+    return NextResponse.json(filtered.map(serializeCollaboration), {
       headers: {
         'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
       },
     })
   } catch (error) {
+    console.error('Collaboration fetch error:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
@@ -314,42 +387,44 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  // Implementation for update status (accept/decline) similar to POST but mostly just updates
-  // Skipping full rewrite here for brevity unless requested, but sticking to "Clean up trash code"
-  // so I should implement it.
-
-  // ... (Similar logic for PATCH, using supabase .update() and notifications)
-  // I will include minimal implementation for correct functionality
   try {
     const supabase = await createClient()
-    const { data: { user: authUser } } = await supabase.auth.getUser()
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser()
+
     if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await request.json().catch(() => null)
-    const { id, status } = z.object({
-      id: z.string(),
-      status: z.enum(['accepted', 'declined'])
-    }).parse(body)
+    const { id, status } = z
+      .object({
+        id: z.string(),
+        status: z.enum(['accepted', 'declined']),
+      })
+      .parse(body)
 
     const service = createServiceClient()
+    const { data: collab, error: collabError } = await service
+      .from('collaboration_requests')
+      .select(`
+        *,
+        brand:brand_id(id, email, full_name, brand_data),
+        influencer:influencer_id(id, email, full_name, influencer_profiles(*))
+      `)
+      .eq('id', id)
+      .single()
 
-    // Verify ownership/permission via RLS or manual check
-    const { data: collab } = await service.from('collaboration_requests').select('*').eq('id', id).single()
+    if (collabError) throw collabError
     if (!collab) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    // Only target can accept/decline?
-    // If status is pending, usually the Receiver acts.
-    // If I am Influencer and brand sent it -> I act.
-    // If I am Brand and influencer sent it -> I act.
+    const meta = getCollaborationMeta(collab)
+    if (meta.receiverId !== authUser.id) {
+      return NextResponse.json({ error: 'Only the receiving side can update this request' }, { status: 403 })
+    }
 
-    // For simplicity, allow either party to 'decline', but only receiver to 'accept'?
-    // Original code: "Only influencer can accept/decline" (assuming brand always sends request). 
-    // But we added "Influencer requesting collaboration".
-
-    // Let's assume the 'receiver' accepts.
-    // Who is receiver? 
-    // We don't track 'initiator' explicitly, but usually inferred.
-    // Let's allow updating if you are involved.
+    if ((collab.status as CollaborationStatus) !== 'pending') {
+      return NextResponse.json({ error: 'This collaboration request has already been resolved' }, { status: 409 })
+    }
 
     const { error: updateError } = await service
       .from('collaboration_requests')
@@ -358,17 +433,58 @@ export async function PATCH(request: Request) {
 
     if (updateError) throw updateError
 
-    // Notify other party
-    const otherPartyId = collab.brand_id === authUser.id ? collab.influencer_id : collab.brand_id
+    const responderName =
+      meta.receiverRole === 'brand'
+        ? getBrandDisplayName(collab.brand)
+        : getInfluencerDisplayName(collab.influencer)
+    const initiatorName =
+      meta.senderRole === 'brand'
+        ? getBrandDisplayName(collab.brand)
+        : getInfluencerDisplayName(collab.influencer)
+
     await service.from('notifications').insert({
-      user_id: otherPartyId,
+      user_id: meta.senderId,
       type: `collab_${status}`,
-      content: `Collaboration request ${status}`,
-      metadata: { requestId: id }
+      content: `${responderName} ${status} your collaboration request`,
+      metadata: { requestId: id },
     })
 
-    return NextResponse.json({ success: true })
-  } catch (e) {
-    return NextResponse.json({ error: 'Error' }, { status: 500 })
+    const initiatorEmail = meta.senderRole === 'brand' ? collab.brand?.email : collab.influencer?.email
+    if (initiatorEmail) {
+      try {
+        const baseUrl = getPublicSiteUrlFromRequest(request)
+        const template =
+          status === 'accepted'
+            ? buildCollaborationAcceptedEmail({
+                baseUrl,
+                recipientName: initiatorName,
+                counterpartName: responderName,
+                recipientRole: meta.senderRole,
+              })
+            : buildCollaborationDeclinedEmail({
+                baseUrl,
+                recipientName: initiatorName,
+                counterpartName: responderName,
+                recipientRole: meta.senderRole,
+              })
+
+        await sendEmail({
+          to: initiatorEmail,
+          subject: template.subject,
+          html: template.html,
+          text: template.text,
+        })
+      } catch (emailError) {
+        console.warn(`Collaboration ${status} email failed:`, emailError)
+      }
+    }
+
+    return NextResponse.json({ success: true, status })
+  } catch (error) {
+    console.error('Collaboration update error:', error)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Internal server error' },
+      { status: 500 }
+    )
   }
 }

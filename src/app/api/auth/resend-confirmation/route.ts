@@ -24,8 +24,26 @@ export async function POST(request: Request) {
     const { email } = resendSchema.parse(body)
     const service = createServiceClient()
 
-    const { data: users } = await service.auth.admin.listUsers({ page: 1, perPage: 1000 })
-    const user = users?.users?.find((u: any) => u.email?.toLowerCase().trim() === email)
+    const perPage = 1000
+    let page = 1
+    let user: any = null
+
+    while (!user) {
+      const { data: usersPage, error: listError } = await service.auth.admin.listUsers({ page, perPage })
+      if (listError) {
+        console.error('Resend confirmation listUsers error:', listError)
+        break
+      }
+
+      const users = usersPage?.users || []
+      user = users.find((u: any) => u.email?.toLowerCase().trim() === email) || null
+
+      if (user || users.length < perPage) {
+        break
+      }
+
+      page += 1
+    }
 
     if (!user || user.email_confirmed_at) {
       return NextResponse.json(genericOk)

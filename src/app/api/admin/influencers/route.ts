@@ -3,6 +3,7 @@ import { createClient, createServiceClient } from '@/lib/auth'
 import { z } from 'zod'
 import { sendEmail } from '@/lib/email/supabase-email'
 import { getPublicSiteUrlFromRequest, joinPublicUrl } from '@/lib/site-url'
+import { buildInfluencerRejectionEmail } from '@/lib/email/templates'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -160,7 +161,7 @@ export async function PATCH(request: Request) {
     const body = await request.json()
 
     if (typeof body?.status === 'string') {
-      const { user_id, status } = updateSchema.parse(body)
+      const { user_id, status, review_note } = updateSchema.parse(body)
       const approvalStatus = status === 'approved' ? 'approved' : 'rejected'
 
       const { data: targetProfile, error: targetProfileError } = await service
@@ -182,10 +183,18 @@ export async function PATCH(request: Request) {
 
       if (error) throw error
 
-      if (approvalStatus === 'approved' && targetProfile?.email) {
+      if (targetProfile?.email) {
         try {
           const baseUrl = getPublicSiteUrlFromRequest(request)
-          const template = buildApprovalEmail(baseUrl, targetProfile.full_name)
+          const template =
+            approvalStatus === 'approved'
+              ? buildApprovalEmail(baseUrl, targetProfile.full_name)
+              : buildInfluencerRejectionEmail({
+                  name: targetProfile.full_name,
+                  baseUrl,
+                  reviewNote: review_note,
+                })
+
           await sendEmail({
             to: targetProfile.email,
             subject: template.subject,
@@ -193,7 +202,7 @@ export async function PATCH(request: Request) {
             text: template.text,
           })
         } catch (emailError) {
-          console.warn('Failed to send influencer approval email:', emailError)
+          console.warn(`Failed to send influencer ${approvalStatus} email:`, emailError)
         }
       }
 

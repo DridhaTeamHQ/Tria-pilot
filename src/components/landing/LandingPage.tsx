@@ -8,6 +8,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 gsap.registerPlugin(ScrollTrigger)
 
 const PF = 'var(--font-plus-jakarta-sans), sans-serif'
+
 type LenisLike = {
   raf: (timeMs: number) => void
   on: (event: string, callback: () => void) => void
@@ -537,7 +538,7 @@ export default function LandingPage() {
         </section>
 
         {/* ━━━━━━━━━━ MASSIVE FOOTER TITLE ━━━━━━━━━━ */}
-        <section className="w-full border-strong-b flex justify-center items-center py-10 bg-[#caff33] overflow-hidden relative">
+        <section className="w-full border-strong-b flex justify-center items-center aspect-[5/1] bg-[#caff33] overflow-hidden relative">
           <h1
             ref={footerHugeRef}
             id="footer-huge-text"
@@ -599,4 +600,3 @@ export default function LandingPage() {
     </div>
   )
 }
-

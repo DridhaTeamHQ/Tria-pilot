@@ -1,14 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { ArrowRight, MessageSquare, User } from 'lucide-react'
+import Link from 'next/link'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { toast } from 'sonner'
-import Link from 'next/link'
-import { MessageSquare, User, ArrowRight, Sparkles } from 'lucide-react'
 import { useCollaborations } from '@/lib/react-query/collaborations'
 
 interface Collaboration {
@@ -18,11 +17,11 @@ interface Collaboration {
   createdAt: string
   influencer: {
     id: string
-    name?: string
+    name?: string | null
     influencerProfile?: {
       bio?: string
-    }
-  }
+    } | null
+  } | null
   proposalDetails?: {
     budget?: number
     timeline?: string
@@ -37,6 +36,11 @@ export default function BrandCollaborationsPage() {
   const { data: collaborationsData, isLoading: loading } = useCollaborations('sent')
   const collaborations: Collaboration[] = collaborationsData || []
 
+  const filteredCollaborations = collaborations.filter((collab) => {
+    if (filter === 'all') return true
+    return collab.status === filter
+  })
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'accepted':
@@ -50,11 +54,6 @@ export default function BrandCollaborationsPage() {
     }
   }
 
-  const filteredCollaborations = collaborations.filter((collab) => {
-    if (filter === 'all') return true
-    return collab.status === filter
-  })
-
   return (
     <div className="min-h-screen bg-cream pt-24 pb-8">
       <div className="container mx-auto px-4 max-w-7xl">
@@ -62,7 +61,7 @@ export default function BrandCollaborationsPage() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="flex justify-between items-start mb-8"
+          className="flex flex-col gap-4 mb-8 md:flex-row md:items-start md:justify-between"
         >
           <div>
             <div className="flex items-center gap-3 mb-2">
@@ -76,22 +75,21 @@ export default function BrandCollaborationsPage() {
               <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100">Collaborations</h1>
             </div>
             <p className="text-zinc-600 dark:text-zinc-400 text-base ml-10">
-              Manage your collaboration requests sent to influencers
+              Manage the collaboration requests you have sent to influencers.
             </p>
           </div>
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Button asChild className="shrink-0">
-              <Link href="/brand/marketplace">Discover Influencers</Link>
+              <Link href="/brand/influencers">Discover Influencers</Link>
             </Button>
           </motion.div>
         </motion.div>
 
-        {/* Filter Tabs */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
-          className="flex gap-2 mb-6"
+          className="flex flex-wrap gap-2 mb-6"
         >
           {[
             { id: 'all', label: 'All', count: collaborations.length },
@@ -106,7 +104,7 @@ export default function BrandCollaborationsPage() {
               transition={{ duration: 0.3, delay: 0.1 + index * 0.05 }}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setFilter(tab.id as any)}
+              onClick={() => setFilter(tab.id as typeof filter)}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                 filter === tab.id
                   ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-lg'
@@ -165,12 +163,12 @@ export default function BrandCollaborationsPage() {
             </h3>
             <p className="text-zinc-600 dark:text-zinc-400 text-center max-w-md mb-6">
               {filter === 'all'
-                ? "You haven't sent any collaboration requests yet. Start by discovering influencers in the marketplace!"
+                ? "You haven't sent any collaboration requests yet. Start by discovering influencers."
                 : `No ${filter} collaborations found.`}
             </p>
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button asChild>
-                <Link href="/brand/marketplace">Browse Influencers</Link>
+                <Link href="/brand/influencers">Browse Influencers</Link>
               </Button>
             </motion.div>
           </motion.div>
@@ -183,88 +181,90 @@ export default function BrandCollaborationsPage() {
                   initial={{ opacity: 0, y: 20, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                  transition={{ 
-                    duration: 0.3, 
+                  transition={{
+                    duration: 0.3,
                     delay: index * 0.05,
                     type: 'spring',
-                    stiffness: 100
+                    stiffness: 100,
                   }}
                   whileHover={{ scale: 1.01, y: -2 }}
                 >
                   <Card className="hover:shadow-xl transition-all duration-300">
-                <CardHeader className="pb-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          <User className="h-5 w-5 text-zinc-500" />
-                          {collab.influencer.name || 'Influencer'}
-                        </CardTitle>
-                        {getStatusBadge(collab.status)}
-                      </div>
-                      <CardDescription className="text-xs">
-                        Sent: {new Date(collab.createdAt).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                        })}
-                      </CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                    {collab.message}
-                  </p>
-
-                  {collab.proposalDetails && (
-                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
-                      {collab.proposalDetails.budget && (
-                        <div>
-                          <p className="text-xs text-zinc-500 dark:text-zinc-500 uppercase tracking-wide mb-1">
-                            Budget
-                          </p>
-                          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                            ₹{collab.proposalDetails.budget.toLocaleString()}
-                          </p>
-                        </div>
-                      )}
-                      {collab.proposalDetails.timeline && (
-                        <div>
-                          <p className="text-xs text-zinc-500 dark:text-zinc-500 uppercase tracking-wide mb-1">
-                            Timeline
-                          </p>
-                          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                            {collab.proposalDetails.timeline}
-                          </p>
-                        </div>
-                      )}
-                      {collab.proposalDetails.goals && collab.proposalDetails.goals.length > 0 && (
-                        <div className="col-span-2">
-                          <p className="text-xs text-zinc-500 dark:text-zinc-500 uppercase tracking-wide mb-2">
-                            Goals
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            {(collab.proposalDetails.goals as string[]).map((goal, idx) => (
-                              <Badge key={idx} variant="outline" className="text-xs">
-                                {goal}
-                              </Badge>
-                            ))}
+                    <CardHeader className="pb-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <CardTitle className="text-lg flex items-center gap-2">
+                              <User className="h-5 w-5 text-zinc-500" />
+                              {collab.influencer?.name || 'Influencer'}
+                            </CardTitle>
+                            {getStatusBadge(collab.status)}
                           </div>
+                          <CardDescription className="text-xs">
+                            Sent:{' '}
+                            {new Date(collab.createdAt).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                            })}
+                          </CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">{collab.message}</p>
+
+                      {collab.proposalDetails && (
+                        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+                          {collab.proposalDetails.budget ? (
+                            <div>
+                              <p className="text-xs text-zinc-500 dark:text-zinc-500 uppercase tracking-wide mb-1">
+                                Budget
+                              </p>
+                              <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                                Rs. {collab.proposalDetails.budget.toLocaleString()}
+                              </p>
+                            </div>
+                          ) : null}
+                          {collab.proposalDetails.timeline ? (
+                            <div>
+                              <p className="text-xs text-zinc-500 dark:text-zinc-500 uppercase tracking-wide mb-1">
+                                Timeline
+                              </p>
+                              <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                                {collab.proposalDetails.timeline}
+                              </p>
+                            </div>
+                          ) : null}
+                          {collab.proposalDetails.goals && collab.proposalDetails.goals.length > 0 ? (
+                            <div className="col-span-2">
+                              <p className="text-xs text-zinc-500 dark:text-zinc-500 uppercase tracking-wide mb-2">
+                                Goals
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                {collab.proposalDetails.goals.map((goal, idx) => (
+                                  <Badge key={idx} variant="outline" className="text-xs">
+                                    {goal}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
                         </div>
                       )}
-                    </div>
-                  )}
 
-                  <div className="pt-2">
-                    <Link
-                      href={`/brand/influencers/${collab.influencer.id}`}
-                      className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center gap-1"
-                    >
-                      View Influencer Profile <ArrowRight className="h-3 w-3" />
-                    </Link>
-                  </div>
-                </CardContent>
+                      {collab.influencer ? (
+                        <div className="pt-2">
+                          <Link
+                            href={`/brand/influencers/${collab.influencer.id}`}
+                            className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center gap-1"
+                          >
+                            View Influencer Profile <ArrowRight className="h-3 w-3" />
+                          </Link>
+                        </div>
+                      ) : null}
+                    </CardContent>
                   </Card>
                 </motion.div>
               ))}
@@ -275,4 +275,3 @@ export default function BrandCollaborationsPage() {
     </div>
   )
 }
-
