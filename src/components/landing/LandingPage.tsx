@@ -16,6 +16,7 @@ type LenisLike = {
 }
 
 export default function LandingPage() {
+  const [audienceView, setAudienceView] = useState<'influencer' | 'brand'>('influencer')
   const [contactForm, setContactForm] = useState({
     name: '',
     email: '',
@@ -229,6 +230,37 @@ export default function LandingPage() {
     }
   }
 
+  const audienceContent = {
+    influencer: {
+      label: 'For Influencers',
+      labelColor: '#ff8a73',
+      title: "You've got the style. Why aren't you earning yet?",
+      intro: [
+        "You're already posting.",
+        'Already creating.',
+        'Already building an audience.',
+      ],
+      body:
+        'Now turn that into income. Create AI looks, post instantly, and earn from every click, view, and conversion without shoots, delays, or chasing brands.',
+      ctaLabel: 'Start Creating ->',
+      href: '/signup/influencer',
+      accentBg: '#ff8a73',
+    },
+    brand: {
+      label: 'For Brands',
+      labelColor: '#b3f500',
+      title: "Spending on marketing but not seeing real results? There's a smarter way.",
+      intro: ["You don't need more effort.", 'You need better execution.'],
+      body:
+        'Find the right creators, generate high-performing ads, and launch campaigns that actually convert, all powered by AI.',
+      ctaLabel: 'Start Scaling ->',
+      href: '/signup/brand',
+      accentBg: '#caff33',
+    },
+  } as const
+
+  const activeAudience = audienceContent[audienceView]
+
   return (
     <div
       className="antialiased relative bg-transparent overflow-x-hidden"
@@ -286,8 +318,8 @@ export default function LandingPage() {
             <div className="relative z-20 flex flex-col md:flex-row w-full text-sm bg-[#faf9f6] border-strong-t">
               <div className="md:w-3/4 p-8 md:p-12 grid-line-y flex flex-col justify-center min-w-0">
                 <h2
-                  className="font-black uppercase tracking-tight leading-[0.9] text-[#111111]"
-                  style={{ fontSize: 'clamp(2.4rem, 6vw, 5.5rem)' }}
+                  className="font-black uppercase tracking-tight leading-[0.92] text-[#111111]"
+                  style={{ fontSize: 'clamp(2.1rem, 5vw, 4.8rem)' }}
                 >
                   Where Fashion Meets
                   <br />
@@ -358,8 +390,8 @@ export default function LandingPage() {
                 This is where it happens.
               </p>
             </div>
-            <p className="max-w-3xl text-gray-800 text-xl md:text-[2rem] font-bold leading-[1.5]">
-              The ultimate fashion marketplace where influencers and brands connect, create, and convert - powered by AI.
+            <p className="max-w-3xl text-gray-800 text-lg md:text-[1.7rem] font-bold leading-[1.45]">
+              The ultimate fashion marketplace where influencers and brands connect, create, and convert, powered by AI.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Link
@@ -431,7 +463,7 @@ export default function LandingPage() {
             label="For Creators"
             labelColor="#ff8a73"
             title="AI Try-On Studio"
-            description="See yourself in outfits — without ever wearing them."
+            description="See yourself in outfits without ever wearing them."
             bordered
           />
           <FeatureCard
@@ -469,54 +501,68 @@ export default function LandingPage() {
           />
         </section>
 
-        <section className="grid grid-cols-1 md:grid-cols-2 w-full border-strong-b bg-white">
-          <div className="grid-line-y p-8 md:p-12 border-b md:border-b-0 border-black/10">
-            <div className="text-xs font-black uppercase tracking-[0.28em] text-[#ff8a73]">For Influencers</div>
-            <h3 className="mt-6 text-[clamp(2rem,4vw,4.3rem)] font-black leading-[0.95] tracking-tight text-[#111111]">
-              You&apos;ve got the style.
-              <br />
-              Why aren&apos;t you earning yet?
-            </h3>
-            <div className="mt-6 space-y-2 text-lg font-semibold text-gray-600">
-              <p>You&apos;re already posting.</p>
-              <p>Already creating.</p>
-              <p>Already building an audience.</p>
-            </div>
-            <p className="mt-6 max-w-2xl text-base md:text-lg font-semibold leading-relaxed text-gray-700">
-              Now turn that into income.
-              <br />
-              <br />
-              Create AI looks, post instantly, and earn from every click, view, and conversion — without shoots, delays, or chasing brands.
-            </p>
-            <Link
-              href="/signup/influencer"
-              className="mt-8 inline-flex items-center gap-3 rounded-xl border-2 border-[#111111] bg-[#ff8a73] px-6 py-4 font-black text-[#111111]"
-              style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
+        <section className="w-full border-strong-b bg-white">
+          <div className="mx-auto flex max-w-5xl flex-col items-center px-6 py-10 text-center md:px-10 md:py-14">
+            <div
+              className="inline-flex rounded-full border-[3px] border-black bg-[#faf9f6] p-1.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+              role="tablist"
+              aria-label="Audience switch"
             >
-              Start Creating →
-            </Link>
-          </div>
-          <div className="p-8 md:p-12 bg-[#faf9f6]">
-            <div className="text-xs font-black uppercase tracking-[0.28em] text-[#b3f500]">For Brands</div>
-            <h3 className="mt-6 text-[clamp(2rem,4vw,4.3rem)] font-black leading-[0.95] tracking-tight text-[#111111]">
-              Spending on marketing but not seeing real results?
-              <br />
-              There&apos;s a smarter way.
-            </h3>
-            <div className="mt-6 space-y-2 text-lg font-semibold text-gray-600">
-              <p>You don&apos;t need more effort.</p>
-              <p>You need better execution.</p>
+              <button
+                type="button"
+                onClick={() => setAudienceView('influencer')}
+                className={`rounded-full px-5 py-3 text-[11px] font-black uppercase tracking-[0.2em] transition-colors md:px-6 ${
+                  audienceView === 'influencer' ? 'text-[#111111]' : 'text-gray-500'
+                }`}
+                style={{
+                  backgroundColor: audienceView === 'influencer' ? '#ff8a73' : 'transparent',
+                }}
+              >
+                Influencers
+              </button>
+              <button
+                type="button"
+                onClick={() => setAudienceView('brand')}
+                className={`rounded-full px-5 py-3 text-[11px] font-black uppercase tracking-[0.2em] transition-colors md:px-6 ${
+                  audienceView === 'brand' ? 'text-[#111111]' : 'text-gray-500'
+                }`}
+                style={{
+                  backgroundColor: audienceView === 'brand' ? '#caff33' : 'transparent',
+                }}
+              >
+                Brands
+              </button>
             </div>
-            <p className="mt-6 max-w-2xl text-base md:text-lg font-semibold leading-relaxed text-gray-700">
-              Find the right creators, generate high-performing ads, and launch campaigns that actually convert — all powered by AI.
-            </p>
-            <Link
-              href="/signup/brand"
-              className="mt-8 inline-flex items-center gap-3 rounded-xl border-2 border-[#111111] bg-[#caff33] px-6 py-4 font-black text-[#111111]"
-              style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
-            >
-              Start Scaling →
-            </Link>
+
+            <div className="mt-8 w-full rounded-[32px] border-[3px] border-black bg-[#faf9f6] px-6 py-8 text-left shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] md:px-10 md:py-12">
+              <div
+                className="text-xs font-black uppercase tracking-[0.28em]"
+                style={{ color: activeAudience.labelColor }}
+              >
+                {activeAudience.label}
+              </div>
+              <h3 className="mt-5 max-w-4xl text-[clamp(2rem,4vw,4rem)] font-black leading-[0.94] tracking-tight text-[#111111]">
+                {activeAudience.title}
+              </h3>
+              <div className="mt-6 space-y-2 text-lg font-semibold leading-relaxed text-gray-600">
+                {activeAudience.intro.map((line) => (
+                  <p key={line}>{line}</p>
+                ))}
+              </div>
+              <p className="mt-8 max-w-3xl text-base font-semibold leading-[1.8] text-gray-700 md:text-lg">
+                {activeAudience.body}
+              </p>
+              <Link
+                href={activeAudience.href}
+                className="mt-8 inline-flex items-center gap-3 rounded-xl border-2 border-[#111111] px-6 py-4 font-black text-[#111111]"
+                style={{
+                  boxShadow: '4px 4px 0px rgba(17,17,17,1)',
+                  backgroundColor: activeAudience.accentBg,
+                }}
+              >
+                {activeAudience.ctaLabel}
+              </Link>
+            </div>
           </div>
         </section>
 
@@ -538,7 +584,7 @@ export default function LandingPage() {
               We changed that.
               <br />
               <br />
-              From creators turning content into income to brands turning reach into revenue — Kiwikoo powers the full journey.
+              From creators turning content into income to brands turning reach into revenue, Kiwikoo powers the full journey.
             </p>
           </div>
           <div className="p-8 md:p-12 bg-white">
@@ -565,7 +611,7 @@ export default function LandingPage() {
               ))}
             </div>
             <div className="mt-8 rounded-2xl border-2 border-[#111111] bg-[#111111] px-6 py-6 text-center text-xl font-black text-white">
-              Create → Share → Earn. That&apos;s it.
+              Create -&gt; Share -&gt; Earn. That&apos;s it.
             </div>
           </div>
         </section>
@@ -613,7 +659,7 @@ export default function LandingPage() {
               <p>We&apos;re here.</p>
             </div>
             <p className="mt-6 text-base md:text-lg font-semibold leading-relaxed text-gray-700">
-              Queries and collaborations — we&apos;re all in.
+              Queries and collaborations - we&apos;re all in.
             </p>
             <div
               className="mt-8 rounded-2xl border-2 border-[#111111] bg-[#faf9f6] px-6 py-6 text-sm font-bold leading-relaxed text-gray-700"
@@ -757,6 +803,10 @@ function FeatureCard({
   description: string
   bordered?: boolean
 }) {
+  const words = title.split(' ')
+  const head = words.length > 1 ? words.slice(0, -1).join(' ') : title
+  const tail = words.length > 1 ? words[words.length - 1] : null
+
   return (
     <div
       className={`flex flex-col justify-start gap-6 p-6 hover:bg-white transition-colors min-h-[240px] md:min-h-[300px] md:gap-8 md:p-10 ${bordered ? 'grid-line-y border-b md:border-b-0 border-black/10' : ''}`}
@@ -766,9 +816,9 @@ function FeatureCard({
       </div>
       <div>
         <h4 className="text-3xl font-black text-[#111111] uppercase mb-4 tracking-tighter leading-none">
-          {title.split(' ').slice(0, -1).join(' ') || title}
-          {title.includes(' ') ? <br /> : null}
-          {title.split(' ').slice(-1)}
+          {head}
+          {tail ? <br /> : null}
+          {tail}
         </h4>
         <p className="text-sm font-semibold text-gray-500">{description}</p>
       </div>
