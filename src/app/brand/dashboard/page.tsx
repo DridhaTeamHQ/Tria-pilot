@@ -18,7 +18,13 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-export default async function BrandDashboard() {
+export default async function BrandDashboard({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const resolvedSearchParams = searchParams ? await searchParams : {}
+  const welcomeMode = resolvedSearchParams?.welcome === '1'
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
 
@@ -73,6 +79,7 @@ export default async function BrandDashboard() {
     totalImpressions,
     totalConversions,
   }
+  const needsQuickStart = welcomeMode || stats.products === 0 || stats.campaigns === 0
 
   const quickActions = [
     {
@@ -143,6 +150,48 @@ export default async function BrandDashboard() {
           {brandSummary || 'Your brand command center'}
         </p>
       </div>
+
+      {needsQuickStart && (
+        <div className="mb-8 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="bg-[#FFF6D8] border-[3px] border-black p-5 sm:p-6 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]">
+            <p className="text-xs font-black uppercase tracking-[0.24em] text-black/55">Start Here</p>
+            <h2 className="mt-3 text-2xl sm:text-3xl font-black text-black leading-tight">
+              Your brand workspace is ready. Pick the first move that gets Kiwikoo working for you.
+            </h2>
+            <p className="mt-3 text-sm sm:text-base font-semibold text-black/70 max-w-2xl">
+              Add a product if you want creators trying real items first, or launch a campaign if you already know the story you want to push.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+            <Link
+              href="/brand/products"
+              className="flex min-h-[140px] flex-col justify-between border-[3px] border-black bg-[#B4F056] p-5 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-1 hover:shadow-[7px_7px_0px_0px_rgba(0,0,0,1)]"
+            >
+              <div className="flex items-center gap-2 text-black">
+                <Package className="w-5 h-5" strokeWidth={2.5} />
+                <span className="text-xs font-black uppercase tracking-[0.2em]">Catalog First</span>
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-black">Add your first product</h3>
+                <p className="mt-1 text-sm font-semibold text-black/70">Create a product page, cover image, and try-on asset base.</p>
+              </div>
+            </Link>
+            <Link
+              href="/brand/campaigns/new"
+              className="flex min-h-[140px] flex-col justify-between border-[3px] border-black bg-[#A78BFA] p-5 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-1 hover:shadow-[7px_7px_0px_0px_rgba(0,0,0,1)]"
+            >
+              <div className="flex items-center gap-2 text-black">
+                <Target className="w-5 h-5" strokeWidth={2.5} />
+                <span className="text-xs font-black uppercase tracking-[0.2em]">Launch First</span>
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-black">Create your first campaign</h3>
+                <p className="mt-1 text-sm font-semibold text-black/70">Start with an AI-assisted brief and build the collaboration flow.</p>
+              </div>
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Overview Cards: Total Spend, Active Campaigns, Impressions, Conversions */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8 sm:mb-10">

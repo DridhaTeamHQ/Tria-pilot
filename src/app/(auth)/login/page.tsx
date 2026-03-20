@@ -37,10 +37,41 @@ function LoginContent() {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [userType, setUserType] = useState<'influencer' | 'brand'>('influencer')
+  const [authNotice, setAuthNotice] = useState<{
+    tone: 'info' | 'warning' | 'success'
+    title: string
+    body: string
+    ctaHref?: string
+    ctaLabel?: string
+  } | null>(null)
 
   const getSafeRedirectTarget = () => {
     const redirectTarget = searchParams.get('redirect') || '/dashboard'
     return redirectTarget.startsWith('/admin') ? '/dashboard' : redirectTarget
+  }
+
+  const getPostLoginDestination = (
+    user: {
+      role?: string
+      onboardingCompleted?: boolean
+      approvalStatus?: string
+    } | null | undefined,
+    fallbackTarget: string
+  ) => {
+    const role = String(user?.role || 'INFLUENCER').toUpperCase()
+    const onboardingCompleted = Boolean(user?.onboardingCompleted)
+    const approvalStatus = String(user?.approvalStatus || 'none').toLowerCase()
+
+    if (role === 'BRAND') {
+      if (!onboardingCompleted) return '/onboarding/brand'
+      return fallbackTarget === '/dashboard' ? '/brand/dashboard' : fallbackTarget
+    }
+
+    if (!onboardingCompleted) return '/onboarding/influencer'
+    if (approvalStatus === 'rejected') return '/onboarding/influencer?mode=resubmit'
+    if (approvalStatus !== 'approved') return '/influencer/pending'
+
+    return fallbackTarget
   }
 
   useEffect(() => {
@@ -58,13 +89,47 @@ function LoginContent() {
     const actualRole = searchParams.get('actual')
 
     if (confirmed === 'true') {
+      setAuthNotice({
+        tone: 'success',
+        title: 'Email confirmed',
+        body: 'Your account is ready. Sign in to continue.',
+      })
       toast.success('Email confirmed! You can now sign in.')
     } else if (error === 'role_mismatch') {
       const requestedLabel = requestedRole === 'brand' ? 'brand' : 'influencer'
       const actualLabel = actualRole === 'brand' ? 'brand' : 'influencer'
+      if (actualRole === 'brand' || actualRole === 'influencer') {
+        setUserType(actualRole)
+      }
+      setAuthNotice({
+        tone: 'warning',
+        title: 'Wrong portal for this Google account',
+        body: `This Google account is already linked to a ${actualLabel} account. Use the ${actualLabel} login, or pick another Google account for ${requestedLabel}.`,
+      })
       toast.error(`This Google account is already linked to a ${actualLabel} account. Use the ${actualLabel} login or a different Google account for ${requestedLabel}.`)
-    } else if (error) {
+    } else if (error === 'oauth_failed') {
+      setAuthNotice({
+        tone: 'warning',
+        title: 'Google sign-in did not finish',
+        body: details || 'Please try Google sign-in again, or use your email and password.',
+      })
       toast.error(`Authentication error: ${details || 'Please try again.'}`)
+    } else if (error === 'missing_code') {
+      setAuthNotice({
+        tone: 'warning',
+        title: 'Sign-in was interrupted',
+        body: 'We did not receive a valid authentication response. Please try again.',
+      })
+      toast.error('Authentication error: Please try again.')
+    } else if (error) {
+      setAuthNotice({
+        tone: 'warning',
+        title: 'Authentication error',
+        body: details || 'Please try signing in again.',
+      })
+      toast.error(`Authentication error: ${details || 'Please try again.'}`)
+    } else {
+      setAuthNotice(null)
     }
   }, [searchParams])
 
@@ -76,7 +141,7 @@ function LoginContent() {
     ? {
         title: 'Welcome,',
         subtitle: 'sign in to continue',
-        sideTitle: 'Come back to the studio',
+    sideTitle: 'Comeback to the studio',
         sideAccent: 'creator mode',
         sideBody: 'Access try-ons, campaign requests, and your creator dashboard without losing the playful Kiwikoo energy.',
       }
@@ -137,6 +202,7 @@ function LoginContent() {
 
       const sessionUser = await waitForServerSession()
       const redirectTarget = getSafeRedirectTarget()
+      const nextTarget = getPostLoginDestination(data?.user, redirectTarget)
       const normalizedRecoveryEmail = recoveryEmail.trim().toLowerCase()
 
       if (sessionUser && isSyntheticEmail(sessionUser.email) && normalizedRecoveryEmail) {
@@ -156,13 +222,23 @@ function LoginContent() {
         toast.success('Signed in successfully!')
       }
 
+      if (nextTarget === '/onboarding/brand') {
+        toast.info('Finish your brand setup to unlock the workspace.')
+      } else if (nextTarget === '/onboarding/influencer') {
+        toast.info('Finish your creator onboarding to continue.')
+      } else if (nextTarget === '/onboarding/influencer?mode=resubmit') {
+        toast.info('Your previous submission needs updates. Review it and resubmit for approval.')
+      } else if (nextTarget === '/influencer/pending') {
+        toast.info('Your creator profile is still under review.')
+      }
+
       if (typeof window !== 'undefined') {
-        window.location.assign(redirectTarget)
+        window.location.assign(nextTarget)
         return
       }
 
       if (sessionUser) {
-        router.replace(redirectTarget)
+        router.replace(nextTarget)
       } else {
         router.replace('/dashboard')
       }
@@ -236,6 +312,7 @@ function LoginContent() {
               accentButtonClass={accentButtonClass}
               floatingLabel={floatingLabel}
               accentColor={accentColor}
+              notice={authNotice}
             />
           </div>
         </div>
@@ -328,6 +405,7 @@ function LoginContent() {
                 accentButtonClass={accentButtonClass}
                 floatingLabel={floatingLabel}
                 accentColor={accentColor}
+                notice={authNotice}
               />
             </motion.div>
           </motion.div>
@@ -359,6 +437,13 @@ type AuthCardProps = {
   accentButtonClass: string
   floatingLabel: string
   accentColor: string
+  notice: {
+    tone: 'info' | 'warning' | 'success'
+    title: string
+    body: string
+    ctaHref?: string
+    ctaLabel?: string
+  } | null
 }
 
 function AuthCard({
@@ -383,6 +468,7 @@ function AuthCard({
   accentButtonClass,
   floatingLabel,
   accentColor,
+  notice,
 }: AuthCardProps) {
   return (
     <div className="relative z-20 rounded-[30px] border-[4px] border-black bg-white p-6 pt-8 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] sm:p-8">
@@ -395,6 +481,29 @@ function AuthCard({
         <h2 className="text-[2.2rem] font-black leading-none text-black sm:text-[2.5rem]">{title}</h2>
         <p className="mt-2 text-base font-bold text-black/60">{subtitle}</p>
       </div>
+
+      {notice && (
+        <div
+          className={`mb-5 rounded-2xl border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
+            notice.tone === 'success'
+              ? 'bg-[#EAF8C9]'
+              : notice.tone === 'warning'
+                ? 'bg-[#FFF1D7]'
+                : 'bg-[#EEF4FF]'
+          }`}
+        >
+          <p className="text-sm font-black uppercase tracking-[0.18em] text-black">{notice.title}</p>
+          <p className="mt-2 text-sm font-semibold leading-relaxed text-black/70">{notice.body}</p>
+          {notice.ctaHref && notice.ctaLabel && (
+            <Link
+              href={notice.ctaHref}
+              className="mt-3 inline-flex rounded-xl border-[2px] border-black bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.14em] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+            >
+              {notice.ctaLabel}
+            </Link>
+          )}
+        </div>
+      )}
 
       <div className="mb-6 flex rounded-2xl border-[3px] border-black bg-[#F4F4F0] p-1.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
         <button

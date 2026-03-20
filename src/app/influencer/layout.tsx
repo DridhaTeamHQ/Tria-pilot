@@ -48,6 +48,10 @@ export default async function InfluencerLayout({
   // Pending influencers: allow /influencer/pending only
   // Note: /marketplace is handled at root level (public path in middleware)
   if (identity.approval_status !== 'approved') {
+    if (identity.approval_status === 'rejected') {
+      redirect('/onboarding/influencer?mode=resubmit')
+    }
+
     // Get current path to check if we're on /influencer/pending
     const headersList = await headers()
     const pathname = headersList.get('x-pathname') || ''

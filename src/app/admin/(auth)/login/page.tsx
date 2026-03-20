@@ -34,15 +34,33 @@ function AdminLoginContent() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [authNotice, setAuthNotice] = useState<{
+    tone: 'warning' | 'success'
+    title: string
+    body: string
+  } | null>(null)
 
   useEffect(() => {
     const error = searchParams.get('error')
     const confirmed = searchParams.get('confirmed')
     if (error === 'not_admin') {
+      setAuthNotice({
+        tone: 'warning',
+        title: 'This is the admin portal',
+        body: 'That account belongs to a creator or brand workspace. Use the regular login unless you have admin access.',
+      })
       toast.error('This account is not an admin.')
     }
     if (confirmed === 'true') {
+      setAuthNotice({
+        tone: 'success',
+        title: 'Email confirmed',
+        body: 'Your admin account is ready. Sign in to enter the command center.',
+      })
       toast.success('Email confirmed! You can now sign in as admin.')
+    }
+    if (!error && confirmed !== 'true') {
+      setAuthNotice(null)
     }
   }, [searchParams])
 
@@ -64,6 +82,17 @@ function AdminLoginContent() {
 
       const data = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(data?.error || 'Login failed')
+
+      if (data?.user?.role !== 'ADMIN') {
+        await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+        setAuthNotice({
+          tone: 'warning',
+          title: 'Wrong login for this account',
+          body: 'You signed in with a non-admin account. Use the regular login to access your brand or creator workspace.',
+        })
+        toast.error('This account is not an admin.')
+        return
+      }
 
       await queryClient.invalidateQueries({ queryKey: ['user'] })
       router.push('/admin')
@@ -145,6 +174,25 @@ function AdminLoginContent() {
                 </div>
                 <h2 className="text-[2.2rem] font-black leading-none text-black">Welcome,</h2>
                 <p className="mt-1 text-base font-semibold text-black/65">admin login to continue</p>
+
+                {authNotice && (
+                  <div
+                    className={`mt-6 rounded-2xl border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
+                      authNotice.tone === 'success' ? 'bg-[#EAF8C9]' : 'bg-[#FFF1D7]'
+                    }`}
+                  >
+                    <p className="text-sm font-black uppercase tracking-[0.18em] text-black">{authNotice.title}</p>
+                    <p className="mt-2 text-sm font-semibold leading-relaxed text-black/70">{authNotice.body}</p>
+                    {authNotice.tone === 'warning' && (
+                      <Link
+                        href="/login"
+                        className="mt-3 inline-flex rounded-xl border-[2px] border-black bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.14em] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                      >
+                        Go to regular login
+                      </Link>
+                    )}
+                  </div>
+                )}
 
                 <form onSubmit={handleSubmit} className="mt-8 space-y-4">
                   <div className="space-y-2">

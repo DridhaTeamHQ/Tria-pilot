@@ -101,6 +101,9 @@ export default async function Dashboard() {
   if (!onboardingComplete) {
     redirect('/onboarding/influencer')
   }
+  if (approvalStatus === 'rejected') {
+    redirect('/onboarding/influencer?mode=resubmit')
+  }
   if (approvalStatus !== 'approved') {
     redirect('/influencer/pending')
   }

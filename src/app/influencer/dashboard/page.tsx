@@ -97,6 +97,11 @@ export default function InfluencerDashboard() {
 
         // Check approval status
         // Only 'approved' status grants access
+        if (profileData.approval_status === 'rejected') {
+          router.replace('/onboarding/influencer?mode=resubmit')
+          return
+        }
+
         if (profileData.approval_status !== 'approved') {
           // Redirect to pending page if not approved
           router.replace('/influencer/pending')

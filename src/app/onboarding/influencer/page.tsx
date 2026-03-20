@@ -25,6 +25,7 @@ const TOTAL_STEPS = 8
 
 export default function InfluencerOnboardingPage() {
   const router = useRouter()
+  const [isResubmissionMode, setIsResubmissionMode] = useState(false)
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -70,6 +71,12 @@ export default function InfluencerOnboardingPage() {
     updateIdentityProgress()
   }, [identityImages, updateIdentityProgress])
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    setIsResubmissionMode(params.get('mode') === 'resubmit')
+  }, [])
+
   // DEFERRED data loading - runs AFTER initial paint
   useEffect(() => {
     // Use requestIdleCallback to defer API calls
@@ -77,7 +84,10 @@ export default function InfluencerOnboardingPage() {
       fetch('/api/onboarding/influencer')
         .then((res) => res.json())
         .then((data) => {
-          if (data.onboardingCompleted) {
+          const approvalStatus = String(data?.approvalStatus || 'none').toLowerCase()
+          const allowResubmission = approvalStatus === 'rejected' || isResubmissionMode
+
+          if (data.onboardingCompleted && !allowResubmission) {
             router.replace('/dashboard')
           } else if (data.profile) {
             const existingSocials = (data.profile.socials as Record<string, string>) || {}
@@ -120,7 +130,7 @@ export default function InfluencerOnboardingPage() {
     } else {
       setTimeout(loadData, 100)
     }
-  }, [router])
+  }, [router, isResubmissionMode])
 
   // Background save progress (non-blocking)
   const saveProgressInBackground = useCallback(() => {
@@ -235,11 +245,11 @@ export default function InfluencerOnboardingPage() {
           }
         }
 
-        toast.success('Onboarding completed! Pending admin approval.', {
+        toast.success(isResubmissionMode ? 'Profile updated and resubmitted for review.' : 'Onboarding completed! Pending admin approval.', {
           style: { background: '#FFD93D', border: '2px solid black', color: 'black', fontWeight: 'bold' }
         })
         // Redirect to pending approval page (admin must approve before dashboard access)
-        router.replace('/influencer/pending')
+        router.replace('/influencer/pending?resubmitted=1')
       } else {
         toast.error('Please fill all required fields')
       }
@@ -577,11 +587,20 @@ export default function InfluencerOnboardingPage() {
 
       <div className="w-full max-w-2xl relative z-20 py-8 sm:py-12">
         <OnboardingCard
-          title="Complete Your Profile"
+          title={isResubmissionMode ? 'Update Your Profile' : 'Complete Your Profile'}
           step={step}
           totalSteps={TOTAL_STEPS}
           stepTitle={getStepTitle()}
         >
+          {isResubmissionMode && (
+            <div className="mb-5 rounded-2xl border-[3px] border-black bg-[#FFF4CC] p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              <p className="text-sm font-black uppercase tracking-[0.18em] text-black">Resubmission mode</p>
+              <p className="mt-2 text-sm font-semibold leading-relaxed text-black/70">
+                Your previous creator submission needs updates. Review your details, polish anything missing, and send it back for approval.
+              </p>
+            </div>
+          )}
+
           <AnimatePresence mode="wait">
             <motion.div
               key={step}

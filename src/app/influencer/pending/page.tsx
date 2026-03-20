@@ -8,7 +8,7 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import {
@@ -31,6 +31,7 @@ type Status = 'draft' | 'pending' | 'approved' | 'rejected'
 
 export default function InfluencerPendingPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [status, setStatus] = useState<Status>('pending')
   const [profileId, setProfileId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -74,7 +75,7 @@ export default function InfluencerPendingPage() {
       if (approvalStatus === 'approved') {
         if (!approvedToastShownRef.current) {
           approvedToastShownRef.current = true
-          toast.success("🎉 You're approved! Redirecting to dashboard...", {
+          toast.success("You're approved! Redirecting to dashboard...", {
             style: { background: '#B4F056', border: '3px solid black', fontWeight: 'bold' }
           })
         }
@@ -107,6 +108,14 @@ export default function InfluencerPendingPage() {
   }, [])
 
   useEffect(() => {
+    if (searchParams.get('resubmitted') === '1') {
+      toast.success('Your creator profile has been resubmitted for review.', {
+        style: { background: '#FFD93D', border: '3px solid black', fontWeight: 'bold' }
+      })
+    }
+  }, [searchParams])
+
+  useEffect(() => {
     if (!profileId) return
 
     const supabase = createClient()
@@ -128,7 +137,7 @@ export default function InfluencerPendingPage() {
 
           if (nextStatus === 'approved' && !approvedToastShownRef.current) {
             approvedToastShownRef.current = true
-            toast.success("🎉 You're approved! Redirecting to dashboard...")
+            toast.success("You're approved! Redirecting to dashboard...")
             setTimeout(() => {
               router.replace('/dashboard')
             }, 1200)
@@ -161,7 +170,7 @@ export default function InfluencerPendingPage() {
       <div className="min-h-screen flex items-center justify-center bg-[#FDF6EC]">
         <div className="text-center">
           <div className="w-16 h-16 border-[4px] border-[#FF8C69] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-black/60 font-bold">Loading your status…</p>
+          <p className="text-black/60 font-bold">Loading your status...</p>
         </div>
       </div>
     )
@@ -250,9 +259,20 @@ export default function InfluencerPendingPage() {
               </h1>
               <p className="text-black/60 font-medium max-w-md mx-auto">
                 {isRejected
-                  ? "Your application wasn't approved this time. You can contact support for more details."
+                  ? "Your application needs a few updates before approval. Reopen onboarding, improve your details, and send it back for review."
                   : "Your account is created! We're reviewing your profile. You'll get access once approved."
                 }
+              </p>
+            </div>
+
+            <div className={`mb-6 rounded-2xl border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${isRejected ? 'bg-[#FFF1D7]' : 'bg-[#EEF8D8]'}`}>
+              <p className="text-sm font-black uppercase tracking-[0.18em] text-black">
+                {isRejected ? 'Next step: update and resubmit' : 'Current step: under review'}
+              </p>
+              <p className="mt-2 text-sm font-semibold leading-relaxed text-black/70">
+                {isRejected
+                  ? 'Reopen onboarding, improve the profile details that need attention, and resubmit to return to the approval queue.'
+                  : 'Your creator profile is currently with the review team. You can browse the marketplace now, and we will unlock dashboard access once approval is complete.'}
               </p>
             </div>
 
@@ -303,7 +323,18 @@ export default function InfluencerPendingPage() {
                   className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-black text-white font-black border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,0.3)] hover:-translate-y-0.5 transition-all disabled:opacity-60"
                 >
                   <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} strokeWidth={2.5} />
-                  Check Status
+                  Refresh Status
+                </button>
+              )}
+
+              {isRejected && (
+                <button
+                  type="button"
+                  onClick={() => router.push('/onboarding/influencer?mode=resubmit')}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-[#FF8C69] text-black font-black border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all"
+                >
+                  <RefreshCw className="w-5 h-5" strokeWidth={2.5} />
+                  Edit & Resubmit
                 </button>
               )}
 
@@ -371,7 +402,7 @@ export default function InfluencerPendingPage() {
           transition={{ delay: 0.5 }}
           className="text-center text-black/40 text-sm mt-10"
         >
-          Reviews typically complete within 24–48 hours
+          Reviews typically complete within 24-48 hours
         </motion.p>
       </div>
     </div>

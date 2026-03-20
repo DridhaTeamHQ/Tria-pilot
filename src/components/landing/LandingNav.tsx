@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight } from 'lucide-react'
 import { useUser } from '@/lib/react-query/hooks'
 
 const PRIMARY_LINKS = [
@@ -51,15 +50,6 @@ export default function LandingNav() {
           >
             {isAuthenticated ? 'Dashboard' : 'Log In'}
           </Link>
-          {!isAuthenticated && (
-            <Link
-              href="/register"
-              className="inline-flex min-w-[148px] items-center justify-center gap-2 rounded-full border-[2px] border-black bg-[#B4F056] px-6 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-[#111111] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-colors duration-200 hover:bg-[#c5f76e]"
-            >
-              Get Started
-              <ArrowRight className="h-4 w-4" strokeWidth={3} />
-            </Link>
-          )}
         </div>
       </div>
 
@@ -116,18 +106,6 @@ export default function LandingNav() {
               {link.label}
             </Link>
           ))}
-          {!isAuthenticated && (
-            <div className="border-t border-black/10 px-5 py-5">
-              <Link
-                href="/register"
-                onClick={() => setOpen(false)}
-                className="flex w-full items-center justify-center gap-2 rounded-full border-[2px] border-black bg-[#B4F056] px-5 py-3 text-center text-xs text-[#111111] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-              >
-                Get Started
-                <ArrowRight className="h-4 w-4" strokeWidth={3} />
-              </Link>
-            </div>
-          )}
         </div>
       </div>
     </nav>

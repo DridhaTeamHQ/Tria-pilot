@@ -39,7 +39,7 @@ export default function BrandOnboardingPage() {
       .then((res) => res.json())
       .then((data) => {
         if (data.onboardingCompleted) {
-          router.replace('/dashboard')
+          router.replace('/brand/dashboard')
         } else if (data.profile) {
           setFormData({
             companyName: data.profile.companyName || '',
@@ -97,10 +97,10 @@ export default function BrandOnboardingPage() {
       }
 
       if (data.onboardingCompleted) {
-        toast.success('Brand profile ready! Let\'s grow together.', {
+        toast.success('Brand profile ready! Choose your first action to get started.', {
           style: { background: '#B4F056', border: '2px solid black', color: 'black', fontWeight: 'bold' }
         })
-        router.replace('/dashboard')
+        router.replace('/brand/dashboard?welcome=1')
       } else {
         toast.error('Please fill all required fields')
       }
@@ -263,6 +263,13 @@ export default function BrandOnboardingPage() {
           totalSteps={TOTAL_STEPS}
           stepTitle={getStepTitle()}
         >
+          <div className="mb-5 rounded-2xl border-[3px] border-black bg-[#EEF8D8] p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <p className="text-sm font-black uppercase tracking-[0.18em] text-black">What happens next</p>
+            <p className="mt-2 text-sm font-semibold leading-relaxed text-black/70">
+              Once this setup is done, we will send you straight into your brand dashboard so you can add a product or launch your first campaign.
+            </p>
+          </div>
+
           <AnimatePresence mode="wait">
             <motion.div
               key={step}

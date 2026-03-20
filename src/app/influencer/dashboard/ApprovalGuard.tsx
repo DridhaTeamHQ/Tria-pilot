@@ -27,6 +27,8 @@ export default function ApprovalGuard({ userId, children }: ApprovalGuardProps) 
 
         if (application?.status === 'approved') {
           setIsApproved(true)
+        } else if (application?.status === 'rejected') {
+          router.push('/onboarding/influencer?mode=resubmit')
         } else {
           // Redirect to pending screen if not approved
           router.push('/influencer/pending')

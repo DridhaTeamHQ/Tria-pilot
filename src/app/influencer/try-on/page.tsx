@@ -796,9 +796,15 @@ function TryOnPageContent() {
             }
 
             // Check for specific error codes embedded in the error message
-            if (errorMessage.includes('PROFILE_INCOMPLETE') || errorMessage.includes('complete your influencer profile')) {
-                toast.error('Please complete your profile setup first!')
-                router.push('/influencer/setup')
+            if (code === 'ONBOARDING_INCOMPLETE' || errorMessage.includes('PROFILE_INCOMPLETE') || errorMessage.includes('complete your influencer profile')) {
+                toast.error('Complete your onboarding before using try-on studio.')
+                router.push('/onboarding/influencer')
+                return
+            }
+
+            if (code === 'ACCOUNT_REJECTED') {
+                toast.error('Your profile was rejected. Update it and resubmit for review.')
+                router.push('/onboarding/influencer?mode=resubmit')
                 return
             }
 

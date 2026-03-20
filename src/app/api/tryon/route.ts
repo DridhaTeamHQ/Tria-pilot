@@ -86,13 +86,32 @@ export async function POST(request: Request) {
       console.log('📋 User Status Check:', { userId: authUser.id, role: currentProfile?.role, status: currentProfile?.approval_status })
     }
 
+    const approvalStatus = (currentProfile?.approval_status || '').toLowerCase()
+    const onboardingCompleted = Boolean(currentProfile?.onboarding_completed)
+
+    if (!onboardingCompleted) {
+      return jsonError(
+        403,
+        'ONBOARDING_INCOMPLETE',
+        'Complete your influencer onboarding before using the try-on studio.'
+      )
+    }
+
+    if (approvalStatus === 'rejected') {
+      return jsonError(
+        403,
+        'ACCOUNT_REJECTED',
+        'Your creator profile needs updates before approval. Please edit and resubmit your onboarding.'
+      )
+    }
+
     // Check approval status
-    if ((currentProfile?.approval_status || '').toLowerCase() !== 'approved') {
+    if (approvalStatus !== 'approved') {
       return jsonError(
         403,
         'NOT_APPROVED',
-        `Your account is ${currentProfile?.approval_status?.toLowerCase() || 'pending'}. Please wait for admin approval.`,
-        { approvalStatus: currentProfile?.approval_status?.toLowerCase() || 'pending' }
+        `Your account is ${approvalStatus || 'pending'}. Please wait for admin approval.`,
+        { approvalStatus: approvalStatus || 'pending' }
       )
     }
 

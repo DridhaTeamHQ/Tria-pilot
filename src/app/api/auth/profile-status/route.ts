@@ -28,12 +28,29 @@ export async function GET() {
             return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
         }
 
-        // Normalize to lowercase for frontend consistency
+        const role = (profile.role || 'influencer').toLowerCase()
+        const onboardingCompleted = profile.onboarding_completed || false
+        const approvalStatus = (profile.approval_status || 'none').toLowerCase()
+
+        let journeyState = 'draft'
+        if (role === 'brand') {
+            journeyState = onboardingCompleted ? 'brand_active' : 'brand_draft'
+        } else if (!onboardingCompleted) {
+            journeyState = 'influencer_draft'
+        } else if (approvalStatus === 'approved') {
+            journeyState = 'influencer_approved'
+        } else if (approvalStatus === 'rejected') {
+            journeyState = 'influencer_rejected'
+        } else {
+            journeyState = 'influencer_pending'
+        }
+
         return NextResponse.json({
             id: profile.id,
-            role: (profile.role || 'influencer').toLowerCase(),
-            onboarding_completed: profile.onboarding_completed || false,
-            approval_status: (profile.approval_status || 'none').toLowerCase(),
+            role,
+            onboarding_completed: onboardingCompleted,
+            approval_status: approvalStatus,
+            journey_state: journeyState,
             full_name: profile.full_name,
             avatar_url: profile.avatar_url,
         })

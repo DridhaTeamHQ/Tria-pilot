@@ -331,8 +331,8 @@ export default function BrandProfilePage() {
       </div>
 
       <section className="mb-8 bg-white border-[3px] border-black shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] p-5 md:p-7">
-        <div className="flex flex-col items-start gap-5 md:gap-6 lg:flex-row lg:items-center">
-          <div className="relative w-[120px] h-[136px] md:w-[140px] md:h-[156px] border-[4px] border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] bg-[#FFD93D] overflow-hidden">
+        <div className="flex flex-col items-center gap-5 text-center md:gap-6 md:text-left lg:flex-row lg:items-center">
+          <div className="relative w-[120px] h-[136px] shrink-0 md:w-[140px] md:h-[156px] border-[4px] border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] bg-[#FFD93D] overflow-hidden">
             {profileImageUrl ? (
               <img src={profileImageUrl} alt="Brand profile" className="w-full h-full object-cover" />
             ) : (
@@ -368,9 +368,9 @@ export default function BrandProfilePage() {
             />
           </div>
 
-          <div>
+          <div className="w-full min-w-0">
             <h2 className="text-xl md:text-2xl font-black uppercase text-black">Brand Avatar</h2>
-            <p className="mt-1 text-sm md:text-base font-medium text-black/65">
+            <p className="mt-1 mx-auto max-w-2xl text-sm md:mx-0 md:text-base font-medium leading-relaxed text-black/65">
               Upload a logo or brand profile image. This updates instantly across your account.
             </p>
           </div>

@@ -89,15 +89,15 @@ export default function MarketplaceClient({ products, categories, activeCategory
                         </div>
 
                         {/* Search toggle */}
-                        <div className="flex items-center gap-3">
+                        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
                             {showSearch && (
-                                <div className="relative animate-scale-fade">
+                                <div className="relative w-full animate-scale-fade sm:w-[250px]">
                                     <input
                                         type="text"
                                         placeholder="Search products..."
                                         value={searchQuery}
                                         onChange={handleSearchChange}
-                                        className="w-[250px] px-4 py-2.5 pr-10 rounded-lg border-[3px] border-black bg-white focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-sm font-medium transition-all text-charcoal"
+                                        className="w-full px-4 py-2.5 pr-10 rounded-lg border-[3px] border-black bg-white focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-sm font-medium transition-all text-charcoal"
                                         autoFocus
                                     />
                                     {searchQuery && (
@@ -113,7 +113,7 @@ export default function MarketplaceClient({ products, categories, activeCategory
 
                             <button type="button"
                                 onClick={toggleSearch}
-                                className={`p-3 rounded-lg border-[3px] border-black transition-all duration-200 ${showSearch
+                                className={`self-start p-3 rounded-lg border-[3px] border-black transition-all duration-200 sm:self-auto ${showSearch
                                     ? 'bg-peach text-charcoal shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -translate-y-1'
                                     : 'bg-white text-charcoal hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1'
                                     }`}

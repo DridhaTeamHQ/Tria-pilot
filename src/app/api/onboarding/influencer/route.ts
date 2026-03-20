@@ -88,7 +88,7 @@ export async function POST(request: Request) {
     // Get profile from profiles table
     const { data: profile, error: profileError } = await service
       .from('profiles')
-      .select('id, email, role, onboarding_completed')
+      .select('id, email, role, onboarding_completed, approval_status')
       .eq('id', authUser.id)
       .single()
 
@@ -174,21 +174,33 @@ export async function POST(request: Request) {
 
     const isCompleted = Boolean(hasGender && hasNiches && hasAudienceType && hasCategories && hasSocials)
 
-    // Update profiles table when onboarding completes
-    if (isCompleted && !profile.onboarding_completed) {
-      await service
-        .from('profiles')
-        .update({
-          onboarding_completed: true,
-          approval_status: 'pending',
-        })
-        .eq('id', authUser.id)
+    const currentApprovalStatus = String(profile.approval_status || 'none').toLowerCase()
+
+    // Update profiles table when onboarding completes.
+    // Rejected creators should be able to edit and resubmit back into review.
+    if (isCompleted) {
+      const profileUpdate: Record<string, unknown> = {}
+
+      if (!profile.onboarding_completed) {
+        profileUpdate.onboarding_completed = true
+      }
+
+      if (currentApprovalStatus === 'rejected' || currentApprovalStatus === 'none') {
+        profileUpdate.approval_status = 'pending'
+      }
+
+      if (Object.keys(profileUpdate).length > 0) {
+        await service
+          .from('profiles')
+          .update(profileUpdate)
+          .eq('id', authUser.id)
+      }
     }
 
     return NextResponse.json({
       success: true,
       onboardingCompleted: isCompleted,
-      redirectTo: isCompleted ? '/influencer/pending' : null,
+      redirectTo: isCompleted ? '/influencer/pending?resubmitted=1' : null,
     })
   } catch (error) {
     console.error('Onboarding error:', error)
@@ -227,7 +239,7 @@ export async function GET() {
     // Get profile status
     const { data: profile } = await service
       .from('profiles')
-      .select('onboarding_completed')
+      .select('onboarding_completed, approval_status')
       .eq('id', authUser.id)
       .single()
 
@@ -244,6 +256,7 @@ export async function GET() {
 
     return NextResponse.json({
       onboardingCompleted: profile.onboarding_completed || false,
+      approvalStatus: (profile.approval_status || 'none').toLowerCase(),
       profile: infProfile ? {
         gender: infProfile.gender,
         niches: infProfile.niches,

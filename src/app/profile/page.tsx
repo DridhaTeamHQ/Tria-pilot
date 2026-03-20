@@ -60,8 +60,8 @@ function LoadingSkeleton() {
   return (
     <div className="min-h-screen bg-[#FDFBF7] pt-28 pb-20 animate-pulse">
       <div className="container mx-auto px-4 sm:px-6 max-w-7xl">
-        <div className="h-16 w-[360px] bg-black/10 mb-6" />
-        <div className="h-8 w-[520px] bg-black/10 mb-14" />
+        <div className="mb-6 h-12 w-full max-w-[360px] bg-black/10 sm:h-16" />
+        <div className="mb-14 h-7 w-full max-w-[520px] bg-black/10 sm:h-8" />
         <div className="grid lg:grid-cols-12 gap-10">
           <div className="lg:col-span-8 space-y-10">
             <div className="h-[320px] bg-white border-[3px] border-black shadow-[8px_8px_0_0_rgba(0,0,0,1)]" />

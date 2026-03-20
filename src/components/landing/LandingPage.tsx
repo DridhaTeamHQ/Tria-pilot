@@ -410,18 +410,27 @@ export default function LandingPage() {
         {/* ━━━━━━━━━━ OUR FEATURES — SVG K KNOCKOUT MASK ━━━━━━━━━━
             SVG <mask>: white rect = opaque background, black text = transparent hole
             revealing #global-bg through the letter K.                              */}
-        <section
-          className="w-full relative flex flex-col justify-start border-strong-b overflow-hidden bg-transparent"
-          style={{ height: 'clamp(180px, 34vh, 340px)' }}
-        >
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(250,249,246,0.96)_0%,rgba(248,246,240,0.98)_100%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_18%,rgba(180,240,86,0.1),transparent_24%),radial-gradient(circle_at_76%_22%,rgba(255,140,105,0.08),transparent_22%)]" />
-
-          {/* "Our Features" pill */}
-          <div className="relative z-10 flex h-full w-full items-start justify-center pt-8 md:pt-10 pointer-events-none">
-            <h3 className="font-bold tracking-[0.4em] text-sm text-gray-500 uppercase bg-[#faf9f6]/90 px-4 py-2 rounded-full inline-block backdrop-blur-sm shadow-sm border border-black/5">
-              Our Features
-            </h3>
+        <section className="w-full border-strong-b bg-[#faf9f6]">
+          <div className="grid grid-cols-1 md:grid-cols-[1.15fr_0.85fr]">
+            <div className="grid-line-y border-b border-black/10 p-6 sm:p-8 md:border-b-0 md:p-12">
+              <div className="inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-white px-4 py-2 text-[11px] font-black uppercase tracking-[0.28em] text-gray-500 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <span className="h-3.5 w-3.5 rounded-full bg-[#ff8a73] border-2 border-black" />
+                Our Features
+              </div>
+              <h3 className="mt-6 text-[clamp(2.2rem,5vw,4.8rem)] font-black uppercase tracking-tight leading-[0.9] text-[#111111]">
+                Fashion tools
+                <br />
+                that feel alive.
+              </h3>
+            </div>
+            <div className="p-6 sm:p-8 md:p-12">
+              <p className="max-w-md text-sm font-bold uppercase tracking-[0.22em] text-gray-400">
+                One system, three superpowers
+              </p>
+              <p className="mt-4 text-base font-semibold leading-relaxed text-gray-600 md:text-lg">
+                From instant try-ons to creator-brand matchmaking and sharper campaign insights, every feature below is designed to move faster than a traditional fashion workflow.
+              </p>
+            </div>
           </div>
         </section>
 
