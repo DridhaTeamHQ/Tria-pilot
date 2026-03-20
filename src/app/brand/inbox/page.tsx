@@ -10,7 +10,6 @@ import {
     Loader2,
     MessageCircle,
     ChevronLeft,
-    Clock3,
 } from 'lucide-react'
 
 interface Conversation {
@@ -260,12 +259,8 @@ export default function BrandInboxPage() {
                 <Inbox className="inline-block w-8 h-8 mr-2 -mt-1" />
                 Inbox
             </h1>
-            <div className="mb-4 flex items-start gap-3 rounded-xl border-[3px] border-black bg-[#FFF3BF] p-4 text-sm font-semibold text-black">
-                <Clock3 className="mt-0.5 h-5 w-5 shrink-0" />
-                <p>Brand inbox will be available soon. Messaging is already usable, but we are still polishing the full experience.</p>
-            </div>
 
-            <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] h-[calc(100dvh-170px)] md:h-[calc(100vh-220px)] flex">
+            <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex min-h-[68dvh] lg:h-[calc(100dvh-220px)]">
                 {/* Conversations List */}
                 <div className={`w-full md:w-80 border-r-[3px] border-black flex flex-col ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
                     <div className="p-4 border-b-2 border-black">
