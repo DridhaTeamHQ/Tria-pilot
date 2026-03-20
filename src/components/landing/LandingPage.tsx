@@ -502,7 +502,7 @@ export default function LandingPage() {
         </section>
 
         <section className="w-full border-strong-b bg-white">
-          <div className="mx-auto flex max-w-5xl flex-col items-center px-6 py-10 text-center md:px-10 md:py-14">
+          <div className="mx-auto flex max-w-4xl flex-col items-center px-6 py-8 text-center md:px-8 md:py-12">
             <div
               className="inline-flex rounded-full border-[3px] border-black bg-[#faf9f6] p-1.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
               role="tablist"
@@ -511,7 +511,7 @@ export default function LandingPage() {
               <button
                 type="button"
                 onClick={() => setAudienceView('influencer')}
-                className={`rounded-full px-5 py-3 text-[11px] font-black uppercase tracking-[0.2em] transition-colors md:px-6 ${
+                className={`rounded-full px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.18em] transition-colors md:px-5 ${
                   audienceView === 'influencer' ? 'text-[#111111]' : 'text-gray-500'
                 }`}
                 style={{
@@ -523,7 +523,7 @@ export default function LandingPage() {
               <button
                 type="button"
                 onClick={() => setAudienceView('brand')}
-                className={`rounded-full px-5 py-3 text-[11px] font-black uppercase tracking-[0.2em] transition-colors md:px-6 ${
+                className={`rounded-full px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.18em] transition-colors md:px-5 ${
                   audienceView === 'brand' ? 'text-[#111111]' : 'text-gray-500'
                 }`}
                 style={{
@@ -534,27 +534,27 @@ export default function LandingPage() {
               </button>
             </div>
 
-            <div className="mt-8 w-full rounded-[32px] border-[3px] border-black bg-[#faf9f6] px-6 py-8 text-left shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] md:px-10 md:py-12">
+            <div className="mt-6 w-full rounded-[28px] border-[3px] border-black bg-[#faf9f6] px-6 py-7 text-left shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] md:px-8 md:py-9">
               <div
                 className="text-xs font-black uppercase tracking-[0.28em]"
                 style={{ color: activeAudience.labelColor }}
               >
                 {activeAudience.label}
               </div>
-              <h3 className="mt-5 max-w-4xl text-[clamp(2rem,4vw,4rem)] font-black leading-[0.94] tracking-tight text-[#111111]">
+              <h3 className="mt-4 max-w-3xl text-[clamp(1.8rem,3.4vw,3.4rem)] font-black leading-[0.96] tracking-tight text-[#111111]">
                 {activeAudience.title}
               </h3>
-              <div className="mt-6 space-y-2 text-lg font-semibold leading-relaxed text-gray-600">
+              <div className="mt-5 space-y-2 text-base font-semibold leading-relaxed text-gray-600 md:text-[1.05rem]">
                 {activeAudience.intro.map((line) => (
                   <p key={line}>{line}</p>
                 ))}
               </div>
-              <p className="mt-8 max-w-3xl text-base font-semibold leading-[1.8] text-gray-700 md:text-lg">
+              <p className="mt-6 max-w-3xl text-[15px] font-semibold leading-[1.75] text-gray-700 md:text-[1rem]">
                 {activeAudience.body}
               </p>
               <Link
                 href={activeAudience.href}
-                className="mt-8 inline-flex items-center gap-3 rounded-xl border-2 border-[#111111] px-6 py-4 font-black text-[#111111]"
+                className="mt-6 inline-flex items-center gap-3 rounded-xl border-2 border-[#111111] px-5 py-3 font-black text-[#111111]"
                 style={{
                   boxShadow: '4px 4px 0px rgba(17,17,17,1)',
                   backgroundColor: activeAudience.accentBg,
