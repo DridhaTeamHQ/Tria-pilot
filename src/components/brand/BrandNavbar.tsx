@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
+  LayoutDashboard,
   Sparkles,
   Users,
   Target,
@@ -17,6 +18,7 @@ import {
 import LogoutButton from '@/components/LogoutButton'
 
 const navItems = [
+  { href: '/brand/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/brand/campaigns', label: 'Campaigns', icon: Target },
   { href: '/brand/profile', label: 'Profile', icon: User },
   { href: '/brand/influencers', label: 'Influencers', icon: Users },

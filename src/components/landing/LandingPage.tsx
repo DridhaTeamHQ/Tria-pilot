@@ -511,7 +511,7 @@ export default function LandingPage() {
         <section
           ref={footerSecRef}
           id="footer-image-section"
-          className="w-full h-[85vh] grid-line-x flex justify-center items-end pb-12 bg-white relative overflow-hidden"
+          className="relative flex h-[58vh] w-full items-end justify-center overflow-hidden bg-white pb-8 grid-line-x sm:h-[68vh] sm:pb-10 md:h-[85vh] md:pb-12"
         >
           <div className="absolute inset-0 z-0 bg-[#faf9f6]" />
           <div

@@ -161,6 +161,22 @@ export default async function BrandDashboard({
             <p className="mt-3 text-sm sm:text-base font-semibold text-black/70 max-w-2xl">
               Add a product if you want creators trying real items first, or launch a campaign if you already know the story you want to push.
             </p>
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href="/brand/products"
+                className="inline-flex items-center justify-center gap-2 rounded-full border-[3px] border-black bg-[#B4F056] px-5 py-3 text-sm font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+              >
+                <Package className="h-4 w-4" />
+                Add Product
+              </Link>
+              <Link
+                href="/brand/campaigns/new"
+                className="inline-flex items-center justify-center gap-2 rounded-full border-[3px] border-black bg-[#A78BFA] px-5 py-3 text-sm font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+              >
+                <Target className="h-4 w-4" />
+                Create Campaign
+              </Link>
+            </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
             <Link
@@ -175,6 +191,10 @@ export default async function BrandDashboard({
                 <h3 className="text-xl font-black text-black">Add your first product</h3>
                 <p className="mt-1 text-sm font-semibold text-black/70">Create a product page, cover image, and try-on asset base.</p>
               </div>
+              <span className="inline-flex w-fit items-center gap-2 rounded-full border-[2px] border-black bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.16em] text-black">
+                Go to products
+                <ArrowRight className="h-3.5 w-3.5" />
+              </span>
             </Link>
             <Link
               href="/brand/campaigns/new"
@@ -188,6 +208,10 @@ export default async function BrandDashboard({
                 <h3 className="text-xl font-black text-black">Create your first campaign</h3>
                 <p className="mt-1 text-sm font-semibold text-black/70">Start with an AI-assisted brief and build the collaboration flow.</p>
               </div>
+              <span className="inline-flex w-fit items-center gap-2 rounded-full border-[2px] border-black bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.16em] text-black">
+                Go to campaigns
+                <ArrowRight className="h-3.5 w-3.5" />
+              </span>
             </Link>
           </div>
         </div>

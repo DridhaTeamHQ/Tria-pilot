@@ -284,8 +284,8 @@ function LoginContent() {
       <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(0,0,0,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.2)_1px,transparent_1px)] [background-size:40px_40px]" />
       
       {/* Background decorative shapes */}
-      <div className="absolute -left-20 top-20 h-64 w-64 rounded-full border-[4px] border-black bg-[#FF8C69] opacity-20" />
-      <div className="absolute -right-20 bottom-20 h-80 w-80 rotate-12 rounded-[40px] border-[4px] border-black bg-[#B4F056] opacity-20" />
+      <div className="absolute -left-14 top-14 h-36 w-36 rounded-full border-[4px] border-black bg-[#FF8C69] opacity-15 sm:h-48 sm:w-48 md:h-56 md:w-56 lg:-left-20 lg:top-20 lg:h-64 lg:w-64 lg:opacity-20" />
+      <div className="absolute -right-12 bottom-12 h-44 w-44 rotate-12 rounded-[32px] border-[4px] border-black bg-[#B4F056] opacity-15 sm:h-60 sm:w-60 md:h-72 md:w-72 lg:-right-20 lg:bottom-20 lg:h-80 lg:w-80 lg:rounded-[40px] lg:opacity-20" />
 
       <div className="relative z-10 lg:hidden">
         <div className="flex min-h-[100dvh] items-center justify-center px-4 py-8">
@@ -327,12 +327,12 @@ function LoginContent() {
           {/* Left Panel - Branding/Info */}
           <motion.div
             layout
-            className="relative flex w-full flex-col justify-center overflow-hidden rounded-[40px] border-[4px] border-black p-12 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] lg:w-[50%] xl:w-[54%]"
+            className="relative flex w-full flex-col justify-center overflow-hidden rounded-[40px] border-[4px] border-black p-8 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] xl:p-10 lg:w-[50%] xl:w-[54%]"
             style={{ backgroundColor: userType === 'influencer' ? '#FFF4F0' : '#F7FCEB' }}
           >
             {/* Decorative elements inside the panel */}
             <motion.div
-              className="absolute right-12 top-12 h-24 w-24 rounded-full border-[4px] border-black bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+              className="absolute right-8 top-8 h-20 w-20 rounded-full border-[4px] border-black bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] xl:right-12 xl:top-12 xl:h-24 xl:w-24"
               animate={{ y: [0, -10, 0] }}
               transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
             >
@@ -340,13 +340,13 @@ function LoginContent() {
             </motion.div>
             
             <motion.div
-              className="absolute bottom-12 right-24 h-32 w-32 rotate-12 rounded-2xl border-[4px] border-black bg-[#FFD93D] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
+              className="absolute bottom-8 right-12 h-24 w-24 rotate-12 rounded-2xl border-[4px] border-black bg-[#FFD93D] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] xl:bottom-12 xl:right-24 xl:h-32 xl:w-32"
               animate={{ rotate: [12, 20, 12] }}
               transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
             />
 
             <motion.div
-              className="absolute bottom-24 left-12 h-16 w-16 -rotate-12 border-[4px] border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+              className="absolute bottom-16 left-8 h-12 w-12 -rotate-12 border-[4px] border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] xl:bottom-24 xl:left-12 xl:h-16 xl:w-16"
               animate={{ rotate: [-12, -25, -12] }}
               transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
             />

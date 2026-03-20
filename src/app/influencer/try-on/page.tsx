@@ -907,8 +907,8 @@ function TryOnPageContent() {
         <div className="relative min-h-screen pt-20 sm:pt-24 pb-8 sm:pb-12 overflow-hidden bg-[#FDFBF7]">
             {/* Background Elements - flat accents (no blur haze) */}
             <div className="absolute inset-0 -z-10 opacity-30 pointer-events-none">
-                <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-[#FFD93D] rounded-full opacity-20" />
-                <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-[#FF6B6B] rounded-full opacity-[0.18]" />
+                <div className="absolute right-[-20%] top-[-8%] h-[280px] w-[280px] rounded-full bg-[#FFD93D] opacity-20 sm:right-[-10%] sm:h-[420px] sm:w-[420px] lg:right-[-5%] lg:h-[600px] lg:w-[600px]" />
+                <div className="absolute bottom-[-8%] left-[-18%] h-[240px] w-[240px] rounded-full bg-[#FF6B6B] opacity-[0.18] sm:left-[-10%] sm:h-[360px] sm:w-[360px] lg:left-[-5%] lg:h-[500px] lg:w-[500px]" />
             </div>
 
             <div className="container mx-auto px-3 sm:px-4 md:px-6 z-10 relative">
