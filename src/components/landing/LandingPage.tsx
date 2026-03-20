@@ -242,7 +242,7 @@ export default function LandingPage() {
       ],
       body:
         'Now turn that into income. Create AI looks, post instantly, and earn from every click, view, and conversion without shoots, delays, or chasing brands.',
-      ctaLabel: 'Start Creating ->',
+      ctaLabel: 'Start Creating →',
       href: '/signup/influencer',
       accentBg: '#ff8a73',
     },
@@ -253,7 +253,7 @@ export default function LandingPage() {
       intro: ["You don't need more effort.", 'You need better execution.'],
       body:
         'Find the right creators, generate high-performing ads, and launch campaigns that actually convert, all powered by AI.',
-      ctaLabel: 'Start Scaling ->',
+      ctaLabel: 'Start Scaling →',
       href: '/signup/brand',
       accentBg: '#caff33',
     },
@@ -318,8 +318,8 @@ export default function LandingPage() {
             <div className="relative z-20 flex flex-col md:flex-row w-full text-sm bg-[#faf9f6] border-strong-t">
               <div className="md:w-3/4 p-8 md:p-12 grid-line-y flex flex-col justify-center min-w-0">
                 <h2
-                  className="font-black uppercase tracking-tight leading-[0.92] text-[#111111]"
-                  style={{ fontSize: 'clamp(2.1rem, 5vw, 4.8rem)' }}
+                  className="font-black uppercase tracking-tight leading-[0.94] text-[#111111]"
+                  style={{ fontSize: 'clamp(1.85rem, 4.4vw, 4rem)' }}
                 >
                   Where Fashion Meets
                   <br />
@@ -362,12 +362,12 @@ export default function LandingPage() {
                     <div className="w-full h-full bg-[#ff8a73] animate-pulse" />
                   </div>
                 </div>
-                <div className="relative z-10 space-y-5">
+                <div className="relative z-10 space-y-4">
                   <p className="font-black text-[#111111] uppercase tracking-[0.22em] text-xs">KIWIKOO</p>
-                  <p className="font-bold leading-relaxed text-base text-gray-700">
+                  <p className="font-bold leading-relaxed text-[15px] md:text-base text-gray-700">
                     For creators who want to earn. For brands that want to scale.
                   </p>
-                  <p className="font-bold leading-relaxed text-base text-gray-700">
+                  <p className="font-bold leading-relaxed text-[15px] md:text-base text-gray-700">
                     This is where content, commerce, and AI finally work in one flow.
                   </p>
                 </div>
@@ -377,12 +377,12 @@ export default function LandingPage() {
         </section>
 
         <section className="grid grid-cols-1 md:grid-cols-4 w-full grid-line-x bg-white">
-          <div className="md:col-span-3 p-8 md:p-12 grid-line-y min-w-0 flex flex-col justify-center gap-6">
+          <div className="md:col-span-3 p-8 md:p-12 grid-line-y min-w-0 flex flex-col justify-center gap-5 md:gap-6">
             <div className="space-y-2">
               <p className="text-sm font-black uppercase tracking-[0.28em] text-gray-500">
                 Where Fashion Meets AI
               </p>
-              <p className="max-w-2xl text-lg md:text-[1.65rem] font-bold leading-relaxed text-gray-700">
+              <p className="max-w-2xl text-[1.05rem] md:text-[1.38rem] font-bold leading-[1.45] text-gray-700">
                 For creators who want to earn.
                 <br />
                 For brands that want to scale.
@@ -390,8 +390,8 @@ export default function LandingPage() {
                 This is where it happens.
               </p>
             </div>
-            <p className="max-w-3xl text-gray-800 text-lg md:text-[1.7rem] font-bold leading-[1.45]">
-              The ultimate fashion marketplace where influencers and brands connect, create, and convert, powered by AI.
+            <p className="max-w-3xl text-gray-800 text-[1.08rem] md:text-[1.42rem] font-bold leading-[1.48]">
+              The ultimate fashion marketplace where influencers and brands connect, create, and convert — powered by AI.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Link
@@ -446,7 +446,7 @@ export default function LandingPage() {
               </h3>
             </div>
             <div className="p-6 sm:p-8 md:p-12">
-              <p className="mt-4 text-base font-semibold leading-relaxed text-gray-600 md:text-lg">
+              <p className="mt-4 text-[15px] font-semibold leading-relaxed text-gray-600 md:text-lg">
                 You don&apos;t need more tools.
                 <br />
                 You need something that actually works.
@@ -458,7 +458,8 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="grid grid-cols-1 md:grid-cols-3 w-full border-strong-b bg-[#faf9f6]">
+        <section className="w-full border-strong-b bg-[#faf9f6] px-5 py-6 md:px-8 md:py-8">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-3 md:gap-6">
           <FeatureCard
             label="For Creators"
             labelColor="#ff8a73"
@@ -499,10 +500,11 @@ export default function LandingPage() {
             title="Marketplace"
             description="Find the right products. Connect faster."
           />
+          </div>
         </section>
 
         <section className="w-full border-strong-b bg-white">
-          <div className="mx-auto flex max-w-4xl flex-col items-center px-6 py-8 text-center md:px-8 md:py-12">
+          <div className="mx-auto flex max-w-4xl flex-col items-center px-5 py-7 text-center md:px-8 md:py-12">
             <div
               className="inline-flex rounded-full border-[3px] border-black bg-[#faf9f6] p-1.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
               role="tablist"
@@ -511,7 +513,7 @@ export default function LandingPage() {
               <button
                 type="button"
                 onClick={() => setAudienceView('influencer')}
-                className={`rounded-full px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.18em] transition-colors md:px-5 ${
+                className={`rounded-full px-3.5 py-2 text-[10px] font-black uppercase tracking-[0.16em] transition-colors md:px-5 md:py-2.5 md:text-[11px] ${
                   audienceView === 'influencer' ? 'text-[#111111]' : 'text-gray-500'
                 }`}
                 style={{
@@ -523,7 +525,7 @@ export default function LandingPage() {
               <button
                 type="button"
                 onClick={() => setAudienceView('brand')}
-                className={`rounded-full px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.18em] transition-colors md:px-5 ${
+                className={`rounded-full px-3.5 py-2 text-[10px] font-black uppercase tracking-[0.16em] transition-colors md:px-5 md:py-2.5 md:text-[11px] ${
                   audienceView === 'brand' ? 'text-[#111111]' : 'text-gray-500'
                 }`}
                 style={{
@@ -534,27 +536,27 @@ export default function LandingPage() {
               </button>
             </div>
 
-            <div className="mt-6 w-full rounded-[28px] border-[3px] border-black bg-[#faf9f6] px-6 py-7 text-left shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] md:px-8 md:py-9">
+            <div className="mt-5 w-full rounded-[24px] border-[3px] border-black bg-[#faf9f6] px-5 py-6 text-left shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] md:mt-6 md:rounded-[28px] md:px-8 md:py-9">
               <div
-                className="text-xs font-black uppercase tracking-[0.28em]"
+                className="text-[10px] font-black uppercase tracking-[0.24em] md:text-xs md:tracking-[0.28em]"
                 style={{ color: activeAudience.labelColor }}
               >
                 {activeAudience.label}
               </div>
-              <h3 className="mt-4 max-w-3xl text-[clamp(1.8rem,3.4vw,3.4rem)] font-black leading-[0.96] tracking-tight text-[#111111]">
+              <h3 className="mt-3 max-w-3xl text-[clamp(1.55rem,3vw,3rem)] font-black leading-[1] tracking-tight text-[#111111] md:mt-4">
                 {activeAudience.title}
               </h3>
-              <div className="mt-5 space-y-2 text-base font-semibold leading-relaxed text-gray-600 md:text-[1.05rem]">
+              <div className="mt-4 space-y-1.5 text-[15px] font-semibold leading-relaxed text-gray-600 md:mt-5 md:space-y-2 md:text-[1.02rem]">
                 {activeAudience.intro.map((line) => (
                   <p key={line}>{line}</p>
                 ))}
               </div>
-              <p className="mt-6 max-w-3xl text-[15px] font-semibold leading-[1.75] text-gray-700 md:text-[1rem]">
+              <p className="mt-5 max-w-3xl text-[14px] font-semibold leading-[1.7] text-gray-700 md:mt-6 md:text-[1rem]">
                 {activeAudience.body}
               </p>
               <Link
                 href={activeAudience.href}
-                className="mt-6 inline-flex items-center gap-3 rounded-xl border-2 border-[#111111] px-5 py-3 font-black text-[#111111]"
+                className="mt-5 inline-flex items-center gap-3 rounded-xl border-2 border-[#111111] px-4 py-2.5 text-sm font-black text-[#111111] md:mt-6 md:px-5 md:py-3 md:text-base"
                 style={{
                   boxShadow: '4px 4px 0px rgba(17,17,17,1)',
                   backgroundColor: activeAudience.accentBg,
@@ -611,7 +613,7 @@ export default function LandingPage() {
               ))}
             </div>
             <div className="mt-8 rounded-2xl border-2 border-[#111111] bg-[#111111] px-6 py-6 text-center text-xl font-black text-white">
-              Create -&gt; Share -&gt; Earn. That&apos;s it.
+              Create → Share → Earn. That&apos;s it.
             </div>
           </div>
         </section>
@@ -659,7 +661,7 @@ export default function LandingPage() {
               <p>We&apos;re here.</p>
             </div>
             <p className="mt-6 text-base md:text-lg font-semibold leading-relaxed text-gray-700">
-              Queries and collaborations - we&apos;re all in.
+              Queries and collaborations, we&apos;re all in.
             </p>
             <div
               className="mt-8 rounded-2xl border-2 border-[#111111] bg-[#faf9f6] px-6 py-6 text-sm font-bold leading-relaxed text-gray-700"
@@ -809,19 +811,34 @@ function FeatureCard({
 
   return (
     <div
-      className={`flex flex-col justify-start gap-6 p-6 hover:bg-white transition-colors min-h-[240px] md:min-h-[300px] md:gap-8 md:p-10 ${bordered ? 'grid-line-y border-b md:border-b-0 border-black/10' : ''}`}
+      className={`flex min-h-[220px] flex-col justify-between rounded-[28px] border-[3px] border-black bg-white p-6 shadow-[6px_6px_0px_0px_rgba(17,17,17,1)] transition-transform duration-200 hover:-translate-y-1 md:min-h-[260px] md:p-8 ${bordered ? 'md:translate-y-1' : ''}`}
     >
-      <div className="text-xs font-black uppercase tracking-[0.28em]" style={{ color: labelColor }}>
-        {label}
+      <div className="space-y-5">
+        <div
+          className="inline-flex items-center gap-2 rounded-full border-2 border-black px-3 py-2 text-[10px] font-black uppercase tracking-[0.24em] md:text-xs"
+          style={{ color: '#111111', backgroundColor: `${labelColor}22` }}
+        >
+          <span
+            className="h-3 w-3 rounded-full border-2 border-black"
+            style={{ backgroundColor: labelColor }}
+          />
+          {label}
+        </div>
+        <div>
+          <h4 className="mb-3 text-[1.8rem] font-black uppercase tracking-tight leading-[0.92] text-[#111111] md:text-[2.15rem]">
+            {head}
+            {tail ? <br /> : null}
+            {tail}
+          </h4>
+          <p className="max-w-[28ch] text-[15px] font-semibold leading-relaxed text-gray-600 md:text-base">
+            {description}
+          </p>
+        </div>
       </div>
-      <div>
-        <h4 className="text-3xl font-black text-[#111111] uppercase mb-4 tracking-tighter leading-none">
-          {head}
-          {tail ? <br /> : null}
-          {tail}
-        </h4>
-        <p className="text-sm font-semibold text-gray-500">{description}</p>
-      </div>
+      <div
+        className="mt-6 h-2 rounded-full border-2 border-black"
+        style={{ background: `linear-gradient(90deg, ${labelColor} 0%, ${labelColor}88 100%)` }}
+      />
     </div>
   )
 }
