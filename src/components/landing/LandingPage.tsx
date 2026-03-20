@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -16,19 +16,31 @@ type LenisLike = {
 }
 
 export default function LandingPage() {
+  const [contactForm, setContactForm] = useState({
+    name: '',
+    email: '',
+    userType: 'Influencer',
+    message: '',
+  })
+  const [contactState, setContactState] = useState<{
+    loading: boolean
+    message: string | null
+    kind: 'success' | 'error' | null
+  }>({
+    loading: false,
+    message: null,
+    kind: null,
+  })
+
   const globalBgRef = useRef<HTMLDivElement>(null)
   const heroRef = useRef<HTMLElement>(null)
   const heroImgRef = useRef<HTMLDivElement>(null)
   const heroTitleRef = useRef<HTMLDivElement>(null)
-  const wordsRef = useRef<HTMLSpanElement[]>([])
-  const arrows1Ref = useRef<HTMLSpanElement[]>([])
-  const arrows2Ref = useRef<HTMLSpanElement[]>([])
   const footerSecRef = useRef<HTMLElement>(null)
   const footerClipRef = useRef<HTMLDivElement>(null)
   const footerLabelRef = useRef<HTMLDivElement>(null)
   const footerHugeRef = useRef<HTMLHeadingElement>(null)
 
-  /* ── transparent html/body so #global-bg shows through ── */
   useEffect(() => {
     document.documentElement.classList.add('landing-transparent-bg')
     document.body.classList.add('landing-transparent-bg')
@@ -38,15 +50,11 @@ export default function LandingPage() {
     }
   }, [])
 
-  /* ── Lenis + GSAP scroll animations ── */
   useEffect(() => {
     const globalBg = globalBgRef.current
     const hero = heroRef.current
     const heroImg = heroImgRef.current
     const heroTitle = heroTitleRef.current
-    const words = wordsRef.current.filter(Boolean)
-    const arrows1 = arrows1Ref.current.filter(Boolean)
-    const arrows2 = arrows2Ref.current.filter(Boolean)
     const footerSec = footerSecRef.current
     const footerClip = footerClipRef.current
     const footerLbl = footerLabelRef.current
@@ -58,9 +66,10 @@ export default function LandingPage() {
       typeof window !== 'undefined' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-    // Lenis smooth scroll (skip when user prefers reduced motion)
     let lenis: LenisLike | null = null
-    const tick = (time: number) => { lenis?.raf(time * 1000) }
+    const tick = (time: number) => {
+      lenis?.raf(time * 1000)
+    }
 
     if (!prefersReducedMotion) {
       import('@studio-freight/lenis')
@@ -74,16 +83,14 @@ export default function LandingPage() {
           gsap.ticker.add(tick)
           gsap.ticker.lagSmoothing(0)
         })
-        .catch(() => { /* native scroll fallback */ })
+        .catch(() => {})
     }
 
-    // Skip scroll-driven animations when user prefers reduced motion
     if (prefersReducedMotion) {
-      ScrollTrigger.getAll().forEach((t) => t.kill())
-      return () => { }
+      ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
+      return () => {}
     }
 
-    // ── Global Background Parallax Pan ──
     if (globalBg) {
       gsap.to(globalBg, {
         yPercent: -20,
@@ -98,10 +105,9 @@ export default function LandingPage() {
       })
     }
 
-    // ── Hero Parallax: title ──
     if (heroTitle) {
       gsap.to(heroTitle, {
-        yPercent: -100,
+        yPercent: -80,
         opacity: 0,
         ease: 'none',
         scrollTrigger: {
@@ -114,10 +120,9 @@ export default function LandingPage() {
       })
     }
 
-    // ── Hero Parallax: image scale ──
     if (heroImg) {
       gsap.to(heroImg, {
-        scale: 1.15,
+        scale: 1.12,
         ease: 'none',
         scrollTrigger: {
           trigger: hero,
@@ -129,67 +134,12 @@ export default function LandingPage() {
       })
     }
 
-    // ── Arrows 1 → coral ──
-    arrows1.forEach((arrow) => {
-      gsap.fromTo(
-        arrow,
-        { opacity: 0.2, color: '#d1d1d1' },
-        {
-          opacity: 1,
-          color: '#ff8a73',
-          scrollTrigger: {
-            trigger: arrow,
-            start: 'top 80%',
-            end: 'top 40%',
-            scrub: true,
-            invalidateOnRefresh: true,
-          },
-        }
-      )
-    })
-
-    // ── Reveal Words ──
-    if (words.length) {
-      gsap.to(words, {
-        opacity: 1,
-        stagger: 0.1,
-        ease: 'power2.out',
-        scrollTrigger: {
-          trigger: words[0],
-          start: 'top 85%',
-          end: 'bottom 50%',
-          scrub: 1,
-          invalidateOnRefresh: true,
-        },
-      })
-    }
-
-    // ── Arrows 2 → kiwi ──
-    arrows2.forEach((arrow) => {
-      gsap.fromTo(
-        arrow,
-        { opacity: 0.2, color: '#d1d1d1' },
-        {
-          opacity: 1,
-          color: '#caff33',
-          scrollTrigger: {
-            trigger: arrow,
-            start: 'top 80%',
-            end: 'top 40%',
-            scrub: true,
-            invalidateOnRefresh: true,
-          },
-        }
-      )
-    })
-
-    // ── Footer Image Scale (clip-path) ──
     if (footerSec && footerClip) {
       gsap.fromTo(
         footerClip,
         { clipPath: 'inset(0% 0% 0% 0%)', borderRadius: '0px' },
         {
-          clipPath: 'inset(10% 20% 10% 20%)',
+          clipPath: 'inset(8% 18% 8% 18%)',
           borderRadius: '24px',
           ease: 'none',
           scrollTrigger: {
@@ -203,7 +153,6 @@ export default function LandingPage() {
       )
     }
 
-    // ── Footer Label Reveal ──
     if (footerSec && footerLbl) {
       gsap.to(footerLbl, {
         opacity: 1,
@@ -217,10 +166,9 @@ export default function LandingPage() {
       })
     }
 
-    // ── Footer Huge Text ──
     if (footerHuge) {
       gsap.from(footerHuge, {
-        yPercent: 50,
+        yPercent: 40,
         opacity: 0,
         ease: 'power3.out',
         scrollTrigger: {
@@ -235,24 +183,59 @@ export default function LandingPage() {
 
     return () => {
       try {
-        if (lenis && typeof lenis.destroy === 'function') lenis.destroy()
-      } catch {
-        // no-op
-      }
+        lenis?.destroy()
+      } catch {}
       gsap.ticker.remove(tick)
-      ScrollTrigger.getAll().forEach((t) => t.kill())
+      ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
     }
   }, [])
+
+  async function handleContactSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setContactState({ loading: true, message: null, kind: null })
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...contactForm,
+          subject: `Landing page inquiry from ${contactForm.userType}`,
+        }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed to send message')
+      }
+
+      setContactForm({
+        name: '',
+        email: '',
+        userType: 'Influencer',
+        message: '',
+      })
+      setContactState({
+        loading: false,
+        message: 'Message sent. We usually reply within 24 hours.',
+        kind: 'success',
+      })
+    } catch (error) {
+      setContactState({
+        loading: false,
+        message: error instanceof Error ? error.message : 'Failed to send message',
+        kind: 'error',
+      })
+    }
+  }
 
   return (
     <div
       className="antialiased relative bg-transparent overflow-x-hidden"
       style={{ fontFamily: PF, color: '#111111' }}
     >
-      {/* Grid overlay */}
       <div className="grid-overlay" aria-hidden />
 
-      {/* ── GLOBAL PARALLAX BACKGROUND ── */}
       <div
         ref={globalBgRef}
         id="global-bg"
@@ -263,31 +246,24 @@ export default function LandingPage() {
         }}
       />
 
-      {/* ── MAIN CONTAINER ── */}
       <div
         className="landing-main-wrapper w-full max-w-[1600px] mx-auto border-l border-r border-black/10 relative bg-transparent overflow-x-hidden"
         style={{ marginTop: 'clamp(52px, 8vw, 60px)' }}
       >
-
-        {/* ━━━━━━━━━━ HERO SECTION ━━━━━━━━━━ */}
         <section
           ref={heroRef}
           className="relative w-full grid-line-x overflow-hidden flex flex-col justify-end"
           style={{ height: 'clamp(500px, 90vh, 1200px)' }}
         >
-          {/* Hero image */}
           <div
             ref={heroImgRef}
             id="hero-img"
             className="absolute inset-0 hero-bg-image opacity-90"
             style={{ transform: 'scale(1.05)' }}
           />
-          {/* Gradient */}
           <div className="absolute inset-0 bg-gradient-to-t from-[#faf9f6] via-[#faf9f6]/40 to-transparent" />
 
-          {/* Content Wrapper for proper stacking */}
           <div className="relative z-10 flex flex-col h-full w-full justify-between">
-            {/* KIWIKOO title - Flex growing to take available space above the bar */}
             <div
               ref={heroTitleRef}
               id="hero-title-container"
@@ -300,42 +276,57 @@ export default function LandingPage() {
                 KIWIKOO
                 <span
                   className="leading-none font-black tracking-tighter text-transparent absolute left-0 top-0"
-                  style={{
-                    WebkitTextStroke: '1px rgba(17,17,17,0.4)',
-                  }}
+                  style={{ WebkitTextStroke: '1px rgba(17,17,17,0.4)' }}
                 >
                   KIWIKOO
                 </span>
               </h1>
             </div>
 
-            {/* Bottom Data Bar */}
             <div className="relative z-20 flex flex-col md:flex-row w-full text-sm bg-[#faf9f6] border-strong-t">
-              {/* Left: tagline + CTA */}
               <div className="md:w-3/4 p-8 md:p-12 grid-line-y flex flex-col justify-center gap-6">
+                <div className="space-y-2">
+                  <p className="text-sm font-black uppercase tracking-[0.28em] text-gray-500">
+                    Where Fashion Meets AI
+                  </p>
+                  <p className="max-w-2xl text-base md:text-lg font-bold leading-relaxed text-gray-700">
+                    For creators who want to earn.
+                    <br />
+                    For brands that want to scale.
+                    <br />
+                    This is where it happens.
+                  </p>
+                </div>
                 <p className="max-w-2xl text-gray-800 text-lg md:text-xl font-bold leading-relaxed">
-                  The ultimate fashion marketplace connecting influencers with the hottest brands. Try, Share, and Earn with vertically integrated AI.
+                  The ultimate fashion marketplace where influencers and brands connect, create, and convert — powered by AI.
                 </p>
-                <Link
-                  href="/register"
-                  className="neo-btn border-2 border-[#111111] bg-[#caff33] px-8 py-4 font-extrabold text-[#111111] inline-flex items-center gap-3 w-max rounded-xl"
-                  style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
-                >
-                  GET STARTED
-                  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                  </svg>
-                </Link>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Link
+                    href="/signup/influencer"
+                    className="neo-btn border-2 border-[#111111] bg-[#ff8a73] px-8 py-4 font-extrabold text-[#111111] inline-flex items-center justify-center gap-3 rounded-xl"
+                    style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
+                  >
+                    Join as Influencer
+                  </Link>
+                  <Link
+                    href="/signup/brand"
+                    className="neo-btn border-2 border-[#111111] bg-[#caff33] px-8 py-4 font-extrabold text-[#111111] inline-flex items-center justify-center gap-3 rounded-xl"
+                    style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
+                  >
+                    Join as Brand
+                  </Link>
+                </div>
               </div>
-              {/* Right: Instant widget */}
               <div className="md:w-1/4 p-8 flex flex-col justify-center bg-white relative overflow-hidden">
                 <div className="absolute -right-4 -top-4 text-9xl font-black text-gray-100 pointer-events-none select-none leading-none">
                   AI
                 </div>
                 <div className="relative z-10">
-                  <div className="text-[#ff8a73] font-black text-5xl mb-2 tracking-tighter">Instant</div>
+                  <div className="text-[#ff8a73] font-black text-4xl md:text-5xl mb-2 tracking-tighter">
+                    No shoots.
+                  </div>
                   <div className="text-[#111111] font-bold text-xs tracking-widest uppercase mb-4">
-                    Virtual Try-On Output
+                    No stress. Just results.
                   </div>
                   <div className="w-full h-1 bg-gray-200 rounded-full overflow-hidden">
                     <div className="w-full h-full bg-[#ff8a73] animate-pulse" />
@@ -346,169 +337,200 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ━━━━━━━━━━ ARROW TRANSITION 1 ━━━━━━━━━━ */}
-        <section className="grid grid-cols-3 w-full grid-line-x font-bold text-gray-300 text-2xl tracking-tighter py-12 bg-[#faf9f6]">
-          <div className="col-span-1 grid-line-y flex flex-col items-center gap-2">
-            <span>\/\/</span><span>\/\/</span><span>\/\/</span>
-          </div>
-          <div className="col-span-1 grid-line-y flex flex-col items-center gap-2 text-[#111111]">
-            <span ref={(el) => { if (el) arrows1Ref.current[0] = el }} className="arrow-down-main block">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
-            </span>
-            <span ref={(el) => { if (el) arrows1Ref.current[1] = el }} className="arrow-down-main block">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
-            </span>
-            <span ref={(el) => { if (el) arrows1Ref.current[2] = el }} className="arrow-down-main block">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
-            </span>
-          </div>
-          <div className="col-span-1 flex flex-col items-center gap-2">
-            <span>\/\/</span><span>\/\/</span><span>\/\/</span>
-          </div>
-        </section>
-
-        {/* ━━━━━━━━━━ STATEMENT TEXT ━━━━━━━━━━ */}
         <section className="grid grid-cols-1 md:grid-cols-4 w-full grid-line-x bg-white">
           <div className="md:col-span-3 p-10 md:p-20 grid-line-y min-w-0">
             <h2
               className="font-black uppercase tracking-tighter leading-[0.9] text-[#111111]"
               style={{ fontSize: 'clamp(2.2rem, 7vw, 5.5rem)' }}
             >
-              <span
-                ref={(el) => { if (el) wordsRef.current[0] = el }}
-                className="reveal-word opacity-20 inline-block"
-              >WHERE</span>{' '}
-              <span
-                ref={(el) => { if (el) wordsRef.current[1] = el }}
-                className="reveal-word opacity-20 text-[#ff8a73] inline-block"
-              >FASHION</span>{' '}
-              <span
-                ref={(el) => { if (el) wordsRef.current[2] = el }}
-                className="reveal-word opacity-20 inline-block"
-              >MEETS</span>
+              Where Fashion Meets
               <br />
-              <span
-                ref={(el) => { if (el) wordsRef.current[3] = el }}
-                className="reveal-word opacity-20 inline-block"
-              >ARTIFICIAL</span>{' '}
-              <span
-                ref={(el) => { if (el) wordsRef.current[4] = el }}
-                className="reveal-word opacity-20 text-[#b3f500] inline-block"
-              >INTELLIGENCE.</span>
+              <span className="text-[#ff8a73]">AI.</span>
+              <br />
+              <span className="text-[#b3f500]">This is where it happens.</span>
             </h2>
           </div>
           <div className="md:col-span-1 p-10 text-sm text-gray-800 flex flex-col justify-center bg-[#faf9f6] border-t md:border-t-0 border-black/10">
-            <p className="mb-6 font-black text-[#111111] uppercase tracking-widest text-xs">The New Standard</p>
+            <p className="mb-6 font-black text-[#111111] uppercase tracking-widest text-xs">KIWIKOO</p>
             <p className="mb-6 font-bold leading-relaxed">
-              We merge the creativity of Gen-Z influencers with cutting-edge AI rendering. It&apos;s stable, fast, and diffuses seamlessly into your social feed.
+              For creators who want to earn. For brands that want to scale.
             </p>
             <p className="font-bold leading-relaxed">
-              Turn your influence into income without the wait of physical shipping.
+              This is where content, commerce, and AI finally work in one flow.
             </p>
           </div>
         </section>
 
-        {/* ━━━━━━━━━━ OUR FEATURES — SVG K KNOCKOUT MASK ━━━━━━━━━━
-            SVG <mask>: white rect = opaque background, black text = transparent hole
-            revealing #global-bg through the letter K.                              */}
         <section className="w-full border-strong-b bg-[#faf9f6]">
           <div className="grid grid-cols-1 md:grid-cols-[1.15fr_0.85fr]">
             <div className="grid-line-y border-b border-black/10 p-6 sm:p-8 md:border-b-0 md:p-12">
               <div className="inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-white px-4 py-2 text-[11px] font-black uppercase tracking-[0.28em] text-gray-500 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                 <span className="h-3.5 w-3.5 rounded-full bg-[#ff8a73] border-2 border-black" />
-                Our Features
+                What We Give You
               </div>
               <h3 className="mt-6 text-[clamp(2.2rem,5vw,4.8rem)] font-black uppercase tracking-tight leading-[0.9] text-[#111111]">
-                Fashion tools
+                Everything changes
                 <br />
-                that feel alive.
+                from here.
               </h3>
             </div>
             <div className="p-6 sm:p-8 md:p-12">
-              <p className="max-w-md text-sm font-bold uppercase tracking-[0.22em] text-gray-400">
-                One system, three superpowers
-              </p>
               <p className="mt-4 text-base font-semibold leading-relaxed text-gray-600 md:text-lg">
-                From instant try-ons to creator-brand matchmaking and sharper campaign insights, every feature below is designed to move faster than a traditional fashion workflow.
+                You don&apos;t need more tools.
+                <br />
+                You need something that actually works.
+                <br />
+                <br />
+                Here&apos;s what you can do once you&apos;re in.
               </p>
             </div>
           </div>
         </section>
 
-        {/* ━━━━━━━━━━ SOLUTIONS CARDS GRID ━━━━━━━━━━ */}
         <section className="grid grid-cols-1 md:grid-cols-3 w-full border-strong-b bg-[#faf9f6]">
-          {/* Card 1 */}
-          <div className="grid-line-y flex flex-col justify-start gap-6 p-6 hover:bg-white transition-colors min-h-[240px] md:min-h-[300px] md:gap-8 md:p-10 border-b md:border-b-0 border-black/10">
-            <div className="flex justify-between items-start">
-              <div className="w-10 h-10 rounded-full border-2 border-[#111111] flex items-center justify-center bg-[#ff8a73] text-[#111111] font-bold">
-                1
-              </div>
+          <FeatureCard
+            label="For Creators"
+            labelColor="#ff8a73"
+            title="AI Try-On Studio"
+            description="See yourself in outfits — without ever wearing them."
+            bordered
+          />
+          <FeatureCard
+            label="For Creators"
+            labelColor="#ff8a73"
+            title="Affiliate Engine"
+            description="Every post you make? It can earn."
+            bordered
+          />
+          <FeatureCard
+            label="For Brands"
+            labelColor="#b3f500"
+            title="Smart Campaigns"
+            description="Plan it. Launch it. Scale it. All in one flow."
+          />
+          <FeatureCard
+            label="For Brands"
+            labelColor="#b3f500"
+            title="Ad Creator"
+            description="Create ads that people actually stop for."
+            bordered
+          />
+          <FeatureCard
+            label="For Both"
+            labelColor="#d8b4fe"
+            title="Real-Time Analytics"
+            description="No guessing. Just clear numbers."
+            bordered
+          />
+          <FeatureCard
+            label="For Both"
+            labelColor="#d8b4fe"
+            title="Marketplace"
+            description="Find the right products. Connect faster."
+          />
+        </section>
+
+        <section className="grid grid-cols-1 md:grid-cols-2 w-full border-strong-b bg-white">
+          <div className="grid-line-y p-8 md:p-12 border-b md:border-b-0 border-black/10">
+            <div className="text-xs font-black uppercase tracking-[0.28em] text-[#ff8a73]">For Influencers</div>
+            <h3 className="mt-6 text-[clamp(2rem,4vw,4.3rem)] font-black leading-[0.95] tracking-tight text-[#111111]">
+              You&apos;ve got the style.
+              <br />
+              Why aren&apos;t you earning yet?
+            </h3>
+            <div className="mt-6 space-y-2 text-lg font-semibold text-gray-600">
+              <p>You&apos;re already posting.</p>
+              <p>Already creating.</p>
+              <p>Already building an audience.</p>
             </div>
-            <div>
-              <h4 className="text-3xl font-black text-[#111111] uppercase mb-4 tracking-tighter leading-none">
-                Automated<br />Content Creation
-              </h4>
-              <p className="text-sm font-semibold text-gray-500">
-                Generate high-quality try-on images instantly. Keep your feed fresh without buying new wardrobes.
-              </p>
-            </div>
+            <p className="mt-6 max-w-2xl text-base md:text-lg font-semibold leading-relaxed text-gray-700">
+              Now turn that into income.
+              <br />
+              <br />
+              Create AI looks, post instantly, and earn from every click, view, and conversion — without shoots, delays, or chasing brands.
+            </p>
+            <Link
+              href="/signup/influencer"
+              className="mt-8 inline-flex items-center gap-3 rounded-xl border-2 border-[#111111] bg-[#ff8a73] px-6 py-4 font-black text-[#111111]"
+              style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
+            >
+              Start Creating →
+            </Link>
           </div>
-          {/* Card 2 */}
-          <div className="grid-line-y flex flex-col justify-start gap-6 p-6 hover:bg-white transition-colors min-h-[240px] md:min-h-[300px] md:gap-8 md:p-10 border-b md:border-b-0 border-black/10">
-            <div className="flex justify-between items-start">
-              <div className="w-10 h-10 rounded-full border-2 border-[#111111] flex items-center justify-center bg-[#b3f500] text-[#111111] font-bold">
-                2
-              </div>
+          <div className="p-8 md:p-12 bg-[#faf9f6]">
+            <div className="text-xs font-black uppercase tracking-[0.28em] text-[#b3f500]">For Brands</div>
+            <h3 className="mt-6 text-[clamp(2rem,4vw,4.3rem)] font-black leading-[0.95] tracking-tight text-[#111111]">
+              Spending on marketing but not seeing real results?
+              <br />
+              There&apos;s a smarter way.
+            </h3>
+            <div className="mt-6 space-y-2 text-lg font-semibold text-gray-600">
+              <p>You don&apos;t need more effort.</p>
+              <p>You need better execution.</p>
             </div>
-            <div>
-              <h4 className="text-3xl font-black text-[#111111] uppercase mb-4 tracking-tighter leading-none">
-                Influencer X<br />Brand
-              </h4>
-              <p className="text-sm font-semibold text-gray-500">
-                Access thousands of verified influencers. Launch campaigns and track performance seamlessly.
-              </p>
-            </div>
+            <p className="mt-6 max-w-2xl text-base md:text-lg font-semibold leading-relaxed text-gray-700">
+              Find the right creators, generate high-performing ads, and launch campaigns that actually convert — all powered by AI.
+            </p>
+            <Link
+              href="/signup/brand"
+              className="mt-8 inline-flex items-center gap-3 rounded-xl border-2 border-[#111111] bg-[#caff33] px-6 py-4 font-black text-[#111111]"
+              style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
+            >
+              Start Scaling →
+            </Link>
           </div>
-          {/* Card 3 */}
-          <div className="flex flex-col justify-start gap-6 p-6 hover:bg-white transition-colors min-h-[240px] md:min-h-[300px] md:gap-8 md:p-10">
-            <div className="flex justify-between items-start">
-              <div className="w-10 h-10 rounded-full border-2 border-[#111111] flex items-center justify-center bg-[#d8b4fe] text-[#111111] font-bold">
-                3
-              </div>
+        </section>
+
+        <section className="grid grid-cols-1 md:grid-cols-[1.1fr_0.9fr] w-full border-strong-b bg-[#faf9f6]">
+          <div className="grid-line-y p-8 md:p-12 border-b md:border-b-0 border-black/10">
+            <div className="text-xs font-black uppercase tracking-[0.28em] text-[#111111]">Why Us</div>
+            <h3 className="mt-6 text-[clamp(2rem,4vw,4.4rem)] font-black leading-[0.95] tracking-tight text-[#111111]">
+              Built different.
+              <br />
+              Because the old way doesn&apos;t work anymore.
+            </h3>
+            <div className="mt-6 space-y-2 text-lg font-semibold text-gray-600">
+              <p>You&apos;ve seen how it usually goes.</p>
+              <p>Expensive shoots.</p>
+              <p>Endless coordination.</p>
+              <p>Campaigns that don&apos;t convert.</p>
             </div>
-            <div>
-              <h4 className="text-3xl font-black text-[#111111] uppercase mb-4 tracking-tighter leading-none">
-                Deep<br />Analytics
-              </h4>
-              <p className="text-sm font-semibold text-gray-500">
-                Real-time insights. Transparent, trackable, and honest conversion data for every campaign.
-              </p>
+            <p className="mt-6 max-w-2xl text-base md:text-lg font-semibold leading-relaxed text-gray-700">
+              We changed that.
+              <br />
+              <br />
+              From creators turning content into income to brands turning reach into revenue — Kiwikoo powers the full journey.
+            </p>
+          </div>
+          <div className="p-8 md:p-12 bg-white">
+            <div className="grid gap-4">
+              {[
+                'No expensive photoshoots',
+                'No manual creator hunting',
+                'No guesswork in campaigns',
+                'No delays in execution',
+              ].map((item, index) => (
+                <div
+                  key={item}
+                  className="flex items-center gap-4 rounded-2xl border-2 border-[#111111] bg-[#faf9f6] px-5 py-5"
+                  style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
+                >
+                  <div
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-[#111111] font-black text-[#111111]"
+                    style={{ backgroundColor: index % 2 === 0 ? '#caff33' : '#ff8a73' }}
+                  >
+                    {index + 1}
+                  </div>
+                  <div className="text-base font-bold text-[#111111]">{item}</div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-8 rounded-2xl border-2 border-[#111111] bg-[#111111] px-6 py-6 text-center text-xl font-black text-white">
+              Create → Share → Earn. That&apos;s it.
             </div>
           </div>
         </section>
 
-        {/* ━━━━━━━━━━ ARROW TRANSITION 2 ━━━━━━━━━━ */}
-        <section className="grid grid-cols-3 w-full grid-line-x font-bold text-gray-300 text-2xl tracking-tighter py-12 relative z-20 bg-white">
-          <div className="col-span-1 grid-line-y flex flex-col items-center gap-2">
-            <span>\/\/</span><span>\/\/</span><span>\/\/</span>
-          </div>
-          <div className="col-span-1 grid-line-y flex flex-col items-center gap-2 text-[#111111]">
-            <span ref={(el) => { if (el) arrows2Ref.current[0] = el }} className="arrow-down-main-2 block">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
-            </span>
-            <span ref={(el) => { if (el) arrows2Ref.current[1] = el }} className="arrow-down-main-2 block">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
-            </span>
-            <span ref={(el) => { if (el) arrows2Ref.current[2] = el }} className="arrow-down-main-2 block">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
-            </span>
-          </div>
-          <div className="col-span-1 flex flex-col items-center gap-2">
-            <span>\/\/</span><span>\/\/</span><span>\/\/</span>
-          </div>
-        </section>
-
-        {/* ━━━━━━━━━━ FOOTER SCALING IMAGE SEQUENCE ━━━━━━━━━━ */}
         <section
           ref={footerSecRef}
           id="footer-image-section"
@@ -533,11 +555,95 @@ export default function LandingPage() {
             className="relative z-20 font-bold text-sm tracking-[0.2em] text-white mt-auto uppercase"
             style={{ opacity: 0 }}
           >
-            The Future of Virtual Try-On
+            No shoots. No stress. Just results.
           </div>
         </section>
 
-        {/* ━━━━━━━━━━ MASSIVE FOOTER TITLE ━━━━━━━━━━ */}
+        <section className="grid grid-cols-1 md:grid-cols-[0.9fr_1.1fr] w-full border-strong-b bg-white">
+          <div className="grid-line-y p-8 md:p-12 border-b md:border-b-0 border-black/10">
+            <div className="text-xs font-black uppercase tracking-[0.28em] text-[#111111]">Contact</div>
+            <h3 className="mt-6 text-[clamp(2rem,4vw,4.4rem)] font-black leading-[0.95] tracking-tight text-[#111111]">
+              Got something in mind?
+              <br />
+              Let&apos;s talk.
+            </h3>
+            <div className="mt-6 space-y-2 text-lg font-semibold text-gray-600">
+              <p>Thinking about partnering?</p>
+              <p>Have a question?</p>
+              <p>Or just curious?</p>
+              <p>We&apos;re here.</p>
+            </div>
+            <p className="mt-6 text-base md:text-lg font-semibold leading-relaxed text-gray-700">
+              Queries and collaborations — we&apos;re all in.
+            </p>
+            <div
+              className="mt-8 rounded-2xl border-2 border-[#111111] bg-[#faf9f6] px-6 py-6 text-sm font-bold leading-relaxed text-gray-700"
+              style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
+            >
+              <div className="uppercase tracking-[0.2em] text-xs text-gray-500">Email</div>
+              <a href="mailto:team@dridhatechnologies.com" className="mt-2 block text-lg font-black text-[#111111]">
+                team@dridhatechnologies.com
+              </a>
+              <div className="mt-4 text-sm font-semibold text-gray-500">
+                We usually reply within 24 hours.
+              </div>
+            </div>
+          </div>
+          <div className="p-8 md:p-12 bg-[#faf9f6]">
+            <form onSubmit={handleContactSubmit} className="grid gap-5">
+              <input
+                type="text"
+                placeholder="Name"
+                value={contactForm.name}
+                onChange={(event) => setContactForm((prev) => ({ ...prev, name: event.target.value }))}
+                className="rounded-2xl border-2 border-[#111111] bg-white px-5 py-4 font-semibold text-[#111111] outline-none"
+                style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
+                required
+              />
+              <input
+                type="email"
+                placeholder="Email"
+                value={contactForm.email}
+                onChange={(event) => setContactForm((prev) => ({ ...prev, email: event.target.value }))}
+                className="rounded-2xl border-2 border-[#111111] bg-white px-5 py-4 font-semibold text-[#111111] outline-none"
+                style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
+                required
+              />
+              <select
+                value={contactForm.userType}
+                onChange={(event) => setContactForm((prev) => ({ ...prev, userType: event.target.value }))}
+                className="rounded-2xl border-2 border-[#111111] bg-white px-5 py-4 font-semibold text-[#111111] outline-none"
+                style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
+              >
+                <option value="Influencer">You are: Influencer</option>
+                <option value="Brand">You are: Brand</option>
+                <option value="Other">You are: Other</option>
+              </select>
+              <textarea
+                placeholder="Message"
+                value={contactForm.message}
+                onChange={(event) => setContactForm((prev) => ({ ...prev, message: event.target.value }))}
+                className="min-h-[180px] rounded-2xl border-2 border-[#111111] bg-white px-5 py-4 font-semibold text-[#111111] outline-none"
+                style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
+                required
+              />
+              <button
+                type="submit"
+                disabled={contactState.loading}
+                className="inline-flex items-center justify-center gap-3 rounded-2xl border-2 border-[#111111] bg-[#caff33] px-6 py-4 font-black text-[#111111] disabled:cursor-not-allowed disabled:opacity-70"
+                style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
+              >
+                {contactState.loading ? 'Sending...' : 'Send Message'}
+              </button>
+              {contactState.message ? (
+                <p className={`text-sm font-bold ${contactState.kind === 'error' ? 'text-[#ff4d4f]' : 'text-[#111111]'}`}>
+                  {contactState.message}
+                </p>
+              ) : null}
+            </form>
+          </div>
+        </section>
+
         <section className="w-full border-strong-b flex justify-center items-center aspect-[5/1] bg-[#caff33] overflow-hidden relative">
           <h1
             ref={footerHugeRef}
@@ -545,20 +651,18 @@ export default function LandingPage() {
             className="font-black tracking-tighter text-transparent whitespace-nowrap leading-[0.8] select-none"
             style={{
               fontSize: 'clamp(2.5rem, 17vw, 16rem)',
-              WebkitTextStroke: '3px rgba(17,17,17,0.85)'
+              WebkitTextStroke: '3px rgba(17,17,17,0.85)',
             }}
           >
             KIWIKOO
           </h1>
         </section>
 
-        {/* ━━━━━━━━━━ BOTTOM FOOTER ━━━━━━━━━━ */}
         <footer className="grid grid-cols-1 md:grid-cols-2 w-full text-xs font-bold uppercase bg-white">
-          {/* Left */}
           <div className="p-8 md:p-12 grid-line-y grid-line-x flex flex-col justify-between gap-10">
             <div className="flex gap-12">
               <div>
-                <div className="text-gray-400 mb-4 tracking-widest">COMPANY</div>
+                <div className="text-gray-400 mb-4 tracking-widest">Company</div>
                 <ul className="space-y-3 text-[#111111]">
                   <li><Link href="/about" className="hover:text-[#ff8a73] transition-colors uppercase">About Us</Link></li>
                   <li><Link href="/register" className="hover:text-[#ff8a73] transition-colors">Join Us</Link></li>
@@ -566,16 +670,15 @@ export default function LandingPage() {
                 </ul>
               </div>
               <div>
-                <div className="text-gray-400 mb-4 tracking-widest">LEGAL</div>
+                <div className="text-gray-400 mb-4 tracking-widest">Legal</div>
                 <ul className="space-y-3 text-[#111111]">
                   <li><Link href="/privacy" className="hover:text-[#ff8a73] transition-colors uppercase">Privacy Policy</Link></li>
                   <li><Link href="/terms" className="hover:text-[#ff8a73] transition-colors uppercase">Terms of Use</Link></li>
                 </ul>
               </div>
             </div>
-            <div className="text-gray-500 tracking-widest">© 2026 KIWIKOO. ALL RIGHTS RESERVED.</div>
+            <div className="text-gray-500 tracking-widest">(C) 2026 KIWIKOO. ALL RIGHTS RESERVED.</div>
           </div>
-          {/* Right */}
           <div className="p-8 md:p-12 grid-line-x flex flex-col justify-between items-start md:items-end text-left md:text-right bg-[#faf9f6] border-t md:border-t-0 border-black/10 gap-10">
             <div>
               <Link
@@ -586,16 +689,49 @@ export default function LandingPage() {
                 CREATE ACCOUNT
                 <svg
                   className="w-5 h-5 group-hover:translate-x-2 transition-transform shrink-0"
-                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>
               </Link>
             </div>
-            <div className="text-gray-400 tracking-widest">ENGLISH (US)</div>
+            <div className="text-gray-400 tracking-widest">English (US)</div>
           </div>
         </footer>
+      </div>
+    </div>
+  )
+}
 
+function FeatureCard({
+  label,
+  labelColor,
+  title,
+  description,
+  bordered = false,
+}: {
+  label: string
+  labelColor: string
+  title: string
+  description: string
+  bordered?: boolean
+}) {
+  return (
+    <div
+      className={`flex flex-col justify-start gap-6 p-6 hover:bg-white transition-colors min-h-[240px] md:min-h-[300px] md:gap-8 md:p-10 ${bordered ? 'grid-line-y border-b md:border-b-0 border-black/10' : ''}`}
+    >
+      <div className="text-xs font-black uppercase tracking-[0.28em]" style={{ color: labelColor }}>
+        {label}
+      </div>
+      <div>
+        <h4 className="text-3xl font-black text-[#111111] uppercase mb-4 tracking-tighter leading-none">
+          {title.split(' ').slice(0, -1).join(' ') || title}
+          {title.includes(' ') ? <br /> : null}
+          {title.split(' ').slice(-1)}
+        </h4>
+        <p className="text-sm font-semibold text-gray-500">{description}</p>
       </div>
     </div>
   )
