@@ -103,6 +103,7 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
               onClick={() => void handleLogout()}
               disabled={isLoggingOut}
               title="Logout"
+              expandOnHover={false}
             />
           </div>
 

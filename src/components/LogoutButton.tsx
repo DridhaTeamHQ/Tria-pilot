@@ -9,6 +9,7 @@ type LogoutButtonProps = {
   title?: string
   dataCursor?: string
   fullWidth?: boolean
+  expandOnHover?: boolean
 }
 
 export default function LogoutButton({
@@ -18,6 +19,7 @@ export default function LogoutButton({
   title = 'Logout',
   dataCursor,
   fullWidth = false,
+  expandOnHover = true,
 }: LogoutButtonProps) {
   if (fullWidth) {
     return (
@@ -39,6 +41,29 @@ export default function LogoutButton({
       >
         <LogOut className="h-5 w-5 shrink-0" />
         <span>Logout</span>
+      </button>
+    )
+  }
+
+  if (!expandOnHover) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        title={title}
+        data-cursor={dataCursor}
+        className={[
+          'inline-flex h-[45px] items-center justify-center gap-2 rounded-full border-2 border-black',
+          'bg-[#FF9B8F] px-4 py-2 text-sm font-black text-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all duration-200',
+          'hover:bg-[#FF8A7D] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]',
+          'active:translate-x-[2px] active:translate-y-[2px] active:shadow-none',
+          'disabled:cursor-not-allowed disabled:opacity-60',
+          className,
+        ].join(' ')}
+      >
+        <LogOut className="h-[17px] w-[17px] shrink-0" />
+        <span className="whitespace-nowrap text-sm font-bold">Logout</span>
       </button>
     )
   }
