@@ -16,6 +16,21 @@ function normalizeInfluencerProfile(value: any) {
   return value || {}
 }
 
+function asObject(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>
+  }
+  return {}
+}
+
+function getReviewAudit(value: unknown) {
+  const data = asObject(value)
+  return {
+    reviewed_at: typeof data.reviewed_at === 'string' ? data.reviewed_at : null,
+    review_note: typeof data.review_note === 'string' ? data.review_note : null,
+  }
+}
+
 export default async function AdminPage() {
   const service = createServiceClient()
 
@@ -54,8 +69,8 @@ export default async function AdminPage() {
       status: displayStatus,
       created_at: p.created_at,
       updated_at: p.updated_at,
-      reviewed_at: null,
-      review_note: null,
+      reviewed_at: getReviewAudit(p.influencer_data).reviewed_at,
+      review_note: getReviewAudit(p.influencer_data).review_note,
       onboarding: {
         gender: inf.gender,
         niches: inf.niches,

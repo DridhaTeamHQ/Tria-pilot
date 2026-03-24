@@ -57,6 +57,7 @@ function getCollaborationMeta(collab: any) {
   return {
     details,
     hasExplicitInitiator,
+    isLegacyFallback: !hasExplicitInitiator,
     initiatedBy,
     initiatedRole,
     receiverId,
@@ -64,6 +65,30 @@ function getCollaborationMeta(collab: any) {
     senderRole,
     receiverRole,
   }
+}
+
+function isCollaborationSender(
+  collab: any,
+  meta: ReturnType<typeof getCollaborationMeta>,
+  viewerId: string,
+  viewerRole: UserRole | null
+) {
+  if (meta.hasExplicitInitiator) return meta.senderId === viewerId
+
+  // Legacy rows predate explicit metadata and historically behaved as brand -> influencer requests.
+  return viewerRole === 'brand' && collab.brand_id === viewerId
+}
+
+function isCollaborationReceiver(
+  collab: any,
+  meta: ReturnType<typeof getCollaborationMeta>,
+  viewerId: string,
+  viewerRole: UserRole | null
+) {
+  if (meta.hasExplicitInitiator) return meta.receiverId === viewerId
+
+  // Keep fallback rules narrow and predictable for pre-metadata rows.
+  return viewerRole === 'influencer' && collab.influencer_id === viewerId
 }
 
 function getBrandDisplayName(profile: any) {
@@ -360,13 +385,11 @@ export async function GET(request: Request) {
       const meta = getCollaborationMeta(collab)
 
       if (type === 'sent') {
-        if (meta.hasExplicitInitiator) return meta.initiatedBy === authUser.id
-        return viewerRole === 'brand' ? collab.brand_id === authUser.id : false
+        return isCollaborationSender(collab, meta, authUser.id, viewerRole)
       }
 
       if (type === 'received') {
-        if (meta.hasExplicitInitiator) return meta.receiverId === authUser.id
-        return viewerRole === 'influencer' ? collab.influencer_id === authUser.id : false
+        return isCollaborationReceiver(collab, meta, authUser.id, viewerRole)
       }
 
       return collab.brand_id === authUser.id || collab.influencer_id === authUser.id
@@ -418,7 +441,14 @@ export async function PATCH(request: Request) {
     if (!collab) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     const meta = getCollaborationMeta(collab)
-    if (meta.receiverId !== authUser.id) {
+    const viewerRole: UserRole | null =
+      collab.brand_id === authUser.id
+        ? 'brand'
+        : collab.influencer_id === authUser.id
+          ? 'influencer'
+          : null
+
+    if (!isCollaborationReceiver(collab, meta, authUser.id, viewerRole)) {
       return NextResponse.json({ error: 'Only the receiving side can update this request' }, { status: 403 })
     }
 

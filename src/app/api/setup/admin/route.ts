@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import crypto from 'crypto'
 import { createServiceClient } from '@/lib/auth'
+import { findAuthUserByEmail } from '@/lib/supabase/admin-users'
 
 const setupSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(320),
@@ -64,12 +65,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: createError.message || 'Failed to create auth user' }, { status: 500 })
       }
 
-      const { data: listed, error: listError } = await service.auth.admin.listUsers({ page: 1, perPage: 1000 })
-      if (listError) {
-        return NextResponse.json({ error: listError.message || 'Failed to resolve existing auth user' }, { status: 500 })
-      }
-
-      const existing = listed.users.find((u) => u.email?.trim().toLowerCase() === email)
+      const existing = await findAuthUserByEmail(service, email)
       if (!existing?.id) {
         return NextResponse.json({ error: 'Failed to resolve existing auth user' }, { status: 500 })
       }

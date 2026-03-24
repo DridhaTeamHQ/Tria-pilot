@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
+import { findAuthUserByEmail } from '@/lib/supabase/admin-users'
 
 function getMailDiagnostics() {
   const smtpHost = process.env.SMTP_HOST?.trim() || ''
@@ -62,8 +63,7 @@ export async function GET() {
     let subjectProfile = null
 
     if (email) {
-      const { data: authUsers } = await service.auth.admin.listUsers({ page: 1, perPage: 1000 })
-      subjectUser = authUsers?.users?.find((u: any) => u.email?.toLowerCase().trim() === email) || null
+      subjectUser = await findAuthUserByEmail(service, email)
       const { data: profile } = await service
         .from('profiles')
         .select('*')
@@ -144,10 +144,7 @@ export async function POST(request: Request) {
     const email = String(body.email).trim().toLowerCase()
     const service = createServiceClient()
 
-    const { data: authUsers } = await service.auth.admin.listUsers({ page: 1, perPage: 1000 })
-    const supabaseUser = authUsers?.users?.find(
-      (u: any) => u.email?.toLowerCase().trim() === email
-    )
+    const supabaseUser = await findAuthUserByEmail(service, email)
 
     const { data: profile } = await service
       .from('profiles')

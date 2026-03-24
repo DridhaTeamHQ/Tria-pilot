@@ -4,11 +4,11 @@ import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { toast } from 'sonner'
 import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, Shield } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { setAuthToast } from '@/components/auth-toast-bridge'
 import { DecorativeShapes } from '@/components/brutal/onboarding/DecorativeShapes'
+import { showErrorToast, showSuccessToast } from '@/lib/kiwikoo-toast'
 
 export default function AdminLoginPage() {
   return (
@@ -40,10 +40,10 @@ function AdminLoginContent() {
     const error = searchParams.get('error')
     const confirmed = searchParams.get('confirmed')
     if (error === 'not_admin') {
-      toast.error('This account is not an admin.')
+      showErrorToast('Not an admin account', 'Use the regular login for creator or brand accounts.')
     }
     if (confirmed === 'true') {
-      toast.success('Email confirmed! You can now sign in as admin.')
+      showSuccessToast('Email confirmed', 'You can now sign in as admin.')
     }
   }, [searchParams])
 
@@ -52,12 +52,12 @@ function AdminLoginContent() {
     const normalizedEmail = email.trim().toLowerCase()
 
     if (!normalizedEmail || !password) {
-      toast.error('Please enter email and password')
+      showErrorToast('Missing details', 'Please enter your admin email and password.')
       return
     }
 
     if (!normalizedEmail.includes('@')) {
-      toast.error('Please enter a valid admin email address.')
+      showErrorToast('Invalid email', 'Please enter a valid admin email address.')
       return
     }
 
@@ -79,7 +79,7 @@ function AdminLoginContent() {
 
       if (data?.user?.role !== 'ADMIN') {
         await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
-        toast.error('This account is not an admin.')
+        showErrorToast('Wrong portal for this account', 'Use the regular login for your creator or brand workspace.')
         return
       }
 
@@ -88,7 +88,7 @@ function AdminLoginContent() {
       router.push('/admin')
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Login failed')
+      showErrorToast('Admin sign-in failed', err instanceof Error ? err.message : 'Login failed')
     } finally {
       setLoading(false)
     }

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createServiceClient } from '@/lib/auth'
 import crypto from 'crypto'
+import { findAuthUserByEmail, findAuthUserById } from '@/lib/supabase/admin-users'
 
 const schema = z
   .object({
@@ -69,7 +70,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error: 'SUPABASE_SERVICE_ROLE_KEY is not configured',
-          hint: 'Add SUPABASE_SERVICE_ROLE_KEY to your .env.local file. Get it from Supabase Dashboard → Settings → API → service_role key (secret)',
+          hint: 'Add SUPABASE_SERVICE_ROLE_KEY to your .env.local file. Get it from Supabase Dashboard -> Settings -> API -> service_role key (secret)',
         },
         { status: 500 }
       )
@@ -111,13 +112,9 @@ export async function POST(request: Request) {
           createError.message?.toLowerCase().includes('already exists')
         ) {
           try {
-            const { data: listData } = await service.auth.admin.listUsers({
-              page: 1,
-              perPage: 1000,
-            })
-            const existing = listData?.users?.find(
-              (u) => u.email?.toLowerCase() === normalizedEmail
-            )
+            const existing = normalizedEmail
+              ? await findAuthUserByEmail(service, normalizedEmail)
+              : null
             if (existing?.id) {
               resolvedUserId = existing.id
             }
@@ -172,18 +169,11 @@ export async function POST(request: Request) {
     // If getUserById failed, try listing users (this sometimes works when getUserById doesn't)
     if (!authUserExists) {
       try {
-        const { data: listData, error: listError } = await service.auth.admin.listUsers({
-          page: 1,
-          perPage: 1000, // Get enough to find our user
-        })
-
-        if (!listError && listData?.users) {
-          const foundUser = listData.users.find(u => u.id === resolvedUserId)
-          if (foundUser) {
-            authUserExists = true
-            authUser = foundUser
-            console.log('Found user via listUsers instead of getUserById')
-          }
+        const foundUser = await findAuthUserById(service, resolvedUserId)
+        if (foundUser) {
+          authUserExists = true
+          authUser = foundUser
+          console.log('Found user via paginated listUsers instead of getUserById')
         }
       } catch (listErr) {
         console.warn('listUsers fallback failed:', listErr)
@@ -213,8 +203,8 @@ export async function POST(request: Request) {
       .upsert({
         id: resolvedUserId,
         email: normalizedEmail,
-        role: 'ADMIN', // Explicitly Uppercase
-        approval_status: 'APPROVED', // Explicitly Uppercase
+        role: 'admin',
+        approval_status: 'approved',
         onboarding_completed: true,
         name: authUser?.user_metadata?.name || 'Admin User'
       }, { onConflict: 'id' })
@@ -241,4 +231,3 @@ export async function POST(request: Request) {
     )
   }
 }
-

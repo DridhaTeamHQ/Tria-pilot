@@ -4,12 +4,12 @@ import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { motion, LayoutGroup } from 'framer-motion'
 import Link from 'next/link'
-import { toast } from 'sonner'
 import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react'
 import { setAuthToast } from '@/components/auth-toast-bridge'
 import { createClient } from '@/lib/auth-client'
 import { getPublicSiteUrlClient } from '@/lib/site-url'
 import { isSyntheticEmail } from '@/lib/auth-username'
+import { showErrorToast, showInfoToast, showSuccessToast, showWarningToast } from '@/lib/kiwikoo-toast'
 
 export default function LoginPage() {
   return (
@@ -83,20 +83,23 @@ function LoginContent() {
     const actualRole = searchParams.get('actual')
 
     if (confirmed === 'true') {
-      toast.success('Email confirmed! You can now sign in.')
+      showSuccessToast('Email confirmed', 'You can now sign in to continue.')
     } else if (error === 'role_mismatch') {
       const requestedLabel = requestedRole === 'brand' ? 'brand' : 'influencer'
       const actualLabel = actualRole === 'brand' ? 'brand' : 'influencer'
       if (actualRole === 'brand' || actualRole === 'influencer') {
         setUserType(actualRole)
       }
-      toast.error(`This Google account is already linked to a ${actualLabel} account. Use the ${actualLabel} login or a different Google account for ${requestedLabel}.`)
+      showErrorToast(
+        'Wrong portal for this Google account',
+        `This Google account is already linked to a ${actualLabel} account. Use the ${actualLabel} login or a different Google account for ${requestedLabel}.`
+      )
     } else if (error === 'oauth_failed') {
-      toast.error(`Authentication error: ${details || 'Please try again.'}`)
+      showErrorToast('Google sign-in did not finish', details || 'Please try again.')
     } else if (error === 'missing_code') {
-      toast.error('Authentication error: Please try again.')
+      showErrorToast('Authentication interrupted', 'Please try again.')
     } else if (error) {
-      toast.error(`Authentication error: ${details || 'Please try again.'}`)
+      showErrorToast('Authentication error', details || 'Please try again.')
     }
   }, [searchParams])
 
@@ -144,7 +147,7 @@ function LoginContent() {
 
     const normalizedIdentifier = identifier.trim().toLowerCase()
     if (!normalizedIdentifier || !password) {
-      toast.error('Please enter your username/email and password.')
+      showErrorToast('Missing details', 'Please enter your username/email and password.')
       return
     }
 
@@ -166,26 +169,26 @@ function LoginContent() {
 
       if (!res.ok) {
         if (data?.noUserFound || data?.errorCode === 'USER_NOT_FOUND') {
-          toast.error('No user found with this username/email. Please sign up first.')
+          showErrorToast('Account not found', 'No user was found with this username/email. Please sign up first.')
           return
         }
 
         if (data?.errorCode === 'INVALID_PASSWORD') {
-          toast.error('Incorrect password. Please try again.')
+          showErrorToast('Incorrect password', 'That password did not match this account. Please try again.')
           return
         }
 
         if (data?.errorCode === 'EMAIL_NOT_CONFIRMED') {
-          toast.error('Please confirm your email before signing in.')
+          showErrorToast('Email not confirmed', 'Please confirm your email before signing in.')
           return
         }
 
         if (data?.errorCode === 'RATE_LIMITED') {
-          toast.error('Too many attempts. Please wait and try again.')
+          showWarningToast('Too many attempts', 'Please wait a bit before trying again.')
           return
         }
 
-        toast.error(data.error ?? 'Failed to sign in. Please try again.')
+        showErrorToast('Sign-in failed', data.error ?? 'Please try again.')
         return
       }
 
@@ -204,22 +207,22 @@ function LoginContent() {
         const recoveryData = await recoveryRes.json().catch(() => ({}))
         if (recoveryRes.ok) {
           setAuthToast('logged_in')
-          toast.success('Check both inboxes to confirm your recovery email.')
+          showSuccessToast('Recovery email started', 'Check both inboxes to confirm your recovery email.')
         } else {
-          toast.error(recoveryData?.error || 'Signed in, but we could not start recovery email setup.')
+          showErrorToast('Recovery email failed', recoveryData?.error || 'Signed in, but we could not start recovery email setup.')
         }
       } else {
         setAuthToast('logged_in')
       }
 
       if (nextTarget === '/onboarding/brand') {
-        toast.info('Finish your brand setup to unlock the workspace.')
+        showInfoToast('Finish brand setup', 'Complete onboarding to unlock your workspace.')
       } else if (nextTarget === '/onboarding/influencer') {
-        toast.info('Finish your creator onboarding to continue.')
+        showInfoToast('Finish creator onboarding', 'Complete your setup to continue.')
       } else if (nextTarget === '/onboarding/influencer?mode=resubmit') {
-        toast.info('Your previous submission needs updates. Review it and resubmit for approval.')
+        showInfoToast('Updates needed', 'Review your profile and resubmit it for approval.')
       } else if (nextTarget === '/influencer/pending') {
-        toast.info('Your creator profile is still under review.')
+        showInfoToast('Profile under review', 'Your creator account is still pending approval.')
       }
 
       if (typeof window !== 'undefined') {
@@ -234,7 +237,7 @@ function LoginContent() {
       }
     } catch (error: unknown) {
       console.error('Login error:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to sign in. Please try again.')
+      showErrorToast('Sign-in failed', error instanceof Error ? error.message : 'Please try again.')
     } finally {
       setLoading(false)
     }
@@ -260,11 +263,11 @@ function LoginContent() {
       })
 
       if (error) {
-        toast.error('Failed to initialize Google Sign In.')
+        showErrorToast('Google sign-in failed', 'Failed to initialize Google Sign In.')
       }
     } catch (error) {
       console.error('Google login error:', error)
-      toast.error('An error occurred during Google Sign In.')
+      showErrorToast('Google sign-in failed', 'An error occurred during Google Sign In.')
     }
   }
 

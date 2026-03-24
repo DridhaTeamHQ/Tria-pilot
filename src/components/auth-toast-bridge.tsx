@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
-import { toast } from "sonner"
+import { showSuccessToast } from "@/lib/kiwikoo-toast"
 
 const AUTH_TOAST_KEY = "kiwikoo-auth-toast"
 
@@ -20,17 +20,17 @@ export default function AuthToastBridge() {
     window.sessionStorage.removeItem(AUTH_TOAST_KEY)
 
     if (pendingToast === "logged_out") {
-      toast.success("Logged out successfully")
+      showSuccessToast("Logged out", "You have been signed out successfully.")
       return
     }
 
     if (pendingToast === "admin_logged_in") {
-      toast.success("Admin signed in successfully")
+      showSuccessToast("Admin signed in", "Welcome back to the command center.")
       return
     }
 
     if (pendingToast === "logged_in") {
-      toast.success("Signed in successfully")
+      showSuccessToast("Signed in", "Welcome back to Kiwikoo.")
     }
   }, [])
 

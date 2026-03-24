@@ -39,6 +39,21 @@ function normalizeInfluencerProfile(value: any) {
   return value || {}
 }
 
+function asObject(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>
+  }
+  return {}
+}
+
+function getReviewAudit(value: unknown) {
+  const data = asObject(value)
+  return {
+    reviewedAt: typeof data.reviewed_at === 'string' ? data.reviewed_at : null,
+    reviewNote: typeof data.review_note === 'string' ? data.review_note : null,
+  }
+}
+
 function buildApprovalEmail(baseUrl: string, recipientName?: string | null) {
   const dashboardUrl = joinPublicUrl(baseUrl, '/dashboard')
   const safeName = recipientName?.trim() || 'Creator'
@@ -115,6 +130,8 @@ export async function GET(request: Request) {
         status: displayStatus,
         created_at: p.created_at,
         updated_at: p.updated_at,
+        reviewed_at: getReviewAudit(p.influencer_data).reviewedAt,
+        review_note: getReviewAudit(p.influencer_data).reviewNote,
         onboarding: {
           gender: inf.gender,
           niches: inf.niches,
@@ -166,7 +183,7 @@ export async function PATCH(request: Request) {
 
       const { data: targetProfile, error: targetProfileError } = await service
         .from('profiles')
-        .select('email, full_name')
+        .select('email, full_name, influencer_data')
         .eq('id', user_id)
         .maybeSingle()
 
@@ -174,9 +191,20 @@ export async function PATCH(request: Request) {
         console.warn('Failed to fetch influencer profile for approval email:', targetProfileError)
       }
 
+      const reviewedAt = new Date().toISOString()
+      const nextInfluencerData = {
+        ...asObject(targetProfile?.influencer_data),
+        reviewed_at: reviewedAt,
+        review_note: review_note?.trim() || null,
+        last_review_status: approvalStatus,
+      }
+
       const { data, error } = await service
         .from('profiles')
-        .update({ approval_status: approvalStatus })
+        .update({
+          approval_status: approvalStatus,
+          influencer_data: nextInfluencerData,
+        })
         .eq('id', user_id)
         .select()
         .single()

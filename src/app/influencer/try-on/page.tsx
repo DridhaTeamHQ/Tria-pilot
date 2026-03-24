@@ -11,6 +11,7 @@ import { useProduct, useUser } from '@/lib/react-query/hooks'
 import { safeParseResponse } from '@/lib/api-utils'
 import { useProductLink } from '@/lib/hooks/useProductLink'
 import { createClient } from '@/lib/auth-client'
+import { showErrorToast, showInfoToast, showSuccessToast, showWarningToast } from '@/lib/kiwikoo-toast'
 
 // Try-on preset type (v3)
 interface TryOnPreset {
@@ -259,7 +260,7 @@ function TryOnPageContent() {
                     imageUrl: finalJob.imageUrl || '',
                     base64Image: finalJob.base64Image,
                 })
-                toast.success('Your existing try-on is ready.')
+                showSuccessToast('Try-on ready', 'Your existing generated image is ready.')
                 setShowCelebration(true)
                 setTimeout(() => setShowCelebration(false), 5000)
             } catch (error) {
@@ -267,7 +268,7 @@ function TryOnPageContent() {
                 const structured = error as (Error & { status?: number })
                 if (structured?.status !== 404) {
                     const message = error instanceof Error ? error.message : 'Failed to resume active try-on job'
-                    toast.error(message)
+                    showErrorToast('Try-on resume failed', message)
                 }
             } finally {
                 if (cancelled) return
@@ -685,7 +686,7 @@ function TryOnPageContent() {
                     imageUrl: data?.imageUrl || variants[0]?.imageUrl || '',
                     base64Image: data?.base64Image ?? variants[0]?.base64Image,
                 })
-                toast.success('Try-on generated successfully!')
+                showSuccessToast('Try-on generated', 'Your image is ready to preview.')
                 setShowCelebration(true)
                 setTimeout(() => setShowCelebration(false), 5000)
                 return
@@ -694,7 +695,7 @@ function TryOnPageContent() {
             setActiveJobId(jobId)
             setQueueStatus('queued')
             sessionStorage.setItem('tryonActiveJobId', jobId)
-            toast.success('Job accepted. We will keep you updated.')
+            showInfoToast('Generation started', 'Your try-on job has been accepted.')
 
             const finalJob = await pollTryOnJob(jobId, {
                 onStatus: (status) => {
@@ -716,14 +717,14 @@ function TryOnPageContent() {
                 imageUrl: finalJob.imageUrl || '',
                 base64Image: finalJob.base64Image,
             })
-            toast.success('Try-on generated successfully!')
+            showSuccessToast('Try-on generated', 'Your image is ready to preview.')
 
             setShowCelebration(true)
             // Show celebration for 5 seconds to let success video play fully
             setTimeout(() => setShowCelebration(false), 5000)
         } catch (error) {
             if (error instanceof Error && error.name === 'AbortError') {
-                toast.error('Request timed out. Checking active job...')
+                showWarningToast('Request timed out', 'Checking your active try-on job now.')
                 try {
                     const activeRes = await fetch('/api/tryon/jobs/active', { cache: 'no-store', credentials: 'include' })
                     const active = await safeParseResponse<any>(activeRes, 'active try-on job after timeout')
@@ -751,7 +752,7 @@ function TryOnPageContent() {
                             imageUrl: finalJob.imageUrl || '',
                             base64Image: finalJob.base64Image,
                         })
-                        toast.success('Try-on completed successfully!')
+                        showSuccessToast('Try-on complete', 'Your generated image is now ready.')
                         setShowCelebration(true)
                         setTimeout(() => setShowCelebration(false), 5000)
                         return
@@ -760,7 +761,7 @@ function TryOnPageContent() {
                     console.warn('Failed to resume timed-out job:', resumeError)
                 }
 
-                toast.error('Generation timed out. Please try again.')
+                showErrorToast('Generation timed out', 'Please try again.')
                 return
             }
 

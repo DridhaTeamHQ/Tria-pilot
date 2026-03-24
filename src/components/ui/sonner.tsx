@@ -79,8 +79,8 @@ const Toaster = (props: ToasterProps) => {
             padding-top: max(1.5rem, env(safe-area-inset-top)) !important;
             z-index: 2147483647 !important;
             pointer-events: none !important;
-            width: var(--width, 420px) !important;
-            max-width: calc(100vw - 1.5rem) !important;
+            width: min(460px, calc(100vw - 2rem)) !important;
+            max-width: calc(100vw - 2rem) !important;
           }
           [data-sonner-toaster] [data-sonner-toast] {
             pointer-events: auto !important;
