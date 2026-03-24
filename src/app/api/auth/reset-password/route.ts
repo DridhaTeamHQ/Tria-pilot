@@ -18,8 +18,13 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => null)
     const { password, token_hash, type } = schema.parse(body)
 
-    // If token is provided, verify it (supports direct /reset-password?token_hash=... links).
-    if (token_hash && type) {
+    let {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    // If the user already has a recovery session, do not verify the token again.
+    // If there is no session yet, support direct /reset-password?token_hash=... access.
+    if (!user && token_hash && type) {
       const otpType = type as EmailOtpType
       const { error: otpError } = await supabase.auth.verifyOtp({
         token_hash,
@@ -28,11 +33,10 @@ export async function POST(request: Request) {
       if (otpError) {
         return NextResponse.json({ error: 'Invalid or expired reset link' }, { status: 400 })
       }
-    }
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+      const refreshed = await supabase.auth.getUser()
+      user = refreshed.data.user
+    }
 
     if (!user) {
       return NextResponse.json(
@@ -57,4 +61,3 @@ export async function POST(request: Request) {
     )
   }
 }
-
