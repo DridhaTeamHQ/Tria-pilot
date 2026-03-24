@@ -28,10 +28,9 @@ import { getPresetStrengthProfile } from './preset-strength-profile'
 
 export type TryOnRenderModel = 'gpt-image-1.5' | 'gemini-3-pro-image-preview'
 
-const DEFAULT_RENDER_MODEL: TryOnRenderModel = 'gemini-3-pro-image-preview'
+const DEFAULT_RENDER_MODEL: TryOnRenderModel = 'gpt-image-1.5'
 const ENABLE_QUALITY_RETRY =
-  process.env.TRYON_ENABLE_QUALITY_RETRY === 'true' ||
-  process.env.NODE_ENV !== 'production'
+  process.env.TRYON_ENABLE_QUALITY_RETRY !== 'false'
 const MICRO_DRIFT_RETRY_THRESHOLD = 18
 const FINAL_MICRO_DRIFT_MAX_DEFAULT = 24
 const FINAL_MICRO_DRIFT_MAX_COMPLEX = 20
@@ -441,8 +440,7 @@ export async function generateWithNanoBananaPro(
     // Stage 4 handles face identity correction via inpainting, which is faster
     // and more effective than re-generating the entire image.
     const FACE_RESTORE_ENABLED =
-      process.env.TRYON_ENABLE_FACE_RESTORE === 'true' ||
-      process.env.NODE_ENV !== 'production'
+      process.env.TRYON_ENABLE_FACE_RESTORE !== 'false'
     const skipRetryForFaceRestore = FACE_RESTORE_ENABLED && !hardFaceFailure
 
     if (skipRetryForFaceRestore && hasRetrySignal && isDev) {
@@ -536,16 +534,14 @@ export async function generateWithNanoBananaPro(
     // Applies to ALL render models — even GPT Image 1.5 can drift 40%+
     // ═════════════════════════════════════════════════════════════════════════
     const ENABLE_FACE_RESTORE =
-      process.env.TRYON_ENABLE_FACE_RESTORE === 'true' ||
-      process.env.NODE_ENV !== 'production'
+      process.env.TRYON_ENABLE_FACE_RESTORE !== 'false'
     let faceRestoreResult: { success: boolean; processingTimeMs: number; error?: string } | null = null
 
-    // Production-safe thresholds:
-    //  - In production: only trigger for SEVERE drift (≥40%) to conserve API quota
-    //  - In development: trigger at normal threshold (18%) for testing
-    const faceRestoreDriftThreshold = process.env.NODE_ENV === 'production' ? 40 : MICRO_DRIFT_RETRY_THRESHOLD
+    // Trigger face restore at a reasonable threshold in all environments
+    const faceRestoreDriftThreshold = 25
     // Time budget: skip face restore if pipeline has already consumed too much time
-    const faceRestoreTimeBudgetMs = process.env.NODE_ENV === 'production' ? 60_000 : 120_000
+    // GPT Image 1.5 takes ~68s for generation, so budget must accommodate that
+    const faceRestoreTimeBudgetMs = 120_000
     const elapsedBeforeRestore = Date.now() - startTime
     const hasTimeBudget = elapsedBeforeRestore < faceRestoreTimeBudgetMs
 
