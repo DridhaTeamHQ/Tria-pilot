@@ -144,27 +144,36 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   )
   lines.push('')
 
-  // ── LINE 5: Scene (ONE short line, only if scene changes) ──
-  if (isSceneChange && sceneBrief) {
-    const sceneLine = lightingBrief
-      ? `SCENE: ${sceneBrief}. ${lightingBrief}.`
-      : `SCENE: ${sceneBrief}.`
-    lines.push(sceneLine)
+  // ── LINE 5: SCENE (FULL PRESET — treat background as FIRST-CLASS object) ──
+  // Rich scene descriptions are critical for realistic environments
+  if (isSceneChange && rawPreset) {
+    // Use the FULL preset scene description (up to 300 chars) — don't condense
+    const sceneDesc = condenseScene(rawPreset, 300)
+    lines.push(`ENVIRONMENT: ${sceneDesc}. This environment must look like a real physical location with textured surfaces, natural imperfections, and authentic materials. Surfaces have wear, dust, scratches, and real-world detail.`)
   } else {
-    lines.push(`SCENE: Keep the original background from ${personRef}.`)
+    lines.push(`ENVIRONMENT: Keep the original background from ${personRef}. Maintain all existing environmental details, textures, and lighting.`)
+  }
+  lines.push('')
+
+  // ── LINE 5a: LIGHTING CONSISTENCY (critical — biggest "fake" tell) ──
+  if (isSceneChange && input.lightingBlueprint) {
+    // Use richer lighting description instead of 60-char condensed version
+    const lightDesc = condenseLighting(input.lightingBlueprint, 200)
+    lines.push(`LIGHTING: ${lightDesc}. Light on the subject MUST match the environment — same direction, same color temperature, same shadow angle. Physically accurate shadows with natural falloff.`)
+  } else if (isSceneChange) {
+    lines.push(`LIGHTING: Light on the subject must match the environment — same direction, same color temperature, same shadow angle.`)
   }
   lines.push('')
 
   // ── LINE 5b: Pose/Camera (from preset camera guidance) ──
   if (input.cameraGuidance) {
-    lines.push(`POSE: Use the framing and composition from the preset: ${input.cameraGuidance}. The person should naturally fit this scene.`)
+    lines.push(`CAMERA: ${input.cameraGuidance}. Shot on DSLR, 50mm lens, f/2.8 aperture, natural depth of field with realistic lens blur and bokeh. The person should naturally fit this scene.`)
     lines.push('')
   }
 
-  // ── LINE 6: Quality (photorealism mandate + environment realism) ──
-  // Strong anti-AI directives are critical for GPT Image 1.5 and Gemini Pro
+  // ── LINE 6: OUTPUT (photorealism mandate + camera physics + imperfection tokens) ──
   lines.push(
-    `OUTPUT: RAW photograph — NOT an illustration, NOT digital art, NOT CGI. Shot on Canon EOS R5, 50mm f/2.8 lens, ISO 200. Real environment with authentic materials, textures, and natural lighting. Visible film grain, real skin with pores and micro-imperfections, high dynamic range with realistic shadows and highlights. Contextually appropriate depth of field. Aspect ratio ${aspectRatio}.`
+    `OUTPUT: RAW photograph — NOT illustration, NOT digital art, NOT CGI. Realistic DSLR quality with natural depth of field. Real environment with authentic worn textures, slight noise, film grain, imperfect surfaces, minor lighting inconsistencies. Real skin with visible pores and micro-imperfections. High dynamic range with realistic shadows and highlights. Aspect ratio ${aspectRatio}.`
   )
 
   // ── LINE 7: Retry (only on retry, minimal) ──
@@ -173,7 +182,7 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   }
 
   // ── LINE 8: Concise avoid (critical items) ──
-  lines.push(`AVOID: beautification, skin smoothing, face reshaping.`)
+  lines.push(`AVOID: beautification, skin smoothing, face reshaping, artificial smoothness, over-processed backgrounds, synthetic bokeh.`)
 
   return lines.join('\n')
 }
@@ -218,30 +227,30 @@ function condenseScene(scene: string, maxLen: number): string {
 function condenseLighting(lighting: string, maxLen: number): string {
   const lower = lighting.toLowerCase()
 
-  // Extract the main light type
+  // Extract a meaningful description with direction and quality
   if (lower.includes('golden') || lower.includes('sunset') || lower.includes('golden hour')) {
-    return 'Warm golden-hour lighting'
+    return 'Warm golden-hour side lighting with long shadows, orange-amber color temperature around 3000K'
   }
   if (lower.includes('daylight') || lower.includes('natural')) {
-    return 'Natural daylight'
+    return 'Natural open daylight, neutral 5500K color temperature, soft diffused shadows'
   }
   if (lower.includes('softbox') || lower.includes('studio')) {
-    return 'Soft studio lighting'
+    return 'Soft studio lighting with controlled fill, even illumination, minimal harsh shadows'
   }
   if (lower.includes('window')) {
-    return 'Window light'
+    return 'Window side-light with gradual falloff, directional warmth, natural shadow on opposite side'
   }
   if (lower.includes('candle') || lower.includes('diya') || lower.includes('festive')) {
-    return 'Warm candlelight'
+    return 'Warm candlelight from multiple low sources, 2500K color temperature, flickering warmth with soft shadows'
   }
   if (lower.includes('overcast')) {
-    return 'Overcast daylight'
+    return 'Overcast diffused daylight, flat even illumination, minimal shadows, cool 6500K tone'
   }
   if (lower.includes('flash')) {
-    return 'Direct flash'
+    return 'Direct flash with harsh frontal light, slight shadow falloff behind subject'
   }
 
-  // Fallback: take first short phrase
-  const brief = lighting.split('.')[0].trim()
+  // Fallback: use first sentence of the lighting description
+  const brief = lighting.split('.').slice(0, 2).join('.').trim()
   return brief.length > maxLen ? brief.substring(0, maxLen - 3) + '...' : brief
 }
