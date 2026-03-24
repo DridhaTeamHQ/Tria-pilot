@@ -6,6 +6,7 @@ import { getRedisConnection, isRedisConfigured } from '@/lib/queue/redis'
 import { normalizeBase64 } from '@/lib/image-processing'
 import { saveUpload } from '@/lib/storage'
 import { runHybridTryOnPipeline } from '@/lib/tryon/hybrid-tryon-pipeline'
+import { getTryOnRenderModel } from '@/lib/tryon/nano-banana-pro-renderer'
 import { GeminiRateLimitError } from '@/lib/gemini/executor'
 import { ZodError } from 'zod'
 
@@ -31,6 +32,7 @@ function jsonError(
 export async function POST(request: Request) {
   let redisUserLockKey: string | null = null
   let redisGlobalAcquired = false
+  const configuredRenderModel = getTryOnRenderModel()
   try {
     const supabase = await createClient()
     const {
@@ -224,7 +226,7 @@ export async function POST(request: Request) {
           userRequest,
           aspectRatio: reqAspectRatio ?? '1:1',
           resolution: reqResolution ?? '2K',
-          model: 'gpt-image-1.5',
+          model: configuredRenderModel,
         },
         status: 'pending',
       })
@@ -324,6 +326,9 @@ export async function POST(request: Request) {
               pipeline: 'nano-banana-pro-inline',
               status: pipelineResult.status,
               totalTimeMs: pipelineResult.debug?.totalTimeMs,
+              model: pipelineResult.debug?.rendererDebug?.model || configuredRenderModel,
+              preferredModel: pipelineResult.debug?.rendererDebug?.preferredModel || configuredRenderModel,
+              renderFallbackReason: pipelineResult.debug?.rendererDebug?.renderFallbackReason || null,
               promptLength: pipelineResult.debug?.promptUsed?.length || 0,
               warnings: pipelineResult.warnings,
             },

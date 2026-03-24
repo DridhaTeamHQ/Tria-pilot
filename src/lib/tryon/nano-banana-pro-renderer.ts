@@ -26,7 +26,9 @@ import { computeMicroFaceDrift, getDriftRetryParams } from './micro-face-drift'
 import { getPresetExampleGuidance, getRequestExampleGuidance } from './presets/example-prompts-reference'
 import { getPresetStrengthProfile } from './preset-strength-profile'
 
-const MAIN_RENDER_MODEL = 'gpt-image-1.5' as const
+export type TryOnRenderModel = 'gpt-image-1.5' | 'gemini-3-pro-image-preview'
+
+const DEFAULT_RENDER_MODEL: TryOnRenderModel = 'gemini-3-pro-image-preview'
 const ENABLE_QUALITY_RETRY =
   process.env.TRYON_ENABLE_QUALITY_RETRY === 'true' ||
   process.env.NODE_ENV !== 'production'
@@ -106,6 +108,54 @@ export interface NanoBananaProResult {
   debug: any
 }
 
+export function getTryOnRenderModel(): TryOnRenderModel {
+  const configured = process.env.TRYON_RENDER_MODEL?.trim()
+  if (configured === 'gpt-image-1.5' || configured === 'gemini-3-pro-image-preview') {
+    return configured
+  }
+  return DEFAULT_RENDER_MODEL
+}
+
+function shouldFallbackToGemini(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+  return /organization must be verified|must be verified to use the model|verification/i.test(message)
+}
+
+async function renderTryOnImage(
+  preferredModel: TryOnRenderModel,
+  options: {
+    personImageBase64: string
+    garmentImageBase64: string
+    faceCropBase64?: string
+    characterReferenceBase64s?: { base64: string; label: string }[]
+    prompt: string
+    aspectRatio: string
+  }
+): Promise<{
+  image: string
+  model: TryOnRenderModel
+  fallbackReason?: string
+}> {
+  if (preferredModel === 'gpt-image-1.5') {
+    try {
+      const image = await generateTryOnGPT(options)
+      return { image, model: preferredModel }
+    } catch (error) {
+      if (!shouldFallbackToGemini(error)) throw error
+      const fallbackReason = error instanceof Error ? error.message : String(error)
+      const image = await generateTryOnDirect(options)
+      return {
+        image,
+        model: 'gemini-3-pro-image-preview',
+        fallbackReason,
+      }
+    }
+  }
+
+  const image = await generateTryOnDirect(options)
+  return { image, model: preferredModel }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN PIPELINE
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -115,6 +165,7 @@ export async function generateWithNanoBananaPro(
 ): Promise<NanoBananaProResult> {
   const startTime = Date.now()
   const isDev = process.env.NODE_ENV !== 'production'
+  const preferredRenderModel = getTryOnRenderModel()
 
   try {
     // ═════════════════════════════════════════════════════════════════════════
@@ -273,14 +324,22 @@ export async function generateWithNanoBananaPro(
     const aspectRatio = input.aspectRatio || '1:1'
     if (isDev) console.log(`   aspectRatio=${aspectRatio}`)
 
-    let generatedImage = await generateTryOnGPT({
+    let activeRenderModel = preferredRenderModel
+    let renderFallbackReason: string | null = null
+    const renderOptions = {
       personImageBase64: input.personImageBase64,
       garmentImageBase64: input.garmentImageBase64,
-      // Secondary identity reference improves eye geometry and face fidelity.
-      faceCropBase64: faceCropResult.success ? faceCropResult.faceCropBase64 : undefined,
       prompt,
       aspectRatio,
-    })
+      // Secondary identity reference improves eye geometry and face fidelity.
+      faceCropBase64: faceCropResult.success ? faceCropResult.faceCropBase64 : undefined,
+      characterReferenceBase64s,
+    }
+
+    const firstRender = await renderTryOnImage(preferredRenderModel, renderOptions)
+    let generatedImage = firstRender.image
+    activeRenderModel = firstRender.model
+    renderFallbackReason = firstRender.fallbackReason ?? null
 
     // One-shot retry strategy for face drift: keep base pipeline simple,
     // only escalate when geometry drift is likely.
@@ -370,7 +429,7 @@ export async function generateWithNanoBananaPro(
     // Stage 4 handles face identity correction via inpainting, which is faster
     // and more effective than re-generating the entire image.
     const FACE_RESTORE_ENABLED =
-      MAIN_RENDER_MODEL !== 'gpt-image-1.5' && (
+      activeRenderModel !== 'gpt-image-1.5' && (
         process.env.TRYON_ENABLE_FACE_RESTORE === 'true' ||
         process.env.NODE_ENV !== 'production'
       )
@@ -397,13 +456,13 @@ export async function generateWithNanoBananaPro(
         retryMode: true,
       })
 
-      generatedImage = await generateTryOnGPT({
-        personImageBase64: input.personImageBase64,
-        garmentImageBase64: input.garmentImageBase64,
-        faceCropBase64: faceCropResult.success ? faceCropResult.faceCropBase64 : undefined,
+      const retryRender = await renderTryOnImage(activeRenderModel, {
+        ...renderOptions,
         prompt: retryPrompt,
-        aspectRatio,
       })
+      generatedImage = retryRender.image
+      activeRenderModel = retryRender.model
+      renderFallbackReason = renderFallbackReason ?? retryRender.fallbackReason ?? null
 
       const [retryFace, retrySceneAssessment] = await Promise.all([
         detectFaceCoordinates(generatedImage),
@@ -467,7 +526,7 @@ export async function generateWithNanoBananaPro(
     // SKIP for GPT Image 1.5 — it preserves face identity natively via input_fidelity: 'high'
     // The Gemini inpainting stage is redundant and adds ~5-10s latency.
     // ═════════════════════════════════════════════════════════════════════════
-    const isGPTModel = MAIN_RENDER_MODEL === 'gpt-image-1.5'
+    const isGPTModel = activeRenderModel === 'gpt-image-1.5'
     const ENABLE_FACE_RESTORE =
       !isGPTModel && (
         process.env.TRYON_ENABLE_FACE_RESTORE === 'true' ||
@@ -606,7 +665,9 @@ export async function generateWithNanoBananaPro(
       generationTimeMs: Date.now() - startTime,
       promptUsed: prompt,
       debug: {
-        model: MAIN_RENDER_MODEL,
+        model: activeRenderModel,
+        preferredModel: preferredRenderModel,
+        renderFallbackReason,
         sceneConfig,
         resolvedPresetId,
         personFace,
