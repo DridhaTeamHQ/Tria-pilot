@@ -31,16 +31,22 @@ const Toaster = (props: ToasterProps) => {
           duration: 5000,
           ...props.toastOptions,
           classNames: {
-            toast: "!opacity-100 !visible border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-xl font-sans px-4 py-3 min-w-[280px]",
-            title: "font-bold text-sm",
-            description: "text-xs text-black/80",
-            success: "!bg-[#B4F056] !text-black border-black",
-            error: "!bg-red-200 !text-red-900 border-red-600",
-            warning: "!bg-[#FFD93D] !text-black border-black",
+            toast:
+              "!opacity-100 !visible rounded-[20px] border-[3px] border-black bg-white px-4 py-3 font-sans shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] min-w-[320px] sm:min-w-[360px]",
+            title: "font-black uppercase tracking-[0.16em] text-[11px] text-black",
+            description: "mt-1 text-sm font-bold leading-relaxed text-black/75",
+            success: "!bg-[#E8FFB4] !text-black border-black",
+            error: "!bg-[#FFE1D9] !text-black border-black",
+            warning: "!bg-[#FFF1C2] !text-black border-black",
             info: "!bg-white !text-black border-black",
-            actionButton: "bg-black text-white border-2 border-black rounded-md",
-            cancelButton: "bg-white text-black border-2 border-black rounded-md",
-            closeButton: "border-2 border-black bg-white text-black",
+            icon: "mt-0.5",
+            content: "gap-0",
+            actionButton:
+              "rounded-xl border-[2px] border-black bg-black px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]",
+            cancelButton:
+              "rounded-xl border-[2px] border-black bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]",
+            closeButton:
+              "border-[2px] border-black bg-white text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]",
             ...props.toastOptions?.classNames,
           },
         }}
@@ -70,10 +76,10 @@ const Toaster = (props: ToasterProps) => {
             left: 50% !important;
             right: auto !important;
             transform: translateX(-50%) !important;
-            padding-top: max(1.25rem, env(safe-area-inset-top)) !important;
+            padding-top: max(1.5rem, env(safe-area-inset-top)) !important;
             z-index: 2147483647 !important;
             pointer-events: none !important;
-            width: var(--width, 380px) !important;
+            width: var(--width, 420px) !important;
             max-width: calc(100vw - 1.5rem) !important;
           }
           [data-sonner-toaster] [data-sonner-toast] {
@@ -91,7 +97,7 @@ const Toaster = (props: ToasterProps) => {
               transform: none !important;
               width: auto !important;
               max-width: none !important;
-              padding-top: max(0.75rem, env(safe-area-inset-top)) !important;
+              padding-top: max(1rem, env(safe-area-inset-top)) !important;
             }
             [data-sonner-toaster] [data-sonner-toast] {
               width: 100% !important;

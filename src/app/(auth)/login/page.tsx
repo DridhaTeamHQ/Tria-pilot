@@ -38,13 +38,6 @@ function LoginContent() {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [userType, setUserType] = useState<'influencer' | 'brand'>('influencer')
-  const [authNotice, setAuthNotice] = useState<{
-    tone: 'info' | 'warning' | 'success'
-    title: string
-    body: string
-    ctaHref?: string
-    ctaLabel?: string
-  } | null>(null)
 
   const getSafeRedirectTarget = () => {
     const redirectTarget = searchParams.get('redirect') || '/dashboard'
@@ -90,11 +83,6 @@ function LoginContent() {
     const actualRole = searchParams.get('actual')
 
     if (confirmed === 'true') {
-      setAuthNotice({
-        tone: 'success',
-        title: 'Email confirmed',
-        body: 'Your account is ready. Sign in to continue.',
-      })
       toast.success('Email confirmed! You can now sign in.')
     } else if (error === 'role_mismatch') {
       const requestedLabel = requestedRole === 'brand' ? 'brand' : 'influencer'
@@ -102,35 +90,13 @@ function LoginContent() {
       if (actualRole === 'brand' || actualRole === 'influencer') {
         setUserType(actualRole)
       }
-      setAuthNotice({
-        tone: 'warning',
-        title: 'Wrong portal for this Google account',
-        body: `This Google account is already linked to a ${actualLabel} account. Use the ${actualLabel} login, or pick another Google account for ${requestedLabel}.`,
-      })
       toast.error(`This Google account is already linked to a ${actualLabel} account. Use the ${actualLabel} login or a different Google account for ${requestedLabel}.`)
     } else if (error === 'oauth_failed') {
-      setAuthNotice({
-        tone: 'warning',
-        title: 'Google sign-in did not finish',
-        body: details || 'Please try Google sign-in again, or use your email and password.',
-      })
       toast.error(`Authentication error: ${details || 'Please try again.'}`)
     } else if (error === 'missing_code') {
-      setAuthNotice({
-        tone: 'warning',
-        title: 'Sign-in was interrupted',
-        body: 'We did not receive a valid authentication response. Please try again.',
-      })
       toast.error('Authentication error: Please try again.')
     } else if (error) {
-      setAuthNotice({
-        tone: 'warning',
-        title: 'Authentication error',
-        body: details || 'Please try signing in again.',
-      })
       toast.error(`Authentication error: ${details || 'Please try again.'}`)
-    } else {
-      setAuthNotice(null)
     }
   }, [searchParams])
 
@@ -178,16 +144,10 @@ function LoginContent() {
 
     const normalizedIdentifier = identifier.trim().toLowerCase()
     if (!normalizedIdentifier || !password) {
-      setAuthNotice({
-        tone: 'warning',
-        title: 'Missing details',
-        body: 'Please enter your username/email and password.',
-      })
       toast.error('Please enter your username/email and password.')
       return
     }
 
-    setAuthNotice(null)
     setLoading(true)
 
     try {
@@ -206,50 +166,25 @@ function LoginContent() {
 
       if (!res.ok) {
         if (data?.noUserFound || data?.errorCode === 'USER_NOT_FOUND') {
-          setAuthNotice({
-            tone: 'warning',
-            title: 'Account not found',
-            body: 'No user was found with this username or email. Please sign up first.',
-          })
           toast.error('No user found with this username/email. Please sign up first.')
           return
         }
 
         if (data?.errorCode === 'INVALID_PASSWORD') {
-          setAuthNotice({
-            tone: 'warning',
-            title: 'Incorrect password',
-            body: 'That password did not match this account. Please try again.',
-          })
           toast.error('Incorrect password. Please try again.')
           return
         }
 
         if (data?.errorCode === 'EMAIL_NOT_CONFIRMED') {
-          setAuthNotice({
-            tone: 'warning',
-            title: 'Email not confirmed',
-            body: 'Please confirm your email before signing in.',
-          })
           toast.error('Please confirm your email before signing in.')
           return
         }
 
         if (data?.errorCode === 'RATE_LIMITED') {
-          setAuthNotice({
-            tone: 'warning',
-            title: 'Too many attempts',
-            body: 'Please wait a bit before trying to sign in again.',
-          })
           toast.error('Too many attempts. Please wait and try again.')
           return
         }
 
-        setAuthNotice({
-          tone: 'warning',
-          title: 'Sign-in failed',
-          body: data.error ?? 'Failed to sign in. Please try again.',
-        })
         toast.error(data.error ?? 'Failed to sign in. Please try again.')
         return
       }
@@ -299,11 +234,6 @@ function LoginContent() {
       }
     } catch (error: unknown) {
       console.error('Login error:', error)
-      setAuthNotice({
-        tone: 'warning',
-        title: 'Sign-in failed',
-        body: error instanceof Error ? error.message : 'Failed to sign in. Please try again.',
-      })
       toast.error(error instanceof Error ? error.message : 'Failed to sign in. Please try again.')
     } finally {
       setLoading(false)
@@ -372,7 +302,6 @@ function LoginContent() {
               accentButtonClass={accentButtonClass}
               floatingLabel={floatingLabel}
               accentColor={accentColor}
-              notice={authNotice}
             />
           </div>
         </div>
@@ -465,7 +394,6 @@ function LoginContent() {
                 accentButtonClass={accentButtonClass}
                 floatingLabel={floatingLabel}
                 accentColor={accentColor}
-                notice={authNotice}
               />
             </motion.div>
           </motion.div>
@@ -497,13 +425,6 @@ type AuthCardProps = {
   accentButtonClass: string
   floatingLabel: string
   accentColor: string
-  notice: {
-    tone: 'info' | 'warning' | 'success'
-    title: string
-    body: string
-    ctaHref?: string
-    ctaLabel?: string
-  } | null
 }
 
 function AuthCard({
@@ -528,7 +449,6 @@ function AuthCard({
   accentButtonClass,
   floatingLabel,
   accentColor,
-  notice,
 }: AuthCardProps) {
   return (
     <div className="relative z-20 rounded-[30px] border-[4px] border-black bg-white p-6 pt-8 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] sm:p-8">
@@ -541,30 +461,6 @@ function AuthCard({
         <h2 className="text-[2.2rem] font-black leading-none text-black sm:text-[2.5rem]">{title}</h2>
         <p className="mt-2 text-base font-bold text-black/60">{subtitle}</p>
       </div>
-
-      {notice && (
-        <div
-          className={`mb-5 rounded-2xl border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
-            notice.tone === 'success'
-              ? 'bg-[#EAF8C9]'
-              : notice.tone === 'warning'
-                ? 'bg-[#FFF1D7]'
-                : 'bg-[#EEF4FF]'
-          }`}
-        >
-          <p className="text-sm font-black uppercase tracking-[0.18em] text-black">{notice.title}</p>
-          <p className="mt-2 text-sm font-semibold leading-relaxed text-black/70">{notice.body}</p>
-          {notice.ctaHref && notice.ctaLabel && (
-            <Link
-              href={notice.ctaHref}
-              className="mt-3 inline-flex rounded-xl border-[2px] border-black bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.14em] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-            >
-              {notice.ctaLabel}
-            </Link>
-          )}
-        </div>
-      )}
-
       <div className="mb-6 flex rounded-2xl border-[3px] border-black bg-[#F4F4F0] p-1.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
         <button
           type="button"

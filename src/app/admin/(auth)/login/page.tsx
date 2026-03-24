@@ -35,33 +35,15 @@ function AdminLoginContent() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [authNotice, setAuthNotice] = useState<{
-    tone: 'warning' | 'success'
-    title: string
-    body: string
-  } | null>(null)
 
   useEffect(() => {
     const error = searchParams.get('error')
     const confirmed = searchParams.get('confirmed')
     if (error === 'not_admin') {
-      setAuthNotice({
-        tone: 'warning',
-        title: 'This is the admin portal',
-        body: 'That account belongs to a creator or brand workspace. Use the regular login unless you have admin access.',
-      })
       toast.error('This account is not an admin.')
     }
     if (confirmed === 'true') {
-      setAuthNotice({
-        tone: 'success',
-        title: 'Email confirmed',
-        body: 'Your admin account is ready. Sign in to enter the command center.',
-      })
       toast.success('Email confirmed! You can now sign in as admin.')
-    }
-    if (!error && confirmed !== 'true') {
-      setAuthNotice(null)
     }
   }, [searchParams])
 
@@ -70,26 +52,15 @@ function AdminLoginContent() {
     const normalizedEmail = email.trim().toLowerCase()
 
     if (!normalizedEmail || !password) {
-      setAuthNotice({
-        tone: 'warning',
-        title: 'Missing details',
-        body: 'Please enter your admin email and password.',
-      })
       toast.error('Please enter email and password')
       return
     }
 
     if (!normalizedEmail.includes('@')) {
-      setAuthNotice({
-        tone: 'warning',
-        title: 'Invalid email',
-        body: 'Please enter a valid admin email address.',
-      })
       toast.error('Please enter a valid admin email address.')
       return
     }
 
-    setAuthNotice(null)
     setLoading(true)
     try {
       const response = await fetch('/api/auth/login', {
@@ -101,28 +72,13 @@ function AdminLoginContent() {
       const data = await response.json().catch(() => ({}))
       if (!response.ok) {
         if (data?.errorCode === 'INVALID_PASSWORD') {
-          setAuthNotice({
-            tone: 'warning',
-            title: 'Incorrect password',
-            body: 'That password did not match this admin account. Please try again.',
-          })
           throw new Error('Incorrect password. Please try again.')
         }
-        setAuthNotice({
-          tone: 'warning',
-          title: 'Sign-in failed',
-          body: data?.error || 'Login failed',
-        })
         throw new Error(data?.error || 'Login failed')
       }
 
       if (data?.user?.role !== 'ADMIN') {
         await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
-        setAuthNotice({
-          tone: 'warning',
-          title: 'Wrong login for this account',
-          body: 'You signed in with a non-admin account. Use the regular login to access your brand or creator workspace.',
-        })
         toast.error('This account is not an admin.')
         return
       }
@@ -132,13 +88,6 @@ function AdminLoginContent() {
       router.push('/admin')
       router.refresh()
     } catch (err) {
-      if (!(err instanceof Error && err.message === 'Incorrect password. Please try again.')) {
-        setAuthNotice({
-          tone: 'warning',
-          title: 'Sign-in failed',
-          body: err instanceof Error ? err.message : 'Login failed',
-        })
-      }
       toast.error(err instanceof Error ? err.message : 'Login failed')
     } finally {
       setLoading(false)
@@ -215,25 +164,6 @@ function AdminLoginContent() {
                 </div>
                 <h2 className="text-[2.2rem] font-black leading-none text-black">Welcome,</h2>
                 <p className="mt-1 text-base font-semibold text-black/65">admin login to continue</p>
-
-                {authNotice && (
-                  <div
-                    className={`mt-6 rounded-2xl border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
-                      authNotice.tone === 'success' ? 'bg-[#EAF8C9]' : 'bg-[#FFF1D7]'
-                    }`}
-                  >
-                    <p className="text-sm font-black uppercase tracking-[0.18em] text-black">{authNotice.title}</p>
-                    <p className="mt-2 text-sm font-semibold leading-relaxed text-black/70">{authNotice.body}</p>
-                    {authNotice.tone === 'warning' && (
-                      <Link
-                        href="/login"
-                        className="mt-3 inline-flex rounded-xl border-[2px] border-black bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.14em] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-                      >
-                        Go to regular login
-                      </Link>
-                    )}
-                  </div>
-                )}
 
                 <form onSubmit={handleSubmit} noValidate className="mt-8 space-y-4">
                   <div className="space-y-2">
