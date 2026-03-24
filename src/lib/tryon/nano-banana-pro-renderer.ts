@@ -118,7 +118,8 @@ export function getTryOnRenderModel(): TryOnRenderModel {
 
 function shouldFallbackToGemini(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error)
-  return /organization must be verified|must be verified to use the model|verification/i.test(message)
+  // Catch GPT Image availability/permission issues — fall back to Gemini gracefully
+  return /organization must be verified|must be verified to use the model|verification|403|forbidden|model_not_found|insufficient_quota|billing|rate.?limit|overloaded|capacity/i.test(message)
 }
 
 async function renderTryOnImage(
@@ -141,13 +142,14 @@ async function renderTryOnImage(
       const image = await generateTryOnGPT(options)
       return { image, model: preferredModel }
     } catch (error) {
+      const errMsg = error instanceof Error ? error.message : String(error)
+      console.warn(`⚠️ GPT Image failed, falling back to Gemini: ${errMsg}`)
       if (!shouldFallbackToGemini(error)) throw error
-      const fallbackReason = error instanceof Error ? error.message : String(error)
       const image = await generateTryOnDirect(options)
       return {
         image,
         model: 'gemini-3-pro-image-preview',
-        fallbackReason,
+        fallbackReason: errMsg,
       }
     }
   }

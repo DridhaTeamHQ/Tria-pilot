@@ -587,22 +587,22 @@ OUTPUT QUALITY:
 // GPT IMAGE 1.5 TRANSPORT (for Try-On Pipeline)
 // ═══════════════════════════════════════════════════════════════════════
 
-function resolveGPTImageSize(aspectRatio?: string): '1024x1024' | '1024x1536' | '1536x1024' | '1024x1280' {
-  if (aspectRatio === '9:16') return '1024x1536'
+function resolveGPTImageSize(aspectRatio?: string): '1024x1024' | '1024x1536' | '1536x1024' {
+  // GPT Responses API only supports: 1024x1024, 1024x1536, 1536x1024, auto
+  if (aspectRatio === '9:16' || aspectRatio === '4:5' || aspectRatio === '3:4') return '1024x1536'
   if (aspectRatio === '16:9') return '1536x1024'
-  if (aspectRatio === '4:5' || aspectRatio === '3:4') return '1024x1280'
   return '1024x1024'
 }
 
 /**
  * GPT Image 1.5 transport layer for the Try-On pipeline.
  *
- * CRITICAL: Uses `input_fidelity: 'high'` to preserve face features from
- * the person image. This is the key advantage over Gemini — GPT Image 1.5
- * preserves facial identity natively without needing post-processing.
+ * Uses OpenAI Images API (client.images.edit) with gpt-image-1.5 model.
+ * - input_fidelity: 'high' preserves face features from input images
+ * - gpt-image-1.5 preserves first 5 input images with high fidelity
+ * - Person image is FIRST for maximum identity preservation
  *
- * Content order: [person_image, garment_image, face_crop(optional)]
- * The prompt is prepended with anti-cartoon realism directives.
+ * Content order: [person_image, face_crop(optional), garment_image]
  */
 export async function generateTryOnGPT(options: DirectTryOnOptions): Promise<string> {
   const {
@@ -626,91 +626,54 @@ export async function generateTryOnGPT(options: DirectTryOnOptions): Promise<str
     throw new Error('Invalid garment image')
   }
 
-  if (isDev) console.log(`🎯 GPT IMAGE (SDK) TRANSPORT: prompt ${prompt.length} chars`)
+  if (isDev) console.log(`🎯 GPT IMAGE 1.5 (Images API): prompt ${prompt.length} chars, size ${resolveGPTImageSize(aspectRatio)}`)
 
   const { getOpenAIKey } = await import('@/lib/config/api-keys')
   const OpenAI = (await import('openai')).default
   const { toFile } = await import('openai')
   const client = new OpenAI({ apiKey: getOpenAIKey() })
 
-  // The identity rules are now in the developer system message (line 682+)
-  // and the prompt from buildForensicPrompt is already identity-first.
-  // No prefix needed — adding one would bury the carefully ordered prompt.
-  const fullPrompt = prompt
+  // Build image array — person FIRST for highest fidelity (gpt-image-1.5 preserves first 5)
+  const images: any[] = []
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // Use RESPONSES API — OpenAI's recommended approach for input_fidelity
-  // This ensures face/detail preservation via the input_fidelity: 'high' tool
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // 1. Person image (highest fidelity — face identity anchor)
+  images.push(
+    await toFile(Buffer.from(cleanPerson, 'base64'), 'person.png', { type: 'image/png' })
+  )
 
-  // Build content array with images as base64 data URLs
-  const content: any[] = [
-    { type: 'input_text', text: fullPrompt },
-  ]
-
-  // Person image FIRST — GPT Image preserves first image with highest fidelity
-  content.push({
-    type: 'input_image',
-    image_url: `data:image/png;base64,${cleanPerson}`,
-  })
-
-  // Add face crop as second image (identity reinforcement — close-up gets high fidelity)
+  // 2. Face crop (identity reinforcement — close-up gets high fidelity)
   if (faceCropBase64 && faceCropBase64.length > 100) {
     const cleanFaceCrop = faceCropBase64.replace(/^data:image\/[a-z]+;base64,/, '')
     if (cleanFaceCrop.length > 100) {
-      content.push({
-        type: 'input_image',
-        image_url: `data:image/png;base64,${cleanFaceCrop}`,
-      })
+      images.push(
+        await toFile(Buffer.from(cleanFaceCrop, 'base64'), 'face_crop.png', { type: 'image/png' })
+      )
       if (isDev) console.log('👤 Added face crop for identity reinforcement')
     }
   }
 
-  // Garment image
-  content.push({
-    type: 'input_image',
-    image_url: `data:image/png;base64,${cleanGarment}`,
-  })
-
-  if (isDev) console.log(`📡 Sending to Responses API with input_fidelity: high (${fullPrompt.length} chars)`)
+  // 3. Garment image
+  images.push(
+    await toFile(Buffer.from(cleanGarment, 'base64'), 'garment.png', { type: 'image/png' })
+  )
 
   const startTime = Date.now()
 
-  const response = await client.responses.create({
-    model: 'gpt-4o',
-    input: [
-      {
-        role: 'developer',
-        content: `FACE IDENTITY RULES (apply to ALL generations):
-1. The output person must be IDENTICAL to the reference photo — same bone structure, eyes, nose, lips, jaw, skin tone, skin texture, every mole and mark.
-2. Preserve natural skin pores, facial asymmetry, and original proportions exactly as photographed.
-3. Preserve all distinguishing marks (moles, dimples, scars, beauty marks) in their exact positions.
-4. Match facial hair exactly as shown — same density, coverage, and style.
-5. Same person, same face, same identity. Pixel-accurate face reproduction.`,
-      },
-      {
-        role: 'user',
-        content,
-      },
-    ],
-    tools: [{
-      type: 'image_generation' as any,
-      input_fidelity: 'high',
-      size: resolveGPTImageSize(aspectRatio),
-    }],
+  const response = await client.images.edit({
+    model: 'gpt-image-1.5',
+    image: images,
+    prompt,
+    size: resolveGPTImageSize(aspectRatio),
+    quality: 'high' as any,
+    input_fidelity: 'high' as any,
   } as any)
 
   const duration = ((Date.now() - startTime) / 1000).toFixed(2)
-  if (isDev) console.log(`🎯 Responses API: responded in ${duration}s`)
+  if (isDev) console.log(`🎯 GPT Image 1.5: responded in ${duration}s`)
 
-  // Extract the generated image from the response output
-  const imageOutput = (response as any).output?.find(
-    (o: any) => o.type === 'image_generation_call'
-  )
-  const imageBase64 = imageOutput?.result
-
+  const imageBase64 = response.data?.[0]?.b64_json
   if (!imageBase64) {
-    throw new Error('Responses API returned no image data')
+    throw new Error('GPT Image 1.5 returned no image data')
   }
 
   return `data:image/png;base64,${imageBase64}`
