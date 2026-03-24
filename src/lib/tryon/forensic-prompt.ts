@@ -107,22 +107,22 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     // Soul ID available — use frozen identity paragraph for consistency
     if (hasFaceReference) {
       lines.push(
-        `IDENTITY (LOCKED — DO NOT ALTER): ${input.identityDNA} Copy these EXACT features from ${personRef} and ${faceCropRef}. Do not change any facial feature. Preserve exact facial geometry, natural asymmetry, and every distinguishing mark.`
+        `IDENTITY: ${input.identityDNA} Copy these EXACT features from ${personRef} and ${faceCropRef}. Preserve exact facial geometry, natural asymmetry, and every distinguishing mark.`
       )
     } else {
       lines.push(
-        `IDENTITY (LOCKED — DO NOT ALTER): ${input.identityDNA} Copy these EXACT features from ${personRef}. Do not change any facial feature. Preserve exact facial geometry, natural asymmetry, and every distinguishing mark.`
+        `IDENTITY: ${input.identityDNA} Copy these EXACT features from ${personRef}. Preserve exact facial geometry, natural asymmetry, and every distinguishing mark.`
       )
     }
   } else {
     // No Soul ID — generic identity instruction with stronger anchoring
     if (hasFaceReference) {
       lines.push(
-        `IDENTITY (LOCKED — DO NOT ALTER): Copy the face from ${personRef} and ${faceCropRef} exactly — same bone structure, eyes, nose, lips, jaw, skin texture, pores, skin tone, perceived age, natural asymmetry, and every mole/mark/dimple.`
+        `IDENTITY: Copy the face from ${personRef} and ${faceCropRef} exactly — same bone structure, eyes, nose, lips, jaw, skin texture, pores, skin tone, perceived age, natural asymmetry, and every mole/mark/dimple.`
       )
     } else {
       lines.push(
-        `IDENTITY (LOCKED — DO NOT ALTER): Copy the face from ${personRef} exactly — same bone structure, eyes, nose, lips, jaw, skin texture, pores, skin tone, perceived age, natural asymmetry, and every mole/mark/dimple.`
+        `IDENTITY: Copy the face from ${personRef} exactly — same bone structure, eyes, nose, lips, jaw, skin texture, pores, skin tone, perceived age, natural asymmetry, and every mole/mark/dimple.`
       )
     }
   }
@@ -173,7 +173,7 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   }
 
   // ── LINE 8: Concise avoid (critical items) ──
-  lines.push(`AVOID: beautification, skin smoothing, face reshaping, changing facial proportions, adding or removing distinguishing marks.`)
+  lines.push(`AVOID: beautification, skin smoothing, face reshaping.`)
 
   return lines.join('\n')
 }

@@ -290,16 +290,17 @@ function buildFaceLockedAdEditPrompt(opts: {
   const parts: string[] = []
 
   // IDENTITY FIRST — AI pays most attention to the first 10-15 words
-  parts.push(`Same person, identical facial structure, no face variation. Edit this photo — do NOT generate a new person.`)
+  parts.push(`Same person, identical facial structure. Edit this photo — keep the same face, change only outfit and background.`)
+  parts.push(``)
   parts.push(``)
 
-  // Identity anchor from GPT-4o analysis — LOCKED AT THE TOP
-  parts.push(`IDENTITY (LOCKED — DO NOT ALTER):`)
+  // Identity anchor from GPT-4o analysis
+  parts.push(`IDENTITY:`)
   parts.push(faceAnchor)
   parts.push(``)
 
-  // Anti-beautification mandate
-  parts.push(`ANTI-BEAUTIFICATION (MANDATORY): Do NOT smooth skin, thin the nose, enlarge eyes, slim the face, lighten skin tone, or reshape the jawline. Preserve ALL distinguishing marks (moles, dimples, scars, beauty marks). Preserve natural facial asymmetry and proportions EXACTLY.`)
+  // Face preservation (positive framing)
+  parts.push(`FACE PRESERVATION: Preserve natural skin pores, facial asymmetry, original proportions, and all distinguishing marks (moles, dimples, scars, beauty marks) exactly as photographed.`)
   parts.push(``)
 
   // Editing instructions
@@ -344,11 +345,10 @@ function buildFaceLockedAdEditPrompt(opts: {
   }
   parts.push(``)
 
-  // Negative / avoid instructions from preset
-  parts.push(`Do NOT change the face. Do NOT reimagine facial features. Do NOT generate a different person. Do NOT beautify or idealize.`)
-  parts.push(`Same person. Same face. Same marks. Edit only outfit and background.`)
+  // Consistency reminder
+  parts.push(`Same person, same face, same marks. Edit only outfit and background.`)
   if (preset.avoid.length > 0) {
-    parts.push(`AVOID: ${preset.avoid.join(', ')}, beautification, skin smoothing, face reshaping`)
+    parts.push(`AVOID: ${preset.avoid.join(', ')}, beautification, skin smoothing`)
   }
 
   return parts.join('\n')

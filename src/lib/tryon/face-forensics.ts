@@ -159,38 +159,39 @@ Rules:
     .filter(Boolean)
     .join(', ')
 
-  // Build anti-drift directives from the specific features detected
+  // Build anti-drift directives — POSITIVE FRAMING ONLY
+  // Negative "DO NOT" rules paradoxically increase drift
   const antiDriftParts: string[] = []
 
-  // Universal anti-drift
+  // Universal anti-drift (positive framing)
   if (parsed.faceWidth === 'wide' || parsed.faceWidth === 'very wide') {
-    antiDriftParts.push('Do NOT slim or narrow the face — it must remain wide.')
+    antiDriftParts.push('Preserve wide face width exactly.')
   }
   if (parsed.faceShape === 'round') {
-    antiDriftParts.push('Do NOT elongate or angularize the face — it must remain round.')
+    antiDriftParts.push('Maintain round face shape.')
   }
   if (parsed.cheekVolume === 'full' || parsed.cheekVolume === 'prominent') {
-    antiDriftParts.push('Do NOT reduce cheek volume — cheeks must remain full.')
+    antiDriftParts.push('Keep full cheek volume.')
   }
   if (parsed.skinTexture && /porous|textured|rough/i.test(parsed.skinTexture)) {
-    antiDriftParts.push('Do NOT smooth the skin — preserve visible pores and natural texture.')
+    antiDriftParts.push('Preserve visible pores and natural skin texture.')
   }
   if (parsed.distinguishingMarks && parsed.distinguishingMarks !== 'none') {
-    antiDriftParts.push(`PRESERVE these distinguishing marks exactly: ${parsed.distinguishingMarks}.`)
+    antiDriftParts.push(`Keep these marks: ${parsed.distinguishingMarks}.`)
   }
 
-  // Gender-specific anti-drift
+  // Gender-specific (positive framing)
   if (gender === 'feminine') {
     antiDriftParts.push(
-      'ANTI-BEAUTIFICATION: Do NOT slim the face, thin the nose, enlarge the eyes, smooth the skin, lighten the skin tone, or reshape the jawline. Preserve natural facial asymmetry and proportions EXACTLY.'
+      'Preserve natural face proportions, original nose width, original eye size, original skin tone, visible pores, and natural asymmetry exactly as photographed.'
     )
   }
   if (gender === 'masculine') {
     if (parsed.facialHairDescription && /dense|thick|full|heavy/i.test(parsed.facialHairDescription)) {
-      antiDriftParts.push(`Do NOT thin or trim the beard — it must remain ${parsed.facialHairDescription}.`)
+      antiDriftParts.push(`Maintain ${parsed.facialHairDescription} exactly.`)
     }
     if (parsed.facialHairDescription === 'none' || parsed.facialHairDescription === 'clean-shaven') {
-      antiDriftParts.push('This person is clean-shaven — do NOT add any beard, stubble, or facial hair.')
+      antiDriftParts.push('Keep clean-shaven face.')
     }
   }
 
