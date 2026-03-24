@@ -60,6 +60,8 @@ export interface ForensicPromptInput {
   perceivedGender?: 'masculine' | 'feminine' | 'neutral'
   /** Anti-drift directives from face forensics */
   antiDriftDirectives?: string
+  /** Scene Intelligence realism guidance — harmonization, color spill, contact shadows, depth layering */
+  realismGuidance?: string
 }
 
 export function buildForensicPrompt(input: ForensicPromptInput): string {
@@ -164,6 +166,12 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     lines.push(`LIGHTING: Light on the subject must match the environment — same direction, same color temperature, same shadow angle.`)
   }
   lines.push('')
+
+  // ── LINE 5b: INTEGRATION (scene intelligence realism — harmonization, color spill, shadows) ──
+  if (input.realismGuidance) {
+    lines.push(`INTEGRATION: ${input.realismGuidance}`)
+    lines.push('')
+  }
 
   // ── LINE 5b: Pose/Camera (from preset camera guidance) ──
   if (input.cameraGuidance) {

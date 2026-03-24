@@ -311,6 +311,7 @@ export async function generateWithNanoBananaPro(
       preset: sceneConfig.anchorZone,
       lighting: sceneConfig.lightingMode,
       lightingBlueprint: sceneConfig.lightingBlueprint,
+      realismGuidance: sceneConfig.realismGuidance, // Scene Intelligence harmonization cues
       hasFaceReference: Boolean(faceCropResult.success && faceCropResult.faceCropBase64),
       aspectRatio: input.aspectRatio || '1:1',
       retryMode: false, // Only set true during actual retries, not first pass
