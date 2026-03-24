@@ -174,16 +174,25 @@ async function extractFaceAnchorDescription(
 
   const response = await openaiClient.chat.completions.create({
     model: 'gpt-4o',
-    max_tokens: 200,
-    temperature: 0.2,
+    max_tokens: 300,
+    temperature: 0.1,
     messages: [
       {
         role: 'system',
         content: [
-          'You are a face identity analyst. Output a concise physical description of the person.',
-          'Focus on GEOMETRY: face shape, eyes, nose, lips, skin tone, hair.',
-          'Use geometric terms (oval, almond, narrow, wide, pointed).',
-          'Do NOT use beauty adjectives. Keep under 80 words. Output ONLY the description.',
+          'You are a facial identity analyst for AI image generation consistency.',
+          'Output a precise physical description that locks this person\'s identity.',
+          'REQUIRED: Include ALL of these in order:',
+          '1. Face shape and width (oval, round, square, heart, wide, narrow)',
+          '2. Eye details (shape, color, spacing, crease type)',
+          '3. Nose structure (bridge width, tip shape)',
+          '4. Lip description (fullness, shape)',
+          '5. Jawline and chin (angular, soft, rounded, pointed)',
+          '6. Skin tone and texture (include pores, marks)',
+          '7. Distinguishing marks (moles, dimples, scars, beauty marks, asymmetry) — CRITICAL',
+          '8. Hair description',
+          'Use geometric terms. Do NOT use beauty adjectives.',
+          'Keep under 120 words. Output ONLY the description.',
         ].join('\n'),
       },
       {
@@ -195,7 +204,7 @@ async function extractFaceAnchorDescription(
           },
           {
             type: 'text' as const,
-            text: 'Describe this person\'s face with precise geometric detail for identity consistency.',
+            text: 'Describe this person\'s face with precise geometric detail. Include EVERY distinguishing mark (moles, dimples, scars). These are the strongest identity anchors.',
           },
         ],
       },
@@ -280,18 +289,22 @@ function buildFaceLockedAdEditPrompt(opts: {
 
   const parts: string[] = []
 
-  // Frame as EDITING the existing photo (not generating new)
-  parts.push(`Edit this photo. Do NOT generate a new person. Modify ONLY the outfit, pose, and background.`)
+  // IDENTITY FIRST — AI pays most attention to the first 10-15 words
+  parts.push(`Same person, identical facial structure, no face variation. Edit this photo — do NOT generate a new person.`)
   parts.push(``)
 
-  // Identity anchor from GPT-4o analysis
-  parts.push(`This person's face identity (DO NOT ALTER):`)
+  // Identity anchor from GPT-4o analysis — LOCKED AT THE TOP
+  parts.push(`IDENTITY (LOCKED — DO NOT ALTER):`)
   parts.push(faceAnchor)
+  parts.push(``)
+
+  // Anti-beautification mandate
+  parts.push(`ANTI-BEAUTIFICATION (MANDATORY): Do NOT smooth skin, thin the nose, enlarge eyes, slim the face, lighten skin tone, or reshape the jawline. Preserve ALL distinguishing marks (moles, dimples, scars, beauty marks). Preserve natural facial asymmetry and proportions EXACTLY.`)
   parts.push(``)
 
   // Editing instructions
   parts.push(`EDIT INSTRUCTIONS:`)
-  parts.push(`1. Keep this exact person's face, head, and hair completely unchanged — same face shape, same eyes, same nose, same lips, same skin, same hair.`)
+  parts.push(`1. Keep this exact person's face, head, and hair completely unchanged — same face shape, same eyes, same nose, same lips, same skin, same hair, same distinguishing marks.`)
   parts.push(`2. Change ONLY their outfit to match the garment in Image 2 — same color, fabric, cut, pattern, design details.`)
 
   // Scene from preset
@@ -332,10 +345,10 @@ function buildFaceLockedAdEditPrompt(opts: {
   parts.push(``)
 
   // Negative / avoid instructions from preset
-  parts.push(`Do NOT change the face. Do NOT reimagine facial features. Do NOT generate a different person.`)
-  parts.push(`Same person. Same face. Edit only outfit and background.`)
+  parts.push(`Do NOT change the face. Do NOT reimagine facial features. Do NOT generate a different person. Do NOT beautify or idealize.`)
+  parts.push(`Same person. Same face. Same marks. Edit only outfit and background.`)
   if (preset.avoid.length > 0) {
-    parts.push(`AVOID: ${preset.avoid.join(', ')}`)
+    parts.push(`AVOID: ${preset.avoid.join(', ')}, beautification, skin smoothing, face reshaping`)
   }
 
   return parts.join('\n')

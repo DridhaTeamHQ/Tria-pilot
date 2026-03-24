@@ -191,11 +191,22 @@ CRITICAL: You MUST also write an "identityDNA" paragraph — a single, dense par
 that describes this person's EXACT face so precisely that an AI image generator could 
 reproduce it perfectly. This paragraph will be used in EVERY image generation for this person.
 
+The identityDNA MUST follow this exact checklist order:
+1. Face shape + width + proportions
+2. Cheek volume + jawline + chin
+3. Eye shape + color + spacing + crease type
+4. Nose bridge width + tip shape
+5. Lip fullness + shape + defining features
+6. Skin tone + texture + pore visibility
+7. DISTINGUISHING MARKS (CRITICAL — moles, dimples, scars, beauty marks, facial asymmetry — these are the STRONGEST identity anchors)
+8. Hair description
+9. Facial hair (if any, exact density/style; or explicitly 'clean-shaven')
+
 The identityDNA should read like:
 "This person has a [shape] face with [width] proportions, [cheek description], [jawline], 
 and [chin]. Their [eye shape] eyes are [color] with [spacing] spacing. The nose has a 
 [bridge] bridge and [tip] tip. Lips are [description]. Skin is [tone] with [texture]. 
-[Hair description]. [Any distinguishing marks]."
+DISTINGUISHING: [specific marks with exact locations]. [Hair description]."
 
 Return JSON only:
 {

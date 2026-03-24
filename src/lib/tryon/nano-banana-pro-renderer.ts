@@ -204,7 +204,7 @@ export async function generateWithNanoBananaPro(
 
     const forensicFallback = {
       faceAnchor:
-        'preserve exact face shape width and fullness, eye geometry, nose bridge and tip, lip contour, jawline, skin texture with visible pores, facial hair density and pattern, and eyewear geometry',
+        'preserve exact face shape width and fullness, eye geometry, nose bridge and tip, lip contour, jawline, skin texture with visible pores, and eyewear geometry',
       eyesAnchor:
         'almond eye shape, medium inter-eye spacing, dark brown iris color, forward gaze direction, stable eyelid crease and brow geometry',
       characterSummary: 'single subject from Image 1',
@@ -213,7 +213,9 @@ export async function generateWithNanoBananaPro(
       bodyAnchor:
         'preserve original body build, weight, shoulder width, torso mass, and limb proportions exactly as visible in Image 1',
       garmentOnPersonGuidance:
-        'garment follows original shoulder slope and torso drape from Image 1 — do not slim or reshape body. Do NOT slim or narrow the face. Do NOT thin the beard.',
+        'garment follows original shoulder slope and torso drape from Image 1 — do not slim or reshape body.',
+      perceivedGender: 'neutral' as const,
+      antiDriftDirectives: '',
     }
 
     const [sceneConfig, personFace, forensicAnchor] = await Promise.all([
@@ -298,6 +300,11 @@ export async function generateWithNanoBananaPro(
     const resolvedPreset = getPresetById(resolvedPresetId || '')
     const presetCamera = resolvedPreset?.camera
 
+    // Generate a consistent name anchor from user ID for latent space locking
+    const nameAnchor = input.userId
+      ? `person-${input.userId.substring(0, 8)}`
+      : undefined
+
     const promptInput = {
       garmentDescription: input.garmentDescription,
       preset: sceneConfig.anchorZone,
@@ -309,6 +316,9 @@ export async function generateWithNanoBananaPro(
       cameraGuidance: presetCamera, // Pass preset camera/pose to the prompt
       identityDNA: identityEmbedding?.identityDNA, // Soul ID — frozen identity paragraph
       useGPTImageFormat: true, // GPT Image uses descriptive refs, not Image 1/2/3
+      nameAnchor,
+      perceivedGender: forensicAnchor.perceivedGender,
+      antiDriftDirectives: forensicAnchor.antiDriftDirectives,
     }
     const prompt = buildForensicPrompt(promptInput)
 

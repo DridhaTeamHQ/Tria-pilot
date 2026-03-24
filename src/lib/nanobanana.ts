@@ -679,6 +679,15 @@ export async function generateTryOnGPT(options: DirectTryOnOptions): Promise<str
     model: 'gpt-4o',
     input: [
       {
+        role: 'developer',
+        content: `FACE IDENTITY PRESERVATION RULES (MANDATORY — apply to ALL generations):
+1. The person in the reference photo must appear IDENTICAL in the output — same face shape, bone structure, eyes, nose, lips, jaw, skin tone, skin texture, and every mole/mark/dimple.
+2. ANTI-BEAUTIFICATION: Do NOT smooth skin, thin the nose, enlarge eyes, slim the face, lighten skin, or reshape the jawline. Preserve natural asymmetry.
+3. Distinguish marks (moles, dimples, scars, beauty marks) are the strongest identity anchors — preserve them ALL.
+4. If the person has facial hair, preserve exact density and style. If clean-shaven, do NOT add any facial hair.
+5. Generate the SAME person, not a similar-looking person. Zero identity variation.`,
+      },
+      {
         role: 'user',
         content,
       },

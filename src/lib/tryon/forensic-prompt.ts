@@ -54,6 +54,12 @@ export interface ForensicPromptInput {
   }
   /** When true, uses GPT Image-compatible descriptive references instead of "Image 1/2/3" */
   useGPTImageFormat?: boolean
+  /** Name anchor for latent space locking */
+  nameAnchor?: string
+  /** Perceived gender from face forensics */
+  perceivedGender?: 'masculine' | 'feminine' | 'neutral'
+  /** Anti-drift directives from face forensics */
+  antiDriftDirectives?: string
 }
 
 export function buildForensicPrompt(input: ForensicPromptInput): string {
@@ -85,37 +91,48 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
 
   const lines: string[] = []
 
-  // ── LINE 1: Core task (identity first) ──
+  // ═══════════════════════════════════════════════════════════════════════
+  // IDENTITY FIRST — AI pays the most attention to the first 10-15 words
+  // ═══════════════════════════════════════════════════════════════════════
+
+  // ── LINE 1: Name Anchor + Core Identity Task (FIRST — most critical position) ──
+  const namePrefix = input.nameAnchor ? `A portrait of ${input.nameAnchor}. ` : ''
   lines.push(
-    `Generate a photorealistic photo of the EXACT person from ${personRef} wearing the garment from ${garmentRef}.`
+    `${namePrefix}Same person, identical facial structure, no face variation. Generate a photorealistic photo of the EXACT person from ${personRef} wearing the garment from ${garmentRef}.`
   )
   lines.push('')
 
-  // ── LINE 2: Identity anchor (concise + Soul ID) ──
+  // ── LINE 2: Identity anchor (Soul ID or forensic) ──
   if (input.identityDNA) {
     // Soul ID available — use frozen identity paragraph for consistency
     if (hasFaceReference) {
       lines.push(
-        `IDENTITY: ${input.identityDNA} Copy these EXACT features from ${personRef} and ${faceCropRef}. Do not change any facial feature.`
+        `IDENTITY (LOCKED — DO NOT ALTER): ${input.identityDNA} Copy these EXACT features from ${personRef} and ${faceCropRef}. Do not change any facial feature. Preserve exact facial geometry, natural asymmetry, and every distinguishing mark.`
       )
     } else {
       lines.push(
-        `IDENTITY: ${input.identityDNA} Copy these EXACT features from ${personRef}. Do not change any facial feature.`
+        `IDENTITY (LOCKED — DO NOT ALTER): ${input.identityDNA} Copy these EXACT features from ${personRef}. Do not change any facial feature. Preserve exact facial geometry, natural asymmetry, and every distinguishing mark.`
       )
     }
   } else {
-    // No Soul ID — generic identity instruction
+    // No Soul ID — generic identity instruction with stronger anchoring
     if (hasFaceReference) {
       lines.push(
-        `IDENTITY: Copy the face from ${personRef} and ${faceCropRef} exactly — same bone structure, eyes, nose, lips, jaw, skin texture, pores, skin tone, and perceived age.`
+        `IDENTITY (LOCKED — DO NOT ALTER): Copy the face from ${personRef} and ${faceCropRef} exactly — same bone structure, eyes, nose, lips, jaw, skin texture, pores, skin tone, perceived age, natural asymmetry, and every mole/mark/dimple.`
       )
     } else {
       lines.push(
-        `IDENTITY: Copy the face from ${personRef} exactly — same bone structure, eyes, nose, lips, jaw, skin texture, pores, skin tone, and perceived age.`
+        `IDENTITY (LOCKED — DO NOT ALTER): Copy the face from ${personRef} exactly — same bone structure, eyes, nose, lips, jaw, skin texture, pores, skin tone, perceived age, natural asymmetry, and every mole/mark/dimple.`
       )
     }
   }
   lines.push('')
+
+  // ── LINE 2b: Anti-drift directives from forensics (gender-specific) ──
+  if (input.antiDriftDirectives) {
+    lines.push(`ANTI-DRIFT: ${input.antiDriftDirectives}`)
+    lines.push('')
+  }
 
   // ── LINE 3: Body (one line) ──
   lines.push(`BODY: Same body shape, weight, and proportions as ${personRef}.`)
@@ -155,8 +172,8 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     lines.push(`RETRY: Previous attempt altered the face. Copy face pixels from ${personRef} exactly this time.`)
   }
 
-  // ── LINE 8: Concise avoid (3 critical items only) ──
-  lines.push(`AVOID: beautification, skin smoothing, face reshaping.`)
+  // ── LINE 8: Concise avoid (critical items) ──
+  lines.push(`AVOID: beautification, skin smoothing, face reshaping, changing facial proportions, adding or removing distinguishing marks.`)
 
   return lines.join('\n')
 }
