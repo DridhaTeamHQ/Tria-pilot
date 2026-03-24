@@ -441,10 +441,8 @@ export async function generateWithNanoBananaPro(
     // Stage 4 handles face identity correction via inpainting, which is faster
     // and more effective than re-generating the entire image.
     const FACE_RESTORE_ENABLED =
-      activeRenderModel !== 'gpt-image-1.5' && (
-        process.env.TRYON_ENABLE_FACE_RESTORE === 'true' ||
-        process.env.NODE_ENV !== 'production'
-      )
+      process.env.TRYON_ENABLE_FACE_RESTORE === 'true' ||
+      process.env.NODE_ENV !== 'production'
     const skipRetryForFaceRestore = FACE_RESTORE_ENABLED && !hardFaceFailure
 
     if (skipRetryForFaceRestore && hasRetrySignal && isDev) {
@@ -535,15 +533,11 @@ export async function generateWithNanoBananaPro(
 
     // ═════════════════════════════════════════════════════════════════════════
     // STAGE 4: Face Identity Restoration (Two-Pass Gemini Inpainting)
-    // SKIP for GPT Image 1.5 — it preserves face identity natively via input_fidelity: 'high'
-    // The Gemini inpainting stage is redundant and adds ~5-10s latency.
+    // Applies to ALL render models — even GPT Image 1.5 can drift 40%+
     // ═════════════════════════════════════════════════════════════════════════
-    const isGPTModel = activeRenderModel === 'gpt-image-1.5'
     const ENABLE_FACE_RESTORE =
-      !isGPTModel && (
-        process.env.TRYON_ENABLE_FACE_RESTORE === 'true' ||
-        process.env.NODE_ENV !== 'production'
-      )
+      process.env.TRYON_ENABLE_FACE_RESTORE === 'true' ||
+      process.env.NODE_ENV !== 'production'
     let faceRestoreResult: { success: boolean; processingTimeMs: number; error?: string } | null = null
 
     // Production-safe thresholds:
