@@ -60,8 +60,6 @@ export interface ForensicPromptInput {
   perceivedGender?: 'masculine' | 'feminine' | 'neutral'
   /** Anti-drift directives from face forensics */
   antiDriftDirectives?: string
-  /** Scene Intelligence realism guidance — harmonization, color spill, contact shadows, depth layering */
-  realismGuidance?: string
 }
 
 export function buildForensicPrompt(input: ForensicPromptInput): string {
