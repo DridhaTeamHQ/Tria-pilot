@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import type React from 'react'
 import AuthToastBridge from '@/components/auth-toast-bridge'
+import KiwikooToastViewport from '@/components/kiwikoo-toast-viewport'
 import { Toaster } from '@/components/ui/sonner'
 import NavSwitcher from '@/components/landing/NavSwitcher'
 import ProfileCompletionGate from '@/components/ProfileCompletionGate'
@@ -39,6 +40,7 @@ export default function RootLayout({
       <body className="antialiased bg-cream text-charcoal" style={FONT_VARS} suppressHydrationWarning>
         <ReactQueryProvider>
           <Toaster />
+          <KiwikooToastViewport />
           <AuthToastBridge />
           <ReactLenis>
             <NavSwitcher />
