@@ -160,6 +160,36 @@ function resolveOpenAIImageSize(aspectRatio?: AspectRatio): '1024x1024' | '1024x
   return '1024x1024'
 }
 
+function isOpenAIAvailabilityError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+  return /organization must be verified|must be verified to use the model|model access|insufficient_quota|rate limit|temporarily unavailable|overloaded|timeout|timed out/i.test(
+    message
+  )
+}
+
+function buildGeminiFaceLockFallbackPrompt(params: {
+  preset: AdPreset
+  cameraAngle?: string
+  subject?: { pose?: string; expression?: string }
+  textOverlay?: { headline?: string; subline?: string; tagline?: string }
+}): string {
+  const hasText = Boolean(
+    params.textOverlay?.headline || params.textOverlay?.subline || params.textOverlay?.tagline
+  )
+
+  return (
+    buildQualityPreamble(hasText) +
+    buildFaceLockedAdEditPrompt({
+      faceAnchor:
+        'Preserve the exact same person from the influencer reference image: same face shape, eyes, nose, lips, skin tone, hair, and distinguishing marks.',
+      preset: params.preset,
+      cameraAngle: params.cameraAngle,
+      subject: params.subject,
+      textOverlay: params.textOverlay,
+    })
+  )
+}
+
 /**
  * Use GPT-4o vision to extract a structured face anchor description from a photo.
  * This creates a stable identity string that locks facial geometry across generations.
@@ -575,74 +605,86 @@ export async function POST(request: Request) {
       }
 
       const presetObj = AD_PRESETS.find(p => p.id === input.preset) ?? AD_PRESETS[0]
-      const openaiClient = new OpenAI({ apiKey: getOpenAIKey() })
 
-      // Retry loop: generate up to 2 attempts, pick best face match
-      const MAX_FACE_ATTEMPTS = 2
-      const FACE_THRESHOLD = 85
-      let bestImage = ''
-      let bestPrompt = ''
-      let bestScore = 0
+      try {
+        const openaiClient = new OpenAI({ apiKey: getOpenAIKey() })
 
-      for (let attempt = 1; attempt <= MAX_FACE_ATTEMPTS; attempt++) {
-        if (process.env.NODE_ENV !== 'production') {
-          console.log(`[FaceLock] Attempt ${attempt}/${MAX_FACE_ATTEMPTS}...`)
-        }
+        const MAX_FACE_ATTEMPTS = 2
+        const FACE_THRESHOLD = 85
+        let bestImage = ''
+        let bestPrompt = ''
+        let bestScore = 0
 
-        try {
-          const result = await generateFaceLockedAdWithOpenAI({
-            influencerImage: input.influencerImage,
-            productImage: input.productImage,
-            preset: presetObj,
-            aspectRatio: input.aspectRatio as AspectRatio | undefined,
-            cameraAngle: input.cameraAngle,
-            subject: input.subject,
-            textOverlay: input.textOverlay,
-          })
-
-          // Score face similarity using GPT-4o
-          const faceScore = await scoreFaceSimilarity(openaiClient, input.influencerImage, result.image)
-
+        for (let attempt = 1; attempt <= MAX_FACE_ATTEMPTS; attempt++) {
           if (process.env.NODE_ENV !== 'production') {
-            console.log(`[FaceLock] Attempt ${attempt} face similarity: ${faceScore}%`)
+            console.log(`[FaceLock] Attempt ${attempt}/${MAX_FACE_ATTEMPTS}...`)
           }
 
-          if (faceScore > bestScore) {
-            bestScore = faceScore
-            bestImage = result.image
-            bestPrompt = result.prompt
-          }
+          try {
+            const result = await generateFaceLockedAdWithOpenAI({
+              influencerImage: input.influencerImage,
+              productImage: input.productImage,
+              preset: presetObj,
+              aspectRatio: input.aspectRatio as AspectRatio | undefined,
+              cameraAngle: input.cameraAngle,
+              subject: input.subject,
+              textOverlay: input.textOverlay,
+            })
 
-          if (faceScore >= FACE_THRESHOLD) {
+            const faceScore = await scoreFaceSimilarity(openaiClient, input.influencerImage, result.image)
+
             if (process.env.NODE_ENV !== 'production') {
-              console.log(`[FaceLock] Face score ${faceScore}% >= ${FACE_THRESHOLD}%. Accepting.`)
+              console.log(`[FaceLock] Attempt ${attempt} face similarity: ${faceScore}%`)
             }
-            break
-          }
 
-          if (attempt < MAX_FACE_ATTEMPTS && timeRemaining() < 30_000) {
-            if (process.env.NODE_ENV !== 'production') {
-              console.log('[FaceLock] Not enough time for retry. Using best so far.')
+            if (faceScore > bestScore) {
+              bestScore = faceScore
+              bestImage = result.image
+              bestPrompt = result.prompt
             }
-            break
+
+            if (faceScore >= FACE_THRESHOLD) {
+              break
+            }
+
+            if (attempt < MAX_FACE_ATTEMPTS && timeRemaining() < 30_000) {
+              break
+            }
+          } catch (err: any) {
+            console.error(`[FaceLock] Attempt ${attempt} failed:`, err?.message || err)
+            if (attempt === MAX_FACE_ATTEMPTS && !bestImage) throw err
           }
-        } catch (err: any) {
-          console.error(`[FaceLock] Attempt ${attempt} failed:`, err?.message || err)
-          if (attempt === MAX_FACE_ATTEMPTS && !bestImage) throw err
         }
-      }
 
-      generatedImage = bestImage
-      compositionPrompt = bestPrompt
-      promptUsed = 'gpt-image-1.5-face'
+        generatedImage = bestImage
+        compositionPrompt = bestPrompt
+        promptUsed = 'gpt-image-1.5-face'
+      } catch (error) {
+        if (!isOpenAIAvailabilityError(error)) throw error
 
-      if (process.env.NODE_ENV !== 'production') {
-        console.log(`[AdsAPI] GPT Image 1.5 face-locked complete (best face score: ${bestScore}%)`)
+        compositionPrompt = buildGeminiFaceLockFallbackPrompt({
+          preset: presetObj,
+          cameraAngle: input.cameraAngle,
+          subject: input.subject,
+          textOverlay: input.textOverlay,
+        })
+        generatedImage = await generateIntelligentAdComposition(
+          input.productImage,
+          input.influencerImage,
+          compositionPrompt,
+          {
+            lockFaceIdentity: true,
+            aspectRatio: input.aspectRatio as AspectRatio | undefined,
+            temperature: 0.2,
+          }
+        )
+        promptUsed = 'gemini-face-fallback'
       }
     } else if (input.imageModel === 'gpt') {
       // ── NORMAL GPT: GPT Image 1.5 without face lock ──
-      if (process.env.NODE_ENV !== 'production') console.log('[AdsAPI] Building prompt with GPT-4o vision...')
-      const { prompt: rawCompositionPrompt, fallback } = await buildAdPrompt(
+      try {
+        if (process.env.NODE_ENV !== 'production') console.log('[AdsAPI] Building prompt with GPT-4o vision...')
+        const { prompt: rawCompositionPrompt, fallback } = await buildAdPrompt(
         generationInput,
         input.productImage
       )
@@ -680,7 +722,27 @@ export async function POST(request: Request) {
       if (!imgData?.b64_json) {
         throw new Error('GPT Image returned no image data')
       }
-      generatedImage = `data:image/png;base64,${imgData.b64_json}`
+        generatedImage = `data:image/png;base64,${imgData.b64_json}`
+      } catch (error) {
+        if (!isOpenAIAvailabilityError(error)) throw error
+
+        const { prompt: rawCompositionPrompt, fallback } = await buildAdPrompt(
+          generationInput,
+          input.productImage
+        )
+        const hasText = Boolean(input.textOverlay?.headline || input.textOverlay?.subline || input.textOverlay?.tagline)
+        compositionPrompt = buildQualityPreamble(hasText) + rawCompositionPrompt
+        promptUsed = fallback ? 'fallback-gemini' : 'gemini-provider-fallback'
+        generatedImage = await generateIntelligentAdComposition(
+          input.productImage,
+          undefined,
+          compositionPrompt,
+          {
+            lockFaceIdentity: false,
+            aspectRatio: input.aspectRatio as AspectRatio | undefined,
+          }
+        )
+      }
     } else {
       // ── NORMAL GEMINI: Gemini-based generation ──
       if (process.env.NODE_ENV !== 'production') console.log('[AdsAPI] Building prompt with GPT-4o vision...')

@@ -48,6 +48,10 @@ function isPublicPath(pathname: string): boolean {
     return PUBLIC_PREFIXES.some(prefix => pathname.startsWith(prefix))
 }
 
+function isApiPath(pathname: string): boolean {
+    return pathname.startsWith('/api/')
+}
+
 export async function updateSession(request: NextRequest) {
     const pathname = request.nextUrl.pathname
     const requestHeaders = new Headers(request.headers)
@@ -115,6 +119,11 @@ export async function updateSession(request: NextRequest) {
     const rateLimited = applyApiRateLimit(request, user?.id ?? null)
     if (rateLimited) {
         return rateLimited
+    }
+
+    // API routes should return their own JSON auth errors instead of HTML login redirects.
+    if (isApiPath(pathname)) {
+        return supabaseResponse
     }
 
     // SESSION CHECK ONLY: Redirect to /login if not authenticated and accessing protected route

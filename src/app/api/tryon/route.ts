@@ -11,7 +11,9 @@ import { GeminiRateLimitError } from '@/lib/gemini/executor'
 import { ZodError } from 'zod'
 
 export const maxDuration = 120
-const TRYON_RATE_LIMIT_DISABLED = true
+const TRYON_RATE_LIMIT_DISABLED =
+  process.env.TRYON_RATE_LIMIT_DISABLED === 'true' ||
+  process.env.NODE_ENV !== 'production'
 const USER_LOCK_TTL_SECONDS = 75
 const GLOBAL_ACTIVE_TTL_SECONDS = 75
 const GLOBAL_ACTIVE_LIMIT = Math.max(

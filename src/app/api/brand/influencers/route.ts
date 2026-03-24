@@ -52,6 +52,16 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { data: requesterProfile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if ((requesterProfile?.role || '').toLowerCase() !== 'brand') {
+      return NextResponse.json({ error: 'Unauthorized - Brand access required' }, { status: 403 })
+    }
+
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search')?.trim() || ''
     const niche = searchParams.get('niche')?.trim() || ''
@@ -165,9 +175,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ influencers: filtered })
   } catch (error) {
     console.error('Influencers API error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

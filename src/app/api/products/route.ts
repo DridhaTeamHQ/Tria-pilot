@@ -91,7 +91,7 @@ export async function GET(request: Request) {
         .select(`
             *,
             brand:brand_id (
-                id, full_name, brand_data, email
+                id, full_name, brand_data
             )
         `)
         .eq('id', productId)
