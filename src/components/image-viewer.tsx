@@ -69,31 +69,39 @@ export function ImageViewer({ src, alt, className = '' }: ImageViewerProps) {
       </div>
       {isOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+          className="fixed inset-0 z-[120] flex items-start justify-center bg-black/85 p-3 pt-[max(0.75rem,3vh)] backdrop-blur-md sm:items-center sm:p-6"
           onClick={() => setIsOpen(false)}
         >
-          <div className="relative max-w-7xl max-h-full">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute top-4 right-4 z-10 bg-black/50 hover:bg-black/70 text-white"
-              onClick={() => setIsOpen(false)}
-            >
-              <X className="h-6 w-6" />
-            </Button>
-            <Image
-              src={src}
-              alt={alt}
-              width={1600}
-              height={1600}
-              unoptimized
-              className="max-w-full max-h-[90vh] object-contain rounded-lg"
-              onClick={(e) => e.stopPropagation()}
-            />
+          <div
+            className="my-auto w-full max-w-[min(94vw,1220px)] overflow-hidden rounded-[28px] border-[3px] border-black bg-[#FFFDF8] shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b-[3px] border-black bg-[#FFF4D9] px-4 py-3 sm:px-5">
+              <p className="truncate pr-3 text-xs font-black uppercase tracking-wide text-black sm:text-sm">
+                {alt || 'Image Preview'}
+              </p>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 shrink-0 rounded-xl border-[2px] border-black bg-white text-black hover:bg-[#FFD93D]"
+                onClick={() => setIsOpen(false)}
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="flex max-h-[calc(min(92dvh,920px)-64px)] items-center justify-center bg-[#FFF8E8] p-3 sm:p-4">
+              <Image
+                src={src}
+                alt={alt}
+                width={1600}
+                height={1600}
+                unoptimized
+                className="max-h-[calc(min(92dvh,920px)-96px)] max-w-full rounded-2xl border-[2px] border-black bg-white object-contain"
+              />
+            </div>
           </div>
         </div>
       )}
     </>
   )
 }
-

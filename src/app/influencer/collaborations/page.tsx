@@ -243,9 +243,9 @@ export default function InfluencerCollaborationsPage() {
         )}
 
         <Dialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog({ open, collabId: null, status: null })}>
-          <DialogContent className="sm:max-w-[425px] border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-0 overflow-hidden bg-white">
-            <DialogHeader className="p-6 bg-[#FDFBF7] border-b-[3px] border-black">
-              <DialogTitle className="flex items-center gap-2 text-2xl font-black uppercase">
+          <DialogContent className="overflow-hidden rounded-[24px] border-[3px] border-black bg-white p-0 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] sm:max-w-[460px]">
+            <DialogHeader className="border-b-[3px] border-black bg-[#FDFBF7] px-5 py-5 sm:px-6">
+              <DialogTitle className="flex items-center gap-2 text-xl font-black uppercase sm:text-2xl">
                 {confirmDialog.status === 'accepted' ? (
                   <CheckCircle2 className="h-6 w-6 text-green-600" />
                 ) : (
@@ -253,22 +253,22 @@ export default function InfluencerCollaborationsPage() {
                 )}
                 Confirm {confirmDialog.status === 'accepted' ? 'Acceptance' : 'Decline'}
               </DialogTitle>
-              <DialogDescription className="text-black/70 font-bold">
+              <DialogDescription className="mt-1 text-sm font-semibold leading-relaxed text-black/70">
                 Are you sure you want to {confirmDialog.status === 'accepted' ? 'accept' : 'decline'} this collaboration?
               </DialogDescription>
             </DialogHeader>
-            <DialogFooter className="p-6 gap-3">
+            <DialogFooter className="gap-3 px-5 py-5 sm:px-6">
               <button
                 type="button"
                 onClick={() => setConfirmDialog({ open: false, collabId: null, status: null })}
-                className="px-4 py-2 bg-white border-[2px] border-black font-bold uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none transition-all"
+                className="px-4 py-2 bg-white border-[2px] border-black font-bold uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:shadow-none"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={confirmStatusChange}
-                className={`px-4 py-2 border-[2px] border-black font-bold uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none transition-all text-black ${
+                className={`px-4 py-2 border-[2px] border-black font-bold uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:shadow-none text-black ${
                   confirmDialog.status === 'accepted' ? 'bg-[#BAFCA2]' : 'bg-[#FFABAB]'
                 }`}
               >
