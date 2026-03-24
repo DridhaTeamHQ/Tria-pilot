@@ -144,42 +144,23 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   )
   lines.push('')
 
-  // ── LINE 5: SCENE (FULL PRESET — treat background as FIRST-CLASS object) ──
-  // Rich scene descriptions are critical for realistic environments
-  if (isSceneChange && rawPreset) {
-    // Use the FULL preset scene description (up to 300 chars) — don't condense
-    const sceneDesc = condenseScene(rawPreset, 300)
-    lines.push(`ENVIRONMENT: ${sceneDesc}. This environment must look like a real physical location with textured surfaces, natural imperfections, and authentic materials. Surfaces have wear, dust, scratches, and real-world detail.`)
+  // ── LINE 5: SCENE (compact — identity budget is limited) ──
+  if (isSceneChange && sceneBrief) {
+    lines.push(`SCENE: ${sceneBrief}. Real location, natural textures.`)
   } else {
-    lines.push(`ENVIRONMENT: Keep the original background from ${personRef}. Maintain all existing environmental details, textures, and lighting.`)
+    lines.push(`SCENE: Keep original background from ${personRef}.`)
   }
   lines.push('')
 
-  // ── LINE 5a: LIGHTING CONSISTENCY (critical — biggest "fake" tell) ──
-  if (isSceneChange && input.lightingBlueprint) {
-    // Use richer lighting description instead of 60-char condensed version
-    const lightDesc = condenseLighting(input.lightingBlueprint, 200)
-    lines.push(`LIGHTING: ${lightDesc}. Light on the subject MUST match the environment — same direction, same color temperature, same shadow angle. Physically accurate shadows with natural falloff.`)
-  } else if (isSceneChange) {
-    lines.push(`LIGHTING: Light on the subject must match the environment — same direction, same color temperature, same shadow angle.`)
+  // ── LINE 5a: LIGHTING (compact — match direction only) ──
+  if (isSceneChange && lightingBrief) {
+    lines.push(`LIGHTING: ${lightingBrief}. Subject lighting matches environment direction and color temperature.`)
   }
   lines.push('')
 
-  // ── LINE 5b: INTEGRATION (scene intelligence realism — harmonization, color spill, shadows) ──
-  if (input.realismGuidance) {
-    lines.push(`INTEGRATION: ${input.realismGuidance}`)
-    lines.push('')
-  }
-
-  // ── LINE 5b: Pose/Camera (from preset camera guidance) ──
-  if (input.cameraGuidance) {
-    lines.push(`CAMERA: ${input.cameraGuidance}. Shot on DSLR, 50mm lens, f/2.8 aperture, natural depth of field with realistic lens blur and bokeh. The person should naturally fit this scene.`)
-    lines.push('')
-  }
-
-  // ── LINE 6: OUTPUT (photorealism mandate + camera physics + imperfection tokens) ──
+  // ── LINE 6: OUTPUT (compact — photo quality + aspect ratio) ──
   lines.push(
-    `OUTPUT: RAW photograph — NOT illustration, NOT digital art, NOT CGI. Realistic DSLR quality with natural depth of field. Real environment with authentic worn textures, slight noise, film grain, imperfect surfaces, minor lighting inconsistencies. Real skin with visible pores and micro-imperfections. High dynamic range with realistic shadows and highlights. Aspect ratio ${aspectRatio}.`
+    `OUTPUT: RAW photograph, DSLR quality, natural depth of field, realistic skin with pores. Aspect ratio ${aspectRatio}.`
   )
 
   // ── LINE 7: Retry (only on retry, minimal) ──
@@ -188,7 +169,7 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   }
 
   // ── LINE 8: Concise avoid (critical items) ──
-  lines.push(`AVOID: beautification, skin smoothing, face reshaping, artificial smoothness, over-processed backgrounds, synthetic bokeh.`)
+  lines.push(`AVOID: beautification, skin smoothing, face reshaping.`)
 
   return lines.join('\n')
 }
