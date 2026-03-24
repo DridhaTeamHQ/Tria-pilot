@@ -6,12 +6,12 @@
  * india.ts and global.ts provide backward-compatible filtered views.
  */
 
-import { INDIAN_PRESETS, getIndianPreset, getIndianPresets, DEFAULT_INDIAN_PRESET, type ScenePreset } from './india'
+import { INDIAN_PRESETS, getIndianPreset, getIndianPresets, DEFAULT_INDIAN_PRESET, type ScenePreset, type SceneVariant, type CameraAngle, type ColorGrade } from './india'
 import { GLOBAL_PRESETS, getGlobalPreset, getGlobalPresets, DEFAULT_GLOBAL_PRESET } from './global'
 import { PHOTOSHOOT_PRESETS, getPhotoshootPreset, getPhotoshootPresetsByCategory } from './photoshoot'
 
 // Re-export types
-export type { ScenePreset }
+export type { ScenePreset, SceneVariant, CameraAngle, ColorGrade }
 
 // ═══════════════════════════════════════════════════════════════
 // COMBINED DATASET

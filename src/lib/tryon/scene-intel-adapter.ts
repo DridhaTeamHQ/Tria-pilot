@@ -110,68 +110,97 @@ Or with fallback:
 }`
 
 const VISION_REALISM_SYSTEM_PROMPT = `You are a realism cinematography planner for virtual try-on.
+You analyze the person's photo and select the best scene variant, camera angle, and color grade.
+
 You must output JSON only:
 {
-  "anchorZone": "<empty environment description>",
+  "anchorZone": "<selected environment description>",
   "realismGuidance": "<single sentence with camera realism + physically plausible lighting/depth>",
-  "lightingBlueprint": "<single sentence with practical lighting blueprint: key/fill/rim direction, color temperature tendency, shadow softness>",
-  "scenarioVariant": "<short variant name>"
+  "lightingBlueprint": "<single sentence with practical lighting blueprint: key/fill/rim direction, color temperature, shadow softness>",
+  "scenarioVariant": "<short variant name>",
+  "selectedSceneId": "<id of the chosen scene variant>",
+  "selectedCameraId": "<id of the chosen camera angle>",
+  "selectedColorGradeId": "<id of the chosen color grade>"
 }
 
-Rules:
-- Never describe person identity.
-- No face/eye/gaze instructions.
-- Keep camera realism practical (e.g. handheld smartphone or natural camera capture).
-- Lighting must be physically plausible and the SAME for subject and background: subject must appear lit by the scene (e.g. same sky, same ambient or key lights), not as a cut-out.
-- realismGuidance must explicitly state that the subject is grounded in the environment with coherent lighting and shadows (no pasted-on look).
-- Include harmonization cues: ambient color spill, contact shadows, and subtle light wrap at subject edges.
-- Mention depth layering (foreground/midground/background) briefly.
-- Keep perspective and focal plane consistent with the uploaded person image.
-- Avoid exaggerated blur, fake HDR glow, and over-processed backgrounds.
-- Keep the environment photoreal, lived-in, and materially believable (real textures, natural micro-contrast, no plastic/CGI look).
-- Preserve camera realism: natural lens rendering, subtle sensor noise/grain consistency, and no airbrushed surfaces.
+Rules for selecting variants:
+- Analyze the person's photo: their skin tone (warm/cool/neutral), lighting direction, body framing (close-up vs full body), background context.
+- Choose the scene variant whose "bestFor" matches the person's characteristics.
+- Choose the camera angle whose "bestFor" matches the person's framing in their photo.
+- Choose the color grade whose "bestFor" matches the person's skin tone and lighting.
+- Lighting must be physically plausible and the SAME for subject and background.
+- realismGuidance must state subject is grounded in environment with coherent lighting.
+- Include harmonization cues: ambient color spill, contact shadows, and light wrap.
 - Keep wording concise and production-safe.`
 
 function toDataUrl(base64: string): string {
   if (base64.startsWith('data:image/')) return base64
-  return `data:image/jpeg;base64,${base64}`
+  return \`data:image/jpeg;base64,\${base64}\`
 }
 
-function buildPresetPolicy(presetId?: string, presetDescription?: string): PresetPolicy {
+function buildPresetPolicy(presetId?: string, presetDescription?: string, selectedSceneId?: string, selectedCameraId?: string, selectedColorGradeId?: string): PresetPolicy {
   const preset = presetId ? getPresetById(presetId) : undefined
   const exampleGuidance = getPresetExampleGuidance(presetId)
-  const anchorZone = (preset?.scene || presetDescription || 'Clean gradient studio backdrop with soft even ambient lighting.').trim()
+  
+  // Select the best scene variant (or use default)
+  let selectedScene = presetDescription || preset?.scene || 'Clean gradient studio backdrop with soft even ambient lighting.'
+  if (preset?.scenes && selectedSceneId) {
+    const found = preset.scenes.find(s => s.id === selectedSceneId)
+    if (found) selectedScene = found.scene
+  } else if (preset?.scenes && preset.scenes.length > 0) {
+    selectedScene = preset.scenes[0].scene // Default to first variant
+  }
+
+  // Select the best camera angle (or use default)
+  let selectedCamera = preset?.camera || 'natural perspective, realistic depth'
+  if (preset?.cameras && selectedCameraId) {
+    const found = preset.cameras.find(c => c.id === selectedCameraId)
+    if (found) selectedCamera = found.camera
+  } else if (preset?.cameras && preset.cameras.length > 0) {
+    selectedCamera = preset.cameras[0].camera // Default to first variant
+  }
+
+  // Select color grade
+  let selectedColorGrade = ''
+  if (preset?.colorGrades && selectedColorGradeId) {
+    const found = preset.colorGrades.find(g => g.id === selectedColorGradeId)
+    if (found) selectedColorGrade = found.grade
+  } else if (preset?.colorGrades && preset.colorGrades.length > 0) {
+    selectedColorGrade = preset.colorGrades[0].grade // Default to first
+  }
+
+  const anchorZone = selectedScene.trim()
   const baseLighting =
     (preset?.lighting ||
       'ambient practical lighting with coherent shadow direction and natural falloff').trim()
-  const camera = (preset?.camera || 'natural perspective, realistic depth').trim()
   const presetAvoid = preset?.negative_bias?.trim() || undefined
 
   const realismGuidance = [
     'Single coherent photograph: subject lit by and grounded in the same environment.',
-    `Use preset lighting logic: ${baseLighting}.`,
-    exampleGuidance?.vibe ? `Target vibe from successful references: ${exampleGuidance.vibe}.` : '',
-    exampleGuidance?.scene ? `Reference scene characteristics: ${exampleGuidance.scene}.` : '',
+    \`Use preset lighting logic: \${baseLighting}.\`,
+    exampleGuidance?.vibe ? \`Target vibe from successful references: \${exampleGuidance.vibe}.\` : '',
+    exampleGuidance?.scene ? \`Reference scene characteristics: \${exampleGuidance.scene}.\` : '',
     'Apply environmental harmonization: ambient color spill and subtle edge light wrap on the subject.',
-    `Keep perspective and depth consistent with preset camera intent: ${camera}.`,
-    exampleGuidance?.camera ? `Camera treatment from references: ${exampleGuidance.camera}.` : '',
+    \`Camera treatment: \${selectedCamera}.\`,
+    exampleGuidance?.camera ? \`Camera treatment from references: \${exampleGuidance.camera}.\` : '',
+    selectedColorGrade ? \`Color grading: \${selectedColorGrade}.\` : '',
     exampleGuidance?.colorGrading
-      ? `Color treatment from references: ${exampleGuidance.colorGrading}.`
+      ? \`Color treatment from references: \${exampleGuidance.colorGrading}.\`
       : '',
-    'Background materials must remain photoreal with natural texture variation and subtle imperfections, not synthetic or overly smooth.',
-    'Maintain natural camera rendering with consistent micro-contrast and light grain so subject and background share the same capture characteristics.',
-    'Preserve natural contact shadows and local ambient occlusion where the body meets nearby surfaces.',
+    'Background materials must remain photoreal with natural texture variation and subtle imperfections.',
+    'Maintain natural camera rendering with consistent micro-contrast and light grain.',
+    'Preserve natural contact shadows and local ambient occlusion.',
     'Avoid cut-out or pasted-on appearance.',
-    presetAvoid ? `Avoid per preset: ${presetAvoid}.` : '',
+    presetAvoid ? \`Avoid per preset: \${presetAvoid}.\` : '',
   ]
     .filter(Boolean)
     .join(' ')
 
   const lightingBlueprint = [
-    `Lighting blueprint from preset "${presetId || 'custom'}":`,
+    \`Lighting blueprint from preset "\${presetId || 'custom'}":\`,
     'derive key/fill/rim from visible scene sources,',
-    `match highlight and shadow direction to "${baseLighting}",`,
-    exampleGuidance?.lighting ? `reference lighting behavior: ${exampleGuidance.lighting},` : '',
+    \`match highlight and shadow direction to "\${baseLighting}",\`,
+    exampleGuidance?.lighting ? \`reference lighting behavior: \${exampleGuidance.lighting},\` : '',
     'keep subject and background in the same color-temperature space,',
     'add subtle ambient color spill and edge light wrap from the environment,',
     'preserve realistic falloff and contact shadows at feet/body edges.',
@@ -190,20 +219,53 @@ function buildPresetPolicy(presetId?: string, presetDescription?: string): Prese
 
 function mergeGuidance(primary: string, secondary?: string): string {
   if (!secondary?.trim()) return primary
-  return `${secondary.trim()} ${primary}`
+  return \`\${secondary.trim()} \${primary}\`
+}
+
+/** Build variant options text for GPT-4o to choose from */
+function buildVariantOptions(preset: any): string {
+  const lines: string[] = []
+  
+  if (preset?.scenes?.length) {
+    lines.push('SCENE VARIANTS (pick one):')
+    for (const s of preset.scenes) {
+      lines.push(\`  - id: "\${s.id}" | bestFor: \${s.bestFor} | scene: \${s.scene.substring(0, 100)}...\`)
+    }
+  }
+  if (preset?.cameras?.length) {
+    lines.push('CAMERA ANGLES (pick one):')
+    for (const c of preset.cameras) {
+      lines.push(\`  - id: "\${c.id}" | bestFor: \${c.bestFor} | camera: \${c.camera}\`)
+    }
+  }
+  if (preset?.colorGrades?.length) {
+    lines.push('COLOR GRADES (pick one):')
+    for (const g of preset.colorGrades) {
+      lines.push(\`  - id: "\${g.id}" | bestFor: \${g.bestFor} | grade: \${g.grade.substring(0, 80)}...\`)
+    }
+  }
+  
+  return lines.join('\\n')
 }
 
 async function buildVisionRealismGuidance(params: {
   personImageBase64?: string
   presetDescription: string
   userRequest?: string
-}): Promise<{ anchorZone: string; realismGuidance: string; lightingBlueprint: string; scenarioVariant: string }> {
+  presetId?: string
+}): Promise<{ anchorZone: string; realismGuidance: string; lightingBlueprint: string; scenarioVariant: string; selectedSceneId?: string; selectedCameraId?: string; selectedColorGradeId?: string }> {
   const openai = getOpenAI()
+  
+  // Get the preset to provide variant options
+  const preset = params.presetId ? getPresetById(params.presetId) : undefined
+  const variantOptions = preset ? buildVariantOptions(preset) : ''
 
-  const userText = `Selected environment preset: ${params.presetDescription}
-Optional user request: ${params.userRequest || 'none'}
+  const userText = \`Selected environment preset: \${params.presetDescription}
+Optional user request: \${params.userRequest || 'none'}
 
-Refine the environment for photorealism. The person must appear lit by and grounded in this same environment (coherent lighting and shadows, no pasted-on look). Describe only environment and camera realism; do not describe the person.`
+\${variantOptions ? \`\\nAVAILABLE VARIANTS:\\n\${variantOptions}\\n\\nAnalyze the person's photo and pick the BEST variant for each category based on their skin tone, lighting, framing, and style.\` : ''}
+
+Refine the environment for photorealism. The person must appear lit by and grounded in this same environment. Describe only environment and camera realism; do not describe the person.\`
 
   const content: any[] = [{ type: 'text', text: userText }]
   if (params.personImageBase64) {
@@ -224,7 +286,7 @@ Refine the environment for photorealism. The person must appear lit by and groun
     ],
     response_format: { type: 'json_object' },
     temperature: 0.2,
-    max_tokens: 280,
+    max_tokens: 400,
   })
 
   const raw = response.choices[0]?.message?.content || '{}'
@@ -233,19 +295,25 @@ Refine the environment for photorealism. The person must appear lit by and groun
     realismGuidance?: string
     lightingBlueprint?: string
     scenarioVariant?: string
+    selectedSceneId?: string
+    selectedCameraId?: string
+    selectedColorGradeId?: string
   }
 
   return {
     anchorZone: (parsed.anchorZone || params.presetDescription).trim(),
     realismGuidance: (
       parsed.realismGuidance ||
-      'Single coherent photograph: subject lit by and grounded in the same environment; shadows and highlights on the subject consistent with the scene; consistent perspective and depth; no pasted-on or cut-out look.'
+      'Single coherent photograph: subject lit by and grounded in the same environment.'
     ).trim(),
     lightingBlueprint: (
       parsed.lightingBlueprint ||
-      'Match scene lighting on subject: natural key and fill from visible environment sources, coherent shadow direction and softness, and consistent color temperature between subject and background.'
+      'Match scene lighting on subject: natural key and fill from visible environment sources.'
     ).trim(),
     scenarioVariant: (parsed.scenarioVariant || 'preset_refined').trim(),
+    selectedSceneId: parsed.selectedSceneId,
+    selectedCameraId: parsed.selectedCameraId,
+    selectedColorGradeId: parsed.selectedColorGradeId,
   }
 }
 
@@ -274,13 +342,22 @@ export async function getStrictSceneConfig(
     // authoritative environment and must not be replaced by fallback.
     if (presetDescription.length > 0) {
       const deterministicPreset = presetId || 'preset_selected'
-      const presetPolicy = buildPresetPolicy(deterministicPreset, presetDescription)
       try {
         const refined = await buildVisionRealismGuidance({
           personImageBase64: input.personImageBase64,
           presetDescription,
           userRequest,
+          presetId: deterministicPreset,
         })
+        // Build policy using AI-selected variants
+        const presetPolicy = buildPresetPolicy(
+          deterministicPreset, 
+          presetDescription, 
+          refined.selectedSceneId, 
+          refined.selectedCameraId, 
+          refined.selectedColorGradeId
+        )
+        console.log(`🎯 AI Variant Selection: scene=${refined.selectedSceneId || 'default'} camera=${refined.selectedCameraId || 'default'} grade=${refined.selectedColorGradeId || 'default'}`)
         return {
           preset: deterministicPreset,
           scenarioVariant: refined.scenarioVariant || 'preset_locked',
@@ -296,6 +373,7 @@ export async function getStrictSceneConfig(
             .join('; ') || undefined,
         }
       } catch {
+        const presetPolicy = buildPresetPolicy(deterministicPreset, presetDescription)
         return {
           preset: deterministicPreset,
           scenarioVariant: 'preset_locked',
