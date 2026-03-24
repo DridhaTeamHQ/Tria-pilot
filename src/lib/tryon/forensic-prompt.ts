@@ -214,30 +214,30 @@ function condenseScene(scene: string, maxLen: number): string {
 function condenseLighting(lighting: string, maxLen: number): string {
   const lower = lighting.toLowerCase()
 
-  // Extract a meaningful description with direction and quality
+  // Extract the main light type — keep SHORT to preserve identity token budget
   if (lower.includes('golden') || lower.includes('sunset') || lower.includes('golden hour')) {
-    return 'Warm golden-hour side lighting with long shadows, orange-amber color temperature around 3000K'
+    return 'Warm golden-hour lighting'
   }
   if (lower.includes('daylight') || lower.includes('natural')) {
-    return 'Natural open daylight, neutral 5500K color temperature, soft diffused shadows'
+    return 'Natural daylight'
   }
   if (lower.includes('softbox') || lower.includes('studio')) {
-    return 'Soft studio lighting with controlled fill, even illumination, minimal harsh shadows'
+    return 'Soft studio lighting'
   }
   if (lower.includes('window')) {
-    return 'Window side-light with gradual falloff, directional warmth, natural shadow on opposite side'
+    return 'Window light'
   }
   if (lower.includes('candle') || lower.includes('diya') || lower.includes('festive')) {
-    return 'Warm candlelight from multiple low sources, 2500K color temperature, flickering warmth with soft shadows'
+    return 'Warm candlelight'
   }
   if (lower.includes('overcast')) {
-    return 'Overcast diffused daylight, flat even illumination, minimal shadows, cool 6500K tone'
+    return 'Overcast daylight'
   }
   if (lower.includes('flash')) {
-    return 'Direct flash with harsh frontal light, slight shadow falloff behind subject'
+    return 'Direct flash'
   }
 
-  // Fallback: use first sentence of the lighting description
-  const brief = lighting.split('.').slice(0, 2).join('.').trim()
+  // Fallback: take first short phrase
+  const brief = lighting.split('.')[0].trim()
   return brief.length > maxLen ? brief.substring(0, maxLen - 3) + '...' : brief
 }
