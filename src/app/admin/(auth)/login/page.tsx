@@ -70,15 +70,26 @@ function AdminLoginContent() {
     const normalizedEmail = email.trim().toLowerCase()
 
     if (!normalizedEmail || !password) {
+      setAuthNotice({
+        tone: 'warning',
+        title: 'Missing details',
+        body: 'Please enter your admin email and password.',
+      })
       toast.error('Please enter email and password')
       return
     }
 
     if (!normalizedEmail.includes('@')) {
+      setAuthNotice({
+        tone: 'warning',
+        title: 'Invalid email',
+        body: 'Please enter a valid admin email address.',
+      })
       toast.error('Please enter a valid admin email address.')
       return
     }
 
+    setAuthNotice(null)
     setLoading(true)
     try {
       const response = await fetch('/api/auth/login', {
@@ -90,8 +101,18 @@ function AdminLoginContent() {
       const data = await response.json().catch(() => ({}))
       if (!response.ok) {
         if (data?.errorCode === 'INVALID_PASSWORD') {
+          setAuthNotice({
+            tone: 'warning',
+            title: 'Incorrect password',
+            body: 'That password did not match this admin account. Please try again.',
+          })
           throw new Error('Incorrect password. Please try again.')
         }
+        setAuthNotice({
+          tone: 'warning',
+          title: 'Sign-in failed',
+          body: data?.error || 'Login failed',
+        })
         throw new Error(data?.error || 'Login failed')
       }
 
@@ -111,6 +132,13 @@ function AdminLoginContent() {
       router.push('/admin')
       router.refresh()
     } catch (err) {
+      if (!(err instanceof Error && err.message === 'Incorrect password. Please try again.')) {
+        setAuthNotice({
+          tone: 'warning',
+          title: 'Sign-in failed',
+          body: err instanceof Error ? err.message : 'Login failed',
+        })
+      }
       toast.error(err instanceof Error ? err.message : 'Login failed')
     } finally {
       setLoading(false)

@@ -178,10 +178,16 @@ function LoginContent() {
 
     const normalizedIdentifier = identifier.trim().toLowerCase()
     if (!normalizedIdentifier || !password) {
+      setAuthNotice({
+        tone: 'warning',
+        title: 'Missing details',
+        body: 'Please enter your username/email and password.',
+      })
       toast.error('Please enter your username/email and password.')
       return
     }
 
+    setAuthNotice(null)
     setLoading(true)
 
     try {
@@ -200,25 +206,50 @@ function LoginContent() {
 
       if (!res.ok) {
         if (data?.noUserFound || data?.errorCode === 'USER_NOT_FOUND') {
+          setAuthNotice({
+            tone: 'warning',
+            title: 'Account not found',
+            body: 'No user was found with this username or email. Please sign up first.',
+          })
           toast.error('No user found with this username/email. Please sign up first.')
           return
         }
 
         if (data?.errorCode === 'INVALID_PASSWORD') {
+          setAuthNotice({
+            tone: 'warning',
+            title: 'Incorrect password',
+            body: 'That password did not match this account. Please try again.',
+          })
           toast.error('Incorrect password. Please try again.')
           return
         }
 
         if (data?.errorCode === 'EMAIL_NOT_CONFIRMED') {
+          setAuthNotice({
+            tone: 'warning',
+            title: 'Email not confirmed',
+            body: 'Please confirm your email before signing in.',
+          })
           toast.error('Please confirm your email before signing in.')
           return
         }
 
         if (data?.errorCode === 'RATE_LIMITED') {
+          setAuthNotice({
+            tone: 'warning',
+            title: 'Too many attempts',
+            body: 'Please wait a bit before trying to sign in again.',
+          })
           toast.error('Too many attempts. Please wait and try again.')
           return
         }
 
+        setAuthNotice({
+          tone: 'warning',
+          title: 'Sign-in failed',
+          body: data.error ?? 'Failed to sign in. Please try again.',
+        })
         toast.error(data.error ?? 'Failed to sign in. Please try again.')
         return
       }
@@ -268,6 +299,11 @@ function LoginContent() {
       }
     } catch (error: unknown) {
       console.error('Login error:', error)
+      setAuthNotice({
+        tone: 'warning',
+        title: 'Sign-in failed',
+        body: error instanceof Error ? error.message : 'Failed to sign in. Please try again.',
+      })
       toast.error(error instanceof Error ? error.message : 'Failed to sign in. Please try again.')
     } finally {
       setLoading(false)
