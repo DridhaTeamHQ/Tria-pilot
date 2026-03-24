@@ -676,7 +676,7 @@ export async function generateTryOnGPT(options: DirectTryOnOptions): Promise<str
   const startTime = Date.now()
 
   const response = await client.responses.create({
-    model: 'gpt-4.1',
+    model: 'gpt-4o',
     input: [
       {
         role: 'user',
