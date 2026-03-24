@@ -18,6 +18,7 @@ import {
     Megaphone,
     BarChart3,
 } from 'lucide-react'
+import { setAuthToast } from '@/components/auth-toast-bridge'
 import LogoutButton from '@/components/LogoutButton'
 import { useUser } from '@/lib/react-query/hooks'
 import { useQueryClient } from '@tanstack/react-query'
@@ -74,9 +75,9 @@ export default function Header() {
             if (typeof window !== 'undefined') {
                 localStorage.clear()
                 sessionStorage.clear()
+                setAuthToast('logged_out')
             }
 
-            toast.success('Logged out successfully')
             if (typeof window !== 'undefined') {
                 window.location.assign('/')
                 return

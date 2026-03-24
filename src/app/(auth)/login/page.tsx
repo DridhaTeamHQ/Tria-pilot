@@ -6,6 +6,7 @@ import { motion, LayoutGroup } from 'framer-motion'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react'
+import { setAuthToast } from '@/components/auth-toast-bridge'
 import { createClient } from '@/lib/auth-client'
 import { getPublicSiteUrlClient } from '@/lib/site-url'
 import { isSyntheticEmail } from '@/lib/auth-username'
@@ -174,6 +175,13 @@ function LoginContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    const normalizedIdentifier = identifier.trim().toLowerCase()
+    if (!normalizedIdentifier || !password) {
+      toast.error('Please enter your username/email and password.')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -182,7 +190,7 @@ function LoginContent() {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          identifier: identifier.trim().toLowerCase(),
+          identifier: normalizedIdentifier,
           password,
           rememberMe: true,
         }),
@@ -193,6 +201,21 @@ function LoginContent() {
       if (!res.ok) {
         if (data?.noUserFound || data?.errorCode === 'USER_NOT_FOUND') {
           toast.error('No user found with this username/email. Please sign up first.')
+          return
+        }
+
+        if (data?.errorCode === 'INVALID_PASSWORD') {
+          toast.error('Incorrect password. Please try again.')
+          return
+        }
+
+        if (data?.errorCode === 'EMAIL_NOT_CONFIRMED') {
+          toast.error('Please confirm your email before signing in.')
+          return
+        }
+
+        if (data?.errorCode === 'RATE_LIMITED') {
+          toast.error('Too many attempts. Please wait and try again.')
           return
         }
 
@@ -214,12 +237,13 @@ function LoginContent() {
 
         const recoveryData = await recoveryRes.json().catch(() => ({}))
         if (recoveryRes.ok) {
-          toast.success('Signed in. Check both inboxes to confirm your recovery email.')
+          setAuthToast('logged_in')
+          toast.success('Check both inboxes to confirm your recovery email.')
         } else {
           toast.error(recoveryData?.error || 'Signed in, but we could not start recovery email setup.')
         }
       } else {
-        toast.success('Signed in successfully!')
+        setAuthToast('logged_in')
       }
 
       if (nextTarget === '/onboarding/brand') {
@@ -522,7 +546,7 @@ function AuthCard({
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-3.5">
+      <form onSubmit={handleSubmit} noValidate className="space-y-3.5">
         <div className="space-y-2">
           <label className="text-xs font-black uppercase tracking-[0.2em] text-black">Username / Email</label>
           <div className="relative">

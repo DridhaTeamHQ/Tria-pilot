@@ -18,6 +18,7 @@ import {
     BarChart3,
     ChevronRight,
 } from "lucide-react";
+import { setAuthToast } from "@/components/auth-toast-bridge";
 import { useUser } from "@/lib/react-query/hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import LogoutButton from "@/components/LogoutButton";
@@ -61,6 +62,7 @@ export default function BrutalNavbar() {
             if (typeof window !== "undefined") {
                 localStorage.clear();
                 sessionStorage.clear();
+                setAuthToast("logged_out");
                 window.location.assign("/");
                 return;
             }

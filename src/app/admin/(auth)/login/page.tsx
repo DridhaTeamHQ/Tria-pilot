@@ -7,6 +7,7 @@ import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, Shield } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
+import { setAuthToast } from '@/components/auth-toast-bridge'
 import { DecorativeShapes } from '@/components/brutal/onboarding/DecorativeShapes'
 
 export default function AdminLoginPage() {
@@ -66,14 +67,20 @@ function AdminLoginContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email.trim() || !password) {
+    const normalizedEmail = email.trim().toLowerCase()
+
+    if (!normalizedEmail || !password) {
       toast.error('Please enter email and password')
+      return
+    }
+
+    if (!normalizedEmail.includes('@')) {
+      toast.error('Please enter a valid admin email address.')
       return
     }
 
     setLoading(true)
     try {
-      const normalizedEmail = email.trim().toLowerCase()
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -81,7 +88,12 @@ function AdminLoginContent() {
       })
 
       const data = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error(data?.error || 'Login failed')
+      if (!response.ok) {
+        if (data?.errorCode === 'INVALID_PASSWORD') {
+          throw new Error('Incorrect password. Please try again.')
+        }
+        throw new Error(data?.error || 'Login failed')
+      }
 
       if (data?.user?.role !== 'ADMIN') {
         await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
@@ -95,6 +107,7 @@ function AdminLoginContent() {
       }
 
       await queryClient.invalidateQueries({ queryKey: ['user'] })
+      setAuthToast('admin_logged_in')
       router.push('/admin')
       router.refresh()
     } catch (err) {
@@ -194,7 +207,7 @@ function AdminLoginContent() {
                   </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+                <form onSubmit={handleSubmit} noValidate className="mt-8 space-y-4">
                   <div className="space-y-2">
                     <label htmlFor="email" className="text-xs font-black uppercase tracking-[0.2em] text-black">
                       Email Address
@@ -205,7 +218,9 @@ function AdminLoginContent() {
                       </div>
                       <input
                         id="email"
-                        type="email"
+                        type="text"
+                        inputMode="email"
+                        autoComplete="username"
                         placeholder="admin@kiwikoo.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}

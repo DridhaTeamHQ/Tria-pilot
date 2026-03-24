@@ -15,6 +15,7 @@ import {
   X,
   ChevronRight,
 } from 'lucide-react'
+import { setAuthToast } from '@/components/auth-toast-bridge'
 import LogoutButton from '@/components/LogoutButton'
 
 const navItems = [
@@ -52,6 +53,7 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
       if (typeof window !== 'undefined') {
         localStorage.clear()
         sessionStorage.clear()
+        setAuthToast('logged_out')
         window.location.assign('/')
         return
       }
