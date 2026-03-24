@@ -161,10 +161,10 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     lines.push('')
   }
 
-  // ── LINE 6: Quality (anti-AI specs + sharp background) ──
-  // Camera specs prevent cartoonish/CGI look — key Nano Banana best practice
+  // ── LINE 6: Quality (photorealism mandate + environment realism) ──
+  // Strong anti-AI directives are critical for GPT Image 1.5 and Gemini Pro
   lines.push(
-    `OUTPUT: Shot on Canon EOS R5, 85mm f/1.8 lens, ISO 200. Photorealistic candid photo with natural film grain, real skin with visible pores and micro-imperfections, sharp in-focus background with realistic texture and detail, natural depth of field, aspect ratio ${aspectRatio}.`
+    `OUTPUT: RAW photograph — NOT an illustration, NOT digital art, NOT CGI. Shot on Canon EOS R5, 50mm f/2.8 lens, ISO 200. Real environment with authentic materials, textures, and natural lighting. Visible film grain, real skin with pores and micro-imperfections, high dynamic range with realistic shadows and highlights. Contextually appropriate depth of field. Aspect ratio ${aspectRatio}.`
   )
 
   // ── LINE 7: Retry (only on retry, minimal) ──
