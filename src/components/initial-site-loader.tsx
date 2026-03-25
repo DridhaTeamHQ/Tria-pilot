@@ -11,6 +11,7 @@ export default function InitialSiteLoader() {
   const [visible, setVisible] = useState(false)
   const [videoReady, setVideoReady] = useState(false)
   const [videoError, setVideoError] = useState(false)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
   const dismissRequestedRef = useRef(false)
   const dismissTimerRef = useRef<number | null>(null)
   const fallbackTimerRef = useRef<number | null>(null)
@@ -92,6 +93,47 @@ export default function InitialSiteLoader() {
     }
   }, [pathname])
 
+  useEffect(() => {
+    if (!visible || pathname !== "/") return
+
+    const video = videoRef.current
+    if (!video) return
+
+    let cancelled = false
+
+    const startPlayback = async () => {
+      try {
+        video.pause()
+        video.currentTime = 0
+        video.load()
+
+        const maybePromise = video.play()
+        if (maybePromise && typeof maybePromise.then === "function") {
+          await maybePromise
+        }
+
+        if (!cancelled) {
+          setVideoReady(true)
+          setVideoError(false)
+        }
+      } catch {
+        if (!cancelled) {
+          setVideoError(true)
+          setVideoReady(false)
+        }
+      }
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      void startPlayback()
+    })
+
+    return () => {
+      cancelled = true
+      window.cancelAnimationFrame(frame)
+    }
+  }, [pathname, visible])
+
   return (
     <AnimatePresence>
       {visible ? (
@@ -104,37 +146,11 @@ export default function InitialSiteLoader() {
         >
           <div className="absolute inset-0 bg-[#f6a313]" />
 
-          <div className="absolute inset-0 flex items-center justify-center p-6 sm:p-8 md:p-10">
-            <div className="relative flex aspect-video w-full max-w-[min(84vw,960px)] max-h-[52vh] items-center justify-center overflow-hidden">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.96 }}
-                animate={{ opacity: videoReady ? 0 : 1, scale: videoReady ? 0.985 : 1 }}
-                transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-                className="absolute inset-0 flex flex-col items-center justify-center"
-              >
-                <motion.h1
-                  animate={{
-                    scale: [0.985, 1.02, 0.99],
-                    opacity: [0.92, 1, 0.94],
-                  }}
-                  transition={{
-                    duration: 1.9,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                  className="text-center font-black uppercase tracking-[0.04em] text-black"
-                  style={{
-                    fontFamily: 'var(--font-bungee), "Arial Black", Impact, sans-serif',
-                    fontSize: "clamp(1.9rem, 5.2vw, 4.5rem)",
-                    lineHeight: 0.92,
-                  }}
-                >
-                  KIWIKOO
-                </motion.h1>
-              </motion.div>
-
+          <div className="absolute inset-0 flex items-center justify-center p-4 sm:p-6 md:p-8">
+            <div className="relative flex aspect-video w-full max-w-[min(92vw,1180px)] max-h-[68vh] items-center justify-center overflow-hidden">
               {!videoError ? (
                 <motion.video
+                  ref={videoRef}
                   initial={{ opacity: 0, scale: 0.985 }}
                   animate={{ opacity: videoReady ? 1 : 0, scale: videoReady ? 1 : 0.985 }}
                   transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
@@ -144,8 +160,22 @@ export default function InitialSiteLoader() {
                   muted
                   playsInline
                   preload="auto"
-                  onLoadedData={() => setVideoReady(true)}
-                  onCanPlay={() => setVideoReady(true)}
+                  onLoadedMetadata={() => {
+                    setVideoReady(true)
+                    setVideoError(false)
+                  }}
+                  onLoadedData={() => {
+                    setVideoReady(true)
+                    setVideoError(false)
+                  }}
+                  onCanPlay={() => {
+                    setVideoReady(true)
+                    setVideoError(false)
+                  }}
+                  onPlay={() => {
+                    setVideoReady(true)
+                    setVideoError(false)
+                  }}
                   onEnded={() =>
                     (window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro?.()
                   }
