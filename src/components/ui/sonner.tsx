@@ -17,22 +17,22 @@ const Toaster = (props: ToasterProps) => {
     <>
       <Sonner
         {...props}
-        position="top-center"
+        position="top-right"
         theme={theme as ToasterProps["theme"]}
         richColors
         closeButton
         expand={false}
         visibleToasts={4}
-        duration={5000}
+        duration={3000}
         className="toaster group"
-        offset={24}
-        mobileOffset={24}
+        offset={16}
+        mobileOffset={12}
         toastOptions={{
-          duration: 5000,
+          duration: 3000,
           ...props.toastOptions,
           classNames: {
             toast:
-              "!opacity-100 !visible rounded-[20px] border-[3px] border-black bg-white px-4 py-3 font-sans shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] min-w-[320px] sm:min-w-[360px]",
+              "!opacity-100 !visible rounded-[18px] border-[3px] border-black bg-white px-4 py-3 font-sans shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] min-w-[300px] sm:min-w-[340px]",
             title: "font-black uppercase tracking-[0.16em] text-[11px] text-black",
             description: "mt-1 text-sm font-bold leading-relaxed text-black/75",
             success: "!bg-[#E8FFB4] !text-black border-black",
@@ -73,13 +73,13 @@ const Toaster = (props: ToasterProps) => {
             position: fixed !important;
             top: 0 !important;
             bottom: auto !important;
-            left: 50% !important;
-            right: auto !important;
-            transform: translateX(-50%) !important;
-            padding-top: max(1.5rem, env(safe-area-inset-top)) !important;
+            left: auto !important;
+            right: 1rem !important;
+            transform: none !important;
+            padding-top: max(1rem, env(safe-area-inset-top)) !important;
             z-index: 2147483647 !important;
             pointer-events: none !important;
-            width: min(460px, calc(100vw - 2rem)) !important;
+            width: min(380px, calc(100vw - 2rem)) !important;
             max-width: calc(100vw - 2rem) !important;
           }
           [data-sonner-toaster] [data-sonner-toast] {
