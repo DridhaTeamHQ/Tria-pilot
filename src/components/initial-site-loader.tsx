@@ -3,7 +3,6 @@
 import { AnimatePresence, motion } from "framer-motion"
 import { useEffect, useRef, useState } from "react"
 
-const INTRO_STORAGE_KEY = "kiwikoo-intro-seen"
 const INTRO_FALLBACK_MS = 7000
 
 export default function InitialSiteLoader() {
@@ -12,12 +11,6 @@ export default function InitialSiteLoader() {
 
   useEffect(() => {
     if (typeof window === "undefined") return
-
-    const hasSeenIntro = window.sessionStorage.getItem(INTRO_STORAGE_KEY) === "true"
-
-    if (hasSeenIntro) {
-      return
-    }
 
     setVisible(true)
 
@@ -35,7 +28,6 @@ export default function InitialSiteLoader() {
     function dismiss() {
       if (hasDismissedRef.current) return
       hasDismissedRef.current = true
-      window.sessionStorage.setItem(INTRO_STORAGE_KEY, "true")
       setVisible(false)
       window.clearTimeout(fallbackTimer)
       restoreBody()
