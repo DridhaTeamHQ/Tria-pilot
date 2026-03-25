@@ -3,7 +3,6 @@ import type React from 'react'
 import { Bungee } from 'next/font/google'
 import AuthToastBridge from '@/components/auth-toast-bridge'
 import InitialSiteLoader from '@/components/initial-site-loader'
-import KiwikooToastViewport from '@/components/kiwikoo-toast-viewport'
 import { Toaster } from '@/components/ui/sonner'
 import NavSwitcher from '@/components/landing/NavSwitcher'
 import ProfileCompletionGate from '@/components/ProfileCompletionGate'
@@ -50,7 +49,6 @@ export default function RootLayout({
         <ReactQueryProvider>
           <InitialSiteLoader />
           <Toaster />
-          <KiwikooToastViewport />
           <AuthToastBridge />
           <ReactLenis>
             <NavSwitcher />
