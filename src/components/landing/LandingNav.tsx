@@ -16,7 +16,7 @@ export default function LandingNav() {
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-5 lg:px-6">
         <Link
           href="/"
-          className="shrink-0 text-[24px] font-black tracking-[-0.04em] text-[#111111] sm:text-[28px]"
+          className="kiwikoo-wordmark shrink-0 text-[24px] font-black text-[#111111] sm:text-[28px]"
         >
           Kiwikoo
         </Link>

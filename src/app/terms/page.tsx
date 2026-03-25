@@ -4,7 +4,7 @@ export default function TermsPage() {
   return (
     <main className="min-h-screen bg-[#f8f5ef] text-black">
       <div className="mx-auto max-w-5xl px-6 py-14 sm:px-8 lg:px-10">
-        <Link href="/" className="text-3xl font-black tracking-tight text-black">
+        <Link href="/" className="kiwikoo-wordmark text-3xl text-black">
           Kiwikoo
         </Link>
 

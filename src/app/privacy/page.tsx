@@ -4,7 +4,7 @@ export default function PrivacyPage() {
   return (
     <main className="min-h-screen bg-cream">
       <div className="container mx-auto px-6 py-16 max-w-4xl">
-        <Link href="/" className="text-3xl font-serif font-bold text-charcoal">
+        <Link href="/" className="kiwikoo-wordmark text-3xl text-charcoal">
           Kiwikoo
         </Link>
         <h1 className="text-5xl font-serif font-bold text-charcoal mt-6">Privacy Policy</h1>
@@ -37,4 +37,3 @@ export default function PrivacyPage() {
     </main>
   )
 }
-

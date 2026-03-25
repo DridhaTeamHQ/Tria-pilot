@@ -137,7 +137,7 @@ export default function BrutalNavbar() {
                     <Link
                         href="/"
                         prefetch={true}
-                        className="text-2xl md:text-3xl font-black tracking-tight text-black hover:text-[#FF8C69] transition-colors shrink-0"
+                        className="kiwikoo-wordmark text-2xl md:text-3xl font-black text-black hover:text-[#FF8C69] transition-colors shrink-0"
                     >
                         Kiwikoo
                     </Link>

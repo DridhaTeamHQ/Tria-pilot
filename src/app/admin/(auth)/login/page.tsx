@@ -102,7 +102,7 @@ function AdminLoginContent() {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6 text-3xl font-black text-black lg:mb-10"
+          className="kiwikoo-wordmark mb-6 text-3xl text-black lg:mb-10"
         >
           Kiwikoo
         </motion.div>

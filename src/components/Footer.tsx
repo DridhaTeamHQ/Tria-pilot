@@ -6,7 +6,7 @@ export default function Footer() {
             <div className="mx-auto max-w-7xl px-6 md:px-8">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-10 md:gap-12">
                     <div className="space-y-4">
-                        <h3 className="text-xl font-black text-black uppercase tracking-tight">Kiwikoo</h3>
+                        <h3 className="kiwikoo-wordmark text-xl font-black text-black">Kiwikoo</h3>
                         <p className="text-sm text-black/70 font-bold leading-relaxed max-w-xs">
                             AI-powered fashion try-on marketplace connecting influencers and brands.
                         </p>

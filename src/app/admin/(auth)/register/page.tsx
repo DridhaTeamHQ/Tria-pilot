@@ -73,7 +73,7 @@ export default function AdminRegisterPage() {
       >
         <DecorativeShapes />
         <div className="relative z-10 max-w-lg">
-          <Link href="/" className="text-5xl font-black text-black mb-8 block font-serif tracking-tight">
+          <Link href="/" className="kiwikoo-wordmark mb-8 block text-5xl text-black">
             Kiwikoo
           </Link>
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-black text-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] w-fit mb-8">
@@ -97,7 +97,7 @@ export default function AdminRegisterPage() {
         className="w-full lg:w-1/2 flex items-center justify-center px-8 py-12 relative z-10"
       >
         <div className="w-full max-w-md bg-white p-8 rounded-xl border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-          <Link href="/" className="lg:hidden text-4xl font-black text-black mb-8 block font-serif">
+          <Link href="/" className="kiwikoo-wordmark mb-8 block text-4xl text-black lg:hidden">
             Kiwikoo
           </Link>
 
@@ -188,4 +188,3 @@ export default function AdminRegisterPage() {
     </div>
   )
 }
-

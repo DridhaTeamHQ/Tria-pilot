@@ -69,7 +69,7 @@ export default function ForgotPasswordPage() {
             className="mb-10"
           >
             <Link href="/">
-              <span className="inline-block px-4 py-2 bg-[#F9F8F4] text-2xl font-black text-black border-[3px] border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all">
+                <span className="kiwikoo-wordmark inline-block px-4 py-2 bg-[#F9F8F4] text-2xl font-black text-black border-[3px] border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all">
                 Kiwikoo
               </span>
             </Link>
@@ -148,7 +148,7 @@ export default function ForgotPasswordPage() {
                 className="text-center mb-2 lg:hidden"
               >
                 <Link href="/">
-                  <span className="inline-block px-3 py-1 bg-[#FFD93D] text-lg font-black text-black border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  <span className="kiwikoo-wordmark inline-block px-3 py-1 bg-[#FFD93D] text-lg font-black text-black border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                     Kiwikoo
                   </span>
                 </Link>

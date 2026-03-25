@@ -171,7 +171,7 @@ export default function Header() {
                     <Link
                         href="/"
                         prefetch={true}
-                        className={`text-2xl font-serif font-bold transition-colors ${logoColor}`}
+                        className={`kiwikoo-wordmark text-2xl transition-colors ${logoColor}`}
                         data-cursor="Home"
                     >
                         Kiwikoo

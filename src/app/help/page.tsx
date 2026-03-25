@@ -53,7 +53,7 @@ export default function HelpPage() {
   return (
     <main className="min-h-screen bg-cream">
       <div className="container mx-auto px-6 py-16 max-w-4xl">
-        <Link href="/" className="text-3xl font-serif font-bold text-charcoal">
+        <Link href="/" className="kiwikoo-wordmark text-3xl text-charcoal">
           Kiwikoo
         </Link>
 
@@ -113,4 +113,3 @@ export default function HelpPage() {
     </main>
   )
 }
-

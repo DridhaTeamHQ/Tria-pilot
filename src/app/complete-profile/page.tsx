@@ -72,7 +72,7 @@ export default function CompleteProfilePage() {
           <div className="absolute bottom-[-20%] left-[-10%] w-[70%] h-[70%] bg-orange-200/40 rounded-full blur-[100px]" />
         </div>
         <div className="relative z-10 flex flex-col justify-center px-16">
-          <Link href="/" className="text-4xl font-serif font-bold text-charcoal mb-8">
+          <Link href="/" className="kiwikoo-wordmark mb-8 text-4xl text-charcoal">
             Kiwikoo
           </Link>
           <h1 className="text-5xl font-serif text-charcoal leading-tight mb-6">
@@ -92,7 +92,7 @@ export default function CompleteProfilePage() {
         className="w-full lg:w-1/2 flex items-center justify-center px-8 py-12"
       >
         <div className="w-full max-w-md">
-          <Link href="/" className="lg:hidden text-3xl font-serif font-bold text-charcoal mb-8 block">
+          <Link href="/" className="kiwikoo-wordmark mb-8 block text-3xl text-charcoal lg:hidden">
             Kiwikoo
           </Link>
 
@@ -187,4 +187,3 @@ export default function CompleteProfilePage() {
     </div>
   )
 }
-

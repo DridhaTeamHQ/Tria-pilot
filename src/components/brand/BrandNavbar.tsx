@@ -71,7 +71,7 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
         <div className="grid h-14 grid-cols-[auto_1fr_auto] items-center gap-2 lg:h-16 lg:gap-4">
           <Link
             href="/brand/dashboard"
-            className="text-[2rem] md:text-[1.9rem] lg:text-[2.1rem] font-black tracking-tight text-black hover:text-[#B4F056] transition-colors shrink-0 leading-none"
+            className="kiwikoo-wordmark text-[2rem] md:text-[1.9rem] lg:text-[2.1rem] font-black text-black hover:text-[#B4F056] transition-colors shrink-0 leading-none"
           >
             Kiwikoo
           </Link>
