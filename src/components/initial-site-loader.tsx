@@ -58,31 +58,31 @@ export default function InitialSiteLoader() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          className="fixed inset-0 z-[2147483646] flex items-center justify-center bg-[#111111]"
+          className="fixed inset-0 z-[2147483646] overflow-hidden bg-[#111111]"
         >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(202,255,51,0.12),transparent_42%),radial-gradient(circle_at_top,rgba(255,138,115,0.16),transparent_28%)]" />
+          <video
+            className="absolute inset-0 h-full w-full object-cover object-center"
+            src="/assets/kiwikooanimation.mp4"
+            autoPlay
+            muted
+            playsInline
+            preload="auto"
+            onEnded={() =>
+              (window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro?.()
+            }
+            onError={() =>
+              (window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro?.()
+            }
+          />
+
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.06),transparent_38%),linear-gradient(to_bottom,rgba(0,0,0,0.08),rgba(0,0,0,0.1))]" />
 
           <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-            className="relative flex w-full max-w-[860px] items-center justify-center px-4 sm:px-6"
-          >
-            <video
-              className="w-full max-h-[78vh] object-contain"
-              src="/assets/kiwikooanimation.mp4"
-              autoPlay
-              muted
-              playsInline
-              preload="auto"
-              onEnded={() =>
-                (window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro?.()
-              }
-              onError={() =>
-                (window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro?.()
-              }
-            />
-          </motion.div>
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="pointer-events-none absolute inset-0 ring-1 ring-white/8"
+          />
         </motion.div>
       ) : null}
     </AnimatePresence>
