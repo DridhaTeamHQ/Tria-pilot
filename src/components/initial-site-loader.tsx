@@ -17,6 +17,7 @@ export default function InitialSiteLoader() {
   const fallbackTimerRef = useRef<number | null>(null)
   const startedAtRef = useRef(0)
   const originalOverflowRef = useRef<string | null>(null)
+  const originalHtmlOverflowRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -36,6 +37,10 @@ export default function InitialSiteLoader() {
       if (originalOverflowRef.current !== null) {
         document.body.style.overflow = originalOverflowRef.current
         originalOverflowRef.current = null
+      }
+      if (originalHtmlOverflowRef.current !== null) {
+        document.documentElement.style.overflow = originalHtmlOverflowRef.current
+        originalHtmlOverflowRef.current = null
       }
     }
 
@@ -70,7 +75,9 @@ export default function InitialSiteLoader() {
     setVideoReady(false)
     setVideoError(false)
     originalOverflowRef.current = document.body.style.overflow
+    originalHtmlOverflowRef.current = document.documentElement.style.overflow
     document.body.style.overflow = "hidden"
+    document.documentElement.style.overflow = "hidden"
     setVisible(true)
 
     fallbackTimerRef.current = window.setTimeout(() => {
@@ -94,7 +101,7 @@ export default function InitialSiteLoader() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          className="fixed inset-0 z-[2147483646] overflow-hidden bg-[#ff8a73]"
+          className="fixed inset-0 z-[2147483646] h-dvh overflow-hidden overscroll-none bg-[#ff8a73] touch-none"
         >
           <div className="absolute inset-0 bg-[#ff8a73]" />
 
