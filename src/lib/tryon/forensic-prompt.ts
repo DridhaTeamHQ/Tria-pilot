@@ -98,7 +98,7 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   // ── LINE 1: Name Anchor + Core Identity Task (FIRST — most critical position) ──
   const namePrefix = input.nameAnchor ? `A portrait of ${input.nameAnchor}. ` : ''
   lines.push(
-    `${namePrefix}Same person, identical facial structure, no face variation. Generate a photorealistic photo of the EXACT person from ${personRef} wearing the garment from ${garmentRef}.`
+    `${namePrefix}Same person, identical facial structure, no face variation. Generate a single cohesive photorealistic photograph of the EXACT person from ${personRef} wearing the outfit from ${garmentRef}. This is ONE real photo, not a composite.`
   )
   lines.push('')
 
@@ -134,8 +134,8 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     lines.push('')
   }
 
-  // ── LINE 3: Body (one line) ──
-  lines.push(`BODY: Same body shape, weight, and proportions as ${personRef}.`)
+  // ── LINE 3: Body + Creative freedom ──
+  lines.push(`BODY: Same body type and proportions as ${personRef}. You have FULL creative freedom on pose, expression, camera angle, and body language — choose what looks most natural and compelling for the scene. The person should look like they BELONG in the environment.`)
   lines.push('')
 
   // ── LINE 4: Garment (explicit — ONLY from garment ref, full outfit) ──
@@ -144,23 +144,23 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   )
   lines.push('')
 
-  // ── LINE 5: SCENE (environment — give 4o creative latitude) ──
+  // ── LINE 5: SCENE (holistic — person IS in the scene, not composited) ──
   if (isSceneChange && sceneBrief) {
-    lines.push(`SCENE: ${sceneBrief}. Person is physically present in this real location — consistent perspective, depth of field, and spatial integration with the environment.`)
+    lines.push(`SCENE: ${sceneBrief}. This person was actually photographed here — environment light falls on their skin and clothes, ambient colors reflect on their face, shadows are cast by the same light sources. Foreground, subject, and background share one unified perspective and depth of field.`)
   } else {
     lines.push(`SCENE: Keep original background from ${personRef}.`)
   }
   lines.push('')
 
-  // ── LINE 5a: LIGHTING (direction + quality for environment match) ──
+  // ── LINE 5a: LIGHTING (environmental light interaction) ──
   if (isSceneChange && lightingBrief) {
-    lines.push(`LIGHTING: ${lightingBrief}. Matching light direction and shadows between subject and environment.`)
+    lines.push(`LIGHTING: ${lightingBrief}. The environment light FALLS ON the subject — color spill from surroundings tints skin and fabric, shadows match scene light direction, highlights come from the same sources that illuminate the background.`)
   }
   lines.push('')
 
-  // ── LINE 6: OUTPUT (photo quality + depth + aspect ratio) ──
+  // ── LINE 6: OUTPUT (single photograph quality) ──
   lines.push(
-    `OUTPUT: RAW photograph, DSLR quality, natural depth of field with realistic bokeh falloff, visible skin texture with pores, environment has real-world imperfections and depth layers. Aspect ratio ${aspectRatio}.`
+    `OUTPUT: Single RAW photograph from one camera, one moment in time. DSLR quality with natural bokeh, visible skin pores, real-world imperfections in environment. NOT a composite or collage. Aspect ratio ${aspectRatio}.`
   )
 
   // ── LINE 7: Retry (only on retry, minimal) ──
@@ -169,7 +169,7 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   }
 
   // ── LINE 8: Concise avoid (critical items) ──
-  lines.push(`AVOID: beautification, skin smoothing, face reshaping.`)
+  lines.push(`AVOID: beautification, skin smoothing, face reshaping, green-screen look, mismatched lighting between subject and background, flat pasted-on appearance.`)
 
   return lines.join('\n')
 }
