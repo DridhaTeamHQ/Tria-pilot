@@ -27,12 +27,13 @@ const Toaster = (props: ToasterProps) => {
         className="toaster group"
         offset={16}
         mobileOffset={12}
+        gap={10}
         toastOptions={{
           duration: 3000,
           ...props.toastOptions,
           classNames: {
             toast:
-              "!opacity-100 !visible rounded-[18px] border-[3px] border-black bg-white px-4 py-3 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] w-[min(320px,calc(100vw-1.5rem))]",
+              "!opacity-100 !visible rounded-[18px] border-[3px] border-black bg-white px-4 py-3 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] w-[min(320px,calc(100vw-1.5rem))] pointer-events-auto",
             title: "text-[12px] font-black uppercase tracking-[0.14em] text-black",
             description: "mt-1 text-[13px] font-semibold leading-relaxed text-black/75",
             success: "!bg-[#E8FFB4] !text-black border-black",
@@ -72,16 +73,21 @@ const Toaster = (props: ToasterProps) => {
           [data-sonner-toaster] {
             z-index: 2147483647 !important;
             position: fixed !important;
-            top: 16px !important;
+            top: 20px !important;
             right: 16px !important;
             left: auto !important;
             bottom: auto !important;
+            width: auto !important;
+            pointer-events: none !important;
           }
           @media (max-width: 640px) {
             [data-sonner-toaster] {
               top: 12px !important;
               right: 12px !important;
             }
+          }
+          [data-sonner-toaster] [data-sonner-toast] {
+            pointer-events: auto !important;
           }
           [data-sonner-toaster] [data-sonner-toast] {
             font-family: Inter, "Segoe UI", Arial, sans-serif !important;

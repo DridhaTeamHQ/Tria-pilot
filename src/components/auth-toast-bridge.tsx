@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
+import { usePathname } from "next/navigation"
 import { showSuccessToast } from "@/lib/kiwikoo-toast"
 
 const AUTH_TOAST_KEY = "kiwikoo-auth-toast"
@@ -11,6 +12,8 @@ export function setAuthToast(message: "logged_in" | "logged_out" | "admin_logged
 }
 
 export default function AuthToastBridge() {
+  const pathname = usePathname()
+
   useEffect(() => {
     if (typeof window === "undefined") return
 
@@ -32,7 +35,7 @@ export default function AuthToastBridge() {
     if (pendingToast === "logged_in") {
       showSuccessToast("Signed in", "Welcome back to Kiwikoo.")
     }
-  }, [])
+  }, [pathname])
 
   return null
 }
