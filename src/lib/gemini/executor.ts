@@ -249,6 +249,52 @@ export async function geminiGenerateContent(
   return limiter.schedule(() => generateWithBackoff(params))
 }
 
+async function embedWithBackoff(params: any) {
+  const pool = initKeyPool()
+  const hasMultipleKeys = pool.length > 1
+  let attempt = 0
+  let lastError: unknown = null
+
+  while (attempt < GEMINI_MAX_RETRIES) {
+    const client = getNextClient()
+    try {
+      if (Array.isArray(params.contents)) {
+        // Batch not natively supported in this SDK version, loop over single
+        return await Promise.all(params.contents.map((c: string) => 
+          client.models.embedContent({ model: params.model, contents: c })
+        ))
+      } else {
+        return await client.models.embedContent(params)
+      }
+    } catch (error) {
+      lastError = error
+      const status = getStatusCode(error)
+
+      if (status === 429 && hasMultipleKeys) {
+        const retryMs = parseRetryAfterMs(error)
+        markKeyRateLimited(client, retryMs)
+        const now = Date.now()
+        if (pool.filter(s => now >= s.cooldownUntil).length > 0) {
+          attempt++
+          continue
+        }
+      }
+
+      if (!RETRYABLE_STATUS_CODES.has(status as number)) throw error
+      const backoffMs = parseRetryAfterMs(error) ?? BASE_BACKOFF_MS * Math.pow(2, attempt) + randomJitterMs()
+      attempt += 1
+      if (attempt >= GEMINI_MAX_RETRIES) throw lastError
+      await sleep(backoffMs)
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error('Gemini embedContent failed')
+}
+
+export async function geminiEmbedContent(params: any) {
+  // Use flash limiter for embeddings since it's fast
+  return flashLimiter.schedule(() => embedWithBackoff(params))
+}
+
 /**
  * Get the current key pool stats (for debugging/monitoring).
  */

@@ -6,7 +6,7 @@
  */
 
 import 'server-only'
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 import type { UserAnalysis } from '../intelligence/user-analyzer'
 import type { GarmentClassification } from '../intelligence/garment-classifier'
 
@@ -75,7 +75,7 @@ export async function generateScenarioEmbedding(
     console.log('🔢 Generating scenario embedding...')
     const startTime = Date.now()
 
-    const openai = getOpenAI()
+    const openai = getGeminiChat()
 
     try {
         // Build text representation
@@ -112,7 +112,7 @@ export async function generateFailurePatternEmbedding(
 ): Promise<number[]> {
     console.log('🔢 Generating failure pattern embedding...')
 
-    const openai = getOpenAI()
+    const openai = getGeminiChat()
 
     const text = `
 Failure Pattern: ${patternType}
@@ -146,7 +146,7 @@ export async function generateBatchEmbeddings(
     console.log(`🔢 Generating ${inputs.length} embeddings in batch...`)
     const startTime = Date.now()
 
-    const openai = getOpenAI()
+    const openai = getGeminiChat()
 
     try {
         const texts = inputs.map(buildScenarioText)

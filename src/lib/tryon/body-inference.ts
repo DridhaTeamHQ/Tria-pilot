@@ -8,7 +8,7 @@
  */
 
 import 'server-only'
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 
 export interface BodyInferenceResult {
     // Shoulder & Upper Body
@@ -52,7 +52,7 @@ export async function inferBodyFromFace(
 
     const startTime = Date.now()
 
-    const openai = getOpenAI()
+    const openai = getGeminiChat()
 
     try {
         const response = await openai.chat.completions.create({
@@ -183,7 +183,7 @@ export async function validateBodyMatch(
 ): Promise<{ matches: boolean; issues: string[]; confidence: number }> {
     console.log('\n🔍 Validating body match...')
 
-    const openai = getOpenAI()
+    const openai = getGeminiChat()
 
     try {
         const response = await openai.chat.completions.create({

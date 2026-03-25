@@ -10,7 +10,7 @@
  * DOES NOT TOUCH: Identity, face, scene, or model selection
  */
 
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // STRICT GARMENT JSON SCHEMA
@@ -160,7 +160,7 @@ Return ONLY the JSON. No explanation. No markdown code blocks.`
  * Returns complete JSON with all fields populated
  */
 export async function extractStrictGarmentProfile(garmentImageBase64: string): Promise<StrictGarmentProfile> {
-    const openai = getOpenAI()
+    const openai = getGeminiChat()
     const startTime = Date.now()
 
     // Strip data URL if present

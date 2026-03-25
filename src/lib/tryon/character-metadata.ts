@@ -11,7 +11,7 @@
 
 import 'server-only'
 import { createServiceClient } from '@/lib/auth'
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 
 const FORENSIC_MODEL = process.env.TRYON_FORENSIC_PROMPT_MODEL?.trim() || 'gpt-4o'
 
@@ -179,7 +179,7 @@ async function analyzeForMetadata(
     bodyDataUrl: string | null,
     sourceImageType: string
 ): Promise<CharacterMetadata | null> {
-    const openai = getOpenAI()
+    const openai = getGeminiChat()
 
     const content: any[] = [
         {

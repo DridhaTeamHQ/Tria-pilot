@@ -8,7 +8,7 @@
  * We preserve people, not beautify them.
  */
 
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 
 export interface BodyProportions {
     shoulderWidth: number        // As fraction of image width
@@ -45,7 +45,7 @@ export interface ProportionValidation {
 export async function measureBodyProportions(
     imageBase64: string
 ): Promise<BodyProportions> {
-    const openai = getOpenAI()
+    const openai = getGeminiChat()
 
     const imageUrl = imageBase64.startsWith('data:image/')
         ? imageBase64

@@ -6,7 +6,7 @@
  */
 
 import 'server-only'
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 
 /**
  * Build pose naturalism constraints for prompt
@@ -92,7 +92,7 @@ export async function validatePoseAsymmetry(
 ): Promise<{ is_asymmetrical: boolean; symmetry_score: number; issues: string[] }> {
     console.log('\n🔍 Validating pose asymmetry...')
 
-    const openai = getOpenAI()
+    const openai = getGeminiChat()
 
     try {
         const response = await openai.chat.completions.create({

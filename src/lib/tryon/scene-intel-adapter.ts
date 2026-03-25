@@ -15,7 +15,7 @@
  */
 
 import 'server-only'
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 import { getPresetById } from './presets/index'
 import { getPresetExampleGuidance, getRequestExampleGuidance } from './presets/example-prompts-reference'
 
@@ -254,7 +254,7 @@ async function buildVisionRealismGuidance(params: {
   userRequest?: string
   presetId?: string
 }): Promise<{ anchorZone: string; realismGuidance: string; lightingBlueprint: string; scenarioVariant: string; selectedSceneId?: string; selectedCameraId?: string; selectedColorGradeId?: string }> {
-  const openai = getOpenAI()
+  const openai = getGeminiChat()
   
   // Get the preset to provide variant options
   const preset = params.presetId ? getPresetById(params.presetId) : undefined
@@ -401,7 +401,7 @@ export async function getStrictSceneConfig(
       }
     }
 
-    const openai = getOpenAI()
+    const openai = getGeminiChat()
 
     const requestHint = requestGuidance
       ? `\nReference style hints from successful examples:\n- vibe: ${requestGuidance.vibe}\n- scene cues: ${requestGuidance.scene}\n- lighting cues: ${requestGuidance.lighting}`

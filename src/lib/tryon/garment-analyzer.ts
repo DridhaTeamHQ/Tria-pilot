@@ -1,4 +1,4 @@
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 
 export interface GarmentAnalysis {
   garment_type: 'dress' | 'top' | 'shirt' | 'blouse' | 'jacket' | 'sweater' | 'coat' | 'kurta' | 'kurti' | 'polo' | 't-shirt' | 'saree-blouse' | 'other'
@@ -19,7 +19,7 @@ export interface GarmentAnalysis {
  * This helps the renderer understand exactly what to apply.
  */
 export async function analyzeGarment(garmentImageBase64: string): Promise<GarmentAnalysis> {
-  const openai = getOpenAI()
+  const openai = getGeminiChat()
 
   // Strip data URL if present
   const cleanBase64 = garmentImageBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '')

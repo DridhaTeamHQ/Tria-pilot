@@ -1,5 +1,5 @@
 import 'server-only'
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 
 export interface SceneIntelligenceInput {
     selectedPreset: string
@@ -42,7 +42,7 @@ export interface SceneIntelligenceOutput {
 export async function runSceneIntelligence(
     input: SceneIntelligenceInput
 ): Promise<SceneIntelligenceOutput> {
-    const openai = getOpenAI()
+    const openai = getGeminiChat()
 
     try {
         const response = await openai.chat.completions.create({

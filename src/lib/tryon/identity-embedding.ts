@@ -15,7 +15,7 @@
 
 import 'server-only'
 import { createServiceClient } from '@/lib/auth'
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 import { getGeminiKey } from '@/lib/config/api-keys'
 
 const FORENSIC_MODEL = process.env.TRYON_FORENSIC_PROMPT_MODEL?.trim() || 'gpt-4o'
@@ -175,7 +175,7 @@ export async function extractIdentityEmbedding(
 async function analyzeMultipleImages(
   images: { type: string; dataUrl: string }[]
 ): Promise<IdentityEmbedding | null> {
-  const openai = getOpenAI()
+  const openai = getGeminiChat()
 
   // Build content array with ALL images
   const content: any[] = [

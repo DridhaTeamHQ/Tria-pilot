@@ -8,7 +8,7 @@
  */
 
 import 'server-only'
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 
 export interface GarmentExtractionResult {
     hasPersonDetected: boolean
@@ -23,7 +23,7 @@ export interface GarmentExtractionResult {
 async function detectPerson(imageBase64: string): Promise<boolean> {
     console.log('🔍 Detecting if garment image contains person...')
 
-    const openai = getOpenAI()
+    const openai = getGeminiChat()
 
     try {
         const response = await openai.chat.completions.create({
@@ -95,7 +95,7 @@ async function nanoBananaExtractClothing(imageBase64: string): Promise<string> {
 async function validateExtractionQuality(extractedBase64: string): Promise<{ score: number, issues: string[] }> {
     console.log('✓ Validating extraction quality...')
 
-    const openai = getOpenAI()
+    const openai = getGeminiChat()
 
     try {
         const response = await openai.chat.completions.create({

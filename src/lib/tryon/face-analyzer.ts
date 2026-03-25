@@ -11,7 +11,7 @@
  * - Forensic facial analysis techniques
  */
 
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 
 function formatImageUrl(base64: string) {
   if (base64.startsWith('data:image/')) return base64
@@ -95,7 +95,7 @@ export async function analyzeFaceForensic(
   personImageBase64: string,
   additionalImages: string[] = []
 ): Promise<ForensicFaceAnalysis> {
-  const openai = getOpenAI()
+  const openai = getGeminiChat()
 
   const systemPrompt = `You are a FORENSIC FACIAL BIOMETRICS EXPERT creating a precise identity profile for AI image generation.
 Your analysis determines whether the AI will correctly reproduce this exact person. Errors mean identity loss.
@@ -513,7 +513,7 @@ export interface GarmentAnalysis {
 }
 
 export async function analyzeGarmentForensic(garmentImageBase64: string): Promise<GarmentAnalysis> {
-  const openai = getOpenAI()
+  const openai = getGeminiChat()
 
   const prompt = `You are a FASHION TECHNICAL DESIGNER analyzing a garment for AI image generation.
 Your analysis will be used to EXACTLY replicate this garment on a different person. Every detail matters.

@@ -1,4 +1,4 @@
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 import type { VerifyResult } from './types'
 
 function formatImageUrl(base64: string) {
@@ -11,7 +11,7 @@ export async function verifyTryOnImage(params: {
   subjectImageBase64: string
   garmentRefBase64: string
 }): Promise<VerifyResult> {
-  const openai = getOpenAI()
+  const openai = getGeminiChat()
 
   const system = `You are an EXTREMELY STRICT QA checker for a virtual try-on system.
 Your job is to catch ANY issues that make the output look fake, AI-generated, or inconsistent.

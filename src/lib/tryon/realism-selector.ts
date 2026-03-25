@@ -1,4 +1,4 @@
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 import dataset from './realism-dataset.json'
 
 export type CaptureType = 'iphone_candid' | 'dslr_mirrorless' | 'film_35mm' | 'flash_digicam' | 'unknown'
@@ -130,7 +130,7 @@ export async function selectRealismRecipe(input: RealismSelectionInput): Promise
 
   const fallbackRecipe = pickHeuristic(input, recipes)
 
-  const openai = getOpenAI()
+  const openai = getGeminiChat()
 
   const system = `You are selecting a "photorealism recipe" for a virtual try-on image edit pipeline.
 Return ONLY JSON: {"recipe_id":"...","why":"..."}.

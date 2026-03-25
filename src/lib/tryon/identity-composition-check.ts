@@ -1,5 +1,5 @@
 import 'server-only'
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 
 function toDataUrl(base64: string): string {
   if (base64.startsWith('data:image/')) return base64
@@ -37,7 +37,7 @@ export async function assessIdentityAndComposition(params: {
   presetId?: string
   anchorZone?: string
 }): Promise<IdentityCompositionAssessment> {
-  const openai = getOpenAI()
+  const openai = getGeminiChat()
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4o-mini',

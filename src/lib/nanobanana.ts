@@ -517,8 +517,13 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
     responseModalities: ['TEXT', 'IMAGE'],
     // STRONG face immutability instruction — references ALL character images explicitly.
     // Camera specs + technical language prevent cartoonish/CGI output.
-    systemInstruction: `You are a photorealistic virtual try-on photographer. Generate a real photograph.
-Rules: Same face as Image 1. Outfit from Image 2 only. Natural skin with pores, no smoothing, no AI look.`,
+    systemInstruction: `You are a world-class virtual try-on AI that generates photorealistic images.
+CRITICAL RULES:
+1. IDENTITY LOCK: The person's face MUST BE EXTREMELY IDENTICAL to Image 1.
+2. If multiple face reference photos are provided (Image 3+), use them to cross-reference their exact bone structure, nose shape, jawline, eye spacing, and skin tone. DO NOT alter their face shape, age, or ethnicity in any way.
+3. GARMENT: Apply ONLY the garment from Image 2. Ignore the clothing in the person's other photos.
+4. SCENE & BACKGROUND: Follow the Scene Environment instructions in the prompt EXACTLY. The generated background MUST match the requested setting. Do not keep the original photo's background unless explicitly asked.
+5. REALISM: Generate natural skin textures with visible pores. No plastic smoothing, no CGI look.`,
     imageConfig,
     temperature: 0.3,
     topP: 0.85,

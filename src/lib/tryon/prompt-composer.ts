@@ -18,7 +18,7 @@
  */
 
 import 'server-only'
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 import {
   getPresetById,
   getPresetSummaryForSelection,
@@ -190,7 +190,7 @@ async function selectPresetWithGPT(
   sceneHint: string,
   regionPreference: 'india' | 'global' | 'any'
 ): Promise<ScenePreset> {
-  const openai = getOpenAI()
+  const openai = getGeminiChat()
   const availablePresets = getPresetSummaryForSelection()
   const validIds = getAllPresetIds()
 

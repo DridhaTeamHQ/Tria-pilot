@@ -77,12 +77,12 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   const rawPreset = input.preset?.trim() || ''
   const keepBgPhrase = isGPT ? 'keep the original background' : 'keep background from Image 1'
   const isSceneChange = rawPreset && rawPreset !== keepBgPhrase
-  // Condense scene to just the key environment phrase, strip lighting details
-  const sceneBrief = isSceneChange ? condenseScene(rawPreset, 200) : ''
+  // Use the full scene description so Gemini understands the preset deeply
+  const sceneBrief = isSceneChange ? input.preset : ''
 
-  // Condense lighting to a very short phrase
+  // Provide the full lighting blueprint for realistic integration
   const lightingBrief = isSceneChange && input.lightingBlueprint
-    ? condenseLighting(input.lightingBlueprint, 60)
+    ? input.lightingBlueprint
     : ''
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -112,10 +112,11 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   )
   lines.push('')
 
-  // ── BLOCK 3: WHERE + HOW (scene as a creative brief — let 4o imagine the full photo) ──
   if (isSceneChange && sceneBrief) {
     lines.push(
-      `Scene: ${sceneBrief}. ${lightingBrief ? lightingBrief + '. ' : ''}Photograph this person as if they were actually here — natural pose, real lighting falling on them, environment colors reflected on skin. One cohesive photograph, ${aspectRatio} aspect ratio.`
+      `Scene Environment: ${sceneBrief}.
+Lighting & Atmosphere: ${lightingBrief || 'Natural lighting'}
+Photograph this person as if they were actually in this exact environment. Ensure their lighting matches the environment lighting perfectly. One cohesive, photorealistic photograph, ${aspectRatio} aspect ratio.`
     )
   } else {
     lines.push(

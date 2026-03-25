@@ -6,7 +6,7 @@
  */
 
 import 'server-only'
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 
 export interface FaceValidationResult {
     is_valid: boolean
@@ -28,7 +28,7 @@ export async function validateFaceMatch(
     console.log('\n🔍 FACE GUARDRAIL: Validating face match...')
     const startTime = Date.now()
 
-    const openai = getOpenAI()
+    const openai = getGeminiChat()
 
     // Clean base64
     const cleanOriginal = originalImageBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '')

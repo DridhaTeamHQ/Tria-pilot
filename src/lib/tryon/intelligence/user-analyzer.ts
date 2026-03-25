@@ -8,7 +8,7 @@
  */
 
 import 'server-only'
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 
 // ═══════════════════════════════════════════════════════════════
 // USER ANALYSIS TYPES
@@ -119,7 +119,7 @@ export async function analyzeUserImage(userImageBase64: string): Promise<UserAna
     console.log('\n👤 USER ANALYZER: Extracting user data...')
     const startTime = Date.now()
 
-    const openai = getOpenAI()
+    const openai = getGeminiChat()
 
     // Clean base64 if needed
     const cleanBase64 = userImageBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '')

@@ -10,7 +10,7 @@
  * - User gets actionable feedback
  */
 
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 
 export interface QualityCheckResult {
     isValid: boolean
@@ -35,7 +35,7 @@ export interface QualityCheckResult {
 export async function runInputQualityGate(
     imageBase64: string
 ): Promise<QualityCheckResult> {
-    const openai = getOpenAI()
+    const openai = getGeminiChat()
 
     // Format image URL
     const imageUrl = imageBase64.startsWith('data:image/')

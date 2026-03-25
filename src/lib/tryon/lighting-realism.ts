@@ -6,7 +6,7 @@
  */
 
 import 'server-only'
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 
 export type LightingLane = 'warm_daylight' | 'cool_indoor' | 'environmental'
 
@@ -112,7 +112,7 @@ export async function validateLightingDirectionality(
 ): Promise<{ is_directional: boolean; falloff_percentage: number; has_shadows: boolean }> {
     console.log('\n🔍 Validating lighting directionality...')
 
-    const openai = getOpenAI()
+    const openai = getGeminiChat()
 
     try {
         const response = await openai.chat.completions.create({

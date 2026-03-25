@@ -9,7 +9,7 @@
  * - Emphasize preservation over creativity
  */
 
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 
 export interface GeneratedPrompt {
     prompt: string
@@ -35,7 +35,7 @@ export async function generateStrictTryOnPrompt(params: {
     sceneDescription?: string
 }): Promise<GeneratedPrompt> {
     const { personImageBase64, garmentImageBase64, sceneDescription } = params
-    const openai = getOpenAI()
+    const openai = getGeminiChat()
 
     // Format image URLs
     const formatImageUrl = (base64: string) =>

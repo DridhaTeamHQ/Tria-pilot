@@ -12,7 +12,7 @@
  * NEVER SILENTLY "FIX" - failures are visible and honest.
  */
 
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 import type { FaceExtractionResult } from './face-extractor'
 import type { BodyProportions, ProportionValidation } from './body-proportion-validator'
 
@@ -49,7 +49,7 @@ export async function validateOutput(params: {
         bodyValidation
     } = params
 
-    const openai = getOpenAI()
+    const openai = getGeminiChat()
 
     const formatImageUrl = (base64: string) =>
         base64.startsWith('data:image/')

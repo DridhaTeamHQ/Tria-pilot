@@ -6,7 +6,7 @@
  */
 
 import 'server-only'
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 import type { LightingLane } from './lighting-realism'
 
 export type VariantName = 'Editorial' | 'Candid' | 'Environmental'
@@ -106,7 +106,7 @@ export async function validateVariantDifference(
 ): Promise<{ difference_score: number; differences: string[]; too_similar: boolean }> {
     console.log(`\n🔍 Comparing ${nameA} vs ${nameB}...`)
 
-    const openai = getOpenAI()
+    const openai = getGeminiChat()
 
     try {
         const response = await openai.chat.completions.create({

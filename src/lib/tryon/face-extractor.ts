@@ -13,7 +13,7 @@
  * - No enhancement
  */
 
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 
 export interface FaceLandmarks {
     leftEye: { x: number; y: number }
@@ -60,7 +60,7 @@ export interface FaceExtractionResult {
 export async function extractFaceForFreeze(
     imageBase64: string
 ): Promise<FaceExtractionResult | null> {
-    const openai = getOpenAI()
+    const openai = getGeminiChat()
 
     // Format image URL
     const imageUrl = imageBase64.startsWith('data:image/')

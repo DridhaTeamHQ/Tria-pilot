@@ -13,7 +13,7 @@
  */
 
 import 'server-only'
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -117,7 +117,7 @@ function stripDataUrl(base64: string): string {
 export async function detectHumanInClothingImage(
     imageBase64: string
 ): Promise<BodyDetectionResult> {
-    const openai = getOpenAI()
+    const openai = getGeminiChat()
 
     const clean = stripDataUrl(imageBase64)
     if (!clean || clean.length < 100) {

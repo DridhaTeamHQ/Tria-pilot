@@ -8,7 +8,7 @@
  */
 
 import 'server-only'
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 
 // ═══════════════════════════════════════════════════════════════
 // GARMENT CLASSIFICATION TYPES
@@ -101,7 +101,7 @@ export async function classifyGarment(garmentImageBase64: string): Promise<Garme
     console.log('\n🔍 GARMENT CLASSIFIER: Extracting structured data...')
     const startTime = Date.now()
 
-    const openai = getOpenAI()
+    const openai = getGeminiChat()
 
     // Clean base64 if needed
     const cleanBase64 = garmentImageBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '')

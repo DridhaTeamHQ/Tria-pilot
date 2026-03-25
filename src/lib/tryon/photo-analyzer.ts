@@ -1,4 +1,4 @@
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 
 function formatImageUrl(base64: string) {
   if (base64.startsWith('data:image/')) return base64
@@ -43,7 +43,7 @@ export interface PhotoAnalysis {
  * doesn't look "AI perfect" and stays consistent with the original capture.
  */
 export async function analyzeSubjectPhoto(subjectImageBase64: string): Promise<PhotoAnalysis> {
-  const openai = getOpenAI()
+  const openai = getGeminiChat()
 
   const system = `You are a PROFESSIONAL CINEMATOGRAPHER analyzing a photo for AI scene generation.
 Your analysis ensures the AI-generated background matches the original photo's technical characteristics.

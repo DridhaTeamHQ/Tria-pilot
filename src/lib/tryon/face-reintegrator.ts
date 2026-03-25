@@ -15,7 +15,7 @@
  * 5. Alpha composite original face onto generated body
  */
 
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 import type { FaceExtractionResult, FaceLandmarks } from './face-extractor'
 
 export interface ReintegrationResult {
@@ -47,7 +47,7 @@ export interface DetectedFacePosition {
 export async function detectFaceInGenerated(
     generatedImageBase64: string
 ): Promise<DetectedFacePosition | null> {
-    const openai = getOpenAI()
+    const openai = getGeminiChat()
 
     const imageUrl = generatedImageBase64.startsWith('data:image/')
         ? generatedImageBase64

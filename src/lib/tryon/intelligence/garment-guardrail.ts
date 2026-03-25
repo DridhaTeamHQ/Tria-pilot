@@ -6,7 +6,7 @@
  */
 
 import 'server-only'
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 import { GarmentCategory, HemlinePosition } from './garment-classifier'
 
 export interface GarmentValidationResult {
@@ -34,7 +34,7 @@ export async function validateGarmentMatch(
     console.log('\n👔 GARMENT GUARDRAIL: Validating garment match...')
     const startTime = Date.now()
 
-    const openai = getOpenAI()
+    const openai = getGeminiChat()
 
     const cleanReference = referenceImageBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '')
     const cleanGenerated = generatedImageBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '')
