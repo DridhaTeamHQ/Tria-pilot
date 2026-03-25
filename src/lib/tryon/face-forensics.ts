@@ -1,7 +1,7 @@
 import 'server-only'
-import { getOpenAI } from '@/lib/openai'
+import { geminiGenerateContent } from '@/lib/gemini/executor'
 
-const FORENSIC_PROMPT_MODEL = process.env.TRYON_FORENSIC_PROMPT_MODEL?.trim() || process.env.TRYON_PROMPT_MODEL?.trim() || 'gpt-4o'
+const FORENSIC_MODEL = 'gemini-2.5-flash'
 
 function toDataUrl(base64: string): string {
   if (base64.startsWith('data:image/')) return base64
@@ -29,12 +29,10 @@ export async function buildForensicFaceAnchor(params: {
   personImageBase64: string
   garmentDescription?: string
 }): Promise<ForensicAnchorResult> {
-  const openai = getOpenAI()
 
-  const content: any[] = [
-    {
-      type: 'text',
-      text: `Analyze this person's face and body for identity locking in a virtual try-on system.
+  const cleanBase64 = params.personImageBase64.replace(/^data:image\/[a-z]+;base64,/, '')
+
+  const promptText = `Analyze this person's face and body for identity locking in a virtual try-on system.
 I need SPECIFIC, MEASURABLE descriptions — not generic phrases. Describe what you ACTUALLY SEE.
 
 Return JSON only:
@@ -71,26 +69,39 @@ Rules:
 - distinguishingMarks is CRITICAL — moles, dimples, scars, beauty marks, and any facial asymmetry are the strongest identity anchors. Look carefully.
 - Do not infer name, age, ethnicity, or sensitive attributes.
 - Keep each field concise but precise.
-- Garment context: ${params.garmentDescription || 'garment from Image 2'}.`,
-    },
-    {
-      type: 'image_url',
-      image_url: {
-        url: toDataUrl(params.personImageBase64),
-        detail: 'low',
-      },
-    },
-  ]
+- Garment context: ${params.garmentDescription || 'garment from Image 2'}.`
 
-  const response = await openai.chat.completions.create({
-    model: FORENSIC_PROMPT_MODEL,
-    messages: [{ role: 'user', content }],
-    response_format: { type: 'json_object' },
-    temperature: 0.1,
-    max_tokens: 500,
+  const response = await geminiGenerateContent({
+    model: FORENSIC_MODEL,
+    contents: [
+      {
+        inlineData: {
+          data: cleanBase64,
+          mimeType: 'image/jpeg',
+        },
+      } as any,
+      promptText,
+    ],
+    config: {
+      temperature: 0.1,
+      maxOutputTokens: 800,
+    },
   })
 
-  const raw = response.choices[0]?.message?.content || '{}'
+  // Extract text from Gemini response
+  let raw = '{}'
+  if (response.candidates && response.candidates.length > 0) {
+    const textPart = response.candidates[0]?.content?.parts?.find((p: any) => p.text)
+    if (textPart && 'text' in textPart) {
+      raw = (textPart as any).text || '{}'
+    }
+  } else if (response.text) {
+    raw = response.text
+  }
+
+  // Strip markdown fences if present
+  raw = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+
   const parsed = JSON.parse(raw) as {
     perceivedGender?: string
     faceShape?: string
