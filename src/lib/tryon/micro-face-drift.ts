@@ -17,23 +17,29 @@
  */
 
 import 'server-only'
+import type { FaceCoordinates } from './face-coordinates'
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/** Threshold for clean pass */
-const PASS_THRESHOLD = 5
+/** Threshold for clean pass — raised to account for natural lighting-induced geometry shift */
+const PASS_THRESHOLD = 12
 
-/** Threshold for soft pass (acceptable drift) */
-const SOFT_PASS_THRESHOLD = 8
+/** Threshold for soft pass (acceptable drift) — scene changes legitimately shift perceived jaw/cheek */
+const SOFT_PASS_THRESHOLD = 20
 
-/** Weight for each metric */
+/**
+ * Weight for each metric.
+ * Eye spacing and landmark distance are the most reliable identity signals.
+ * Jaw contour and cheek volume are heavily affected by lighting direction
+ * (shadow casting on jaw/cheeks from scene changes is NOT identity drift).
+ */
 const METRIC_WEIGHTS = {
     landmarkDistance: 0.35,
-    cheekVolumeRatio: 0.20,
-    jawContourVariance: 0.25,
-    eyeSpacingDelta: 0.20
+    cheekVolumeRatio: 0.15,
+    jawContourVariance: 0.15,
+    eyeSpacingDelta: 0.35
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -76,7 +82,10 @@ export interface MicroFaceDriftResult {
  * Extract face region features for comparison
  * Uses simplified geometric analysis without ML models
  */
-async function extractFaceFeatures(imageBuffer: Buffer): Promise<{
+async function extractFaceFeatures(
+    imageBuffer: Buffer,
+    faceBox?: FaceCoordinates | null
+): Promise<{
     topRegion: Buffer
     middleRegion: Buffer
     jawRegion: Buffer
@@ -97,11 +106,13 @@ async function extractFaceFeatures(imageBuffer: Buffer): Promise<{
         const width = metadata.width || 512
         const height = metadata.height || 512
 
-        // Face region bounds (assuming face is in upper center)
-        const faceLeft = Math.floor(width * 0.2)
-        const faceWidth = Math.floor(width * 0.6)
-        const faceTop = Math.floor(height * 0.05)
-        const faceHeight = Math.floor(height * 0.4)
+        // Prefer detected face bounds; fall back to the historical upper-center
+        // heuristic only when no face box is available.
+        const detectedBox = faceBoxToPixels(faceBox, width, height)
+        const faceLeft = detectedBox?.left ?? Math.floor(width * 0.2)
+        const faceWidth = detectedBox?.faceWidth ?? Math.floor(width * 0.6)
+        const faceTop = detectedBox?.top ?? Math.floor(height * 0.05)
+        const faceHeight = detectedBox?.faceHeight ?? Math.floor(height * 0.4)
 
         // Divide face into regions
         const regionHeight = Math.floor(faceHeight / 3)
@@ -206,6 +217,33 @@ async function extractFaceFeatures(imageBuffer: Buffer): Promise<{
     }
 }
 
+function faceBoxToPixels(
+    face: FaceCoordinates | null | undefined,
+    width: number,
+    height: number
+): { left: number; top: number; faceWidth: number; faceHeight: number } | null {
+    if (!face) return null
+    const left = Math.floor((face.xmin / 1000) * width)
+    const top = Math.floor((face.ymin / 1000) * height)
+    const right = Math.ceil((face.xmax / 1000) * width)
+    const bottom = Math.ceil((face.ymax / 1000) * height)
+    const rawWidth = Math.max(1, right - left)
+    const rawHeight = Math.max(1, bottom - top)
+
+    const expandX = Math.floor(rawWidth * 0.22)
+    const expandTop = Math.floor(rawHeight * 0.32)
+    const expandBottom = Math.floor(rawHeight * 0.28)
+
+    const boxLeft = Math.max(0, left - expandX)
+    const boxTop = Math.max(0, top - expandTop)
+    const boxRight = Math.min(width, right + expandX)
+    const boxBottom = Math.min(height, bottom + expandBottom)
+
+    const faceWidth = Math.max(1, boxRight - boxLeft)
+    const faceHeight = Math.max(1, boxBottom - boxTop)
+    return { left: boxLeft, top: boxTop, faceWidth, faceHeight }
+}
+
 /**
  * Calculate structural similarity between two buffers
  * Returns normalized correlation (0-1)
@@ -281,15 +319,19 @@ function calculateEdgeDensityDiff(buf1: Buffer, buf2: Buffer, width: number): nu
  */
 export async function computeMicroFaceDrift(
     referenceBuffer: Buffer,
-    generatedBuffer: Buffer
+    generatedBuffer: Buffer,
+    faceBoxes?: {
+        referenceFace?: FaceCoordinates | null
+        generatedFace?: FaceCoordinates | null
+    }
 ): Promise<MicroFaceDriftResult> {
     const startTime = Date.now()
 
     console.log('\n🔬 MICRO FACE DRIFT ANALYSIS...')
 
     // Extract features from both images
-    const refFeatures = await extractFaceFeatures(referenceBuffer)
-    const genFeatures = await extractFaceFeatures(generatedBuffer)
+    const refFeatures = await extractFaceFeatures(referenceBuffer, faceBoxes?.referenceFace)
+    const genFeatures = await extractFaceFeatures(generatedBuffer, faceBoxes?.generatedFace)
 
     if (!refFeatures || !genFeatures) {
         console.warn('   ⚠️ Could not extract face features, assuming PASS')
@@ -308,9 +350,12 @@ export async function computeMicroFaceDrift(
         }
     }
 
-    // Normalize for lighting differences
+    // Normalize for lighting differences.
+    // Scene changes (e.g. flat-lit reference → dramatic nightlife) cause large brightness
+    // gaps that make jaw/cheek pixel comparisons unreliable. The model isn't drifting —
+    // it's casting realistic shadows. Allow up to 55% reduction for dramatic lighting shifts.
     const brightnessDiff = Math.abs(refFeatures.brightness - genFeatures.brightness)
-    const lightingFactor = 1 - Math.min(brightnessDiff * 0.5, 0.3) // Max 30% reduction
+    const lightingFactor = 1 - Math.min(brightnessDiff * 0.8, 0.55)
 
     // Calculate metrics
 
@@ -408,10 +453,10 @@ export function getDriftRetryParams(result: MicroFaceDriftResult): {
         .sort(([, a], [, b]) => b - a)[0]
 
     const emphasisMap: Record<string, string> = {
-        landmarkDistance: 'PRESERVE EXACT EYE POSITION AND FOREHEAD SHAPE',
-        cheekVolumeRatio: 'PRESERVE EXACT CHEEK VOLUME - DO NOT RESHAPE',
-        jawContourVariance: 'PRESERVE EXACT JAWLINE - NO MODIFICATIONS',
-        eyeSpacingDelta: 'PRESERVE EXACT EYE SPACING AND SIZE'
+        landmarkDistance: 'Copy the face holistically from the reference photos — do not reconstruct from a description',
+        cheekVolumeRatio: 'Ensure even lighting on the face — shadows must not alter perceived cheek volume',
+        jawContourVariance: 'Use soft fill light on the face — jaw shadow must not reshape the perceived jawline',
+        eyeSpacingDelta: 'Lock interpupillary distance and eye size exactly to the reference images'
     }
 
     return {

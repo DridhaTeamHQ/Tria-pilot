@@ -436,24 +436,26 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
 
   if (process.env.NODE_ENV !== 'production') console.log(`🍌 DIRECT TRANSPORT: gemini-3-pro-image-preview | prompt: ${prompt.length} chars`)
 
-  // IMAGE ORDERING — critical for correct garment application:
-  // Image 1: Person (identity anchor)
-  // Image 2: Garment (THE target clothing — must come early so Gemini prioritizes it)
-  // Image 3: Face crop (face-only close-up for identity reinforcement)
-  // Image 4+: Character refs (face/body angles — explicitly labeled to IGNORE clothing)
-  // Prompt: full instructions LAST
+  // CONTENT ORDER — optimized for identity preservation:
+  // 1. Person image (identity anchor)
+  // 2. Prompt text (identity instructions while person image embedding is hot)
+  // 3. Garment image
+  // 4. Face crop (identity reinforcement)
+  // 5. Character refs (multi-angle identity)
   const contents: ContentListUnion = [
-    // Image 1: Person — establishes the identity anchor
     {
       inlineData: {
         data: cleanPerson,
         mimeType: 'image/jpeg',
       },
     } as any,
-    'Image 1: the person. Copy this face exactly.',
+    'Image 1: the person.',
   ]
 
-  // Image 2: Garment — IMMEDIATELY after person so Gemini knows what to apply
+  // Prompt text EARLY — right after person image for maximum identity attention
+  contents.push(prompt)
+
+  // Image 2: Garment
   contents.push(
     {
       inlineData: {
@@ -461,14 +463,14 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
         mimeType: 'image/jpeg',
       },
     } as any,
-    'Image 2: the TARGET GARMENT. Apply THIS clothing to the person from Image 1. Match the exact color, pattern, fabric, and design from this image. Preserve text and logos.'
+    'Image 2: the target garment. Apply this clothing to the person. Match the exact color, pattern, and design.'
   )
 
-  // Image 3: Face crop — face-only close-up for identity reinforcement
+  // Image 3: Face crop — close-up for identity reinforcement
   if (faceCropBase64 && faceCropBase64.length > 100) {
     const cleanFaceCrop = faceCropBase64.replace(/^data:image\/[a-z]+;base64,/, '')
     if (cleanFaceCrop.length > 100) {
-      if (process.env.NODE_ENV !== 'production') console.log('👤 Adding face crop as Image 3 for identity reinforcement')
+      if (process.env.NODE_ENV !== 'production') console.log('👤 Adding face crop as Image 3')
       contents.push(
         {
           inlineData: {
@@ -476,14 +478,12 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
             mimeType: 'image/jpeg',
           },
         } as any,
-        'Image 3: face close-up of the person from Image 1. Use for identity reinforcement only.'
+        'Image 3: face close-up of the same person from Image 1.'
       )
     }
   }
 
-  // Image 4+: Character references — multi-angle identity photos
-  // CRITICAL: These show the person in DIFFERENT outfits. Must explicitly tell Gemini
-  // to ONLY use the face/body shape and IGNORE any clothing in these images.
+  // Image 4+: Character references — multi-angle face photos
   if (characterReferenceBase64s && characterReferenceBase64s.length > 0) {
     let refIdx = 4
     for (const ref of characterReferenceBase64s) {
@@ -497,15 +497,12 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
               mimeType: 'image/jpeg',
             },
           } as any,
-          `Image ${refIdx}: ${ref.label} — same person as Image 1, different angle. Use ONLY for face/body identity. IGNORE any clothing in this image. The ONLY garment to apply is from Image 2.`
+          `Image ${refIdx}: ${ref.label} — same person, different angle. Use for face identity only. Ignore clothing.`
         )
         refIdx++
       }
     }
   }
-
-  // Full prompt text LAST — instructions build on the visual context already established
-  contents.push(prompt)
 
   const imageConfig = {
     aspectRatio,
@@ -515,15 +512,17 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
 
   const config: GenerateContentConfig = {
     responseModalities: ['TEXT', 'IMAGE'],
-    // STRONG face immutability instruction — references ALL character images explicitly.
-    // Camera specs + technical language prevent cartoonish/CGI output.
-    systemInstruction: `You are a world-class virtual try-on AI that generates photorealistic images.
-CRITICAL RULES:
-1. IDENTITY LOCK: The person's face MUST BE EXTREMELY IDENTICAL to Image 1.
-2. If multiple face reference photos are provided (Image 3+), use them to cross-reference their exact bone structure, nose shape, jawline, eye spacing, and skin tone. DO NOT alter their face shape, age, or ethnicity in any way.
-3. GARMENT: Apply ONLY the garment from Image 2. Ignore the clothing in the person's other photos.
-4. SCENE & BACKGROUND: Follow the Scene Environment instructions in the prompt EXACTLY. The generated background MUST match the requested setting. Do not keep the original photo's background unless explicitly asked.
-5. REALISM: Generate natural skin textures with visible pores. No plastic smoothing, no CGI look.`,
+    systemInstruction: `You are a photorealistic virtual try-on camera. Your job is to photograph the SAME person from Image 1 wearing a different outfit.
+
+FACE IDENTITY: Copy the face HOLISTICALLY from Image 1 and any additional face reference photos. Do NOT reconstruct the face from a text description or a checklist of features — treat the reference photos as the single source of truth and reproduce the face as a whole. Preserve every asymmetry, imperfection, and unique characteristic exactly as they appear in the photos.
+
+GARMENT: Apply ONLY the garment from Image 2. Ignore clothing in any other reference photos.
+
+SCENE: Follow the Scene Environment instructions from the prompt. The background must match the requested setting.
+
+FACE LIGHTING: Even when the scene has dramatic or directional lighting, keep the face clearly lit with soft, even illumination. Avoid deep shadows on the jaw, cheeks, or eye sockets that would alter the perceived bone structure. The face should look as if a gentle fill light is present.
+
+REALISM: Generate natural skin with visible pores and texture. No smoothing, no CGI look, no HDR halos.`,
     imageConfig,
     temperature: 0.3,
     topP: 0.85,

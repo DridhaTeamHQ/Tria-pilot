@@ -157,7 +157,7 @@ export async function generateBatchEmbeddings(
             encoding_format: 'float'
         })
 
-        const embeddings = response.data.map(item => item.embedding)
+        const embeddings = response.data.map((item: { embedding: number[] }) => item.embedding)
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(2)
 
         console.log(`   ✓ ${embeddings.length} embeddings generated in ${elapsed}s`)

@@ -1,55 +1,53 @@
 /**
- * FACE RESTORATION (Stage 4)
+ * FACE IDENTITY RESTORATION (Stage 4)
  *
- * Two-Pass Gemini approach to face preservation:
- *  Pass 1: Normal try-on generation (existing pipeline)
- *  Pass 2: This module — inpaints the face region using the original person
- *          photo as reference, preserving exact facial identity.
+ * Two-tier approach:
+ *  PRIMARY:  Gemini edit pass (holistic "fix the face" instruction)
+ *  FALLBACK: InsightFace microservice (pixel-level face swap via inswapper_128)
  *
- * Uses the same Gemini infrastructure (executor.ts) with:
- *  - Generated image as the base
- *  - Elliptical mask over the detected face region (with padding)
- *  - Original person photo as identity reference
- *  - Strict identity-locking prompt
+ * Gemini is the default production-safe path because it preserves clean skin
+ * better on many try-on outputs. The optional Python microservice remains as a
+ * fallback when a pixel-level identity correction is still needed.
+ *
+ * Set FACE_SWAP_SERVICE_URL to the InsightFace microservice endpoint.
+ * In production (for example on Vercel), that service should be deployed
+ * separately and reached over HTTP. Local auto-boot is development-only.
  */
 
 import 'server-only'
-import sharp from 'sharp'
 import { geminiGenerateContent } from '@/lib/gemini/executor'
-import type { GenerateContentConfig } from '@google/genai'
+import type { GenerateContentConfig, ContentListUnion } from '@google/genai'
 import type { FaceCoordinates } from './face-coordinates'
+import { spawn } from 'child_process'
+import path from 'path'
 
-// IMPORTANT: Must be an image-capable model (supports responseModalities: ['IMAGE'])
-// Only these models can output images:
-//  - gemini-3-pro-image-preview  (Pro — highest quality, slower)
-//  - gemini-2.5-flash-image      (Flash — faster, good quality)
-// Models like gemini-2.0-flash or gemini-2.5-flash-preview are TEXT-ONLY output.
-const FACE_RESTORE_MODEL = 'gemini-2.5-flash-image' as const
-
-// Padding multiplier around the detected face box (1.0 = exact box, 1.4 = 40% larger)
-const FACE_MASK_PADDING = 1.35
-// Feather radius as a fraction of face size (for smooth blending)
-const FEATHER_FRACTION = 0.15
+const FACE_SWAP_SERVICE_URL = process.env.FACE_SWAP_SERVICE_URL?.trim() || ''
+const FACE_SWAP_TIMEOUT_MS = Number(process.env.FACE_SWAP_TIMEOUT_MS) || 30_000
+const FACE_RESTORE_MODEL = process.env.TRYON_IMAGE_MODEL?.trim() || 'gemini-3.1-flash-image-preview'
+const FACE_SWAP_AUTO_BOOT =
+    process.env.FACE_SWAP_AUTO_BOOT !== 'false' && process.env.NODE_ENV !== 'production'
+let localFaceSwapBootPromise: Promise<boolean> | null = null
 
 export interface FaceRestoreInput {
-    /** Generated try-on image (base64 data URL or raw base64) */
     generatedImageBase64: string
-    /** Original person photo (base64 data URL or raw base64) */
     personImageBase64: string
-    /** Face crop for close-up reference (base64 data URL or raw base64) */
     faceCropBase64?: string
-    /** Detected face coordinates in the generated image */
     generatedFace: FaceCoordinates
-    /** Detected face coordinates in the original person image */
     personFace: FaceCoordinates
-    /** Aspect ratio of the generated image */
     aspectRatio?: string
+    perceivedGender?: 'masculine' | 'feminine' | 'neutral'
 }
 
 export interface FaceRestoreResult {
     success: boolean
     restoredImageBase64: string
     processingTimeMs: number
+    method?: 'insightface' | 'gemini'
+    identitySimilarityBefore?: number
+    identitySimilarityAfter?: number
+    skinToneDeltaBefore?: number
+    skinToneDeltaAfter?: number
+    darkSpotArtifactScoreAfter?: number
     error?: string
 }
 
@@ -57,184 +55,328 @@ function cleanBase64(dataUrlOrBase64: string): string {
     return dataUrlOrBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '')
 }
 
-function toBuffer(dataUrlOrBase64: string): Buffer {
-    return Buffer.from(cleanBase64(dataUrlOrBase64), 'base64')
+function isLocalFaceSwapUrl(url: string): boolean {
+    try {
+        const parsed = new URL(url)
+        return parsed.hostname === '127.0.0.1' || parsed.hostname === 'localhost'
+    } catch {
+        return false
+    }
 }
 
-/**
- * Create an elliptical face mask with soft feathered edges.
- * The mask is WHITE over the face region (edit area) and BLACK elsewhere (preserve area).
- */
-async function createFaceMask(
-    imageWidth: number,
-    imageHeight: number,
-    face: FaceCoordinates
-): Promise<Buffer> {
-    const faceW = face.xmax - face.xmin
-    const faceH = face.ymax - face.ymin
-    const faceCenterX = face.xmin + faceW / 2
-    const faceCenterY = face.ymin + faceH / 2
-
-    // Apply padding — expand the region to include forehead, ears, and chin
-    const radiusX = Math.round((faceW / 2) * FACE_MASK_PADDING)
-    const radiusY = Math.round((faceH / 2) * FACE_MASK_PADDING)
-
-    // Feather blur for seamless blending
-    const featherRadius = Math.round(Math.min(faceW, faceH) * FEATHER_FRACTION)
-
-    // Build SVG mask: black background, white ellipse over face
-    const svg = `
-    <svg width="${imageWidth}" height="${imageHeight}" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <filter id="feather">
-          <feGaussianBlur stdDeviation="${featherRadius}" />
-        </filter>
-      </defs>
-      <rect x="0" y="0" width="${imageWidth}" height="${imageHeight}" fill="black" />
-      <ellipse 
-        cx="${Math.round(faceCenterX)}" 
-        cy="${Math.round(faceCenterY)}" 
-        rx="${radiusX}" 
-        ry="${radiusY}" 
-        fill="white" 
-        filter="url(#feather)"
-      />
-    </svg>
-  `.trim()
-
-    return sharp(Buffer.from(svg)).png().toBuffer()
+async function fetchFaceSwapHealth(baseUrl: string, timeoutMs = 2000): Promise<boolean> {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), timeoutMs)
+    try {
+        const response = await fetch(`${baseUrl}/health`, { signal: controller.signal, cache: 'no-store' })
+        if (!response.ok) return false
+        const data = await response.json().catch(() => null) as { status?: string; models_loaded?: boolean } | null
+        return Boolean(data?.status === 'ok' && data?.models_loaded)
+    } catch {
+        return false
+    } finally {
+        clearTimeout(timeout)
+    }
 }
 
-/**
- * Build the face restoration prompt.
- * Concise, identity-focused, minimal — following the same philosophy as forensic-prompt.
- */
-function buildFaceRestorePrompt(hasFaceCrop: boolean): string {
-    const lines = [
-        'You are performing a FACE IDENTITY RESTORATION edit.',
-        '',
-        'Image 1 is a generated try-on photo. The face may have drifted from the original person.',
-        'Image 2 is a mask showing the FACE REGION to restore (white = edit zone).',
-        hasFaceCrop
-            ? 'Image 3 is the ORIGINAL person photo. Image 4 is a close-up crop of the original face.'
-            : 'Image 3 is the ORIGINAL person photo with the true face identity.',
-        '',
-        'YOUR TASK:',
-        '- Replace the face in Image 1\'s masked region with the EXACT face from the reference.',
-        '- Match the EXACT bone structure, eye shape, eye spacing, nose, lips, jawline, skin texture, pores, skin tone, and perceived age.',
-        '- Adapt lighting and color grading of the restored face to match the surrounding scene in Image 1.',
-        '- Blend seamlessly at mask edges — no visible seam or halo.',
-        '- Do NOT alter anything outside the mask region.',
-        '- Do NOT beautify, smooth skin, or reshape any facial features.',
-        '- Preserve the head angle and gaze direction from Image 1, but use facial IDENTITY from the reference.',
-        '',
-        'OUTPUT: The complete Image 1 with only the face region restored. Everything else stays identical.',
-    ]
-    return lines.join('\n')
+async function ensureLocalFaceSwapService(): Promise<boolean> {
+    if (!FACE_SWAP_SERVICE_URL || !isLocalFaceSwapUrl(FACE_SWAP_SERVICE_URL) || !FACE_SWAP_AUTO_BOOT) {
+        return false
+    }
+
+    if (await fetchFaceSwapHealth(FACE_SWAP_SERVICE_URL)) {
+        return true
+    }
+
+    if (!localFaceSwapBootPromise) {
+        localFaceSwapBootPromise = (async () => {
+            const serviceDir = path.join(process.cwd(), 'services', 'face-swap')
+            const parsed = new URL(FACE_SWAP_SERVICE_URL)
+            const host = parsed.hostname === 'localhost' ? '127.0.0.1' : parsed.hostname
+            const port = parsed.port || '8765'
+            const candidates: Array<{ command: string; args: string[] }> =
+                process.platform === 'win32'
+                    ? [
+                        { command: 'python', args: ['-m', 'uvicorn', 'main:app', '--host', host, '--port', port] },
+                        { command: 'py', args: ['-3', '-m', 'uvicorn', 'main:app', '--host', host, '--port', port] },
+                    ]
+                    : [
+                        { command: 'python3', args: ['-m', 'uvicorn', 'main:app', '--host', host, '--port', port] },
+                        { command: 'python', args: ['-m', 'uvicorn', 'main:app', '--host', host, '--port', port] },
+                    ]
+
+            for (const candidate of candidates) {
+                try {
+                    const child = spawn(candidate.command, candidate.args, {
+                        cwd: serviceDir,
+                        detached: true,
+                        stdio: 'ignore',
+                        windowsHide: true,
+                    })
+                    ;(child as { unref?: () => void }).unref?.()
+                } catch {
+                    continue
+                }
+
+                for (let attempt = 0; attempt < 10; attempt++) {
+                    await new Promise((resolve) => setTimeout(resolve, 1000))
+                    if (await fetchFaceSwapHealth(FACE_SWAP_SERVICE_URL, 1500)) {
+                        return true
+                    }
+                }
+            }
+
+            return false
+        })()
+    }
+
+    return localFaceSwapBootPromise
 }
 
-/**
- * STAGE 4: Face Restoration via Gemini Inpainting
- *
- * Takes the generated try-on image and restores the original face identity
- * by inpainting only the face region using the original person photo as reference.
- */
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAIN ENTRY POINT
+// ═══════════════════════════════════════════════════════════════════════════════
+
 export async function restoreFaceIdentity(
+    input: FaceRestoreInput
+): Promise<FaceRestoreResult> {
+    const isDev = process.env.NODE_ENV !== 'production'
+
+    // Primary: Gemini — produces clean skin without artifacts
+    if (isDev) console.log('\n━━━ STAGE 4: Face Restore (Gemini) ━━━')
+    try {
+        const geminiResult = await restoreViaGemini(input)
+        if (geminiResult.success) return geminiResult
+        if (isDev) console.log(`   ⚠️ Gemini face restore failed: ${geminiResult.error}`)
+    } catch (err) {
+        if (isDev) console.log(`   ⚠️ Gemini face restore error: ${err}`)
+    }
+
+    // Fallback: InsightFace microservice (only if Gemini fails)
+    if (FACE_SWAP_SERVICE_URL) {
+        if (isDev) console.log('   Falling back to InsightFace...')
+        try {
+            await ensureLocalFaceSwapService()
+            const result = await restoreViaInsightFace(input)
+            if (result.success) return result
+            if (isDev) console.log(`   ⚠️ InsightFace also failed: ${result.error}`)
+        } catch (err) {
+            if (isDev) console.log(`   ⚠️ InsightFace unavailable: ${err}`)
+        }
+    }
+
+    return {
+        success: false,
+        restoredImageBase64: '',
+        processingTimeMs: 0,
+        error: 'All face restore methods failed',
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// INSIGHTFACE MICROSERVICE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async function restoreViaInsightFace(
+    input: FaceRestoreInput
+): Promise<FaceRestoreResult> {
+    const startTime = Date.now()
+    const isDev = process.env.NODE_ENV !== 'production'
+
+    const body = {
+        source_image: cleanBase64(input.personImageBase64),
+        target_image: cleanBase64(input.generatedImageBase64),
+        face_crop: input.faceCropBase64 ? cleanBase64(input.faceCropBase64) : null,
+        source_face_index: 0,
+        target_face_index: 0,
+    }
+
+    if (isDev) console.log(`   🔗 POST ${FACE_SWAP_SERVICE_URL}/swap`)
+
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), FACE_SWAP_TIMEOUT_MS)
+
+    try {
+        const response = await fetch(`${FACE_SWAP_SERVICE_URL}/swap`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+            signal: controller.signal,
+        })
+        clearTimeout(timeout)
+
+        if (!response.ok) {
+            const text = await response.text().catch(() => '')
+            throw new Error(`HTTP ${response.status}: ${text.substring(0, 200)}`)
+        }
+
+        const data = await response.json() as {
+            success: boolean
+            image: string
+            processing_ms: number
+            identity_similarity_before?: number
+            identity_similarity_after?: number
+            skin_tone_delta_before?: number
+            skin_tone_delta_after?: number
+            dark_spot_artifact_score_after?: number
+            error?: string
+        }
+
+        const elapsed = Date.now() - startTime
+
+        if (!data.success || !data.image) {
+            return {
+                success: false,
+                restoredImageBase64: '',
+                processingTimeMs: elapsed,
+                method: 'insightface',
+                error: data.error || 'No image returned',
+            }
+        }
+
+        if (isDev) console.log(`   ✅ InsightFace swap completed in ${elapsed}ms (service: ${data.processing_ms}ms)`)
+
+        return {
+            success: true,
+            restoredImageBase64: `data:image/jpeg;base64,${data.image}`,
+            processingTimeMs: elapsed,
+            method: 'insightface',
+            identitySimilarityBefore: data.identity_similarity_before,
+            identitySimilarityAfter: data.identity_similarity_after,
+            skinToneDeltaBefore: data.skin_tone_delta_before,
+            skinToneDeltaAfter: data.skin_tone_delta_after,
+            darkSpotArtifactScoreAfter: data.dark_spot_artifact_score_after,
+        }
+    } catch (err) {
+        clearTimeout(timeout)
+        const elapsed = Date.now() - startTime
+        const message = err instanceof Error ? err.message : String(err)
+        return {
+            success: false,
+            restoredImageBase64: '',
+            processingTimeMs: elapsed,
+            method: 'insightface',
+            error: message,
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GEMINI FALLBACK
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async function restoreViaGemini(
     input: FaceRestoreInput
 ): Promise<FaceRestoreResult> {
     const startTime = Date.now()
     const isDev = process.env.NODE_ENV !== 'production'
 
     try {
-        if (isDev) console.log('\n━━━ STAGE 4: Face Identity Restoration ━━━')
-
-        // Get image dimensions
-        const genBuffer = toBuffer(input.generatedImageBase64)
-        const metadata = await sharp(genBuffer).metadata()
-        const imageWidth = metadata.width || 1024
-        const imageHeight = metadata.height || 1024
-
-        if (isDev) console.log(`   Image: ${imageWidth}x${imageHeight}`)
-        if (isDev) console.log(`   Face box: [${input.generatedFace.ymin},${input.generatedFace.xmin}]-[${input.generatedFace.ymax},${input.generatedFace.xmax}]`)
-
-        // Create face mask
-        const maskBuffer = await createFaceMask(imageWidth, imageHeight, input.generatedFace)
-        const maskBase64 = maskBuffer.toString('base64')
-
-        if (isDev) console.log('   ✓ Face mask created')
-
-        // Prepare reference images
-        const genBase64 = cleanBase64(input.generatedImageBase64)
         const personBase64 = cleanBase64(input.personImageBase64)
-        const hasFaceCrop = Boolean(input.faceCropBase64)
-        const faceCropBase64 = input.faceCropBase64 ? cleanBase64(input.faceCropBase64) : null
+        const genBase64 = cleanBase64(input.generatedImageBase64)
+        const hasFaceCrop = Boolean(input.faceCropBase64 && input.faceCropBase64.length > 100)
 
-        // Build the identity restoration prompt
-        const prompt = buildFaceRestorePrompt(hasFaceCrop)
-
-        if (isDev) console.log(`   Prompt: ${prompt.length} chars`)
-
-        // Assemble content parts: generated image, mask, person reference, [face crop], prompt
-        const parts: Array<{ inlineData: { mimeType: string; data: string } } | { text: string }> = [
-            { inlineData: { mimeType: 'image/png', data: genBase64 } },       // Image 1: Generated
-            { inlineData: { mimeType: 'image/png', data: maskBase64 } },      // Image 2: Face mask
-            { inlineData: { mimeType: 'image/jpeg', data: personBase64 } },   // Image 3: Original person
+        const contents: ContentListUnion = [
+            {
+                inlineData: { data: personBase64, mimeType: 'image/jpeg' },
+            } as any,
+            'Image 1: the real person. This is the identity reference.',
         ]
 
-        if (faceCropBase64) {
-            parts.push(
-                { inlineData: { mimeType: 'image/jpeg', data: faceCropBase64 } } // Image 4: Face crop
+        if (hasFaceCrop) {
+            const faceCropClean = cleanBase64(input.faceCropBase64!)
+            contents.push(
+                { inlineData: { data: faceCropClean, mimeType: 'image/jpeg' } } as any,
+                'Image 2: face close-up of the same person from Image 1.',
             )
         }
 
-        // Prompt MUST be a {text:...} object, NOT a raw string
-        parts.push({ text: prompt })
+        contents.push(
+            { inlineData: { data: genBase64, mimeType: 'image/png' } } as any,
+            hasFaceCrop
+                ? 'Image 3: a generated photo. The face does not match the person from Image 1.'
+                : 'Image 2: a generated photo. The face does not match the person from Image 1.',
+        )
 
-        // Call Gemini for face restoration
+        const genderDirective = input.perceivedGender === 'masculine'
+            ? 'Preserve masculine presentation, brow weight, jaw shape, hairline, and facial hair exactly as photographed. '
+            : input.perceivedGender === 'feminine'
+                ? 'Preserve feminine presentation, natural facial proportions, hairline, skin tone, and asymmetry exactly as photographed. '
+                : ''
+
+        contents.push(
+            `Fix ONLY the face in the generated photo to match the real person from Image 1 exactly.
+
+IDENTITY RULES:
+- Copy the face holistically — same bone structure, skin tone, every asymmetry and imperfection from Image 1.
+- ${genderDirective}Keep the exact face SHAPE (jawline contour, chin, forehead outline) from the generated photo — only change the interior facial features (eyes, nose, mouth, eyebrows, cheeks).
+
+SKIN QUALITY RULES (CRITICAL):
+- The person's skin must look EXACTLY like Image 1. If the reference person has clear, smooth skin, the output must have clear smooth skin — NO added spots, moles, freckles, or blemishes.
+- Do NOT introduce any dark spots, acne, pigmentation marks, or skin texture artifacts that are not in Image 1.
+- Match the reference skin texture precisely: same pore visibility, same smoothness level, same skin clarity.
+- If uncertain, preserve the cleaner skin from the generated photo instead of inventing extra skin details.
+
+PRESERVATION RULES:
+- Keep the head angle, lighting direction, expression, clothing, body, and background from the generated photo completely unchanged.
+- Do not alter anything outside the face region.
+
+Output the corrected image.`
+        )
+
+        if (isDev) console.log(`   🎯 Calling ${FACE_RESTORE_MODEL} for face correction...`)
+
         const config: GenerateContentConfig = {
             responseModalities: ['TEXT', 'IMAGE'],
-            temperature: 0.25, // Low temperature for consistency
+            systemInstruction: 'You are a face identity correction tool. You receive a reference person photo and a generated photo where the face has drifted. Your job: replace ONLY the interior face features (eyes, nose, mouth, eyebrows, skin) in the generated photo with those from the reference, matching the lighting and angle of the generated photo. CRITICAL: preserve the face SHAPE (jawline, chin contour) from the generated photo. Match the reference skin EXACTLY — if the reference has clear skin, output must have clear skin with NO added spots, moles, or blemishes. If uncertain, preserve the cleaner skin texture already present in the generated image instead of inventing extra pores, freckles, or dark marks. Do not alter clothing, body, or background.',
+            temperature: 0.2,
             topP: 0.85,
-            topK: 20,
+            topK: 16,
         }
-
-        if (isDev) console.log(`   🎯 Calling ${FACE_RESTORE_MODEL} for face inpainting...`)
 
         const response = await geminiGenerateContent({
             model: FACE_RESTORE_MODEL,
-            contents: [{ role: 'user', parts: parts as any }],
+            contents,
             config,
         })
 
-        // Extract restored image from response
+        if (response.data) {
+            const elapsed = Date.now() - startTime
+            if (isDev) console.log(`   ✅ Gemini face restore in ${(elapsed / 1000).toFixed(1)}s`)
+            return {
+                success: true,
+                restoredImageBase64: `data:image/png;base64,${response.data}`,
+                processingTimeMs: elapsed,
+                method: 'gemini',
+            }
+        }
+
         const responseParts: any[] = response.candidates?.[0]?.content?.parts || []
         for (const part of responseParts) {
             if (part.inlineData?.data) {
                 const mimeType = part.inlineData.mimeType || 'image/png'
-                const restoredBase64 = `data:${mimeType};base64,${part.inlineData.data}`
-
                 const elapsed = Date.now() - startTime
-                if (isDev) console.log(`   ✓ Face restored in ${(elapsed / 1000).toFixed(1)}s`)
-
+                if (isDev) console.log(`   ✅ Gemini face restore in ${(elapsed / 1000).toFixed(1)}s`)
                 return {
                     success: true,
-                    restoredImageBase64: restoredBase64,
+                    restoredImageBase64: `data:${mimeType};base64,${part.inlineData.data}`,
                     processingTimeMs: elapsed,
+                    method: 'gemini',
                 }
             }
         }
 
-        // No image in response
         const textPart = responseParts.find((p: any) => p.text)?.text
         throw new Error(textPart || 'Gemini did not return a restored image')
 
     } catch (error) {
         const elapsed = Date.now() - startTime
-        console.error('❌ Face restoration failed:', error)
+        console.error('❌ Gemini face restore failed:', error)
         return {
             success: false,
             restoredImageBase64: '',
             processingTimeMs: elapsed,
+            method: 'gemini',
             error: error instanceof Error ? error.message : String(error),
         }
     }

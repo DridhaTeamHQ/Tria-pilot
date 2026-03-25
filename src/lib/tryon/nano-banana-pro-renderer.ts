@@ -31,10 +31,10 @@ export type TryOnRenderModel = 'gpt-image-1.5' | 'gemini-3-pro-image-preview' | 
 const DEFAULT_RENDER_MODEL: TryOnRenderModel = 'gemini-3.1-flash-image-preview'
 const ENABLE_QUALITY_RETRY =
   process.env.TRYON_ENABLE_QUALITY_RETRY !== 'false'
-const MICRO_DRIFT_RETRY_THRESHOLD = 18
-const FINAL_MICRO_DRIFT_MAX_DEFAULT = 24
-const FINAL_MICRO_DRIFT_MAX_COMPLEX = 20
-const FINAL_MICRO_DRIFT_MAX_ULTRA = 12
+const MICRO_DRIFT_RETRY_THRESHOLD = 22
+const FINAL_MICRO_DRIFT_MAX_DEFAULT = 30
+const FINAL_MICRO_DRIFT_MAX_COMPLEX = 26
+const FINAL_MICRO_DRIFT_MAX_ULTRA = 16
 const ULTRA_FACE_LOCK_IOU_MIN = 0.68
 const ULTRA_FACE_LOCK_CENTER_MAX = 55
 const ULTRA_FACE_LOCK_SIZE_DELTA_MAX = 0.14
@@ -178,25 +178,25 @@ export async function generateWithNanoBananaPro(
 
     // ── IDENTITY EMBEDDING (Soul ID) ──────────────────────────────────────
     // Load the frozen identity fingerprint if available.
-    // If not extracted yet but identity images exist, auto-extract now.
+    // Auto-extract if missing, stale (anatomical format), or image count changed.
     let identityEmbedding: IdentityEmbedding | null = null
     if (input.userId) {
       try {
-        identityEmbedding = await loadIdentityEmbedding(input.userId)
-        if (identityEmbedding && isDev) {
-          console.log(`   🧬 Soul ID loaded (${identityEmbedding.imageCount} images, v${identityEmbedding.version})`)
-        }
+        const { needsReExtraction, extractIdentityEmbedding } = await import('./identity-embedding')
 
-        // Auto-extract if no embedding exists yet (e.g. images uploaded before Soul ID code)
-        if (!identityEmbedding) {
-          const { needsReExtraction, extractIdentityEmbedding } = await import('./identity-embedding')
-          if (await needsReExtraction(input.userId)) {
-            if (isDev) console.log('   🧬 Soul ID not found — auto-extracting from existing images...')
-            identityEmbedding = await extractIdentityEmbedding(input.userId)
-            if (identityEmbedding && isDev) {
-              console.log(`   🧬 Soul ID extracted! (${identityEmbedding.imageCount} images)`)
-            }
+        identityEmbedding = await loadIdentityEmbedding(input.userId)
+
+        // Always check if re-extraction is needed (stale DNA, image count change, or missing)
+        if (await needsReExtraction(input.userId)) {
+          if (isDev) console.log(identityEmbedding
+            ? '   🧬 Soul ID is stale — re-extracting with macro-identifier format...'
+            : '   🧬 Soul ID not found — auto-extracting from existing images...')
+          identityEmbedding = await extractIdentityEmbedding(input.userId)
+          if (identityEmbedding && isDev) {
+            console.log(`   🧬 Soul ID extracted! (${identityEmbedding.imageCount} images)`)
           }
+        } else if (identityEmbedding && isDev) {
+          console.log(`   🧬 Soul ID loaded (${identityEmbedding.imageCount} images, v${identityEmbedding.version})`)
         }
       } catch (err) {
         if (isDev) console.warn('⚠️ Soul ID load/extract failed:', err)
@@ -312,12 +312,19 @@ export async function generateWithNanoBananaPro(
       lighting: sceneConfig.lightingMode,
       lightingBlueprint: sceneConfig.lightingBlueprint,
       realismGuidance: sceneConfig.realismGuidance, // Scene Intelligence harmonization cues
+      garmentOnPersonGuidance: forensicAnchor.garmentOnPersonGuidance,
+      faceForensicAnchor: forensicAnchor.faceAnchor,
+      eyesAnchor: forensicAnchor.eyesAnchor,
+      characterSummary: forensicAnchor.characterSummary,
+      poseSummary: forensicAnchor.poseSummary,
+      appearanceSummary: forensicAnchor.appearanceSummary,
+      bodyAnchor: forensicAnchor.bodyAnchor,
       hasFaceReference: Boolean(faceCropResult.success && faceCropResult.faceCropBase64),
       aspectRatio: input.aspectRatio || '1:1',
       retryMode: false, // Only set true during actual retries, not first pass
       cameraGuidance: presetCamera, // Pass preset camera/pose to the prompt
       identityDNA: identityEmbedding?.identityDNA, // Soul ID — frozen identity paragraph
-      useGPTImageFormat: preferredRenderModel === 'gpt-image-1.5', // GPT uses descriptive refs, Gemini uses Image 1/2/3
+      useGPTImageFormat: false, // Always use "Image 1/2/3" format — Gemini is the primary engine and GPT fallback understands numbered refs too
       nameAnchor,
       perceivedGender: forensicAnchor.perceivedGender,
       antiDriftDirectives: forensicAnchor.antiDriftDirectives,
@@ -400,7 +407,10 @@ export async function generateWithNanoBananaPro(
     try {
       const refBuffer = base64ToBuffer(input.personImageBase64)
       const genBuffer = base64ToBuffer(generatedImage)
-      microDrift = await computeMicroFaceDrift(refBuffer, genBuffer)
+      microDrift = await computeMicroFaceDrift(refBuffer, genBuffer, {
+        referenceFace: personFace,
+        generatedFace,
+      })
       if (
         hasTrustedSourceFace &&
         generatedFace &&
@@ -437,12 +447,12 @@ export async function generateWithNanoBananaPro(
     // Keep production reliable: avoid second full model pass when we're already near timeout.
     const retryBudgetMs = process.env.NODE_ENV === 'production' ? 45_000 : 120_000
     const canRetryInTime = elapsedBeforeRetryMs < retryBudgetMs
-    // When face restore (Stage 4) is enabled, skip the quality retry —
-    // Stage 4 handles face identity correction via inpainting, which is faster
-    // and more effective than re-generating the entire image.
-    const FACE_RESTORE_ENABLED =
-      process.env.TRYON_ENABLE_FACE_RESTORE === 'true' // matches Stage 4 opt-in
-    const skipRetryForFaceRestore = FACE_RESTORE_ENABLED && !hardFaceFailure
+    // When InsightFace face-swap is available, skip the quality retry entirely.
+    // Retries waste 40-60s and often produce WORSE drift (45% → 58% observed).
+    // InsightFace handles identity correction at the embedding level in ~2-5s.
+    const FACE_SWAP_AVAILABLE = Boolean(process.env.FACE_SWAP_SERVICE_URL?.trim())
+    const FACE_RESTORE_ENABLED = process.env.TRYON_DISABLE_FACE_RESTORE !== 'true'
+    const skipRetryForFaceRestore = (FACE_SWAP_AVAILABLE || FACE_RESTORE_ENABLED) && !hardFaceFailure
 
     if (skipRetryForFaceRestore && hasRetrySignal && isDev) {
       console.log('   ⏭️ Skipping Stage 3 retry — face restore (Stage 4) will handle identity correction')
@@ -497,7 +507,10 @@ export async function generateWithNanoBananaPro(
       try {
         const refBuffer = base64ToBuffer(input.personImageBase64)
         const retryBuffer = base64ToBuffer(generatedImage)
-        retryMicroDrift = await computeMicroFaceDrift(refBuffer, retryBuffer)
+        retryMicroDrift = await computeMicroFaceDrift(refBuffer, retryBuffer, {
+          referenceFace: personFace,
+          generatedFace: retryFace,
+        })
       } catch (microErr) {
         console.warn('⚠️ Micro face drift re-check failed:', microErr)
         retryMicroDrift = null
@@ -531,27 +544,33 @@ export async function generateWithNanoBananaPro(
     }
 
     // ═════════════════════════════════════════════════════════════════════════
-    // STAGE 4: Face Identity Restoration — DISABLED
-    // Logs proved face restore makes drift WORSE (30%→56%) and breaks
-    // lighting/composition coherence. Better to improve initial generation.
+    // STAGE 4: Face Identity Restoration
+    // Uses a redesigned two-pass approach: sends generated image + original
+    // person photo to Gemini with a holistic "fix the face" edit instruction.
+    // No mask, no anatomy checklist — just reference-based face correction.
     const ENABLE_FACE_RESTORE =
-      process.env.TRYON_ENABLE_FACE_RESTORE === 'true' // opt-IN only (was opt-OUT)
-    let faceRestoreResult: { success: boolean; processingTimeMs: number; error?: string } | null = null
+      process.env.TRYON_DISABLE_FACE_RESTORE !== 'true' // opt-OUT (enabled by default)
+    let faceRestoreResult: {
+      success: boolean
+      accepted?: boolean
+      processingTimeMs: number
+      error?: string
+      method?: 'insightface' | 'gemini'
+      identitySimilarityBefore?: number
+      identitySimilarityAfter?: number
+      skinToneDeltaBefore?: number
+      skinToneDeltaAfter?: number
+      darkSpotArtifactScoreAfter?: number
+    } | null = null
 
-    // Trigger face restore at a reasonable threshold in all environments
-    const faceRestoreDriftThreshold = 25
-    // Time budget: skip face restore if pipeline has already consumed too much time
-    // GPT Image 1.5 takes ~68s for generation, so budget must accommodate that
-    const faceRestoreTimeBudgetMs = 120_000
+    // Only trigger face restore when the face is truly wrong — Gemini's native
+    // generation is usually good enough. A loose threshold avoids injecting
+    // InsightFace artifacts (spots, moles, skin texture changes) into decent faces.
+    const faceRestoreDriftThreshold = 50
     const elapsedBeforeRestore = Date.now() - startTime
-    const hasTimeBudget = elapsedBeforeRestore < faceRestoreTimeBudgetMs
+    const hasTimeBudgetForGemini = elapsedBeforeRestore < 120_000
+    const hasTimeBudget = hasTimeBudgetForGemini
 
-    // Only attempt restoration if:
-    //  1. Face restore is enabled
-    //  2. We have detected faces in both original and generated images
-    //  3. Micro drift exceeds threshold (higher in production)
-    //  4. We have time budget remaining
-    //  5. We have a face crop for better reference
     const shouldRestoreFace = Boolean(
       ENABLE_FACE_RESTORE &&
       personFace &&
@@ -575,21 +594,38 @@ export async function generateWithNanoBananaPro(
           generatedFace: finalDetectedFace!,
           personFace: personFace!,
           aspectRatio: input.aspectRatio,
+          perceivedGender: forensicAnchor.perceivedGender,
         })
 
         faceRestoreResult = {
           success: restoreResult.success,
+          accepted: false,
           processingTimeMs: restoreResult.processingTimeMs,
+          method: restoreResult.method,
+          identitySimilarityBefore: restoreResult.identitySimilarityBefore,
+          identitySimilarityAfter: restoreResult.identitySimilarityAfter,
+          skinToneDeltaBefore: restoreResult.skinToneDeltaBefore,
+          skinToneDeltaAfter: restoreResult.skinToneDeltaAfter,
+          darkSpotArtifactScoreAfter: restoreResult.darkSpotArtifactScoreAfter,
           error: restoreResult.error,
         }
 
         if (restoreResult.success && restoreResult.restoredImageBase64) {
-          // Verify the restored image actually improved identity
+          // Verify the restored image actually improved identity.
+          // Important: micro-face drift is GEOMETRY ONLY, while InsightFace
+          // intentionally preserves target geometry and updates identity.
+          // So InsightFace must be accepted using identity similarity, not
+          // geometry drift reduction.
           const restoredBuffer = base64ToBuffer(restoreResult.restoredImageBase64)
           const refBuffer = base64ToBuffer(input.personImageBase64)
           let restoredMicroDrift: Awaited<ReturnType<typeof computeMicroFaceDrift>> | null = null
+          let restoredDetectedFace: FaceCoordinates | null = null
           try {
-            restoredMicroDrift = await computeMicroFaceDrift(refBuffer, restoredBuffer)
+            restoredDetectedFace = await detectFaceCoordinates(restoreResult.restoredImageBase64)
+            restoredMicroDrift = await computeMicroFaceDrift(refBuffer, restoredBuffer, {
+              referenceFace: personFace,
+              generatedFace: restoredDetectedFace,
+            })
           } catch (e) {
             console.warn('   ⚠️ Could not verify restored face drift:', e)
           }
@@ -597,16 +633,75 @@ export async function generateWithNanoBananaPro(
           const restoredDriftImproved = Boolean(
             restoredMicroDrift?.success &&
             microDrift?.success &&
-            restoredMicroDrift.driftPercent < microDrift.driftPercent
+            restoredMicroDrift.driftPercent < microDrift.driftPercent - 3
           )
 
-          if (restoredDriftImproved) {
+          const identitySimilarityBefore = restoreResult.identitySimilarityBefore
+          const identitySimilarityAfter = restoreResult.identitySimilarityAfter
+          const skinToneDeltaBefore = restoreResult.skinToneDeltaBefore
+          const skinToneDeltaAfter = restoreResult.skinToneDeltaAfter
+          const darkSpotArtifactScoreAfter = restoreResult.darkSpotArtifactScoreAfter
+          const skinToneRejected = Boolean(
+            typeof skinToneDeltaBefore === 'number' &&
+            typeof skinToneDeltaAfter === 'number' &&
+            skinToneDeltaAfter > skinToneDeltaBefore + 3
+          )
+          const darkSpotArtifactsRejected = Boolean(
+            restoreResult.method === 'insightface' &&
+            typeof darkSpotArtifactScoreAfter === 'number' &&
+            darkSpotArtifactScoreAfter > 0.003
+          )
+
+          // Strict gate: only accept if drift actually improved AND skin wasn't harmed.
+          // For InsightFace: also require meaningful identity improvement.
+          const insightfaceAccepted = Boolean(
+            restoreResult.method === 'insightface' &&
+            restoredDriftImproved &&
+            !skinToneRejected &&
+            !darkSpotArtifactsRejected &&
+            typeof identitySimilarityBefore === 'number' &&
+            typeof identitySimilarityAfter === 'number' &&
+            identitySimilarityAfter > identitySimilarityBefore + 0.03
+          )
+          const geminiAccepted = Boolean(
+            restoreResult.method === 'gemini' &&
+            restoredDriftImproved &&
+            !skinToneRejected
+          )
+          const shouldAcceptRestore = insightfaceAccepted || geminiAccepted
+
+          if (shouldAcceptRestore) {
+            if (faceRestoreResult) faceRestoreResult.accepted = true
             const oldDrift = microDrift!.driftPercent
             generatedImage = restoreResult.restoredImageBase64
-            microDrift = restoredMicroDrift
-            if (isDev) console.log(`   ✅ Face restored! Drift: ${restoredMicroDrift!.driftPercent.toFixed(1)}% (was ${oldDrift.toFixed(1)}%)`)
+            if (restoredMicroDrift?.success) {
+              microDrift = restoredMicroDrift
+            }
+            finalDetectedFace = restoredDetectedFace
+            driftAssessment = assessFaceDrift(personFace, restoredDetectedFace)
+            driftAssessment = tightenDriftAssessmentForUltraFaceLock(
+              driftAssessment,
+              isUltraFaceLockPreset
+            )
+            if (isDev) {
+              if (restoreResult.method === 'insightface' && typeof identitySimilarityBefore === 'number' && typeof identitySimilarityAfter === 'number') {
+                console.log(
+                  `   ✅ Face restored via insightface! Identity similarity: ${identitySimilarityAfter.toFixed(3)} (was ${identitySimilarityBefore.toFixed(3)}). Skin delta: ${skinToneDeltaAfter?.toFixed(1) ?? '?'} (was ${skinToneDeltaBefore?.toFixed(1) ?? '?'}). Dark spot score: ${darkSpotArtifactScoreAfter?.toFixed(4) ?? '?'}. Geometry drift: ${restoredMicroDrift?.driftPercent?.toFixed(1) ?? '?'}% (was ${oldDrift.toFixed(1)}%)`
+                )
+              } else {
+                console.log(`   ✅ Face restored via ${restoreResult.method || 'unknown'}! Drift: ${restoredMicroDrift?.driftPercent?.toFixed(1) ?? '?'}% (was ${oldDrift.toFixed(1)}%)`)
+              }
+            }
           } else {
-            if (isDev) console.log(`   ↩️ Restored face did not improve drift (${restoredMicroDrift?.driftPercent?.toFixed(1) ?? '?'}% vs ${microDrift?.driftPercent?.toFixed(1) ?? '?'}%), keeping original`)
+            if (isDev) {
+              if (restoreResult.method === 'insightface' && typeof identitySimilarityBefore === 'number' && typeof identitySimilarityAfter === 'number') {
+                console.log(
+                  `   ↩️ Restored face (insightface) rejected. Identity similarity: ${identitySimilarityAfter.toFixed(3)} vs ${identitySimilarityBefore.toFixed(3)}. Skin delta: ${skinToneDeltaAfter?.toFixed(1) ?? '?'} vs ${skinToneDeltaBefore?.toFixed(1) ?? '?'}. Dark spot score: ${darkSpotArtifactScoreAfter?.toFixed(4) ?? '?'}`
+                )
+              } else {
+                console.log(`   ↩️ Restored face (${restoreResult.method || 'unknown'}) did not improve drift (${restoredMicroDrift?.driftPercent?.toFixed(1) ?? '?'}% vs ${microDrift?.driftPercent?.toFixed(1) ?? '?'}%), keeping original`)
+              }
+            }
           }
         } else {
           if (isDev) console.log(`   ⚠️ Face restoration failed: ${restoreResult.error}`)
@@ -621,11 +716,24 @@ export async function generateWithNanoBananaPro(
       }
     } else if (isDev && ENABLE_FACE_RESTORE && microDrift?.success) {
       if (!hasTimeBudget) {
-        console.log(`   ⏱️ Face restore skipped — time budget exhausted (${(elapsedBeforeRestore / 1000).toFixed(1)}s >= ${faceRestoreTimeBudgetMs / 1000}s)`)
+        console.log(`   ⏱️ Face restore skipped — time budget exhausted (${(elapsedBeforeRestore / 1000).toFixed(1)}s >= 120s) and no InsightFace service`)
       } else {
         console.log(`   ✓ Face drift ${microDrift.driftPercent.toFixed(1)}% < ${faceRestoreDriftThreshold}% → skipping face restoration`)
       }
     }
+
+    const restoreSatisfiedIdentityGate = Boolean(
+      faceRestoreResult?.success &&
+      faceRestoreResult?.accepted &&
+      faceRestoreResult?.method === 'insightface' &&
+      typeof faceRestoreResult.identitySimilarityBefore === 'number' &&
+      typeof faceRestoreResult.identitySimilarityAfter === 'number' &&
+      typeof faceRestoreResult.skinToneDeltaBefore === 'number' &&
+      typeof faceRestoreResult.skinToneDeltaAfter === 'number' &&
+      (typeof faceRestoreResult.darkSpotArtifactScoreAfter !== 'number' || faceRestoreResult.darkSpotArtifactScoreAfter <= 0.003) &&
+      faceRestoreResult.identitySimilarityAfter >= faceRestoreResult.identitySimilarityBefore - 0.005 &&
+      faceRestoreResult.skinToneDeltaAfter <= faceRestoreResult.skinToneDeltaBefore + 1.5
+    )
 
     const genTime = Date.now() - startTime
     const finalMicroDrift = microDrift?.success ? microDrift.driftPercent : null
@@ -636,6 +744,7 @@ export async function generateWithNanoBananaPro(
         : FINAL_MICRO_DRIFT_MAX_DEFAULT
     const finalFaceFailure = Boolean(
       hasTrustedSourceFace &&
+      !restoreSatisfiedIdentityGate &&
       (
         driftAssessment.reason === 'generated_face_unknown' ||
         driftAssessment.shouldRetry ||
@@ -645,13 +754,13 @@ export async function generateWithNanoBananaPro(
     const faceConsistencyGate = finalFaceFailure
       ? {
         failed: true,
-        reason: driftAssessment.reason || 'unknown',
+        reason: restoreSatisfiedIdentityGate ? 'restored_identity_pass' : (driftAssessment.reason || 'unknown'),
         microDriftPercent: finalMicroDrift,
         threshold: finalDriftMax,
       }
       : {
         failed: false,
-        reason: 'passed',
+        reason: restoreSatisfiedIdentityGate ? 'restored_identity_pass' : 'passed',
         microDriftPercent: finalMicroDrift,
         threshold: finalDriftMax,
       }

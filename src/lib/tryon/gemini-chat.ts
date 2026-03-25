@@ -130,22 +130,29 @@ async function createChatCompletion(options: ChatCompletionOptions): Promise<Cha
  * Drop-in replacement for OpenAI embeddings
  */
 async function createEmbeddings(options: { input: string | string[], model?: string, [key: string]: any }) {
-  const model = 'text-embedding-004'
+  const model = 'gemini-embedding-001'
 
   if (Array.isArray(options.input)) {
-    // Batch embeddings (returns array from Promise.all)
-    const responses = await geminiEmbedContent({ model, contents: options.input })
+    const response = await geminiEmbedContent({ model, contents: options.input })
+    const embeddings = Array.isArray((response as any)?.embeddings)
+      ? (response as any).embeddings
+      : Array.isArray(response)
+        ? response
+        : []
     return {
-      data: (responses as any[]).map((resp: any, i: number) => ({
+      data: embeddings.map((resp: any, i: number) => ({
         index: i,
-        embedding: resp.embedding.values
+        embedding: resp?.values ?? resp?.embedding?.values ?? []
       }))
     }
   } else {
-    // Single embedding
     const response = await geminiEmbedContent({ model, contents: options.input })
+    const embedding =
+      (response as any)?.embeddings?.[0]?.values ??
+      (response as any)?.embedding?.values ??
+      []
     return {
-      data: [{ index: 0, embedding: (response as any).embedding.values }]
+      data: [{ index: 0, embedding }]
     }
   }
 }

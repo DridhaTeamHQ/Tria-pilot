@@ -131,19 +131,20 @@ export async function extractIdentityEmbedding(
 
     if (isDev) console.log(`🧬 Analyzing ${validImages.length} images...`)
 
-    // Try GPT-4o first, fall back to Gemini if OpenAI quota is hit
+    // Try GPT-4o first, fall back to Gemini on any extraction failure.
+    // This path should be resilient: Soul ID is a cacheable enhancement, not a
+    // reason to fail the whole try-on pipeline.
     let embedding: IdentityEmbedding | null = null
     try {
       embedding = await analyzeMultipleImages(validImages)
     } catch (err: any) {
-      if (err?.status === 429 || err?.code === 'insufficient_quota') {
-        if (isDev) console.log('🧬 OpenAI quota hit — falling back to Gemini for Soul ID extraction...')
-        embedding = await analyzeWithGemini(validImages)
-      } else {
-        throw err
-      }
+      if (isDev) console.warn('🧬 GPT-based Soul ID extraction failed — falling back to Gemini:', err)
+      embedding = await analyzeWithGemini(validImages)
     }
-    if (!embedding) return null
+    if (!embedding) {
+      if (isDev) console.warn('🧬 All Soul ID analyzers failed — using conservative fallback DNA')
+      embedding = buildFallbackEmbedding(validImages, 'fallback-conservative')
+    }
 
     // Store in DB
     const { error: updateError } = await service
@@ -242,7 +243,7 @@ Rules:
   })
 
   const raw = response.choices[0]?.message?.content || '{}'
-  const parsed = JSON.parse(raw) as Record<string, string>
+  const parsed = await parseEmbeddingResponse(raw)
 
   if (!parsed.identityDNA) {
     console.error('🧬 GPT-4o did not return identityDNA — extraction failed')
@@ -330,12 +331,13 @@ async function analyzeWithGemini(
 
   const responseText = (response as { text?: string }).text
   const text = typeof responseText === 'string' ? responseText : ''
-  const jsonMatch = text.match(/\{[\s\S]*\}/)
-  if (!jsonMatch) {
+  let parsed: Record<string, string>
+  try {
+    parsed = await parseEmbeddingResponse(text)
+  } catch {
     console.error('🧬 Gemini did not return valid JSON for Soul ID extraction')
     return null
   }
-  const parsed = JSON.parse(jsonMatch[0]) as Record<string, string>
 
   if (!parsed.identityDNA) {
     console.error('🧬 Gemini did not return identityDNA')
@@ -351,41 +353,115 @@ async function analyzeWithGemini(
 
 function buildAnalysisPrompt(imageCount: number): string {
   return `You are analyzing ${imageCount} photos of the SAME person from different angles.
-Your job: Create a PERMANENT identity profile by cross-referencing features across all views.
+Your job: Create a PERMANENT identity profile focusing on MACRO identifiers (age bracket, apparent ethnicity/background, hair length/color/style, general vibe).
 
-Features confirmed in 2+ images are marked as high-confidence.
+CRITICAL: DO NOT describe micro-anatomical features like nose bridge, eye spacing, or jaw contour in the identityDNA. When generative models are given a checklist of face parts, they assemble a "Frankenstein" face instead of copying the provided visual references.
 
-CRITICAL: You MUST write an "identityDNA" paragraph — a single, dense paragraph 
-that describes this person's EXACT face so precisely that an AI image generator could 
-reproduce it perfectly. This paragraph will be used in EVERY image generation for this person.
+The identityDNA MUST be a single, short paragraph that gives the model the "Vibe" and physical anchor, ending with a strict command to copy the reference images.
 
-The identityDNA should read like:
-"This person has a [shape] face with [width] proportions, [cheek description], [jawline], 
-and [chin]. Their [eye shape] eyes are [color] with [spacing] spacing. The nose has a 
-[bridge] bridge and [tip] tip. Lips are [description]. Skin is [tone] with [texture]. 
-[Hair description]. [Any distinguishing marks]."
+Example of what we WANT:
+"Photograph of a 20-something South Asian woman with long wavy dark brown hair. Preserve the exact facial identity, bone structure, and eye spacing from the provided reference images."
+
+Example of what we DO NOT WANT:
+"This person has an oval face with almond eyes, 32mm spacing, a straight nose..."
 
 Return JSON only:
 {
-  "faceShape": "<shape + width + proportions>",
-  "eyeGeometry": "<shape, color, spacing, crease, brow>",
-  "noseProfile": "<bridge width + tip shape>",
-  "lipContour": "<fullness + shape>",
-  "jawline": "<jaw shape + angle + chin>",
-  "skinTone": "<specific tone + undertone>",
-  "skinTexture": "<smoothness + pore visibility>",
+  "faceShape": "<short description>",
+  "eyeGeometry": "<short description>",
+  "noseProfile": "<short description>",
+  "lipContour": "<short description>",
+  "jawline": "<short description>",
+  "skinTone": "<short description>",
+  "skinTexture": "<short description>",
   "distinguishingMarks": "<moles, dimples, scars — or 'none'>",
-  "hairDescription": "<length + color + texture + parting>",
-  "bodyBuild": "<shoulder width + build>",
+  "hairDescription": "<length + color + texture>",
+  "bodyBuild": "<overall frame>",
   "eyewear": "<frame description or 'none'>",
-  "identityDNA": "<THE CRITICAL PARAGRAPH — 2-3 sentences>"
+  "identityDNA": "<MACRO IDENTIFIERS ONLY + command to use references for geometry>"
+}
+Rules:
+- The identityDNA paragraph MUST NOT contain anatomical measurements or shapes.
+- The identityDNA is the most important output — it will be used as the root prompt for this person.
+- Cross-reference across all ${imageCount} images.
+- Do NOT mention name, age, ethnicity.`
 }
 
-Rules:
-- Cross-reference across all ${imageCount} images.
-- Face width and cheek volume are #1 source of AI face drift — be PRECISE.
-- Do NOT mention name, age, ethnicity.
-- The identityDNA is the most important output.`
+async function parseEmbeddingResponse(raw: string): Promise<Record<string, string>> {
+  const { extractJson } = await import('@/lib/tryon/json-repair')
+
+  try {
+    return extractJson<Record<string, string>>(raw)
+  } catch {
+    const loose = extractLooseStringFields(raw, [
+      'faceShape',
+      'eyeGeometry',
+      'noseProfile',
+      'lipContour',
+      'jawline',
+      'skinTone',
+      'skinTexture',
+      'distinguishingMarks',
+      'hairDescription',
+      'bodyBuild',
+      'eyewear',
+      'identityDNA',
+    ])
+    if (loose.identityDNA) return loose
+    throw new Error('Could not recover identityDNA from response')
+  }
+}
+
+function extractLooseStringFields(raw: string, keys: string[]): Record<string, string> {
+  const result: Record<string, string> = {}
+  const compact = raw.replace(/\r/g, '')
+
+  for (const key of keys) {
+    const patterns = [
+      new RegExp(`"${key}"\\s*:\\s*"([\\s\\S]*?)"(?=\\s*,\\s*"\\w+"\\s*:|\\s*}\\s*$)`, 'i'),
+      new RegExp(`"${key}"\\s*:\\s*([^,}\\n]+)`, 'i'),
+    ]
+
+    for (const pattern of patterns) {
+      const match = compact.match(pattern)
+      if (!match) continue
+      const value = match[1]
+        .replace(/\\"/g, '"')
+        .replace(/\s+/g, ' ')
+        .trim()
+      if (value) {
+        result[key] = value
+        break
+      }
+    }
+  }
+
+  return result
+}
+
+function buildFallbackEmbedding(
+  images: { type: string; dataUrl: string }[],
+  modelUsed: string
+): IdentityEmbedding {
+  return buildEmbeddingFromParsed(
+    {
+      faceShape: 'preserve exact face shape from the reference photos',
+      eyeGeometry: 'preserve exact eye geometry and spacing from the reference photos',
+      noseProfile: 'preserve exact nose profile from the reference photos',
+      lipContour: 'preserve exact lip contour from the reference photos',
+      jawline: 'preserve exact jawline from the reference photos',
+      skinTone: 'preserve exact skin tone from the reference photos',
+      skinTexture: 'preserve exact natural skin texture from the reference photos',
+      distinguishingMarks: 'preserve all asymmetry and distinctive features from the reference photos',
+      hairDescription: 'preserve the same hairstyle and hair color seen in the reference photos',
+      bodyBuild: 'original body proportions',
+      eyewear: 'preserve any eyewear from the reference photos',
+      identityDNA:
+        'Photograph the exact same person from the provided reference photos. Copy the face holistically from the photos and preserve skin tone, hairline, asymmetry, and facial identity exactly as seen in the references.',
+    },
+    images,
+    modelUsed
+  )
 }
 
 function buildEmbeddingFromParsed(
@@ -463,8 +539,43 @@ export async function loadIdentityEmbedding(
 }
 
 /**
+ * Detect stale anatomical-style identityDNA that was extracted with the old prompt.
+ * Old DNA contains detailed feature descriptions that cause Frankenstein face assembly.
+ * New DNA should be macro-identifiers only (age, ethnicity, hair, vibe + reference command).
+ */
+function hasStaleAnatomicalDNA(dna: string): boolean {
+  if (!dna) return true
+  const anatomicalMarkers = [
+    'oval face',
+    'almond-shaped',
+    'almond shaped',
+    'cupid\'s bow',
+    'medium bridge',
+    'rounded tip',
+    'slightly visible nostrils',
+    'balanced proportions',
+    'subtle crease',
+    'defined cupid',
+    'softly rounded jaw',
+    'golden undertone',
+    'eye spacing',
+    '32mm spacing',
+    'straight bridge',
+    'full lips with',
+    'soft jaw',
+    'nose bridge',
+    'tip shape',
+    'lip contour',
+  ]
+  const lower = dna.toLowerCase()
+  const matchCount = anatomicalMarkers.filter(m => lower.includes(m)).length
+  return matchCount >= 2
+}
+
+/**
  * Check if identity embedding needs re-extraction.
- * Returns true if no embedding exists or image count has changed.
+ * Returns true if no embedding exists, image count has changed,
+ * or the identityDNA is in the old anatomical format.
  */
 export async function needsReExtraction(
   userId: string
@@ -482,6 +593,14 @@ export async function needsReExtraction(
     if (!profile.identity_embedding) return true
 
     const embedding = profile.identity_embedding as IdentityEmbedding
+
+    // Force re-extraction if DNA uses old anatomical format
+    if (hasStaleAnatomicalDNA(embedding.identityDNA)) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('🧬 Stale anatomical DNA detected — forcing re-extraction')
+      }
+      return true
+    }
 
     // Check if image count has changed
     const { count } = await service

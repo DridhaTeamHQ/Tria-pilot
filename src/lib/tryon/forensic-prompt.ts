@@ -63,76 +63,95 @@ export interface ForensicPromptInput {
 }
 
 export function buildForensicPrompt(input: ForensicPromptInput): string {
-  const isGPT = Boolean(input.useGPTImageFormat)
   const aspectRatio = input.aspectRatio || '1:1'
   const hasFaceReference = Boolean(input.hasFaceReference)
 
-  // Image references differ between Gemini and GPT Image
-  const personRef = isGPT ? 'the person photo' : 'Image 1'
-  const garmentRef = isGPT ? 'the garment photo' : 'Image 2'
-  const faceCropRef = isGPT ? 'the face close-up photo' : 'Image 3 (close-up)'
+  // Always use "Image 1/2/3" references — Gemini is the primary render engine
+  const personRef = 'Image 1'
+  const garmentRef = 'Image 2'
+  const faceCropRef = 'Image 3'
   const garment = input.garmentDescription?.trim() || `garment from ${garmentRef}`
 
-  // Extract a SHORT scene description (max 120 chars) from the preset
   const rawPreset = input.preset?.trim() || ''
-  const keepBgPhrase = isGPT ? 'keep the original background' : 'keep background from Image 1'
-  const isSceneChange = rawPreset && rawPreset !== keepBgPhrase
-  // Use the full scene description so Gemini understands the preset deeply
-  const sceneBrief = isSceneChange ? input.preset : ''
+  const isSceneChange = rawPreset && rawPreset !== `keep background from ${personRef}`
 
-  // Provide the full lighting blueprint for realistic integration
+  // CONDENSE scene and lighting to save token budget for identity signal
+  const sceneBrief = isSceneChange ? condenseScene(rawPreset, 150) : ''
   const lightingBrief = isSceneChange && input.lightingBlueprint
-    ? input.lightingBlueprint
+    ? condenseLighting(input.lightingBlueprint, 60)
     : ''
 
   // ═══════════════════════════════════════════════════════════════════════
-  // CLEAN, CREATIVE PROMPT — ~400-600 chars total
-  // Let 4o be creative. Only lock: face identity + garment design.
-  // Everything else (pose, angle, expression, lighting, depth) = 4o's choice.
+  // CONCISE PROMPT — target ~500-800 chars
+  // Research shows: shorter prompt = stronger image-reference signal.
+  // Let the reference images dictate the face. Text only provides
+  // macro-level identity + scene composition + garment instruction.
   // ═══════════════════════════════════════════════════════════════════════
 
   const lines: string[] = []
 
-  // ── BLOCK 1: WHO (face identity — first position for max attention) ──
-  const namePrefix = input.nameAnchor ? `${input.nameAnchor}. ` : ''
+  // ── BLOCK 1: WHO ──
   if (input.identityDNA) {
     lines.push(
-      `${namePrefix}Photograph this exact person: ${input.identityDNA} Use ${personRef}${hasFaceReference ? ` and ${faceCropRef}` : ''} as face reference.`
+      `${personRef}: ${input.identityDNA}${hasFaceReference ? ` Use ${personRef} and ${faceCropRef} as face reference.` : ''}`
     )
   } else {
     lines.push(
-      `${namePrefix}Photograph the exact person from ${personRef}${hasFaceReference ? ` and ${faceCropRef}` : ''}.`
+      `Photograph the exact person from ${personRef}${hasFaceReference ? ` and ${faceCropRef}` : ''}.`
     )
   }
-  
-  // STRICT IDENTITY LOCK (Fixes geometry drift caused by asymmetric normalization)
-  lines.push(`STRICT IDENTITY LOCK: Do not alter the interpupillary distance, jaw width, or facial asymmetry. The structural geometry of the face MUST remain a 1:1 match with the reference images. Let the reference images dictate the face perfectly without assembling a semantic checklist of features.`)
+  lines.push(`Copy the face holistically from the reference photos. Do not reconstruct it from text. Match the skin exactly as it appears in the reference — same clarity, same texture, no added spots or blemishes.`)
+  if (input.faceForensicAnchor?.trim()) {
+    lines.push(condenseIdentityDirective(`Keep this same facial structure and fullness: ${input.faceForensicAnchor}`, 150))
+  }
+  if (input.eyesAnchor?.trim()) {
+    lines.push(condenseIdentityDirective(`Keep this same eye geometry: ${input.eyesAnchor}`, 110))
+  }
+  if (input.perceivedGender === 'masculine') {
+    lines.push(`Preserve masculine presentation, facial proportions, brow weight, hairline, jaw shape, and skin tone exactly as photographed.`)
+  } else if (input.perceivedGender === 'feminine') {
+    lines.push(`Preserve feminine presentation, facial proportions, nose width, eye size, hairline, natural asymmetry, and skin tone exactly as photographed.`)
+  }
+  if (input.antiDriftDirectives?.trim()) {
+    lines.push(condenseIdentityDirective(input.antiDriftDirectives, 140))
+  }
+  if (input.bodyAnchor?.trim()) {
+    lines.push(condenseIdentityDirective(input.bodyAnchor, 120))
+  }
   lines.push('')
 
-  // ── BLOCK 2: WHAT (garment — must be strong enough for 4o to follow) ──
+  // ── BLOCK 2: WHAT ──
   lines.push(
-    `OUTFIT: Put this person in the COMPLETE outfit shown in ${garmentRef} — ${garment}. Copy every piece of clothing visible in ${garmentRef}: top, bottom, layers, accessories, shoes. Match the exact colors, patterns, and fabric from ${garmentRef}. Do NOT keep any clothing from ${personRef}. The outfit must come ONLY from ${garmentRef}.`
+    `OUTFIT: Dress this person in the garment from ${garmentRef}: ${garment}. Match exact colors, patterns, fabric. All clothing from ${garmentRef} only.`
   )
+  if (input.garmentOnPersonGuidance?.trim()) {
+    lines.push(condenseIdentityDirective(input.garmentOnPersonGuidance, 140))
+  }
+  if (input.characterSummary?.trim() || input.appearanceSummary?.trim()) {
+    const bodyAndLookAnchor = [input.characterSummary?.trim(), input.appearanceSummary?.trim()]
+      .filter(Boolean)
+      .join('. ')
+    if (bodyAndLookAnchor) {
+      lines.push(condenseIdentityDirective(`Same person and same overall build/look as ${personRef}: ${bodyAndLookAnchor}`, 150))
+    }
+  }
   lines.push('')
 
-  // ── BLOCK 3: WHERE + HOW (scene as a creative brief) ──
-  // Note: Add lighting geometry constraint so harsh shadows don't distort face shape
+  // ── BLOCK 3: WHERE ──
   if (isSceneChange && sceneBrief) {
     lines.push(
-      `Scene Environment: ${sceneBrief}.
-Lighting & Atmosphere: ${lightingBrief || 'Natural lighting'}. Ensure the face remains clearly visible with even, flattering light, avoiding deep or obscuring shadows on the facial features that could alter perceived bone structure.
-Photograph this person as if they were actually in this exact environment. Ensure their lighting matches the environment lighting perfectly. One cohesive, photorealistic photograph, ${aspectRatio} aspect ratio.`
+      `Scene: ${sceneBrief}. ${lightingBrief ? `Lighting: ${lightingBrief}.` : ''} Keep the face evenly lit — no deep shadows on jaw or cheeks. Photorealistic, ${aspectRatio}.`
     )
   } else {
     lines.push(
-      `Keep original background from ${personRef}. Photorealistic, ${aspectRatio} aspect ratio.`
+      `Keep original background from ${personRef}. Photorealistic, ${aspectRatio}.`
     )
   }
 
-  // ── RETRY (only if previous attempt failed) ──
+  // ── RETRY ──
   if (input.retryMode) {
     lines.push('')
-    lines.push(`IMPORTANT: Previous attempt changed the face. This time, copy the face from ${personRef} exactly.`)
+    lines.push(`IMPORTANT: Previous attempt changed the face or body shape slightly. Keep the same face and body build from ${personRef} this time.`)
   }
 
   return lines.join('\n')
@@ -204,4 +223,10 @@ function condenseLighting(lighting: string, maxLen: number): string {
   // Fallback: take first short phrase
   const brief = lighting.split('.')[0].trim()
   return brief.length > maxLen ? brief.substring(0, maxLen - 3) + '...' : brief
+}
+
+function condenseIdentityDirective(text: string, maxLen: number): string {
+  const normalized = text.replace(/\s+/g, ' ').trim()
+  if (normalized.length <= maxLen) return normalized
+  return normalized.substring(0, maxLen - 3).trimEnd() + '...'
 }

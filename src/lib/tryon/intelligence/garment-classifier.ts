@@ -216,13 +216,8 @@ Return JSON only.`
 
         const content = response.choices[0]?.message?.content || ''
 
-        // Parse JSON from response
-        const jsonMatch = content.match(/\{[\s\S]*\}/)
-        if (!jsonMatch) {
-            throw new Error('No JSON found in response')
-        }
-
-        const parsed = JSON.parse(jsonMatch[0])
+        const { extractJson } = await import('@/lib/tryon/json-repair')
+        const parsed = extractJson<Record<string, any>>(content)
 
         // Build classification result
         const classification: GarmentClassification = {
