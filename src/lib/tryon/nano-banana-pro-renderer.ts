@@ -441,7 +441,7 @@ export async function generateWithNanoBananaPro(
     // Stage 4 handles face identity correction via inpainting, which is faster
     // and more effective than re-generating the entire image.
     const FACE_RESTORE_ENABLED =
-      process.env.TRYON_ENABLE_FACE_RESTORE !== 'false'
+      process.env.TRYON_ENABLE_FACE_RESTORE === 'true' // matches Stage 4 opt-in
     const skipRetryForFaceRestore = FACE_RESTORE_ENABLED && !hardFaceFailure
 
     if (skipRetryForFaceRestore && hasRetrySignal && isDev) {
@@ -531,11 +531,11 @@ export async function generateWithNanoBananaPro(
     }
 
     // ═════════════════════════════════════════════════════════════════════════
-    // STAGE 4: Face Identity Restoration (Two-Pass Gemini Inpainting)
-    // Applies to ALL render models — even GPT Image 1.5 can drift 40%+
-    // ═════════════════════════════════════════════════════════════════════════
+    // STAGE 4: Face Identity Restoration — DISABLED
+    // Logs proved face restore makes drift WORSE (30%→56%) and breaks
+    // lighting/composition coherence. Better to improve initial generation.
     const ENABLE_FACE_RESTORE =
-      process.env.TRYON_ENABLE_FACE_RESTORE !== 'false'
+      process.env.TRYON_ENABLE_FACE_RESTORE === 'true' // opt-IN only (was opt-OUT)
     let faceRestoreResult: { success: boolean; processingTimeMs: number; error?: string } | null = null
 
     // Trigger face restore at a reasonable threshold in all environments
