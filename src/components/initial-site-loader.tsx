@@ -16,15 +16,7 @@ export default function InitialSiteLoader() {
   const fallbackTimerRef = useRef<number | null>(null)
   const startedAtRef = useRef(0)
   const originalOverflowRef = useRef<string | null>(null)
-  const originalHtmlOverflowRef = useRef<string | null>(null)
-  const originalBodyPositionRef = useRef<string | null>(null)
-  const originalBodyTopRef = useRef<string | null>(null)
-  const originalBodyWidthRef = useRef<string | null>(null)
-  const originalBodyTouchActionRef = useRef<string | null>(null)
-  const originalHtmlOverscrollRef = useRef<string | null>(null)
-  const originalHtmlPositionRef = useRef<string | null>(null)
-  const originalHtmlWidthRef = useRef<string | null>(null)
-  const lockedScrollYRef = useRef(0)
+  const originalPaddingRightRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -45,41 +37,9 @@ export default function InitialSiteLoader() {
         document.body.style.overflow = originalOverflowRef.current
         originalOverflowRef.current = null
       }
-      if (originalHtmlOverflowRef.current !== null) {
-        document.documentElement.style.overflow = originalHtmlOverflowRef.current
-        originalHtmlOverflowRef.current = null
-      }
-      if (originalBodyPositionRef.current !== null) {
-        document.body.style.position = originalBodyPositionRef.current
-        originalBodyPositionRef.current = null
-      }
-      if (originalBodyTopRef.current !== null) {
-        document.body.style.top = originalBodyTopRef.current
-        originalBodyTopRef.current = null
-      }
-      if (originalBodyWidthRef.current !== null) {
-        document.body.style.width = originalBodyWidthRef.current
-        originalBodyWidthRef.current = null
-      }
-      if (originalBodyTouchActionRef.current !== null) {
-        document.body.style.touchAction = originalBodyTouchActionRef.current
-        originalBodyTouchActionRef.current = null
-      }
-      if (originalHtmlOverscrollRef.current !== null) {
-        document.documentElement.style.overscrollBehavior = originalHtmlOverscrollRef.current
-        originalHtmlOverscrollRef.current = null
-      }
-      if (originalHtmlPositionRef.current !== null) {
-        document.documentElement.style.position = originalHtmlPositionRef.current
-        originalHtmlPositionRef.current = null
-      }
-      if (originalHtmlWidthRef.current !== null) {
-        document.documentElement.style.width = originalHtmlWidthRef.current
-        originalHtmlWidthRef.current = null
-      }
-      if (lockedScrollYRef.current) {
-        window.scrollTo(0, lockedScrollYRef.current)
-        lockedScrollYRef.current = 0
+      if (originalPaddingRightRef.current !== null) {
+        document.body.style.paddingRight = originalPaddingRightRef.current
+        originalPaddingRightRef.current = null
       }
     }
 
@@ -88,6 +48,9 @@ export default function InitialSiteLoader() {
       restoreBody()
       setVisible(false)
       dismissRequestedRef.current = false
+      try {
+        sessionStorage.setItem('__kiwikooHasSeenIntro', 'true')
+      } catch (e) { }
     }
 
     function requestDismiss() {
@@ -102,7 +65,12 @@ export default function InitialSiteLoader() {
       }, remaining)
     }
 
-    if (pathname !== "/") {
+    let hasSeenIntro = false
+    try {
+      hasSeenIntro = sessionStorage.getItem('__kiwikooHasSeenIntro') === 'true'
+    } catch (e) { }
+
+    if (pathname !== "/" || hasSeenIntro) {
       finishDismiss()
       delete (window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro
       return
@@ -112,32 +80,24 @@ export default function InitialSiteLoader() {
     dismissRequestedRef.current = false
     startedAtRef.current = Date.now()
     setInstanceKey((value) => value + 1)
-    lockedScrollYRef.current = window.scrollY
-    originalOverflowRef.current = document.body.style.overflow
-    originalHtmlOverflowRef.current = document.documentElement.style.overflow
-    originalBodyPositionRef.current = document.body.style.position
-    originalBodyTopRef.current = document.body.style.top
-    originalBodyWidthRef.current = document.body.style.width
-    originalBodyTouchActionRef.current = document.body.style.touchAction
-    originalHtmlOverscrollRef.current = document.documentElement.style.overscrollBehavior
-    originalHtmlPositionRef.current = document.documentElement.style.position
-    originalHtmlWidthRef.current = document.documentElement.style.width
-    document.body.style.overflow = "hidden"
-    document.documentElement.style.overflow = "hidden"
-    document.body.style.position = "fixed"
-    document.body.style.top = `-${lockedScrollYRef.current}px`
-    document.body.style.width = "100%"
-    document.body.style.touchAction = "none"
-    document.documentElement.style.position = "fixed"
-    document.documentElement.style.width = "100%"
-    document.documentElement.style.overscrollBehavior = "none"
+
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
+
+    if (document.body.style.overflow !== "hidden") {
+      originalOverflowRef.current = document.body.style.overflow
+      originalPaddingRightRef.current = document.body.style.paddingRight
+
+      document.body.style.overflow = "hidden"
+      document.body.style.paddingRight = `${scrollbarWidth}px`
+    }
+
     setVisible(true)
 
     fallbackTimerRef.current = window.setTimeout(() => {
       requestDismiss()
     }, INTRO_DURATION_MS)
 
-    ;(window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro = requestDismiss
+      ; (window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro = requestDismiss
 
     return () => {
       clearTimers()
@@ -157,7 +117,7 @@ export default function InitialSiteLoader() {
       video.currentTime = 0
       const maybePromise = video.play()
       if (maybePromise && typeof maybePromise.catch === "function") {
-        maybePromise.catch(() => {})
+        maybePromise.catch(() => { })
       }
     })
 

@@ -21,8 +21,17 @@ export const PortalModal = ({ children, isOpen, onClose }: PortalModalProps) => 
     useEffect(() => {
         if (!isOpen) return
 
-        const originalOverflow = document.body.style.overflow
-        document.body.style.overflow = 'hidden'
+        let originalOverflow: string | null = null
+        let originalPaddingRight: string | null = null
+
+        if (document.body.style.overflow !== 'hidden') {
+            originalOverflow = document.body.style.overflow
+            originalPaddingRight = document.body.style.paddingRight
+            const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
+
+            document.body.style.overflow = 'hidden'
+            document.body.style.paddingRight = `${scrollbarWidth}px`
+        }
 
         const onKeyDown = (event: KeyboardEvent) => {
             if (event.key === 'Escape') onClose()
@@ -30,7 +39,14 @@ export const PortalModal = ({ children, isOpen, onClose }: PortalModalProps) => 
 
         window.addEventListener('keydown', onKeyDown)
         return () => {
-            document.body.style.overflow = originalOverflow
+            if (originalOverflow !== null) {
+                document.body.style.overflow = originalOverflow
+                if (originalPaddingRight !== null) {
+                    document.body.style.paddingRight = originalPaddingRight
+                } else {
+                    document.body.style.paddingRight = ''
+                }
+            }
             window.removeEventListener('keydown', onKeyDown)
         }
     }, [isOpen, onClose])
