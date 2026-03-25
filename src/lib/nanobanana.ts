@@ -517,26 +517,8 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
     responseModalities: ['TEXT', 'IMAGE'],
     // STRONG face immutability instruction — references ALL character images explicitly.
     // Camera specs + technical language prevent cartoonish/CGI output.
-    systemInstruction: `You are a photorealistic virtual try-on compositor shooting on a Canon EOS R5.
-
-FACE RULES (IMMUTABLE — highest priority):
-- The person's face is a FROZEN TEXTURE MAP from Image 1. Copy it pixel-for-pixel.
-- Images 3-7 show the SAME person from different angles. Use them to cross-verify face geometry.
-- Match EXACT bone structure, eye shape, eye spacing, nose bridge width, lip contour, jawline angle, skin tone, pore texture, and perceived age from Image 1.
-- The face must be IDENTICAL to Image 1. Any deviation is a failure.
-
-GARMENT RULES:
-- Apply ONLY the garment from Image 2 — match its exact color, pattern, fabric, and design.
-- IGNORE any clothing visible in Images 1, 3, 4, 5, 6, or 7 — those show the person in different outfits.
-
-SCENE RULES:
-- Generate a NEW background/scene as described in the SCENE section of the prompt.
-- Do NOT keep the background from Image 1 — replace it entirely.
-- Adapt pose and framing as described in the POSE section.
-
-OUTPUT QUALITY:
-- Shoot with natural film grain, real skin with visible pores and micro-imperfections.
-- No airbrushing, no skin smoothing, no beautification, no CGI look.`,
+    systemInstruction: `You are a photorealistic virtual try-on photographer. Generate a real photograph.
+Rules: Same face as Image 1. Outfit from Image 2 only. Natural skin with pores, no smoothing, no AI look.`,
     imageConfig,
     temperature: 0.3,
     topP: 0.85,
@@ -547,7 +529,7 @@ OUTPUT QUALITY:
 
   // Model selection: Pro (default) or Flash (faster/cheaper)
   // Set TRYON_IMAGE_MODEL=gemini-3.1-flash-image-preview for Nano Banana 2
-  const modelName = process.env.TRYON_IMAGE_MODEL?.trim() || 'gemini-3-pro-image-preview'
+  const modelName = process.env.TRYON_IMAGE_MODEL?.trim() || 'gemini-3.1-flash-image-preview'
 
   const response = await geminiGenerateContent({
     model: modelName,

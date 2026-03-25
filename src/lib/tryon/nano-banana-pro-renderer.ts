@@ -26,9 +26,9 @@ import { computeMicroFaceDrift, getDriftRetryParams } from './micro-face-drift'
 import { getPresetExampleGuidance, getRequestExampleGuidance } from './presets/example-prompts-reference'
 import { getPresetStrengthProfile } from './preset-strength-profile'
 
-export type TryOnRenderModel = 'gpt-image-1.5' | 'gemini-3-pro-image-preview'
+export type TryOnRenderModel = 'gpt-image-1.5' | 'gemini-3-pro-image-preview' | 'gemini-3.1-flash-image-preview'
 
-const DEFAULT_RENDER_MODEL: TryOnRenderModel = 'gpt-image-1.5'
+const DEFAULT_RENDER_MODEL: TryOnRenderModel = 'gemini-3.1-flash-image-preview'
 const ENABLE_QUALITY_RETRY =
   process.env.TRYON_ENABLE_QUALITY_RETRY !== 'false'
 const MICRO_DRIFT_RETRY_THRESHOLD = 18
@@ -109,7 +109,7 @@ export interface NanoBananaProResult {
 
 export function getTryOnRenderModel(): TryOnRenderModel {
   const configured = process.env.TRYON_RENDER_MODEL?.trim()
-  if (configured === 'gpt-image-1.5' || configured === 'gemini-3-pro-image-preview') {
+  if (configured === 'gpt-image-1.5' || configured === 'gemini-3-pro-image-preview' || configured === 'gemini-3.1-flash-image-preview') {
     return configured
   }
   return DEFAULT_RENDER_MODEL
@@ -136,7 +136,7 @@ async function renderTryOnImage(
   model: TryOnRenderModel
   fallbackReason?: string
 }> {
-  if (preferredModel === 'gpt-image-1.5') {
+  if (preferredModel === 'gpt-image-1.5') { // GPT Image path
     try {
       const image = await generateTryOnGPT(options)
       return { image, model: preferredModel }
@@ -317,7 +317,7 @@ export async function generateWithNanoBananaPro(
       retryMode: false, // Only set true during actual retries, not first pass
       cameraGuidance: presetCamera, // Pass preset camera/pose to the prompt
       identityDNA: identityEmbedding?.identityDNA, // Soul ID — frozen identity paragraph
-      useGPTImageFormat: true, // GPT Image uses descriptive refs, not Image 1/2/3
+      useGPTImageFormat: preferredRenderModel === 'gpt-image-1.5', // GPT uses descriptive refs, Gemini uses Image 1/2/3
       nameAnchor,
       perceivedGender: forensicAnchor.perceivedGender,
       antiDriftDirectives: forensicAnchor.antiDriftDirectives,
