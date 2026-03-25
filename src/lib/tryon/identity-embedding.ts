@@ -182,55 +182,37 @@ async function analyzeMultipleImages(
     {
       type: 'text',
       text: `You are analyzing ${images.length} photos of the SAME person from different angles.
-Your job: Create a PERMANENT identity profile by cross-referencing features across all views.
+Your job: Create a PERMANENT identity profile focusing on MACRO identifiers (age bracket, apparent ethnicity/background, hair length/color/style, general vibe).
 
-Features confirmed in 2+ images are marked as high-confidence.
-Features visible in only 1 image should still be noted but may be angle-dependent.
+CRITICAL: DO NOT describe micro-anatomical features like nose bridge, eye spacing, or jaw contour in the identityDNA. When generative models are given a checklist of face parts, they assemble a "Frankenstein" face instead of copying the provided visual references.
 
-CRITICAL: You MUST also write an "identityDNA" paragraph — a single, dense paragraph 
-that describes this person's EXACT face so precisely that an AI image generator could 
-reproduce it perfectly. This paragraph will be used in EVERY image generation for this person.
+The identityDNA MUST be a single, short paragraph that gives the model the "Vibe" and physical anchor, ending with a strict command to copy the reference images.
 
-The identityDNA MUST follow this exact checklist order:
-1. Face shape + width + proportions
-2. Cheek volume + jawline + chin
-3. Eye shape + color + spacing + crease type
-4. Nose bridge width + tip shape
-5. Lip fullness + shape + defining features
-6. Skin tone + texture + pore visibility
-7. DISTINGUISHING MARKS (CRITICAL — moles, dimples, scars, beauty marks, facial asymmetry — these are the STRONGEST identity anchors)
-8. Hair description
-9. Facial hair (if any, exact density/style; or explicitly 'clean-shaven')
+Example of what we WANT:
+"Photograph of a 20-something South Asian woman with long wavy dark brown hair. Preserve the exact facial identity, bone structure, and eye spacing from the provided reference images."
 
-The identityDNA should read like:
-"This person has a [shape] face with [width] proportions, [cheek description], [jawline], 
-and [chin]. Their [eye shape] eyes are [color] with [spacing] spacing. The nose has a 
-[bridge] bridge and [tip] tip. Lips are [description]. Skin is [tone] with [texture]. 
-DISTINGUISHING: [specific marks with exact locations]. [Hair description]."
+Example of what we DO NOT WANT:
+"This person has an oval face with almond eyes, 32mm spacing, a straight nose..."
 
 Return JSON only:
 {
-  "faceShape": "<shape + width + proportions — be specific>",
-  "eyeGeometry": "<shape, color, spacing, crease, brow>",
-  "noseProfile": "<bridge width + tip shape + nostril visibility>",
-  "lipContour": "<fullness + shape + defining features>",
-  "jawline": "<jaw shape + angle + chin>",
-  "skinTone": "<specific tone + warmth/coolness + undertone>",
-  "skinTexture": "<smoothness + pore visibility + any texture>",
-  "distinguishingMarks": "<moles, dimples, scars, beauty marks — or 'none'>",
-  "hairDescription": "<length + color + texture + parting>",
-  "bodyBuild": "<shoulder width + build + overall frame>",
+  "faceShape": "<short description>",
+  "eyeGeometry": "<short description>",
+  "noseProfile": "<short description>",
+  "lipContour": "<short description>",
+  "jawline": "<short description>",
+  "skinTone": "<short description>",
+  "skinTexture": "<short description>",
+  "distinguishingMarks": "<moles, dimples, scars — or 'none'>",
+  "hairDescription": "<length + color + texture>",
+  "bodyBuild": "<overall frame>",
   "eyewear": "<frame description or 'none'>",
-  "identityDNA": "<THE CRITICAL PARAGRAPH — 2-3 sentences describing this exact face>"
+  "identityDNA": "<MACRO IDENTIFIERS ONLY + command to use references for geometry>"
 }
 
 Rules:
-- Cross-reference across all ${images.length} images for accuracy.
-- Face width and cheek volume are the #1 source of AI face drift — be PRECISE.
-- The identityDNA paragraph must be specific enough to distinguish this person from anyone else.
-- Do NOT mention name, age, ethnicity, or sensitive attributes.
-- Keep each field concise but precise.
-- The identityDNA is the most important output — it will be used in every generation.`,
+- The identityDNA paragraph MUST NOT contain anatomical measurements or shapes.
+- The identityDNA is the most important output — it will be used as the root prompt for this person.`,
     },
   ]
 

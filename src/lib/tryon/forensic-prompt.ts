@@ -97,13 +97,16 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   const namePrefix = input.nameAnchor ? `${input.nameAnchor}. ` : ''
   if (input.identityDNA) {
     lines.push(
-      `${namePrefix}Photograph this exact person: ${input.identityDNA} Use ${personRef}${hasFaceReference ? ` and ${faceCropRef}` : ''} as face reference — same face, same features, same person.`
+      `${namePrefix}Photograph this exact person: ${input.identityDNA} Use ${personRef}${hasFaceReference ? ` and ${faceCropRef}` : ''} as face reference.`
     )
   } else {
     lines.push(
-      `${namePrefix}Photograph the exact person from ${personRef}${hasFaceReference ? ` and ${faceCropRef}` : ''} — same face, same features, same skin, same person.`
+      `${namePrefix}Photograph the exact person from ${personRef}${hasFaceReference ? ` and ${faceCropRef}` : ''}.`
     )
   }
+  
+  // STRICT IDENTITY LOCK (Fixes geometry drift caused by asymmetric normalization)
+  lines.push(`STRICT IDENTITY LOCK: Do not alter the interpupillary distance, jaw width, or facial asymmetry. The structural geometry of the face MUST remain a 1:1 match with the reference images. Let the reference images dictate the face perfectly without assembling a semantic checklist of features.`)
   lines.push('')
 
   // ── BLOCK 2: WHAT (garment — must be strong enough for 4o to follow) ──
@@ -112,10 +115,12 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   )
   lines.push('')
 
+  // ── BLOCK 3: WHERE + HOW (scene as a creative brief) ──
+  // Note: Add lighting geometry constraint so harsh shadows don't distort face shape
   if (isSceneChange && sceneBrief) {
     lines.push(
       `Scene Environment: ${sceneBrief}.
-Lighting & Atmosphere: ${lightingBrief || 'Natural lighting'}
+Lighting & Atmosphere: ${lightingBrief || 'Natural lighting'}. Ensure the face remains clearly visible with even, flattering light, avoiding deep or obscuring shadows on the facial features that could alter perceived bone structure.
 Photograph this person as if they were actually in this exact environment. Ensure their lighting matches the environment lighting perfectly. One cohesive, photorealistic photograph, ${aspectRatio} aspect ratio.`
     )
   } else {
