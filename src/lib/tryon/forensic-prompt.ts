@@ -106,9 +106,9 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   }
   lines.push('')
 
-  // ── BLOCK 2: WHAT (garment — short and clear) ──
+  // ── BLOCK 2: WHAT (garment — must be strong enough for 4o to follow) ──
   lines.push(
-    `Wearing: ${garment} (from ${garmentRef}). Match exact colors, patterns, and fabric.`
+    `OUTFIT: Put this person in the COMPLETE outfit shown in ${garmentRef} — ${garment}. Copy every piece of clothing visible in ${garmentRef}: top, bottom, layers, accessories, shoes. Match the exact colors, patterns, and fabric from ${garmentRef}. Do NOT keep any clothing from ${personRef}. The outfit must come ONLY from ${garmentRef}.`
   )
   lines.push('')
 
