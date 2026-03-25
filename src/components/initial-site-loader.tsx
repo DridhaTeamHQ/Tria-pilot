@@ -9,7 +9,7 @@ const INTRO_DURATION_MS = 5000
 export default function InitialSiteLoader() {
   const pathname = usePathname()
   const [visible, setVisible] = useState(false)
-  const [videoError, setVideoError] = useState(false)
+  const [instanceKey, setInstanceKey] = useState(0)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const dismissRequestedRef = useRef(false)
   const dismissTimerRef = useRef<number | null>(null)
@@ -17,6 +17,14 @@ export default function InitialSiteLoader() {
   const startedAtRef = useRef(0)
   const originalOverflowRef = useRef<string | null>(null)
   const originalHtmlOverflowRef = useRef<string | null>(null)
+  const originalBodyPositionRef = useRef<string | null>(null)
+  const originalBodyTopRef = useRef<string | null>(null)
+  const originalBodyWidthRef = useRef<string | null>(null)
+  const originalBodyTouchActionRef = useRef<string | null>(null)
+  const originalHtmlOverscrollRef = useRef<string | null>(null)
+  const originalHtmlPositionRef = useRef<string | null>(null)
+  const originalHtmlWidthRef = useRef<string | null>(null)
+  const lockedScrollYRef = useRef(0)
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -40,6 +48,38 @@ export default function InitialSiteLoader() {
       if (originalHtmlOverflowRef.current !== null) {
         document.documentElement.style.overflow = originalHtmlOverflowRef.current
         originalHtmlOverflowRef.current = null
+      }
+      if (originalBodyPositionRef.current !== null) {
+        document.body.style.position = originalBodyPositionRef.current
+        originalBodyPositionRef.current = null
+      }
+      if (originalBodyTopRef.current !== null) {
+        document.body.style.top = originalBodyTopRef.current
+        originalBodyTopRef.current = null
+      }
+      if (originalBodyWidthRef.current !== null) {
+        document.body.style.width = originalBodyWidthRef.current
+        originalBodyWidthRef.current = null
+      }
+      if (originalBodyTouchActionRef.current !== null) {
+        document.body.style.touchAction = originalBodyTouchActionRef.current
+        originalBodyTouchActionRef.current = null
+      }
+      if (originalHtmlOverscrollRef.current !== null) {
+        document.documentElement.style.overscrollBehavior = originalHtmlOverscrollRef.current
+        originalHtmlOverscrollRef.current = null
+      }
+      if (originalHtmlPositionRef.current !== null) {
+        document.documentElement.style.position = originalHtmlPositionRef.current
+        originalHtmlPositionRef.current = null
+      }
+      if (originalHtmlWidthRef.current !== null) {
+        document.documentElement.style.width = originalHtmlWidthRef.current
+        originalHtmlWidthRef.current = null
+      }
+      if (lockedScrollYRef.current) {
+        window.scrollTo(0, lockedScrollYRef.current)
+        lockedScrollYRef.current = 0
       }
     }
 
@@ -71,11 +111,26 @@ export default function InitialSiteLoader() {
     clearTimers()
     dismissRequestedRef.current = false
     startedAtRef.current = Date.now()
-    setVideoError(false)
+    setInstanceKey((value) => value + 1)
+    lockedScrollYRef.current = window.scrollY
     originalOverflowRef.current = document.body.style.overflow
     originalHtmlOverflowRef.current = document.documentElement.style.overflow
+    originalBodyPositionRef.current = document.body.style.position
+    originalBodyTopRef.current = document.body.style.top
+    originalBodyWidthRef.current = document.body.style.width
+    originalBodyTouchActionRef.current = document.body.style.touchAction
+    originalHtmlOverscrollRef.current = document.documentElement.style.overscrollBehavior
+    originalHtmlPositionRef.current = document.documentElement.style.position
+    originalHtmlWidthRef.current = document.documentElement.style.width
     document.body.style.overflow = "hidden"
     document.documentElement.style.overflow = "hidden"
+    document.body.style.position = "fixed"
+    document.body.style.top = `-${lockedScrollYRef.current}px`
+    document.body.style.width = "100%"
+    document.body.style.touchAction = "none"
+    document.documentElement.style.position = "fixed"
+    document.documentElement.style.width = "100%"
+    document.documentElement.style.overscrollBehavior = "none"
     setVisible(true)
 
     fallbackTimerRef.current = window.setTimeout(() => {
@@ -98,37 +153,19 @@ export default function InitialSiteLoader() {
     if (!video) return
 
     let cancelled = false
-
-    const startPlayback = async () => {
-      try {
-        video.pause()
-        video.currentTime = 0
-        video.load()
-
-        const maybePromise = video.play()
-        if (maybePromise && typeof maybePromise.then === "function") {
-          await maybePromise
-        }
-
-        if (!cancelled) {
-          setVideoError(false)
-        }
-      } catch {
-        if (!cancelled) {
-          setVideoError(true)
-        }
-      }
-    }
-
     const frame = window.requestAnimationFrame(() => {
-      void startPlayback()
+      video.currentTime = 0
+      const maybePromise = video.play()
+      if (maybePromise && typeof maybePromise.catch === "function") {
+        maybePromise.catch(() => {})
+      }
     })
 
     return () => {
       cancelled = true
       window.cancelAnimationFrame(frame)
     }
-  }, [pathname, visible])
+  }, [instanceKey, pathname, visible])
 
   return (
     <AnimatePresence>
@@ -138,7 +175,7 @@ export default function InitialSiteLoader() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          className="fixed inset-0 z-[2147483646] h-dvh overflow-hidden overscroll-none bg-[#f6a313] touch-none"
+          className="fixed inset-0 z-[2147483646] h-screen w-screen overflow-hidden overscroll-none bg-[#f6a313] touch-none"
         >
           <div className="absolute inset-0 bg-[#f6a313]" />
 
@@ -146,32 +183,24 @@ export default function InitialSiteLoader() {
             <div
               className="relative flex items-center justify-center overflow-hidden rounded-[2px]"
               style={{
-                width: "min(100vw, calc(100dvh * 16 / 9))",
+                width: "min(100vw, 177.78vh)",
+                height: "min(56.25vw, 100vh)",
                 aspectRatio: "16 / 9",
-                maxHeight: "100dvh",
               }}
             >
-              {!videoError ? (
-                <motion.video
-                  ref={videoRef}
-                  key={pathname}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                  className="relative z-10 h-full w-full object-cover object-center"
-                  src="/assets/kiwikooanimation.mp4"
-                  autoPlay
-                  muted
-                  playsInline
-                  preload="auto"
-                  onEnded={() =>
-                    (window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro?.()
-                  }
-                  onError={() => {
-                    setVideoError(true)
-                  }}
-                />
-              ) : null}
+              <video
+                ref={videoRef}
+                key={`${pathname}-${instanceKey}`}
+                className="relative z-10 block h-full w-full object-cover object-center"
+                autoPlay
+                muted
+                playsInline
+                preload="auto"
+                src="/assets/kiwikooanimation.mp4"
+                onEnded={() =>
+                  (window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro?.()
+                }
+              />
             </div>
           </div>
 

@@ -70,43 +70,24 @@ const Toaster = (props: ToasterProps) => {
       <style dangerouslySetInnerHTML={{
         __html: `
           [data-sonner-toaster] {
-            position: fixed !important;
-            top: calc(max(1rem, env(safe-area-inset-top)) + 84px) !important;
-            bottom: auto !important;
-            left: auto !important;
-            right: 1rem !important;
-            transform: none !important;
-            padding-top: 0 !important;
             z-index: 2147483647 !important;
-            pointer-events: none !important;
-            width: min(320px, calc(100vw - 2rem)) !important;
-            max-width: calc(100vw - 2rem) !important;
+            position: fixed !important;
+            top: 16px !important;
+            right: 16px !important;
+            left: auto !important;
+            bottom: auto !important;
+          }
+          @media (max-width: 640px) {
+            [data-sonner-toaster] {
+              top: 12px !important;
+              right: 12px !important;
+            }
           }
           [data-sonner-toaster] [data-sonner-toast] {
-            pointer-events: auto !important;
-            top: 0 !important;
-            bottom: auto !important;
-            --y: translateY(0) !important;
-            opacity: 1 !important;
-            visibility: visible !important;
             font-family: Inter, "Segoe UI", Arial, sans-serif !important;
           }
           [data-sonner-toaster] [data-sonner-toast] * {
             font-family: Inter, "Segoe UI", Arial, sans-serif !important;
-          }
-          @media (max-width: 640px) {
-            [data-sonner-toaster] {
-              top: calc(max(0.75rem, env(safe-area-inset-top)) + 72px) !important;
-              left: auto !important;
-              right: 0.75rem !important;
-              transform: none !important;
-              width: min(300px, calc(100vw - 1.5rem)) !important;
-              max-width: calc(100vw - 1.5rem) !important;
-              padding-top: 0 !important;
-            }
-            [data-sonner-toaster] [data-sonner-toast] {
-              width: 100% !important;
-            }
           }
         `,
       }} />
