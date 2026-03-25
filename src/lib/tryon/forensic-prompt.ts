@@ -78,7 +78,7 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   const keepBgPhrase = isGPT ? 'keep the original background' : 'keep background from Image 1'
   const isSceneChange = rawPreset && rawPreset !== keepBgPhrase
   // Condense scene to just the key environment phrase, strip lighting details
-  const sceneBrief = isSceneChange ? condenseScene(rawPreset, 120) : ''
+  const sceneBrief = isSceneChange ? condenseScene(rawPreset, 200) : ''
 
   // Condense lighting to a very short phrase
   const lightingBrief = isSceneChange && input.lightingBlueprint
@@ -144,23 +144,23 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   )
   lines.push('')
 
-  // ── LINE 5: SCENE (compact — identity budget is limited) ──
+  // ── LINE 5: SCENE (environment — give 4o creative latitude) ──
   if (isSceneChange && sceneBrief) {
-    lines.push(`SCENE: ${sceneBrief}. Real location, natural textures.`)
+    lines.push(`SCENE: ${sceneBrief}. Person is physically present in this real location — consistent perspective, depth of field, and spatial integration with the environment.`)
   } else {
     lines.push(`SCENE: Keep original background from ${personRef}.`)
   }
   lines.push('')
 
-  // ── LINE 5a: LIGHTING (compact — match direction only) ──
+  // ── LINE 5a: LIGHTING (direction + quality for environment match) ──
   if (isSceneChange && lightingBrief) {
-    lines.push(`LIGHTING: ${lightingBrief}. Subject lighting matches environment direction and color temperature.`)
+    lines.push(`LIGHTING: ${lightingBrief}. Matching light direction and shadows between subject and environment.`)
   }
   lines.push('')
 
-  // ── LINE 6: OUTPUT (compact — photo quality + aspect ratio) ──
+  // ── LINE 6: OUTPUT (photo quality + depth + aspect ratio) ──
   lines.push(
-    `OUTPUT: RAW photograph, DSLR quality, natural depth of field, realistic skin with pores. Aspect ratio ${aspectRatio}.`
+    `OUTPUT: RAW photograph, DSLR quality, natural depth of field with realistic bokeh falloff, visible skin texture with pores, environment has real-world imperfections and depth layers. Aspect ratio ${aspectRatio}.`
   )
 
   // ── LINE 7: Retry (only on retry, minimal) ──
@@ -189,12 +189,12 @@ function condenseScene(scene: string, maxLen: number): string {
     .replace(/Fill:.*$/i, '')
     .trim()
 
-  // Remove interior detail clauses to shorten
-  // Keep the first descriptive clause + last element for location grounding
+  // Allow MORE scene description for environment depth (200 char budget)
+  // Keep the first 3 descriptive clauses for spatial/material richness
   if (s.length > maxLen) {
-    // Take first phrase up to first comma or period
-    const firstClause = s.split(/[,.]/).slice(0, 2).join(',').trim()
-    s = firstClause.length > 20 ? firstClause : s.substring(0, maxLen)
+    const clauses = s.split(/[,.]/).filter(c => c.trim().length > 5)
+    const kept = clauses.slice(0, 3).join(',').trim()
+    s = kept.length > 20 ? kept : s.substring(0, maxLen)
   }
 
   // Final trim
