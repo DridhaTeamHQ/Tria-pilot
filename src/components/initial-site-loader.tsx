@@ -9,7 +9,6 @@ const INTRO_DURATION_MS = 5000
 export default function InitialSiteLoader() {
   const pathname = usePathname()
   const [visible, setVisible] = useState(false)
-  const [videoReady, setVideoReady] = useState(false)
   const [videoError, setVideoError] = useState(false)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const dismissRequestedRef = useRef(false)
@@ -72,7 +71,6 @@ export default function InitialSiteLoader() {
     clearTimers()
     dismissRequestedRef.current = false
     startedAtRef.current = Date.now()
-    setVideoReady(false)
     setVideoError(false)
     originalOverflowRef.current = document.body.style.overflow
     originalHtmlOverflowRef.current = document.documentElement.style.overflow
@@ -113,13 +111,11 @@ export default function InitialSiteLoader() {
         }
 
         if (!cancelled) {
-          setVideoReady(true)
           setVideoError(false)
         }
       } catch {
         if (!cancelled) {
           setVideoError(true)
-          setVideoReady(false)
         }
       }
     }
@@ -147,41 +143,32 @@ export default function InitialSiteLoader() {
           <div className="absolute inset-0 bg-[#f6a313]" />
 
           <div className="absolute inset-0 flex items-center justify-center p-4 sm:p-6 md:p-8">
-            <div className="relative flex aspect-video w-full max-w-[min(92vw,1180px)] max-h-[68vh] items-center justify-center overflow-hidden">
+            <div
+              className="relative flex items-center justify-center overflow-hidden rounded-[2px]"
+              style={{
+                width: "min(100vw, calc(100dvh * 16 / 9))",
+                aspectRatio: "16 / 9",
+                maxHeight: "100dvh",
+              }}
+            >
               {!videoError ? (
                 <motion.video
                   ref={videoRef}
-                  initial={{ opacity: 0, scale: 0.985 }}
-                  animate={{ opacity: videoReady ? 1 : 0, scale: videoReady ? 1 : 0.985 }}
-                  transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+                  key={pathname}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
                   className="relative z-10 h-full w-full object-cover object-center"
                   src="/assets/kiwikooanimation.mp4"
                   autoPlay
                   muted
                   playsInline
                   preload="auto"
-                  onLoadedMetadata={() => {
-                    setVideoReady(true)
-                    setVideoError(false)
-                  }}
-                  onLoadedData={() => {
-                    setVideoReady(true)
-                    setVideoError(false)
-                  }}
-                  onCanPlay={() => {
-                    setVideoReady(true)
-                    setVideoError(false)
-                  }}
-                  onPlay={() => {
-                    setVideoReady(true)
-                    setVideoError(false)
-                  }}
                   onEnded={() =>
                     (window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro?.()
                   }
                   onError={() => {
                     setVideoError(true)
-                    setVideoReady(false)
                   }}
                 />
               ) : null}

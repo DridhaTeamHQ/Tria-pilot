@@ -32,9 +32,9 @@ const Toaster = (props: ToasterProps) => {
           ...props.toastOptions,
           classNames: {
             toast:
-              "!opacity-100 !visible rounded-[18px] border-[3px] border-black bg-white px-4 py-3 font-sans shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] min-w-[300px] sm:min-w-[340px]",
-            title: "font-black uppercase tracking-[0.16em] text-[11px] text-black",
-            description: "mt-1 text-sm font-bold leading-relaxed text-black/75",
+              "!opacity-100 !visible rounded-[18px] border-[3px] border-black bg-white px-4 py-3 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] w-[min(320px,calc(100vw-1.5rem))]",
+            title: "text-[12px] font-black uppercase tracking-[0.14em] text-black",
+            description: "mt-1 text-[13px] font-semibold leading-relaxed text-black/75",
             success: "!bg-[#E8FFB4] !text-black border-black",
             error: "!bg-[#FFE1D9] !text-black border-black",
             warning: "!bg-[#FFF1C2] !text-black border-black",
@@ -71,15 +71,15 @@ const Toaster = (props: ToasterProps) => {
         __html: `
           [data-sonner-toaster] {
             position: fixed !important;
-            top: 0 !important;
+            top: calc(max(1rem, env(safe-area-inset-top)) + 84px) !important;
             bottom: auto !important;
             left: auto !important;
             right: 1rem !important;
             transform: none !important;
-            padding-top: max(1rem, env(safe-area-inset-top)) !important;
+            padding-top: 0 !important;
             z-index: 2147483647 !important;
             pointer-events: none !important;
-            width: min(380px, calc(100vw - 2rem)) !important;
+            width: min(320px, calc(100vw - 2rem)) !important;
             max-width: calc(100vw - 2rem) !important;
           }
           [data-sonner-toaster] [data-sonner-toast] {
@@ -89,15 +89,20 @@ const Toaster = (props: ToasterProps) => {
             --y: translateY(0) !important;
             opacity: 1 !important;
             visibility: visible !important;
+            font-family: Inter, "Segoe UI", Arial, sans-serif !important;
+          }
+          [data-sonner-toaster] [data-sonner-toast] * {
+            font-family: Inter, "Segoe UI", Arial, sans-serif !important;
           }
           @media (max-width: 640px) {
             [data-sonner-toaster] {
-              left: 0.75rem !important;
+              top: calc(max(0.75rem, env(safe-area-inset-top)) + 72px) !important;
+              left: auto !important;
               right: 0.75rem !important;
               transform: none !important;
-              width: auto !important;
-              max-width: none !important;
-              padding-top: max(1rem, env(safe-area-inset-top)) !important;
+              width: min(300px, calc(100vw - 1.5rem)) !important;
+              max-width: calc(100vw - 1.5rem) !important;
+              padding-top: 0 !important;
             }
             [data-sonner-toaster] [data-sonner-toast] {
               width: 100% !important;
