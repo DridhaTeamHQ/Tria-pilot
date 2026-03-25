@@ -84,7 +84,7 @@ Rules:
     ],
     config: {
       temperature: 0.1,
-      maxOutputTokens: 800,
+      maxOutputTokens: 2048,
     },
   })
 
@@ -102,7 +102,15 @@ Rules:
   // Strip markdown fences if present
   raw = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
 
-  const parsed = JSON.parse(raw) as {
+  let parsedRaw: Record<string, any> = {}
+  try {
+    parsedRaw = JSON.parse(raw)
+  } catch (e) {
+    console.warn('⚠️ Face forensics JSON parse failed, using defaults:', (e as Error).message)
+    // Continue with empty parsed — fallback defaults will kick in below
+  }
+
+  const parsed = parsedRaw as {
     perceivedGender?: string
     faceShape?: string
     faceWidth?: string
