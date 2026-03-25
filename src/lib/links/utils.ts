@@ -1,3 +1,33 @@
+function normalizeHost(host: string): string {
+  return host.trim().toLowerCase()
+}
+
+function isPrivateIpv4(hostname: string): boolean {
+  const parts = hostname.split('.').map((part) => Number(part))
+  if (parts.length !== 4 || parts.some((part) => Number.isNaN(part) || part < 0 || part > 255)) {
+    return false
+  }
+
+  const [a, b] = parts
+  if (a === 10 || a === 127 || a === 0) return true
+  if (a === 169 && b === 254) return true
+  if (a === 172 && b >= 16 && b <= 31) return true
+  if (a === 192 && b === 168) return true
+  return false
+}
+
+function isBlockedHost(hostname: string): boolean {
+  const host = normalizeHost(hostname)
+  return (
+    host === 'localhost' ||
+    host === '0.0.0.0' ||
+    host.endsWith('.local') ||
+    host.endsWith('.internal') ||
+    host.includes(':') ||
+    isPrivateIpv4(host)
+  )
+}
+
 /**
  * Generate full masked URL from link code
  * Fully automatic - uses environment variables or request origin
@@ -31,7 +61,7 @@ export function validateOriginalUrl(url: string): boolean {
   try {
     const parsed = new URL(url)
     // Only allow http and https protocols
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+    return (parsed.protocol === 'http:' || parsed.protocol === 'https:') && !isBlockedHost(parsed.hostname)
   } catch {
     return false
   }
@@ -50,9 +80,11 @@ export function sanitizeRedirectUrl(url: string): string | null {
       return null
     }
 
-    // For now, allow all https URLs (can add whitelist later)
-    // In production, you might want to validate against a whitelist
-    return url
+    if (isBlockedHost(parsed.hostname)) {
+      return null
+    }
+
+    return parsed.toString()
   } catch {
     return null
   }

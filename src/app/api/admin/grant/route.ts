@@ -40,12 +40,40 @@ function getProjectRefFromUrl(url: string | undefined): string | null {
   }
 }
 
+function isRouteEnabled(): boolean {
+  const isProd = process.env.NODE_ENV === 'production'
+  const routeEnabled = process.env.ALLOW_ADMIN_SETUP_ROUTE === 'true'
+  const allowInProd = process.env.ALLOW_ADMIN_SETUP_IN_PROD === 'true'
+  return routeEnabled && (!isProd || allowInProd)
+}
+
+function isSameOriginRequest(request: Request): boolean {
+  const requestUrl = new URL(request.url)
+  const allowedOrigin = requestUrl.origin
+  const candidate = request.headers.get('origin') || request.headers.get('referer')
+  if (!candidate) return false
+
+  try {
+    return new URL(candidate).origin === allowedOrigin
+  } catch {
+    return false
+  }
+}
+
 export async function POST(request: Request) {
   try {
+    if (!isRouteEnabled()) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
+
+    if (!isSameOriginRequest(request)) {
+      return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 })
+    }
+
     const signupCode = process.env.ADMIN_SIGNUP_CODE
     if (!signupCode) {
       return NextResponse.json(
-        { error: 'ADMIN_SIGNUP_CODE is not configured' },
+        { error: 'Admin bootstrap is not configured' },
         { status: 500 }
       )
     }
@@ -68,10 +96,7 @@ export async function POST(request: Request) {
     // Verify service role key is configured
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
       return NextResponse.json(
-        {
-          error: 'SUPABASE_SERVICE_ROLE_KEY is not configured',
-          hint: 'Add SUPABASE_SERVICE_ROLE_KEY to your .env.local file. Get it from Supabase Dashboard -> Settings -> API -> service_role key (secret)',
-        },
+        { error: 'Admin bootstrap is not configured' },
         { status: 500 }
       )
     }
@@ -212,10 +237,7 @@ export async function POST(request: Request) {
     if (error) {
       console.error('Admin grant error (profiles):', error)
       return NextResponse.json(
-        {
-          error: error.message || 'Failed to grant admin access',
-          hint: (error as any).hint || (error as any).details || null,
-        },
+        { error: error.message || 'Failed to grant admin access' },
         { status: 500 }
       )
     }

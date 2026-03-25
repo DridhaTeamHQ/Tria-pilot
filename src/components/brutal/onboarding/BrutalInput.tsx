@@ -29,13 +29,26 @@ export function BrutalInput({
 }: BrutalInputProps) {
     const [verifyState, setVerifyState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
 
-    const handleVerify = () => {
-        if (verifyUrl) {
-            // Open in new tab
-            window.open(verifyUrl, '_blank')
-            // Show success after opening (user can check manually)
+    const openSafeVerifyUrl = (rawUrl: string) => {
+        try {
+            const parsed = new URL(rawUrl, window.location.origin)
+            if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+                setVerifyState('error')
+                setTimeout(() => setVerifyState('idle'), 3000)
+                return
+            }
+            window.open(parsed.toString(), '_blank', 'noopener')
             setVerifyState('success')
             setTimeout(() => setVerifyState('idle'), 3000)
+        } catch {
+            setVerifyState('error')
+            setTimeout(() => setVerifyState('idle'), 3000)
+        }
+    }
+
+    const handleVerify = () => {
+        if (verifyUrl) {
+            openSafeVerifyUrl(verifyUrl)
         }
         onVerify?.()
     }

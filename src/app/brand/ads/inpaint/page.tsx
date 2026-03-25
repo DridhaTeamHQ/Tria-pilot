@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import AdInpaintModal from '@/components/brand/AdInpaintModal'
@@ -20,28 +20,58 @@ type SmartEditOptions = {
   expansionOverride?: { left: number; top: number; width: number; height: number }
 }
 
-const DRAFT_KEY = 'brand_ads_inpaint_draft'
-
 export default function BrandAdsInpaintPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const creativeId = searchParams.get('id')
+  const presetParam = searchParams.get('preset') || undefined
   const [draft, setDraft] = useState<InpaintDraft | null>(null)
   const [isApplying, setIsApplying] = useState(false)
+  const [isLoadingDraft, setIsLoadingDraft] = useState(true)
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
-
-    const raw = window.sessionStorage.getItem(DRAFT_KEY)
-    if (!raw) return
-
-    try {
-      const parsed = JSON.parse(raw) as InpaintDraft
-      if (parsed?.id && (parsed.imageBase64 || parsed.imageUrl)) {
-        setDraft(parsed)
-      }
-    } catch {
-      // Ignore corrupt session payload
+    if (!creativeId) {
+      setDraft(null)
+      setIsLoadingDraft(false)
+      return
     }
-  }, [])
+
+    let cancelled = false
+    setIsLoadingDraft(true)
+
+    fetch(`/api/ads/creatives/${encodeURIComponent(creativeId)}`, {
+      credentials: 'include',
+    })
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({ error: 'Failed to load creative' }))
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to load creative')
+        }
+
+        if (!cancelled) {
+          setDraft({
+            id: data.id,
+            imageUrl: data.imageUrl,
+            preset: presetParam,
+          })
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setDraft(null)
+          toast.error(error instanceof Error ? error.message : 'Failed to load creative')
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoadingDraft(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [creativeId, presetParam])
 
   const imageSrc = useMemo(() => draft?.imageBase64 || draft?.imageUrl || '', [draft])
 
@@ -84,9 +114,11 @@ export default function BrandAdsInpaintPage() {
       }
 
       setDraft(nextDraft)
-      if (typeof window !== 'undefined') {
-        window.sessionStorage.setItem(DRAFT_KEY, JSON.stringify(nextDraft))
+      const params = new URLSearchParams({ id: data.id })
+      if (data.preset) {
+        params.set('preset', data.preset)
       }
+      router.replace(`/brand/ads/inpaint?${params.toString()}`)
 
       toast.success('Inpaint edit applied')
     } catch (error) {
@@ -94,6 +126,19 @@ export default function BrandAdsInpaintPage() {
     } finally {
       setIsApplying(false)
     }
+  }
+
+  if (isLoadingDraft) {
+    return (
+      <div className="min-h-screen bg-[#FFF8E6] px-4 py-6 md:px-6 md:py-8">
+        <div className="mx-auto max-w-3xl rounded-2xl border-[3px] border-black bg-white p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] md:p-8">
+          <h1 className="text-2xl font-black uppercase md:text-3xl">Inpaint</h1>
+          <p className="mt-2 text-sm font-semibold text-black/70">
+            Loading creative...
+          </p>
+        </div>
+      </div>
+    )
   }
 
   if (!draft) {

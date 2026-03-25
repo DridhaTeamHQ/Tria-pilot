@@ -18,7 +18,6 @@ export async function GET() {
     supabase: { ok: false, error: undefined as string | undefined, profilesCount: 0 },
     env: {
       hasSupabaseUrl: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
-      hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
     },
   }
 

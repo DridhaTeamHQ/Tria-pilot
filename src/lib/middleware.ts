@@ -43,6 +43,10 @@ const PUBLIC_PREFIXES = [
     '/signup',
 ]
 
+const API_CSRF_EXEMPT_PATHS = new Set([
+    '/api/billing/webhook',
+])
+
 function isPublicPath(pathname: string): boolean {
     if (PUBLIC_PATHS.has(pathname)) return true
     return PUBLIC_PREFIXES.some(prefix => pathname.startsWith(prefix))
@@ -50,6 +54,80 @@ function isPublicPath(pathname: string): boolean {
 
 function isApiPath(pathname: string): boolean {
     return pathname.startsWith('/api/')
+}
+
+function isWriteMethod(method: string): boolean {
+    return method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS'
+}
+
+function getAllowedOrigins(request: NextRequest): Set<string> {
+    const allowed = new Set<string>([request.nextUrl.origin])
+    const configured = [
+        process.env.NEXT_PUBLIC_APP_URL,
+        process.env.CSRF_ALLOWED_ORIGINS,
+    ]
+
+    for (const value of configured) {
+        if (!value) continue
+        for (const item of value.split(',')) {
+            const candidate = item.trim()
+            if (!candidate) continue
+            try {
+                allowed.add(new URL(candidate).origin)
+            } catch {
+                // Ignore invalid origin entries.
+            }
+        }
+    }
+
+    return allowed
+}
+
+function getRequestOrigin(request: NextRequest): string | null {
+    const originHeader = request.headers.get('origin')
+    if (originHeader) {
+        try {
+            return new URL(originHeader).origin
+        } catch {
+            return null
+        }
+    }
+
+    const refererHeader = request.headers.get('referer')
+    if (refererHeader) {
+        try {
+            return new URL(refererHeader).origin
+        } catch {
+            return null
+        }
+    }
+
+    return null
+}
+
+function validateApiOrigin(request: NextRequest): NextResponse | null {
+    const pathname = request.nextUrl.pathname
+    if (!isApiPath(pathname) || !isWriteMethod(request.method) || API_CSRF_EXEMPT_PATHS.has(pathname)) {
+        return null
+    }
+
+    const requestOrigin = getRequestOrigin(request)
+    const allowedOrigins = getAllowedOrigins(request)
+    if (requestOrigin && allowedOrigins.has(requestOrigin)) {
+        return null
+    }
+
+    const response = NextResponse.json({ error: 'Invalid request origin' }, { status: 403 })
+    response.headers.set('Cache-Control', 'no-store')
+    return response
+}
+
+function applySecurityHeaders(response: NextResponse) {
+    response.headers.set('X-Content-Type-Options', 'nosniff')
+    response.headers.set('X-Frame-Options', 'DENY')
+    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+    response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+    return response
 }
 
 export async function updateSession(request: NextRequest) {
@@ -116,14 +194,21 @@ export async function updateSession(request: NextRequest) {
     }
 
     // Rate limiting (after session check for user-based limiting)
-    const rateLimited = applyApiRateLimit(request, user?.id ?? null)
+    const rateLimited = await applyApiRateLimit(request, user?.id ?? null)
     if (rateLimited) {
-        return rateLimited
+        return applySecurityHeaders(rateLimited)
+    }
+
+    if (user) {
+        const invalidOrigin = validateApiOrigin(request)
+        if (invalidOrigin) {
+            return applySecurityHeaders(invalidOrigin)
+        }
     }
 
     // API routes should return their own JSON auth errors instead of HTML login redirects.
     if (isApiPath(pathname)) {
-        return supabaseResponse
+        return applySecurityHeaders(supabaseResponse)
     }
 
     // SESSION CHECK ONLY: Redirect to /login if not authenticated and accessing protected route
@@ -137,7 +222,7 @@ export async function updateSession(request: NextRequest) {
         supabaseResponse.cookies.getAll().forEach(cookie => {
             redirectResponse.cookies.set(cookie.name, cookie.value, cookie as any)
         })
-        return redirectResponse
+        return applySecurityHeaders(redirectResponse)
     }
 
     // Authenticated users on root → redirect to /dashboard
@@ -151,8 +236,8 @@ export async function updateSession(request: NextRequest) {
         supabaseResponse.cookies.getAll().forEach(cookie => {
             redirectResponse.cookies.set(cookie.name, cookie.value, cookie as any)
         })
-        return redirectResponse
+        return applySecurityHeaders(redirectResponse)
     }
 
-    return supabaseResponse
+    return applySecurityHeaders(supabaseResponse)
 }

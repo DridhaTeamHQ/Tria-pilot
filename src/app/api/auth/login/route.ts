@@ -133,59 +133,16 @@ export async function POST(request: Request) {
         statusCode = 429
         errorCode = 'RATE_LIMITED'
       } else if (lowerMessage.includes('invalid login credentials') || lowerMessage.includes('invalid credentials')) {
-        try {
-          const lookupClient = getPrivilegedClient(supabase)
-
-          let exists = false
-          if (isEmailIdentifier(identifier)) {
-            const { data: profile, error: profileLookupError } = await lookupClient
-              .from('profiles')
-              .select('id')
-              .ilike('email', identifier)
-              .maybeSingle()
-
-            exists = !profileLookupError && !!profile
-          } else {
-            const { data: profileBySynthetic, error: syntheticLookupError } = await lookupClient
-              .from('profiles')
-              .select('id')
-              .eq('email', usernameToSyntheticEmail(identifier))
-              .maybeSingle()
-
-            if (!syntheticLookupError && profileBySynthetic) {
-              exists = true
-            } else {
-              const { data: profileByEmailLocal, error: localLookupError } = await lookupClient
-                .from('profiles')
-                .select('id')
-                .ilike('email', `${identifier}@%`)
-                .limit(1)
-
-              exists = !localLookupError && Array.isArray(profileByEmailLocal) && profileByEmailLocal.length > 0
-            }
-          }
-
-          if (!exists) {
-            errorMessage = 'No user found with this username/email. Please sign up first.'
-            statusCode = 404
-            errorCode = 'USER_NOT_FOUND'
-          } else {
-            errorMessage = 'Incorrect password. Please try again.'
-            statusCode = 401
-            errorCode = 'INVALID_PASSWORD'
-          }
-        } catch {
-          errorMessage = 'Invalid username/email or password.'
-          statusCode = 401
-          errorCode = null
-        }
+        errorMessage = 'Invalid username/email or password.'
+        statusCode = 401
+        errorCode = null
       }
 
       return NextResponse.json(
         {
           error: errorMessage,
           errorCode,
-          noUserFound: errorCode === 'USER_NOT_FOUND',
+          noUserFound: false,
         },
         { status: statusCode }
       )
@@ -230,7 +187,6 @@ export async function POST(request: Request) {
             role: 'ADMIN',
             slug: 'admin',
           },
-          session: data.session,
         },
         { status: 200 }
       )
@@ -319,7 +275,6 @@ export async function POST(request: Request) {
           onboardingCompleted: Boolean(profile.onboarding_completed),
         } : null,
       },
-      session: data.session,
     }, { status: 200 })
   } catch (error) {
     console.error('Login error:', error)

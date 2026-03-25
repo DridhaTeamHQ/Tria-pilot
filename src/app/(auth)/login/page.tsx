@@ -40,8 +40,15 @@ function LoginContent() {
   const [userType, setUserType] = useState<'influencer' | 'brand'>('influencer')
 
   const getSafeRedirectTarget = () => {
-    const redirectTarget = searchParams.get('redirect') || '/dashboard'
-    return redirectTarget.startsWith('/admin') ? '/dashboard' : redirectTarget
+    const redirectTarget = searchParams.get('redirect')
+    if (!redirectTarget) return '/dashboard'
+
+    const value = redirectTarget.trim()
+    if (!value.startsWith('/') || value.startsWith('//')) return '/dashboard'
+    if (value.includes('\r') || value.includes('\n')) return '/dashboard'
+    if (value.startsWith('/admin')) return '/dashboard'
+
+    return value
   }
 
   const getPostLoginDestination = (
@@ -168,13 +175,8 @@ function LoginContent() {
       const data = await res.json().catch(() => ({ error: 'Request failed' }))
 
       if (!res.ok) {
-        if (data?.noUserFound || data?.errorCode === 'USER_NOT_FOUND') {
-          showErrorToast('Account not found', 'No user was found with this username/email. Please sign up first.')
-          return
-        }
-
-        if (data?.errorCode === 'INVALID_PASSWORD') {
-          showErrorToast('Incorrect password', 'That password did not match this account. Please try again.')
+        if (data?.errorCode === 'INVALID_CREDENTIALS') {
+          showErrorToast('Sign-in failed', 'Invalid username/email or password.')
           return
         }
 

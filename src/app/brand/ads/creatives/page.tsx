@@ -757,19 +757,12 @@ export default function CreativesPage() {
 
     const handleOpenInpaint = (creative: AdCreative) => {
         setInpaintingId(creative.id)
-
-        if (typeof window !== 'undefined') {
-            window.sessionStorage.setItem(
-                'brand_ads_inpaint_draft',
-                JSON.stringify({
-                    id: creative.id,
-                    imageUrl: creative.imageUrl,
-                    preset: creative.stylePreset || 'edited',
-                })
-            )
+        const params = new URLSearchParams({ id: creative.id })
+        if (creative.stylePreset) {
+            params.set('preset', creative.stylePreset)
         }
 
-        router.push('/brand/ads/inpaint')
+        router.push(`/brand/ads/inpaint?${params.toString()}`)
     }
 
     const hasActiveFilters =

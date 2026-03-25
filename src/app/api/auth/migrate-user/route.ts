@@ -6,7 +6,7 @@ import { createClient, createServiceClient } from '@/lib/auth'
  * This helps users who were created in Supabase Auth but missing a Profile
  * 
  * Usage: POST /api/auth/migrate-user
- * Body: { email: string, role: 'INFLUENCER' | 'BRAND', name?: string }
+ * Body: { name?: string }
  */
 export async function POST(request: Request) {
   try {
@@ -24,9 +24,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Request body required' }, { status: 400 })
     }
 
-    const { role, name } = body
-    if (!role || !['INFLUENCER', 'BRAND'].includes(role)) {
-      return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
+    const { name } = body
+
+    const metadataRole = String(authUser.user_metadata?.role || '').trim().toUpperCase()
+    if (!['INFLUENCER', 'BRAND'].includes(metadataRole)) {
+      return NextResponse.json({ error: 'Unable to determine account role' }, { status: 400 })
     }
 
     const email = authUser.email!.toLowerCase().trim()
@@ -52,7 +54,7 @@ export async function POST(request: Request) {
       .insert({
         id: authUser.id,
         email,
-        role: role.toLowerCase(),
+        role: metadataRole.toLowerCase(),
         full_name: name?.trim() || null,
         onboarding_completed: false,
         approval_status: 'pending'
@@ -65,7 +67,7 @@ export async function POST(request: Request) {
     }
 
     // Create role-specific profile
-    if (role === 'INFLUENCER') {
+    if (metadataRole === 'INFLUENCER') {
       try {
         await service.from('influencer_profiles').upsert({
           user_id: authUser.id,
@@ -75,7 +77,7 @@ export async function POST(request: Request) {
       } catch (e) {
         console.error('Failed to create influencer profile:', e)
       }
-    } else if (role === 'BRAND') {
+    } else if (metadataRole === 'BRAND') {
       // Assuming brand_profiles or similar logic (currently handled in profiles.brand_data)
       // Checks implementation if brand_profiles table exists - for now assuming JSONB in profiles logic from other files
     }

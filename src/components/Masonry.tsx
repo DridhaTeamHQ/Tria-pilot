@@ -26,6 +26,16 @@ interface MasonryProps {
     colorShiftOnHover?: boolean;
 }
 
+function toSafeExternalUrl(rawUrl: string): string | null {
+    try {
+        const parsed = new URL(rawUrl, window.location.origin);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+        return parsed.toString();
+    } catch {
+        return null;
+    }
+}
+
 const useMedia = (queries: string[], values: number[], defaultValue: number) => {
     // Ensure window is available (client-side)
     const get = () => {
@@ -273,7 +283,11 @@ const Masonry = ({
                         key={item.id}
                         data-key={item.id}
                         className="item-wrapper"
-                        onClick={() => item.url && window.open(item.url, '_blank', 'noopener')}
+                        onClick={() => {
+                            if (!item.url) return;
+                            const safeUrl = toSafeExternalUrl(item.url);
+                            if (safeUrl) window.open(safeUrl, '_blank', 'noopener');
+                        }}
                         onMouseEnter={e => handleMouseEnter(e, item)}
                         onMouseLeave={e => handleMouseLeave(e, item)}
                     >

@@ -123,7 +123,6 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error: message,
-          details: uploadResult.error,
         },
         { status: 500 }
       )

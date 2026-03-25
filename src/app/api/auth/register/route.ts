@@ -189,7 +189,6 @@ export async function POST(request: Request) {
         username,
         role: normalizedRole.toUpperCase(),
       },
-      session: signedIn.session,
     })
   } catch (error) {
     console.error('Register error:', error)

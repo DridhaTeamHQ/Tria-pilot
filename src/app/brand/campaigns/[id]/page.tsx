@@ -62,6 +62,23 @@ function extractABVariants(raw: unknown): ABVariant[] {
     })
 }
 
+function escapeHtml(value: unknown): string {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+}
+
+function normalizeFunnelStageClass(value: string): 'tofu' | 'mofu' | 'bofu' | 'default' {
+    const normalized = value.trim().toLowerCase()
+    if (normalized === 'tofu' || normalized === 'mofu' || normalized === 'bofu') {
+        return normalized
+    }
+    return 'default'
+}
+
 /* ━━━━━━━━━━━━━ PDF GENERATION ━━━━━━━━━━━━━ */
 function generatePdfHtml(campaign: Record<string, unknown>): string {
     const strategy = (campaign.strategy ?? {}) as Record<string, unknown>
@@ -101,7 +118,7 @@ function generatePdfHtml(campaign: Record<string, unknown>): string {
 
     return `<!DOCTYPE html>
 <html><head><meta charset="UTF-8">
-<title>${campaign.title || 'Campaign Strategy'} — Kiwikoo</title>
+<title>${escapeHtml(campaign.title || 'Campaign Strategy')} — Kiwikoo</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -191,19 +208,19 @@ function generatePdfHtml(campaign: Record<string, unknown>): string {
   <div class="header">
     <div class="logo">kiwi<span class="logo-accent">koo</span></div>
     <div class="meta">
-      <div class="meta-date">${date}</div>
-      <div><span class="meta-status">${campaign.status || 'Draft'}</span></div>
+      <div class="meta-date">${escapeHtml(date)}</div>
+      <div><span class="meta-status">${escapeHtml(campaign.status || 'Draft')}</span></div>
     </div>
   </div>
 
   <!-- Title -->
   <div class="title-block">
-    <h1 class="campaign-title">${campaign.title || 'Untitled Campaign'}</h1>
-    ${campaign.brief ? `<p class="brief">${campaign.brief}</p>` : ''}
+    <h1 class="campaign-title">${escapeHtml(campaign.title || 'Untitled Campaign')}</h1>
+    ${campaign.brief ? `<p class="brief">${escapeHtml(campaign.brief)}</p>` : ''}
     <div class="badges">
-      ${campaign.goal ? `<span class="badge badge-green">${campaign.goal}</span>` : ''}
+      ${campaign.goal ? `<span class="badge badge-green">${escapeHtml(campaign.goal)}</span>` : ''}
       ${budget > 0 ? `<span class="badge">₹${budget.toLocaleString('en-IN')}</span>` : ''}
-      ${platforms.map(p => `<span class="badge">${p}</span>`).join('')}
+      ${platforms.map(p => `<span class="badge">${escapeHtml(p)}</span>`).join('')}
     </div>
   </div>
 
@@ -211,7 +228,7 @@ function generatePdfHtml(campaign: Record<string, unknown>): string {
   ${typeof strategy.positioning === 'string' && strategy.positioning ? `
   <div class="section no-break">
     <div class="section-title">🎯 Positioning & Messaging</div>
-    <p style="font-size: 14px; font-weight: 600; line-height: 1.7; color: #333;">${strategy.positioning}</p>
+    <p style="font-size: 14px; font-weight: 600; line-height: 1.7; color: #333;">${escapeHtml(strategy.positioning)}</p>
   </div>` : ''}
 
   <!-- Target Audience -->
@@ -220,9 +237,9 @@ function generatePdfHtml(campaign: Record<string, unknown>): string {
     <div class="section-title">👥 Target Audience</div>
     <div class="grid-2">
       ${(ageMin != null && ageMax != null) ? `<div class="card"><div class="card-label">Age Range</div><div class="card-value">${ageMin}–${ageMax}</div></div>` : ''}
-      ${gender ? `<div class="card"><div class="card-label">Gender</div><div class="card-value">${gender}</div></div>` : ''}
-      ${location ? `<div class="card"><div class="card-label">Location</div><div class="card-value">${location}</div></div>` : ''}
-      ${interests.length > 0 ? `<div class="card"><div class="card-label">Interests</div><div class="card-value">${interests.join(', ')}</div></div>` : ''}
+      ${gender ? `<div class="card"><div class="card-label">Gender</div><div class="card-value">${escapeHtml(gender)}</div></div>` : ''}
+      ${location ? `<div class="card"><div class="card-label">Location</div><div class="card-value">${escapeHtml(location)}</div></div>` : ''}
+      ${interests.length > 0 ? `<div class="card"><div class="card-label">Interests</div><div class="card-value">${escapeHtml(interests.join(', '))}</div></div>` : ''}
     </div>
   </div>` : ''}
 
@@ -232,14 +249,14 @@ function generatePdfHtml(campaign: Record<string, unknown>): string {
     <div class="section-title">💡 Content Angles (${angles.length})</div>
     ${angles.map(a => `<div class="angle-card no-break">
       <div class="angle-header">
-        <span class="angle-name">${a.angle}</span>
+        <span class="angle-name">${escapeHtml(a.angle)}</span>
         <span class="angle-score" style="background:${scoreColor(a.score)}">${a.score}/10</span>
       </div>
-      ${a.example ? `<div class="angle-example">"${a.example}"</div>` : ''}
-      ${a.why_it_works ? `<div class="angle-why">↳ ${a.why_it_works}</div>` : ''}
+      ${a.example ? `<div class="angle-example">"${escapeHtml(a.example)}"</div>` : ''}
+      ${a.why_it_works ? `<div class="angle-why">↳ ${escapeHtml(a.why_it_works)}</div>` : ''}
       <div class="angle-meta">
-        ${a.format ? `<span class="angle-tag">${a.format}</span>` : ''}
-        ${a.funnel_stage ? `<span class="angle-tag angle-tag-${a.funnel_stage.toLowerCase()}">${a.funnel_stage}</span>` : ''}
+        ${a.format ? `<span class="angle-tag">${escapeHtml(a.format)}</span>` : ''}
+        ${a.funnel_stage ? `<span class="angle-tag angle-tag-${normalizeFunnelStageClass(a.funnel_stage)}">${escapeHtml(a.funnel_stage)}</span>` : ''}
       </div>
     </div>`).join('')}
   </div>` : ''}
@@ -249,10 +266,10 @@ function generatePdfHtml(campaign: Record<string, unknown>): string {
   <div class="section">
     <div class="section-title">🪝 Hook Bank (${hooks.length})</div>
     ${hooks.map(h => `<div class="hook-item no-break">
-      <span class="hook-text">${h.text}</span>
+      <span class="hook-text">${escapeHtml(h.text)}</span>
       <div class="hook-meta">
-        ${h.category ? `<span class="angle-tag">${h.category}</span>` : ''}
-        ${h.platform ? `<span class="angle-tag">${h.platform}</span>` : ''}
+        ${h.category ? `<span class="angle-tag">${escapeHtml(h.category)}</span>` : ''}
+        ${h.platform ? `<span class="angle-tag">${escapeHtml(h.platform)}</span>` : ''}
       </div>
     </div>`).join('')}
   </div>` : ''}
@@ -261,9 +278,9 @@ function generatePdfHtml(campaign: Record<string, unknown>): string {
   ${(funnel.awareness || funnel.consideration || funnel.conversion) ? `
   <div class="section no-break">
     <div class="section-title">🔄 Funnel Strategy</div>
-    ${funnel.awareness ? `<div class="funnel-step funnel-awareness"><div class="funnel-label">Awareness (TOFU)</div>${funnel.awareness}</div>` : ''}
-    ${funnel.consideration ? `<div class="funnel-step funnel-consideration"><div class="funnel-label">Consideration (MOFU)</div>${funnel.consideration}</div>` : ''}
-    ${funnel.conversion ? `<div class="funnel-step funnel-conversion"><div class="funnel-label">Conversion (BOFU)</div>${funnel.conversion}</div>` : ''}
+    ${funnel.awareness ? `<div class="funnel-step funnel-awareness"><div class="funnel-label">Awareness (TOFU)</div>${escapeHtml(funnel.awareness)}</div>` : ''}
+    ${funnel.consideration ? `<div class="funnel-step funnel-consideration"><div class="funnel-label">Consideration (MOFU)</div>${escapeHtml(funnel.consideration)}</div>` : ''}
+    ${funnel.conversion ? `<div class="funnel-step funnel-conversion"><div class="funnel-label">Conversion (BOFU)</div>${escapeHtml(funnel.conversion)}</div>` : ''}
   </div>` : ''}
 
   <!-- Scripts & Copy -->
@@ -272,15 +289,15 @@ function generatePdfHtml(campaign: Record<string, unknown>): string {
     <div class="section-title">📝 Scripts & Copy (${scripts.length})</div>
     ${scripts.map((s, i) => `<div class="script-card no-break">
       <div class="script-header">
-        <span class="script-title">${s.title || `Script ${i + 1}`}</span>
+        <span class="script-title">${escapeHtml(s.title || `Script ${i + 1}`)}</span>
         <div class="script-meta">
-          ${s.platform ? `<span class="angle-tag">${s.platform}</span>` : ''}
-          ${s.duration ? `<span class="angle-tag">${s.duration}</span>` : ''}
-          ${s.framework ? `<span class="angle-tag">${s.framework}</span>` : ''}
+          ${s.platform ? `<span class="angle-tag">${escapeHtml(s.platform)}</span>` : ''}
+          ${s.duration ? `<span class="angle-tag">${escapeHtml(s.duration)}</span>` : ''}
+          ${s.framework ? `<span class="angle-tag">${escapeHtml(s.framework)}</span>` : ''}
           ${s.score > 0 ? `<span class="angle-score" style="background:${scoreColor(s.score)};font-size:10px;">${s.score}/10</span>` : ''}
         </div>
       </div>
-      <div class="script-body">${s.body}</div>
+      <div class="script-body">${escapeHtml(s.body)}</div>
     </div>`).join('')}
   </div>` : ''}
 
@@ -289,9 +306,9 @@ function generatePdfHtml(campaign: Record<string, unknown>): string {
   <div class="section">
     <div class="section-title">🧪 A/B Test Variants (${abVariants.length})</div>
     ${abVariants.map(v => `<div class="ab-card no-break">
-      <div class="ab-label">${v.label}</div>
-      <div class="ab-desc">${v.description}</div>
-      ${v.what_it_tests ? `<div class="ab-test">Hypothesis: ${v.what_it_tests}</div>` : ''}
+      <div class="ab-label">${escapeHtml(v.label)}</div>
+      <div class="ab-desc">${escapeHtml(v.description)}</div>
+      ${v.what_it_tests ? `<div class="ab-test">Hypothesis: ${escapeHtml(v.what_it_tests)}</div>` : ''}
     </div>`).join('')}
   </div>` : ''}
 
@@ -300,13 +317,13 @@ function generatePdfHtml(campaign: Record<string, unknown>): string {
   <div class="section no-break">
     <div class="section-title">🎨 Creative Copy</div>
     <div class="creative-block">
-      ${headline ? `<div class="creative-headline">${headline}</div>` : ''}
-      ${description ? `<p class="creative-desc">${description}</p>` : ''}
-      ${ctaText ? `<span class="creative-cta">${ctaText}</span>` : ''}
+      ${headline ? `<div class="creative-headline">${escapeHtml(headline)}</div>` : ''}
+      ${description ? `<p class="creative-desc">${escapeHtml(description)}</p>` : ''}
+      ${ctaText ? `<span class="creative-cta">${escapeHtml(ctaText)}</span>` : ''}
     </div>
   </div>` : ''}
 
-  <div class="footer">Generated by Kiwikoo Campaign Strategist · ${date}</div>
+  <div class="footer">Generated by Kiwikoo Campaign Strategist · ${escapeHtml(date)}</div>
 </body></html>`
 }
 

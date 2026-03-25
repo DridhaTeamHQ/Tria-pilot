@@ -170,8 +170,12 @@ export async function GET(req: NextRequest) {
     }
 
     const response = await fetch(target.toString(), {
-      redirect: 'follow',
+      redirect: 'manual',
     })
+
+    if (response.status >= 300 && response.status < 400) {
+      return NextResponse.json({ error: 'Upstream redirects are not allowed' }, { status: 400 })
+    }
 
     if (!response.ok) {
       return NextResponse.json(

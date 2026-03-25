@@ -11,6 +11,21 @@ const createProductSchema = productSchema
   })
   .strict()
 
+function toPublicBrand(brand: { id?: string | null; full_name?: string | null; brand_data?: Record<string, unknown> | null } | null | undefined) {
+  const companyName =
+    (brand?.brand_data?.companyName as string | undefined) ||
+    brand?.full_name ||
+    'Unknown Brand'
+
+  return {
+    id: brand?.id || null,
+    full_name: brand?.full_name || null,
+    brand_data: {
+      companyName,
+    },
+  }
+}
+
 // POST Handler
 export async function POST(request: Request) {
   try {
@@ -214,8 +229,13 @@ export async function GET(request: Request) {
     const { data: products, count, error } = await query
     if (error) throw error
 
+    const sanitizedProducts = (products || []).map((product) => ({
+      ...product,
+      brand: toPublicBrand(product.brand),
+    }))
+
     return NextResponse.json({
-      data: products,
+      data: sanitizedProducts,
       pagination: {
         page,
         limit,

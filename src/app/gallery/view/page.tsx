@@ -5,13 +5,37 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Download, ImageIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
+function sanitizeInternalPath(path: string): string | null {
+    const value = path.trim()
+    if (!value.startsWith('/') || value.startsWith('//')) return null
+    if (value.includes('\r') || value.includes('\n')) return null
+    return value
+}
+
+function sanitizeDownloadName(fileName: string): string {
+    const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_')
+    return safeName || 'kiwikoo-image.jpg'
+}
+
 function resolveImageUrl(url: string): string {
     if (!url) return ''
+
     if (url.startsWith('/api/images/proxy')) return url
-    if (url.includes('supabase.co/storage')) {
-        return `/api/images/proxy?url=${encodeURIComponent(url)}`
+
+    try {
+        const parsed = new URL(url)
+        const isSupabaseStorageHost =
+            (parsed.hostname.endsWith('.supabase.co') || parsed.hostname.endsWith('.supabase.in')) &&
+            parsed.pathname.includes('/storage/')
+
+        if (['http:', 'https:'].includes(parsed.protocol) && isSupabaseStorageHost) {
+            return `/api/images/proxy?url=${encodeURIComponent(parsed.toString())}`
+        }
+    } catch {
+        return ''
     }
-    return url
+
+    return ''
 }
 
 function GalleryViewFallback() {
@@ -32,8 +56,10 @@ function GalleryViewContent() {
 
     const rawImageUrl = searchParams.get('image') || ''
     const title = searchParams.get('title') || 'Image Viewer'
-    const backPath = searchParams.get('back') || ''
-    const downloadName = searchParams.get('download') || `kiwikoo-image-${Date.now()}.jpg`
+    const backPath = sanitizeInternalPath(searchParams.get('back') || '')
+    const downloadName = sanitizeDownloadName(
+        searchParams.get('download') || `kiwikoo-image-${Date.now()}.jpg`
+    )
     const imageUrl = resolveImageUrl(rawImageUrl)
 
     const handleBack = () => {
