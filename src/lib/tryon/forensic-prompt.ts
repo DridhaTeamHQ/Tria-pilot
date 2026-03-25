@@ -86,90 +86,48 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     : ''
 
   // ═══════════════════════════════════════════════════════════════════════
-  // MINIMAL POSITIVE PROMPT — ~600-900 chars total
+  // CLEAN, CREATIVE PROMPT — ~400-600 chars total
+  // Let 4o be creative. Only lock: face identity + garment design.
+  // Everything else (pose, angle, expression, lighting, depth) = 4o's choice.
   // ═══════════════════════════════════════════════════════════════════════
 
   const lines: string[] = []
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // IDENTITY FIRST — AI pays the most attention to the first 10-15 words
-  // ═══════════════════════════════════════════════════════════════════════
-
-  // ── LINE 1: Name Anchor + Core Identity Task (FIRST — most critical position) ──
-  const namePrefix = input.nameAnchor ? `A portrait of ${input.nameAnchor}. ` : ''
-  lines.push(
-    `${namePrefix}Same person, identical facial structure, no face variation. Generate a single cohesive photorealistic photograph of the EXACT person from ${personRef} wearing the outfit from ${garmentRef}. This is ONE real photo, not a composite.`
-  )
-  lines.push('')
-
-  // ── LINE 2: Identity anchor (Soul ID or forensic) ──
+  // ── BLOCK 1: WHO (face identity — first position for max attention) ──
+  const namePrefix = input.nameAnchor ? `${input.nameAnchor}. ` : ''
   if (input.identityDNA) {
-    // Soul ID available — use frozen identity paragraph for consistency
-    if (hasFaceReference) {
-      lines.push(
-        `IDENTITY: ${input.identityDNA} Copy these EXACT features from ${personRef} and ${faceCropRef}. Preserve exact facial geometry, natural asymmetry, and every distinguishing mark.`
-      )
-    } else {
-      lines.push(
-        `IDENTITY: ${input.identityDNA} Copy these EXACT features from ${personRef}. Preserve exact facial geometry, natural asymmetry, and every distinguishing mark.`
-      )
-    }
+    lines.push(
+      `${namePrefix}Photograph this exact person: ${input.identityDNA} Use ${personRef}${hasFaceReference ? ` and ${faceCropRef}` : ''} as face reference — same face, same features, same person.`
+    )
   } else {
-    // No Soul ID — generic identity instruction with stronger anchoring
-    if (hasFaceReference) {
-      lines.push(
-        `IDENTITY: Copy the face from ${personRef} and ${faceCropRef} exactly — same bone structure, eyes, nose, lips, jaw, skin texture, pores, skin tone, perceived age, natural asymmetry, and every mole/mark/dimple.`
-      )
-    } else {
-      lines.push(
-        `IDENTITY: Copy the face from ${personRef} exactly — same bone structure, eyes, nose, lips, jaw, skin texture, pores, skin tone, perceived age, natural asymmetry, and every mole/mark/dimple.`
-      )
-    }
+    lines.push(
+      `${namePrefix}Photograph the exact person from ${personRef}${hasFaceReference ? ` and ${faceCropRef}` : ''} — same face, same features, same skin, same person.`
+    )
   }
   lines.push('')
 
-  // ── LINE 2b: Anti-drift directives from forensics (gender-specific) ──
-  if (input.antiDriftDirectives) {
-    lines.push(`ANTI-DRIFT: ${input.antiDriftDirectives}`)
-    lines.push('')
-  }
-
-  // ── LINE 3: Body + Creative freedom ──
-  lines.push(`BODY: Same body type and proportions as ${personRef}. You have FULL creative freedom on pose, expression, camera angle, and body language — choose what looks most natural and compelling for the scene. The person should look like they BELONG in the environment.`)
-  lines.push('')
-
-  // ── LINE 4: Garment (explicit — ONLY from garment ref, full outfit) ──
+  // ── BLOCK 2: WHAT (garment — short and clear) ──
   lines.push(
-    `GARMENT: Apply the FULL OUTFIT from ${garmentRef} — ${garment}. Include ALL pieces (top, bottom, layers, accessories) visible in ${garmentRef}. Match the exact color of each piece, pattern, fabric, and design. IGNORE any clothing visible in other images.`
+    `Wearing: ${garment} (from ${garmentRef}). Match exact colors, patterns, and fabric.`
   )
   lines.push('')
 
-  // ── LINE 5: SCENE (holistic — person IS in the scene, not composited) ──
+  // ── BLOCK 3: WHERE + HOW (scene as a creative brief — let 4o imagine the full photo) ──
   if (isSceneChange && sceneBrief) {
-    lines.push(`SCENE: ${sceneBrief}. This person was actually photographed here — environment light falls on their skin and clothes, ambient colors reflect on their face, shadows are cast by the same light sources. Foreground, subject, and background share one unified perspective and depth of field.`)
+    lines.push(
+      `Scene: ${sceneBrief}. ${lightingBrief ? lightingBrief + '. ' : ''}Photograph this person as if they were actually here — natural pose, real lighting falling on them, environment colors reflected on skin. One cohesive photograph, ${aspectRatio} aspect ratio.`
+    )
   } else {
-    lines.push(`SCENE: Keep original background from ${personRef}.`)
+    lines.push(
+      `Keep original background from ${personRef}. Photorealistic, ${aspectRatio} aspect ratio.`
+    )
   }
-  lines.push('')
 
-  // ── LINE 5a: LIGHTING (environmental light interaction) ──
-  if (isSceneChange && lightingBrief) {
-    lines.push(`LIGHTING: ${lightingBrief}. The environment light FALLS ON the subject — color spill from surroundings tints skin and fabric, shadows match scene light direction, highlights come from the same sources that illuminate the background.`)
-  }
-  lines.push('')
-
-  // ── LINE 6: OUTPUT (single photograph quality) ──
-  lines.push(
-    `OUTPUT: Single RAW photograph from one camera, one moment in time. DSLR quality with natural bokeh, visible skin pores, real-world imperfections in environment. NOT a composite or collage. Aspect ratio ${aspectRatio}.`
-  )
-
-  // ── LINE 7: Retry (only on retry, minimal) ──
+  // ── RETRY (only if previous attempt failed) ──
   if (input.retryMode) {
-    lines.push(`RETRY: Previous attempt altered the face. Copy face pixels from ${personRef} exactly this time.`)
+    lines.push('')
+    lines.push(`IMPORTANT: Previous attempt changed the face. This time, copy the face from ${personRef} exactly.`)
   }
-
-  // ── LINE 8: Concise avoid (critical items) ──
-  lines.push(`AVOID: beautification, skin smoothing, face reshaping, green-screen look, mismatched lighting between subject and background, flat pasted-on appearance.`)
 
   return lines.join('\n')
 }
