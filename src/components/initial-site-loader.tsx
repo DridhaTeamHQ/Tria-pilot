@@ -4,12 +4,14 @@ import { AnimatePresence, motion } from "framer-motion"
 import { usePathname } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 
-const INTRO_MIN_VISIBLE_MS = 2400
+const INTRO_MIN_VISIBLE_MS = 2600
 const INTRO_FALLBACK_MS = 7000
 
 export default function InitialSiteLoader() {
   const pathname = usePathname()
   const [visible, setVisible] = useState(false)
+  const [videoReady, setVideoReady] = useState(false)
+  const [videoError, setVideoError] = useState(false)
   const dismissRequestedRef = useRef(false)
   const dismissTimerRef = useRef<number | null>(null)
   const fallbackTimerRef = useRef<number | null>(null)
@@ -65,6 +67,8 @@ export default function InitialSiteLoader() {
     clearTimers()
     dismissRequestedRef.current = false
     startedAtRef.current = Date.now()
+    setVideoReady(false)
+    setVideoError(false)
     originalOverflowRef.current = document.body.style.overflow
     document.body.style.overflow = "hidden"
     setVisible(true)
@@ -101,30 +105,56 @@ export default function InitialSiteLoader() {
           />
 
           <div className="absolute inset-0 flex items-center justify-center p-6 sm:p-8 md:p-10">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.97, y: 8 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-              className="relative aspect-video w-full max-w-[min(92vw,1100px)] overflow-hidden rounded-[24px] border-[4px] border-black bg-[#ff8a73] shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]"
-            >
-              <motion.video
-                initial={{ opacity: 0.82, scale: 1.01 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-                className="h-full w-full object-contain object-center"
-                src="/assets/kiwikooanimation.mp4"
-                autoPlay
-                muted
-                playsInline
-                preload="auto"
-                onEnded={() =>
-                  (window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro?.()
-                }
-                onError={() =>
-                  (window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro?.()
-                }
-              />
-            </motion.div>
+            <div className="relative flex w-full max-w-[min(92vw,1100px)] items-center justify-center aspect-video">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: videoReady ? 0 : 1, scale: videoReady ? 0.985 : 1 }}
+                transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                className="absolute inset-0 flex flex-col items-center justify-center"
+              >
+                <motion.h1
+                  animate={{
+                    scale: [0.985, 1.02, 0.99],
+                    opacity: [0.92, 1, 0.94],
+                  }}
+                  transition={{
+                    duration: 1.9,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                  className="text-center font-black uppercase tracking-[0.04em] text-black"
+                  style={{
+                    fontFamily: 'var(--font-bungee), "Arial Black", Impact, sans-serif',
+                    fontSize: "clamp(2.5rem, 8vw, 6rem)",
+                    lineHeight: 0.92,
+                  }}
+                >
+                  KIWIKOO
+                </motion.h1>
+              </motion.div>
+
+              {!videoError ? (
+                <motion.video
+                  initial={{ opacity: 0, scale: 0.985 }}
+                  animate={{ opacity: videoReady ? 1 : 0, scale: videoReady ? 1 : 0.985 }}
+                  transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                  className="relative z-10 h-full w-full object-contain object-center"
+                  src="/assets/kiwikooanimation.mp4"
+                  autoPlay
+                  muted
+                  playsInline
+                  preload="auto"
+                  onLoadedData={() => setVideoReady(true)}
+                  onEnded={() =>
+                    (window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro?.()
+                  }
+                  onError={() => {
+                    setVideoError(true)
+                    setVideoReady(false)
+                  }}
+                />
+              ) : null}
+            </div>
           </div>
 
           <div className="pointer-events-none absolute inset-0 ring-1 ring-black/10" />
