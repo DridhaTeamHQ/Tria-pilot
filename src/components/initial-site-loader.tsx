@@ -1,89 +1,106 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 
-const INTRO_TIMER_MS = 5000
+const INTRO_MS = 5000
 const INTRO_Z = 2147483647
-const INTRO_BG = "#111111"
+const INTRO_BG = "#f8a100"
 
 export default function InitialSiteLoader() {
   const pathname = usePathname()
+  const [show, setShow] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const [visible, setVisible] = useState(false)
-  const dismissedRef = useRef(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
 
-  const shouldShow = useMemo(() => {
-    if (!pathname) return false
-    const base = pathname.split("?")[0] ?? ""
-    return base === "/" || base === ""
-  }, [pathname])
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  useEffect(() => setMounted(true), [])
 
   useEffect(() => {
     if (!mounted) return
+    const base = pathname?.split("?")[0] ?? ""
+    const shouldShow = base === "/" || base === ""
+
     if (!shouldShow) {
-      setVisible(false)
+      setShow(false)
       return
     }
 
-    dismissedRef.current = false
-    setVisible(true)
+    setShow(true)
+  }, [mounted, pathname])
 
+  useEffect(() => {
+    if (!show) return
     const originalBodyOverflow = document.body.style.overflow
     const originalHtmlOverflow = document.documentElement.style.overflow
+    const originalBodyOverscroll = document.body.style.overscrollBehavior
+    const originalHtmlOverscroll = document.documentElement.style.overscrollBehavior
+
     document.body.style.overflow = "hidden"
     document.documentElement.style.overflow = "hidden"
+    document.body.style.overscrollBehavior = "none"
+    document.documentElement.style.overscrollBehavior = "none"
 
     const dismiss = () => {
-      if (dismissedRef.current) return
-      dismissedRef.current = true
-      setVisible(false)
+      setShow(false)
       document.body.style.overflow = originalBodyOverflow
       document.documentElement.style.overflow = originalHtmlOverflow
+      document.body.style.overscrollBehavior = originalBodyOverscroll
+      document.documentElement.style.overscrollBehavior = originalHtmlOverscroll
     }
 
-    const timer = window.setTimeout(dismiss, INTRO_TIMER_MS)
-    ;(window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro = dismiss
+    const t = window.setTimeout(dismiss, INTRO_MS)
+    const video = videoRef.current
+    if (video) {
+      video.currentTime = 0
+      const playPromise = video.play()
+      if (playPromise && typeof playPromise.catch === "function") {
+        playPromise.catch(() => {
+          // Keep fallback timeout if autoplay is blocked.
+        })
+      }
+    }
 
     return () => {
-      window.clearTimeout(timer)
-      delete (window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro
+      window.clearTimeout(t)
       document.body.style.overflow = originalBodyOverflow
       document.documentElement.style.overflow = originalHtmlOverflow
+      document.body.style.overscrollBehavior = originalBodyOverscroll
+      document.documentElement.style.overscrollBehavior = originalHtmlOverscroll
     }
-  }, [mounted, shouldShow])
+  }, [show])
 
-  if (!mounted || !visible) return null
+  if (!mounted || !show) return null
 
   return createPortal(
     <div
-      className="fixed inset-0 flex items-center justify-center overflow-hidden"
-      style={{ zIndex: INTRO_Z, backgroundColor: INTRO_BG }}
-      aria-hidden="true"
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: INTRO_Z,
+        background: INTRO_BG,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
+        touchAction: "none",
+      }}
     >
       <video
-        className="h-full w-full object-cover"
-        src="/assets/kiwikooanimation.mp4"
+        ref={videoRef}
         autoPlay
         muted
         playsInline
         preload="auto"
         disablePictureInPicture
         controls={false}
-        onEnded={() =>
-          (window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro?.()
-        }
-        onError={() =>
-          (window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro?.()
-        }
-      />
+        style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center" }}
+        onEnded={() => setShow(false)}
+        onError={() => setShow(false)}
+      >
+        <source src="/assets/download.mp4" type="video/mp4" />
+      </video>
     </div>,
     document.body
   )
 }
-
