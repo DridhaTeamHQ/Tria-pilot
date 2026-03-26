@@ -772,7 +772,7 @@ section {
 
 /* Reduce layout thrashing during scroll */
 body {
-  contain: layout style;
+  contain: none;
 }
 
 /* Optimize images during scroll */

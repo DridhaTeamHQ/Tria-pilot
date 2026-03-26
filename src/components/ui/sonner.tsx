@@ -27,8 +27,8 @@ const Toaster = (props: ToasterProps) => {
       visibleToasts={4}
       duration={DEFAULT_TOAST_DURATION_MS}
       position="top-right"
-      offset={{ top: 16, right: 12 }}
-      mobileOffset={{ top: 12, right: 10 }}
+      offset={{ top: 20, right: 16 }}
+      mobileOffset={{ top: 16, right: 12 }}
       gap={10}
       icons={{
         success: <CircleCheckIcon className="size-4" />,
