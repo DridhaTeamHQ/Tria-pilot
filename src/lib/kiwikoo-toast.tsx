@@ -1,6 +1,6 @@
 "use client"
 
-import { toast } from "sonner"
+import { toast } from "@/lib/simple-sonner"
 
 const DEFAULT_KIWIKOO_TOAST_MS = 3000
 
