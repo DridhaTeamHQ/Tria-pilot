@@ -48,7 +48,6 @@ export default function RootLayout({
       <body className={`${bungee.variable} antialiased bg-cream text-charcoal`} style={FONT_VARS} suppressHydrationWarning>
         <ReactQueryProvider>
           <Toaster />
-          <InitialSiteLoader />
           <AuthToastBridge />
           <ReactLenis>
             <NavSwitcher />
@@ -58,6 +57,7 @@ export default function RootLayout({
               {children}
             </main>
           </ReactLenis>
+          <InitialSiteLoader />
         </ReactQueryProvider>
       </body>
     </html>

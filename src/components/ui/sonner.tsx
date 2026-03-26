@@ -16,7 +16,7 @@ import { Toaster as Sonner, type ToasterProps } from "sonner"
 const TOASTER_Z = 2147483646
 
 /** Default time on screen (ms); users can still dismiss with the close button. */
-const DEFAULT_TOAST_DURATION_MS = 8000
+const DEFAULT_TOAST_DURATION_MS = 2000
 
 const Toaster = (props: ToasterProps) => {
   const { theme = "system" } = useTheme()
@@ -31,6 +31,7 @@ const Toaster = (props: ToasterProps) => {
       <Sonner
         {...props}
         position="top-right"
+        dir="ltr"
         theme={theme as ToasterProps["theme"]}
         richColors
         closeButton
@@ -83,25 +84,25 @@ const Toaster = (props: ToasterProps) => {
       />
       <style dangerouslySetInnerHTML={{
         __html: `
+          /* Sonner defaults to bottom-right if internal attrs differ; force top-right on all toasters */
           [data-sonner-toaster] {
             z-index: ${TOASTER_Z} !important;
-            pointer-events: none !important;
-          }
-          [data-sonner-toaster][data-y-position="top"][data-x-position="right"] {
             position: fixed !important;
+            inset: auto !important;
             top: max(20px, env(safe-area-inset-top, 0px)) !important;
             right: max(12px, env(safe-area-inset-right, 0px)) !important;
-            left: auto !important;
             bottom: auto !important;
+            left: auto !important;
             width: auto !important;
             max-width: min(320px, calc(100vw - 1.5rem)) !important;
             display: flex !important;
             flex-direction: column !important;
             align-items: flex-end !important;
             justify-content: flex-start !important;
+            pointer-events: none !important;
           }
           @media (max-width: 640px) {
-            [data-sonner-toaster][data-y-position="top"][data-x-position="right"] {
+            [data-sonner-toaster] {
               top: max(16px, env(safe-area-inset-top, 0px)) !important;
               right: max(10px, env(safe-area-inset-right, 0px)) !important;
             }

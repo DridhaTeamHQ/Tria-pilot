@@ -39,6 +39,12 @@ export default function InitialSiteLoader() {
       return
     }
 
+    const hasSeenIntro = sessionStorage.getItem("kiwikoo_intro_seen")
+    if (hasSeenIntro) {
+      setVisible(false)
+      return
+    }
+
     hasDismissedRef.current = false
     const originalOverflow = document.body.style.overflow
     const originalHtmlOverflow = document.documentElement.style.overflow
@@ -55,6 +61,7 @@ export default function InitialSiteLoader() {
       if (hasDismissedRef.current) return
       hasDismissedRef.current = true
       setVisible(false)
+      sessionStorage.setItem("kiwikoo_intro_seen", "true")
       window.clearTimeout(fallbackTimer)
       restoreBody()
     }
@@ -63,7 +70,7 @@ export default function InitialSiteLoader() {
       dismiss()
     }, INTRO_FALLBACK_MS)
 
-    ;(window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro = dismiss
+      ; (window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro = dismiss
 
     return () => {
       window.clearTimeout(fallbackTimer)
@@ -102,22 +109,19 @@ export default function InitialSiteLoader() {
             duration: 0.35,
             ease: [0.22, 1, 0.36, 1],
           }}
-          className="kiwikoo-intro-overlay fixed inset-0 flex min-h-[100dvh] w-full min-w-0 items-center justify-center overflow-hidden"
+          className="kiwikoo-intro-overlay fixed inset-0 z-[2147483647] flex w-full min-w-0 items-center justify-center overflow-hidden"
           style={{ backgroundColor: INTRO_BG, zIndex: INTRO_Z }}
         >
           <div
-            className="relative max-h-[100dvh] w-full shrink-0"
+            className="kiwikoo-intro-frame mx-auto w-full max-w-full shrink-0 bg-[#111111]"
             style={{
-              width: "min(100vw, calc(100dvh * 16 / 9))",
-              aspectRatio: "16 / 9",
-              maxHeight: "min(100dvh, calc(100vw * 9 / 16))",
               backgroundColor: INTRO_BG,
               transform: "translateZ(0)",
             }}
           >
             <video
               ref={videoRef}
-              className="kiwikoo-intro-video absolute inset-0 z-0 h-full w-full object-contain object-center"
+              className="kiwikoo-intro-video absolute inset-0 z-0 box-border h-full w-full object-contain object-center"
               style={{
                 backgroundColor: INTRO_BG,
                 WebkitBackfaceVisibility: "hidden",
@@ -135,9 +139,12 @@ export default function InitialSiteLoader() {
               onEnded={() =>
                 (window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro?.()
               }
-              onError={() =>
-                (window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro?.()
-              }
+              onError={() => {
+                /* Do not dismiss immediately — a failed load was hiding the whole intro. */
+                if (process.env.NODE_ENV === "development") {
+                  console.warn("[InitialSiteLoader] intro video failed to load; overlay stays until timeout")
+                }
+              }}
             />
           </div>
         </motion.div>

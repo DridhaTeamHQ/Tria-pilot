@@ -5,7 +5,7 @@ import { toast } from "sonner"
 
 type ToastVariant = "success" | "error" | "info" | "warning"
 
-const DEFAULT_KIWIKOO_TOAST_MS = 8000
+const DEFAULT_KIWIKOO_TOAST_MS = 2000
 
 function showToast(variant: ToastVariant, title: string, description?: string, duration = DEFAULT_KIWIKOO_TOAST_MS) {
   const shared = {
