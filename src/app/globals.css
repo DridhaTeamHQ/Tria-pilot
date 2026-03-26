@@ -432,15 +432,14 @@ main {
   animation: pageIn 0.3s ease-out;
 }
 
+/* Opacity only — transform on main would create a containing block and break position:fixed modals/toasts inside main */
 @keyframes pageIn {
   from {
     opacity: 0;
-    transform: translateY(8px);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 

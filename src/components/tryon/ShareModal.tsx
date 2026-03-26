@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Instagram, Youtube, Twitter, MessageCircle, Image as ImageIcon, FileText, Send, Copy, Check, Link as LinkIcon } from 'lucide-react'
 import { toast } from 'sonner'
@@ -30,6 +31,7 @@ const SHARE_TYPES: Array<{ id: ShareType; name: string; icon: any; description: 
 ]
 
 export function ShareModal({ isOpen, onClose, imageUrl, imageBase64, productId }: ShareModalProps) {
+  const [mounted, setMounted] = useState(false)
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null)
   const [selectedShareType, setSelectedShareType] = useState<ShareType | null>(null)
   const [sharing, setSharing] = useState(false)
@@ -38,6 +40,9 @@ export function ShareModal({ isOpen, onClose, imageUrl, imageBase64, productId }
   const [linkLoading, setLinkLoading] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
 
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   const handleClose = useCallback(() => {
     setSelectedPlatform(null)
     setSelectedShareType(null)
@@ -389,25 +394,24 @@ export function ShareModal({ isOpen, onClose, imageUrl, imageBase64, productId }
     }
   }
 
-  return (
+  const modal = (
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop — portaled to body so parent overflow/transform cannot clip or reposition */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={handleClose}
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm"
           />
 
-          {/* Modal */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-2 sm:p-4 pointer-events-none"
+            className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-2 sm:p-4 pointer-events-none"
           >
             <div
               className="bg-[#FFFDF8] border-[3px] border-black rounded-2xl sm:rounded-3xl shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] max-w-2xl w-full max-h-[calc(100dvh-0.75rem)] sm:max-h-[90vh] overflow-y-auto pointer-events-auto"
@@ -600,6 +604,9 @@ export function ShareModal({ isOpen, onClose, imageUrl, imageBase64, productId }
       )}
     </AnimatePresence>
   )
+
+  if (!mounted) return null
+  return createPortal(modal, document.body)
 }
 
 

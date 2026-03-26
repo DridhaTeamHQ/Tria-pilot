@@ -905,9 +905,9 @@ function TryOnPageContent() {
     const isGenerateDisabled = loading || retryAfterSeconds > 0 || missingRequiredInput
 
     return (
-        <div className="relative min-h-screen pt-20 sm:pt-24 pb-8 sm:pb-12 overflow-hidden bg-[#FDFBF7]">
-            {/* Background Elements - flat accents (no blur haze) */}
-            <div className="absolute inset-0 -z-10 opacity-30 pointer-events-none">
+        <div className="relative min-h-screen pt-20 sm:pt-24 pb-8 sm:pb-12 bg-[#FDFBF7]">
+            {/* Background: overflow-hidden here only so fixed modals (Share, etc.) are not clipped by the page shell */}
+            <div className="absolute inset-0 -z-10 overflow-hidden opacity-30 pointer-events-none">
                 <div className="absolute right-[-20%] top-[-8%] h-[280px] w-[280px] rounded-full bg-[#FFD93D] opacity-20 sm:right-[-10%] sm:h-[420px] sm:w-[420px] lg:right-[-5%] lg:h-[600px] lg:w-[600px]" />
                 <div className="absolute bottom-[-8%] left-[-18%] h-[240px] w-[240px] rounded-full bg-[#FF6B6B] opacity-[0.18] sm:left-[-10%] sm:h-[360px] sm:w-[360px] lg:left-[-5%] lg:h-[500px] lg:w-[500px]" />
             </div>
@@ -922,14 +922,14 @@ function TryOnPageContent() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+                            className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none"
                         >
                             <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" />
                             <motion.div
                                 initial={{ scale: 0.5, opacity: 0, rotate: -10 }}
                                 animate={{ scale: 1, opacity: 1, rotate: 0 }}
                                 exit={{ scale: 0.5, opacity: 0, rotate: 10 }}
-                                className="bg-white p-8 border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] z-50 flex items-center gap-6"
+                                className="relative z-[101] flex items-center gap-6 bg-white p-8 border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
                             >
                                 <div className="p-4 bg-[#FFD93D] border-[2px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                                     <PartyPopper className="w-8 h-8 text-black" />

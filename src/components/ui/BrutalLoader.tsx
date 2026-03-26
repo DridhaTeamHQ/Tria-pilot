@@ -79,7 +79,8 @@ export function BrutalLoader({
                     {label}
                 </p>
             )}
-            <style jsx>{`
+            {/* Global keyframes — scoped styled-jsx renames @keyframes so inline animation: names never matched */}
+            <style jsx global>{`
                 @keyframes brutal-loader-jump {
                     15% {
                         border-bottom-right-radius: 3px;
