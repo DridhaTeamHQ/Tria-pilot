@@ -28,7 +28,8 @@ const Toaster = (props: ToasterProps) => {
   }, [])
 
   const content = (
-    <Sonner
+    <>
+      <Sonner
         {...restProps}
         dir="ltr"
         theme={theme as ToasterProps["theme"]}
@@ -84,6 +85,26 @@ const Toaster = (props: ToasterProps) => {
         }}
         position="top-right"
       />
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            /* Force all sonner lists to float in top-right. */
+            [data-sonner-toaster] {
+              position: fixed !important;
+              top: max(16px, env(safe-area-inset-top, 0px)) !important;
+              right: max(10px, env(safe-area-inset-right, 0px)) !important;
+              bottom: auto !important;
+              left: auto !important;
+              z-index: ${TOASTER_Z} !important;
+              pointer-events: none !important;
+            }
+            [data-sonner-toaster] [data-sonner-toast] {
+              pointer-events: auto !important;
+            }
+          `,
+        }}
+      />
+    </>
   )
 
   if (!mounted || typeof document === "undefined") return null

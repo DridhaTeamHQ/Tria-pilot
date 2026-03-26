@@ -6,7 +6,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { createPortal } from "react-dom"
 
 const INTRO_FALLBACK_MS = 7000
-const INTRO_VIDEO_BOOT_TIMEOUT_MS = 1400
+const INTRO_VIDEO_BOOT_TIMEOUT_MS = 3500
 
 /** Matches letterboxing and page chrome so the frame stays visually stable (no tint overlays). */
 const INTRO_BG = "#111111"
@@ -26,6 +26,7 @@ export default function InitialSiteLoader() {
   const [mounted, setMounted] = useState(false)
   const hasDismissedRef = useRef(false)
   const hasVideoFrameRef = useRef(false)
+  const triedFallbackSourceRef = useRef(false)
   const videoRef = useRef<HTMLVideoElement | null>(null)
 
   useLayoutEffect(() => {
@@ -41,14 +42,9 @@ export default function InitialSiteLoader() {
       return
     }
 
-    const hasSeenIntro = sessionStorage.getItem("kiwikoo_intro_seen")
-    if (hasSeenIntro) {
-      setVisible(false)
-      return
-    }
-
     hasDismissedRef.current = false
     hasVideoFrameRef.current = false
+    triedFallbackSourceRef.current = false
     const originalOverflow = document.body.style.overflow
     const originalHtmlOverflow = document.documentElement.style.overflow
     document.body.style.overflow = "hidden"
@@ -64,7 +60,6 @@ export default function InitialSiteLoader() {
       if (hasDismissedRef.current) return
       hasDismissedRef.current = true
       setVisible(false)
-      sessionStorage.setItem("kiwikoo_intro_seen", "true")
       window.clearTimeout(fallbackTimer)
       restoreBody()
     }
@@ -138,7 +133,7 @@ export default function InitialSiteLoader() {
                 WebkitBackfaceVisibility: "hidden",
                 backfaceVisibility: "hidden",
               }}
-              src="/assets/kiwikooanimation.mp4"
+              src="/assets/kiwikooanimation.websafe.mp4"
               autoPlay
               muted
               playsInline
@@ -154,6 +149,15 @@ export default function InitialSiteLoader() {
                 (window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro?.()
               }
               onError={() => {
+                const el = videoRef.current
+                if (el && !triedFallbackSourceRef.current) {
+                  // If the websafe file is missing/corrupted, retry once with original source.
+                  triedFallbackSourceRef.current = true
+                  el.src = "/assets/kiwikooanimation.mp4"
+                  el.load()
+                  tryPlay()
+                  return
+                }
                 // Fail fast to avoid showing only a black screen.
                 ;(window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro?.()
                 if (process.env.NODE_ENV === "development") {
