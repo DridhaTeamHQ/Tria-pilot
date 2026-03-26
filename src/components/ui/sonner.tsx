@@ -8,12 +8,22 @@ import {
   TriangleAlertIcon,
 } from "lucide-react"
 import { useTheme } from "next-themes"
+import { useEffect, useState } from "react"
+import { createPortal } from "react-dom"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
+
+/** Below intro overlay (2147483647), above any in-app chrome (z-50, modals ~100). */
+const TOASTER_Z = 2147483646
 
 const Toaster = (props: ToasterProps) => {
   const { theme = "system" } = useTheme()
+  const [mounted, setMounted] = useState(false)
 
-  return (
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const content = (
     <>
       <Sonner
         {...props}
@@ -71,10 +81,10 @@ const Toaster = (props: ToasterProps) => {
       <style dangerouslySetInnerHTML={{
         __html: `
           [data-sonner-toaster] {
-            z-index: 2147483647 !important;
+            z-index: ${TOASTER_Z} !important;
             position: fixed !important;
-            top: 20px !important;
-            right: 16px !important;
+            top: max(20px, env(safe-area-inset-top, 0px)) !important;
+            right: max(16px, env(safe-area-inset-right, 0px)) !important;
             left: auto !important;
             bottom: auto !important;
             width: auto !important;
@@ -82,8 +92,8 @@ const Toaster = (props: ToasterProps) => {
           }
           @media (max-width: 640px) {
             [data-sonner-toaster] {
-              top: 12px !important;
-              right: 12px !important;
+              top: max(12px, env(safe-area-inset-top, 0px)) !important;
+              right: max(12px, env(safe-area-inset-right, 0px)) !important;
             }
           }
           [data-sonner-toaster] [data-sonner-toast] {
@@ -99,6 +109,9 @@ const Toaster = (props: ToasterProps) => {
       }} />
     </>
   )
+
+  if (!mounted || typeof document === "undefined") return null
+  return createPortal(content, document.body)
 }
 
 export { Toaster }

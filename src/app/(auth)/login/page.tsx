@@ -274,13 +274,13 @@ function LoginContent() {
   }
 
   return (
-    <div className="relative min-h-[100dvh] w-full overflow-hidden bg-[#F4F4F0]">
-      {/* Background Grid */}
-      <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(0,0,0,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.2)_1px,transparent_1px)] [background-size:40px_40px]" />
-      
-      {/* Background decorative shapes */}
-      <div className="absolute -left-14 top-14 h-36 w-36 rounded-full border-[4px] border-black bg-[#FF8C69] opacity-15 sm:h-48 sm:w-48 md:h-56 md:w-56 lg:-left-20 lg:top-20 lg:h-64 lg:w-64 lg:opacity-20" />
-      <div className="absolute -right-12 bottom-12 h-44 w-44 rotate-12 rounded-[32px] border-[4px] border-black bg-[#B4F056] opacity-15 sm:h-60 sm:w-60 md:h-72 md:w-72 lg:-right-20 lg:bottom-20 lg:h-80 lg:w-80 lg:rounded-[40px] lg:opacity-20" />
+    <div className="relative min-h-[100dvh] w-full bg-[#F4F4F0]">
+      {/* Clip decoration only — page-level overflow-hidden breaks visibility of fixed UI (e.g. toasts) inside some roots */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(0,0,0,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.2)_1px,transparent_1px)] [background-size:40px_40px]" />
+        <div className="absolute -left-14 top-14 h-36 w-36 rounded-full border-[4px] border-black bg-[#FF8C69] opacity-15 sm:h-48 sm:w-48 md:h-56 md:w-56 lg:-left-20 lg:top-20 lg:h-64 lg:w-64 lg:opacity-20" />
+        <div className="absolute -right-12 bottom-12 h-44 w-44 rotate-12 rounded-[32px] border-[4px] border-black bg-[#B4F056] opacity-15 sm:h-60 sm:w-60 md:h-72 md:w-72 lg:-right-20 lg:bottom-20 lg:h-80 lg:w-80 lg:rounded-[40px] lg:opacity-20" />
+      </div>
 
       <div className="relative z-10 lg:hidden">
         <div className="flex min-h-[100dvh] items-center justify-center px-4 py-8">
