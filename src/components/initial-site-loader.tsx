@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion"
 import { usePathname } from "next/navigation"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 
 const INTRO_FALLBACK_MS = 7000
@@ -10,20 +10,30 @@ const INTRO_FALLBACK_MS = 7000
 /** Matches letterboxing and page chrome so the frame stays visually stable (no tint overlays). */
 const INTRO_BG = "#111111"
 
+/** Above Sonner (2147483646); must paint on top of all app UI. */
+const INTRO_Z = 2147483647
+
+function isHomePath(pathname: string) {
+  if (!pathname) return false
+  const base = pathname.split("?")[0] ?? ""
+  return base === "/" || base === ""
+}
+
 export default function InitialSiteLoader() {
   const pathname = usePathname()
   const [visible, setVisible] = useState(false)
   const [mounted, setMounted] = useState(false)
   const hasDismissedRef = useRef(false)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setMounted(true)
   }, [])
 
   useEffect(() => {
     if (typeof window === "undefined") return
 
-    if (pathname !== "/") {
+    if (!isHomePath(pathname)) {
       delete (window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro
       setVisible(false)
       return
@@ -62,6 +72,24 @@ export default function InitialSiteLoader() {
     }
   }, [pathname])
 
+  const tryPlay = useCallback(() => {
+    const el = videoRef.current
+    if (!el) return
+    el.muted = true
+    el.playsInline = true
+    const p = el.play()
+    if (p !== undefined) {
+      p.catch(() => {
+        /* Autoplay blocked — first frame still appears once decoded */
+      })
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!visible || !mounted) return
+    tryPlay()
+  }, [visible, mounted, tryPlay])
+
   const overlay = (
     <AnimatePresence>
       {visible ? (
@@ -74,22 +102,21 @@ export default function InitialSiteLoader() {
             duration: 0.35,
             ease: [0.22, 1, 0.36, 1],
           }}
-          className="kiwikoo-intro-overlay fixed inset-0 z-[2147483647] flex items-center justify-center overflow-hidden"
-          style={{ backgroundColor: INTRO_BG }}
+          className="kiwikoo-intro-overlay fixed inset-0 flex min-h-[100dvh] w-full min-w-0 items-center justify-center overflow-hidden"
+          style={{ backgroundColor: INTRO_BG, zIndex: INTRO_Z }}
         >
-          {/*
-            16:9 frame, max size that fits in the viewport (letterbox/pillarbox uses same solid bg).
-            object-contain avoids crop; no gradient overlays so colors stay stable during playback.
-          */}
           <div
-            className="relative aspect-video shrink-0"
+            className="relative max-h-[100dvh] w-full shrink-0"
             style={{
               width: "min(100vw, calc(100dvh * 16 / 9))",
+              aspectRatio: "16 / 9",
+              maxHeight: "min(100dvh, calc(100vw * 9 / 16))",
               backgroundColor: INTRO_BG,
               transform: "translateZ(0)",
             }}
           >
             <video
+              ref={videoRef}
               className="kiwikoo-intro-video absolute inset-0 z-0 h-full w-full object-contain object-center"
               style={{
                 backgroundColor: INTRO_BG,
@@ -103,6 +130,8 @@ export default function InitialSiteLoader() {
               preload="auto"
               disablePictureInPicture
               controls={false}
+              onLoadedData={tryPlay}
+              onCanPlay={tryPlay}
               onEnded={() =>
                 (window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro?.()
               }
@@ -111,15 +140,6 @@ export default function InitialSiteLoader() {
               }
             />
           </div>
-          <style jsx global>{`
-            .kiwikoo-intro-video {
-              /* Crisp compositing; avoid extra filters that soften the picture */
-              filter: none;
-            }
-            .kiwikoo-intro-video::-webkit-media-controls {
-              display: none !important;
-            }
-          `}</style>
         </motion.div>
       ) : null}
     </AnimatePresence>

@@ -47,8 +47,8 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${bungee.variable} antialiased bg-cream text-charcoal`} style={FONT_VARS} suppressHydrationWarning>
         <ReactQueryProvider>
-          <InitialSiteLoader />
           <Toaster />
+          <InitialSiteLoader />
           <AuthToastBridge />
           <ReactLenis>
             <NavSwitcher />

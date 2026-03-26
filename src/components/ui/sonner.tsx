@@ -15,6 +15,9 @@ import { Toaster as Sonner, type ToasterProps } from "sonner"
 /** Below intro overlay (2147483647), above any in-app chrome (z-50, modals ~100). */
 const TOASTER_Z = 2147483646
 
+/** Default time on screen (ms); users can still dismiss with the close button. */
+const DEFAULT_TOAST_DURATION_MS = 8000
+
 const Toaster = (props: ToasterProps) => {
   const { theme = "system" } = useTheme()
   const [mounted, setMounted] = useState(false)
@@ -33,13 +36,13 @@ const Toaster = (props: ToasterProps) => {
         closeButton
         expand={false}
         visibleToasts={4}
-        duration={3000}
+        duration={DEFAULT_TOAST_DURATION_MS}
         className="toaster group"
-        offset={16}
-        mobileOffset={12}
+        offset={{ top: 20, right: 12 }}
+        mobileOffset={{ top: 16, right: 10 }}
         gap={10}
         toastOptions={{
-          duration: 3000,
+          duration: DEFAULT_TOAST_DURATION_MS,
           ...props.toastOptions,
           classNames: {
             toast:
@@ -82,18 +85,25 @@ const Toaster = (props: ToasterProps) => {
         __html: `
           [data-sonner-toaster] {
             z-index: ${TOASTER_Z} !important;
+            pointer-events: none !important;
+          }
+          [data-sonner-toaster][data-y-position="top"][data-x-position="right"] {
             position: fixed !important;
             top: max(20px, env(safe-area-inset-top, 0px)) !important;
-            right: max(16px, env(safe-area-inset-right, 0px)) !important;
+            right: max(12px, env(safe-area-inset-right, 0px)) !important;
             left: auto !important;
             bottom: auto !important;
             width: auto !important;
-            pointer-events: none !important;
+            max-width: min(320px, calc(100vw - 1.5rem)) !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: flex-end !important;
+            justify-content: flex-start !important;
           }
           @media (max-width: 640px) {
-            [data-sonner-toaster] {
-              top: max(12px, env(safe-area-inset-top, 0px)) !important;
-              right: max(12px, env(safe-area-inset-right, 0px)) !important;
+            [data-sonner-toaster][data-y-position="top"][data-x-position="right"] {
+              top: max(16px, env(safe-area-inset-top, 0px)) !important;
+              right: max(10px, env(safe-area-inset-right, 0px)) !important;
             }
           }
           [data-sonner-toaster] [data-sonner-toast] {

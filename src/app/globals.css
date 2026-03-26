@@ -443,6 +443,15 @@ main {
   }
 }
 
+/* Home intro video (InitialSiteLoader) — keep styles global so the portal always applies */
+.kiwikoo-intro-video {
+  filter: none;
+}
+
+.kiwikoo-intro-video::-webkit-media-controls {
+  display: none !important;
+}
+
 /* Blob cursor styles are injected dynamically via GlobalBlobCursor component */
 
 /* Loading progress bar animation */
