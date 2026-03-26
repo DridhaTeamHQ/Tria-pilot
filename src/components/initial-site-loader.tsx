@@ -6,6 +6,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { createPortal } from "react-dom"
 
 const INTRO_FALLBACK_MS = 7000
+const INTRO_VIDEO_BOOT_TIMEOUT_MS = 1400
 
 /** Matches letterboxing and page chrome so the frame stays visually stable (no tint overlays). */
 const INTRO_BG = "#111111"
@@ -24,6 +25,7 @@ export default function InitialSiteLoader() {
   const [visible, setVisible] = useState(false)
   const [mounted, setMounted] = useState(false)
   const hasDismissedRef = useRef(false)
+  const hasVideoFrameRef = useRef(false)
   const videoRef = useRef<HTMLVideoElement | null>(null)
 
   useLayoutEffect(() => {
@@ -46,6 +48,7 @@ export default function InitialSiteLoader() {
     }
 
     hasDismissedRef.current = false
+    hasVideoFrameRef.current = false
     const originalOverflow = document.body.style.overflow
     const originalHtmlOverflow = document.documentElement.style.overflow
     document.body.style.overflow = "hidden"
@@ -70,10 +73,18 @@ export default function InitialSiteLoader() {
       dismiss()
     }, INTRO_FALLBACK_MS)
 
+    // Avoid black-screen intro on devices/codecs that cannot render the video.
+    const bootTimer = window.setTimeout(() => {
+      if (!hasVideoFrameRef.current) {
+        dismiss()
+      }
+    }, INTRO_VIDEO_BOOT_TIMEOUT_MS)
+
       ; (window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro = dismiss
 
     return () => {
       window.clearTimeout(fallbackTimer)
+      window.clearTimeout(bootTimer)
       restoreBody()
       delete (window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro
     }
@@ -135,14 +146,18 @@ export default function InitialSiteLoader() {
               disablePictureInPicture
               controls={false}
               onLoadedData={tryPlay}
-              onCanPlay={tryPlay}
+              onCanPlay={() => {
+                hasVideoFrameRef.current = true
+                tryPlay()
+              }}
               onEnded={() =>
                 (window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro?.()
               }
               onError={() => {
-                /* Do not dismiss immediately — a failed load was hiding the whole intro. */
+                // Fail fast to avoid showing only a black screen.
+                ;(window as typeof window & { __kiwikooDismissIntro?: () => void }).__kiwikooDismissIntro?.()
                 if (process.env.NODE_ENV === "development") {
-                  console.warn("[InitialSiteLoader] intro video failed to load; overlay stays until timeout")
+                  console.warn("[InitialSiteLoader] intro video failed to load; skipping intro overlay")
                 }
               }}
             />

@@ -11,6 +11,7 @@ function showToast(variant: ToastVariant, title: string, description?: string, d
   const shared = {
     description,
     duration,
+    position: "top-right" as const,
   }
 
   if (variant === "success") {
