@@ -443,40 +443,6 @@ main {
   }
 }
 
-/* Home intro video (InitialSiteLoader) — portal + mobile / safe-area / iOS viewport */
-.kiwikoo-intro-overlay {
-  box-sizing: border-box;
-  /* Cover full screen on phones (dynamic toolbars, notches) */
-  min-height: 100vh;
-  min-height: 100dvh;
-  min-height: 100svh;
-  min-height: -webkit-fill-available;
-  padding-top: max(12px, env(safe-area-inset-top, 0px));
-  padding-right: max(12px, env(safe-area-inset-right, 0px));
-  padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
-  padding-left: max(12px, env(safe-area-inset-left, 0px));
-}
-
-/* 16:9 frame — parent .kiwikoo-intro-overlay already has safe-area padding; use 100% width there */
-.kiwikoo-intro-frame {
-  box-sizing: border-box;
-  position: relative;
-  width: 100%;
-  max-width: min(100%, calc((100svh - 2rem) * 16 / 9));
-  aspect-ratio: 16 / 9;
-  max-height: calc(100svh - 2rem);
-  min-height: 120px;
-  min-width: 0;
-}
-
-.kiwikoo-intro-video {
-  filter: none;
-}
-
-.kiwikoo-intro-video::-webkit-media-controls {
-  display: none !important;
-}
-
 /* Sonner: pin default region to top-right (mobile sheet layout can feel “bottom” otherwise) */
 [data-sonner-toaster][data-y-position="top"] {
   top: max(12px, env(safe-area-inset-top, 0px)) !important;
