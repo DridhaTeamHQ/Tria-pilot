@@ -1390,25 +1390,25 @@ function TryOnPageContent() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.4 }}
                         >
-                            <div className="mb-5 rounded-[28px] border-[3px] border-black bg-[linear-gradient(135deg,#FFFDF8_0%,#FFF1E6_100%)] p-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:p-5">
-                                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                            <div className="mb-4 rounded-[22px] border-[3px] border-black bg-[linear-gradient(135deg,#FFFDF8_0%,#FFF6EC_100%)] px-4 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:px-5">
+                                <div className="flex flex-col gap-3">
                                     <div className="flex items-center gap-3">
-                                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl border-[3px] border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                                            <Palette className="h-5 w-5 text-peach" />
+                                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border-[3px] border-black bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+                                            <Palette className="h-4 w-4 text-peach" />
                                         </div>
                                         <div>
-                                            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-black/45">Preset Library</p>
-                                            <h3 className="font-serif text-[2rem] leading-none text-charcoal whitespace-nowrap">
+                                            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-black/45">Preset Library</p>
+                                            <h3 className="font-serif text-[2.1rem] leading-[0.95] text-charcoal sm:text-[2.35rem]">
                                                 Style Presets
                                             </h3>
                                         </div>
                                     </div>
 
-                                    <div className="flex flex-wrap gap-2 sm:gap-3 xl:justify-end">
+                                    <div className="flex flex-wrap gap-2">
                                     <button type="button"
                                         onClick={() => setPresetCategory('all')}
                                         className={`
-                                            min-h-[52px] whitespace-nowrap rounded-full border-[3px] border-black px-5 py-2 text-[11px] font-black uppercase tracking-[0.16em] transition-all sm:px-6 sm:text-xs
+                                            min-h-[42px] whitespace-nowrap rounded-full border-[3px] border-black px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] transition-all sm:px-5 sm:text-[11px]
                                             ${presetCategory === 'all'
                                                 ? 'bg-black text-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
                                                 : 'bg-white text-black hover:-translate-y-0.5 hover:bg-[#FFF6EC] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'}
@@ -1421,7 +1421,7 @@ function TryOnPageContent() {
                                             key={cat}
                                             onClick={() => setPresetCategory(cat)}
                                             className={`
-                                                min-h-[52px] whitespace-nowrap rounded-full border-[3px] border-black px-5 py-2 text-[11px] font-black uppercase tracking-[0.16em] transition-all sm:px-6 sm:text-xs
+                                                min-h-[42px] whitespace-nowrap rounded-full border-[3px] border-black px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] transition-all sm:px-5 sm:text-[11px]
                                                 ${presetCategory === cat
                                                     ? 'bg-black text-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
                                                     : 'bg-white text-black hover:-translate-y-0.5 hover:bg-[#FFF6EC] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'}
