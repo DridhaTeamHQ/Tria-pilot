@@ -48,3 +48,7 @@ old_strict_prompt*.ts
 
 # IDE / editor
 .cursor
+
+# python
+__pycache__/
+*.pyc
