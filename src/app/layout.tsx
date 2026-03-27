@@ -30,12 +30,11 @@ export const metadata: Metadata = {
 // Defined at module level so the object reference is stable across SSR and client,
 // preventing React's hydration mismatch on the <body> style prop.
 const FONT_VARS = {
-  '--font-plus-jakarta-sans': 'var(--font-bungee), "Arial Black", Impact, sans-serif',
-  '--font-playfair': 'var(--font-bungee), "Arial Black", Impact, sans-serif',
-  '--font-inter': 'var(--font-bungee), "Arial Black", Impact, sans-serif',
-  '--font-geist-sans': 'var(--font-bungee), "Arial Black", Impact, sans-serif',
+  '--font-plus-jakarta-sans': '"Plus Jakarta Sans", Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif',
+  '--font-playfair': 'Playfair Display, Georgia, Cambria, "Times New Roman", serif',
+  '--font-inter': 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif',
+  '--font-geist-sans': 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif',
   '--font-geist-mono': '"SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-  '--font-bungee': 'Bungee, "Arial Black", Impact, sans-serif',
 } as React.CSSProperties
 
 export default function RootLayout({
