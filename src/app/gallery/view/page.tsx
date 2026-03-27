@@ -101,7 +101,7 @@ function GalleryViewContent() {
     }
 
     return (
-        <div className="fixed inset-0 z-[250] flex flex-col bg-[#141414] text-white">
+        <div className="fixed inset-0 z-[250] flex min-h-0 flex-col bg-[#141414] text-white">
 
             <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-white/10 bg-black/75 px-3 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-md sm:px-4">
                 <button
@@ -130,8 +130,8 @@ function GalleryViewContent() {
                 </button>
             </header>
 
-            <main className="flex-1 overflow-hidden p-3 sm:p-5">
-                <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top,#2b2b2b_0%,#181818_45%,#101010_100%)]">
+            <main className="flex min-h-0 flex-1 overflow-hidden p-3 sm:p-5">
+                <div className="relative flex min-h-0 h-full w-full items-center justify-center overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top,#2b2b2b_0%,#181818_45%,#101010_100%)]">
                     <div className="pointer-events-none absolute inset-0 opacity-40">
                         <div className="absolute -left-10 top-6 h-32 w-32 rounded-full bg-[#FFD93D]/12 blur-3xl" />
                         <div className="absolute right-0 top-1/3 h-40 w-40 rounded-full bg-[#B4F056]/10 blur-3xl" />
@@ -148,11 +148,11 @@ function GalleryViewContent() {
                             <p className="text-sm font-bold">Image failed to load</p>
                         </div>
                     ) : (
-                        <div className="relative z-10 flex h-full w-full items-center justify-center p-3 sm:p-6">
+                        <div className="relative z-10 flex h-full min-h-0 w-full items-center justify-center p-3 sm:p-6">
                             <img
                                 src={imageUrl}
                                 alt={title}
-                                className="max-h-full max-w-full rounded-2xl object-contain shadow-[0_18px_60px_rgba(0,0,0,0.45)]"
+                                className="block h-auto w-auto max-h-[calc(100dvh-8rem)] max-w-full rounded-2xl object-contain shadow-[0_18px_60px_rgba(0,0,0,0.45)] sm:max-h-[calc(100dvh-9.5rem)]"
                                 onError={() => setImageError(true)}
                             />
                         </div>
