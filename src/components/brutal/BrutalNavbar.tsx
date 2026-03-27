@@ -30,6 +30,7 @@ export default function BrutalNavbar() {
     const { data: user, isLoading, isFetching } = useUser();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const [avatarFailed, setAvatarFailed] = useState(false);
 
     // Hide on auth/utility pages, admin routes, onboarding, pending approval, and brand pages (BrandNavbar handles those)
     const isAuthPage =
@@ -132,6 +133,7 @@ export default function BrutalNavbar() {
         isLoggedIn && user
             ? ((user as any).avatarUrl as string | null) || ((user as any).avatar_url as string | null) || null
             : null;
+    const showAvatarImage = Boolean(avatarUrl) && !avatarFailed;
 
     return (
         <header className="fixed top-0 left-0 right-0 z-50 bg-[#F9F8F4] border-b-[3px] border-black">
@@ -194,8 +196,13 @@ export default function BrutalNavbar() {
                         ) : isLoggedIn ? (
                             <div className="hidden lg:flex items-center gap-3">
                                 <div className="w-10 h-10 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black">
-                                    {avatarUrl ? (
-                                        <img src={avatarUrl} alt={user?.name || "Profile"} className="h-full w-full object-cover" />
+                                    {showAvatarImage ? (
+                                        <img
+                                            src={avatarUrl!}
+                                            alt={user?.name || "Profile"}
+                                            className="h-full w-full object-cover"
+                                            onError={() => setAvatarFailed(true)}
+                                        />
                                     ) : (
                                         userInitial
                                     )}
@@ -232,6 +239,7 @@ export default function BrutalNavbar() {
                         <button type="button"
                             className="lg:hidden p-2 rounded-xl border-2 border-black bg-white hover:bg-[#F9F8F4] transition-colors"
                             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                            aria-label="Toggle menu"
                         >
                             {mobileMenuOpen ? (
                                 <X className="w-6 h-6 text-black" />
@@ -261,8 +269,13 @@ export default function BrutalNavbar() {
                                     {/* User Info */}
                                     <div className="flex items-center gap-3 pb-4 border-b-2 border-black">
                                         <div className="w-12 h-12 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black text-lg">
-                                            {avatarUrl ? (
-                                                <img src={avatarUrl} alt={user?.name || "Profile"} className="h-full w-full object-cover" />
+                                            {showAvatarImage ? (
+                                                <img
+                                                    src={avatarUrl!}
+                                                    alt={user?.name || "Profile"}
+                                                    className="h-full w-full object-cover"
+                                                    onError={() => setAvatarFailed(true)}
+                                                />
                                             ) : (
                                                 userInitial
                                             )}

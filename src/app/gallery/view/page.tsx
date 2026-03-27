@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Download, ImageIcon } from 'lucide-react'
+import { ArrowLeft, Download, ImageIcon, X } from 'lucide-react'
 import { toast } from 'sonner'
 
 function sanitizeInternalPath(path: string): string | null {
@@ -127,6 +127,15 @@ function GalleryViewContent() {
                 >
                     <Download className="h-4 w-4" />
                     {downloading ? '...' : 'Save'}
+                </button>
+
+                <button
+                    type="button"
+                    onClick={handleBack}
+                    className="inline-flex shrink-0 items-center justify-center rounded-xl border-2 border-white/20 bg-white/10 p-2 text-white transition-colors hover:bg-white/15"
+                    aria-label="Close viewer"
+                >
+                    <X className="h-4 w-4" />
                 </button>
             </header>
 
