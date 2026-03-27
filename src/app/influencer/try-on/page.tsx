@@ -42,6 +42,8 @@ interface Product {
     tryOnImage?: string
 }
 
+const SHOW_ACCESSORIES_SECTION = false
+
 function TryOnPageContent() {
     const router = useRouter()
     const { data: user } = useUser()
@@ -1260,52 +1262,54 @@ function TryOnPageContent() {
                                 </div>
                             )}
 
-                            {/* ACCESSORIES SECTION (Pro Only) - hidden on small screens to keep mobile compact */}
-                            <div className="pt-4 border-t border-charcoal/5 hidden sm:block">
-                                <div className="flex justify-between items-center mb-3">
-                                    <div className="flex items-center gap-2">
-                                        <div className="p-1.5 bg-purple-100 rounded-md">
-                                            <ShoppingBag className="w-3 h-3 text-purple-600" />
+                            {/* ACCESSORIES SECTION (Pro Only) - hidden behind feature flag */}
+                            {SHOW_ACCESSORIES_SECTION && (
+                                <div className="pt-4 border-t border-charcoal/5 hidden sm:block">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <div className="flex items-center gap-2">
+                                            <div className="p-1.5 bg-purple-100 rounded-md">
+                                                <ShoppingBag className="w-3 h-3 text-purple-600" />
+                                            </div>
+                                            <h3 className="text-sm font-bold text-charcoal">Add Accessories</h3>
                                         </div>
-                                        <h3 className="text-sm font-bold text-charcoal">Add Accessories</h3>
+                                        <span className="text-xs text-charcoal/40">{accessoryImages.length}/5</span>
                                     </div>
-                                    <span className="text-xs text-charcoal/40">{accessoryImages.length}/5</span>
-                                </div>
 
-                                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
-                                    {['purse', 'shoes', 'hat', 'jewelry', 'other'].map((type) => (
-                                        <div key={type} className="relative aspect-square border-[2px] border-black bg-white hover:bg-[#FFD93D] transition-colors cursor-pointer flex flex-col items-center justify-center gap-1 group shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
-                                            <span className="text-[10px] uppercase font-bold text-black group-hover:text-black">{type}</span>
-                                            <span className="text-xl font-black text-black group-hover:text-black">+</span>
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                className="absolute inset-0 opacity-0 cursor-pointer"
-                                                onChange={(e) => e.target.files && handleAccessoryUpload(e.target.files[0], type as any)}
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* Accessory Preview List */}
-                                {accessoryImages.length > 0 && (
-                                    <div className="mt-3 flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
-                                        {accessoryImages.map((img: string, idx: number) => (
-                                            <div key={idx} className="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden border border-white shadow-sm group">
-                                                <Image unoptimized width={1200} height={1200} src={img} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
-                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                                    <button type="button" onClick={() => handleRemoveAccessory(idx)} className="text-white hover:text-red-400">
-                                                        <X className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                                <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-[8px] text-white text-center truncate px-1">
-                                                    {accessoryTypes[idx]}
-                                                </div>
+                                    <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                                        {['purse', 'shoes', 'hat', 'jewelry', 'other'].map((type) => (
+                                            <div key={type} className="relative aspect-square border-[2px] border-black bg-white hover:bg-[#FFD93D] transition-colors cursor-pointer flex flex-col items-center justify-center gap-1 group shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+                                                <span className="text-[10px] uppercase font-bold text-black group-hover:text-black">{type}</span>
+                                                <span className="text-xl font-black text-black group-hover:text-black">+</span>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                                    onChange={(e) => e.target.files && handleAccessoryUpload(e.target.files[0], type as any)}
+                                                />
                                             </div>
                                         ))}
                                     </div>
-                                )}
-                            </div>
+
+                                    {/* Accessory Preview List */}
+                                    {accessoryImages.length > 0 && (
+                                        <div className="mt-3 flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
+                                            {accessoryImages.map((img: string, idx: number) => (
+                                                <div key={idx} className="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden border border-white shadow-sm group">
+                                                    <Image unoptimized width={1200} height={1200} src={img} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                                        <button type="button" onClick={() => handleRemoveAccessory(idx)} className="text-white hover:text-red-400">
+                                                            <X className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-[8px] text-white text-center truncate px-1">
+                                                        {accessoryTypes[idx]}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                         </motion.div>
 
