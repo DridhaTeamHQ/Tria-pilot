@@ -132,7 +132,7 @@ export default function AdsPage() {
   const [activeCategory, setActiveCategory] = useState<AdPresetCategory | 'all'>('all')
   const [productImage, setProductImage] = useState('')
   const [influencerImage, setInfluencerImage] = useState('')
-  const [imageModel, setImageModel] = useState<'gpt' | 'gemini'>('gpt')
+  const [imageModel, setImageModel] = useState<'gpt' | 'gemini'>('gemini')
   const [characterType, setCharacterType] = useState<CharacterType>('none')
   const [characterIdentity, setCharacterIdentity] = useState<CharacterIdentity>('global_modern')
   const [animalType, setAnimalType] = useState('')

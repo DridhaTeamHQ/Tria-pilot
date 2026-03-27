@@ -1,7 +1,7 @@
 /**
- * AD PROMPT BUILDER — GPT-4o Vision + Intelligent Prompt Crafting
+ * AD PROMPT BUILDER — Gemini Vision + Intelligent Prompt Crafting
  *
- * GPT-4o SEES the product image directly (vision) and crafts a
+ * Gemini sees the product image directly (vision) and crafts a
  * production-quality composition prompt. No separate clothing analysis
  * needed — the model recognizes shoes, bags, shirts, accessories, etc.
  *
@@ -12,7 +12,7 @@
  * GPT-4o can study *real* high-quality prompts before writing its own.
  */
 import 'server-only'
-import { getOpenAI } from '@/lib/openai'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 import {
   type AdGenerationInput,
   type AdPreset,
@@ -25,12 +25,12 @@ import {
 } from './ad-styles'
 import { AD_STYLE_EXAMPLES, type AdStyleExample } from './ad-style-examples'
 
-const PROMPT_MODEL = process.env.AD_PROMPT_MODEL?.trim() || 'gpt-4o'
-/** Timeout for GPT prompt build (ms). On timeout we fall back to template prompt. */
+const PROMPT_MODEL = process.env.AD_PROMPT_MODEL?.trim() || 'gemini-2.5-flash'
+/** Timeout for Gemini prompt build (ms). On timeout we fall back to template prompt. */
 const PROMPT_BUILD_TIMEOUT_MS = 45_000
 /** Max prompt length we pass to image model (Gemini). Longer prompts are truncated with warning. */
 const MAX_PROMPT_LENGTH = 4000
-/** Keep GPT prompt-writing brief compact enough to avoid refusal/overflow behaviors. */
+/** Keep prompt-writing brief compact enough to avoid refusal/overflow behaviors. */
 const MAX_GPT_BRIEF_CHARS = 28_000
 
 const STYLIZED_BLUR_PRESETS = new Set<string>(['CREATIVE_CINEMATIC', 'SPORTS_DYNAMIC'])
@@ -112,7 +112,7 @@ function isRefusalLike(text?: string | null): boolean {
 // ═══════════════════════════════════════════════════════════════
 // PRESET → STYLE EXAMPLE MAPPING
 // Each preset maps to the most relevant training examples so
-// GPT-4o can study them before writing the final prompt.
+// Gemini can study them before writing the final prompt.
 // ═══════════════════════════════════════════════════════════════
 
 const PRESET_EXAMPLE_MAP: Record<string, string[]> = {
@@ -367,8 +367,8 @@ export interface AdPromptResult {
 }
 
 /**
- * Build a production-quality image generation prompt using GPT-4o vision.
- * GPT-4o sees the product image AND studies real reference prompts.
+ * Build a production-quality image generation prompt using Gemini vision.
+ * Gemini sees the product image AND studies real reference prompts.
  */
 export async function buildAdPrompt(
   input: AdGenerationInput,
@@ -382,14 +382,14 @@ export async function buildAdPrompt(
 
   try {
     const raw = await withTimeout(
-      buildPromptWithGPT(preset, input, productImageBase64, faceAnchor),
+      buildPromptWithGemini(preset, input, productImageBase64, faceAnchor),
       PROMPT_BUILD_TIMEOUT_MS,
       'Ad prompt build'
     )
     const prompt = sanitizeAndCapPrompt(raw)
     return { prompt, model: PROMPT_MODEL, fallback: false }
   } catch (err) {
-    console.warn('[AdPromptBuilder] GPT prompt build failed, using fallback:', err)
+    console.warn('[AdPromptBuilder] Gemini prompt build failed, using fallback:', err)
     recordPromptMetric(input.preset, 'fallback', 'fallback')
     const prompt = buildFallbackPrompt(input)
     return { prompt, model: 'fallback', fallback: true }
@@ -533,7 +533,7 @@ function buildFaceRealismLock(input: AdGenerationInput): string {
 
   return `HUMAN ANTI-AI SKIN & FACE LOCK (CRITICAL — NON-NEGOTIABLE):
 The face and body MUST be indistinguishable from a real photograph. If it looks even slightly AI-generated, the output FAILS.
-- SKIN TEXTURE (FORENSIC): Render individual pores (especially on nose, cheeks, chin, forehead), fine vellus hair (peach fuzz) visible on cheeks and jawline catching sidelight, natural sebaceous shine on T-zone (forehead, nose, chin), micro-wrinkles around eyes and mouth from muscle use, visible capillaries under thin skin areas (eyelids, temples), natural moles/freckles/beauty marks with irregular shapes, subtle acne scars or skin imperfections. The skin must NOT be smooth, matte, waxy, or porcelain.
+- SKIN TEXTURE (FORENSIC): Render individual pores (especially on nose, cheeks, chin, forehead), fine vellus hair (peach fuzz) visible on cheeks and jawline catching sidelight, natural sebaceous shine on T-zone (forehead, nose, chin), micro-wrinkles around eyes and mouth from muscle use, visible capillaries under thin skin areas (eyelids, temples), and clean natural skin texture. The skin must NOT be smooth, matte, waxy, or porcelain. Do NOT invent freckles, moles, pimples, acne scars, or random blemishes unless they are clearly present in the input reference.
 - EYES (CRITICAL): Wet, reflective sclera with visible blood vessels (not pure white). Iris must show complex radial fibers, crypts, and color variation (not flat colored discs). Catchlights must reflect the actual lighting setup described in the prompt. Pupil size must match ambient light level. Under-eye area shows natural dark circles, fine creases, and slight puffiness — NOT airbrushed smooth. Eyelashes are individual strands at varying angles, not a uniform fringe.
 - LIPS: Visible lip texture lines (vertical lip rugae), slight dryness variation, natural color gradient from lip edge to center, moisture catching light as tiny specular points — NOT smooth matte plastic or over-glossed CGI.
 - FACIAL ASYMMETRY (MANDATORY): Real human faces are asymmetrical. One eye slightly smaller, one eyebrow slightly different shape, mouth line not perfectly horizontal, nostrils not perfectly symmetric, ears at slightly different heights. Enforce this natural asymmetry.
@@ -759,7 +759,7 @@ Prefer realistic poster/signage/paint treatment over heavy 3D extrusion.`
 }
 
 // ═══════════════════════════════════════════════════════════════
-// GPT-4o VISION PROMPT BUILDER
+// GEMINI VISION PROMPT BUILDER
 // ═══════════════════════════════════════════════════════════════
 
 const OPENAI_VISION_MIME_TYPES = new Set([
@@ -783,13 +783,13 @@ function toOpenAIDataUrl(base64: string): string | null {
   return `data:image/jpeg;base64,${base64}`
 }
 
-async function buildPromptWithGPT(
+async function buildPromptWithGemini(
   preset: AdPreset,
   input: AdGenerationInput,
   productImageBase64?: string | null,
   faceAnchor?: string | null
 ): Promise<string> {
-  const openai = getOpenAI()
+  const gemini = getGeminiChat()
   const hasText = !!(input.textOverlay && (input.textOverlay.headline || input.textOverlay.subline || input.textOverlay.tagline))
   const modes: PromptBuildMode[] = ['default', 'safe']
   let lastError: Error | null = null
@@ -799,7 +799,7 @@ async function buildPromptWithGPT(
       const systemMessage = sanitizeForOpenAI(buildSystemMessage(hasText))
       const userContent = buildUserContent(preset, input, productImageBase64, faceAnchor, mode)
 
-      const response = await openai.chat.completions.create({
+      const response = await gemini.chat.completions.create({
         model: PROMPT_MODEL,
         messages: [
           { role: 'system', content: systemMessage },
@@ -811,11 +811,11 @@ async function buildPromptWithGPT(
 
       const message = response.choices[0]?.message
       const text = message?.content?.trim()
-      console.log('[AdPromptBuilder] RAW OPENAI RESPONSE:', JSON.stringify(message))
+      console.log('[AdPromptBuilder] RAW GEMINI RESPONSE:', JSON.stringify(message))
 
       if (isRefusalLike(text)) {
         recordPromptMetric(input.preset, mode, 'refusal')
-        const msg = `[AdPromptBuilder] OpenAI refusal-like output in ${mode} mode`
+        const msg = `[AdPromptBuilder] Gemini refusal-like output in ${mode} mode`
         console.warn(msg)
         throw new Error(msg)
       }
@@ -829,13 +829,13 @@ async function buildPromptWithGPT(
           'Mode:',
           mode
         )
-        throw new Error('GPT returned empty or too-short prompt')
+        throw new Error('Gemini returned empty or too-short prompt')
       }
       if (text.length > MAX_PROMPT_LENGTH) {
         console.warn(`[AdPromptBuilder] Raw prompt ${text.length} chars (will be capped to ${MAX_PROMPT_LENGTH})`)
       }
       recordPromptMetric(input.preset, mode, 'success')
-      console.log(`[AdPromptBuilder] GPT-4o prompt built (${text.length} chars) in ${mode} mode`)
+      console.log(`[AdPromptBuilder] Gemini prompt built (${text.length} chars) in ${mode} mode`)
       return text
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err))
@@ -843,13 +843,13 @@ async function buildPromptWithGPT(
         lastError.message.includes('refusal-like output') || lastError.message.includes('too-short prompt')
       if (!classified) recordPromptMetric(input.preset, mode, 'error')
       if (mode === 'default') {
-        console.warn('[AdPromptBuilder] Retrying OpenAI prompt build in safe mode:', lastError.message)
+        console.warn('[AdPromptBuilder] Retrying Gemini prompt build in safe mode:', lastError.message)
         continue
       }
     }
   }
 
-  throw (lastError || new Error('GPT prompt build failed after retries'))
+  throw (lastError || new Error('Gemini prompt build failed after retries'))
 }
 
 function buildSystemMessage(hasText: boolean): string {

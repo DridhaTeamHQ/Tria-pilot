@@ -204,7 +204,7 @@ Return JSON only:
   "jawline": "<short description>",
   "skinTone": "<short description>",
   "skinTexture": "<short description>",
-  "distinguishingMarks": "<moles, dimples, scars — or 'none'>",
+  "distinguishingMarks": "<only obvious, unambiguous large scars or dimples — otherwise 'none'>",
   "hairDescription": "<length + color + texture>",
   "bodyBuild": "<overall frame>",
   "eyewear": "<frame description or 'none'>",
@@ -258,8 +258,6 @@ Rules:
     parsed.skinTexture || null,
     parsed.noseProfile || null,
     parsed.lipContour || null,
-    parsed.distinguishingMarks && parsed.distinguishingMarks !== 'none'
-      ? parsed.distinguishingMarks : null,
   ].filter(Boolean).join(', ')
 
   const eyesAnchor = parsed.eyeGeometry || 'preserve exact eye geometry and color'
@@ -374,7 +372,7 @@ Return JSON only:
   "jawline": "<short description>",
   "skinTone": "<short description>",
   "skinTexture": "<short description>",
-  "distinguishingMarks": "<moles, dimples, scars — or 'none'>",
+  "distinguishingMarks": "<only obvious, unambiguous large scars or dimples — otherwise 'none'>",
   "hairDescription": "<length + color + texture>",
   "bodyBuild": "<overall frame>",
   "eyewear": "<frame description or 'none'>",

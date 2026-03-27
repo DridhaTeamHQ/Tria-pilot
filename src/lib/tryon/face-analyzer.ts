@@ -12,6 +12,7 @@
  */
 
 import { getGeminiChat } from '@/lib/tryon/gemini-chat'
+import { extractJson } from './json-repair'
 
 function formatImageUrl(base64: string) {
   if (base64.startsWith('data:image/')) return base64
@@ -662,7 +663,7 @@ BE THOROUGH. This analysis drives how the AI generates the garment on the new pe
       }
     }
 
-    const analysis = JSON.parse(content) as Partial<GarmentAnalysis>
+    const analysis = extractJson<Partial<GarmentAnalysis>>(content)
     const normalized: GarmentAnalysis = {
       containsPerson: Boolean((analysis as any).containsPerson),
       containsFace: Boolean((analysis as any).containsFace),
