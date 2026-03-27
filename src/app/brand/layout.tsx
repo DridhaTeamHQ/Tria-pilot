@@ -48,24 +48,26 @@ export default async function BrandLayout({
 
   // Fetch brand_data for navbar (uses standard client, NOT service client)
   let brandName = 'Brand'
+  let avatarUrl: string | null = null
   try {
     const supabase = await createClient()
     const { data: profile } = await supabase
       .from('profiles')
-      .select('brand_data')
+      .select('brand_data, avatar_url')
       .eq('id', identity.id)
       .single()
 
     if (profile?.brand_data) {
       brandName = (profile.brand_data as { companyName?: string })?.companyName || 'Brand'
     }
+    avatarUrl = profile?.avatar_url || null
   } catch {
     // Fallback to default name
   }
 
   return (
     <div className="min-h-screen bg-[#F9F8F4]">
-      <BrandNavbar brandName={brandName} />
+      <BrandNavbar brandName={brandName} avatarUrl={avatarUrl} />
       <main className="pt-14 md:pt-16">
         {children}
       </main>

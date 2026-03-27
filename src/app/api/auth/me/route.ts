@@ -56,6 +56,7 @@ export async function GET() {
           name: (authUser.user_metadata?.name as string) || (authUser.user_metadata?.full_name as string) || null,
           role: fallbackRole.toUpperCase(),
           slug: authUser.email?.split('@')[0] || '',
+          avatarUrl: (authUser.user_metadata?.avatar_url as string) || null,
         },
         profile: null,
       })
@@ -82,6 +83,7 @@ export async function GET() {
         name: (profile.brand_data as Record<string, unknown> | null)?.companyName || profile.full_name || null,
         role: role.toUpperCase(),
         slug: profile.email?.split('@')[0] || '',
+        avatarUrl: profile.avatar_url || null,
         subscription,
       },
       profile: {
@@ -91,6 +93,7 @@ export async function GET() {
         onboarding_completed: Boolean(profile.onboarding_completed),
         approval_status: approvalStatus,
         brand_data: profile.brand_data || null,
+        avatar_url: profile.avatar_url || null,
         subscription,
       },
     })

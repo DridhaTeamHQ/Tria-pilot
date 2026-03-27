@@ -128,6 +128,10 @@ export default function BrutalNavbar() {
             user.email?.charAt(0).toUpperCase() ||
             "U"
             : "U";
+    const avatarUrl =
+        isLoggedIn && user
+            ? ((user as any).avatarUrl as string | null) || ((user as any).avatar_url as string | null) || null
+            : null;
 
     return (
         <header className="fixed top-0 left-0 right-0 z-50 bg-[#F9F8F4] border-b-[3px] border-black">
@@ -189,8 +193,12 @@ export default function BrutalNavbar() {
                             </div>
                         ) : isLoggedIn ? (
                             <div className="hidden lg:flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black">
-                                    {userInitial}
+                                <div className="w-10 h-10 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black">
+                                    {avatarUrl ? (
+                                        <img src={avatarUrl} alt={user?.name || "Profile"} className="h-full w-full object-cover" />
+                                    ) : (
+                                        userInitial
+                                    )}
                                 </div>
                                 <LogoutButton
                                     onClick={() => void handleLogout()}
@@ -252,8 +260,12 @@ export default function BrutalNavbar() {
                                 <>
                                     {/* User Info */}
                                     <div className="flex items-center gap-3 pb-4 border-b-2 border-black">
-                                        <div className="w-12 h-12 rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black text-lg">
-                                            {userInitial}
+                                        <div className="w-12 h-12 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black text-lg">
+                                            {avatarUrl ? (
+                                                <img src={avatarUrl} alt={user?.name || "Profile"} className="h-full w-full object-cover" />
+                                            ) : (
+                                                userInitial
+                                            )}
                                         </div>
                                         <div>
                                             <p className="font-bold text-black">
