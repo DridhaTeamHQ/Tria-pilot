@@ -134,21 +134,6 @@ function LoginContent() {
   const isLayoutFlipped = userType === 'brand'
   const isUsernameEntry = Boolean(identifier.trim()) && !identifier.includes('@')
 
-  const waitForServerSession = async () => {
-    for (let i = 0; i < 10; i++) {
-      const meRes = await fetch('/api/auth/me', {
-        credentials: 'include',
-        cache: 'no-store',
-      })
-      if (meRes.ok) {
-        const meData = await meRes.json().catch(() => null)
-        if (meData?.user) return meData.user
-      }
-      await new Promise((resolve) => setTimeout(resolve, 300))
-    }
-    return null
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -194,9 +179,9 @@ function LoginContent() {
         return
       }
 
-      const sessionUser = await waitForServerSession()
+      const sessionUser = data?.user ?? null
       const redirectTarget = getSafeRedirectTarget()
-      const nextTarget = getPostLoginDestination(data?.user, redirectTarget)
+      const nextTarget = getPostLoginDestination(sessionUser, redirectTarget)
       const normalizedRecoveryEmail = recoveryEmail.trim().toLowerCase()
 
       if (sessionUser && isSyntheticEmail(sessionUser.email) && normalizedRecoveryEmail) {
@@ -232,11 +217,7 @@ function LoginContent() {
         return
       }
 
-      if (sessionUser) {
-        router.replace(nextTarget)
-      } else {
-        router.replace('/dashboard')
-      }
+      router.replace(nextTarget)
     } catch (error: unknown) {
       console.error('Login error:', error)
       showErrorToast('Sign-in failed', error instanceof Error ? error.message : 'Please try again.')

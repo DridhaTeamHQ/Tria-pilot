@@ -20,12 +20,23 @@ export function useUser() {
         throw new Error('Failed to fetch user')
       }
       const data = await safeParseResponse(res, 'auth')
-      return data.user || null
+      if (!data.user) {
+        return null
+      }
+
+      return {
+        ...data.user,
+        onboardingCompleted:
+          data.user.onboardingCompleted ?? Boolean(data.profile?.onboarding_completed),
+        approvalStatus:
+          data.user.approvalStatus ?? data.profile?.approval_status ?? 'none',
+        avatarUrl: data.user.avatarUrl ?? data.profile?.avatar_url ?? null,
+      }
     },
     staleTime: 30 * 1000, // Consider data fresh for 30 seconds (for navigation)
     gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
     retry: false, // Don't retry on 401 errors
-    refetchOnMount: true, // Always refetch on component mount to get fresh auth state
+    refetchOnMount: false, // Reuse fresh auth data across route transitions
     refetchOnWindowFocus: true, // Refetch when window regains focus (user may have logged in)
     refetchOnReconnect: true, // Refetch when network reconnects
   })
