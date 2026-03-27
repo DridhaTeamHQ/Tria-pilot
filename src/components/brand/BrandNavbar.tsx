@@ -30,9 +30,10 @@ const navItems = [
 
 interface BrandNavbarProps {
   brandName?: string
+  avatarUrl?: string | null
 }
 
-export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
+export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: BrandNavbarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -98,8 +99,12 @@ export default function BrandNavbar({ brandName = 'Brand' }: BrandNavbarProps) {
           </nav>
 
           <div className="hidden lg:flex items-center justify-end gap-2 shrink-0">
-            <div className="w-9 h-9 rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black text-sm">
-              {brandName?.charAt(0)?.toUpperCase() || 'B'}
+            <div className="w-9 h-9 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black text-sm">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={brandName || 'Brand'} className="h-full w-full object-cover" />
+              ) : (
+                brandName?.charAt(0)?.toUpperCase() || 'B'
+              )}
             </div>
             <LogoutButton
               onClick={() => void handleLogout()}
