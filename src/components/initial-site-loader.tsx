@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 
-const INTRO_MS = 1200
+const INTRO_MS = 450
 const INTRO_Z = 2147483647
 const INTRO_BG = "#f8a100"
 const INTRO_SESSION_KEY = "kiwikoo:intro-seen:v1"

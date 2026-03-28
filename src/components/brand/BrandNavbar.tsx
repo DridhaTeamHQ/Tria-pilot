@@ -15,6 +15,7 @@ import {
   X,
   ChevronRight,
 } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { setAuthToast } from '@/components/auth-toast-bridge'
 import LogoutButton from '@/components/LogoutButton'
 
@@ -36,6 +37,7 @@ interface BrandNavbarProps {
 export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: BrandNavbarProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [avatarFailed, setAvatarFailed] = useState(false)
@@ -52,21 +54,22 @@ export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: B
     if (isLoggingOut) return
     setIsLoggingOut(true)
     try {
+      queryClient.setQueryData(['user'], null)
+      queryClient.invalidateQueries({ queryKey: ['user'] })
+      queryClient.removeQueries({ queryKey: ['user'] })
+
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
       if (typeof window !== 'undefined') {
         localStorage.clear()
         sessionStorage.clear()
         setAuthToast('logged_out')
-        window.location.assign('/')
-        return
       }
       router.replace('/')
+      router.refresh()
     } finally {
-      if (typeof window !== 'undefined') {
-        setIsLoggingOut(false)
-      }
+      setIsLoggingOut(false)
     }
-  }, [isLoggingOut, router])
+  }, [isLoggingOut, queryClient, router])
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#F9F8F4] border-b-[3px] border-black">

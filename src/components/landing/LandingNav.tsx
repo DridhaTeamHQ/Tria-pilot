@@ -5,7 +5,10 @@ import { useUser } from '@/lib/react-query/hooks'
 
 export default function LandingNav() {
   const { data: user, isLoading } = useUser()
-  const isAuthenticated = !isLoading && !!user
+  const authResolving = isLoading && typeof user === 'undefined'
+  const isAuthenticated = !authResolving && !!user
+  const ctaHref = isAuthenticated ? '/dashboard' : '/login'
+  const ctaLabel = authResolving ? 'Loading' : isAuthenticated ? 'Dashboard' : 'Log In'
 
   return (
     <nav
@@ -21,10 +24,11 @@ export default function LandingNav() {
           Kiwikoo
         </Link>
         <Link
-          href={isAuthenticated ? '/dashboard' : '/login'}
-          className="inline-flex min-w-[112px] items-center justify-center rounded-full border-[2px] border-black bg-white px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.18em] text-[#111111] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-colors duration-200 hover:bg-[#f2efe8] sm:min-w-[124px] sm:px-5 sm:py-3"
+          href={ctaHref}
+          aria-disabled={authResolving}
+          className={`inline-flex min-w-[112px] items-center justify-center rounded-full border-[2px] border-black bg-white px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.18em] text-[#111111] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-colors duration-200 sm:min-w-[124px] sm:px-5 sm:py-3 ${authResolving ? 'pointer-events-none opacity-70' : 'hover:bg-[#f2efe8]'}`}
         >
-          {isAuthenticated ? 'Dashboard' : 'Log In'}
+          {ctaLabel}
         </Link>
       </div>
     </nav>

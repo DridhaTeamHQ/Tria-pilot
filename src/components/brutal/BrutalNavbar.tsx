@@ -64,18 +64,14 @@ export default function BrutalNavbar() {
                 localStorage.clear();
                 sessionStorage.clear();
                 setAuthToast("logged_out");
-                window.location.assign("/");
-                return;
             }
 
             router.replace("/");
+            router.refresh();
         } catch (error) {
             console.error("Logout error:", error);
-            if (typeof window !== "undefined") {
-                window.location.assign("/");
-                return;
-            }
             router.replace("/");
+            router.refresh();
         }
     }, [isLoggingOut, queryClient, router]);
 
@@ -256,9 +252,7 @@ export default function BrutalNavbar() {
                         className="lg:hidden bg-[#F9F8F4] border-t-2 border-black"
                     >
                         <div className="container mx-auto px-4 sm:px-6 py-4 space-y-3 max-h-[calc(100dvh-4rem)] overflow-y-auto">
-                            {authResolving ? (
-                                <div className="px-4 py-3 text-sm font-bold text-black/60">Checking session...</div>
-                            ) : isLoggedIn ? (
+                            {authResolving ? null : isLoggedIn ? (
                                 <>
                                     {/* User Info */}
                                     <div className="flex items-center gap-3 pb-4 border-b-2 border-black">

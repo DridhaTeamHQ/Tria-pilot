@@ -230,7 +230,6 @@ export function useGenerations() {
     queryFn: async () => {
       const res = await fetch('/api/generations', {
         credentials: 'include',
-        cache: 'no-store',
       })
       if (!res.ok) {
         if (res.status === 401) return []
