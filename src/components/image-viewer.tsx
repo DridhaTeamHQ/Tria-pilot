@@ -103,10 +103,10 @@ export function ImageViewer({ src, alt, className = '' }: ImageViewerProps) {
           onClick={() => setIsOpen(false)}
         >
           <div
-            className="relative my-auto flex max-h-[calc(100dvh-1.5rem)] w-full max-w-[min(94vw,1220px)] flex-col overflow-hidden rounded-[30px] border-[3px] border-black bg-[linear-gradient(180deg,#FFFDF8_0%,#FFF7EC_100%)] shadow-[12px_12px_0px_0px_rgba(0,0,0,0.9)] sm:max-h-[calc(100dvh-3rem)]"
+            className="relative my-auto flex max-h-[calc(100dvh-1.5rem)] w-full max-w-[min(94vw,1220px)] flex-col overflow-hidden rounded-[30px] border-[3px] border-black bg-[#fff9ef] shadow-[12px_12px_0px_0px_rgba(0,0,0,0.9)] sm:max-h-[calc(100dvh-3rem)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between gap-4 border-b-[3px] border-black bg-[linear-gradient(180deg,#FFF3DA_0%,#FFE8C8_100%)] px-4 py-3 sm:px-5 sm:py-4">
+            <div className="flex items-center justify-between gap-4 border-b-[3px] border-black bg-[#fff0d6] px-4 py-3 sm:px-5 sm:py-4">
               <div className="min-w-0">
                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-black/45">Image Preview</p>
                 <p className="truncate pr-3 text-sm font-black text-black sm:text-base">
@@ -122,7 +122,7 @@ export function ImageViewer({ src, alt, className = '' }: ImageViewerProps) {
                 <X className="h-5 w-5" />
               </Button>
             </div>
-            <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top,#fff7ea_0%,#ffeccd_42%,#f4dcc0_100%)] p-2 sm:p-4">
+            <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top,#fff7ea_0%,#ffeccd_42%,#f4dcc0_100%)] p-3 sm:p-5">
               <div className="pointer-events-none absolute inset-0 opacity-60">
                 <div className="absolute -left-12 top-8 h-36 w-36 rounded-full bg-[#FFD93D]/18 blur-3xl" />
                 <div className="absolute right-0 top-1/3 h-40 w-40 rounded-full bg-[#FF8C69]/12 blur-3xl" />
@@ -137,7 +137,7 @@ export function ImageViewer({ src, alt, className = '' }: ImageViewerProps) {
                 className="relative z-10 max-h-full max-w-full rounded-[24px] border-[3px] border-black bg-white object-contain shadow-[0_28px_80px_rgba(0,0,0,0.24)]"
               />
             </div>
-            <div className="flex items-center justify-between gap-3 border-t-[3px] border-black bg-white/90 px-4 py-3 text-[11px] font-bold uppercase tracking-[0.16em] text-black/55 sm:px-5">
+            <div className="flex items-center justify-between gap-3 border-t-[3px] border-black bg-[#fff0d6] px-4 py-3 text-[11px] font-bold uppercase tracking-[0.16em] text-black/55 sm:px-5">
               <span>Click outside or press Esc to close</span>
               <span className="hidden sm:inline">Full image fit</span>
             </div>

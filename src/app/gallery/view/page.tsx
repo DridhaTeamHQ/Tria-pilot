@@ -127,8 +127,8 @@ function GalleryViewContent() {
             </div>
 
             <main className="relative flex min-h-0 flex-1 items-center justify-center p-2 sm:p-4">
-                <div className="flex max-h-[calc(100dvh-1rem)] min-h-0 w-full max-w-[min(96vw,1380px)] flex-col overflow-hidden rounded-[32px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_100%)] shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl sm:max-h-[calc(100dvh-2rem)]">
-                    <header className="flex items-center gap-3 border-b border-white/10 bg-black/40 px-3 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-5">
+                <div className="flex max-h-[calc(100dvh-1rem)] min-h-0 w-full max-w-[min(96vw,1380px)] flex-col overflow-hidden rounded-[32px] border border-black bg-[#171717] shadow-[0_24px_80px_rgba(0,0,0,0.55)] sm:max-h-[calc(100dvh-2rem)]">
+                    <header className="flex items-center gap-3 border-b border-white/10 bg-[#111111] px-3 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-5">
                         <button
                             type="button"
                             onClick={handleBack}
@@ -168,7 +168,7 @@ function GalleryViewContent() {
                     </header>
 
                     <div className="flex min-h-0 flex-1 p-2 sm:p-4">
-                        <div className="relative flex min-h-0 h-full w-full items-center justify-center overflow-hidden rounded-[28px] border border-white/8 bg-[radial-gradient(circle_at_top,#2c2c2c_0%,#181818_45%,#101010_100%)]">
+                        <div className="relative flex min-h-0 h-full w-full items-center justify-center overflow-hidden rounded-[28px] border border-white/8 bg-[radial-gradient(circle_at_top,#2a2a2a_0%,#181818_42%,#121212_100%)]">
                             <div className="pointer-events-none absolute inset-0 opacity-45">
                                 <div className="absolute -left-10 top-6 h-32 w-32 rounded-full bg-[#FFD93D]/12 blur-3xl" />
                                 <div className="absolute right-0 top-1/3 h-40 w-40 rounded-full bg-[#B4F056]/10 blur-3xl" />
@@ -185,11 +185,11 @@ function GalleryViewContent() {
                                     <p className="text-sm font-bold">Image failed to load</p>
                                 </div>
                             ) : (
-                                <div className="relative z-10 flex h-full min-h-0 w-full items-center justify-center p-2 sm:p-4">
+                                <div className="relative z-10 flex h-full min-h-0 w-full items-center justify-center p-3 sm:p-5">
                                     <img
                                         src={imageUrl}
                                         alt={title}
-                                        className="block h-auto w-auto max-h-full max-w-full rounded-[24px] border border-white/12 bg-black/10 object-contain shadow-[0_24px_70px_rgba(0,0,0,0.42)]"
+                                        className="block h-auto w-auto max-h-full max-w-full rounded-[24px] border border-white/12 bg-black/5 object-contain shadow-[0_24px_70px_rgba(0,0,0,0.42)]"
                                         onError={() => setImageError(true)}
                                     />
                                 </div>
@@ -197,7 +197,7 @@ function GalleryViewContent() {
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-between gap-3 border-t border-white/10 bg-black/30 px-4 py-3 text-[11px] font-bold uppercase tracking-[0.16em] text-white/45 sm:px-5">
+                    <div className="flex items-center justify-between gap-3 border-t border-white/10 bg-[#111111] px-4 py-3 text-[11px] font-bold uppercase tracking-[0.16em] text-white/45 sm:px-5">
                         <span>Clean preview mode</span>
                         <span>Press Esc to close</span>
                     </div>
