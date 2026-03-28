@@ -53,7 +53,7 @@ const cardVariants = {
 
 export default function InfluencerDashboard() {
   const router = useRouter()
-  const { data: user } = useUser()
+  const { data: user, isLoading: userLoading } = useUser()
   const { data: generations, isLoading: generationsLoading } = useGenerations()
   const [approvalChecked, setApprovalChecked] = useState(false)
 
@@ -121,13 +121,16 @@ export default function InfluencerDashboard() {
     }
   }, [user?.id, user?.role, router])
 
-  // Show loading while checking approval
-  if (!approvalChecked && user?.role === 'INFLUENCER') {
+  const isDashboardBootstrapping =
+    userLoading || (!user && !approvalChecked) || (!approvalChecked && user?.role === 'INFLUENCER')
+
+  // Show loading while auth or approval state is still resolving
+  if (isDashboardBootstrapping) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-cream">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-peach border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-charcoal/60">Checking approval status...</p>
+          <p className="text-charcoal/60">Loading your dashboard...</p>
         </div>
       </div>
     )

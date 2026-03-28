@@ -149,9 +149,7 @@ export default function BrutalNavbar() {
                     </Link>
 
                     {/* Desktop Navigation - Center */}
-                    {authResolving ? (
-                        <div className="hidden lg:flex flex-1 items-center justify-center" />
-                    ) : isLoggedIn ? (
+                    {authResolving ? null : isLoggedIn ? (
                         <nav className="hidden lg:flex flex-1 items-center justify-center gap-2 lg:gap-3 px-4">
                             {links.map((link) => {
                                 const Icon = link.icon;
@@ -189,11 +187,7 @@ export default function BrutalNavbar() {
 
                     {/* Right Side Actions */}
                     <div className="flex items-center gap-4 shrink-0">
-                        {authResolving ? (
-                            <div className="hidden lg:flex items-center gap-3">
-                                <div className="w-24 h-11 rounded-xl border-2 border-black bg-white animate-pulse" />
-                            </div>
-                        ) : isLoggedIn ? (
+                        {authResolving ? null : isLoggedIn ? (
                             <div className="hidden lg:flex items-center gap-3">
                                 <div className="w-10 h-10 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black">
                                     {showAvatarImage ? (
