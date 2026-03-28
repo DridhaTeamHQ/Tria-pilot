@@ -558,39 +558,6 @@ export default function InfluencerDashboard() {
                 </div>
               </div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="relative z-[200] border-t border-white/10 bg-[#111111] px-4 py-4 sm:px-6"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex items-center justify-center gap-4">
-                  {getGenerationVariants(selectedGeneration).map((variant: any, idx: number) => (
-                    <motion.button
-                      key={idx}
-                      onClick={() => setSelectedVariantIndex(idx)}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className={`relative overflow-hidden rounded-lg border-[3px] transition-all ${selectedVariantIndex === idx
-                        ? 'border-[#FF8C69] shadow-[4px_4px_0px_0px_#FF8C69]'
-                        : 'border-white/20 hover:border-white/50'
-                        }`}
-                    >
-                      <img
-                        src={variant.url}
-                        alt={variant.label}
-                        className="h-28 w-20 object-cover sm:h-32 sm:w-24"
-                      />
-                      <div className={`absolute bottom-0 left-0 right-0 py-1.5 text-center text-[10px] font-bold uppercase ${selectedVariantIndex === idx
-                        ? 'bg-[#FF8C69] text-black'
-                        : 'bg-black/60 text-white'
-                        }`}>
-                        {variant.label}
-                      </div>
-                    </motion.button>
-                  ))}
-                </div>
-              </motion.div>
             </div>
           </motion.div>
         )}
