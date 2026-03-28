@@ -43,6 +43,78 @@ interface Product {
 }
 
 const SHOW_ACCESSORIES_SECTION = false
+const TRYON_PRESETS_CACHE_KEY = 'tryon:presets:v1'
+const TRYON_IDENTITY_IMAGES_CACHE_KEY = 'tryon:identity-images:v1'
+const TRYON_PROFILE_IMAGES_CACHE_KEY = 'tryon:profile-images:v1'
+const TRYON_PRESETS_CACHE_TTL_MS = 10 * 60 * 1000
+const TRYON_LIBRARY_CACHE_TTL_MS = 5 * 60 * 1000
+
+type SessionCacheEntry<T> = {
+    timestamp: number
+    data: T
+}
+
+function readSessionCache<T>(key: string, ttlMs: number): T | null {
+    if (typeof window === 'undefined') return null
+
+    try {
+        const raw = window.sessionStorage.getItem(key)
+        if (!raw) return null
+
+        const parsed = JSON.parse(raw) as SessionCacheEntry<T>
+        if (!parsed || typeof parsed.timestamp !== 'number') {
+            window.sessionStorage.removeItem(key)
+            return null
+        }
+
+        if (Date.now() - parsed.timestamp > ttlMs) {
+            window.sessionStorage.removeItem(key)
+            return null
+        }
+
+        return parsed.data
+    } catch {
+        window.sessionStorage.removeItem(key)
+        return null
+    }
+}
+
+function writeSessionCache<T>(key: string, data: T) {
+    if (typeof window === 'undefined') return
+
+    try {
+        const payload: SessionCacheEntry<T> = {
+            timestamp: Date.now(),
+            data,
+        }
+        window.sessionStorage.setItem(key, JSON.stringify(payload))
+    } catch {
+        // Ignore cache write failures (private browsing, quota, etc.)
+    }
+}
+
+function scheduleDeferredTask(task: () => void, timeout = 800) {
+    if (typeof window === 'undefined') {
+        return () => undefined
+    }
+
+    const idleWindow = window as typeof window & {
+        requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number
+        cancelIdleCallback?: (handle: number) => void
+    }
+
+    if (typeof idleWindow.requestIdleCallback === 'function') {
+        const handle = idleWindow.requestIdleCallback(() => task(), { timeout })
+        return () => {
+            if (typeof idleWindow.cancelIdleCallback === 'function') {
+                idleWindow.cancelIdleCallback(handle)
+            }
+        }
+    }
+
+    const handle = window.setTimeout(task, timeout)
+    return () => window.clearTimeout(handle)
+}
 
 function TryOnPageContent() {
     const router = useRouter()
@@ -61,6 +133,7 @@ function TryOnPageContent() {
 
     const [savedProfileImages, setSavedProfileImages] = useState<Array<{ id: string; imageUrl: string; isPrimary: boolean; label: string | null }>>([])
     const [savedProfileImagesLoading, setSavedProfileImagesLoading] = useState(false)
+    const [savedProfileImagesReady, setSavedProfileImagesReady] = useState(false)
     const [saveUploadedPersonToProfile, setSaveUploadedPersonToProfile] = useState(false)
     // Identity images for better face consistency (auto-fetched from profile)
     const [identityImages, setIdentityImages] = useState<Array<{ type: string; imageUrl: string }>>([])
@@ -100,24 +173,47 @@ function TryOnPageContent() {
     const [presetCategories, setPresetCategories] = useState<string[]>([])
     const selectedPresetDetails = presets.find((preset) => preset.id === selectedPreset) ?? null
 
-    // Fetch presets
-    useEffect(() => {
-        async function fetchPresets() {
-            try {
-                const res = await fetch('/api/presets')
-                const data = await safeParseResponse(res, 'presets')
-                if (res.ok && data.presets) {
-                    setPresets(data.presets)
-                    setPresetCategories(data.categories || [])
-                }
-            } catch (e) {
-                console.error('Failed to fetch presets:', e)
-            } finally {
+    const fetchPresets = useCallback(async ({ force = false }: { force?: boolean } = {}) => {
+        if (!force) {
+            const cached = readSessionCache<{ presets: TryOnPreset[]; categories: string[] }>(
+                TRYON_PRESETS_CACHE_KEY,
+                TRYON_PRESETS_CACHE_TTL_MS
+            )
+            if (cached) {
+                setPresets(cached.presets)
+                setPresetCategories(cached.categories)
                 setPresetsLoading(false)
+                return cached.presets
             }
         }
-        fetchPresets()
+
+        setPresetsLoading(true)
+        try {
+            const res = await fetch('/api/presets')
+            const data = await safeParseResponse(res, 'presets')
+            if (res.ok && data.presets) {
+                const nextPresets = data.presets as TryOnPreset[]
+                const nextCategories = (data.categories || []) as string[]
+                setPresets(nextPresets)
+                setPresetCategories(nextCategories)
+                writeSessionCache(TRYON_PRESETS_CACHE_KEY, {
+                    presets: nextPresets,
+                    categories: nextCategories,
+                })
+                return nextPresets
+            }
+        } catch (e) {
+            console.error('Failed to fetch presets:', e)
+        } finally {
+            setPresetsLoading(false)
+        }
+
+        return [] as TryOnPreset[]
     }, [])
+
+    useEffect(() => {
+        void fetchPresets()
+    }, [fetchPresets])
 
     // Countdown timer for loading state
     useEffect(() => {
@@ -289,66 +385,119 @@ function TryOnPageContent() {
         }
     }, [user?.id, pollTryOnJob])
 
-    // Fetch identity images for better face consistency
-    useEffect(() => {
-        async function fetchIdentityImages() {
-            setIdentityImagesLoading(true)
-            try {
-                const res = await fetch('/api/identity-images', { cache: 'no-store' })
-                const data = await safeParseResponse(res, 'identity-images')
-                if (!res.ok) return
-
-                // API returns { images: [...] , requirements: [...] , ... }
-                const images = Array.isArray(data)
-                    ? data
-                    : (Array.isArray(data?.images) ? data.images : [])
-
-                // Sort by requirements order if provided, otherwise keep stable order
-                const reqOrder = new Map<string, number>(
-                    Array.isArray(data?.requirements)
-                        ? data.requirements.map((r: any) => [String(r.type), Number(r.order ?? 999)])
-                        : []
-                )
-
-                const normalized = images
-                    .map((img: any) => ({
-                        type: String(img.imageType ?? img.type ?? ''),
-                        imageUrl: String(img.imageUrl ?? ''),
-                    }))
-                    .filter((x: any) => x.type && x.imageUrl)
-                    .sort((a: any, b: any) => (reqOrder.get(a.type) ?? 999) - (reqOrder.get(b.type) ?? 999))
-
-                setIdentityImages(normalized)
-                if (normalized.length > 0) {
-                }
-            } catch (e) {
-                console.warn('Failed to load identity images:', e)
-            } finally {
-                setIdentityImagesLoading(false)
+    const fetchIdentityImages = useCallback(async ({ force = false }: { force?: boolean } = {}) => {
+        if (!force) {
+            const cached = readSessionCache<Array<{ type: string; imageUrl: string }>>(
+                TRYON_IDENTITY_IMAGES_CACHE_KEY,
+                TRYON_LIBRARY_CACHE_TTL_MS
+            )
+            if (cached) {
+                setIdentityImages(cached)
+                return cached
             }
         }
-        fetchIdentityImages()
+
+        setIdentityImagesLoading(true)
+        try {
+            const res = await fetch('/api/identity-images')
+            const data = await safeParseResponse(res, 'identity-images')
+            if (!res.ok) return []
+
+            const images = Array.isArray(data)
+                ? data
+                : (Array.isArray(data?.images) ? data.images : [])
+
+            const reqOrder = new Map<string, number>(
+                Array.isArray(data?.requirements)
+                    ? data.requirements.map((r: any) => [String(r.type), Number(r.order ?? 999)])
+                    : []
+            )
+
+            const normalized = images
+                .map((img: any) => ({
+                    type: String(img.imageType ?? img.type ?? ''),
+                    imageUrl: String(img.imageUrl ?? ''),
+                }))
+                .filter((x: any) => x.type && x.imageUrl)
+                .sort((a: any, b: any) => (reqOrder.get(a.type) ?? 999) - (reqOrder.get(b.type) ?? 999))
+
+            setIdentityImages(normalized)
+            writeSessionCache(TRYON_IDENTITY_IMAGES_CACHE_KEY, normalized)
+            return normalized
+        } catch (e) {
+            console.warn('Failed to load identity images:', e)
+            return []
+        } finally {
+            setIdentityImagesLoading(false)
+        }
     }, [])
+
+    useEffect(() => {
+        const cancelDeferredLoad = scheduleDeferredTask(() => {
+            void fetchIdentityImages()
+        }, 1200)
+
+        return cancelDeferredLoad
+    }, [fetchIdentityImages])
 
     const { data: productData, isLoading: productLoading } = useProduct(productId)
     const { maskedLink, originalUrl, displayUrl, loading: linkLoading, copyLink, copied: linkCopied } = useProductLink(productId)
 
     const fetchSavedProfileImages = useCallback(async () => {
+        const cached = readSessionCache<Array<{ id: string; imageUrl: string; isPrimary: boolean; label: string | null }>>(
+            TRYON_PROFILE_IMAGES_CACHE_KEY,
+            TRYON_LIBRARY_CACHE_TTL_MS
+        )
+        if (cached) {
+            setSavedProfileImages(cached)
+            setSavedProfileImagesLoading(false)
+            setSavedProfileImagesReady(true)
+            return cached
+        }
+
         setSavedProfileImagesLoading(true)
         try {
-            const res = await fetch('/api/profile-images', { cache: 'no-store' })
+            const res = await fetch('/api/profile-images')
             const data = await safeParseResponse(res, 'profile-images')
             if (!res.ok) throw new Error(data.error || 'Failed to fetch profile images')
-            setSavedProfileImages((data.images || []) as any[])
+            const nextImages = (data.images || []) as Array<{ id: string; imageUrl: string; isPrimary: boolean; label: string | null }>
+            setSavedProfileImages(nextImages)
+            writeSessionCache(TRYON_PROFILE_IMAGES_CACHE_KEY, nextImages)
+            return nextImages
         } catch (e) {
             console.warn('Failed to load profile images:', e)
+            return []
         } finally {
             setSavedProfileImagesLoading(false)
+            setSavedProfileImagesReady(true)
+        }
+    }, [])
+
+    const refreshSavedProfileImages = useCallback(async () => {
+        setSavedProfileImagesLoading(true)
+        try {
+            const res = await fetch('/api/profile-images')
+            const data = await safeParseResponse(res, 'profile-images')
+            if (!res.ok) throw new Error(data.error || 'Failed to fetch profile images')
+            const nextImages = (data.images || []) as Array<{ id: string; imageUrl: string; isPrimary: boolean; label: string | null }>
+            setSavedProfileImages(nextImages)
+            writeSessionCache(TRYON_PROFILE_IMAGES_CACHE_KEY, nextImages)
+            return nextImages
+        } catch (e) {
+            console.warn('Failed to load profile images:', e)
+            return []
+        } finally {
+            setSavedProfileImagesLoading(false)
+            setSavedProfileImagesReady(true)
         }
     }, [])
 
     useEffect(() => {
-        fetchSavedProfileImages()
+        const cancelDeferredLoad = scheduleDeferredTask(() => {
+            void fetchSavedProfileImages()
+        }, 600)
+
+        return cancelDeferredLoad
     }, [fetchSavedProfileImages])
 
     // Auto-select the primary (or first) saved profile image so the button is immediately usable
@@ -457,7 +606,7 @@ function TryOnPageContent() {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ imageBase64: base64, label: 'tryon_upload' }),
                     })
-                        .then(() => fetchSavedProfileImages())
+                        .then(() => refreshSavedProfileImages())
                         .catch(() => { /* non-blocking */ })
                 }
             } else {
@@ -478,7 +627,7 @@ function TryOnPageContent() {
             setUploadingImage(null)
         }
         reader.readAsDataURL(file)
-    }, [fetchSavedProfileImages, saveUploadedPersonToProfile])
+    }, [refreshSavedProfileImages, saveUploadedPersonToProfile])
 
     const loadUrlToBase64 = async (url: string) => {
         const res = await fetch(url)
@@ -624,10 +773,15 @@ function TryOnPageContent() {
             // Collect identity references (Flash: 1-2 strong face refs)
             const allAdditionalImages: string[] = []
 
+            let resolvedIdentityImages = identityImages
+            if (useIdentityImages && resolvedIdentityImages.length === 0) {
+                resolvedIdentityImages = await fetchIdentityImages()
+            }
+
             // Add identity images if available and enabled
-            if (useIdentityImages && identityImages.length > 0) {
+            if (useIdentityImages && resolvedIdentityImages.length > 0) {
                 const faceOnlyTypes = new Set(['face_front', 'face_smile', 'face_left', 'face_right'])
-                const identityForModel = identityImages.filter((x) => faceOnlyTypes.has(x.type)).slice(0, 2)
+                const identityForModel = resolvedIdentityImages.filter((x) => faceOnlyTypes.has(x.type)).slice(0, 2)
 
                 for (const idImg of identityForModel) {
                     const base64 = await urlToBase64(idImg.imageUrl)
@@ -992,13 +1146,13 @@ function TryOnPageContent() {
                                     </span>
                                     <button
                                         type="button"
-                                        onClick={fetchSavedProfileImages}
+                                        onClick={() => { void refreshSavedProfileImages() }}
                                         className="text-xs text-charcoal/50 hover:text-charcoal transition-colors"
                                     >
                                         Refresh
                                     </button>
                                 </div>
-                                {savedProfileImagesLoading ? (
+                                {!savedProfileImagesReady || savedProfileImagesLoading ? (
                                     <div className="flex items-center gap-2 text-xs text-charcoal/50">
                                         <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                                         Loading...

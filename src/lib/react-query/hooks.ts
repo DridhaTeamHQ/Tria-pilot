@@ -10,7 +10,6 @@ export function useUser() {
     queryFn: async () => {
       const res = await fetch('/api/auth/me', {
         credentials: 'include',
-        cache: 'no-store', // Always fetch fresh data from server
       })
       if (!res.ok) {
         // If 401, user is not authenticated - return null instead of throwing
@@ -37,7 +36,7 @@ export function useUser() {
     gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
     retry: false, // Don't retry on 401 errors
     refetchOnMount: false, // Reuse fresh auth data across route transitions
-    refetchOnWindowFocus: true, // Refetch when window regains focus (user may have logged in)
+    refetchOnWindowFocus: false, // Avoid auth flicker when switching tabs
     refetchOnReconnect: true, // Refetch when network reconnects
   })
 }
