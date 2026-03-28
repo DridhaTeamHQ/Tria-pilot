@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Download, ImageIcon, X } from 'lucide-react'
 import { toast } from 'sonner'
@@ -62,6 +62,23 @@ function GalleryViewContent() {
     )
     const imageUrl = resolveImageUrl(rawImageUrl)
 
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                handleBack()
+            }
+        }
+
+        document.addEventListener('keydown', handleKeyDown)
+        const previousOverflow = document.body.style.overflow
+        document.body.style.overflow = 'hidden'
+
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown)
+            document.body.style.overflow = previousOverflow
+        }
+    }, [])
+
     const handleBack = () => {
         if (backPath) {
             router.push(backPath)
@@ -101,71 +118,89 @@ function GalleryViewContent() {
     }
 
     return (
-        <div className="fixed inset-0 z-[250] flex min-h-0 flex-col bg-[#141414] text-white">
+        <div className="fixed inset-0 z-[250] flex min-h-0 flex-col bg-[#0f0f0f] text-white">
 
-            <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-white/10 bg-black/75 px-3 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-md sm:px-4">
-                <button
-                    type="button"
-                    onClick={handleBack}
-                    className="inline-flex shrink-0 items-center gap-1 rounded-xl border-2 border-white/20 bg-white/10 px-3 py-2 text-sm font-bold text-white transition-colors hover:bg-white/15"
-                    aria-label="Back"
-                >
-                    <ArrowLeft className="h-4 w-4" />
-                    Back
-                </button>
+            <div className="pointer-events-none absolute inset-0 opacity-60">
+                <div className="absolute -left-24 top-12 h-64 w-64 rounded-full bg-[#FFD93D]/10 blur-3xl" />
+                <div className="absolute right-[-4rem] top-1/3 h-72 w-72 rounded-full bg-[#FF8C69]/10 blur-3xl" />
+                <div className="absolute bottom-[-3rem] left-1/3 h-72 w-72 rounded-full bg-white/5 blur-3xl" />
+            </div>
 
-                <p className="min-w-0 flex-1 truncate text-center text-xs font-black text-white/90 sm:text-sm">
-                    {title}
-                </p>
+            <main className="relative flex min-h-0 flex-1 items-center justify-center p-3 sm:p-5">
+                <div className="flex h-full min-h-0 w-full max-w-[min(96vw,1380px)] flex-col overflow-hidden rounded-[32px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_100%)] shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+                    <header className="flex items-center gap-3 border-b border-white/10 bg-black/40 px-3 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-5">
+                        <button
+                            type="button"
+                            onClick={handleBack}
+                            className="inline-flex shrink-0 items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-3 py-2 text-sm font-bold text-white transition-colors hover:bg-white/15"
+                            aria-label="Back"
+                        >
+                            <ArrowLeft className="h-4 w-4" />
+                            Back
+                        </button>
 
-                <button
-                    type="button"
-                    onClick={handleDownload}
-                    disabled={downloading || !imageUrl}
-                    className="inline-flex shrink-0 items-center gap-1 rounded-xl border-2 border-[#FFD93D] bg-[#FFD93D] px-3 py-2 text-xs font-bold text-black transition-colors hover:bg-[#ffe169] disabled:cursor-not-allowed disabled:opacity-60"
-                    aria-label="Download image"
-                >
-                    <Download className="h-4 w-4" />
-                    {downloading ? '...' : 'Save'}
-                </button>
+                        <div className="min-w-0 flex-1">
+                            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/45">Image Viewer</p>
+                            <p className="truncate text-sm font-bold text-white/92 sm:text-base">
+                                {title}
+                            </p>
+                        </div>
 
-                <button
-                    type="button"
-                    onClick={handleBack}
-                    className="inline-flex shrink-0 items-center justify-center rounded-xl border-2 border-white/20 bg-white/10 p-2 text-white transition-colors hover:bg-white/15"
-                    aria-label="Close viewer"
-                >
-                    <X className="h-4 w-4" />
-                </button>
-            </header>
+                        <button
+                            type="button"
+                            onClick={handleDownload}
+                            disabled={downloading || !imageUrl}
+                            className="inline-flex shrink-0 items-center gap-2 rounded-2xl border border-[#FFD93D] bg-[#FFD93D] px-3 py-2 text-xs font-black uppercase tracking-[0.16em] text-black transition-colors hover:bg-[#ffe169] disabled:cursor-not-allowed disabled:opacity-60"
+                            aria-label="Download image"
+                        >
+                            <Download className="h-4 w-4" />
+                            {downloading ? 'Saving' : 'Download'}
+                        </button>
 
-            <main className="flex min-h-0 flex-1 overflow-hidden p-3 sm:p-5">
-                <div className="relative flex min-h-0 h-full w-full items-center justify-center overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top,#2b2b2b_0%,#181818_45%,#101010_100%)]">
-                    <div className="pointer-events-none absolute inset-0 opacity-40">
-                        <div className="absolute -left-10 top-6 h-32 w-32 rounded-full bg-[#FFD93D]/12 blur-3xl" />
-                        <div className="absolute right-0 top-1/3 h-40 w-40 rounded-full bg-[#B4F056]/10 blur-3xl" />
-                        <div className="absolute bottom-0 left-1/3 h-40 w-40 rounded-full bg-white/5 blur-3xl" />
+                        <button
+                            type="button"
+                            onClick={handleBack}
+                            className="inline-flex shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/10 p-2.5 text-white transition-colors hover:bg-white/15"
+                            aria-label="Close viewer"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    </header>
+
+                    <div className="flex min-h-0 flex-1 p-3 sm:p-5">
+                        <div className="relative flex min-h-0 h-full w-full items-center justify-center overflow-hidden rounded-[28px] border border-white/8 bg-[radial-gradient(circle_at_top,#2c2c2c_0%,#181818_45%,#101010_100%)]">
+                            <div className="pointer-events-none absolute inset-0 opacity-45">
+                                <div className="absolute -left-10 top-6 h-32 w-32 rounded-full bg-[#FFD93D]/12 blur-3xl" />
+                                <div className="absolute right-0 top-1/3 h-40 w-40 rounded-full bg-[#B4F056]/10 blur-3xl" />
+                                <div className="absolute bottom-0 left-1/3 h-40 w-40 rounded-full bg-white/5 blur-3xl" />
+                            </div>
+                            {!imageUrl ? (
+                                <div className="relative z-10 flex flex-col items-center gap-2 text-white/55">
+                                    <ImageIcon className="h-10 w-10" />
+                                    <p className="text-sm font-bold">Image not found</p>
+                                </div>
+                            ) : imageError ? (
+                                <div className="relative z-10 flex flex-col items-center gap-2 text-white/55">
+                                    <ImageIcon className="h-10 w-10" />
+                                    <p className="text-sm font-bold">Image failed to load</p>
+                                </div>
+                            ) : (
+                                <div className="relative z-10 flex h-full min-h-0 w-full items-center justify-center p-3 sm:p-6">
+                                    <img
+                                        src={imageUrl}
+                                        alt={title}
+                                        className="block h-auto w-auto max-h-[calc(100dvh-10.5rem)] max-w-full rounded-[24px] border border-white/12 bg-black/10 object-contain shadow-[0_24px_70px_rgba(0,0,0,0.42)] sm:max-h-[calc(100dvh-12rem)]"
+                                        onError={() => setImageError(true)}
+                                    />
+                                </div>
+                            )}
+                        </div>
                     </div>
-                    {!imageUrl ? (
-                        <div className="relative z-10 flex flex-col items-center gap-2 text-white/55">
-                            <ImageIcon className="h-10 w-10" />
-                            <p className="text-sm font-bold">Image not found</p>
-                        </div>
-                    ) : imageError ? (
-                        <div className="relative z-10 flex flex-col items-center gap-2 text-white/55">
-                            <ImageIcon className="h-10 w-10" />
-                            <p className="text-sm font-bold">Image failed to load</p>
-                        </div>
-                    ) : (
-                        <div className="relative z-10 flex h-full min-h-0 w-full items-center justify-center p-3 sm:p-6">
-                            <img
-                                src={imageUrl}
-                                alt={title}
-                                className="block h-auto w-auto max-h-[calc(100dvh-8rem)] max-w-full rounded-2xl object-contain shadow-[0_18px_60px_rgba(0,0,0,0.45)] sm:max-h-[calc(100dvh-9.5rem)]"
-                                onError={() => setImageError(true)}
-                            />
-                        </div>
-                    )}
+
+                    <div className="flex items-center justify-between gap-3 border-t border-white/10 bg-black/30 px-4 py-3 text-[11px] font-bold uppercase tracking-[0.16em] text-white/45 sm:px-5">
+                        <span>Clean preview mode</span>
+                        <span>Press Esc to close</span>
+                    </div>
                 </div>
             </main>
         </div>
