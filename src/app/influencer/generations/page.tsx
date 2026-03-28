@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -23,7 +23,7 @@ import {
 } from 'lucide-react'
 import { BrutalLoader } from '@/components/ui/BrutalLoader'
 import { useDeleteGeneration, useGenerations } from '@/lib/react-query/hooks'
-import { toast } from 'sonner'
+import { toast } from '@/lib/simple-sonner'
 import { ShareModal } from '@/components/tryon/ShareModal'
 import { PortalModal } from '@/components/ui/PortalModal'
 
@@ -509,7 +509,7 @@ export default function GenerationsPage() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.3 }}
-                        className="fixed inset-0 flex items-start justify-center bg-black/90 p-3 pt-[max(0.75rem,3vh)] backdrop-blur-md sm:p-4 sm:pt-[max(1rem,4vh)]"
+                        className="fixed inset-0 flex items-center justify-center bg-black/90 p-2 backdrop-blur-md sm:p-4"
                         onClick={closeLightbox}
                         data-lightbox="true"
                     >
@@ -518,125 +518,119 @@ export default function GenerationsPage() {
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: 10, scale: 0.98 }}
                             transition={{ duration: 0.22 }}
-                            className="flex max-h-[min(88dvh,920px)] w-full max-w-[min(90vw,1080px)] flex-col overflow-hidden rounded-[24px] border-[3px] border-black bg-black shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]"
+                            className="flex h-[min(92dvh,920px)] w-full max-w-[min(94vw,1120px)] flex-col overflow-hidden rounded-[24px] border-[3px] border-black bg-[#181818] shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]"
                             onClick={(e) => e.stopPropagation()}
                         >
-                        <motion.div
-                            initial={{ opacity: 0, y: -20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            transition={{ delay: 0.1, type: "spring", stiffness: 300, damping: 25 }}
-                            className="relative z-[200] flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-3 py-3 sm:px-5"
-                        >
-                            {/* Left side - Action buttons */}
-                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                                {/* Added Back Button */}
+                            <motion.div
+                                initial={{ opacity: 0, y: -20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                transition={{ delay: 0.1, type: "spring", stiffness: 300, damping: 25 }}
+                                className="relative z-[200] flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-[#111111] px-3 py-3 sm:px-5"
+                            >
+                                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                                    <motion.button
+                                        onClick={closeLightbox}
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        className="flex items-center gap-2 rounded-lg border-[2px] border-black bg-white px-2.5 py-2 text-xs font-bold text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:px-4 sm:text-sm"
+                                    >
+                                        <ArrowLeft className="w-4 h-4" />
+                                        <span>Back</span>
+                                    </motion.button>
+                                    <motion.button
+                                        onClick={() => selectedImage && handleDownload(selectedImage, selectedJob.id)}
+                                        disabled={downloading === selectedJob.id}
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        className="flex items-center gap-2 rounded-lg border-[2px] border-black bg-white px-2.5 py-2 text-xs font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 sm:px-4 sm:py-2.5 sm:text-sm"
+                                    >
+                                        {downloading === selectedJob.id ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                Downloading...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Download className="w-4 h-4" />
+                                                Download
+                                            </>
+                                        )}
+                                    </motion.button>
+                                    <motion.button
+                                        onClick={() => selectedImage && handleShare(selectedImage)}
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        className="flex items-center gap-2 rounded-lg border-[2px] border-black bg-[#FF8C69] px-2.5 py-2 text-xs font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:px-4 sm:py-2.5 sm:text-sm"
+                                    >
+                                        <Share2 className="w-4 h-4" />
+                                        Share
+                                    </motion.button>
+                                    <motion.button
+                                        onClick={() => requestDelete(selectedJob)}
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        className="flex items-center gap-2 rounded-lg border-[2px] border-black bg-[#FF6B6B] px-2.5 py-2 text-xs font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:px-4 sm:py-2.5 sm:text-sm"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                        Delete
+                                    </motion.button>
+                                </div>
+
+                                <div className="hidden sm:flex flex-col items-center">
+                                    <span className="text-xs font-mono text-white/60">Generation</span>
+                                    <span className="text-sm font-mono text-white">#{selectedJob.id.slice(0, 8)}</span>
+                                </div>
+
                                 <motion.button
                                     onClick={closeLightbox}
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    className="flex items-center gap-2 px-2.5 sm:px-4 py-2 bg-white text-black rounded-lg text-xs sm:text-sm font-bold border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+                                    whileHover={{ scale: 1.1, rotate: 90 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                                    className="rounded-lg border-[2px] border-black bg-white p-2.5 text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-colors"
                                 >
-                                    <ArrowLeft className="w-4 h-4" />
-                                    <span>Back</span>
+                                    <X className="w-5 h-5" />
                                 </motion.button>
-                                <motion.button
-                                    onClick={() => selectedImage && handleDownload(selectedImage, selectedJob.id)}
-                                    disabled={downloading === selectedJob.id}
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    className="flex items-center gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 bg-white text-black rounded-lg text-xs sm:text-sm font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-[2px] border-black hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 disabled:opacity-50"
-                                >
-                                    {downloading === selectedJob.id ? (
-                                        <>
-                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                            Downloading...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Download className="w-4 h-4" />
-                                            Download
-                                        </>
-                                    )}
-                                </motion.button>
+                            </motion.div>
 
-                                <motion.button
-                                    onClick={() => selectedImage && handleShare(selectedImage)}
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    className="flex items-center gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 bg-[#FF8C69] text-black rounded-lg text-xs sm:text-sm font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-[2px] border-black hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all duration-300"
-                                >
-                                    <Share2 className="w-4 h-4" />
-                                    Share
-                                </motion.button>
-
-                                <motion.button
-                                    onClick={() => requestDelete(selectedJob)}
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    className="flex items-center gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 bg-[#FF6B6B] text-black rounded-lg text-xs sm:text-sm font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-[2px] border-black hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all duration-300"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                    Delete
-                                </motion.button>
-                            </div>
-
-                            {/* Center - Image info */}
-                            <div className="hidden sm:flex flex-col items-center">
-                                <span className="text-white/60 text-xs font-mono">Generation</span>
-                                <span className="text-white font-mono text-sm">#{selectedJob.id.slice(0, 8)}</span>
-                            </div>
-
-                            {/* Right side - Close button */}
-                            <motion.button
-                                onClick={closeLightbox}
-                                whileHover={{ scale: 1.1, rotate: 90 }}
-                                whileTap={{ scale: 0.9 }}
-                                transition={{ type: "spring", stiffness: 400, damping: 15 }}
-                                className="p-2.5 bg-white text-black rounded-lg border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-colors"
-                            >
-                                <X className="w-5 h-5" />
-                            </motion.button>
-                        </motion.div>
-
-                        {/* Image container - Centered & Full Size */}
-                        <div className="relative z-[100] flex min-h-0 flex-1 items-center justify-center p-3 sm:p-4">
-                            {!imageError ? (
-                                <img
-                                    src={getImageUrl(selectedImage)}
-                                    alt="Generation Result"
-                                    className="h-auto max-h-full w-auto max-w-full rounded-lg object-contain shadow-2xl"
-                                    draggable={false}
-                                    onError={() => setImageError(true)}
-                                />
-                            ) : (
-                                <div className="flex flex-col items-center justify-center gap-4 text-white/60 bg-white/5 p-12 rounded-xl border border-white/10 backdrop-blur-sm">
-                                    <AlertCircle className="w-12 h-12" />
-                                    <div className="text-center">
-                                        <p className="font-medium">Image unavailable</p>
-                                        <p className="text-xs opacity-70 mt-1">Check your connection</p>
+                            <div className="relative z-[100] flex min-h-0 flex-1 p-2 sm:p-4">
+                                {!imageError ? (
+                                    <div className="flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden rounded-[20px] border border-white/10 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.16),_rgba(255,255,255,0.04)_35%,_rgba(0,0,0,0.15)_100%)] px-3 py-4 sm:px-6 sm:py-6">
+                                        <img
+                                            src={getImageUrl(selectedImage)}
+                                            alt="Generation Result"
+                                            className="block h-auto max-h-full w-auto max-w-full rounded-[18px] object-contain shadow-[0_18px_40px_rgba(0,0,0,0.38)]"
+                                            draggable={false}
+                                            onError={() => setImageError(true)}
+                                        />
                                     </div>
-                                </div>
-                            )}
-                        </div>
+                                ) : (
+                                    <div className="flex w-full flex-1 flex-col items-center justify-center gap-4 rounded-[20px] border border-white/10 bg-white/5 p-12 text-white/60 backdrop-blur-sm">
+                                        <AlertCircle className="w-12 h-12" />
+                                        <div className="text-center">
+                                            <p className="font-medium">Image unavailable</p>
+                                            <p className="mt-1 text-xs opacity-70">Check your connection</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
 
-                        {/* Bottom info bar */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 20 }}
-                            transition={{ delay: 0.15 }}
-                            className="flex items-center justify-center gap-4 px-4 py-3 border-t border-white/10 relative z-[200]"
-                        >
-                            <span className="text-white/40 text-xs flex items-center gap-1.5 font-mono">
-                                <Calendar className="w-3 h-3" />
-                                {formatDate(selectedJob.createdAt)}
-                            </span>
-                            <span className="text-white/20">•</span>
-                            <span className="text-white/40 text-xs font-mono">
-                                Click outside or press ESC to close
-                            </span>
-                        </motion.div>
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 20 }}
+                                transition={{ delay: 0.15 }}
+                                className="relative z-[200] flex items-center justify-center gap-4 border-t border-white/10 bg-[#111111] px-4 py-3"
+                            >
+                                <span className="flex items-center gap-1.5 text-xs font-mono text-white/40">
+                                    <Calendar className="w-3 h-3" />
+                                    {formatDate(selectedJob.createdAt)}
+                                </span>
+                                <span className="text-white/20">•</span>
+                                <span className="text-xs font-mono text-white/40">
+                                    Click outside or press ESC to close
+                                </span>
+                            </motion.div>
                         </motion.div>
                     </motion.div>
                 )}
@@ -740,4 +734,7 @@ export default function GenerationsPage() {
         </div >
     )
 }
+
+
+
 

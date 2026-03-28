@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -22,7 +22,7 @@ import {
 import { useUser, useGenerations } from '@/lib/react-query/hooks'
 import { ShareModal } from '@/components/tryon/ShareModal'
 import { PortalModal } from '@/components/ui/PortalModal'
-import { toast } from 'sonner'
+import { toast } from '@/lib/simple-sonner'
 import { createClient } from '@/lib/auth-client'
 
 // Animation variants
@@ -454,146 +454,144 @@ export default function InfluencerDashboard() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-md flex flex-col"
+            className="fixed inset-0 flex items-center justify-center bg-black/85 p-2 backdrop-blur-md sm:p-4"
             onClick={closeVariantViewer}
           >
-            {/* Large Floating Back Button - Restored & Styled - Z-Index Safe */}
-            <motion.button
-              onClick={closeVariantViewer}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="absolute top-4 left-4 z-[10000] md:hidden flex items-center gap-2 px-4 py-3 bg-white text-black rounded-xl font-bold border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              <span className="sr-only">Back</span>
-            </motion.button>
-
-            {/* Header */}
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-white/20 relative z-[200]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Left side - Back button + Actions */}
-              <div className="flex items-center gap-3">
-                <motion.button
-                  onClick={closeVariantViewer}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-white text-black rounded-lg text-sm font-bold border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-colors"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Back
-                </motion.button>
-                <motion.button
-                  onClick={() => handleDownload(getGenerationVariants(selectedGeneration)[selectedVariantIndex]?.url)}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-white text-black rounded-lg text-sm font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-[2px] border-black"
-                >
-                  <Download className="w-4 h-4" />
-                  Download
-                </motion.button>
-                <motion.button
-                  onClick={() => handleShare(getGenerationVariants(selectedGeneration)[selectedVariantIndex]?.url)}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-[#FF8C69] text-black rounded-lg text-sm font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-[2px] border-black"
-                >
-                  <Share2 className="w-4 h-4" />
-                  Share
-                </motion.button>
-              </div>
-
-              <div className="text-center">
-                <span className="text-white/60 text-xs font-mono">Generation</span>
-                <p className="text-white font-mono text-sm">#{selectedGeneration.id.slice(0, 8)}</p>
-              </div>
-
+            <div className="relative flex h-[min(92dvh,960px)] w-full max-w-[min(96vw,1240px)] flex-col overflow-hidden rounded-[28px] border-[3px] border-black bg-[#171717] shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
               <motion.button
                 onClick={closeVariantViewer}
-                whileHover={{ scale: 1.1, rotate: 90 }}
-                whileTap={{ scale: 0.9 }}
-                className="p-2.5 bg-white text-black rounded-lg border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="absolute top-4 left-4 z-[10000] flex items-center gap-2 rounded-xl border-[3px] border-black bg-white px-4 py-3 font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] md:hidden"
               >
-                <X className="w-5 h-5" />
+                <ArrowLeft className="w-5 h-5" />
+                <span className="sr-only">Back</span>
               </motion.button>
-            </motion.div>
 
-            {/* Main Image Display */}
-            <div className="flex-1 flex items-center justify-center p-4 sm:p-8 relative z-[100]" onClick={(e) => e.stopPropagation()}>
-              {/* Navigation Arrows */}
-              {getGenerationVariants(selectedGeneration).length > 1 && (
-                <>
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="relative z-[200] flex items-center justify-between border-b border-white/10 bg-[#111111] px-4 py-4 sm:px-6"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex flex-wrap items-center gap-3">
                   <motion.button
-                    onClick={() => navigateVariant('prev')}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    className="absolute left-4 sm:left-8 p-3 bg-white text-black rounded-full border-[2px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-10"
-                  >
-                    <ChevronLeft className="w-6 h-6" />
-                  </motion.button>
-                  <motion.button
-                    onClick={() => navigateVariant('next')}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    className="absolute right-4 sm:right-8 p-3 bg-white text-black rounded-full border-[2px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-10"
-                  >
-                    <ChevronRight className="w-6 h-6" />
-                  </motion.button>
-                </>
-              )}
-
-              <motion.img
-                key={selectedVariantIndex}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                src={getGenerationVariants(selectedGeneration)[selectedVariantIndex]?.url}
-                alt="Generated image"
-                className="max-w-full max-h-[85vh] object-contain rounded-xl border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(255,255,255,0.2)]"
-                draggable={false}
-              />
-            </div>
-
-            {/* Variant Thumbnails */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="px-4 sm:px-6 py-4 border-t border-white/10 relative z-[200]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-center gap-4">
-                {getGenerationVariants(selectedGeneration).map((variant: any, idx: number) => (
-                  <motion.button
-                    key={idx}
-                    onClick={() => setSelectedVariantIndex(idx)}
+                    onClick={closeVariantViewer}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className={`relative rounded-lg overflow-hidden border-[3px] transition-all ${selectedVariantIndex === idx
-                      ? 'border-[#FF8C69] shadow-[4px_4px_0px_0px_#FF8C69]'
-                      : 'border-white/20 hover:border-white/50'
-                      }`}
+                    className="flex items-center gap-2 rounded-lg border-[2px] border-black bg-white px-4 py-2.5 text-sm font-bold text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-colors"
                   >
-                    <img
-                      src={variant.url}
-                      alt={variant.label}
-                      className="w-20 h-28 sm:w-24 sm:h-32 object-cover"
-                    />
-                    <div className={`absolute bottom-0 left-0 right-0 py-1.5 text-center text-[10px] font-bold uppercase ${selectedVariantIndex === idx
-                      ? 'bg-[#FF8C69] text-black'
-                      : 'bg-black/60 text-white'
-                      }`}>
-                      {variant.label}
-                    </div>
+                    <ArrowLeft className="w-4 h-4" />
+                    Back
                   </motion.button>
-                ))}
+                  <motion.button
+                    onClick={() => handleDownload(getGenerationVariants(selectedGeneration)[selectedVariantIndex]?.url)}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center gap-2 rounded-lg border-[2px] border-black bg-white px-4 py-2.5 text-sm font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download
+                  </motion.button>
+                  <motion.button
+                    onClick={() => handleShare(getGenerationVariants(selectedGeneration)[selectedVariantIndex]?.url)}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center gap-2 rounded-lg border-[2px] border-black bg-[#FF8C69] px-4 py-2.5 text-sm font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    Share
+                  </motion.button>
+                </div>
+
+                <div className="text-center">
+                  <span className="text-xs font-mono text-white/60">Generation</span>
+                  <p className="text-sm font-mono text-white">#{selectedGeneration.id.slice(0, 8)}</p>
+                </div>
+
+                <motion.button
+                  onClick={closeVariantViewer}
+                  whileHover={{ scale: 1.1, rotate: 90 }}
+                  whileTap={{ scale: 0.9 }}
+                  className="rounded-lg border-[2px] border-black bg-white p-2.5 text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                >
+                  <X className="w-5 h-5" />
+                </motion.button>
+              </motion.div>
+
+              <div className="relative z-[100] flex min-h-0 flex-1 p-2 sm:p-4" onClick={(e) => e.stopPropagation()}>
+                {getGenerationVariants(selectedGeneration).length > 1 && (
+                  <>
+                    <motion.button
+                      onClick={() => navigateVariant('prev')}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      className="absolute left-4 top-1/2 z-10 -translate-y-1/2 rounded-full border-[2px] border-black bg-white p-3 text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:left-8"
+                    >
+                      <ChevronLeft className="w-6 h-6" />
+                    </motion.button>
+                    <motion.button
+                      onClick={() => navigateVariant('next')}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      className="absolute right-4 top-1/2 z-10 -translate-y-1/2 rounded-full border-[2px] border-black bg-white p-3 text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:right-8"
+                    >
+                      <ChevronRight className="w-6 h-6" />
+                    </motion.button>
+                  </>
+                )}
+
+                <div className="flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.14),_rgba(255,255,255,0.04)_38%,_rgba(0,0,0,0.22)_100%)] px-4 py-5 sm:px-10 sm:py-8">
+                  <motion.img
+                    key={selectedVariantIndex}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    src={getGenerationVariants(selectedGeneration)[selectedVariantIndex]?.url}
+                    alt="Generated image"
+                    className="block h-auto max-h-full w-auto max-w-full rounded-[20px] border-[3px] border-black/70 object-contain shadow-[0_20px_40px_rgba(0,0,0,0.38)]"
+                    draggable={false}
+                  />
+                </div>
               </div>
-            </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="relative z-[200] border-t border-white/10 bg-[#111111] px-4 py-4 sm:px-6"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-center gap-4">
+                  {getGenerationVariants(selectedGeneration).map((variant: any, idx: number) => (
+                    <motion.button
+                      key={idx}
+                      onClick={() => setSelectedVariantIndex(idx)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className={`relative overflow-hidden rounded-lg border-[3px] transition-all ${selectedVariantIndex === idx
+                        ? 'border-[#FF8C69] shadow-[4px_4px_0px_0px_#FF8C69]'
+                        : 'border-white/20 hover:border-white/50'
+                        }`}
+                    >
+                      <img
+                        src={variant.url}
+                        alt={variant.label}
+                        className="h-28 w-20 object-cover sm:h-32 sm:w-24"
+                      />
+                      <div className={`absolute bottom-0 left-0 right-0 py-1.5 text-center text-[10px] font-bold uppercase ${selectedVariantIndex === idx
+                        ? 'bg-[#FF8C69] text-black'
+                        : 'bg-black/60 text-white'
+                        }`}>
+                        {variant.label}
+                      </div>
+                    </motion.button>
+                  ))}
+                </div>
+              </motion.div>
+            </div>
           </motion.div>
         )}
       </PortalModal>
@@ -612,6 +610,9 @@ export default function InfluencerDashboard() {
     </div>
   )
 }
+
+
+
 
 
 
