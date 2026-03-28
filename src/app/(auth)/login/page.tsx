@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { motion, LayoutGroup } from 'framer-motion'
 import Link from 'next/link'
 import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { setAuthToast } from '@/components/auth-toast-bridge'
 import { createClient } from '@/lib/auth-client'
 import { getPublicSiteUrlClient } from '@/lib/site-url'
@@ -30,6 +31,7 @@ export default function LoginPage() {
 
 function LoginContent() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const searchParams = useSearchParams()
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
@@ -184,6 +186,10 @@ function LoginContent() {
       const nextTarget = getPostLoginDestination(sessionUser, redirectTarget)
       const normalizedRecoveryEmail = recoveryEmail.trim().toLowerCase()
 
+      if (sessionUser) {
+        queryClient.setQueryData(['user'], sessionUser)
+      }
+
       if (sessionUser && isSyntheticEmail(sessionUser.email) && normalizedRecoveryEmail) {
         const recoveryRes = await fetch('/api/auth/change-email', {
           method: 'POST',
@@ -212,12 +218,8 @@ function LoginContent() {
         showInfoToast('Profile under review', 'Your creator account is still pending approval.')
       }
 
-      if (typeof window !== 'undefined') {
-        window.location.assign(nextTarget)
-        return
-      }
-
       router.replace(nextTarget)
+      router.refresh()
     } catch (error: unknown) {
       console.error('Login error:', error)
       showErrorToast('Sign-in failed', error instanceof Error ? error.message : 'Please try again.')
