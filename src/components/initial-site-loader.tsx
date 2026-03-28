@@ -4,9 +4,10 @@ import { usePathname } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 
-const INTRO_MS = 5000
+const INTRO_MS = 1200
 const INTRO_Z = 2147483647
 const INTRO_BG = "#f8a100"
+const INTRO_SESSION_KEY = "kiwikoo:intro-seen:v1"
 
 export default function InitialSiteLoader() {
   const pathname = usePathname()
@@ -20,12 +21,16 @@ export default function InitialSiteLoader() {
     if (!mounted) return
     const base = pathname?.split("?")[0] ?? ""
     const shouldShow = base === "/" || base === ""
+    const alreadySeen =
+      typeof window !== "undefined" &&
+      window.sessionStorage.getItem(INTRO_SESSION_KEY) === "1"
 
-    if (!shouldShow) {
+    if (!shouldShow || alreadySeen) {
       setShow(false)
       return
     }
 
+    window.sessionStorage.setItem(INTRO_SESSION_KEY, "1")
     setShow(true)
   }, [mounted, pathname])
 
