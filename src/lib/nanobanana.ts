@@ -436,12 +436,12 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
 
   if (process.env.NODE_ENV !== 'production') console.log(`🍌 DIRECT TRANSPORT: gemini-3-pro-image-preview | prompt: ${prompt.length} chars`)
 
-  // CONTENT ORDER — optimized for identity preservation:
+  // CONTENT ORDER — all images FIRST, then prompt text LAST:
   // 1. Person image (identity anchor)
-  // 2. Prompt text (identity instructions while person image embedding is hot)
-  // 3. Garment image
-  // 4. Face crop (identity reinforcement)
-  // 5. Character refs (multi-angle identity)
+  // 2. Garment image
+  // 3. Face crop (identity reinforcement)
+  // 4+ Character refs (multi-angle identity)
+  // LAST: Prompt text (instructions after all visual context is established)
   const contents: ContentListUnion = [
     {
       inlineData: {
@@ -452,10 +452,7 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
     'Image 1: the person.',
   ]
 
-  // Prompt text EARLY — right after person image for maximum identity attention
-  contents.push(prompt)
-
-  // Image 2: Garment
+  // Image 2: Garment — immediately after person for contiguous visual chain
   contents.push(
     {
       inlineData: {
@@ -463,7 +460,7 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
         mimeType: 'image/jpeg',
       },
     } as any,
-    'Image 2: the target garment. Apply this clothing to the person. Match the exact color, pattern, and design.'
+    'Image 2: the target garment. Apply this clothing to the person.'
   )
 
   // Image 3: Face crop — close-up for identity reinforcement
@@ -504,6 +501,9 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
     }
   }
 
+  // Prompt text LAST — after all visual context is established
+  contents.push(prompt)
+
   const imageConfig = {
     aspectRatio,
     personGeneration: 'allow_adult',
@@ -512,21 +512,19 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
 
   const config: GenerateContentConfig = {
     responseModalities: ['TEXT', 'IMAGE'],
-    systemInstruction: `You are a photorealistic virtual try-on camera. Your job is to photograph the SAME person from Image 1 wearing a different outfit.
+    systemInstruction: `You are a photorealistic virtual try-on camera.
 
-FACE IDENTITY: Copy the face HOLISTICALLY from Image 1 and any additional face reference photos. Do NOT reconstruct the face from a text description or a checklist of features — treat the reference photos as the single source of truth and reproduce the face as a whole. Preserve every asymmetry, imperfection, and unique characteristic exactly as they appear in the photos.
+IDENTITY: The output MUST show the SAME PERSON from Image 1. Copy their face exactly from the reference photos — do not reconstruct it from text. Every asymmetry, blemish, and feature must match.
 
-GARMENT: Apply ONLY the garment from Image 2. Ignore clothing in any other reference photos.
+GARMENT: Apply ONLY the clothing from Image 2.
 
-SCENE: Follow the Scene Environment instructions from the prompt. The background must match the requested setting.
+SCENE: Follow scene instructions from the prompt.
 
-FACE LIGHTING: Even when the scene has dramatic or directional lighting, keep the face clearly lit with soft, even illumination. Avoid deep shadows on the jaw, cheeks, or eye sockets that would alter the perceived bone structure. The face should look as if a gentle fill light is present.
-
-REALISM: Generate natural skin with visible pores and texture. No smoothing, no CGI look, no HDR halos.`,
+REALISM: Natural skin with visible pores. No smoothing, no CGI.`,
     imageConfig,
-    temperature: 0.3,
-    topP: 0.85,
-    topK: 16,
+    temperature: 0.15,
+    topP: 0.8,
+    topK: 12,
   }
 
   const startTime = Date.now()

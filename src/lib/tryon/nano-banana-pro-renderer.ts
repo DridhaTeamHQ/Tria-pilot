@@ -447,12 +447,12 @@ export async function generateWithNanoBananaPro(
     // Keep production reliable: avoid second full model pass when we're already near timeout.
     const retryBudgetMs = process.env.NODE_ENV === 'production' ? 45_000 : 120_000
     const canRetryInTime = elapsedBeforeRetryMs < retryBudgetMs
-    // When InsightFace face-swap is available, skip the quality retry entirely.
-    // Retries waste 40-60s and often produce WORSE drift (45% → 58% observed).
-    // InsightFace handles identity correction at the embedding level in ~2-5s.
+    // Only skip the quality retry when InsightFace is actually reachable.
+    // Without InsightFace, the retry is the only correction path before Stage 4 Gemini restore.
+    // Retries waste 40-60s but are still worthwhile if no face-swap service exists.
     const FACE_SWAP_AVAILABLE = Boolean(process.env.FACE_SWAP_SERVICE_URL?.trim())
     const FACE_RESTORE_ENABLED = process.env.TRYON_DISABLE_FACE_RESTORE !== 'true'
-    const skipRetryForFaceRestore = (FACE_SWAP_AVAILABLE || FACE_RESTORE_ENABLED) && !hardFaceFailure
+    const skipRetryForFaceRestore = FACE_SWAP_AVAILABLE && !hardFaceFailure
 
     if (skipRetryForFaceRestore && hasRetrySignal && isDev) {
       console.log('   ⏭️ Skipping Stage 3 retry — face restore (Stage 4) will handle identity correction')
@@ -563,10 +563,10 @@ export async function generateWithNanoBananaPro(
       darkSpotArtifactScoreAfter?: number
     } | null = null
 
-    // Only trigger face restore when the face is truly wrong — Gemini's native
-    // generation is usually good enough. A loose threshold avoids injecting
-    // InsightFace artifacts (spots, moles, skin texture changes) into decent faces.
-    const faceRestoreDriftThreshold = 50
+    // Trigger face restore more aggressively — most identity drift lands in the
+    // 20-45% range. At threshold=25, Stage 4 catches faces that are recognizably
+    // wrong. InsightFace is only used as fallback; Gemini edit pass is primary.
+    const faceRestoreDriftThreshold = 25
     const elapsedBeforeRestore = Date.now() - startTime
     const hasTimeBudgetForGemini = elapsedBeforeRestore < 120_000
     const hasTimeBudget = hasTimeBudgetForGemini

@@ -2,13 +2,7 @@
    AI INFLUENCER STUDIO — Neo Brutalist Layout
    ═══════════════════════════════════════════ */
 
-/* Hide the global navbar when studio is active */
-.studio-active-page ~ header,
-.studio-active-page ~ * header,
-body:has(.studio-layout) header.fixed {
-  display: none !important;
-}
-
+/* ── Integrate with BrutalNavbar (h-16 = 64px mobile, md:h-20 = 80px desktop) ── */
 body:has(.studio-layout) main.animate-fade-in {
   padding: 0 !important;
   margin: 0 !important;
@@ -18,16 +12,22 @@ body:has(.studio-layout) main.animate-fade-in {
 .studio-layout {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
-  width: 100vw;
+  /* Subtract navbar height from viewport */
+  height: calc(100dvh - 64px);
+  width: 100%;
   overflow: hidden;
   background: #f5f3ee;
   color: #111;
   font-family: var(--font-inter, Inter, system-ui, sans-serif);
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 60;
+  margin-top: 64px; /* Push below the fixed navbar */
+  position: relative;
+}
+
+@media (min-width: 768px) {
+  .studio-layout {
+    height: calc(100dvh - 80px);
+    margin-top: 80px;
+  }
 }
 
 @media (min-width: 1024px) {

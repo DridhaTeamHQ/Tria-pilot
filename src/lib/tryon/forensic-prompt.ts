@@ -90,57 +90,29 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
 
   const lines: string[] = []
 
-  // ── BLOCK 1: WHO ──
+  // ── BLOCK 1: WHO (minimal — let images do the talking) ──
   if (input.identityDNA) {
     lines.push(
-      `${personRef}: ${input.identityDNA}${hasFaceReference ? ` Use ${personRef} and ${faceCropRef} as face reference.` : ''}`
+      `${personRef}: ${input.identityDNA}`
     )
   } else {
     lines.push(
       `Photograph the exact person from ${personRef}${hasFaceReference ? ` and ${faceCropRef}` : ''}.`
     )
   }
-  lines.push(`Copy the face holistically from the reference photos. Do not reconstruct it from text. Match the skin exactly as it appears in the reference — same clarity, same texture, no added spots or blemishes.`)
-  if (input.faceForensicAnchor?.trim()) {
-    lines.push(condenseIdentityDirective(`Keep this same facial structure and fullness: ${input.faceForensicAnchor}`, 150))
-  }
-  if (input.eyesAnchor?.trim()) {
-    lines.push(condenseIdentityDirective(`Keep this same eye geometry: ${input.eyesAnchor}`, 110))
-  }
-  if (input.perceivedGender === 'masculine') {
-    lines.push(`Preserve masculine presentation, facial proportions, brow weight, hairline, jaw shape, and skin tone exactly as photographed.`)
-  } else if (input.perceivedGender === 'feminine') {
-    lines.push(`Preserve feminine presentation, facial proportions, nose width, eye size, hairline, natural asymmetry, and skin tone exactly as photographed.`)
-  }
-  if (input.antiDriftDirectives?.trim()) {
-    lines.push(condenseIdentityDirective(input.antiDriftDirectives, 140))
-  }
-  if (input.bodyAnchor?.trim()) {
-    lines.push(condenseIdentityDirective(input.bodyAnchor, 120))
-  }
+  lines.push(`Copy the face from the reference photos exactly. Do not reconstruct from text.`)
   lines.push('')
 
   // ── BLOCK 2: WHAT ──
   lines.push(
-    `OUTFIT: Dress this person in the garment from ${garmentRef}: ${garment}. Match exact colors, patterns, fabric. All clothing from ${garmentRef} only.`
+    `OUTFIT: Dress in the garment from ${garmentRef}: ${garment}. Match exact colors, patterns, fabric.`
   )
-  if (input.garmentOnPersonGuidance?.trim()) {
-    lines.push(condenseIdentityDirective(input.garmentOnPersonGuidance, 140))
-  }
-  if (input.characterSummary?.trim() || input.appearanceSummary?.trim()) {
-    const bodyAndLookAnchor = [input.characterSummary?.trim(), input.appearanceSummary?.trim()]
-      .filter(Boolean)
-      .join('. ')
-    if (bodyAndLookAnchor) {
-      lines.push(condenseIdentityDirective(`Same person and same overall build/look as ${personRef}: ${bodyAndLookAnchor}`, 150))
-    }
-  }
   lines.push('')
 
   // ── BLOCK 3: WHERE ──
   if (isSceneChange && sceneBrief) {
     lines.push(
-      `Scene: ${sceneBrief}. ${lightingBrief ? `Lighting: ${lightingBrief}.` : ''} Keep the face evenly lit — no deep shadows on jaw or cheeks. Photorealistic, ${aspectRatio}.`
+      `Scene: ${sceneBrief}. Photorealistic, ${aspectRatio}.`
     )
   } else {
     lines.push(
@@ -151,7 +123,7 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   // ── RETRY ──
   if (input.retryMode) {
     lines.push('')
-    lines.push(`IMPORTANT: Previous attempt changed the face or body shape slightly. Keep the same face and body build from ${personRef} this time.`)
+    lines.push(`Previous attempt changed the face. Copy the face from ${personRef} exactly this time.`)
   }
 
   return lines.join('\n')
