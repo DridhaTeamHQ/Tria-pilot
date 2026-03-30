@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import { useUser } from '@/lib/react-query/hooks'
 
 const SKIP_PREFIXES = [
   '/login',
@@ -17,50 +18,38 @@ const SKIP_PREFIXES = [
 export default function ProfileCompletionGate() {
   const pathname = usePathname()
   const router = useRouter()
+  const { data: user, isLoading } = useUser()
 
   useEffect(() => {
     if (!pathname) return
     if (SKIP_PREFIXES.some((p) => pathname.startsWith(p))) return
+    if (isLoading || !user) return
 
-    let cancelled = false
-    async function run() {
-      try {
-        const res = await fetch('/api/auth/me', { 
-          cache: 'no-store',
-          credentials: 'include' // Ensure cookies are sent
-        })
-        
-        // If 401, user is not authenticated - that's fine, don't redirect
-        if (res.status === 401) return
-        
-        // If other error, log but don't redirect
-        if (!res.ok) {
-          console.warn('ProfileCompletionGate: /api/auth/me returned', res.status)
-          return
-        }
-        
-        const data = await res.json().catch(() => null)
-        if (cancelled) return
-        
-        // If user needs to complete profile, redirect them
-        if (data?.requiresProfile && data?.next) {
-          console.log('ProfileCompletionGate: Redirecting to', data.next)
-          router.replace(data.next)
-        }
-      } catch (error) {
-        // Silently ignore network errors to avoid console spam
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('ProfileCompletionGate error:', error)
-        }
+    const role = String(user.role || 'INFLUENCER').toUpperCase()
+    const onboardingCompleted = Boolean(user.onboardingCompleted)
+    const approvalStatus = String(user.approvalStatus || 'none').toLowerCase()
+
+    let nextTarget: string | null = null
+
+    if (role === 'BRAND') {
+      if (!onboardingCompleted) {
+        nextTarget = '/onboarding/brand'
       }
+    } else if (!onboardingCompleted) {
+      nextTarget = '/onboarding/influencer'
+    } else if (approvalStatus === 'rejected') {
+      nextTarget = '/onboarding/influencer?mode=resubmit'
+    } else if (approvalStatus !== 'approved') {
+      nextTarget = '/influencer/pending'
     }
-    run()
 
-    return () => {
-      cancelled = true
-    }
-  }, [pathname, router])
+    if (!nextTarget) return
+
+    const nextPathname = nextTarget.split('?')[0]
+    if (pathname === nextPathname || pathname.startsWith(`${nextPathname}/`)) return
+
+    router.replace(nextTarget)
+  }, [isLoading, pathname, router, user])
 
   return null
 }
-

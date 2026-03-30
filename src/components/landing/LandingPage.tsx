@@ -66,13 +66,17 @@ export default function LandingPage() {
     const prefersReducedMotion =
       typeof window !== 'undefined' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const supportsEnhancedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(min-width: 1024px) and (pointer: fine)').matches
+    const shouldUseEnhancedMotion = !prefersReducedMotion && supportsEnhancedMotion
 
     let lenis: LenisLike | null = null
     const tick = (time: number) => {
       lenis?.raf(time * 1000)
     }
 
-    if (!prefersReducedMotion) {
+    if (shouldUseEnhancedMotion) {
       import('@studio-freight/lenis')
         .then(({ default: Lenis }) => {
           lenis = new Lenis({
@@ -87,7 +91,7 @@ export default function LandingPage() {
         .catch(() => {})
     }
 
-    if (prefersReducedMotion) {
+    if (!shouldUseEnhancedMotion) {
       ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
       return () => {}
     }
@@ -306,12 +310,12 @@ export default function LandingPage() {
               className="flex-1 flex items-center justify-center pointer-events-none pb-10"
             >
               <h1
-                className="leading-none font-black tracking-tighter text-[#111111] opacity-90 mix-blend-multiply relative"
+                className="kiwikoo-wordmark leading-none font-black tracking-tighter text-[#111111] opacity-90 mix-blend-multiply relative"
                 style={{ fontSize: 'clamp(2.5rem, 12vw, 15rem)' }}
               >
                 KIWIKOO
                 <span
-                  className="leading-none font-black tracking-tighter text-transparent absolute left-0 top-0"
+                  className="kiwikoo-wordmark leading-none font-black tracking-tighter text-transparent absolute left-0 top-0"
                   style={{ WebkitTextStroke: '1px rgba(17,17,17,0.4)' }}
                 >
                   KIWIKOO
@@ -739,7 +743,7 @@ export default function LandingPage() {
           <h1
             ref={footerHugeRef}
             id="footer-huge-text"
-            className="font-black tracking-tighter text-transparent whitespace-nowrap leading-[0.8] select-none"
+            className="kiwikoo-wordmark font-black tracking-tighter text-transparent whitespace-nowrap leading-[0.8] select-none"
             style={{
               fontSize: 'clamp(2.5rem, 17vw, 16rem)',
               WebkitTextStroke: '3px rgba(17,17,17,0.85)',

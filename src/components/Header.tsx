@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { toast } from 'sonner'
+import { toast } from '@/lib/simple-sonner'
 import {
     Menu,
     X,
@@ -78,19 +78,13 @@ export default function Header() {
                 setAuthToast('logged_out')
             }
 
-            if (typeof window !== 'undefined') {
-                window.location.assign('/')
-                return
-            }
             router.replace('/')
+            router.refresh()
         } catch (error) {
             console.error('Logout error:', error)
             toast.error('Failed to logout cleanly')
-            if (typeof window !== 'undefined') {
-                window.location.assign('/')
-                return
-            }
             router.replace('/')
+            router.refresh()
         }
     }, [isLoggingOut, queryClient, router])
 
@@ -115,7 +109,8 @@ export default function Header() {
         : 'bg-charcoal text-white hover:bg-charcoal/90'
 
     const isActive = (path: string) => pathname === path
-    const isLoggedIn = !isLoading && user !== null && user !== undefined
+    const authResolving = isLoading && typeof user === 'undefined'
+    const isLoggedIn = !authResolving && user !== null && user !== undefined
 
     // Auth page check - return early if true
     if (isAuthPage) {
@@ -178,7 +173,9 @@ export default function Header() {
                     </Link>
 
                     {/* Desktop Navigation */}
-                    {isLoggedIn ? (
+                    {authResolving ? (
+                        <div className="hidden lg:flex items-center gap-1" />
+                    ) : isLoggedIn ? (
                         <nav className="hidden lg:flex items-center gap-1">
                             {links.map((link) => {
                                 const Icon = link.icon
@@ -216,7 +213,11 @@ export default function Header() {
 
                     {/* Right Side Actions */}
                     <div className="flex items-center gap-4">
-                        {isLoggedIn ? (
+                        {authResolving ? (
+                            <div className="hidden lg:flex items-center gap-4">
+                                <div className="h-10 w-28 rounded-full border border-subtle bg-white/60" />
+                            </div>
+                        ) : isLoggedIn ? (
                             <div className="hidden lg:flex items-center gap-3">
                                 <div
                                     className="w-10 h-10 rounded-full bg-gradient-to-br from-peach to-orange-300 flex items-center justify-center text-charcoal font-semibold"
@@ -278,7 +279,7 @@ export default function Header() {
                         className="lg:hidden bg-cream/95 backdrop-blur-md border-t border-subtle"
                     >
                         <div className="container mx-auto px-6 py-6 space-y-3">
-                            {isLoggedIn ? (
+                            {authResolving ? null : isLoggedIn ? (
                                 <>
                                     {/* User Info */}
                                     <div className="flex items-center gap-3 pb-4 border-b border-subtle">

@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { motion, LayoutGroup } from 'framer-motion'
 import Link from 'next/link'
 import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { setAuthToast } from '@/components/auth-toast-bridge'
 import { createClient } from '@/lib/auth-client'
 import { getPublicSiteUrlClient } from '@/lib/site-url'
@@ -30,6 +31,7 @@ export default function LoginPage() {
 
 function LoginContent() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const searchParams = useSearchParams()
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
@@ -134,21 +136,6 @@ function LoginContent() {
   const isLayoutFlipped = userType === 'brand'
   const isUsernameEntry = Boolean(identifier.trim()) && !identifier.includes('@')
 
-  const waitForServerSession = async () => {
-    for (let i = 0; i < 10; i++) {
-      const meRes = await fetch('/api/auth/me', {
-        credentials: 'include',
-        cache: 'no-store',
-      })
-      if (meRes.ok) {
-        const meData = await meRes.json().catch(() => null)
-        if (meData?.user) return meData.user
-      }
-      await new Promise((resolve) => setTimeout(resolve, 300))
-    }
-    return null
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -194,10 +181,14 @@ function LoginContent() {
         return
       }
 
-      const sessionUser = await waitForServerSession()
+      const sessionUser = data?.user ?? null
       const redirectTarget = getSafeRedirectTarget()
-      const nextTarget = getPostLoginDestination(data?.user, redirectTarget)
+      const nextTarget = getPostLoginDestination(sessionUser, redirectTarget)
       const normalizedRecoveryEmail = recoveryEmail.trim().toLowerCase()
+
+      if (sessionUser) {
+        queryClient.setQueryData(['user'], sessionUser)
+      }
 
       if (sessionUser && isSyntheticEmail(sessionUser.email) && normalizedRecoveryEmail) {
         const recoveryRes = await fetch('/api/auth/change-email', {
@@ -227,16 +218,8 @@ function LoginContent() {
         showInfoToast('Profile under review', 'Your creator account is still pending approval.')
       }
 
-      if (typeof window !== 'undefined') {
-        window.location.assign(nextTarget)
-        return
-      }
-
-      if (sessionUser) {
-        router.replace(nextTarget)
-      } else {
-        router.replace('/dashboard')
-      }
+      router.replace(nextTarget)
+      router.refresh()
     } catch (error: unknown) {
       console.error('Login error:', error)
       showErrorToast('Sign-in failed', error instanceof Error ? error.message : 'Please try again.')

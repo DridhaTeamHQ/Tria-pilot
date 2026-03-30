@@ -64,18 +64,14 @@ export default function BrutalNavbar() {
                 localStorage.clear();
                 sessionStorage.clear();
                 setAuthToast("logged_out");
-                window.location.assign("/");
-                return;
             }
 
             router.replace("/");
+            router.refresh();
         } catch (error) {
             console.error("Logout error:", error);
-            if (typeof window !== "undefined") {
-                window.location.assign("/");
-                return;
-            }
             router.replace("/");
+            router.refresh();
         }
     }, [isLoggingOut, queryClient, router]);
 
@@ -149,9 +145,7 @@ export default function BrutalNavbar() {
                     </Link>
 
                     {/* Desktop Navigation - Center */}
-                    {authResolving ? (
-                        <div className="hidden lg:flex flex-1 items-center justify-center" />
-                    ) : isLoggedIn ? (
+                    {authResolving ? null : isLoggedIn ? (
                         <nav className="hidden lg:flex flex-1 items-center justify-center gap-2 lg:gap-3 px-4">
                             {links.map((link) => {
                                 const Icon = link.icon;
@@ -189,11 +183,7 @@ export default function BrutalNavbar() {
 
                     {/* Right Side Actions */}
                     <div className="flex items-center gap-4 shrink-0">
-                        {authResolving ? (
-                            <div className="hidden lg:flex items-center gap-3">
-                                <div className="w-24 h-11 rounded-xl border-2 border-black bg-white animate-pulse" />
-                            </div>
-                        ) : isLoggedIn ? (
+                        {authResolving ? null : isLoggedIn ? (
                             <div className="hidden lg:flex items-center gap-3">
                                 <div className="w-10 h-10 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black">
                                     {showAvatarImage ? (
@@ -262,9 +252,7 @@ export default function BrutalNavbar() {
                         className="lg:hidden bg-[#F9F8F4] border-t-2 border-black"
                     >
                         <div className="container mx-auto px-4 sm:px-6 py-4 space-y-3 max-h-[calc(100dvh-4rem)] overflow-y-auto">
-                            {authResolving ? (
-                                <div className="px-4 py-3 text-sm font-bold text-black/60">Checking session...</div>
-                            ) : isLoggedIn ? (
+                            {authResolving ? null : isLoggedIn ? (
                                 <>
                                     {/* User Info */}
                                     <div className="flex items-center gap-3 pb-4 border-b-2 border-black">
