@@ -174,7 +174,7 @@ body:has(.studio-layout) main.animate-fade-in {
 }
 
 .studio-tab--active-builder {
-  background: var(--kkiwi, #caff33);
+  background: var(--kcoral, #ff8a73);
   color: #111;
 }
 
@@ -328,7 +328,7 @@ body:has(.studio-layout) main.animate-fade-in {
 }
 
 .studio-preset-card--selected {
-  background: var(--kkiwi, #caff33) !important;
+  background: #ffd7c9 !important;
   box-shadow: 7px 7px 0 0 #111 !important;
   transform: scale(1.03) !important;
   border-color: #111;
@@ -519,7 +519,7 @@ body:has(.studio-layout) main.animate-fade-in {
 .studio-promo {
   padding: 14px 16px;
   border-top: 4px solid #111;
-  background: linear-gradient(135deg, var(--kkiwi, #caff33) 0%, #d4ff4d 100%);
+  background: linear-gradient(135deg, var(--kcoral, #ff8a73) 0%, #ffd3bd 100%);
   position: relative;
   overflow: hidden;
 }

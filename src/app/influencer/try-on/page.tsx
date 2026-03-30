@@ -1070,7 +1070,7 @@ function TryOnPageContent() {
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none">
                         <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
                         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.8, opacity: 0 }} className="relative z-[101] flex items-center gap-6 bg-white p-8 border-[4px] border-black shadow-[12px_12px_0_0_#000]">
-                            <div className="p-4 bg-[var(--kkiwi)] border-[4px] border-black shadow-[6px_6px_0_0_#000]"><PartyPopper className="w-10 h-10 text-black" /></div>
+                            <div className="p-4 bg-[#FFD93D] border-[4px] border-black shadow-[6px_6px_0_0_#000]"><PartyPopper className="w-10 h-10 text-black" /></div>
                             <div><h3 className="text-4xl font-black uppercase tracking-tighter">Success!</h3><p className="text-sm font-bold uppercase tracking-widest bg-[var(--kcoral)] border-[2px] border-black px-2 py-1 mt-2 inline-block">Try-on Ready</p></div>
                         </motion.div>
                     </motion.div>
@@ -1115,7 +1115,7 @@ function TryOnPageContent() {
 
                     {/* Identity images status */}
                     {identityImages.length > 0 && (
-                        <div className="flex items-center gap-2 text-[10px] font-bold uppercase border-[2px] border-black bg-[#E5FFE9] px-3 py-2">
+                        <div className="flex items-center gap-2 text-[10px] font-bold uppercase border-[2px] border-black bg-[#FFF1E6] px-3 py-2">
                             <Check className="w-3 h-3" /> {identityImages.length} face ref{identityImages.length > 1 ? 's' : ''} loaded
                         </div>
                     )}
@@ -1147,7 +1147,7 @@ function TryOnPageContent() {
                             />
                             {/* Hover action buttons */}
                             <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                                <button type="button" onClick={handleDownload} disabled={downloading} className="neo-btn w-11 h-11 bg-white border-[3px] border-black shadow-[3px_3px_0_0_#000] hover:bg-[var(--kkiwi)] flex items-center justify-center transition-colors">
+                                <button type="button" onClick={handleDownload} disabled={downloading} className="neo-btn w-11 h-11 bg-white border-[3px] border-black shadow-[3px_3px_0_0_#000] hover:bg-[#FFD93D] flex items-center justify-center transition-colors">
                                     {downloading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
                                 </button>
                                 <button type="button" onClick={() => setShowShareModal(true)} className="neo-btn w-11 h-11 bg-white border-[3px] border-black shadow-[3px_3px_0_0_#000] hover:bg-[var(--kcoral)] flex items-center justify-center transition-colors">
@@ -1176,7 +1176,7 @@ function TryOnPageContent() {
                                 <div className="flex gap-3">
                                     <span className="font-bold text-[10px] border-[2px] border-black bg-[#FFD93D] px-3 py-1.5 shadow-[3px_3px_0_0_#000] uppercase">1. Upload</span>
                                     <span className="font-bold text-[10px] border-[2px] border-black bg-[#FF8C69] px-3 py-1.5 shadow-[3px_3px_0_0_#000] uppercase text-white">2. Style</span>
-                                    <span className="font-bold text-[10px] border-[2px] border-black bg-[var(--kkiwi)] px-3 py-1.5 shadow-[3px_3px_0_0_#000] uppercase">3. Generate</span>
+                                    <span className="font-bold text-[10px] border-[2px] border-black bg-[#FFB39A] px-3 py-1.5 shadow-[3px_3px_0_0_#000] uppercase">3. Generate</span>
                                 </div>
                             </div>
                         </div>
@@ -1191,7 +1191,7 @@ function TryOnPageContent() {
                         </div>
                     )}
                     <button type="button" onClick={handleGenerate} disabled={isGenerateDisabled}
-                        className={`neo-btn flex-1 py-4 text-base font-black uppercase flex items-center justify-center gap-3 border-[4px] border-black transition-all ${isGenerateDisabled ? 'bg-gray-200 text-gray-400 border-gray-400 shadow-none cursor-not-allowed' : 'bg-[#FFD93D] text-black shadow-[6px_6px_0_0_#000] hover:bg-[var(--kkiwi)]'}`}
+                        className={`neo-btn flex-1 py-4 text-base font-black uppercase flex items-center justify-center gap-3 border-[4px] border-black transition-all ${isGenerateDisabled ? 'bg-gray-200 text-gray-400 border-gray-400 shadow-none cursor-not-allowed' : 'bg-[#FFD93D] text-black shadow-[6px_6px_0_0_#000] hover:bg-[var(--kcoral)]'}`}
                     >
                         {loading ? 'Processing...' : retryAfterSeconds > 0 ? `Wait ${retryAfterSeconds}s` : (<><Sparkles className="w-5 h-5" /> Generate Try-On</>)}
                     </button>
@@ -1226,14 +1226,14 @@ function TryOnPageContent() {
                                     <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setPersonImage(''); setPersonImageBase64(''); }} className="z-20 bg-[var(--kcoral)] hover:bg-black hover:text-white border-[4px] border-black p-2 shadow-[4px_4px_0_0_#000] transition-colors"><X className="w-5 h-5" /></button>
                                 </>) : (
                                     <div className="w-full flex-col text-center justify-center items-center gap-1">
-                                        <div className="bg-black text-[var(--kkiwi)] p-2 rounded-full inline-block border-[2px] border-black shadow-[3px_3px_0_0_rgba(17,17,17,0.3)] mb-2"><User className="w-5 h-5" /></div>
+                                        <div className="bg-black text-[var(--kcoral)] p-2 rounded-full inline-block border-[2px] border-black shadow-[3px_3px_0_0_rgba(17,17,17,0.3)] mb-2"><User className="w-5 h-5" /></div>
                                         <div className="font-black uppercase text-sm w-full">Upload Face</div>
                                         <div className="font-bold uppercase text-[9px] text-black/50">Optimal: Clear lighting, front facing</div>
                                     </div>
                                 )}
                             </div>
                             <label className="flex items-center gap-2 text-[10px] font-bold text-black cursor-pointer ml-1 mt-2">
-                                <div className={`w-4 h-4 border-[3px] flex items-center justify-center transition-all ${saveUploadedPersonToProfile ? 'bg-[var(--kkiwi)] border-black shadow-[2px_2px_0_0_#000]' : 'border-black bg-white shadow-none'}`}>
+                                <div className={`w-4 h-4 border-[3px] flex items-center justify-center transition-all ${saveUploadedPersonToProfile ? 'bg-[var(--kcoral)] border-black shadow-[2px_2px_0_0_#000]' : 'border-black bg-white shadow-none'}`}>
                                     {saveUploadedPersonToProfile && <Check className="w-3 h-3 text-black" />}
                                 </div>
                                 <input type="checkbox" className="hidden" checked={saveUploadedPersonToProfile} onChange={(e) => setSaveUploadedPersonToProfile(e.target.checked)} />
