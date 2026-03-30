@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -19,11 +19,10 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react'
-import { useUser, useGenerations } from '@/lib/react-query/hooks'
+import { useGenerations, useProfileStats, useUser } from '@/lib/react-query/hooks'
 import { ShareModal } from '@/components/tryon/ShareModal'
 import { PortalModal } from '@/components/ui/PortalModal'
 import { toast } from '@/lib/simple-sonner'
-import { createClient } from '@/lib/auth-client'
 
 // Animation variants
 const containerVariants = {
@@ -54,8 +53,8 @@ const cardVariants = {
 export default function InfluencerDashboard() {
   const router = useRouter()
   const { data: user, isLoading: userLoading } = useUser()
+  const { data: profileStats, isLoading: statsLoading } = useProfileStats()
   const { data: generations, isLoading: generationsLoading } = useGenerations()
-  const [approvalChecked, setApprovalChecked] = useState(false)
 
   // NOTE: hooks must be declared unconditionally (before any early returns)
   const [selectedGeneration, setSelectedGeneration] = useState<any>(null)
@@ -64,65 +63,40 @@ export default function InfluencerDashboard() {
   const [shareImageUrl, setShareImageUrl] = useState<string | null>(null)
   const [shareImageBase64, setShareImageBase64] = useState<string | undefined>(undefined)
 
-  // Check influencer approval status and onboarding completion
-  // CRITICAL: Server-side checks are primary, but this provides client-side validation
   useEffect(() => {
-    async function checkStatus() {
-      if (!user?.id) return
+    if (userLoading) return
 
-      try {
-        // Fetch profile status from API
-        const profileRes = await fetch('/api/auth/profile-status')
-
-        if (profileRes.status === 401) {
-          console.warn('Session expired or unauthorized, redirecting to login')
-          const supabase = createClient()
-          await supabase.auth.signOut()
-          router.replace('/login')
-          return
-        }
-
-        if (!profileRes.ok) {
-          throw new Error(`Failed to fetch profile status: ${profileRes.status} ${profileRes.statusText}`)
-        }
-
-        const profileData = await profileRes.json()
-
-        // DEFENSIVE: Assert valid state
-        if (!profileData.onboarding_completed) {
-          // Redirect to onboarding if not completed
-          router.replace('/onboarding/influencer')
-          return
-        }
-
-        // Check approval status
-        // Only 'approved' status grants access
-        if (profileData.approval_status === 'rejected') {
-          router.replace('/onboarding/influencer?mode=resubmit')
-          return
-        }
-
-        if (profileData.approval_status !== 'approved') {
-          // Redirect to pending page if not approved
-          router.replace('/influencer/pending')
-          return
-        }
-
-        setApprovalChecked(true)
-      } catch (error) {
-        console.error('Error checking status:', error)
-        // On error, allow access (fail open) - server-side checks are primary
-        setApprovalChecked(true)
-      }
+    if (!user) {
+      router.replace('/login')
+      return
     }
 
-    if (user?.id && user?.role === 'INFLUENCER') {
-      checkStatus()
+    if (user.role !== 'INFLUENCER') {
+      router.replace('/brand/dashboard')
+      return
     }
-  }, [user?.id, user?.role, router])
+
+    if (!user.onboardingCompleted) {
+      router.replace('/onboarding/influencer')
+      return
+    }
+
+    if (user.approvalStatus === 'rejected') {
+      router.replace('/onboarding/influencer?mode=resubmit')
+      return
+    }
+
+    if (user.approvalStatus !== 'approved') {
+      router.replace('/influencer/pending')
+    }
+  }, [router, user, userLoading])
 
   const isDashboardBootstrapping =
-    userLoading || (!user && !approvalChecked) || (!approvalChecked && user?.role === 'INFLUENCER')
+    userLoading ||
+    !user ||
+    user.role !== 'INFLUENCER' ||
+    !user.onboardingCompleted ||
+    user.approvalStatus !== 'approved'
 
   // Show loading while auth or approval state is still resolving
   if (isDashboardBootstrapping) {
@@ -137,14 +111,20 @@ export default function InfluencerDashboard() {
   }
 
   const completedGenerations = generations?.filter((g: any) => g.outputImagePath) || []
-  const generationsCount = generationsLoading ? '...' : completedGenerations.length
+  const statsAreReady = !statsLoading && !!profileStats
+  const dashboardStats = {
+    generations: statsAreReady ? profileStats.generations : generationsLoading ? '...' : completedGenerations.length,
+    portfolioItems: statsAreReady ? profileStats.portfolioItems : '...',
+    collaborations: statsAreReady ? profileStats.collaborations : '...',
+    level: statsAreReady ? profileStats.level : '...',
+  }
 
   // Stats data
   const stats = [
-    { label: 'Try-Ons Generated', value: generationsCount, icon: Sparkles, color: 'bg-peach/20 text-peach' },
-    { label: 'Portfolio Items', value: 0, icon: Camera, color: 'bg-blue-100 text-blue-600' },
-    { label: 'Collaborations', value: 0, icon: Users, color: 'bg-green-100 text-green-600' },
-    { label: 'Profile Views', value: 0, icon: TrendingUp, color: 'bg-purple-100 text-purple-600' },
+    { label: 'Try-Ons Generated', value: dashboardStats.generations, icon: Sparkles, color: 'bg-peach/20 text-peach' },
+    { label: 'Portfolio Items', value: dashboardStats.portfolioItems, icon: Camera, color: 'bg-blue-100 text-blue-600' },
+    { label: 'Collaborations', value: dashboardStats.collaborations, icon: Users, color: 'bg-green-100 text-green-600' },
+    { label: 'Creator Level', value: dashboardStats.level, icon: TrendingUp, color: 'bg-purple-100 text-purple-600' },
   ]
 
   // Quick Actions
@@ -580,9 +560,4 @@ export default function InfluencerDashboard() {
     </div>
   )
 }
-
-
-
-
-
 

@@ -66,13 +66,17 @@ export default function LandingPage() {
     const prefersReducedMotion =
       typeof window !== 'undefined' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const supportsEnhancedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(min-width: 1024px) and (pointer: fine)').matches
+    const shouldUseEnhancedMotion = !prefersReducedMotion && supportsEnhancedMotion
 
     let lenis: LenisLike | null = null
     const tick = (time: number) => {
       lenis?.raf(time * 1000)
     }
 
-    if (!prefersReducedMotion) {
+    if (shouldUseEnhancedMotion) {
       import('@studio-freight/lenis')
         .then(({ default: Lenis }) => {
           lenis = new Lenis({
@@ -87,7 +91,7 @@ export default function LandingPage() {
         .catch(() => {})
     }
 
-    if (prefersReducedMotion) {
+    if (!shouldUseEnhancedMotion) {
       ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
       return () => {}
     }
