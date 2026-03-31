@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 
-const INTRO_MS = 450
+const INTRO_FALLBACK_MS = 1200
 const INTRO_Z = 2147483647
 const INTRO_BG = "#f8a100"
 const INTRO_SESSION_KEY = "kiwikoo:intro-seen:v1"
@@ -46,7 +46,10 @@ export default function InitialSiteLoader() {
     document.body.style.overscrollBehavior = "none"
     document.documentElement.style.overscrollBehavior = "none"
 
+    let dismissed = false
     const dismiss = () => {
+      if (dismissed) return
+      dismissed = true
       setShow(false)
       document.body.style.overflow = originalBodyOverflow
       document.documentElement.style.overflow = originalHtmlOverflow
@@ -54,20 +57,35 @@ export default function InitialSiteLoader() {
       document.documentElement.style.overscrollBehavior = originalHtmlOverscroll
     }
 
-    const t = window.setTimeout(dismiss, INTRO_MS)
     const video = videoRef.current
+    const scheduleDismiss = () => {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(dismiss)
+      })
+    }
+
+    const fallbackTimer = window.setTimeout(dismiss, INTRO_FALLBACK_MS)
     if (video) {
+      video.onloadeddata = scheduleDismiss
+      video.onplaying = scheduleDismiss
+      video.onerror = dismiss
       video.currentTime = 0
       const playPromise = video.play()
       if (playPromise && typeof playPromise.catch === "function") {
-        playPromise.catch(() => {
-          // Keep fallback timeout if autoplay is blocked.
-        })
+        playPromise.catch(dismiss)
+      }
+      if (video.readyState >= 2) {
+        scheduleDismiss()
       }
     }
 
     return () => {
-      window.clearTimeout(t)
+      window.clearTimeout(fallbackTimer)
+      if (video) {
+        video.onloadeddata = null
+        video.onplaying = null
+        video.onerror = null
+      }
       document.body.style.overflow = originalBodyOverflow
       document.documentElement.style.overflow = originalHtmlOverflow
       document.body.style.overscrollBehavior = originalBodyOverscroll
