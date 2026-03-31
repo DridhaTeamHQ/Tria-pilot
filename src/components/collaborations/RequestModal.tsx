@@ -1,11 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { toast } from 'sonner'
+import { toast } from '@/lib/simple-sonner'
 import { X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -28,6 +29,7 @@ export default function RequestModal({
   productName,
   brandId,
 }: RequestModalProps) {
+  const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     budget: '',
@@ -35,6 +37,10 @@ export default function RequestModal({
     goals: '',
     notes: '',
   })
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     if (!isOpen) return
@@ -50,7 +56,7 @@ export default function RequestModal({
     }
   }, [isOpen, onClose])
 
-  if (!isOpen) return null
+  if (!mounted || !isOpen) return null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -98,14 +104,14 @@ export default function RequestModal({
     }
   }
 
-  return (
+  return createPortal(
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className="fixed inset-0 z-[120] flex items-start justify-center overflow-y-auto bg-black/60 p-3 pt-[max(0.75rem,3vh)] backdrop-blur-sm sm:items-center sm:p-5"
+        className="fixed inset-0 z-[300] flex items-center justify-center overflow-y-auto bg-black/60 p-3 py-[max(0.75rem,3vh)] backdrop-blur-sm sm:p-5"
       >
         <motion.div
           initial={{ opacity: 0, scale: 0.96, y: 14 }}
@@ -136,7 +142,7 @@ export default function RequestModal({
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="max-h-[min(78dvh,720px)] overflow-y-auto px-5 py-5 sm:px-6 sm:py-6">
+        <CardContent className="max-h-[min(72dvh,680px)] overflow-y-auto px-5 py-5 sm:px-6 sm:py-6">
           <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
             {brandName && (
               <div>
@@ -206,5 +212,7 @@ export default function RequestModal({
         </motion.div>
       </motion.div>
     </AnimatePresence>
+    ,
+    document.body
   )
 }
