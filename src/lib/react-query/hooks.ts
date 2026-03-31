@@ -157,7 +157,9 @@ export function useFavorites() {
   return useQuery({
     queryKey: ['favorites'],
     queryFn: async () => {
-      const res = await fetch('/api/favorites')
+      const res = await fetch('/api/favorites', {
+        cache: 'no-store',
+      })
       if (!res.ok) throw new Error('Failed to fetch favorites')
       return safeParseResponse(res, 'favorites')
     },
