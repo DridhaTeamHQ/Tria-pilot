@@ -26,7 +26,7 @@ import {
   ShieldCheck,
   ImagePlus
 } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from '@/lib/simple-sonner'
 import Link from 'next/link'
 import { createClient } from '@/lib/auth-client'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
@@ -263,8 +263,13 @@ export default function ProfilePage() {
     setExpanded((prev) => ({ ...prev, [key]: !prev[key] }))
   }
 
+  const publicSlug = (user as any)?.slug || user?.email?.split('@')[0] || ''
+  const publicProfilePath = publicSlug ? `/u/${publicSlug}` : '/profile'
+
   const copyProfileLink = async () => {
-    const url = typeof window !== 'undefined' ? window.location.href : '/profile'
+    const url = typeof window !== 'undefined'
+      ? new URL(publicProfilePath, window.location.origin).toString()
+      : publicProfilePath
 
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
@@ -540,8 +545,6 @@ export default function ProfilePage() {
   const engagementRate = Number(profile?.engagementRate || 0)
   const audienceRate = Number(profile?.audienceRate || 0)
   const hasSocials = Boolean(profile?.socials && Object.keys(profile.socials).length > 0)
-  const publicProfilePath = (user as any)?.slug ? `/u/${(user as any).slug}` : '/profile'
-
   return (
     <div className="min-h-screen bg-[#FDFBF7] pt-28 pb-20">
       <div className="container mx-auto px-4 sm:px-6 max-w-7xl">
