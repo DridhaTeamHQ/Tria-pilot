@@ -1,22 +1,24 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
-import { gsap } from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
-
-gsap.registerPlugin(ScrollTrigger)
+import {
+  ArrowRight,
+  BarChart3,
+  Camera,
+  CircleDollarSign,
+  Megaphone,
+  MessageSquare,
+  Package2,
+  Search,
+  Shirt,
+  Sparkles,
+  Store,
+} from 'lucide-react'
 
 const PF = 'var(--font-plus-jakarta-sans), sans-serif'
 
-type LenisLike = {
-  raf: (timeMs: number) => void
-  on: (event: string, callback: () => void) => void
-  destroy: () => void
-}
-
 export default function LandingPage() {
-  const [audienceView, setAudienceView] = useState<'influencer' | 'brand'>('influencer')
   const [contactForm, setContactForm] = useState({
     name: '',
     email: '',
@@ -32,168 +34,6 @@ export default function LandingPage() {
     message: null,
     kind: null,
   })
-
-  const globalBgRef = useRef<HTMLDivElement>(null)
-  const heroRef = useRef<HTMLElement>(null)
-  const heroImgRef = useRef<HTMLDivElement>(null)
-  const heroTitleRef = useRef<HTMLDivElement>(null)
-  const footerSecRef = useRef<HTMLElement>(null)
-  const footerClipRef = useRef<HTMLDivElement>(null)
-  const footerLabelRef = useRef<HTMLDivElement>(null)
-  const footerHugeRef = useRef<HTMLHeadingElement>(null)
-
-  useEffect(() => {
-    document.documentElement.classList.add('landing-transparent-bg')
-    document.body.classList.add('landing-transparent-bg')
-    return () => {
-      document.documentElement.classList.remove('landing-transparent-bg')
-      document.body.classList.remove('landing-transparent-bg')
-    }
-  }, [])
-
-  useEffect(() => {
-    const globalBg = globalBgRef.current
-    const hero = heroRef.current
-    const heroImg = heroImgRef.current
-    const heroTitle = heroTitleRef.current
-    const footerSec = footerSecRef.current
-    const footerClip = footerClipRef.current
-    const footerLbl = footerLabelRef.current
-    const footerHuge = footerHugeRef.current
-
-    if (!hero) return
-
-    const prefersReducedMotion =
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const supportsEnhancedMotion =
-      typeof window !== 'undefined' &&
-      window.matchMedia('(min-width: 1024px) and (pointer: fine)').matches
-    const shouldUseEnhancedMotion = !prefersReducedMotion && supportsEnhancedMotion
-
-    let lenis: LenisLike | null = null
-    const tick = (time: number) => {
-      lenis?.raf(time * 1000)
-    }
-
-    if (shouldUseEnhancedMotion) {
-      import('@studio-freight/lenis')
-        .then(({ default: Lenis }) => {
-          lenis = new Lenis({
-            duration: 1.2,
-            easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-            smoothWheel: true,
-          })
-          lenis.on('scroll', ScrollTrigger.update)
-          gsap.ticker.add(tick)
-          gsap.ticker.lagSmoothing(0)
-        })
-        .catch(() => {})
-    }
-
-    if (!shouldUseEnhancedMotion) {
-      ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
-      return () => {}
-    }
-
-    if (globalBg) {
-      gsap.to(globalBg, {
-        yPercent: -20,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: document.body,
-          start: 'top top',
-          end: 'bottom bottom',
-          scrub: true,
-          invalidateOnRefresh: true,
-        },
-      })
-    }
-
-    if (heroTitle) {
-      gsap.to(heroTitle, {
-        yPercent: -80,
-        opacity: 0,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: hero,
-          start: 'top top',
-          end: 'bottom top',
-          scrub: 0.5,
-          invalidateOnRefresh: true,
-        },
-      })
-    }
-
-    if (heroImg) {
-      gsap.to(heroImg, {
-        scale: 1.12,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: hero,
-          start: 'top top',
-          end: 'bottom top',
-          scrub: true,
-          invalidateOnRefresh: true,
-        },
-      })
-    }
-
-    if (footerSec && footerClip) {
-      gsap.fromTo(
-        footerClip,
-        { clipPath: 'inset(0% 0% 0% 0%)', borderRadius: '0px' },
-        {
-          clipPath: 'inset(8% 18% 8% 18%)',
-          borderRadius: '24px',
-          ease: 'none',
-          scrollTrigger: {
-            trigger: footerSec,
-            start: 'top bottom',
-            end: 'center center',
-            scrub: true,
-            invalidateOnRefresh: true,
-          },
-        }
-      )
-    }
-
-    if (footerSec && footerLbl) {
-      gsap.to(footerLbl, {
-        opacity: 1,
-        scrollTrigger: {
-          trigger: footerSec,
-          start: 'center center',
-          end: 'bottom center',
-          scrub: true,
-          invalidateOnRefresh: true,
-        },
-      })
-    }
-
-    if (footerHuge) {
-      gsap.from(footerHuge, {
-        yPercent: 40,
-        opacity: 0,
-        ease: 'power3.out',
-        scrollTrigger: {
-          trigger: footerHuge,
-          start: 'top 95%',
-          end: 'bottom bottom',
-          scrub: 1,
-          invalidateOnRefresh: true,
-        },
-      })
-    }
-
-    return () => {
-      try {
-        lenis?.destroy()
-      } catch {}
-      gsap.ticker.remove(tick)
-      ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
-    }
-  }, [])
 
   async function handleContactSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -234,504 +74,233 @@ export default function LandingPage() {
     }
   }
 
-  const audienceContent = {
-    influencer: {
-      label: 'For Influencers',
-      labelColor: '#ff8a73',
-      title: "You've got the style. Why aren't you earning yet?",
-      intro: [
-        "You're already posting.",
-        'Already creating.',
-        'Already building an audience.',
-      ],
-      body:
-        'Now turn that into income. Create AI looks, post instantly, and earn from every click, view, and conversion without shoots, delays, or chasing brands.',
-      ctaLabel: 'Start Creating →',
-      href: '/signup/influencer',
-      accentBg: '#ff8a73',
-    },
-    brand: {
-      label: 'For Brands',
-      labelColor: '#b3f500',
-      title: "Spending on marketing but not seeing real results? There's a smarter way.",
-      intro: ["You don't need more effort.", 'You need better execution.'],
-      body:
-        'Find the right creators, generate high-performing ads, and launch campaigns that actually convert, all powered by AI.',
-      ctaLabel: 'Start Scaling →',
-      href: '/signup/brand',
-      accentBg: '#caff33',
-    },
-  } as const
-
-  const activeAudience = audienceContent[audienceView]
-  const eyebrowClass = 'text-[11px] font-black uppercase tracking-[0.24em] text-gray-500 md:text-xs md:tracking-[0.28em]'
-  const sectionHeadingClass = 'mt-6 text-[clamp(1.85rem,4vw,3.8rem)] font-black leading-[0.95] tracking-tight text-[#111111]'
-  const bodyTextClass = 'text-[15px] md:text-lg font-semibold leading-[1.6] text-gray-700'
-  const bodyCompactClass = 'text-[15px] md:text-base font-semibold leading-[1.65] text-gray-700'
-
   return (
-    <div
-      className="antialiased relative bg-transparent overflow-x-hidden"
-      style={{ fontFamily: PF, color: '#111111' }}
-    >
-      <div className="grid-overlay" aria-hidden />
+    <div className="min-h-screen bg-[#f7f3eb] text-[#151515]" style={{ fontFamily: PF }}>
+      <div className="mx-auto max-w-[1180px] px-4 pb-20 pt-24 sm:px-6 lg:px-8">
+        <section className="overflow-hidden rounded-[34px] border-[3px] border-black bg-[#fffdf8] shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]">
+          <div className="grid gap-8 border-b-[3px] border-black px-5 py-8 md:grid-cols-[0.9fr_1.2fr_0.9fr] md:px-8 md:py-10">
+            <HeroSideCard
+              align="left"
+              title="For Influencers"
+              accent="#ff8a73"
+              eyebrow="Create AI looks"
+              lines={['Post faster', 'Earn through affiliate links', 'Turn content into income']}
+              icon={<Camera className="h-6 w-6" strokeWidth={2.4} />}
+            />
 
-      <div
-        ref={globalBgRef}
-        id="global-bg"
-        className="fixed top-0 left-0 z-[-2] h-screen w-full bg-cover bg-center will-change-transform md:h-[120vh]"
-        style={{
-          backgroundImage:
-            "url('https://images.unsplash.com/photo-1550614000-4b95d85824b0?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80')",
-        }}
-      />
-
-      <div
-        className="landing-main-wrapper w-full max-w-[1600px] mx-auto border-l border-r border-black/10 relative bg-transparent overflow-x-hidden"
-        style={{ marginTop: 'clamp(52px, 8vw, 60px)' }}
-      >
-        <section
-          ref={heroRef}
-          className="relative w-full grid-line-x overflow-hidden flex flex-col justify-end"
-          style={{ height: 'clamp(500px, 90vh, 1200px)' }}
-        >
-          <div
-            ref={heroImgRef}
-            id="hero-img"
-            className="absolute inset-0 hero-bg-image opacity-90"
-            style={{ transform: 'scale(1.05)' }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#faf9f6] via-[#faf9f6]/40 to-transparent" />
-
-          <div className="relative z-10 flex flex-col h-full w-full justify-between">
-            <div
-              ref={heroTitleRef}
-              id="hero-title-container"
-              className="flex-1 flex items-center justify-center pointer-events-none pb-10"
-            >
-              <h1
-                className="kiwikoo-wordmark leading-none font-black tracking-tighter text-[#111111] opacity-90 mix-blend-multiply relative"
-                style={{ fontSize: 'clamp(2.5rem, 12vw, 15rem)' }}
-              >
-                KIWIKOO
-                <span
-                  className="kiwikoo-wordmark leading-none font-black tracking-tighter text-transparent absolute left-0 top-0"
-                  style={{ WebkitTextStroke: '1px rgba(17,17,17,0.4)' }}
-                >
-                  KIWIKOO
-                </span>
+            <div className="flex flex-col items-center justify-center text-center">
+              <div className="inline-flex items-center gap-2 rounded-full border-[2px] border-black bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                <Sparkles className="h-3.5 w-3.5" strokeWidth={2.6} />
+                Fashion commerce, rebuilt
+              </div>
+              <h1 className="mt-5 text-[clamp(2.7rem,8vw,5.6rem)] font-black uppercase leading-[0.88] tracking-[-0.05em] text-black">
+                Where Fashion
+                <br />
+                Meets <span className="text-[#ff8a73]">AI</span>.
               </h1>
-            </div>
-
-            <div className="relative z-20 flex flex-col md:flex-row w-full text-sm bg-[#faf9f6] border-strong-t">
-              <div className="md:w-3/4 p-8 md:p-12 grid-line-y flex flex-col justify-center min-w-0">
-                <h2
-                  className="font-black uppercase tracking-tight leading-[0.94] text-[#111111]"
-                  style={{ fontSize: 'clamp(1.85rem, 4.4vw, 4rem)' }}
-                >
-                  Where Fashion Meets
-                  <br />
-                  <span className="text-[#ff8a73]">AI.</span>
-                  <br />
-                  <span className="text-[#b3f500]">This is where it happens.</span>
-                </h2>
-                <p className="hidden max-w-2xl text-gray-800 text-lg md:text-xl font-bold leading-relaxed">
-                  The ultimate fashion marketplace where influencers and brands connect, create, and convert — powered by AI.
-                </p>
-                <div className="hidden flex-col sm:flex-row gap-4">
-                  <Link
-                    href="/signup/influencer"
-                    className="neo-btn border-2 border-[#111111] bg-[#ff8a73] px-8 py-4 font-extrabold text-[#111111] inline-flex items-center justify-center gap-3 rounded-xl"
-                    style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
-                  >
-                    Join as Influencer
-                  </Link>
-                  <Link
-                    href="/signup/brand"
-                    className="neo-btn border-2 border-[#111111] bg-[#caff33] px-8 py-4 font-extrabold text-[#111111] inline-flex items-center justify-center gap-3 rounded-xl"
-                    style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
-                  >
-                    Join as Brand
-                  </Link>
-                </div>
-              </div>
-              <div className="md:w-1/4 p-8 md:p-10 flex flex-col justify-center bg-white relative overflow-hidden">
-                <div className="hidden absolute -right-4 -top-4 text-9xl font-black text-gray-100 pointer-events-none select-none leading-none">
-                  AI
-                </div>
-                <div className="hidden relative z-10">
-                  <div className="text-[#ff8a73] font-black text-4xl md:text-5xl mb-2 tracking-tighter">
-                    No shoots.
-                  </div>
-                  <div className="text-[#111111] font-bold text-xs tracking-widest uppercase mb-4">
-                    No stress. Just results.
-                  </div>
-                  <div className="w-full h-1 bg-gray-200 rounded-full overflow-hidden">
-                    <div className="w-full h-full bg-[#ff8a73] animate-pulse" />
-                  </div>
-                </div>
-                <div className="relative z-10 space-y-4">
-                  <p className="font-black text-[#111111] uppercase tracking-[0.22em] text-xs">KIWIKOO</p>
-                  <p className="font-bold leading-relaxed text-[15px] md:text-base text-gray-700">
-                    For creators who want to earn. For brands that want to scale.
-                  </p>
-                  <p className="font-bold leading-relaxed text-[15px] md:text-base text-gray-700">
-                    This is where content, commerce, and AI finally work in one flow.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="grid grid-cols-1 md:grid-cols-4 w-full grid-line-x bg-white">
-          <div className="md:col-span-3 p-8 md:p-12 grid-line-y min-w-0 flex flex-col justify-center gap-5 md:gap-6">
-            <div className="space-y-2">
-              <p className={eyebrowClass}>
-                Where Fashion Meets AI
+              <p className="mt-4 max-w-[560px] text-sm font-semibold leading-6 text-black/65 sm:text-base">
+                The ultimate fashion marketplace where influencers and brands create, collaborate, and convert with AI.
               </p>
-              <p className="max-w-2xl text-[1rem] md:text-[1.22rem] font-bold leading-[1.45] text-gray-700">
-                For creators who want to earn.
-                <br />
-                For brands that want to scale.
-                <br />
-                This is where it happens.
-              </p>
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                <Link href="/signup/influencer" className="rounded-full border-[2px] border-black bg-[#ff8a73] px-5 py-3 text-xs font-black uppercase tracking-[0.16em] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none sm:px-6">
+                  Join as influencer
+                </Link>
+                <Link href="/signup/brand" className="rounded-full border-[2px] border-black bg-[#c9ff3d] px-5 py-3 text-xs font-black uppercase tracking-[0.16em] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none sm:px-6">
+                  Join as brand
+                </Link>
+              </div>
+              <div className="mt-6 text-[10px] font-black uppercase tracking-[0.25em] text-black/40 sm:text-xs">
+                This is where it happens
+              </div>
             </div>
-            <p className="max-w-3xl text-[1rem] md:text-[1.22rem] font-bold leading-[1.5] text-[#111111]">
-              The ultimate fashion marketplace where influencers and brands connect, create, and convert — powered by AI.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link
-                href="/signup/influencer"
-                className="neo-btn border-2 border-[#111111] bg-[#ff8a73] px-8 py-4 font-extrabold text-[#111111] inline-flex items-center justify-center gap-3 rounded-xl"
-                style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
-              >
-                Join as Influencer
-              </Link>
-              <Link
-                href="/signup/brand"
-                className="neo-btn border-2 border-[#111111] bg-[#caff33] px-8 py-4 font-extrabold text-[#111111] inline-flex items-center justify-center gap-3 rounded-xl"
-                style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
-              >
-                Join as Brand
-              </Link>
-            </div>
+
+            <HeroSideCard
+              align="right"
+              title="For Brands"
+              accent="#c9ff3d"
+              eyebrow="Launch campaigns"
+              lines={['Discover creators', 'Generate ads with AI', 'Scale what converts']}
+              icon={<Megaphone className="h-6 w-6" strokeWidth={2.4} />}
+            />
           </div>
-          <div className="md:col-span-1 p-8 md:p-10 text-sm text-gray-800 flex flex-col justify-center bg-[#faf9f6] border-t md:border-t-0 border-black/10">
-            <p className="hidden mb-6 font-black text-[#111111] uppercase tracking-widest text-xs">KIWIKOO</p>
-            <p className="hidden mb-6 font-bold leading-relaxed">
-              For creators who want to earn. For brands that want to scale.
-            </p>
-            <p className="hidden font-bold leading-relaxed">
-              This is where content, commerce, and AI finally work in one flow.
-            </p>
-            <div className="relative z-10">
-              <div className="text-[#ff8a73] font-black text-4xl md:text-5xl mb-2 tracking-tighter">
-                No shoots.
-              </div>
-              <div className="text-[#111111] font-bold text-xs tracking-widest uppercase mb-4">
-                No stress. Just results.
-              </div>
-              <div className="w-full h-1 bg-gray-200 rounded-full overflow-hidden">
-                <div className="w-full h-full bg-[#ff8a73] animate-pulse" />
-              </div>
-            </div>
+
+          <div className="grid grid-cols-3 text-center">
+            <StripCell label="No shoots" />
+            <StripCell label="No stress" />
+            <StripCell label="Just results" highlight />
           </div>
         </section>
 
-        <section className="w-full border-strong-b bg-[#faf9f6]">
-          <div className="grid grid-cols-1 md:grid-cols-[1.15fr_0.85fr]">
-            <div className="grid-line-y border-b border-black/10 p-6 sm:p-8 md:border-b-0 md:p-12">
-              <div className="inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-white px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                <span className="h-3.5 w-3.5 rounded-full bg-[#ff8a73] border-2 border-black" />
-                <span className={eyebrowClass}>What We Give You</span>
-              </div>
-              <h3 className={`${sectionHeadingClass} uppercase`}>
-                Everything changes
-                <br />
-                from here.
-              </h3>
+        <section id="features" className="mt-8 rounded-[34px] border-[3px] border-black bg-[#fdfbf6] p-5 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] sm:p-6">
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 rounded-full border-[2px] border-black bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+              <span className="inline-block h-2.5 w-2.5 rounded-full border border-black bg-[#ff8a73]" />
+              Everything changes
             </div>
-            <div className="p-6 sm:p-8 md:p-12">
-              <p className="mt-4 text-[15px] font-semibold leading-[1.65] text-gray-700 md:text-lg">
-                You don&apos;t need more tools.
-                <br />
-                You need something that actually works.
-                <br />
-                <br />
-                Here&apos;s what you can do once you&apos;re in.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section className="w-full border-strong-b bg-[#faf9f6] px-5 py-6 md:px-8 md:py-8">
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-3 md:gap-6">
-          <FeatureCard
-            label="For Creators"
-            labelColor="#ff8a73"
-            title="AI Try-On Studio"
-            description="See yourself in outfits without ever wearing them."
-            bordered
-          />
-          <FeatureCard
-            label="For Creators"
-            labelColor="#ff8a73"
-            title="Affiliate Engine"
-            description="Every post you make? It can earn."
-            bordered
-          />
-          <FeatureCard
-            label="For Brands"
-            labelColor="#b3f500"
-            title="Smart Campaigns"
-            description="Plan it. Launch it. Scale it. All in one flow."
-          />
-          <FeatureCard
-            label="For Brands"
-            labelColor="#b3f500"
-            title="Ad Creator"
-            description="Create ads that people actually stop for."
-            bordered
-          />
-          <FeatureCard
-            label="For Both"
-            labelColor="#d8b4fe"
-            title="Real-Time Analytics"
-            description="No guessing. Just clear numbers."
-            bordered
-          />
-          <FeatureCard
-            label="For Both"
-            labelColor="#d8b4fe"
-            title="Marketplace"
-            description="Find the right products. Connect faster."
-          />
-          </div>
-        </section>
-
-        <section className="w-full border-strong-b bg-white">
-          <div className="mx-auto flex max-w-4xl flex-col items-center px-5 py-7 text-center md:px-8 md:py-12">
-            <div
-              className="inline-flex rounded-full border-[3px] border-black bg-[#faf9f6] p-1.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-              role="tablist"
-              aria-label="Audience switch"
-            >
-              <button
-                type="button"
-                onClick={() => setAudienceView('influencer')}
-                className={`rounded-full px-3.5 py-2 text-[10px] font-black uppercase tracking-[0.16em] transition-colors md:px-5 md:py-2.5 md:text-[11px] ${
-                  audienceView === 'influencer' ? 'text-[#111111]' : 'text-gray-500'
-                }`}
-                style={{
-                  backgroundColor: audienceView === 'influencer' ? '#ff8a73' : 'transparent',
-                }}
-              >
-                Influencers
-              </button>
-              <button
-                type="button"
-                onClick={() => setAudienceView('brand')}
-                className={`rounded-full px-3.5 py-2 text-[10px] font-black uppercase tracking-[0.16em] transition-colors md:px-5 md:py-2.5 md:text-[11px] ${
-                  audienceView === 'brand' ? 'text-[#111111]' : 'text-gray-500'
-                }`}
-                style={{
-                  backgroundColor: audienceView === 'brand' ? '#caff33' : 'transparent',
-                }}
-              >
-                Brands
-              </button>
-            </div>
-
-            <div className="mt-5 w-full rounded-[24px] border-[3px] border-black bg-[#faf9f6] px-5 py-6 text-left shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] md:mt-6 md:rounded-[28px] md:px-8 md:py-9">
-              <div
-                className="text-[10px] font-black uppercase tracking-[0.24em] md:text-xs md:tracking-[0.28em]"
-                style={{ color: activeAudience.labelColor }}
-              >
-                {activeAudience.label}
-              </div>
-              <h3 className="mt-3 max-w-3xl text-[clamp(1.45rem,2.8vw,2.65rem)] font-black leading-[1.02] tracking-tight text-[#111111] md:mt-4">
-                {activeAudience.title}
-              </h3>
-              <div className="mt-4 space-y-1.5 text-[15px] font-semibold leading-[1.65] text-gray-700 md:mt-5 md:space-y-2 md:text-base">
-                {activeAudience.intro.map((line) => (
-                  <p key={line}>{line}</p>
-                ))}
-              </div>
-              <p className={`mt-5 max-w-3xl md:mt-6 ${bodyCompactClass}`}>
-                {activeAudience.body}
-              </p>
-              <Link
-                href={activeAudience.href}
-                className="mt-5 inline-flex items-center gap-3 rounded-xl border-2 border-[#111111] px-4 py-2.5 text-sm font-black text-[#111111] md:mt-6 md:px-5 md:py-3 md:text-base"
-                style={{
-                  boxShadow: '4px 4px 0px rgba(17,17,17,1)',
-                  backgroundColor: activeAudience.accentBg,
-                }}
-              >
-                {activeAudience.ctaLabel}
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        <section className="grid grid-cols-1 md:grid-cols-[1.1fr_0.9fr] w-full border-strong-b bg-[#faf9f6]">
-          <div className="grid-line-y p-8 md:p-12 border-b md:border-b-0 border-black/10">
-            <div className={eyebrowClass}>Why Us</div>
-            <h3 className={sectionHeadingClass}>
-              Built different.
+            <h2 className="mt-4 text-[clamp(2.1rem,6vw,4rem)] font-black uppercase leading-[0.92] tracking-[-0.04em]">
+              Everything Changes
               <br />
-              Because the old way doesn&apos;t work anymore.
-            </h3>
-            <div className="mt-6 space-y-2 text-[15px] md:text-lg font-semibold text-gray-700">
-              <p>You&apos;ve seen how it usually goes.</p>
-              <p>Expensive shoots.</p>
-              <p>Endless coordination.</p>
-              <p>Campaigns that don&apos;t convert.</p>
+              From Here.
+            </h2>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-black/50 sm:text-xs">
+              <PillTag label="For creators" />
+              <PillTag label="For brands" />
+              <PillTag label="Works instantly" />
             </div>
-            <p className={`mt-6 max-w-2xl ${bodyTextClass}`}>
-              We changed that.
-              <br />
-              <br />
-              From creators turning content into income to brands turning reach into revenue, Kiwikoo powers the full journey.
+          </div>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <FeatureTile
+              dark={false}
+              accent="#ff8a73"
+              label="For creators"
+              title="AI Try-On Studio"
+              description="See every outfit on yourself without shoots, waiting, or physical samples."
+              points={['Identity-preserving outputs', 'Fast generation flow']}
+              icon={<Shirt className="h-5 w-5" strokeWidth={2.4} />}
+            />
+            <FeatureTile
+              dark={false}
+              accent="#c9ff3d"
+              label="For brands"
+              title="Smart Campaigns"
+              description="Build creator campaigns with structure, direction, and better performance from day one."
+              points={['Creator matching', 'Clear campaign briefs']}
+              icon={<Search className="h-5 w-5" strokeWidth={2.4} />}
+            />
+            <FeatureTile
+              dark={false}
+              accent="#ff8a73"
+              label="For creators"
+              title="Affiliate Engine"
+              description="Turn the content you already make into an earning system that keeps compounding."
+              points={['Trackable links', 'Creator-first monetization']}
+              icon={<CircleDollarSign className="h-5 w-5" strokeWidth={2.4} />}
+            />
+            <FeatureTile
+              dark={false}
+              accent="#c9ff3d"
+              label="For brands"
+              title="Ad Creator"
+              description="Generate faster, sharper ad concepts without long production cycles."
+              points={['Creative velocity', 'Visual consistency']}
+              icon={<Megaphone className="h-5 w-5" strokeWidth={2.4} />}
+            />
+          </div>
+
+          <AnalyticsPanel />
+        </section>
+
+        <section id="choose-path" className="mt-8 rounded-[34px] border-[3px] border-black bg-white p-5 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] sm:p-6">
+          <div className="text-center">
+            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-black/45">Choose your path</div>
+            <h2 className="mt-3 text-[clamp(1.9rem,5vw,3.3rem)] font-black uppercase leading-[0.95] tracking-[-0.04em]">
+              Choose Your Path
+            </h2>
+            <p className="mx-auto mt-3 max-w-[640px] text-sm font-semibold leading-6 text-black/65 sm:text-base">
+              Creators earn in a smarter way. Brands find real performance without the old friction.
             </p>
           </div>
-          <div className="p-8 md:p-12 bg-white">
-            <div className="grid gap-4">
-              {[
-                'No expensive photoshoots',
-                'No manual creator hunting',
-                'No guesswork in campaigns',
-                'No delays in execution',
-              ].map((item, index) => (
-                <div
-                  key={item}
-                  className="flex items-center gap-4 rounded-2xl border-2 border-[#111111] bg-[#faf9f6] px-5 py-5"
-                  style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
-                >
-                  <div
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-[#111111] font-black text-[#111111]"
-                    style={{ backgroundColor: index % 2 === 0 ? '#caff33' : '#ff8a73' }}
-                  >
-                    {index + 1}
-                  </div>
-                  <div className="text-base font-bold text-[#111111]">{item}</div>
-                </div>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <PathCard
+              accent="bg-[#ff8a73]"
+              tag="For influencers"
+              title="You have the style. Start earning now."
+              body="Create AI looks, post faster, and turn your content into a reliable income stream."
+              href="/signup/influencer"
+              cta="Start creating"
+            />
+            <PathCard
+              accent="bg-[#c9ff3d]"
+              tag="For brands"
+              title="Spending on marketing but not seeing real results?"
+              body="Find better creators, launch faster campaigns, and build performance with less waste."
+              href="/signup/brand"
+              cta="Start scaling"
+            />
+          </div>
+        </section>
+
+        <section id="why-kiwikoo" className="mt-8 rounded-[34px] border-[3px] border-black bg-[#fdfbf6] p-5 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] sm:p-6">
+          <div className="text-center">
+            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-black/45">Why Kiwikoo</div>
+            <h2 className="mt-3 text-[clamp(1.9rem,5vw,3.2rem)] font-black uppercase leading-[0.95] tracking-[-0.04em]">
+              Why Kiwikoo
+            </h2>
+          </div>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            <ReasonCard icon={<Camera className="h-4 w-4" />} title="No shoots" description="No expensive production cycles or sample-based delays." />
+            <ReasonCard icon={<MessageSquare className="h-4 w-4" />} title="No chaos" description="No messy creator-brand coordination or endless back and forth." />
+            <ReasonCard icon={<BarChart3 className="h-4 w-4" />} title="No guesswork" description="No vague campaign outcomes. You get clearer numbers and faster loops." />
+          </div>
+        </section>
+
+        <section className="mt-8 rounded-[28px] border-[3px] border-black bg-[#ff8a73] px-4 py-4 text-center text-[clamp(1.5rem,4vw,2.55rem)] font-black uppercase tracking-[-0.04em] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          CREATE -&gt; SHARE -&gt; EARN
+        </section>
+
+        <section id="contact" className="mt-8 grid gap-0 overflow-hidden rounded-[34px] border-[3px] border-black bg-white shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] md:grid-cols-[0.92fr_1.08fr]">
+          <div className="border-b-[3px] border-black bg-[#f5f2ea] p-6 md:border-b-0 md:border-r-[3px] md:p-8">
+            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-black/45">Contact</div>
+            <h2 className="mt-3 text-[clamp(2rem,5vw,3.6rem)] font-black uppercase leading-[0.95] tracking-[-0.04em]">
+              Got Something In Mind?
+              <br />
+              Let&apos;s Talk.
+            </h2>
+            <p className="mt-4 max-w-[420px] text-sm font-semibold leading-6 text-black/65 sm:text-base">
+              Queries, partnerships, brand collaborations, or creator growth ideas. We&apos;re ready when you are.
+            </p>
+
+            <div className="mt-8 flex flex-wrap gap-2">
+              {['Instagram', 'LinkedIn', 'X', 'Email'].map((item) => (
+                <span key={item} className="inline-flex items-center rounded-full border-[2px] border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  {item}
+                </span>
               ))}
             </div>
-            <div className="mt-8 rounded-2xl border-2 border-[#111111] bg-[#111111] px-6 py-6 text-center text-lg md:text-xl font-black text-white">
-              Create → Share → Earn. That&apos;s it.
-            </div>
           </div>
-        </section>
 
-        <section
-          ref={footerSecRef}
-          id="footer-image-section"
-          className="relative flex h-[58vh] w-full items-end justify-center overflow-hidden bg-white pb-8 grid-line-x sm:h-[68vh] sm:pb-10 md:h-[85vh] md:pb-12"
-        >
-          <div className="absolute inset-0 z-0 bg-[#faf9f6]" />
-          <div
-            ref={footerClipRef}
-            className="footer-clip-image absolute inset-0 z-10"
-            style={{
-              backgroundImage:
-                "url('https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80')",
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-          </div>
-          <div
-            ref={footerLabelRef}
-            id="footer-img-label"
-            className="relative z-20 font-bold text-sm tracking-[0.2em] text-white mt-auto uppercase"
-            style={{ opacity: 0 }}
-          >
-            No shoots. No stress. Just results.
-          </div>
-        </section>
-
-        <section className="grid grid-cols-1 md:grid-cols-[0.9fr_1.1fr] w-full border-strong-b bg-white">
-          <div className="grid-line-y p-8 md:p-12 border-b md:border-b-0 border-black/10">
-            <div className="text-xs font-black uppercase tracking-[0.28em] text-[#111111]">Contact</div>
-            <h3 className="mt-6 text-[clamp(2rem,4vw,4.4rem)] font-black leading-[0.95] tracking-tight text-[#111111]">
-              Got something in mind?
-              <br />
-              Let&apos;s talk.
-            </h3>
-            <div className="mt-6 space-y-2 text-lg font-semibold text-gray-600">
-              <p>Thinking about partnering?</p>
-              <p>Have a question?</p>
-              <p>Or just curious?</p>
-              <p>We&apos;re here.</p>
-            </div>
-            <p className="mt-6 text-base md:text-lg font-semibold leading-relaxed text-gray-700">
-              Queries and collaborations, we&apos;re all in.
-            </p>
-            <div
-              className="mt-8 rounded-2xl border-2 border-[#111111] bg-[#faf9f6] px-6 py-6 text-sm font-bold leading-relaxed text-gray-700"
-              style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
-            >
-              <div className="uppercase tracking-[0.2em] text-xs text-gray-500">Email</div>
-              <a href="mailto:team@dridhatechnologies.com" className="mt-2 block text-lg font-black text-[#111111]">
-                team@dridhatechnologies.com
-              </a>
-              <div className="mt-4 text-sm font-semibold text-gray-500">
-                We usually reply within 24 hours.
-              </div>
-            </div>
-          </div>
-          <div className="p-8 md:p-12 bg-[#faf9f6]">
-            <form onSubmit={handleContactSubmit} className="grid gap-5">
-              <input
-                type="text"
-                placeholder="Name"
+          <div className="bg-[#fbfaf6] p-6 md:p-8">
+            <form onSubmit={handleContactSubmit} className="grid gap-4">
+              <LandingInput
                 value={contactForm.name}
-                onChange={(event) => setContactForm((prev) => ({ ...prev, name: event.target.value }))}
-                className="rounded-2xl border-2 border-[#111111] bg-white px-5 py-4 font-semibold text-[#111111] outline-none"
-                style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
-                required
+                onChange={(value) => setContactForm((prev) => ({ ...prev, name: value }))}
+                placeholder="Your name"
               />
-              <input
+              <LandingInput
                 type="email"
-                placeholder="Email"
                 value={contactForm.email}
-                onChange={(event) => setContactForm((prev) => ({ ...prev, email: event.target.value }))}
-                className="rounded-2xl border-2 border-[#111111] bg-white px-5 py-4 font-semibold text-[#111111] outline-none"
-                style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
-                required
+                onChange={(value) => setContactForm((prev) => ({ ...prev, email: value }))}
+                placeholder="Your email"
               />
               <select
                 value={contactForm.userType}
                 onChange={(event) => setContactForm((prev) => ({ ...prev, userType: event.target.value }))}
-                className="rounded-2xl border-2 border-[#111111] bg-white px-5 py-4 font-semibold text-[#111111] outline-none"
-                style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
+                className="h-12 rounded-[16px] border-[2px] border-black bg-white px-4 text-sm font-bold outline-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
               >
-                <option value="Influencer">You are: Influencer</option>
-                <option value="Brand">You are: Brand</option>
-                <option value="Other">You are: Other</option>
+                <option value="Influencer">You are an influencer</option>
+                <option value="Brand">You are a brand</option>
+                <option value="Other">Other</option>
               </select>
               <textarea
-                placeholder="Message"
                 value={contactForm.message}
                 onChange={(event) => setContactForm((prev) => ({ ...prev, message: event.target.value }))}
-                className="min-h-[180px] rounded-2xl border-2 border-[#111111] bg-white px-5 py-4 font-semibold text-[#111111] outline-none"
-                style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
+                placeholder="Tell us what you need"
+                className="min-h-[150px] rounded-[16px] border-[2px] border-black bg-white px-4 py-3 text-sm font-bold outline-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
                 required
               />
               <button
                 type="submit"
                 disabled={contactState.loading}
-                className="inline-flex items-center justify-center gap-3 rounded-2xl border-2 border-[#111111] bg-[#caff33] px-6 py-4 font-black text-[#111111] disabled:cursor-not-allowed disabled:opacity-70"
-                style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-full border-[2px] border-black bg-[#c9ff3d] px-5 text-xs font-black uppercase tracking-[0.16em] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {contactState.loading ? 'Sending...' : 'Send Message'}
+                {contactState.loading ? 'Sending...' : 'Send message'}
+                <ArrowRight className="h-4 w-4" strokeWidth={2.8} />
               </button>
               {contactState.message ? (
-                <p className={`text-sm font-bold ${contactState.kind === 'error' ? 'text-[#ff4d4f]' : 'text-[#111111]'}`}>
+                <p className={`text-sm font-bold ${contactState.kind === 'error' ? 'text-[#d14343]' : 'text-black/70'}`}>
                   {contactState.message}
                 </p>
               ) : null}
@@ -739,60 +308,27 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="w-full border-strong-b flex justify-center items-center aspect-[5/1] bg-[#caff33] overflow-hidden relative">
-          <h1
-            ref={footerHugeRef}
-            id="footer-huge-text"
-            className="kiwikoo-wordmark font-black tracking-tighter text-transparent whitespace-nowrap leading-[0.8] select-none"
-            style={{
-              fontSize: 'clamp(2.5rem, 17vw, 16rem)',
-              WebkitTextStroke: '3px rgba(17,17,17,0.85)',
-            }}
-          >
-            KIWIKOO
-          </h1>
-        </section>
-
-        <footer className="grid grid-cols-1 md:grid-cols-2 w-full text-xs font-bold uppercase bg-white">
-          <div className="p-8 md:p-12 grid-line-y grid-line-x flex flex-col justify-between gap-10">
-            <div className="flex gap-12">
-              <div>
-                <div className="text-gray-400 mb-4 tracking-widest">Company</div>
-                <ul className="space-y-3 text-[#111111]">
-                  <li><Link href="/about" className="hover:text-[#ff8a73] transition-colors uppercase">About Us</Link></li>
-                  <li><Link href="/register" className="hover:text-[#ff8a73] transition-colors">Join Us</Link></li>
-                  <li><Link href="/#marketplace" className="hover:text-[#ff8a73] transition-colors">Marketplace</Link></li>
-                </ul>
-              </div>
-              <div>
-                <div className="text-gray-400 mb-4 tracking-widest">Legal</div>
-                <ul className="space-y-3 text-[#111111]">
-                  <li><Link href="/privacy" className="hover:text-[#ff8a73] transition-colors uppercase">Privacy Policy</Link></li>
-                  <li><Link href="/terms" className="hover:text-[#ff8a73] transition-colors uppercase">Terms of Use</Link></li>
-                </ul>
-              </div>
+        <footer className="mt-8 rounded-[34px] border-[3px] border-black bg-white px-5 py-6 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] sm:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-5 border-b border-black/15 pb-5">
+            <div className="flex gap-2">
+              {['ig', 'in', 'x', 'mail'].map((item) => (
+                <span key={item} className="inline-flex h-9 w-9 items-center justify-center rounded-full border-[2px] border-black bg-[#f6f2ea] text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  {item}
+                </span>
+              ))}
             </div>
-            <div className="text-gray-500 tracking-widest">(C) 2026 KIWIKOO. ALL RIGHTS RESERVED.</div>
+            <div className="flex flex-wrap gap-5 text-[10px] font-black uppercase tracking-[0.16em] text-black/55 sm:text-xs">
+              <Link href="/about" className="hover:text-black">About us</Link>
+              <Link href="/privacy" className="hover:text-black">Privacy policy</Link>
+              <Link href="/terms" className="hover:text-black">Terms of use</Link>
+              <Link href="/marketplace" className="hover:text-black">Marketplace</Link>
+            </div>
           </div>
-          <div className="p-8 md:p-12 grid-line-x flex flex-col justify-between items-start md:items-end text-left md:text-right bg-[#faf9f6] border-t md:border-t-0 border-black/10 gap-10">
-            <div>
-              <Link
-                href="/register"
-                className="neo-btn border-2 border-[#111111] px-8 py-4 font-black hover:bg-[#111111] hover:text-white transition-colors inline-flex items-center gap-4 group bg-white rounded-xl"
-                style={{ boxShadow: '4px 4px 0px rgba(17,17,17,1)' }}
-              >
-                CREATE ACCOUNT
-                <svg
-                  className="w-5 h-5 group-hover:translate-x-2 transition-transform shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-              </Link>
+          <div className="flex flex-col gap-4 pt-5 md:flex-row md:items-end md:justify-between">
+            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-black/45">
+              Copyright 2026 Kiwikoo. All rights reserved.
             </div>
-            <div className="text-gray-400 tracking-widest">English (US)</div>
+            <div className="kiwikoo-wordmark text-[clamp(3rem,12vw,7rem)] leading-none text-black/8">KIWIKOO</div>
           </div>
         </footer>
       </div>
@@ -800,53 +336,238 @@ export default function LandingPage() {
   )
 }
 
-function FeatureCard({
-  label,
-  labelColor,
+function HeroSideCard({
+  align,
   title,
-  description,
-  bordered = false,
+  accent,
+  eyebrow,
+  lines,
+  icon,
 }: {
-  label: string
-  labelColor: string
+  align: 'left' | 'right'
   title: string
-  description: string
-  bordered?: boolean
+  accent: string
+  eyebrow: string
+  lines: string[]
+  icon: React.ReactNode
 }) {
-  const words = title.split(' ')
-  const head = words.length > 1 ? words.slice(0, -1).join(' ') : title
-  const tail = words.length > 1 ? words[words.length - 1] : null
-
   return (
-    <div
-      className={`flex min-h-[220px] flex-col justify-between rounded-[28px] border-[3px] border-black bg-white p-5 shadow-[6px_6px_0px_0px_rgba(17,17,17,1)] transition-transform duration-200 hover:-translate-y-1 sm:p-6 md:min-h-[260px] md:p-8 ${bordered ? 'md:translate-y-1' : ''}`}
-    >
-      <div className="space-y-5">
-        <div
-          className="inline-flex items-center gap-2 rounded-full border-2 border-black px-3 py-2 text-[10px] font-black uppercase tracking-[0.24em] md:text-xs"
-          style={{ color: '#111111', backgroundColor: `${labelColor}22` }}
-        >
-          <span
-            className="h-3 w-3 rounded-full border-2 border-black"
-            style={{ backgroundColor: labelColor }}
-          />
-          {label}
-        </div>
-        <div>
-          <h4 className="mb-3 break-words text-[clamp(1.6rem,3.1vw,2.15rem)] font-black uppercase tracking-tight leading-[0.94] text-[#111111]">
-            {head}
-            {tail ? <br /> : null}
-            {tail}
-          </h4>
-          <p className="max-w-[26ch] text-[14px] font-semibold leading-relaxed text-gray-600 sm:text-[15px] md:max-w-[28ch] md:text-base">
-            {description}
-          </p>
+    <div className={`flex flex-col justify-between gap-4 ${align === 'right' ? 'md:items-end' : ''}`}>
+      <div className="rounded-[28px] border-[3px] border-black bg-white p-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+        <div className={`flex items-center gap-3 ${align === 'right' ? 'md:flex-row-reverse' : ''}`}>
+          <div className="flex h-14 w-14 items-center justify-center rounded-[18px] border-[2px] border-black" style={{ backgroundColor: accent }}>
+            {icon}
+          </div>
+          <div className={align === 'right' ? 'text-right' : ''}>
+            <div className="text-[10px] font-black uppercase tracking-[0.16em] text-black/45">{eyebrow}</div>
+            <div className="mt-1 text-sm font-black uppercase tracking-[0.16em]">{title}</div>
+          </div>
         </div>
       </div>
-      <div
-        className="mt-6 h-2 rounded-full border-2 border-black"
-        style={{ background: `linear-gradient(90deg, ${labelColor} 0%, ${labelColor}88 100%)` }}
-      />
+      <div className={`rounded-[28px] border-[3px] border-black bg-[linear-gradient(180deg,#ffffff_0%,#f3efe6_100%)] p-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] ${align === 'right' ? 'md:max-w-[260px]' : 'md:max-w-[250px]'}`}>
+        <div className="rounded-[22px] border-[2px] border-dashed border-black/20 bg-white/75 p-4">
+          <div className="mb-4 h-32 rounded-[20px] border-[2px] border-black bg-[radial-gradient(circle_at_top,#ffe4da_0%,#fffdf8_60%)]" />
+          <div className="space-y-2">
+            {lines.map((line) => (
+              <div key={line} className="rounded-full border-[2px] border-black bg-[#f7f4ec] px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em]">
+                {line}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
+  )
+}
+
+function StripCell({ label, highlight = false }: { label: string; highlight?: boolean }) {
+  return (
+    <div className={`border-r-[2px] border-black px-3 py-3 text-[11px] font-black uppercase tracking-[0.16em] last:border-r-0 sm:text-sm ${highlight ? 'bg-[#ff8a73]' : 'bg-[#f1ede3]'}`}>
+      {label}
+    </div>
+  )
+}
+
+function PillTag({ label }: { label: string }) {
+  return (
+    <span className="rounded-full border-[2px] border-black bg-white px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+      {label}
+    </span>
+  )
+}
+
+function FeatureTile({
+  dark,
+  accent,
+  label,
+  title,
+  description,
+  points,
+  icon,
+}: {
+  dark: boolean
+  accent: string
+  label: string
+  title: string
+  description: string
+  points: string[]
+  icon: React.ReactNode
+}) {
+  return (
+    <div className={`rounded-[26px] border-[3px] border-black p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] ${dark ? 'bg-[#111111] text-white' : 'bg-white text-black'}`}>
+      <div className="flex items-center gap-2">
+        <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border-[2px] border-black bg-white text-black">
+          {icon}
+        </span>
+        <span className="rounded-full border-[2px] border-black px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em]" style={{ backgroundColor: accent }}>
+          {label}
+        </span>
+      </div>
+      <h3 className="mt-4 text-[clamp(1.3rem,3vw,2rem)] font-black uppercase leading-[0.95] tracking-[-0.03em]">{title}</h3>
+      <p className={`mt-3 text-sm font-semibold leading-6 ${dark ? 'text-white/75' : 'text-black/65'}`}>{description}</p>
+      <div className="mt-5 space-y-2">
+        {points.map((point) => (
+          <div key={point} className={`rounded-full border-[2px] border-black px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] ${dark ? 'bg-white/10' : 'bg-[#f7f3eb]'}`}>
+            {point}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function AnalyticsPanel() {
+  return (
+    <div className="mt-4 rounded-[28px] border-[3px] border-black bg-[#111111] p-5 text-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">For both</div>
+          <h3 className="mt-2 text-[clamp(1.4rem,3vw,2.3rem)] font-black uppercase leading-[0.95] tracking-[-0.03em]">
+            Real-Time Analytics
+            <br />
+            Marketplace
+          </h3>
+        </div>
+        <div className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#ff8a73]">
+          24.7%
+        </div>
+      </div>
+      <p className="mt-3 max-w-[560px] text-sm font-semibold leading-6 text-white/65">
+        Track performance, spot what is converting, and move faster with cleaner campaign signals.
+      </p>
+      <div className="mt-6 grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
+        <div className="rounded-[22px] border border-white/15 bg-white/5 p-4">
+          <div className="flex items-end gap-3 pt-6">
+            <ChartBar height="42%" color="#ff8a73" />
+            <ChartBar height="70%" color="#ffb49c" />
+            <ChartBar height="58%" color="#f6f2ea" />
+            <ChartBar height="84%" color="#c9ff3d" />
+            <ChartBar height="64%" color="#ffe4da" />
+            <ChartBar height="74%" color="#c9ff3d" />
+          </div>
+        </div>
+        <div className="grid gap-3">
+          <MiniMetric icon={<Store className="h-4 w-4" />} label="Campaign activity" value="+38%" />
+          <MiniMetric icon={<Package2 className="h-4 w-4" />} label="Marketplace conversions" value="12.4k" />
+          <MiniMetric icon={<BarChart3 className="h-4 w-4" />} label="Creator response rate" value="89%" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ChartBar({ height, color }: { height: string; color: string }) {
+  return <div className="flex-1 rounded-t-[10px] border border-black/50" style={{ height, backgroundColor: color }} />
+}
+
+function MiniMetric({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="rounded-[18px] border border-white/15 bg-white/5 px-4 py-3">
+      <div className="flex items-center gap-2 text-white/55">
+        {icon}
+        <span className="text-[10px] font-black uppercase tracking-[0.16em]">{label}</span>
+      </div>
+      <div className="mt-2 text-xl font-black uppercase">{value}</div>
+    </div>
+  )
+}
+
+function PathCard({
+  accent,
+  tag,
+  title,
+  body,
+  href,
+  cta,
+}: {
+  accent: string
+  tag: string
+  title: string
+  body: string
+  href: string
+  cta: string
+}) {
+  return (
+    <div className={`rounded-[28px] border-[3px] border-black p-5 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] ${accent}`}>
+      <div className="inline-flex rounded-full border-[2px] border-black bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+        {tag}
+      </div>
+      <h3 className="mt-4 text-[clamp(1.35rem,3vw,2rem)] font-black leading-[0.98] tracking-[-0.03em]">
+        {title}
+      </h3>
+      <p className="mt-3 max-w-[460px] text-sm font-semibold leading-6 text-black/75">
+        {body}
+      </p>
+      <Link
+        href={href}
+        className="mt-6 inline-flex items-center gap-2 rounded-full border-[2px] border-black bg-white px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.16em] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+      >
+        {cta}
+        <ArrowRight className="h-4 w-4" strokeWidth={2.8} />
+      </Link>
+    </div>
+  )
+}
+
+function ReasonCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode
+  title: string
+  description: string
+}) {
+  return (
+    <div className="rounded-[22px] border-[3px] border-black bg-white p-4 text-center shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]">
+      <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border-[2px] border-black bg-[#fff2ed]">
+        {icon}
+      </div>
+      <div className="mt-3 text-[11px] font-black uppercase tracking-[0.18em]">{title}</div>
+      <p className="mt-2 text-sm font-semibold leading-6 text-black/65">{description}</p>
+    </div>
+  )
+}
+
+function LandingInput({
+  value,
+  onChange,
+  placeholder,
+  type = 'text',
+}: {
+  value: string
+  onChange: (value: string) => void
+  placeholder: string
+  type?: string
+}) {
+  return (
+    <input
+      type={type}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      placeholder={placeholder}
+      className="h-12 rounded-[16px] border-[2px] border-black bg-white px-4 text-sm font-bold outline-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+      required
+    />
   )
 }
