@@ -89,7 +89,7 @@ export default function LandingPage() {
           <div className="pointer-events-none absolute inset-x-0 top-[18px] text-center kiwikoo-wordmark text-[clamp(8rem,19vw,17.9rem)] leading-[1.14] tracking-[0.01em] text-black/[0.04]">
             KIWIKOO
           </div>
-          <div className="pointer-events-none absolute left-2 top-24 h-16 w-24 rounded-full border-2 border-[#ff8c78] border-r-transparent border-b-transparent opacity-90 sm:left-5" />
+          <div className="pointer-events-none absolute left-0 top-[96px] h-[67px] w-[73.8px] border-[2px] border-[#e77142]" />
           <div className="pointer-events-none absolute right-[7.25%] top-[196px] text-black/25">
             <ChartColumn className="h-[56px] w-[56px]" strokeWidth={1.7} />
           </div>
