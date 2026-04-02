@@ -1,59 +1,87 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
-import { Menu } from 'lucide-react'
-import { useUser } from '@/lib/react-query/hooks'
+import { Menu, X } from 'lucide-react'
+
+const navLinkClass =
+  'rounded-full border border-black/20 px-4 py-2 text-[14px] font-extrabold text-black transition hover:border-black'
+
+const loginButtonClass =
+  'inline-flex items-center justify-center rounded-full border-[2px] border-black px-5 py-3 text-[13px] font-black uppercase tracking-[0.06em] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
 
 export default function LandingNav() {
-  const { data: user, isLoading } = useUser()
-  const authResolving = isLoading && typeof user === 'undefined'
-  const isAuthenticated = !authResolving && !!user
-  const primaryHref = isAuthenticated ? '/dashboard' : '/signup/influencer'
-  const primaryLabel = authResolving ? 'Loading' : isAuthenticated ? 'Dashboard' : 'Influencer login'
-  const secondaryHref = isAuthenticated ? '/marketplace' : '/signup/brand'
-  const secondaryLabel = isAuthenticated ? 'Marketplace' : 'Brand login'
+  const [open, setOpen] = useState(false)
 
   return (
     <nav
       aria-label="Main navigation"
-      className="fixed left-0 right-0 top-0 z-50 border-b border-black/10 bg-[#f7f3eb]/92 backdrop-blur-md"
+      className="fixed inset-x-0 top-0 z-50 border-b border-black/15 bg-[#fbfaf6]"
       style={{ fontFamily: 'var(--font-plus-jakarta-sans), sans-serif' }}
     >
-      <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-        <Link href="/" className="kiwikoo-wordmark shrink-0 text-[22px] font-black text-black sm:text-[24px]">
+      <div className="mx-auto flex max-w-[1220px] items-center justify-between gap-4 px-5 py-4 lg:px-8">
+        <Link href="/" className="kiwikoo-wordmark text-[18px] font-black leading-none text-black sm:text-[22px]">
           Kiwikoo
         </Link>
 
-        <div className="hidden items-center gap-5 text-[11px] font-black uppercase tracking-[0.16em] text-black/55 md:flex">
-          <Link href="/" className="hover:text-black">Home</Link>
-          <Link href="/#features" className="hover:text-black">What we do</Link>
-          <Link href="/marketplace" className="hover:text-black">Marketplace</Link>
-          <Link href="/#contact" className="hover:text-black">Contact</Link>
+        <div className="hidden items-center gap-3 lg:flex">
+          <Link href="/" className={navLinkClass}>
+            Home
+          </Link>
+          <Link href="/#what-you-get" className="px-3 py-2 text-[15px] font-bold text-black/70 transition hover:text-black">
+            What You Get
+          </Link>
+          <Link href="/marketplace" className="px-3 py-2 text-[15px] font-bold text-black/70 transition hover:text-black">
+            Marketplace
+          </Link>
+          <Link href="/#contact" className="px-3 py-2 text-[15px] font-bold text-black/70 transition hover:text-black">
+            Contact us
+          </Link>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border-[2px] border-black bg-white text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] md:hidden"
-            aria-label="Menu"
-          >
-            <Menu className="h-4 w-4" strokeWidth={2.6} />
-          </button>
-          <Link
-            href={primaryHref}
-            aria-disabled={authResolving}
-            className={`hidden rounded-full border-[2px] border-black px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition sm:inline-flex ${authResolving ? 'pointer-events-none bg-white opacity-70' : 'bg-[#ff8a73] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'}`}
-          >
-            {primaryLabel}
+        <div className="hidden items-center gap-3 lg:flex">
+          <Link href="/login" className={`${loginButtonClass} bg-[#ff8c78]`}>
+            Influencer Login
           </Link>
-          <Link
-            href={secondaryHref}
-            className="inline-flex rounded-full border-[2px] border-black bg-[#c9ff3d] px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
-          >
-            {secondaryLabel}
+          <Link href="/login?from=brand" className={`${loginButtonClass} bg-white`}>
+            Brand Login
           </Link>
         </div>
+
+        <button
+          type="button"
+          aria-label={open ? 'Close menu' : 'Open menu'}
+          onClick={() => setOpen((prev) => !prev)}
+          className="inline-flex h-11 w-11 items-center justify-center rounded-full border-[2px] border-black bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] lg:hidden"
+        >
+          {open ? <X className="h-5 w-5" strokeWidth={2.5} /> : <Menu className="h-5 w-5" strokeWidth={2.5} />}
+        </button>
       </div>
+
+      {open ? (
+        <div className="border-t border-black/10 bg-[#fbfaf6] px-5 pb-5 lg:hidden">
+          <div className="flex flex-col gap-3 pt-4">
+            <Link href="/" className={navLinkClass} onClick={() => setOpen(false)}>
+              Home
+            </Link>
+            <Link href="/#what-you-get" className={navLinkClass} onClick={() => setOpen(false)}>
+              What You Get
+            </Link>
+            <Link href="/marketplace" className={navLinkClass} onClick={() => setOpen(false)}>
+              Marketplace
+            </Link>
+            <Link href="/#contact" className={navLinkClass} onClick={() => setOpen(false)}>
+              Contact us
+            </Link>
+            <Link href="/login" className={`${loginButtonClass} bg-[#ff8c78]`} onClick={() => setOpen(false)}>
+              Influencer Login
+            </Link>
+            <Link href="/login?from=brand" className={`${loginButtonClass} bg-white`} onClick={() => setOpen(false)}>
+              Brand Login
+            </Link>
+          </div>
+        </div>
+      ) : null}
     </nav>
   )
 }

@@ -1,19 +1,24 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import {
   ArrowRight,
-  BarChart3,
+  BadgeDollarSign,
   Camera,
-  CircleDollarSign,
+  ChartColumn,
+  CircleDot,
+  Facebook,
+  Instagram,
+  Linkedin,
+  Mail,
   Megaphone,
-  MessageSquare,
-  Package2,
-  Search,
-  Shirt,
+  Phone,
+  Rocket,
   Sparkles,
   Store,
+  UserRoundX,
 } from 'lucide-react'
 
 const PF = 'var(--font-plus-jakarta-sans), sans-serif'
@@ -35,7 +40,7 @@ export default function LandingPage() {
     kind: null,
   })
 
-  async function handleContactSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleContactSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setContactState({ loading: true, message: null, kind: null })
 
@@ -75,499 +80,598 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f3eb] text-[#151515]" style={{ fontFamily: PF }}>
-      <div className="mx-auto max-w-[1180px] px-4 pb-20 pt-24 sm:px-6 lg:px-8">
-        <section className="overflow-hidden rounded-[34px] border-[3px] border-black bg-[#fffdf8] shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]">
-          <div className="grid gap-8 border-b-[3px] border-black px-5 py-8 md:grid-cols-[0.9fr_1.2fr_0.9fr] md:px-8 md:py-10">
-            <HeroSideCard
-              align="left"
-              title="For Influencers"
-              accent="#ff8a73"
-              eyebrow="Create AI looks"
-              lines={['Post faster', 'Earn through affiliate links', 'Turn content into income']}
-              icon={<Camera className="h-6 w-6" strokeWidth={2.4} />}
-            />
+    <div className="bg-[#fbfaf6] text-[#111111]" style={{ fontFamily: PF }}>
+      <section className="overflow-hidden border-b-[2px] border-black bg-[#fbfaf6] pt-[86px] lg:pt-[88px]">
+        <div className="relative mx-auto max-w-[1220px] px-0">
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(17,17,17,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(17,17,17,0.06)_1px,transparent_1px)] bg-[size:34px_34px]" />
+          <div className="pointer-events-none absolute inset-x-0 top-5 text-center kiwikoo-wordmark text-[clamp(5rem,22vw,14rem)] leading-none text-black/[0.04]">
+            KIWIKOO
+          </div>
+          <div className="pointer-events-none absolute left-2 top-24 h-16 w-24 rounded-full border-2 border-[#ff8c78] border-r-transparent border-b-transparent opacity-90 sm:left-5" />
+          <div className="pointer-events-none absolute right-8 top-28 text-black/25">
+            <ChartColumn className="h-14 w-14" strokeWidth={1.7} />
+          </div>
 
-            <div className="flex flex-col items-center justify-center text-center">
-              <div className="inline-flex items-center gap-2 rounded-full border-[2px] border-black bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                <Sparkles className="h-3.5 w-3.5" strokeWidth={2.6} />
-                Fashion commerce, rebuilt
-              </div>
-              <h1 className="mt-5 text-[clamp(2.7rem,8vw,5.6rem)] font-black uppercase leading-[0.88] tracking-[-0.05em] text-black">
+          <div className="relative flex min-h-[620px] flex-col items-center justify-between px-4 pb-8 pt-8 text-center sm:px-6 lg:min-h-[650px] lg:px-8">
+            <div className="pointer-events-none absolute bottom-[122px] left-0 hidden w-[250px] xl:block">
+              <Image src="/mascot.png" alt="Influencer mascot" width={290} height={430} className="h-auto w-full object-contain" priority />
+            </div>
+            <div className="pointer-events-none absolute bottom-[96px] right-0 hidden w-[360px] xl:block">
+              <Image src="/assets/auth-bg-brand.png" alt="Brand studio display" width={460} height={470} className="h-auto w-full object-contain" priority />
+            </div>
+
+            <div className="relative z-10 mx-auto max-w-[760px] pt-5">
+              <h1 className="text-[clamp(3rem,8vw,6.3rem)] font-black uppercase leading-[0.9] tracking-[-0.08em] text-black">
                 Where Fashion
                 <br />
-                Meets <span className="text-[#ff8a73]">AI</span>.
+                Meets <span className="text-[#ff8c78]">AI</span>
               </h1>
-              <p className="mt-4 max-w-[560px] text-sm font-semibold leading-6 text-black/65 sm:text-base">
-                The ultimate fashion marketplace where influencers and brands create, collaborate, and convert with AI.
+              <p className="mx-auto mt-5 max-w-[720px] text-[15px] font-semibold leading-7 text-black/55 sm:text-[17px]">
+                The ultimate fashion marketplace where influencers and brands connect,
+                <br className="hidden sm:block" />
+                create, and convert <span className="font-black text-black">— POWERED BY AI.</span>
               </p>
-              <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-                <Link href="/signup/influencer" className="rounded-full border-[2px] border-black bg-[#ff8a73] px-5 py-3 text-xs font-black uppercase tracking-[0.16em] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none sm:px-6">
-                  Join as influencer
+
+              <div className="mt-7 flex flex-wrap items-center justify-center gap-4">
+                <Link
+                  href="/signup/influencer"
+                  className="inline-flex min-w-[250px] items-center justify-center rounded-full border-[2px] border-black bg-[#ff8c78] px-8 py-4 text-[15px] font-black uppercase tracking-[0.03em] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+                >
+                  Join as Influencer
                 </Link>
-                <Link href="/signup/brand" className="rounded-full border-[2px] border-black bg-[#c9ff3d] px-5 py-3 text-xs font-black uppercase tracking-[0.16em] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none sm:px-6">
-                  Join as brand
+                <Link
+                  href="/signup/brand"
+                  className="inline-flex min-w-[220px] items-center justify-center rounded-full border-[2px] border-black bg-[#cbff2e] px-8 py-4 text-[15px] font-black uppercase tracking-[0.03em] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+                >
+                  Join as Brand
                 </Link>
               </div>
-              <div className="mt-6 text-[10px] font-black uppercase tracking-[0.25em] text-black/40 sm:text-xs">
-                This is where it happens
+
+              <div className="mt-10 text-[14px] font-black uppercase tracking-[0.45em] text-black/75">
+                This is where it happens.
               </div>
             </div>
 
-            <HeroSideCard
-              align="right"
-              title="For Brands"
-              accent="#c9ff3d"
-              eyebrow="Launch campaigns"
-              lines={['Discover creators', 'Generate ads with AI', 'Scale what converts']}
-              icon={<Megaphone className="h-6 w-6" strokeWidth={2.4} />}
-            />
+            <div className="relative z-10 mt-10 flex w-full items-end justify-between gap-4 max-xl:flex-col max-xl:items-center xl:mt-0">
+              <HeroBadge
+                className="xl:mb-3 xl:ml-14"
+                icon={<Sparkles className="h-4 w-4" strokeWidth={2.4} />}
+                title="For Influencers"
+                subtitle="who want to earn"
+              />
+              <HeroBadge
+                className="xl:mb-12 xl:mr-14"
+                icon={<Store className="h-4 w-4" strokeWidth={2.4} />}
+                title="For Brands"
+                subtitle="who want to scale"
+              />
+            </div>
           </div>
+        </div>
 
-          <div className="grid grid-cols-3 text-center">
-            <StripCell label="No shoots" />
-            <StripCell label="No stress" />
-            <StripCell label="Just results" highlight />
-          </div>
-        </section>
+        <div className="grid grid-cols-3 border-t-[2px] border-black">
+          <StripCell label="No Shoots" />
+          <StripCell label="No Stress" />
+          <StripCell label="Just Results" active />
+        </div>
+      </section>
 
-        <section id="features" className="mt-8 rounded-[34px] border-[3px] border-black bg-[#fdfbf6] p-5 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] sm:p-6">
+      <section id="what-you-get" className="border-b-[2px] border-black bg-[#f7f7f4] px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
+        <div className="mx-auto max-w-[1220px]">
           <div className="text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border-[2px] border-black bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-              <span className="inline-block h-2.5 w-2.5 rounded-full border border-black bg-[#ff8a73]" />
-              Everything changes
-            </div>
-            <h2 className="mt-4 text-[clamp(2.1rem,6vw,4rem)] font-black uppercase leading-[0.92] tracking-[-0.04em]">
+            <MiniPill label="What You Get" />
+            <h2 className="mt-5 text-[clamp(2.5rem,7vw,5rem)] font-black uppercase leading-[0.92] tracking-[-0.06em] text-black">
               Everything Changes
               <br />
               From Here.
             </h2>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-black/50 sm:text-xs">
-              <PillTag label="For creators" />
-              <PillTag label="For brands" />
-              <PillTag label="Works instantly" />
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+              <InfoPill label="You don’t need more tools." />
+              <InfoPill label="You need something that actually works." />
             </div>
           </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <FeatureTile
-              dark={false}
-              accent="#ff8a73"
-              label="For creators"
-              title="AI Try-On Studio"
-              description="See every outfit on yourself without shoots, waiting, or physical samples."
-              points={['Identity-preserving outputs', 'Fast generation flow']}
-              icon={<Shirt className="h-5 w-5" strokeWidth={2.4} />}
+          <div className="mt-9 grid gap-5 lg:grid-cols-2">
+            <FeaturePanel
+              label="For Creators"
+              accent="coral"
+              items={[
+                {
+                  icon: <Camera className="h-5 w-5" strokeWidth={2.3} />,
+                  title: 'AI Try-On Studio',
+                  description: 'See yourself in outfits - without ever wearing them.',
+                },
+                {
+                  icon: <BadgeDollarSign className="h-5 w-5" strokeWidth={2.3} />,
+                  title: 'Affiliate Engine',
+                  description: 'Every post you make? It can earn.',
+                },
+              ]}
             />
-            <FeatureTile
-              dark={false}
-              accent="#c9ff3d"
-              label="For brands"
-              title="Smart Campaigns"
-              description="Build creator campaigns with structure, direction, and better performance from day one."
-              points={['Creator matching', 'Clear campaign briefs']}
-              icon={<Search className="h-5 w-5" strokeWidth={2.4} />}
-            />
-            <FeatureTile
-              dark={false}
-              accent="#ff8a73"
-              label="For creators"
-              title="Affiliate Engine"
-              description="Turn the content you already make into an earning system that keeps compounding."
-              points={['Trackable links', 'Creator-first monetization']}
-              icon={<CircleDollarSign className="h-5 w-5" strokeWidth={2.4} />}
-            />
-            <FeatureTile
-              dark={false}
-              accent="#c9ff3d"
-              label="For brands"
-              title="Ad Creator"
-              description="Generate faster, sharper ad concepts without long production cycles."
-              points={['Creative velocity', 'Visual consistency']}
-              icon={<Megaphone className="h-5 w-5" strokeWidth={2.4} />}
+
+            <FeaturePanel
+              label="For Brands"
+              accent="lime"
+              items={[
+                {
+                  icon: <Rocket className="h-5 w-5" strokeWidth={2.3} />,
+                  title: 'Smart Campaigns',
+                  description: 'Plan it. Launch it. Scale it. All in one flow.',
+                },
+                {
+                  icon: <Megaphone className="h-5 w-5" strokeWidth={2.3} />,
+                  title: 'Ad Creator',
+                  description: 'Create ads that people actually stop for.',
+                },
+              ]}
             />
           </div>
 
-          <AnalyticsPanel />
-        </section>
+          <div className="mt-5 overflow-hidden rounded-[8px] border-[2px] border-black bg-[#131313] p-6 text-white shadow-[0_8px_0_0_rgba(0,0,0,1)]">
+            <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
+              <div>
+                <MiniPill label="For Both" dark />
+                <div className="mt-8 space-y-7">
+                  <FeatureLine
+                    icon={<ChartColumn className="h-5 w-5" strokeWidth={2.2} />}
+                    title="Real-Time Analytics"
+                    description="No guessing. Just clear numbers."
+                    dark
+                  />
+                  <FeatureLine
+                    icon={<Store className="h-5 w-5" strokeWidth={2.2} />}
+                    title="Marketplace"
+                    description="Find the best in your product discovery space."
+                    dark
+                  />
+                </div>
+              </div>
 
-        <section id="choose-path" className="mt-8 rounded-[34px] border-[3px] border-black bg-white p-5 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] sm:p-6">
+              <div className="rounded-[8px] border border-[#2d5fff] bg-[#171717] p-5">
+                <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.12em] text-white/65">
+                  <span>Market Pulse Analytics</span>
+                  <div className="flex gap-1">
+                    <span className="h-2 w-2 rounded-full bg-[#ff8c78]" />
+                    <span className="h-2 w-2 rounded-full bg-[#cbff2e]" />
+                    <span className="h-2 w-2 rounded-full bg-white/60" />
+                  </div>
+                </div>
+                <div className="relative mt-6 h-[210px] rounded-[6px] bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] p-4">
+                  <div className="absolute right-0 top-0 rounded-bl-[6px] bg-[#3a3130] px-3 py-2 text-right text-[12px] font-black text-[#ff9d85]">
+                    99.9%
+                    <div className="text-[8px] uppercase tracking-[0.12em] text-white/45">Accuracy</div>
+                  </div>
+                  <div className="flex h-full items-end gap-3 pt-7">
+                    {[
+                      { label: 'Jan', height: '28%' },
+                      { label: 'Feb', height: '44%' },
+                      { label: 'Mar', height: '38%' },
+                      { label: 'Apr', height: '63%', tone: 'coral' as const },
+                      { label: 'May', height: '48%' },
+                      { label: 'Jun', height: '54%' },
+                      { label: 'Jul', height: '34%' },
+                      { label: 'Aug', height: '71%' },
+                      { label: 'Sep', height: '80%', tone: 'lime' as const },
+                      { label: 'Oct', height: '50%' },
+                      { label: 'Nov', height: '56%' },
+                      { label: 'Dec', height: '52%' },
+                    ].map((bar) => (
+                      <div key={bar.label} className="flex flex-1 flex-col items-center justify-end gap-2">
+                        <div
+                          className={`w-full rounded-t-[4px] ${bar.tone === 'coral' ? 'bg-[#ff8c78]' : bar.tone === 'lime' ? 'bg-[#cbff2e]' : 'bg-white/10'}`}
+                          style={{ height: bar.height }}
+                        />
+                        <span className="text-[8px] font-bold uppercase tracking-[0.12em] text-white/35">{bar.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="absolute bottom-3 left-3 rounded-[4px] bg-[#232323] px-2 py-1 text-[10px] font-black text-[#cbff2e]">
+                    40M+
+                    <div className="text-[7px] uppercase tracking-[0.12em] text-white/35">Data Points</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b-[2px] border-black bg-white px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
+        <div className="mx-auto max-w-[1220px]">
           <div className="text-center">
-            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-black/45">Choose your path</div>
-            <h2 className="mt-3 text-[clamp(1.9rem,5vw,3.3rem)] font-black uppercase leading-[0.95] tracking-[-0.04em]">
+            <h2 className="text-[clamp(2.25rem,6vw,4.3rem)] font-black uppercase leading-[0.95] tracking-[-0.05em] text-black">
               Choose Your Path
             </h2>
-            <p className="mx-auto mt-3 max-w-[640px] text-sm font-semibold leading-6 text-black/65 sm:text-base">
-              Creators earn in a smarter way. Brands find real performance without the old friction.
+            <p className="mx-auto mt-4 max-w-[620px] text-[17px] font-medium leading-7 text-black/65">
+              Create, earn, or scale - without the usual chaos.
+              <br />
+              One platform. Two paths. Real results.
             </p>
           </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <PathCard
-              accent="bg-[#ff8a73]"
-              tag="For influencers"
-              title="You have the style. Start earning now."
-              body="Create AI looks, post faster, and turn your content into a reliable income stream."
+          <div className="mt-10 grid gap-5 lg:grid-cols-2">
+            <PathPanel
+              label="For Influencers"
+              tone="coral"
+              title="You’ve got the style?
+Start Earning now"
+              body="Create AI looks, post instantly, and earn from every conversion - without shoots, delays, or chasing brands."
               href="/signup/influencer"
-              cta="Start creating"
+              cta="Start Creating"
             />
-            <PathCard
-              accent="bg-[#c9ff3d]"
-              tag="For brands"
-              title="Spending on marketing but not seeing real results?"
-              body="Find better creators, launch faster campaigns, and build performance with less waste."
+            <PathPanel
+              label="For Brands"
+              tone="lime"
+              title="Spending on marketing but not seeing real results?? There’s a smarter way."
+              body="Find the right creators, generate high-performing ads, and launch campaigns that actually convert - all powered by AI."
               href="/signup/brand"
-              cta="Start scaling"
+              cta="Start Scaling"
             />
           </div>
-        </section>
 
-        <section id="why-kiwikoo" className="mt-8 rounded-[34px] border-[3px] border-black bg-[#fdfbf6] p-5 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] sm:p-6">
-          <div className="text-center">
-            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-black/45">Why Kiwikoo</div>
-            <h2 className="mt-3 text-[clamp(1.9rem,5vw,3.2rem)] font-black uppercase leading-[0.95] tracking-[-0.04em]">
-              Why Kiwikoo
+          <div className="mt-14 border-t-[2px] border-black pt-14 text-center">
+            <h2 className="text-[clamp(2rem,5vw,3.6rem)] font-black uppercase leading-none tracking-[-0.04em] text-black">
+              Why <span className="kiwikoo-wordmark align-middle text-[1.05em]">Kiwikoo</span>
             </h2>
+            <p className="mx-auto mt-4 max-w-[650px] text-[17px] leading-7 text-black/55">
+              We’ve eliminated the friction of creative production.
+              <br />
+              Scale your brand with zero overhead.
+            </p>
           </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            <ReasonCard icon={<Camera className="h-4 w-4" />} title="No shoots" description="No expensive production cycles or sample-based delays." />
-            <ReasonCard icon={<MessageSquare className="h-4 w-4" />} title="No chaos" description="No messy creator-brand coordination or endless back and forth." />
-            <ReasonCard icon={<BarChart3 className="h-4 w-4" />} title="No guesswork" description="No vague campaign outcomes. You get clearer numbers and faster loops." />
+          <div className="mt-10 grid gap-5 lg:grid-cols-3">
+            <WhyCard
+              icon={<UserRoundX className="h-5 w-5" strokeWidth={2.2} />}
+              tone="coral"
+              title="No Shoots"
+              body="Skip the expensive phase. Get directly into the high end."
+            />
+            <WhyCard
+              icon={<CircleDot className="h-5 w-5" strokeWidth={2.2} />}
+              tone="lime"
+              title="No Chasing Creators / Brands"
+              body="End the endless email threads. Our platform automates communication easily"
+            />
+            <WhyCard
+              icon={<ChartColumn className="h-5 w-5" strokeWidth={2.2} />}
+              tone="coral"
+              title="No Guesswork"
+              body="Data-driven creative selection. Know exactly what converts before you push live."
+            />
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section className="mt-8 rounded-[28px] border-[3px] border-black bg-[#ff8a73] px-4 py-4 text-center text-[clamp(1.5rem,4vw,2.55rem)] font-black uppercase tracking-[-0.04em] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-          CREATE -&gt; SHARE -&gt; EARN
-        </section>
+      <section className="border-b-[2px] border-black bg-[#ff8c78] px-4 py-4 text-center text-[clamp(2rem,5vw,4.6rem)] font-black uppercase leading-none tracking-[-0.05em] text-black">
+        Create → Share → Earn
+      </section>
 
-        <section id="contact" className="mt-8 grid gap-0 overflow-hidden rounded-[34px] border-[3px] border-black bg-white shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] md:grid-cols-[0.92fr_1.08fr]">
-          <div className="border-b-[3px] border-black bg-[#f5f2ea] p-6 md:border-b-0 md:border-r-[3px] md:p-8">
-            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-black/45">Contact</div>
-            <h2 className="mt-3 text-[clamp(2rem,5vw,3.6rem)] font-black uppercase leading-[0.95] tracking-[-0.04em]">
+      <section id="contact" className="border-b-[2px] border-black bg-[#f5f5f2] px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+        <div className="mx-auto grid max-w-[1220px] gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:gap-12">
+          <div className="pt-4">
+            <div className="text-[12px] font-bold uppercase tracking-[0.12em] text-black/55">Contact</div>
+            <h2 className="mt-4 text-[clamp(2.3rem,5vw,4rem)] font-black uppercase leading-[0.95] tracking-[-0.04em] text-black">
               Got Something In Mind?
               <br />
-              Let&apos;s Talk.
+              Let’s Talk.
             </h2>
-            <p className="mt-4 max-w-[420px] text-sm font-semibold leading-6 text-black/65 sm:text-base">
-              Queries, partnerships, brand collaborations, or creator growth ideas. We&apos;re ready when you are.
-            </p>
 
-            <div className="mt-8 flex flex-wrap gap-2">
-              {['Instagram', 'LinkedIn', 'X', 'Email'].map((item) => (
-                <span key={item} className="inline-flex items-center rounded-full border-[2px] border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                  {item}
+            <div className="mt-10 flex flex-col gap-5 sm:flex-row sm:flex-wrap">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border-[2px] border-black bg-white">
+                  <Mail className="h-4 w-4" strokeWidth={2.2} />
                 </span>
-              ))}
+                <div>
+                  <div className="text-[11px] font-bold uppercase tracking-[0.1em] text-black/45">Email us at</div>
+                  <a href="mailto:team@kiwikoo.com" className="text-[18px] font-semibold text-black/80 underline underline-offset-4">
+                    team@kiwikoo.com
+                  </a>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border-[2px] border-black bg-white">
+                  <Phone className="h-4 w-4" strokeWidth={2.2} />
+                </span>
+                <div>
+                  <div className="text-[11px] font-bold uppercase tracking-[0.1em] text-black/45">Contact number</div>
+                  <div className="text-[18px] font-semibold text-black/80">+91 89775 33164</div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="bg-[#fbfaf6] p-6 md:p-8">
+          <div className="border-[2px] border-[#2d5fff] bg-white p-4 shadow-[0_8px_0_0_rgba(0,0,0,1)] sm:p-5">
             <form onSubmit={handleContactSubmit} className="grid gap-4">
-              <LandingInput
+              <FormField
+                label="Name"
                 value={contactForm.name}
                 onChange={(value) => setContactForm((prev) => ({ ...prev, name: value }))}
-                placeholder="Your name"
+                placeholder="Anil Kumar Pitta"
               />
-              <LandingInput
+              <FormField
                 type="email"
+                label="Email"
                 value={contactForm.email}
                 onChange={(value) => setContactForm((prev) => ({ ...prev, email: value }))}
-                placeholder="Your email"
+                placeholder="anil@dridhatechnologies.com"
               />
-              <select
-                value={contactForm.userType}
-                onChange={(event) => setContactForm((prev) => ({ ...prev, userType: event.target.value }))}
-                className="h-12 rounded-[16px] border-[2px] border-black bg-white px-4 text-sm font-bold outline-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-              >
-                <option value="Influencer">You are an influencer</option>
-                <option value="Brand">You are a brand</option>
-                <option value="Other">Other</option>
-              </select>
-              <textarea
-                value={contactForm.message}
-                onChange={(event) => setContactForm((prev) => ({ ...prev, message: event.target.value }))}
-                placeholder="Tell us what you need"
-                className="min-h-[150px] rounded-[16px] border-[2px] border-black bg-white px-4 py-3 text-sm font-bold outline-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-                required
-              />
+              <div>
+                <div className="mb-2 text-[11px] font-black uppercase tracking-[0.12em] text-black/65">You Are</div>
+                <select
+                  value={contactForm.userType}
+                  onChange={(event) => setContactForm((prev) => ({ ...prev, userType: event.target.value }))}
+                  className="h-12 w-full rounded-[6px] border-[2px] border-black bg-white px-4 text-[14px] font-semibold text-black outline-none"
+                >
+                  <option value="Influencer">Influencer</option>
+                  <option value="Brand">Brand</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <div className="mb-2 text-[11px] font-black uppercase tracking-[0.12em] text-black/65">Tell Us About It</div>
+                <textarea
+                  value={contactForm.message}
+                  onChange={(event) => setContactForm((prev) => ({ ...prev, message: event.target.value }))}
+                  placeholder="Your message goes here..."
+                  className="min-h-[150px] w-full rounded-[6px] border-[2px] border-black bg-white px-4 py-3 text-[14px] font-medium text-black outline-none"
+                  required
+                />
+              </div>
               <button
                 type="submit"
                 disabled={contactState.loading}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-full border-[2px] border-black bg-[#c9ff3d] px-5 text-xs font-black uppercase tracking-[0.16em] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none disabled:cursor-not-allowed disabled:opacity-70"
+                className="mt-2 inline-flex h-12 items-center justify-center gap-2 rounded-full border-[2px] border-black bg-[#cbff2e] px-6 text-[13px] font-black uppercase tracking-[0.05em] shadow-[0_4px_0_0_rgba(0,0,0,1)] transition hover:translate-y-[2px] hover:shadow-none disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {contactState.loading ? 'Sending...' : 'Send message'}
-                <ArrowRight className="h-4 w-4" strokeWidth={2.8} />
+                {contactState.loading ? 'Sending...' : 'Send Message'}
+                <ArrowRight className="h-4 w-4" strokeWidth={2.6} />
               </button>
               {contactState.message ? (
-                <p className={`text-sm font-bold ${contactState.kind === 'error' ? 'text-[#d14343]' : 'text-black/70'}`}>
+                <p className={`text-[13px] font-semibold ${contactState.kind === 'error' ? 'text-[#cf3d3d]' : 'text-black/65'}`}>
                   {contactState.message}
                 </p>
               ) : null}
             </form>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <footer className="mt-8 rounded-[34px] border-[3px] border-black bg-white px-5 py-6 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] sm:px-6">
-          <div className="flex flex-wrap items-center justify-between gap-5 border-b border-black/15 pb-5">
-            <div className="flex gap-2">
-              {['ig', 'in', 'x', 'mail'].map((item) => (
-                <span key={item} className="inline-flex h-9 w-9 items-center justify-center rounded-full border-[2px] border-black bg-[#f6f2ea] text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                  {item}
+      <footer className="relative overflow-hidden bg-[#fbfaf6] px-4 py-10 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-[1220px] flex-col gap-8">
+          <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+            <div className="flex items-center gap-3">
+              {[
+                { icon: <Facebook className="h-4 w-4" strokeWidth={2.2} />, label: 'Facebook' },
+                { icon: <Instagram className="h-4 w-4" strokeWidth={2.2} />, label: 'Instagram' },
+                { icon: <CircleDot className="h-4 w-4" strokeWidth={2.2} />, label: 'X' },
+                { icon: <Linkedin className="h-4 w-4" strokeWidth={2.2} />, label: 'LinkedIn' },
+              ].map((item) => (
+                <span
+                  key={item.label}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border-[2px] border-black bg-white"
+                  aria-label={item.label}
+                >
+                  {item.icon}
                 </span>
               ))}
             </div>
-            <div className="flex flex-wrap gap-5 text-[10px] font-black uppercase tracking-[0.16em] text-black/55 sm:text-xs">
-              <Link href="/about" className="hover:text-black">About us</Link>
-              <Link href="/privacy" className="hover:text-black">Privacy policy</Link>
-              <Link href="/terms" className="hover:text-black">Terms of use</Link>
-              <Link href="/marketplace" className="hover:text-black">Marketplace</Link>
+
+            <div className="grid gap-6 text-[12px] font-bold uppercase tracking-[0.08em] text-black/65 sm:grid-cols-3 sm:gap-10">
+              <div>
+                <div className="mb-2 text-black/35">Company</div>
+                <div className="space-y-2 text-black">
+                  <Link href="/about" className="block hover:underline">About Us</Link>
+                  <Link href="/signup/influencer" className="block hover:underline">Join Us</Link>
+                  <Link href="/marketplace" className="block hover:underline">Marketplace</Link>
+                </div>
+              </div>
+              <div>
+                <div className="mb-2 text-black/35">Legal</div>
+                <div className="space-y-2 text-black">
+                  <Link href="/privacy" className="block hover:underline">Privacy Policy</Link>
+                  <Link href="/terms" className="block hover:underline">Terms of Use</Link>
+                </div>
+              </div>
+              <div className="space-y-2 text-right max-sm:text-left">
+                <div>(C) 2026 DRIDHATECHNOLOGIES. ALL RIGHTS RESERVED.</div>
+                <div>ENGLISH (US)</div>
+              </div>
             </div>
           </div>
-          <div className="flex flex-col gap-4 pt-5 md:flex-row md:items-end md:justify-between">
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-black/45">
-              Copyright 2026 Kiwikoo. All rights reserved.
-            </div>
-            <div className="kiwikoo-wordmark text-[clamp(3rem,12vw,7rem)] leading-none text-black/8">KIWIKOO</div>
-          </div>
-        </footer>
-      </div>
+        </div>
+
+        <div className="pointer-events-none mx-auto mt-8 max-w-[1220px] kiwikoo-wordmark text-[clamp(4.8rem,20vw,12rem)] leading-none text-black/[0.04]">
+          KIWIKOO
+        </div>
+      </footer>
     </div>
   )
 }
 
-function HeroSideCard({
-  align,
-  title,
-  accent,
-  eyebrow,
-  lines,
+function HeroBadge({
   icon,
+  title,
+  subtitle,
+  className = '',
 }: {
-  align: 'left' | 'right'
+  icon: ReactNode
   title: string
-  accent: string
-  eyebrow: string
-  lines: string[]
-  icon: React.ReactNode
+  subtitle: string
+  className?: string
 }) {
   return (
-    <div className={`flex flex-col justify-between gap-4 ${align === 'right' ? 'md:items-end' : ''}`}>
-      <div className="rounded-[28px] border-[3px] border-black bg-white p-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-        <div className={`flex items-center gap-3 ${align === 'right' ? 'md:flex-row-reverse' : ''}`}>
-          <div className="flex h-14 w-14 items-center justify-center rounded-[18px] border-[2px] border-black" style={{ backgroundColor: accent }}>
-            {icon}
-          </div>
-          <div className={align === 'right' ? 'text-right' : ''}>
-            <div className="text-[10px] font-black uppercase tracking-[0.16em] text-black/45">{eyebrow}</div>
-            <div className="mt-1 text-sm font-black uppercase tracking-[0.16em]">{title}</div>
-          </div>
-        </div>
-      </div>
-      <div className={`rounded-[28px] border-[3px] border-black bg-[linear-gradient(180deg,#ffffff_0%,#f3efe6_100%)] p-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] ${align === 'right' ? 'md:max-w-[260px]' : 'md:max-w-[250px]'}`}>
-        <div className="rounded-[22px] border-[2px] border-dashed border-black/20 bg-white/75 p-4">
-          <div className="mb-4 h-32 rounded-[20px] border-[2px] border-black bg-[radial-gradient(circle_at_top,#ffe4da_0%,#fffdf8_60%)]" />
-          <div className="space-y-2">
-            {lines.map((line) => (
-              <div key={line} className="rounded-full border-[2px] border-black bg-[#f7f4ec] px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em]">
-                {line}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+    <div className={`rounded-[8px] border-[2px] border-black bg-white px-4 py-4 text-left shadow-[0_6px_0_0_rgba(0,0,0,1)] ${className}`}>
+      <div className="mb-2 text-black">{icon}</div>
+      <div className="text-[16px] font-black uppercase leading-tight text-black">{title}</div>
+      <div className="text-[14px] font-medium leading-tight text-black/65">{subtitle}</div>
     </div>
   )
 }
 
-function StripCell({ label, highlight = false }: { label: string; highlight?: boolean }) {
+function StripCell({ label, active = false }: { label: string; active?: boolean }) {
   return (
-    <div className={`border-r-[2px] border-black px-3 py-3 text-[11px] font-black uppercase tracking-[0.16em] last:border-r-0 sm:text-sm ${highlight ? 'bg-[#ff8a73]' : 'bg-[#f1ede3]'}`}>
+    <div
+      className={`border-r-[2px] border-black px-3 py-4 text-center text-[clamp(1.3rem,3vw,2.15rem)] font-black uppercase leading-none tracking-[-0.04em] text-black last:border-r-0 ${
+        active ? 'bg-[#ff8c78]' : 'bg-[#f2f0eb] text-black/35'
+      }`}
+    >
       {label}
     </div>
   )
 }
 
-function PillTag({ label }: { label: string }) {
+function MiniPill({ label, dark = false }: { label: string; dark?: boolean }) {
   return (
-    <span className="rounded-full border-[2px] border-black bg-white px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+    <span
+      className={`inline-flex items-center rounded-full border-[2px] px-4 py-1 text-[11px] font-black uppercase tracking-[0.12em] ${
+        dark ? 'border-white/15 bg-[#111111] text-white/90' : 'border-black/45 bg-white text-black/75'
+      }`}
+    >
       {label}
     </span>
   )
 }
 
-function FeatureTile({
-  dark,
-  accent,
+function InfoPill({ label }: { label: string }) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full border-[2px] border-black/30 bg-white px-4 py-2 text-[15px] font-medium text-black/75">
+      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-black/30 bg-[#ff8c78]">
+        <CircleDot className="h-3 w-3 text-white" strokeWidth={2.5} />
+      </span>
+      {label}
+    </span>
+  )
+}
+
+function FeaturePanel({
   label,
-  title,
-  description,
-  points,
-  icon,
+  accent,
+  items,
 }: {
-  dark: boolean
-  accent: string
   label: string
-  title: string
-  description: string
-  points: string[]
-  icon: React.ReactNode
+  accent: 'coral' | 'lime'
+  items: { icon: ReactNode; title: string; description: string }[]
 }) {
   return (
-    <div className={`rounded-[26px] border-[3px] border-black p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] ${dark ? 'bg-[#111111] text-white' : 'bg-white text-black'}`}>
-      <div className="flex items-center gap-2">
-        <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border-[2px] border-black bg-white text-black">
-          {icon}
-        </span>
-        <span className="rounded-full border-[2px] border-black px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em]" style={{ backgroundColor: accent }}>
-          {label}
-        </span>
-      </div>
-      <h3 className="mt-4 text-[clamp(1.3rem,3vw,2rem)] font-black uppercase leading-[0.95] tracking-[-0.03em]">{title}</h3>
-      <p className={`mt-3 text-sm font-semibold leading-6 ${dark ? 'text-white/75' : 'text-black/65'}`}>{description}</p>
-      <div className="mt-5 space-y-2">
-        {points.map((point) => (
-          <div key={point} className={`rounded-full border-[2px] border-black px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] ${dark ? 'bg-white/10' : 'bg-[#f7f3eb]'}`}>
-            {point}
-          </div>
+    <div className={`rounded-[8px] border-[2px] border-black bg-white p-5 shadow-[0_6px_0_0_rgba(0,0,0,1)] ${accent === 'coral' ? 'bg-[linear-gradient(180deg,#fff_0%,#fff3ee_100%)]' : 'bg-[linear-gradient(180deg,#fff_0%,#f7ffe3_100%)]'}`}>
+      <MiniPill label={label} />
+      <div className="mt-6 space-y-7">
+        {items.map((item) => (
+          <FeatureLine
+            key={item.title}
+            icon={item.icon}
+            title={item.title}
+            description={item.description}
+          />
         ))}
       </div>
     </div>
   )
 }
 
-function AnalyticsPanel() {
+function FeatureLine({
+  icon,
+  title,
+  description,
+  dark = false,
+}: {
+  icon: ReactNode
+  title: string
+  description: string
+  dark?: boolean
+}) {
   return (
-    <div className="mt-4 rounded-[28px] border-[3px] border-black bg-[#111111] p-5 text-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <div className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">For both</div>
-          <h3 className="mt-2 text-[clamp(1.4rem,3vw,2.3rem)] font-black uppercase leading-[0.95] tracking-[-0.03em]">
-            Real-Time Analytics
-            <br />
-            Marketplace
-          </h3>
-        </div>
-        <div className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#ff8a73]">
-          24.7%
-        </div>
-      </div>
-      <p className="mt-3 max-w-[560px] text-sm font-semibold leading-6 text-white/65">
-        Track performance, spot what is converting, and move faster with cleaner campaign signals.
-      </p>
-      <div className="mt-6 grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-[22px] border border-white/15 bg-white/5 p-4">
-          <div className="flex items-end gap-3 pt-6">
-            <ChartBar height="42%" color="#ff8a73" />
-            <ChartBar height="70%" color="#ffb49c" />
-            <ChartBar height="58%" color="#f6f2ea" />
-            <ChartBar height="84%" color="#c9ff3d" />
-            <ChartBar height="64%" color="#ffe4da" />
-            <ChartBar height="74%" color="#c9ff3d" />
-          </div>
-        </div>
-        <div className="grid gap-3">
-          <MiniMetric icon={<Store className="h-4 w-4" />} label="Campaign activity" value="+38%" />
-          <MiniMetric icon={<Package2 className="h-4 w-4" />} label="Marketplace conversions" value="12.4k" />
-          <MiniMetric icon={<BarChart3 className="h-4 w-4" />} label="Creator response rate" value="89%" />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function ChartBar({ height, color }: { height: string; color: string }) {
-  return <div className="flex-1 rounded-t-[10px] border border-black/50" style={{ height, backgroundColor: color }} />
-}
-
-function MiniMetric({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="rounded-[18px] border border-white/15 bg-white/5 px-4 py-3">
-      <div className="flex items-center gap-2 text-white/55">
+    <div className="flex items-start gap-4">
+      <span className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-[2px] ${dark ? 'border-white/35 bg-black text-white' : 'border-black bg-white text-black'}`}>
         {icon}
-        <span className="text-[10px] font-black uppercase tracking-[0.16em]">{label}</span>
+      </span>
+      <div>
+        <div className={`text-[22px] font-bold leading-tight ${dark ? 'text-white' : 'text-black'}`}>{title}</div>
+        <div className={`mt-1 text-[16px] leading-6 ${dark ? 'text-white/65' : 'text-black/65'}`}>{description}</div>
       </div>
-      <div className="mt-2 text-xl font-black uppercase">{value}</div>
     </div>
   )
 }
 
-function PathCard({
-  accent,
-  tag,
+function PathPanel({
+  label,
+  tone,
   title,
   body,
   href,
   cta,
 }: {
-  accent: string
-  tag: string
+  label: string
+  tone: 'coral' | 'lime'
   title: string
   body: string
   href: string
   cta: string
 }) {
   return (
-    <div className={`rounded-[28px] border-[3px] border-black p-5 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] ${accent}`}>
-      <div className="inline-flex rounded-full border-[2px] border-black bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-        {tag}
-      </div>
-      <h3 className="mt-4 text-[clamp(1.35rem,3vw,2rem)] font-black leading-[0.98] tracking-[-0.03em]">
+    <div className={`rounded-[10px] border-[2px] border-black p-5 shadow-[0_6px_0_0_rgba(0,0,0,1)] ${tone === 'coral' ? 'bg-[#ff8c78]' : 'bg-[#cbff2e]'}`}>
+      <MiniPill label={label} />
+      <h3 className="mt-6 whitespace-pre-line text-[clamp(1.9rem,3vw,3rem)] font-bold leading-[1.05] tracking-[-0.04em] text-black">
         {title}
       </h3>
-      <p className="mt-3 max-w-[460px] text-sm font-semibold leading-6 text-black/75">
-        {body}
-      </p>
+      <p className="mt-4 max-w-[520px] text-[17px] leading-7 text-black/80">{body}</p>
       <Link
         href={href}
-        className="mt-6 inline-flex items-center gap-2 rounded-full border-[2px] border-black bg-white px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.16em] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+        className="mt-7 inline-flex items-center justify-center gap-2 rounded-full border-[2px] border-black bg-white px-6 py-3 text-[15px] font-black uppercase tracking-[0.04em] shadow-[0_4px_0_0_rgba(0,0,0,1)] transition hover:translate-y-[2px] hover:shadow-none"
       >
         {cta}
-        <ArrowRight className="h-4 w-4" strokeWidth={2.8} />
+        <ArrowRight className="h-4 w-4" strokeWidth={2.7} />
       </Link>
     </div>
   )
 }
 
-function ReasonCard({
+function WhyCard({
   icon,
+  tone,
   title,
-  description,
+  body,
 }: {
-  icon: React.ReactNode
+  icon: ReactNode
+  tone: 'coral' | 'lime'
   title: string
-  description: string
+  body: string
 }) {
   return (
-    <div className="rounded-[22px] border-[3px] border-black bg-white p-4 text-center shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]">
-      <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border-[2px] border-black bg-[#fff2ed]">
+    <div className="rounded-[10px] border-[2px] border-black bg-white p-5 shadow-[0_6px_0_0_rgba(0,0,0,1)]">
+      <div className={`inline-flex h-12 w-12 items-center justify-center rounded-[8px] border-[2px] border-black ${tone === 'coral' ? 'bg-[#ff8c78]' : 'bg-[#cbff2e]'}`}>
         {icon}
       </div>
-      <div className="mt-3 text-[11px] font-black uppercase tracking-[0.18em]">{title}</div>
-      <p className="mt-2 text-sm font-semibold leading-6 text-black/65">{description}</p>
+      <div className="mt-4 text-[20px] font-black uppercase leading-tight text-black">{title}</div>
+      <p className="mt-2 text-[16px] leading-7 text-black/55">{body}</p>
     </div>
   )
 }
 
-function LandingInput({
+function FormField({
+  label,
   value,
   onChange,
   placeholder,
   type = 'text',
 }: {
+  label: string
   value: string
   onChange: (value: string) => void
   placeholder: string
   type?: string
 }) {
   return (
-    <input
-      type={type}
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      placeholder={placeholder}
-      className="h-12 rounded-[16px] border-[2px] border-black bg-white px-4 text-sm font-bold outline-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-      required
-    />
+    <div>
+      <div className="mb-2 text-[11px] font-black uppercase tracking-[0.12em] text-black/65">{label}</div>
+      <input
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className="h-12 w-full rounded-[6px] border-[2px] border-black bg-white px-4 text-[14px] font-medium text-black outline-none"
+        required
+      />
+    </div>
   )
 }
