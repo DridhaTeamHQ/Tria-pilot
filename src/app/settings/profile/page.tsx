@@ -3,11 +3,10 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { toast } from 'sonner'
+import { toast } from '@/lib/simple-sonner'
 import { ArrowLeft, Mail, Shield, Sparkles, Save, Lock } from 'lucide-react'
 import { useUser } from '@/lib/react-query/hooks'
 
-// Reusing Brutalist components for consistency
 function BrutalCard({ children, className = '', title }: { children: React.ReactNode, className?: string, title?: string }) {
   return (
     <div className={`bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-8 relative ${className}`}>
@@ -27,9 +26,9 @@ export default function SettingsProfilePage() {
   const [password, setPassword] = useState('')
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    if (user?.email) setNewEmail(user.email)
-  }, [user?.email])
+  const currentEmail = user?.email?.trim().toLowerCase() || ''
+  const normalizedNewEmail = newEmail.trim().toLowerCase()
+  const emailUnchanged = Boolean(currentEmail) && normalizedNewEmail === currentEmail
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -41,12 +40,19 @@ export default function SettingsProfilePage() {
 
   const handleChangeEmail = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newEmail.trim()) {
+
+    if (!normalizedNewEmail) {
       toast.error('Please enter an email address')
       return
     }
+
     if (!password) {
       toast.error('Please confirm your password')
+      return
+    }
+
+    if (emailUnchanged) {
+      toast.error('Please enter a different email address')
       return
     }
 
@@ -55,12 +61,13 @@ export default function SettingsProfilePage() {
       const res = await fetch('/api/auth/change-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newEmail: newEmail.trim().toLowerCase(), password }),
+        body: JSON.stringify({ newEmail: normalizedNewEmail, password }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.error || 'Failed to request email change')
 
       toast.success('Email change requested. Please check both your current and new inboxes to confirm the change.')
+      setNewEmail('')
       setPassword('')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to change email')
@@ -111,11 +118,27 @@ export default function SettingsProfilePage() {
             </div>
             <div>
               <h2 className="text-xl sm:text-2xl font-black uppercase">Email Address</h2>
-              <p className="text-sm sm:text-base text-black/70 font-medium">Update the email address associated with your account.</p>
+              <p className="text-sm sm:text-base text-black/70 font-medium">Request a change to the email address associated with your account.</p>
             </div>
           </div>
 
           <form onSubmit={handleChangeEmail} className="space-y-6 max-w-xl">
+            <div className="space-y-2">
+              <label htmlFor="currentEmail" className="block text-sm font-bold uppercase tracking-wide text-black">
+                Current Email Address
+              </label>
+              <div className="relative">
+                <input
+                  id="currentEmail"
+                  type="email"
+                  value={user.email || ''}
+                  disabled
+                  className="w-full cursor-not-allowed px-4 py-3 bg-black/[0.04] border-[3px] border-black text-black/70 font-bold"
+                />
+                <Mail className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-black/30" />
+              </div>
+            </div>
+
             <div className="space-y-2">
               <label htmlFor="newEmail" className="block text-sm font-bold uppercase tracking-wide text-black">
                 New Email Address
@@ -126,6 +149,7 @@ export default function SettingsProfilePage() {
                   type="email"
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="Enter your new email address"
                   className="w-full px-4 py-3 bg-white border-[3px] border-black text-black font-bold focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all placeholder:text-black/30"
                 />
                 <Mail className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-black/40" />
@@ -145,7 +169,7 @@ export default function SettingsProfilePage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="********"
                   className="w-full px-4 py-3 bg-white border-[3px] border-black text-black font-bold focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all placeholder:text-black/30"
                 />
                 <Shield className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-black/40" />
@@ -157,7 +181,7 @@ export default function SettingsProfilePage() {
 
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || !normalizedNewEmail || !password || emailUnchanged}
               className="w-full py-4 bg-black text-white font-black uppercase tracking-wider border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] hover:bg-white hover:text-black transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? (
@@ -165,12 +189,12 @@ export default function SettingsProfilePage() {
                   <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
                     <Sparkles className="w-5 h-5" />
                   </motion.div>
-                  Saving...
+                  Requesting...
                 </>
               ) : (
                 <>
                   <Save className="w-5 h-5" />
-                  Save Changes
+                  Request Email Change
                 </>
               )}
             </button>
@@ -180,4 +204,3 @@ export default function SettingsProfilePage() {
     </div>
   )
 }
-

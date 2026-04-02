@@ -13,6 +13,9 @@ export async function POST(request: Request) {
   const genericOk = {
     message: 'If an account exists for that email, a password reset link has been sent.',
   }
+  const genericUnavailable = {
+    error: 'We could not send a reset email right now. Please try again in a moment.',
+  }
 
   try {
     const body = await request.json().catch(() => null)
@@ -22,6 +25,7 @@ export async function POST(request: Request) {
     const redirectTo = `${siteUrl}/reset-password`
 
     let delivered = false
+    let fallbackFailed = false
 
     try {
       const service = createServiceClient()
@@ -63,8 +67,13 @@ export async function POST(request: Request) {
       })
 
       if (error) {
+        fallbackFailed = true
         console.error('Forgot password resetPasswordForEmail error:', error)
       }
+    }
+
+    if (!delivered && fallbackFailed) {
+      return NextResponse.json(genericUnavailable, { status: 503 })
     }
 
     return NextResponse.json(genericOk)

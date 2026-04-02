@@ -80,6 +80,26 @@ function getTrustedRequestOrigin(request: Request): string | null {
   return `${proto}://${host}`
 }
 
+function getFallbackOriginFromRequestUrl(request: Request): string | null {
+  try {
+    const url = new URL(request.url)
+    const host = normalizeHostCandidate(url.host)
+    if (!host) return null
+
+    const isLocalHost =
+      host === 'localhost' ||
+      host === 'localhost:3000' ||
+      host.startsWith('127.0.0.1:')
+
+    if (isLocalHost) return null
+    if (url.protocol !== 'https:' && process.env.NODE_ENV === 'production') return null
+
+    return `${url.protocol}//${host}`
+  } catch {
+    return null
+  }
+}
+
 /**
  * Public base URL for links that must work from emails (confirm/reset/change-email).
  *
@@ -114,6 +134,10 @@ export function getPublicSiteUrlFromRequest(request: Request): string {
 
   const trustedOrigin = getTrustedRequestOrigin(request)
   if (trustedOrigin) return stripTrailingSlash(trustedOrigin)
+
+  const requestUrlOrigin = getFallbackOriginFromRequestUrl(request)
+  if (requestUrlOrigin) return stripTrailingSlash(requestUrlOrigin)
+
   return 'http://localhost:3000'
 }
 
