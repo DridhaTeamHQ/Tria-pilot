@@ -82,26 +82,28 @@ export default function LandingPage() {
   return (
     <div className="bg-[#fbfaf6] text-[#111111]" style={{ fontFamily: PF }}>
       <section className="overflow-hidden border-b-[2px] border-black bg-[#fbfaf6] pt-[86px] lg:pt-[88px]">
-        <div className="relative mx-auto max-w-[1220px] px-0">
+        <div className="relative mx-auto max-w-[1438px] px-0">
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(17,17,17,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(17,17,17,0.06)_1px,transparent_1px)] bg-[size:34px_34px]" />
-          <div className="pointer-events-none absolute inset-x-0 top-5 text-center kiwikoo-wordmark text-[clamp(5rem,22vw,14rem)] leading-none text-black/[0.04]">
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-[42%] bg-[radial-gradient(circle_at_28%_60%,rgba(255,140,120,0.18),transparent_48%)]" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-[50%] bg-[radial-gradient(circle_at_38%_30%,rgba(203,255,46,0.16),transparent_46%),radial-gradient(circle_at_88%_74%,rgba(255,140,120,0.14),transparent_32%)]" />
+          <div className="pointer-events-none absolute inset-x-0 top-[18px] text-center kiwikoo-wordmark text-[clamp(8rem,19vw,17.9rem)] leading-[1.14] tracking-[0.01em] text-black/[0.04]">
             KIWIKOO
           </div>
           <div className="pointer-events-none absolute left-2 top-24 h-16 w-24 rounded-full border-2 border-[#ff8c78] border-r-transparent border-b-transparent opacity-90 sm:left-5" />
-          <div className="pointer-events-none absolute right-8 top-28 text-black/25">
-            <ChartColumn className="h-14 w-14" strokeWidth={1.7} />
+          <div className="pointer-events-none absolute right-[7.25%] top-[196px] text-black/25">
+            <ChartColumn className="h-[56px] w-[56px]" strokeWidth={1.7} />
           </div>
 
           <div className="relative flex min-h-[620px] flex-col items-center justify-between px-4 pb-8 pt-8 text-center sm:px-6 lg:min-h-[650px] lg:px-8">
-            <div className="pointer-events-none absolute bottom-[122px] left-0 hidden w-[250px] xl:block">
-              <Image src="/mascot.png" alt="Influencer mascot" width={290} height={430} className="h-auto w-full object-contain" priority />
+            <div className="pointer-events-none absolute bottom-0 left-[2.2%] hidden w-[240px] lg:block xl:w-[290px]">
+              <Image src="/mascot.png" alt="Influencer mascot" width={330} height={470} className="h-auto w-full object-contain" priority />
             </div>
-            <div className="pointer-events-none absolute bottom-[96px] right-0 hidden w-[360px] xl:block">
-              <Image src="/assets/auth-bg-brand.png" alt="Brand studio display" width={460} height={470} className="h-auto w-full object-contain" priority />
+            <div className="pointer-events-none absolute bottom-[62px] right-[1.5%] hidden w-[320px] lg:block xl:w-[430px]">
+              <Image src="/assets/auth-bg-brand.png" alt="Brand studio display" width={500} height={470} className="h-auto w-full object-contain" priority />
             </div>
 
             <div className="relative z-10 mx-auto max-w-[760px] pt-5">
-              <h1 className="text-[clamp(3rem,8vw,6.3rem)] font-black uppercase leading-[0.9] tracking-[-0.08em] text-black">
+              <h1 className="text-[clamp(3rem,8vw,6.35rem)] font-black uppercase leading-[0.9] tracking-[-0.08em] text-black">
                 Where Fashion
                 <br />
                 Meets <span className="text-[#ff8c78]">AI</span>
@@ -132,15 +134,15 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="relative z-10 mt-10 flex w-full items-end justify-between gap-4 max-xl:flex-col max-xl:items-center xl:mt-0">
+            <div className="relative z-10 mt-10 flex w-full items-end justify-between gap-4 lg:mt-0">
               <HeroBadge
-                className="xl:mb-3 xl:ml-14"
+                className="ml-2 mt-5 w-fit sm:ml-6 lg:mb-5 lg:ml-[7%]"
                 icon={<Sparkles className="h-4 w-4" strokeWidth={2.4} />}
                 title="For Influencers"
                 subtitle="who want to earn"
               />
               <HeroBadge
-                className="xl:mb-12 xl:mr-14"
+                className="mr-2 mt-5 w-fit self-end sm:mr-6 lg:mb-9 lg:mr-[7.5%]"
                 icon={<Store className="h-4 w-4" strokeWidth={2.4} />}
                 title="For Brands"
                 subtitle="who want to scale"
@@ -258,7 +260,13 @@ export default function LandingPage() {
                     ].map((bar) => (
                       <div key={bar.label} className="flex flex-1 flex-col items-center justify-end gap-2">
                         <div
-                          className={`w-full rounded-t-[4px] ${bar.tone === 'coral' ? 'bg-[#ff8c78]' : bar.tone === 'lime' ? 'bg-[#cbff2e]' : 'bg-white/10'}`}
+                          className={`w-full rounded-t-[4px] ${
+                            bar.tone === 'coral'
+                              ? 'bg-[#ff8c78]'
+                              : bar.tone === 'lime'
+                                ? 'bg-[#cbff2e]'
+                                : 'bg-white/10'
+                          }`}
                           style={{ height: bar.height }}
                         />
                         <span className="text-[8px] font-bold uppercase tracking-[0.12em] text-white/35">{bar.label}</span>
@@ -293,8 +301,7 @@ export default function LandingPage() {
             <PathPanel
               label="For Influencers"
               tone="coral"
-              title="You’ve got the style?
-Start Earning now"
+              title={`You’ve got the style?\nStart Earning now`}
               body="Create AI looks, post instantly, and earn from every conversion - without shoots, delays, or chasing brands."
               href="/signup/influencer"
               cta="Start Creating"
@@ -553,7 +560,7 @@ function FeaturePanel({
   items: { icon: ReactNode; title: string; description: string }[]
 }) {
   return (
-    <div className={`rounded-[8px] border-[2px] border-black bg-white p-5 shadow-[0_6px_0_0_rgba(0,0,0,1)] ${accent === 'coral' ? 'bg-[linear-gradient(180deg,#fff_0%,#fff3ee_100%)]' : 'bg-[linear-gradient(180deg,#fff_0%,#f7ffe3_100%)]'}`}>
+    <div className={`rounded-[8px] border-[2px] border-black p-5 shadow-[0_6px_0_0_rgba(0,0,0,1)] ${accent === 'coral' ? 'bg-[linear-gradient(180deg,#fff_0%,#fff3ee_100%)]' : 'bg-[linear-gradient(180deg,#fff_0%,#f7ffe3_100%)]'}`}>
       <MiniPill label={label} />
       <div className="mt-6 space-y-7">
         {items.map((item) => (
