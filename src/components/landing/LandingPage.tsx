@@ -106,25 +106,25 @@ export default function LandingPage() {
           </div>
 
           <div className="relative flex min-h-[600px] flex-col items-center justify-between px-4 pb-0 pt-6 text-center sm:px-6 md:min-h-[590px] lg:min-h-[620px] lg:px-8">
-            <div className="pointer-events-none absolute left-[-2%] top-[206px] hidden w-[250px] md:block lg:left-[0.2%] lg:top-[122px] lg:w-[336px] xl:left-[0.6%] xl:top-[112px] xl:w-[412px] 2xl:w-[440px]">
+            <div className="pointer-events-none absolute left-[-3%] top-[214px] hidden w-[246px] md:block lg:left-[-0.8%] lg:top-[132px] lg:w-[322px] xl:left-[-0.3%] xl:top-[120px] xl:w-[396px] 2xl:w-[424px]">
               <Image
                 src="/landing/hero-influencer.png"
                 alt="Influencer mascot"
                 width={960}
                 height={1536}
-                sizes="(min-width: 1536px) 440px, (min-width: 1280px) 412px, (min-width: 1024px) 336px, 250px"
+                sizes="(min-width: 1536px) 424px, (min-width: 1280px) 396px, (min-width: 1024px) 322px, 246px"
                 className="h-auto w-full object-contain drop-shadow-[0_18px_30px_rgba(0,0,0,0.1)] [transform:scaleX(1.03)]"
                 priority
               />
             </div>
-            <div className="pointer-events-none absolute right-[-5%] top-[198px] hidden h-[320px] w-[270px] overflow-hidden md:block lg:right-[-0.8%] lg:top-[132px] lg:h-[452px] lg:w-[388px] xl:right-0 xl:top-[118px] xl:h-[565px] xl:w-[486px] 2xl:right-[0.8%] 2xl:h-[600px] 2xl:w-[520px]">
+            <div className="pointer-events-none absolute right-[-6%] top-[206px] hidden h-[314px] w-[264px] overflow-hidden md:block lg:right-[-2.4%] lg:top-[142px] lg:h-[438px] lg:w-[374px] xl:right-[-1.2%] xl:top-[128px] xl:h-[548px] xl:w-[468px] 2xl:right-[0.2%] 2xl:h-[584px] 2xl:w-[504px]">
               <div className="absolute inset-y-0 left-0 z-[1] w-[34px] bg-[linear-gradient(255deg,#fff_4%,rgba(255,255,255,0)_29%)]" />
               <Image
                 src="/landing/hero-brand.png"
                 alt="Brand studio display"
                 width={1250}
                 height={1325}
-                sizes="(min-width: 1536px) 520px, (min-width: 1280px) 486px, (min-width: 1024px) 388px, 270px"
+                sizes="(min-width: 1536px) 504px, (min-width: 1280px) 468px, (min-width: 1024px) 374px, 264px"
                 className="h-full w-full object-contain object-right drop-shadow-[0_24px_32px_rgba(0,0,0,0.08)]"
                 priority
               />
@@ -158,7 +158,7 @@ export default function LandingPage() {
                 </Link>
               </div>
 
-              <div className="mt-7 text-[14px] font-black uppercase tracking-[0.45em] text-black/75">
+              <div className="mt-9 text-[14px] font-black uppercase tracking-[0.45em] text-black/75">
                 This is where it happens.
               </div>
             </div>
