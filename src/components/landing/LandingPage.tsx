@@ -85,8 +85,8 @@ export default function LandingPage() {
         <div className="relative mx-auto max-w-[1438px] px-0">
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(17,17,17,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(17,17,17,0.06)_1px,transparent_1px)] bg-[size:34px_34px]" />
           <div className="pointer-events-none absolute inset-y-0 left-0 w-[42%] bg-[radial-gradient(circle_at_28%_60%,rgba(255,140,120,0.18),transparent_48%)]" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-[50%] bg-[radial-gradient(circle_at_38%_30%,rgba(203,255,46,0.16),transparent_46%),radial-gradient(circle_at_88%_74%,rgba(255,140,120,0.14),transparent_32%)]" />
-          <div className="pointer-events-none absolute inset-x-0 top-[-8px] text-center kiwikoo-wordmark text-[clamp(8rem,19vw,17.9rem)] leading-[1.14] tracking-[0.01em] text-black/[0.04]">
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-[50%] bg-[radial-gradient(circle_at_40%_28%,rgba(203,255,46,0.1),transparent_40%),radial-gradient(circle_at_88%_74%,rgba(255,140,120,0.1),transparent_28%)]" />
+          <div className="pointer-events-none absolute inset-x-0 top-[-8px] text-center kiwikoo-wordmark text-[clamp(8rem,19vw,17.9rem)] leading-[1.14] tracking-[0.01em] text-black/[0.025]">
             KIWIKOO
           </div>
           <div className="pointer-events-none absolute left-0 top-[96px] h-[67px] w-[73.8px] overflow-visible text-[#e77142]">
@@ -165,13 +165,13 @@ export default function LandingPage() {
 
             <div className="relative z-10 mt-6 flex w-full flex-col items-center gap-4 md:mt-0 md:block">
               <HeroBadge
-                className="w-fit md:absolute md:bottom-[54px] md:left-[2.2%] lg:bottom-[66px] lg:left-[4.5%] xl:bottom-[78px] xl:left-[5.5%]"
+                className="w-fit md:absolute md:bottom-[126px] md:left-[2.2%] lg:bottom-[122px] lg:left-[4.5%] xl:bottom-[138px] xl:left-[5.5%]"
                 icon={<Sparkles className="h-4 w-4" strokeWidth={2.4} />}
                 title="For Influencers"
                 subtitle="who want to earn"
               />
               <HeroBadge
-                className="w-fit md:absolute md:bottom-[48px] md:right-[1.5%] lg:bottom-[66px] lg:right-[3.2%] xl:bottom-[84px] xl:right-[4.2%]"
+                className="w-fit md:absolute md:bottom-[112px] md:right-[1.5%] lg:bottom-[122px] lg:right-[3.2%] xl:bottom-[138px] xl:right-[4.2%]"
                 icon={<Store className="h-4 w-4" strokeWidth={2.4} />}
                 title="For Brands"
                 subtitle="who want to scale"
