@@ -105,8 +105,8 @@ export default function LandingPage() {
             <ChartColumn className="h-[56px] w-[56px]" strokeWidth={1.7} />
           </div>
 
-          <div className="relative flex min-h-[620px] flex-col items-center justify-between px-4 pb-3 pt-8 text-center sm:px-6 md:min-h-[680px] lg:min-h-[720px] lg:px-8">
-            <div className="pointer-events-none absolute left-[-2%] top-[250px] hidden w-[240px] md:block lg:left-[0.4%] lg:top-[188px] lg:w-[320px] xl:left-[0.8%] xl:top-[176px] xl:w-[397px] 2xl:w-[430px]">
+          <div className="relative flex min-h-[620px] flex-col items-center justify-between px-4 pb-1 pt-8 text-center sm:px-6 md:min-h-[620px] lg:min-h-[660px] lg:px-8">
+            <div className="pointer-events-none absolute left-[-2%] top-[250px] hidden w-[240px] md:block lg:left-[0.4%] lg:top-[176px] lg:w-[320px] xl:left-[0.8%] xl:top-[164px] xl:w-[397px] 2xl:w-[430px]">
               <Image
                 src="/landing/hero-influencer.png"
                 alt="Influencer mascot"
@@ -117,7 +117,7 @@ export default function LandingPage() {
                 priority
               />
             </div>
-            <div className="pointer-events-none absolute right-[-5%] top-[248px] hidden h-[300px] w-[255px] overflow-hidden md:block lg:right-[-0.8%] lg:top-[208px] lg:h-[430px] lg:w-[370px] xl:right-0 xl:top-[184px] xl:h-[550px] xl:w-[474px] 2xl:right-[0.8%] 2xl:h-[590px] 2xl:w-[510px]">
+            <div className="pointer-events-none absolute right-[-5%] top-[248px] hidden h-[300px] w-[255px] overflow-hidden md:block lg:right-[-0.8%] lg:top-[184px] lg:h-[430px] lg:w-[370px] xl:right-0 xl:top-[168px] xl:h-[550px] xl:w-[474px] 2xl:right-[0.8%] 2xl:h-[590px] 2xl:w-[510px]">
               <div className="absolute inset-y-0 left-0 z-[1] w-[34px] bg-[linear-gradient(255deg,#fff_4%,rgba(255,255,255,0)_29%)]" />
               <Image
                 src="/landing/hero-brand.png"
@@ -163,15 +163,15 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="relative z-10 mt-10 flex w-full flex-col items-center gap-4 md:mt-0 md:block">
+            <div className="relative z-10 mt-8 flex w-full flex-col items-center gap-4 md:mt-0 md:block">
               <HeroBadge
-                className="w-fit md:absolute md:bottom-[98px] md:left-[4%] lg:bottom-[88px] lg:left-[6%] xl:bottom-[112px] xl:left-[7%]"
+                className="w-fit md:absolute md:bottom-[48px] md:left-[4%] lg:bottom-[38px] lg:left-[6%] xl:bottom-[54px] xl:left-[7%]"
                 icon={<Sparkles className="h-4 w-4" strokeWidth={2.4} />}
                 title="For Influencers"
                 subtitle="who want to earn"
               />
               <HeroBadge
-                className="w-fit md:absolute md:bottom-[112px] md:right-[4%] lg:bottom-[104px] lg:right-[6%] xl:bottom-[124px] xl:right-[7.5%]"
+                className="w-fit md:absolute md:bottom-[62px] md:right-[4%] lg:bottom-[52px] lg:right-[6%] xl:bottom-[68px] xl:right-[7.5%]"
                 icon={<Store className="h-4 w-4" strokeWidth={2.4} />}
                 title="For Brands"
                 subtitle="who want to scale"
