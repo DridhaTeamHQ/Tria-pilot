@@ -89,7 +89,18 @@ export default function LandingPage() {
           <div className="pointer-events-none absolute inset-x-0 top-[18px] text-center kiwikoo-wordmark text-[clamp(8rem,19vw,17.9rem)] leading-[1.14] tracking-[0.01em] text-black/[0.04]">
             KIWIKOO
           </div>
-          <div className="pointer-events-none absolute left-0 top-[96px] h-[67px] w-[73.8px] border-[2px] border-[#e77142]" />
+          <div className="pointer-events-none absolute left-0 top-[96px] h-[67px] w-[73.8px] overflow-visible text-[#e77142]">
+            <svg viewBox="0 0 74 67" className="h-full w-full" fill="none" aria-hidden="true">
+              <path d="M0 0V67" stroke="currentColor" strokeWidth="2" />
+              <path
+                d="M0 30C14 30 20 40 20 52C20 61 13 66 6 66C1 66 -3 62 -3 56C-3 50 1 46 6 46"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+              <path d="M6 46C17 46 27 53 38 61C50 69 61 52 73 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </div>
           <div className="pointer-events-none absolute right-[7.25%] top-[196px] text-black/25">
             <ChartColumn className="h-[56px] w-[56px]" strokeWidth={1.7} />
           </div>
@@ -111,7 +122,7 @@ export default function LandingPage() {
               <p className="mx-auto mt-5 max-w-[720px] text-[15px] font-semibold leading-7 text-black/55 sm:text-[17px]">
                 The ultimate fashion marketplace where influencers and brands connect,
                 <br className="hidden sm:block" />
-                create, and convert <span className="font-black text-black">— POWERED BY AI.</span>
+                create, and convert <span className="font-black text-black">- POWERED BY AI.</span>
               </p>
 
               <div className="mt-7 flex flex-wrap items-center justify-center gap-4">
@@ -134,15 +145,15 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="relative z-10 mt-10 flex w-full items-end justify-between gap-4 lg:mt-0">
+            <div className="relative z-10 mt-10 flex w-full flex-col items-center gap-4 lg:mt-0 lg:block">
               <HeroBadge
-                className="ml-2 mt-5 w-fit sm:ml-6 lg:mb-5 lg:ml-[7%]"
+                className="w-fit lg:absolute lg:bottom-[28px] lg:left-[7%]"
                 icon={<Sparkles className="h-4 w-4" strokeWidth={2.4} />}
                 title="For Influencers"
                 subtitle="who want to earn"
               />
               <HeroBadge
-                className="mr-2 mt-5 w-fit self-end sm:mr-6 lg:mb-9 lg:mr-[7.5%]"
+                className="w-fit lg:absolute lg:bottom-[42px] lg:right-[7.5%]"
                 icon={<Store className="h-4 w-4" strokeWidth={2.4} />}
                 title="For Brands"
                 subtitle="who want to scale"
@@ -168,7 +179,7 @@ export default function LandingPage() {
               From Here.
             </h2>
             <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-              <InfoPill label="You don’t need more tools." />
+              <InfoPill label="You don't need more tools." />
               <InfoPill label="You need something that actually works." />
             </div>
           </div>
@@ -301,7 +312,7 @@ export default function LandingPage() {
             <PathPanel
               label="For Influencers"
               tone="coral"
-              title={`You’ve got the style?\nStart Earning now`}
+              title={`You've got the style?\nStart Earning now`}
               body="Create AI looks, post instantly, and earn from every conversion - without shoots, delays, or chasing brands."
               href="/signup/influencer"
               cta="Start Creating"
@@ -309,7 +320,7 @@ export default function LandingPage() {
             <PathPanel
               label="For Brands"
               tone="lime"
-              title="Spending on marketing but not seeing real results?? There’s a smarter way."
+              title="Spending on marketing but not seeing real results?? There's a smarter way."
               body="Find the right creators, generate high-performing ads, and launch campaigns that actually convert - all powered by AI."
               href="/signup/brand"
               cta="Start Scaling"
@@ -321,7 +332,7 @@ export default function LandingPage() {
               Why <span className="kiwikoo-wordmark align-middle text-[1.05em]">Kiwikoo</span>
             </h2>
             <p className="mx-auto mt-4 max-w-[650px] text-[17px] leading-7 text-black/55">
-              We’ve eliminated the friction of creative production.
+              We've eliminated the friction of creative production.
               <br />
               Scale your brand with zero overhead.
             </p>
@@ -351,7 +362,7 @@ export default function LandingPage() {
       </section>
 
       <section className="border-b-[2px] border-black bg-[#ff8c78] px-4 py-4 text-center text-[clamp(2rem,5vw,4.6rem)] font-black uppercase leading-none tracking-[-0.05em] text-black">
-        Create → Share → Earn
+        Create -&gt; Share -&gt; Earn
       </section>
 
       <section id="contact" className="border-b-[2px] border-black bg-[#f5f5f2] px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
@@ -361,7 +372,7 @@ export default function LandingPage() {
             <h2 className="mt-4 text-[clamp(2.3rem,5vw,4rem)] font-black uppercase leading-[0.95] tracking-[-0.04em] text-black">
               Got Something In Mind?
               <br />
-              Let’s Talk.
+              Let's Talk.
             </h2>
 
             <div className="mt-10 flex flex-col gap-5 sm:flex-row sm:flex-wrap">

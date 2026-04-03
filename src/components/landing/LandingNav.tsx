@@ -19,7 +19,7 @@ export default function LandingNav() {
       className="fixed inset-x-0 top-0 z-50 border-b border-black/15 bg-[#fbfaf6]"
       style={{ fontFamily: 'var(--font-plus-jakarta-sans), sans-serif' }}
     >
-      <div className="mx-auto flex max-w-[1220px] items-center justify-between gap-4 px-5 py-4 lg:px-8">
+      <div className="mx-auto flex max-w-[1438px] items-center justify-between gap-4 px-5 py-4 lg:px-8">
         <Link href="/" className="kiwikoo-wordmark text-[18px] font-black leading-none text-black sm:text-[22px]">
           Kiwikoo
         </Link>
