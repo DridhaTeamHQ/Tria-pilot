@@ -106,25 +106,26 @@ export default function LandingPage() {
           </div>
 
           <div className="relative flex min-h-[620px] flex-col items-center justify-between px-4 pb-8 pt-8 text-center sm:px-6 lg:min-h-[720px] lg:px-8">
-            <div className="pointer-events-none absolute left-[-1.6%] top-[150px] hidden w-[390px] lg:block xl:left-[-0.8%] xl:top-[136px] xl:w-[470px] 2xl:w-[540px]">
+            <div className="pointer-events-none absolute left-[0.4%] top-[188px] hidden w-[320px] lg:block xl:left-[0.8%] xl:top-[176px] xl:w-[397px] 2xl:w-[430px]">
               <Image
                 src="/landing/hero-influencer.png"
                 alt="Influencer mascot"
                 width={960}
                 height={1536}
-                sizes="(min-width: 1536px) 540px, (min-width: 1280px) 470px, 390px"
-                className="h-auto w-full object-contain drop-shadow-[0_18px_30px_rgba(0,0,0,0.1)] [transform:scaleX(1.08)]"
+                sizes="(min-width: 1536px) 430px, (min-width: 1280px) 397px, 320px"
+                className="h-auto w-full object-contain drop-shadow-[0_18px_30px_rgba(0,0,0,0.1)] [transform:scaleX(1.03)]"
                 priority
               />
             </div>
-            <div className="pointer-events-none absolute right-[-5.2%] top-[132px] hidden w-[560px] lg:block xl:right-[-4.4%] xl:top-[118px] xl:w-[680px] 2xl:w-[780px]">
+            <div className="pointer-events-none absolute right-[-0.8%] top-[208px] hidden h-[430px] w-[370px] overflow-hidden lg:block xl:right-0 xl:top-[184px] xl:h-[550px] xl:w-[474px] 2xl:right-[0.8%] 2xl:h-[590px] 2xl:w-[510px]">
+              <div className="absolute inset-y-0 left-0 z-[1] w-[34px] bg-[linear-gradient(255deg,#fff_4%,rgba(255,255,255,0)_29%)]" />
               <Image
                 src="/landing/hero-brand.png"
                 alt="Brand studio display"
                 width={1250}
                 height={1325}
-                sizes="(min-width: 1536px) 780px, (min-width: 1280px) 680px, 560px"
-                className="h-auto w-full object-contain drop-shadow-[0_24px_32px_rgba(0,0,0,0.08)] [transform:scaleX(1.08)]"
+                sizes="(min-width: 1536px) 510px, (min-width: 1280px) 474px, 370px"
+                className="h-full w-full object-contain object-right drop-shadow-[0_24px_32px_rgba(0,0,0,0.08)]"
                 priority
               />
             </div>
@@ -586,10 +587,7 @@ function MiniPill({ label, dark = false }: { label: string; dark?: boolean }) {
 
 function InfoPill({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center gap-2 rounded-full border-[2px] border-black/30 bg-white px-4 py-2 text-[15px] font-medium text-black/75">
-      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-black/30 bg-[#ff8c78]">
-        <CircleDot className="h-3 w-3 text-white" strokeWidth={2.5} />
-      </span>
+    <span className="inline-flex items-center rounded-full border-[2px] border-black/30 bg-white px-5 py-2 text-[15px] font-medium text-black/75">
       {label}
     </span>
   )
