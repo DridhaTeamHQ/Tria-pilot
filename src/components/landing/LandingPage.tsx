@@ -105,31 +105,31 @@ export default function LandingPage() {
             <ChartColumn className="h-[56px] w-[56px]" strokeWidth={1.7} />
           </div>
 
-          <div className="relative flex min-h-[620px] flex-col items-center justify-between px-4 pb-8 pt-8 text-center sm:px-6 lg:min-h-[680px] lg:px-8">
-            <div className="pointer-events-none absolute bottom-0 left-[1.4%] hidden w-[245px] lg:block xl:left-[2.2%] xl:w-[315px] 2xl:w-[355px]">
+          <div className="relative flex min-h-[620px] flex-col items-center justify-between px-4 pb-8 pt-8 text-center sm:px-6 lg:min-h-[720px] lg:px-8">
+            <div className="pointer-events-none absolute left-[-1.6%] top-[150px] hidden w-[390px] lg:block xl:left-[-0.8%] xl:top-[136px] xl:w-[470px] 2xl:w-[540px]">
               <Image
                 src="/landing/hero-influencer.png"
                 alt="Influencer mascot"
                 width={960}
                 height={1536}
-                sizes="(min-width: 1536px) 355px, (min-width: 1280px) 315px, 245px"
-                className="h-auto w-full object-contain drop-shadow-[0_18px_30px_rgba(0,0,0,0.1)]"
+                sizes="(min-width: 1536px) 540px, (min-width: 1280px) 470px, 390px"
+                className="h-auto w-full object-contain drop-shadow-[0_18px_30px_rgba(0,0,0,0.1)] [transform:scaleX(1.08)]"
                 priority
               />
             </div>
-            <div className="pointer-events-none absolute bottom-[34px] right-[-0.6%] hidden w-[340px] lg:block xl:right-[0.6%] xl:w-[470px] 2xl:w-[560px]">
+            <div className="pointer-events-none absolute right-[-5.2%] top-[132px] hidden w-[560px] lg:block xl:right-[-4.4%] xl:top-[118px] xl:w-[680px] 2xl:w-[780px]">
               <Image
                 src="/landing/hero-brand.png"
                 alt="Brand studio display"
                 width={1250}
                 height={1325}
-                sizes="(min-width: 1536px) 560px, (min-width: 1280px) 470px, 340px"
-                className="h-auto w-full object-contain drop-shadow-[0_24px_32px_rgba(0,0,0,0.08)]"
+                sizes="(min-width: 1536px) 780px, (min-width: 1280px) 680px, 560px"
+                className="h-auto w-full object-contain drop-shadow-[0_24px_32px_rgba(0,0,0,0.08)] [transform:scaleX(1.08)]"
                 priority
               />
             </div>
 
-            <div className="relative z-10 mx-auto max-w-[760px] pt-5">
+            <div className="relative z-10 mx-auto max-w-[700px] pt-5">
               <h1 className="text-[clamp(3rem,8vw,6.35rem)] font-black uppercase leading-[0.9] tracking-[-0.08em] text-black">
                 Where Fashion
                 <br />
