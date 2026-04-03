@@ -30,10 +30,24 @@ export default function Hero() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.08 }}
-                        className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black tracking-[-0.04em] text-black leading-[0.92] max-w-3xl"
+                        className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black tracking-[-0.04em] text-black leading-[0.92] max-w-3xl uppercase"
                     >
-                        Where Fashion{" "}
-                        <span className="italic text-[var(--brutal-coral)]">Meets AI</span>
+                        Where Fashion MEETS{" "}
+                        <span className="relative inline-flex items-center text-[var(--brutal-coral)] border-[4px] md:border-[5px] lg:border-[6px] border-[var(--brutal-coral)] px-4 py-1 lg:px-5 lg:py-2 rounded-[14px] lg:rounded-[20px] ml-1 lg:ml-2 mt-2 md:mt-0">
+                            AI
+                            {/* Stars Overlay to mask out top-right corner border */}
+                            <span className="absolute -top-[0.5em] -right-[0.5em] lg:-top-[0.6em] lg:-right-[0.6em] bg-[var(--brutal-cream)] w-[1em] h-[1em] flex items-center justify-center z-10 pointer-events-none">
+                                <svg width="1em" height="1em" viewBox="0 0 24 24" fill="var(--brutal-coral)" xmlns="http://www.w3.org/2000/svg" className="absolute -top-[10%] -right-[10%] w-[1em] h-[1em]">
+                                    <path d="M12 0C12.5 6.5 17.5 11.5 24 12C17.5 12.5 12.5 17.5 12 24C11.5 17.5 6.5 12.5 0 12C6.5 11.5 11.5 6.5 12 0Z" />
+                                </svg>
+                                <svg width="1em" height="1em" viewBox="0 0 24 24" fill="var(--brutal-coral)" xmlns="http://www.w3.org/2000/svg" className="absolute top-[80%] -right-[20%] w-[0.45em] h-[0.45em]">
+                                    <path d="M12 0C12.5 6.5 17.5 11.5 24 12C17.5 12.5 12.5 17.5 12 24C11.5 17.5 6.5 12.5 0 12C6.5 11.5 11.5 6.5 12 0Z" />
+                                </svg>
+                                <svg width="1em" height="1em" viewBox="0 0 24 24" fill="var(--brutal-coral)" xmlns="http://www.w3.org/2000/svg" className="absolute -top-[20%] right-[80%] w-[0.3em] h-[0.3em]">
+                                    <path d="M12 0C12.5 6.5 17.5 11.5 24 12C17.5 12.5 12.5 17.5 12 24C11.5 17.5 6.5 12.5 0 12C6.5 11.5 11.5 6.5 12 0Z" />
+                                </svg>
+                            </span>
+                        </span>
                     </motion.h1>
 
                     <motion.p
