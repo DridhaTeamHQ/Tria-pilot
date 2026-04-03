@@ -240,53 +240,60 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              <div className="rounded-[8px] border border-[#2d5fff] bg-[#171717] p-5">
-                <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.12em] text-white/65">
-                  <span>Market Pulse Analytics</span>
-                  <div className="flex gap-1">
-                    <span className="h-2 w-2 rounded-full bg-[#ff8c78]" />
-                    <span className="h-2 w-2 rounded-full bg-[#cbff2e]" />
-                    <span className="h-2 w-2 rounded-full bg-white/60" />
-                  </div>
+              <div className="relative rounded-[8px] bg-[radial-gradient(circle_at_88%_18%,rgba(203,255,46,0.16),transparent_32%),linear-gradient(180deg,#0f0f0f_0%,#121212_100%)] p-5">
+                <div className="absolute -left-5 bottom-4 z-10 rounded-[8px] border border-white/12 bg-[#2a2a2a] px-6 py-5 shadow-[0_4px_0_0_rgba(0,0,0,0.45)]">
+                  <div className="text-[18px] font-black leading-none text-[#cbff2e]">40M+</div>
+                  <div className="mt-2 text-[8px] font-black uppercase tracking-[0.14em] text-white/45">Data Points</div>
                 </div>
-                <div className="relative mt-6 h-[210px] rounded-[6px] bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] p-4">
-                  <div className="absolute right-0 top-0 rounded-bl-[6px] bg-[#3a3130] px-3 py-2 text-right text-[12px] font-black text-[#ff9d85]">
-                    99.9%
-                    <div className="text-[8px] uppercase tracking-[0.12em] text-white/45">Accuracy</div>
+                <div className="absolute -right-4 -top-2 z-10 rounded-[8px] border border-white/12 bg-[#2f2f2f] px-6 py-5 text-right shadow-[0_4px_0_0_rgba(0,0,0,0.45)]">
+                  <div className="text-[18px] font-black leading-none text-[#ff9d85]">99.9%</div>
+                  <div className="mt-2 text-[8px] font-black uppercase tracking-[0.14em] text-white/45">Accuracy</div>
+                </div>
+
+                <div className="ml-auto mt-6 w-full max-w-[630px] rounded-[8px] border border-white/14 bg-[#1b1b1b] px-7 py-6 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03)]">
+                  <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.12em] text-white/75">
+                    <div className="flex items-center gap-2">
+                      <ChartColumn className="h-4 w-4 text-[#cbff2e]" strokeWidth={2.2} />
+                      <span>Market Pulse Analytics</span>
+                    </div>
+                    <div className="flex gap-1">
+                      <span className="h-2 w-2 rounded-full bg-[#cbff2e]" />
+                      <span className="h-2 w-2 rounded-full bg-[#ff8c78]" />
+                      <span className="h-2 w-2 rounded-full bg-white/40" />
+                    </div>
                   </div>
-                  <div className="flex h-full items-end gap-3 pt-7">
+
+                  <div className="mt-8 grid h-[210px] grid-cols-12 items-end gap-3 border-b border-white/10 pb-12">
                     {[
-                      { label: 'Jan', height: '28%' },
-                      { label: 'Feb', height: '44%' },
-                      { label: 'Mar', height: '38%' },
-                      { label: 'Apr', height: '63%', tone: 'coral' as const },
-                      { label: 'May', height: '48%' },
-                      { label: 'Jun', height: '54%' },
-                      { label: 'Jul', height: '34%' },
-                      { label: 'Aug', height: '71%' },
-                      { label: 'Sep', height: '80%', tone: 'lime' as const },
-                      { label: 'Oct', height: '50%' },
-                      { label: 'Nov', height: '56%' },
-                      { label: 'Dec', height: '52%' },
-                    ].map((bar) => (
-                      <div key={bar.label} className="flex flex-1 flex-col items-center justify-end gap-2">
+                      { label: 'Feb', height: '24%' },
+                      { label: 'Mar', height: '46%' },
+                      { label: 'Apr', height: '31%' },
+                      { label: 'Apr', height: '72%', tone: 'coral' as const, glow: true },
+                      { label: 'May', height: '46%' },
+                      { label: 'Jun', height: '62%' },
+                      { label: 'Jul', height: '31%' },
+                      { label: 'Aug', height: '89%' },
+                      { label: 'Sep', height: '46%' },
+                      { label: 'Oct', height: '80%', tone: 'lime' as const, glow: true },
+                      { label: 'Nov', height: '62%' },
+                      { label: 'Dec', height: '72%' },
+                    ].map((bar, index) => (
+                      <div key={`${bar.label}-${index}`} className="relative flex h-full flex-col justify-end">
                         <div
-                          className={`w-full rounded-t-[4px] ${
+                          className={`rounded-t-[5px] ${
                             bar.tone === 'coral'
                               ? 'bg-[#ff8c78]'
                               : bar.tone === 'lime'
                                 ? 'bg-[#cbff2e]'
                                 : 'bg-white/10'
-                          }`}
+                          } ${bar.glow ? 'shadow-[0_0_18px_rgba(255,140,120,0.45)]' : ''} ${bar.tone === 'lime' && bar.glow ? 'shadow-[0_0_18px_rgba(203,255,46,0.4)]' : ''}`}
                           style={{ height: bar.height }}
                         />
-                        <span className="text-[8px] font-bold uppercase tracking-[0.12em] text-white/35">{bar.label}</span>
+                        <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-[8px] font-black uppercase tracking-[0.12em] text-white/35">
+                          {bar.label}
+                        </span>
                       </div>
                     ))}
-                  </div>
-                  <div className="absolute bottom-3 left-3 rounded-[4px] bg-[#232323] px-2 py-1 text-[10px] font-black text-[#cbff2e]">
-                    40M+
-                    <div className="text-[7px] uppercase tracking-[0.12em] text-white/35">Data Points</div>
                   </div>
                 </div>
               </div>
@@ -328,10 +335,11 @@ export default function LandingPage() {
           </div>
 
           <div className="mt-14 border-t-[2px] border-black pt-14 text-center">
-            <h2 className="text-[clamp(2rem,5vw,3.6rem)] font-black uppercase leading-none tracking-[-0.04em] text-black">
-              Why <span className="kiwikoo-wordmark align-middle text-[1.05em]">Kiwikoo</span>
+            <h2 className="flex items-center justify-center gap-3 text-[clamp(2rem,5vw,3.6rem)] font-black uppercase leading-none tracking-[-0.04em] text-black">
+              <span>Why</span>
+              <span className="kiwikoo-wordmark text-[1.16em] leading-none text-black">Kiwikoo</span>
             </h2>
-            <p className="mx-auto mt-4 max-w-[650px] text-[17px] leading-7 text-black/55">
+            <p className="mx-auto mt-5 max-w-[650px] text-[17px] leading-7 text-black/55">
               We've eliminated the friction of creative production.
               <br />
               Scale your brand with zero overhead.
@@ -627,15 +635,17 @@ function PathPanel({
   cta: string
 }) {
   return (
-    <div className={`rounded-[10px] border-[2px] border-black p-5 shadow-[0_6px_0_0_rgba(0,0,0,1)] ${tone === 'coral' ? 'bg-[#ff8c78]' : 'bg-[#cbff2e]'}`}>
+    <div className={`flex h-full flex-col rounded-[10px] border-[2px] border-black p-5 shadow-[0_6px_0_0_rgba(0,0,0,1)] ${tone === 'coral' ? 'bg-[#ff8c78]' : 'bg-[#cbff2e]'}`}>
       <MiniPill label={label} />
-      <h3 className="mt-6 whitespace-pre-line text-[clamp(1.9rem,3vw,3rem)] font-bold leading-[1.05] tracking-[-0.04em] text-black">
-        {title}
-      </h3>
-      <p className="mt-4 max-w-[520px] text-[17px] leading-7 text-black/80">{body}</p>
+      <div className="mt-6 flex flex-1 flex-col">
+        <h3 className="min-h-[3.15em] whitespace-pre-line text-[clamp(1.9rem,3vw,3rem)] font-bold leading-[1.05] tracking-[-0.04em] text-black">
+          {title}
+        </h3>
+        <p className="mt-4 min-h-[4.9em] max-w-[520px] text-[17px] leading-7 text-black/80">{body}</p>
+      </div>
       <Link
         href={href}
-        className="mt-7 inline-flex items-center justify-center gap-2 rounded-full border-[2px] border-black bg-white px-6 py-3 text-[15px] font-black uppercase tracking-[0.04em] shadow-[0_4px_0_0_rgba(0,0,0,1)] transition hover:translate-y-[2px] hover:shadow-none"
+        className="mt-7 inline-flex items-center justify-center gap-2 self-start rounded-full border-[2px] border-black bg-white px-6 py-3 text-[15px] font-black uppercase tracking-[0.04em] shadow-[0_4px_0_0_rgba(0,0,0,1)] transition hover:translate-y-[2px] hover:shadow-none"
       >
         {cta}
         <ArrowRight className="h-4 w-4" strokeWidth={2.7} />
@@ -656,12 +666,16 @@ function WhyCard({
   body: string
 }) {
   return (
-    <div className="rounded-[10px] border-[2px] border-black bg-white p-5 shadow-[0_6px_0_0_rgba(0,0,0,1)]">
-      <div className={`inline-flex h-12 w-12 items-center justify-center rounded-[8px] border-[2px] border-black ${tone === 'coral' ? 'bg-[#ff8c78]' : 'bg-[#cbff2e]'}`}>
-        {icon}
+    <div className="rounded-[10px] border-[2px] border-black bg-white p-7 shadow-[0_6px_0_0_rgba(0,0,0,1)]">
+      <div className="flex items-start gap-7">
+        <div className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[8px] border-[2px] border-black ${tone === 'coral' ? 'bg-[#ff8c78]' : 'bg-[#cbff2e]'}`}>
+          {icon}
+        </div>
+        <div className="min-w-0 text-left">
+          <div className="text-[20px] font-black uppercase leading-[1.05] text-black sm:text-[22px]">{title}</div>
+          <p className="mt-3 max-w-[280px] text-[16px] leading-7 text-black/55">{body}</p>
+        </div>
       </div>
-      <div className="mt-4 text-[20px] font-black uppercase leading-tight text-black">{title}</div>
-      <p className="mt-2 text-[16px] leading-7 text-black/55">{body}</p>
     </div>
   )
 }
