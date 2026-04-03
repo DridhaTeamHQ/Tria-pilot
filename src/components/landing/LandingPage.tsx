@@ -369,8 +369,18 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="border-b-[2px] border-black bg-[#ff8c78] px-4 py-4 text-center text-[clamp(2rem,5vw,4.6rem)] font-black uppercase leading-none tracking-[-0.05em] text-black">
-        Create -&gt; Share -&gt; Earn
+      <section className="relative overflow-hidden border-b-[2px] border-black bg-[#ff8c78] px-4 py-5 sm:px-6 lg:px-8">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_50%,rgba(255,255,255,0.22),transparent_18%),radial-gradient(circle_at_88%_50%,rgba(255,255,255,0.18),transparent_18%),linear-gradient(to_right,rgba(17,17,17,0.09)_1px,transparent_1px)] bg-[size:auto,auto,120px_120px]" />
+        <div className="pointer-events-none absolute inset-x-0 top-1/2 h-[1px] -translate-y-1/2 bg-black/10" />
+        <div className="relative mx-auto flex max-w-[1220px] items-center justify-center">
+          <div className="inline-flex w-full flex-wrap items-center justify-center gap-3 text-center text-black sm:gap-5 lg:flex-nowrap lg:gap-7">
+            <BandWord label="Create" />
+            <BandArrow />
+            <BandWord label="Share" />
+            <BandArrow />
+            <BandWord label="Earn" />
+          </div>
+        </div>
       </section>
 
       <section id="contact" className="border-b-[2px] border-black bg-[#f5f5f2] px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
@@ -413,14 +423,14 @@ export default function LandingPage() {
                 label="Name"
                 value={contactForm.name}
                 onChange={(value) => setContactForm((prev) => ({ ...prev, name: value }))}
-                placeholder="Anil Kumar Pitta"
+                placeholder=""
               />
               <FormField
                 type="email"
                 label="Email"
                 value={contactForm.email}
                 onChange={(value) => setContactForm((prev) => ({ ...prev, email: value }))}
-                placeholder="anil@dridhatechnologies.com"
+                placeholder=""
               />
               <div>
                 <div className="mb-2 text-[11px] font-black uppercase tracking-[0.12em] text-black/65">You Are</div>
@@ -677,6 +687,22 @@ function WhyCard({
         </div>
       </div>
     </div>
+  )
+}
+
+function BandWord({ label }: { label: string }) {
+  return (
+    <span className="text-[clamp(2.2rem,7vw,4.9rem)] font-black uppercase leading-[0.9] tracking-[-0.06em]">
+      {label}
+    </span>
+  )
+}
+
+function BandArrow() {
+  return (
+    <span className="inline-flex h-12 w-12 items-center justify-center rounded-full border-[2px] border-black/15 bg-white/20 text-[clamp(1.8rem,3vw,2.5rem)] font-black leading-none shadow-[inset_0_0_0_1px_rgba(255,255,255,0.22)]">
+      →
+    </span>
   )
 }
 
