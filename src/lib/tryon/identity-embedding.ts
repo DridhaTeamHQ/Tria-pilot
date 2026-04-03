@@ -15,6 +15,8 @@
 
 import 'server-only'
 import { createServiceClient } from '@/lib/auth'
+import { listReferencePhotosForUser } from '@/lib/reference-photos/service'
+import type { ReferencePhoto } from '@/lib/reference-photos/types'
 import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 import { getGeminiKey } from '@/lib/config/api-keys'
 
@@ -58,6 +60,79 @@ export interface IdentityEmbedding {
   version: number            // Schema version for future upgrades
 }
 
+interface IdentitySourceImage {
+  type: string
+  image_url: string
+}
+
+function getReferenceIdentityPriority(photo: ReferencePhoto): number {
+  const quality = typeof photo.quality_score === 'number' ? photo.quality_score : 0
+  const bodyVisibility = photo.analysis?.bodyVisibility
+  const bodyScore =
+    bodyVisibility === 'full' ? 0.18 :
+      bodyVisibility === 'upper' ? 0.12 :
+        bodyVisibility === 'face_only' ? 0.06 : 0
+
+  return quality + bodyScore
+}
+
+async function loadPreferredIdentitySourceImages(
+  service: ReturnType<typeof createServiceClient>,
+  userId: string,
+  influencerProfileId: string
+): Promise<IdentitySourceImage[]> {
+  const referencePhotos = await listReferencePhotosForUser(service, userId)
+  const approvedReferencePhotos = referencePhotos
+    .filter((photo) => photo.is_active && photo.status === 'approved')
+    .sort((a, b) => getReferenceIdentityPriority(b) - getReferenceIdentityPriority(a))
+    .slice(0, 7)
+    .map((photo) => ({
+      type: `reference_photo:${photo.source}`,
+      image_url: photo.image_url,
+    }))
+
+  if (approvedReferencePhotos.length > 0) {
+    return approvedReferencePhotos
+  }
+
+  const { data: images } = await service
+    .from('identity_images')
+    .select('image_type, image_url')
+    .eq('influencer_profile_id', influencerProfileId)
+    .eq('is_active', true)
+    .order('image_type')
+
+  return ((images || []) as Array<{ image_type: string; image_url: string }>)
+    .map((image) => ({
+      type: image.image_type,
+      image_url: image.image_url,
+    }))
+    .slice(0, 7)
+}
+
+async function getPreferredIdentitySourceCount(
+  service: ReturnType<typeof createServiceClient>,
+  userId: string,
+  influencerProfileId: string
+): Promise<number> {
+  const referencePhotos = await listReferencePhotosForUser(service, userId)
+  const approvedReferenceCount = referencePhotos.filter(
+    (photo) => photo.is_active && photo.status === 'approved'
+  ).length
+
+  if (approvedReferenceCount > 0) {
+    return approvedReferenceCount
+  }
+
+  const { count } = await service
+    .from('identity_images')
+    .select('id', { count: 'exact', head: true })
+    .eq('influencer_profile_id', influencerProfileId)
+    .eq('is_active', true)
+
+  return count || 0
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN EXTRACTOR
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -89,13 +164,8 @@ export async function extractIdentityEmbedding(
       return null
     }
 
-    // Get ALL active identity images
-    const { data: images } = await service
-      .from('identity_images')
-      .select('image_type, image_url')
-      .eq('influencer_profile_id', profile.id)
-      .eq('is_active', true)
-      .order('image_type')
+    // Prefer approved canonical library photos, with legacy identity slots as a bridge fallback.
+    const images = await loadPreferredIdentitySourceImages(service, userId, profile.id)
 
     if (!images || images.length === 0) {
       if (isDev) console.log('🧬 No identity images available')
@@ -104,17 +174,16 @@ export async function extractIdentityEmbedding(
 
     if (isDev) console.log(`🧬 Extracting identity embedding from ${images.length} images...`)
 
-    // Download all images as base64 (in parallel, limit to 7 to cover all identity slots)
-    const imagesToAnalyze = images.slice(0, 7)
+    // Download all images as base64 (in parallel, already capped to 7 inputs).
     const imageDataArray = await Promise.all(
-      imagesToAnalyze.map(async (img: any) => {
+      images.map(async (img) => {
         try {
           const resp = await fetch(img.image_url)
           if (!resp.ok) return null
           const buffer = await resp.arrayBuffer()
           const base64 = Buffer.from(buffer).toString('base64')
           return {
-            type: img.image_type as string,
+            type: img.type,
             dataUrl: `data:image/jpeg;base64,${base64}`,
           }
         } catch {
@@ -600,12 +669,8 @@ export async function needsReExtraction(
       return true
     }
 
-    // Check if image count has changed
-    const { count } = await service
-      .from('identity_images')
-      .select('id', { count: 'exact', head: true })
-      .eq('influencer_profile_id', profile.id)
-      .eq('is_active', true)
+    // Check if the preferred source image count has changed.
+    const count = await getPreferredIdentitySourceCount(service, userId, profile.id)
 
     if (count !== null && count !== embedding.imageCount) return true
 

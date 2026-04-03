@@ -26,9 +26,12 @@ import { computeMicroFaceDrift, getDriftRetryParams } from './micro-face-drift'
 import { getPresetExampleGuidance, getRequestExampleGuidance } from './presets/example-prompts-reference'
 import { getPresetStrengthProfile } from './preset-strength-profile'
 
-export type TryOnRenderModel = 'gpt-image-1.5' | 'gemini-3-pro-image-preview' | 'gemini-3.1-flash-image-preview'
+export type TryOnRenderModel = 'gpt-image-1.5' | 'gemini-3-pro-image-preview' | 'gemini-3.1-flash-image-preview' | 'gemini-2.5-flash-image'
+export type DirectGeminiRenderModel = Exclude<TryOnRenderModel, 'gpt-image-1.5'>
 
-const DEFAULT_RENDER_MODEL: TryOnRenderModel = 'gemini-3.1-flash-image-preview'
+// Google positions Nano Banana Pro for higher-fidelity, context-heavy image editing,
+// which matches clothing-swap try-on better than the speed-first Flash image model.
+const DEFAULT_RENDER_MODEL: DirectGeminiRenderModel = 'gemini-3-pro-image-preview'
 const ENABLE_QUALITY_RETRY =
   process.env.TRYON_ENABLE_QUALITY_RETRY !== 'false'
 const MICRO_DRIFT_RETRY_THRESHOLD = 22
@@ -97,6 +100,10 @@ export interface NanoBananaProInput {
   researchContext?: string
   webResearchContext?: string
   userId?: string  // Needed for character reference resolution
+  strictSwap?: boolean
+  polishNotes?: string
+  characterReferenceBase64s?: { base64: string; label: string }[]
+  garmentIdentityLock?: string
 }
 
 export interface NanoBananaProResult {
@@ -109,16 +116,32 @@ export interface NanoBananaProResult {
 
 export function getTryOnRenderModel(): TryOnRenderModel {
   const configured = process.env.TRYON_RENDER_MODEL?.trim()
-  if (configured === 'gpt-image-1.5' || configured === 'gemini-3-pro-image-preview' || configured === 'gemini-3.1-flash-image-preview') {
+  if (configured === 'gpt-image-1.5' || configured === 'gemini-3-pro-image-preview' || configured === 'gemini-3.1-flash-image-preview' || configured === 'gemini-2.5-flash-image') {
     return configured
   }
   return DEFAULT_RENDER_MODEL
+}
+
+export function resolveDirectGeminiRenderModel(preferredModel: TryOnRenderModel): DirectGeminiRenderModel {
+  return preferredModel === 'gpt-image-1.5' ? DEFAULT_RENDER_MODEL : preferredModel
 }
 
 function shouldFallbackToGemini(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error)
   // Catch GPT Image availability/permission issues — fall back to Gemini gracefully
   return /organization must be verified|must be verified to use the model|verification|403|forbidden|model_not_found|insufficient_quota|billing|rate.?limit|overloaded|capacity/i.test(message)
+}
+
+// Cache GPT billing failures so we skip GPT entirely for subsequent variants in the same process
+let gptImageDisabledUntil = 0
+
+function isGPTImageTemporarilyDisabled(): boolean {
+  return Date.now() < gptImageDisabledUntil
+}
+
+function disableGPTImageTemporarily(durationMs = 10 * 60 * 1000): void {
+  gptImageDisabledUntil = Date.now() + durationMs
+  console.log(`🚫 GPT Image disabled for ${(durationMs / 1000 / 60).toFixed(0)} minutes (billing/quota issue)`)
 }
 
 async function renderTryOnImage(
@@ -136,25 +159,41 @@ async function renderTryOnImage(
   model: TryOnRenderModel
   fallbackReason?: string
 }> {
-  if (preferredModel === 'gpt-image-1.5') { // GPT Image path
+  if (preferredModel === 'gpt-image-1.5' && !isGPTImageTemporarilyDisabled()) { // GPT Image path
     try {
       const image = await generateTryOnGPT(options)
       return { image, model: preferredModel }
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error)
       console.warn(`⚠️ GPT Image failed, falling back to Gemini: ${errMsg}`)
+      if (/billing|insufficient_quota|hard limit/i.test(errMsg)) {
+        disableGPTImageTemporarily()
+      }
       if (!shouldFallbackToGemini(error)) throw error
-      const image = await generateTryOnDirect(options)
+      const fallbackModel = DEFAULT_RENDER_MODEL
+      const image = await generateTryOnDirect({
+        ...options,
+        model: fallbackModel,
+      })
       return {
         image,
-        model: 'gemini-3-pro-image-preview',
+        model: fallbackModel,
         fallbackReason: errMsg,
       }
     }
   }
 
-  const image = await generateTryOnDirect(options)
-  return { image, model: preferredModel }
+  // Direct Gemini path (or GPT temporarily disabled)
+  const effectiveModel = resolveDirectGeminiRenderModel(preferredModel)
+  const image = await generateTryOnDirect({
+    ...options,
+    model: effectiveModel,
+  })
+  return {
+    image,
+    model: effectiveModel,
+    fallbackReason: isGPTImageTemporarilyDisabled() ? 'GPT Image temporarily disabled (billing limit)' : undefined,
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

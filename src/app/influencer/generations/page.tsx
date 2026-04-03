@@ -31,6 +31,7 @@ import { PortalModal } from '@/components/ui/PortalModal'
 // Helper to ensure valid URL
 function getImageUrl(url: string | null | undefined): string {
     if (!url) return ''
+    if (url.startsWith('data:')) return url
     // If it's already a full URL, use it
     if (url.startsWith('http')) return url
     // If it's a relative path, assume it's in the try-ons bucket
@@ -163,6 +164,7 @@ export default function GenerationsPage() {
         switch (normalizedStatus) {
             case 'COMPLETED':
             case 'COMPLETE':
+            case 'COMPLETED_PARTIAL':
                 return (
                     <motion.span
                         initial={{ scale: 0.8, opacity: 0 }}
@@ -170,8 +172,8 @@ export default function GenerationsPage() {
                         className="inline-flex w-fit max-w-full items-center gap-1 px-2 py-1 bg-[#98FB98] text-black text-[10px] sm:text-xs font-bold rounded-lg border-[2px] border-black self-start"
                     >
                         <CheckCircle2 className="w-3 h-3" />
-                        <span className="hidden min-[400px]:inline">Completed</span>
-                        <span className="min-[400px]:hidden">Done</span>
+                        <span className="hidden min-[400px]:inline">{normalizedStatus === 'COMPLETED_PARTIAL' ? 'Partial' : 'Completed'}</span>
+                        <span className="min-[400px]:hidden">{normalizedStatus === 'COMPLETED_PARTIAL' ? 'Partial' : 'Done'}</span>
                     </motion.span>
                 )
             case 'PROCESSING':
@@ -223,7 +225,7 @@ export default function GenerationsPage() {
     }
 
     const openLightbox = (job: any) => {
-        if (window.matchMedia('(max-width: 767px)').matches && job.outputImagePath) {
+        if (window.matchMedia('(max-width: 767px)').matches && job.outputImagePath && !job.outputImagePath.startsWith('data:')) {
             const params = new URLSearchParams({
                 image: getImageUrl(job.outputImagePath),
                 title: `Generation #${job.id.slice(0, 8)}`,
@@ -403,7 +405,7 @@ export default function GenerationsPage() {
                                 className="group mx-auto w-full max-w-[340px] bg-white rounded-xl overflow-hidden border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 flex flex-col min-[520px]:max-w-none"
                             >
                                 {/* Image Area */}
-                                {(job.status?.toLowerCase() === 'completed' || job.status?.toLowerCase() === 'complete') && job.outputImagePath ? (
+                                {(job.status?.toLowerCase() === 'completed' || job.status?.toLowerCase() === 'complete' || job.status?.toLowerCase() === 'completed_partial') && job.outputImagePath ? (
                                     <div
                                         className="aspect-[3/4] overflow-hidden relative cursor-pointer bg-gray-100 border-b-[3px] border-black"
                                         onClick={() => openLightbox(job)}

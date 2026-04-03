@@ -14,6 +14,7 @@
 
 import 'server-only'
 import { getGeminiChat } from '@/lib/tryon/gemini-chat'
+import { extractJson } from '@/lib/tryon/json-repair'
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -172,7 +173,7 @@ export async function detectHumanInClothingImage(
             }
         }
 
-        const result = JSON.parse(content) as Partial<BodyDetectionResult>
+        const result = extractJson<Partial<BodyDetectionResult>>(content) as Partial<BodyDetectionResult>
 
         // Normalize and validate response
         const normalized: BodyDetectionResult = {
@@ -198,7 +199,10 @@ export async function detectHumanInClothingImage(
 
         return normalized
     } catch (error) {
-        console.error('❌ Body detection failed:', error)
+        console.warn(
+            '[tryon] body detection unavailable, falling back to passthrough:',
+            error instanceof Error ? error.message : String(error)
+        )
 
         // On error, default to passthrough to avoid blocking
         return {
