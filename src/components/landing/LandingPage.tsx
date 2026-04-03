@@ -130,11 +130,12 @@ export default function LandingPage() {
               />
             </div>
 
-            <div className="relative z-10 mx-auto max-w-[700px] pt-5">
-              <h1 className="text-[clamp(3rem,8vw,6.35rem)] font-black uppercase leading-[0.9] tracking-[-0.08em] text-black">
-                Where Fashion
-                <br />
-                Meets <span className="text-[#ff8c78]">AI</span>
+            <div className="relative z-10 mx-auto max-w-[860px] pt-5">
+              <h1 className="text-[clamp(3rem,7vw,6rem)] font-black uppercase leading-[0.9] tracking-[-0.08em] text-black">
+                <span className="block whitespace-nowrap">Where Fashion</span>
+                <span className="mt-1 block whitespace-nowrap">
+                  Meets <span className="text-[#ff8c78]">AI</span>
+                </span>
               </h1>
               <p className="mx-auto mt-5 max-w-[720px] text-[15px] font-semibold leading-7 text-black/55 sm:text-[17px]">
                 The ultimate fashion marketplace where influencers and brands connect,
