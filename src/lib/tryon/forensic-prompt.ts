@@ -18,6 +18,7 @@ import type { PresetStrengthProfile } from './preset-strength-profile'
 
 export interface ForensicPromptInput {
   garmentDescription?: string
+  garmentIdentityLock?: string
   preset?: string
   lighting?: string
   realismGuidance?: string
@@ -60,6 +61,10 @@ export interface ForensicPromptInput {
   perceivedGender?: 'masculine' | 'feminine' | 'neutral'
   /** Anti-drift directives from face forensics */
   antiDriftDirectives?: string
+  /** Strict swap mode keeps scene, pose, and camera anchored to Image 1 */
+  strictSwap?: boolean
+  /** Limited finish notes for cleanup, crop, and polish */
+  polishNotes?: string
 }
 
 export function buildForensicPrompt(input: ForensicPromptInput): string {
@@ -73,7 +78,9 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
   const garment = input.garmentDescription?.trim() || `garment from ${garmentRef}`
 
   const rawPreset = input.preset?.trim() || ''
-  const isSceneChange = rawPreset && rawPreset !== `keep background from ${personRef}`
+  const isStrictSwap = Boolean(input.strictSwap)
+  const isSceneChange = !isStrictSwap && rawPreset && rawPreset !== `keep background from ${personRef}`
+  const polishNotes = sanitizePolishNotes(input.polishNotes)
 
   // CONDENSE scene and lighting to save token budget for identity signal
   const sceneBrief = isSceneChange ? condenseScene(rawPreset, 150) : ''
@@ -97,16 +104,26 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     )
   } else {
     lines.push(
-      `Photograph the exact person from ${personRef}${hasFaceReference ? ` and ${faceCropRef}` : ''}.`
+      `Create a photorealistic edit of the exact person from ${personRef}${hasFaceReference ? ` and ${faceCropRef}` : ''}.`
     )
   }
   lines.push(`Copy the face from the reference photos exactly. Do not reconstruct from text.`)
+  if (input.bodyAnchor) {
+    lines.push(`Keep the same body build and proportions from ${personRef}.`)
+  }
+  if (isStrictSwap) {
+    lines.push(`Keep the original pose, camera angle, framing, and scene from ${personRef}.`)
+  }
+  lines.push(`Treat this as editing ${personRef} with a new outfit, not generating a different person.`)
   lines.push('')
 
   // ── BLOCK 2: WHAT ──
   lines.push(
-    `OUTFIT: Dress in the garment from ${garmentRef}: ${garment}. Match exact colors, patterns, fabric.`
+    `OUTFIT: Dress in the garment from ${garmentRef}: ${garment}. Match exact garment type, hem length, neckline, sleeves, colors, pattern, and fabric.`
   )
+  if (input.garmentIdentityLock) {
+    lines.push(`Garment lock: ${input.garmentIdentityLock}.`)
+  }
   lines.push('')
 
   // ── BLOCK 3: WHERE ──
@@ -120,13 +137,36 @@ export function buildForensicPrompt(input: ForensicPromptInput): string {
     )
   }
 
+  if (isStrictSwap) {
+    lines.push(`Only replace the clothing and harmonize lighting, color, cleanup, crop, and final polish.`)
+  }
+  if (polishNotes) {
+    lines.push(`Polish only: ${polishNotes}.`)
+  }
+
   // ── RETRY ──
   if (input.retryMode) {
     lines.push('')
-    lines.push(`Previous attempt changed the face. Copy the face from ${personRef} exactly this time.`)
+    lines.push(`Previous attempt drifted from the references. Copy the face from ${personRef} exactly and keep the garment from ${garmentRef} unchanged this time.`)
   }
 
   return lines.join('\n')
+}
+
+function sanitizePolishNotes(notes?: string): string {
+  const value = notes?.trim()
+  if (!value) return ''
+
+  const forbidden = /(background|scene|location|set|studio|street|pose|camera|lens|angle|zoom|environment)/i
+  const sentences = value
+    .split(/[.!?]+/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean)
+    .filter((sentence) => !forbidden.test(sentence))
+
+  const sanitized = sentences.join('. ').trim()
+  if (!sanitized) return ''
+  return sanitized.length <= 180 ? sanitized : sanitized.slice(0, 177).trimEnd() + '...'
 }
 
 /**

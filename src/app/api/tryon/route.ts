@@ -1,16 +1,32 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
-import { tryOnSchema } from '@/lib/validation'
-import { getTryOnPresetV3 } from '@/lib/tryon/presets'
+import { presetlessTryOnSchema } from '@/lib/validation'
 import { getRedisConnection, isRedisConfigured } from '@/lib/queue/redis'
 import { normalizeBase64 } from '@/lib/image-processing'
 import { saveUpload } from '@/lib/storage'
-import { runHybridTryOnPipeline } from '@/lib/tryon/hybrid-tryon-pipeline'
-import { getTryOnRenderModel } from '@/lib/tryon/nano-banana-pro-renderer'
+import { generateTryOnDirect } from '@/lib/nanobanana'
+import { fetchReferencePhotoAsBase64, getReferencePhotoLibrary, getReferencePhotosByIds } from '@/lib/reference-photos/service'
+import type { ReferencePhotoClient } from '@/lib/reference-photos/types'
+import { getFirstSuccessfulOutput, getJobOutputsFromRecord } from '@/lib/tryon/job-outputs'
+import { getTryOnRenderModel, resolveDirectGeminiRenderModel } from '@/lib/tryon/nano-banana-pro-renderer'
+import { analyzeGarment, composeSmartPrompt, type GarmentIntelligence } from '@/lib/tryon/garment-intel'
+import { preprocessGarmentImage } from '@/lib/tryon/garment-preprocessor'
+import {
+  classifyGarment,
+  type GarmentClassification,
+} from '@/lib/tryon/intelligence/garment-classifier'
+import {
+  validateGarmentMatch,
+  type GarmentValidationResult,
+} from '@/lib/tryon/intelligence/garment-guardrail'
+import {
+  assessIdentityAndComposition,
+  type IdentityCompositionAssessment,
+} from '@/lib/tryon/identity-composition-check'
 import { GeminiRateLimitError } from '@/lib/gemini/executor'
 import { ZodError } from 'zod'
 
-export const maxDuration = 120
+export const maxDuration = 180
 const TRYON_RATE_LIMIT_DISABLED =
   process.env.TRYON_RATE_LIMIT_DISABLED === 'true' ||
   process.env.NODE_ENV !== 'production'
@@ -21,6 +37,19 @@ const GLOBAL_ACTIVE_LIMIT = Math.max(
   Number.parseInt(process.env.TRYON_INLINE_GLOBAL_LIMIT || '8', 10) || 8
 )
 const GLOBAL_ACTIVE_KEY = 'tryon:inline:active_generations'
+const INTER_GENERATION_DELAY_MS = Math.max(
+  0,
+  Number.parseInt(process.env.TRYON_INTER_GENERATION_DELAY_MS || '1500', 10) || 1500
+)
+const GARMENT_GUARDRAIL_MIN_CONFIDENCE = 60
+const TRYON_OUTPUT_QA_MODE: 'off' | 'soft' | 'strict' =
+  process.env.TRYON_OUTPUT_QA_MODE === 'strict'
+    ? 'strict'
+    : process.env.TRYON_OUTPUT_QA_MODE === 'soft'
+      ? 'soft'
+      : 'off'
+
+const isDev = process.env.NODE_ENV !== 'production'
 
 function jsonError(
   status: number,
@@ -31,9 +60,920 @@ function jsonError(
   return NextResponse.json({ code, error, ...extra }, { status })
 }
 
+type ServiceClient = ReturnType<typeof createServiceClient>
+
+interface PresetlessPersistedOutput {
+  referenceImageId: string
+  status: 'completed' | 'failed'
+  outputImagePath?: string
+  error?: string
+  label: string
+  validation?: {
+    qualityScores?: IdentityCompositionAssessment['scores']
+    warnings?: string[]
+    garmentGuardrail?: {
+      isValid: boolean
+      recommendation: GarmentValidationResult['recommendation']
+      issues: string[]
+      expectedType: string
+      actualType: string
+      expectedHemline: string
+      actualHemline: string
+    }
+  }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+interface RankedPhoto {
+  id: string
+  score: number
+  reasoning: string
+  suitability: 'excellent' | 'good' | 'fair' | 'poor'
+  diversityKey: string
+}
+
+function scorePhotosForGarment(
+  photos: ReferencePhotoClient[],
+  garmentIntel: GarmentIntelligence
+): RankedPhoto[] {
+  return photos
+    .map((photo) => scorePhotoForGarment(photo, garmentIntel))
+    .sort((left, right) => right.score - left.score)
+}
+
+function scorePhotoForGarment(
+  photo: ReferencePhotoClient,
+  garmentIntel: GarmentIntelligence
+): RankedPhoto {
+  let score = 50
+  const reasons: string[] = []
+  const qualityScore = Number(photo.qualityScore ?? 0)
+  const analysis = photo.analysis
+
+  const bodyVisibility = String(analysis?.bodyVisibility ?? 'unknown').toLowerCase()
+  const framing = String(analysis?.framing ?? 'unknown').toLowerCase()
+  const swapSuitability = Number(analysis?.garmentSwapSuitability ?? 0)
+
+  if (qualityScore > 0.8) {
+    score += 12
+    reasons.push('High quality')
+  } else if (qualityScore > 0.6) {
+    score += 6
+  } else if (qualityScore < 0.4) {
+    score -= 8
+    reasons.push('Low quality')
+  }
+
+  if (swapSuitability > 0.8) {
+    score += 8
+    reasons.push('High swap suitability')
+  } else if (swapSuitability > 0.6) {
+    score += 4
+  }
+
+  if (photo.source === 'app_upload') {
+    score += 5
+  } else if (photo.source === 'migrated_identity') {
+    score -= 8
+    reasons.push('Legacy migrated')
+  }
+
+  switch (garmentIntel.coverage) {
+    case 'upper_only':
+      if (bodyVisibility === 'full') {
+        score += 18
+        reasons.push('Full body supports top pairing')
+      } else if (bodyVisibility === 'upper') {
+        score += 22
+        reasons.push('Upper body is ideal for top swap')
+      } else if (bodyVisibility === 'half') {
+        score += 14
+        reasons.push('Half body keeps the upper garment visible')
+      } else if (bodyVisibility === 'face' || bodyVisibility === 'close_up' || bodyVisibility === 'face_only') {
+        score -= 20
+        reasons.push('Body is not visible enough')
+      }
+
+      if (framing === 'full' || framing === 'full_body') {
+        score += 8
+        reasons.push('Full frame')
+      } else if (framing === 'half') {
+        score += 5
+      }
+      break
+
+    case 'full_body':
+      if (bodyVisibility === 'full') {
+        score += 30
+        reasons.push('Full body is perfect for a full outfit')
+      } else if (bodyVisibility === 'half') {
+        score += 2
+        reasons.push('Half body only partially shows the outfit')
+      } else if (bodyVisibility === 'upper') {
+        score -= 15
+        reasons.push('Upper-only framing cuts off the outfit')
+      } else if (bodyVisibility === 'face' || bodyVisibility === 'close_up' || bodyVisibility === 'face_only') {
+        score -= 30
+        reasons.push('Full outfit cannot be shown')
+      }
+
+      if (framing === 'full' || framing === 'full_body') {
+        score += 12
+        reasons.push('Full-length frame')
+      }
+      break
+
+    case 'lower_only':
+      if (bodyVisibility === 'full') {
+        score += 22
+        reasons.push('Lower body is visible')
+      } else if (bodyVisibility === 'half') {
+        score += 10
+      } else if (bodyVisibility === 'upper' || bodyVisibility === 'face' || bodyVisibility === 'face_only') {
+        score -= 25
+        reasons.push('Lower body is not visible')
+      }
+      break
+
+    case 'layered':
+      if (bodyVisibility === 'full' || bodyVisibility === 'upper') {
+        score += 18
+        reasons.push('Body is visible for layering')
+      } else if (bodyVisibility === 'half') {
+        score += 10
+      } else if (bodyVisibility === 'face' || bodyVisibility === 'face_only') {
+        score -= 10
+      }
+      break
+  }
+
+  score = Math.max(0, Math.min(100, score))
+
+  const suitability: RankedPhoto['suitability'] =
+    score >= 80 ? 'excellent' : score >= 60 ? 'good' : score >= 40 ? 'fair' : 'poor'
+
+  if (reasons.length === 0) {
+    reasons.push('Standard candidate')
+  }
+
+  return {
+    id: photo.id,
+    score,
+    reasoning: reasons.join('. '),
+    suitability,
+    diversityKey: `${bodyVisibility}:${framing}`,
+  }
+}
+
+function selectDiverseTop3(
+  ranked: RankedPhoto[],
+  garmentIntel: GarmentIntelligence
+): string[] {
+  if (ranked.length <= 3) {
+    return ranked.map((photo) => photo.id)
+  }
+
+  const minimumReliableScore =
+    garmentIntel.coverage === 'full_body'
+      ? 80
+      : garmentIntel.coverage === 'lower_only'
+        ? 72
+        : 65
+  const reliablePool = ranked.filter((photo) => photo.score >= minimumReliableScore)
+  if (reliablePool.length >= 3) {
+    const preferredPool = reliablePool.slice(0, Math.min(6, reliablePool.length))
+    if (garmentIntel.coverage === 'full_body' || garmentIntel.coverage === 'lower_only') {
+      return shuffleRankedPhotos(preferredPool).slice(0, 3).map((photo) => photo.id)
+    }
+  }
+
+  const candidatePool = (reliablePool.length >= 3 ? reliablePool : ranked).slice(0, Math.min(8, ranked.length))
+  const selected: RankedPhoto[] = []
+  const usedDiversity = new Set<string>()
+
+  for (const photo of shuffleRankedPhotos(candidatePool)) {
+    if (selected.length >= 3) break
+    if (!usedDiversity.has(photo.diversityKey)) {
+      selected.push(photo)
+      usedDiversity.add(photo.diversityKey)
+    }
+  }
+
+  if (selected.length < 3) {
+    const selectedIds = new Set(selected.map((photo) => photo.id))
+    for (const photo of shuffleRankedPhotos(candidatePool)) {
+      if (selected.length >= 3) break
+      if (!selectedIds.has(photo.id)) {
+        selected.push(photo)
+        selectedIds.add(photo.id)
+      }
+    }
+  }
+
+  return selected.map((photo) => photo.id)
+}
+
+function shuffleRankedPhotos(ranked: RankedPhoto[]): RankedPhoto[] {
+  const decorated = ranked.map((photo) => {
+    const noise = Math.random() * 8
+    return {
+      photo,
+      weightedScore: photo.score + noise,
+    }
+  })
+
+  decorated.sort((left, right) => right.weightedScore - left.weightedScore)
+  return decorated.map((entry) => entry.photo)
+}
+
+function buildAutoCandidatePhotoIds(
+  ranked: RankedPhoto[],
+  primaryIds: string[],
+  maxCandidates = 6
+): string[] {
+  const primarySet = new Set(primaryIds)
+  const remaining = shuffleRankedPhotos(ranked.filter((photo) => !primarySet.has(photo.id)))
+  const orderedIds = [...primaryIds, ...remaining.map((photo) => photo.id)]
+  return Array.from(new Set(orderedIds)).slice(0, maxCandidates)
+}
+
+function formatQualityGateScores(scores: IdentityCompositionAssessment['scores']): string {
+  return `face=${scores.faceIdentity}, garment=${scores.garmentFidelity}, body=${scores.bodyConsistency}, composition=${scores.compositionQuality}, background=${scores.backgroundIntegrity}`
+}
+
+interface StrictOutputValidationResult {
+  qualityAssessment: IdentityCompositionAssessment | null
+  garmentValidation: GarmentValidationResult | null
+  warnings: string[]
+}
+
+async function validateGeneratedOutputStrict(params: {
+  qaMode: 'off' | 'soft' | 'strict'
+  referenceImageBase64: string
+  generatedImageBase64: string
+  garmentImageBase64: string
+  garmentClassification: GarmentClassification | null
+}): Promise<StrictOutputValidationResult> {
+  const {
+    qaMode,
+    referenceImageBase64,
+    generatedImageBase64,
+    garmentImageBase64,
+    garmentClassification,
+  } = params
+
+  if (qaMode === 'off' || !garmentClassification) {
+    return {
+      qualityAssessment: null,
+      garmentValidation: null,
+      warnings: ['output_qa_disabled'],
+    }
+  }
+
+  const shouldRunGarmentGuardrail =
+    garmentClassification.category !== 'UNKNOWN' &&
+    garmentClassification.category_confidence >= GARMENT_GUARDRAIL_MIN_CONFIDENCE
+
+  const [qualityAssessmentResult, garmentValidationResult] = await Promise.allSettled([
+    assessIdentityAndComposition({
+      sourceImageBase64: referenceImageBase64,
+      generatedImageBase64,
+      garmentImageBase64,
+    }),
+    shouldRunGarmentGuardrail
+      ? validateGarmentMatch(
+          garmentImageBase64,
+          generatedImageBase64,
+          garmentClassification.category,
+          garmentClassification.hemline_position
+        )
+      : Promise.resolve(null),
+  ])
+
+  const warnings: string[] = []
+  const qualityAssessment =
+    qualityAssessmentResult.status === 'fulfilled' &&
+    qualityAssessmentResult.value.reason !== 'validation_unavailable'
+      ? qualityAssessmentResult.value
+      : null
+  const garmentValidation =
+    garmentValidationResult.status === 'fulfilled' &&
+    garmentValidationResult.value &&
+    garmentValidationResult.value.validationAvailable !== false
+      ? garmentValidationResult.value
+      : null
+
+  if (qualityAssessmentResult.status === 'rejected') {
+    const reason =
+      qualityAssessmentResult.reason instanceof Error
+        ? qualityAssessmentResult.reason.message
+        : String(qualityAssessmentResult.reason)
+    warnings.push(`quality_assessment_unavailable:${reason}`)
+  } else if (qualityAssessmentResult.value.reason === 'validation_unavailable') {
+    warnings.push('quality_assessment_unavailable')
+  }
+
+  if (garmentValidationResult.status === 'rejected') {
+    const reason =
+      garmentValidationResult.reason instanceof Error
+        ? garmentValidationResult.reason.message
+        : String(garmentValidationResult.reason)
+    warnings.push(`garment_guardrail_unavailable:${reason}`)
+  } else if (garmentValidationResult.value?.validationAvailable === false) {
+    warnings.push('garment_guardrail_unavailable')
+  }
+
+  const rejectionReasons: string[] = []
+
+  if (
+    qualityAssessment?.shouldRetry &&
+    (
+      qualityAssessment.scores.faceIdentity < 55 ||
+      qualityAssessment.scores.garmentFidelity < 55 ||
+      qualityAssessment.scores.bodyConsistency < 55
+    )
+  ) {
+    rejectionReasons.push(`quality=${formatQualityGateScores(qualityAssessment.scores)}`)
+  } else if (qualityAssessment?.shouldRetry) {
+    warnings.push(`quality_soft_warning:${formatQualityGateScores(qualityAssessment.scores)}`)
+  }
+
+  if (
+    garmentValidation &&
+    garmentValidation.validationAvailable !== false &&
+    garmentValidation.explicitDecision !== false &&
+    garmentValidation.recommendation === 'reject' &&
+    !garmentValidation.is_valid
+  ) {
+    const garmentIssues = garmentValidation.issues.length > 0
+      ? garmentValidation.issues.join(', ')
+      : 'garment structure mismatch'
+    rejectionReasons.push(
+      `garment_guardrail expected=${garmentClassification.category}/${garmentClassification.hemline_position} actual=${garmentValidation.details.actual_type}/${garmentValidation.details.actual_hemline} issues=${garmentIssues}`
+    )
+  } else if (
+    garmentValidation &&
+    garmentValidation.validationAvailable !== false &&
+    !garmentValidation.is_valid
+  ) {
+    warnings.push(
+      `garment_soft_warning expected=${garmentClassification.category}/${garmentClassification.hemline_position} actual=${garmentValidation.details.actual_type}/${garmentValidation.details.actual_hemline}`
+    )
+  }
+
+  if (rejectionReasons.length > 0) {
+    if (qaMode === 'strict') {
+      throw new Error(`Try-on output rejected by quality gate: ${rejectionReasons.join(' | ')}`)
+    }
+    warnings.push(...rejectionReasons.map((reason) => `qa_soft_reject:${reason}`))
+  }
+
+  return {
+    qualityAssessment,
+    garmentValidation,
+    warnings,
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GARMENT RESOLUTION
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function resolveProductGarmentImageUrl(
+  service: ServiceClient,
+  productId: string
+): Promise<string | null> {
+  const { data: product } = await service
+    .from('products')
+    .select('id, name, cover_image, images')
+    .eq('id', productId)
+    .maybeSingle()
+
+  const { data: directLegacyImages } = await service
+    .from('ProductImage')
+    .select('imagePath, isTryOnReference, order')
+    .eq('productId', productId)
+    .order('order', { ascending: true })
+
+  const directLegacyImage =
+    directLegacyImages?.find((image: any) => image.isTryOnReference)?.imagePath ||
+    directLegacyImages?.[0]?.imagePath ||
+    null
+
+  if (directLegacyImage) return directLegacyImage
+
+  if (product?.name) {
+    const { data: legacyMatch } = await service
+      .from('Product')
+      .select('id')
+      .eq('name', product.name)
+      .maybeSingle()
+
+    if (legacyMatch?.id) {
+      const { data: matchedLegacyImages } = await service
+        .from('ProductImage')
+        .select('imagePath, isTryOnReference, order')
+        .eq('productId', legacyMatch.id)
+        .order('order', { ascending: true })
+
+      const matchedLegacyImage =
+        matchedLegacyImages?.find((image: any) => image.isTryOnReference)?.imagePath ||
+        matchedLegacyImages?.[0]?.imagePath ||
+        null
+
+      if (matchedLegacyImage) return matchedLegacyImage
+    }
+  }
+
+  const productImages = Array.isArray(product?.images) ? product.images : []
+  if (typeof productImages[0] === 'string' && productImages[0]) {
+    return productImages[0]
+  }
+
+  if (typeof product?.cover_image === 'string' && product.cover_image) {
+    return product.cover_image
+  }
+
+  return null
+}
+
+async function resolvePresetlessGarmentBase64(
+  service: ServiceClient,
+  payload: ReturnType<typeof presetlessTryOnSchema.parse>
+): Promise<string> {
+  if (payload.clothingImage) {
+    return normalizeBase64(payload.clothingImage)
+  }
+
+  if (payload.garmentImageUrl) {
+    return normalizeBase64(await fetchReferencePhotoAsBase64(payload.garmentImageUrl))
+  }
+
+  const productImageUrl = payload.productId
+    ? await resolveProductGarmentImageUrl(service, payload.productId)
+    : null
+
+  const garmentImageUrl = productImageUrl || null
+  if (!garmentImageUrl) {
+    throw new Error('A garment image is required to generate a try-on.')
+  }
+
+  return normalizeBase64(await fetchReferencePhotoAsBase64(garmentImageUrl))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PRESETLESS TRY-ON HANDLER
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function handlePresetlessTryOnRequest(params: {
+  service: ServiceClient
+  userId: string
+  body: unknown
+  configuredRenderModel: ReturnType<typeof getTryOnRenderModel>
+}) {
+  const { service, userId, body, configuredRenderModel } = params
+  const directRenderModel = resolveDirectGeminiRenderModel(configuredRenderModel)
+  const payload = presetlessTryOnSchema.parse(body)
+  const library = await getReferencePhotoLibrary(service, userId)
+  const manualSelectedPhotoIds = Array.isArray(payload.selectedReferenceImageIds)
+    ? payload.selectedReferenceImageIds
+    : null
+  const hasManualSelection = manualSelectedPhotoIds?.length === 3
+  const approvedLibraryPhotos = library.photos.filter((photo) => photo.status === 'approved')
+
+  if (approvedLibraryPhotos.length < 3) {
+    return jsonError(400, 'NOT_ENOUGH_APPROVED', 'Need at least 3 approved reference photos for auto-selection.')
+  }
+
+  const normalizedGarment = await resolvePresetlessGarmentBase64(service, payload)
+  const garmentPreprocess = await preprocessGarmentImage(normalizedGarment, {
+    model: directRenderModel === 'gemini-3-pro-image-preview' ? 'pro' : 'flash',
+    sessionId: `presetless-${userId}-${Date.now()}`,
+  })
+  const processedGarment = normalizeBase64(garmentPreprocess.processedImage)
+  const garmentIntel = await analyzeGarment(processedGarment)
+  const garmentClassification =
+    TRYON_OUTPUT_QA_MODE === 'off'
+      ? null
+      : await classifyGarment(processedGarment)
+
+  // ── PHOTO SELECTION (manual or garment-aware auto-select) ─────────────
+  let selectedPhotoIds: string[]
+  let candidatePhotoIds: string[]
+  let selectionMethod: 'manual' | 'auto_scoring' = 'manual'
+  let selectionReasoning = ''
+
+  if (hasManualSelection) {
+    selectedPhotoIds = manualSelectedPhotoIds
+    candidatePhotoIds = manualSelectedPhotoIds
+    selectionMethod = 'manual'
+  } else {
+    const rankedPhotos = scorePhotosForGarment(approvedLibraryPhotos, garmentIntel)
+    selectedPhotoIds = selectDiverseTop3(rankedPhotos, garmentIntel)
+    candidatePhotoIds = buildAutoCandidatePhotoIds(rankedPhotos, selectedPhotoIds)
+    selectionMethod = 'auto_scoring'
+    selectionReasoning =
+      `Selected ${selectedPhotoIds.length} primary photos and ${Math.max(0, candidatePhotoIds.length - selectedPhotoIds.length)} backups ` +
+      `using garment-aware scoring and diversity for ${garmentIntel.garmentType} (${garmentIntel.coverage}).`
+
+    if (isDev) {
+      console.log(`📸 Auto-selected photos (${selectionMethod}):`, selectedPhotoIds)
+      console.log('   Backup pool:', candidatePhotoIds)
+      rankedPhotos.slice(0, 6).forEach((photo, index) => {
+        console.log(
+          `   ${index + 1}. ${photo.id.slice(0, 8)} → ${photo.score}/100 (${photo.suitability}) | ${photo.diversityKey} | ${photo.reasoning}`
+        )
+      })
+      if (selectionReasoning) console.log(`   Reason: ${selectionReasoning}`)
+    }
+  }
+
+  // ── FETCH & VALIDATE CANDIDATE PHOTOS ─────────────────────────────────
+  const candidatePhotos = await getReferencePhotosByIds(service, userId, candidatePhotoIds)
+  const selectedMap = new Map(candidatePhotos.map((photo) => [photo.id, photo]))
+  const orderedPhotos = candidatePhotoIds
+    .map((photoId) => selectedMap.get(photoId) || null)
+    .filter((photo): photo is NonNullable<typeof photo> => Boolean(photo))
+
+  if (orderedPhotos.length < 3) {
+    return jsonError(400, 'INVALID_REFERENCE_SELECTION', 'Could not find 3 valid reference photos. Please upload more photos and try again.')
+  }
+
+  // For manual selection, enforce strict validation
+  if (selectionMethod === 'manual') {
+    const invalidSelection = orderedPhotos.find(
+      (photo) => photo.status !== 'approved' || photo.is_active === false
+    )
+    if (invalidSelection) {
+      return jsonError(
+        400,
+        'INVALID_REFERENCE_SELECTION',
+        'Selected reference photos must be approved active library photos.'
+      )
+    }
+  }
+
+  // ── RESOLVE REFERENCE BASE64s ──────────────────────────────────────────
+  const orderedReferenceBase64s = await Promise.all(
+    orderedPhotos.map((photo) => fetchReferencePhotoAsBase64(photo.image_url).then((base64) => normalizeBase64(base64)))
+  )
+
+  // ── CREATE GENERATION JOB ─────────────────────────────────────────────
+  const { data: job, error: jobError } = await service
+    .from('generation_jobs')
+    .insert({
+      user_id: userId,
+      inputs: {
+        productId: payload.productId || null,
+        garmentImageUrl: payload.garmentImageUrl || null,
+        selectedReferenceImageIds: selectedPhotoIds,
+        selectionMethod,
+        selectionReasoning,
+      },
+      settings: {
+        sourceMode: 'reference_library',
+        strictSwap: true,
+        polishNotes: payload.polishNotes || null,
+        aspectRatio: payload.aspectRatio,
+        resolution: payload.resolution,
+        model: directRenderModel,
+        requestedModel: configuredRenderModel,
+        garmentPreprocess: {
+          wasExtracted: garmentPreprocess.wasExtracted,
+          bodyDetected: garmentPreprocess.bodyDetected,
+          confidence: garmentPreprocess.confidence,
+          extractionMethod: garmentPreprocess.extractionMethod,
+        },
+        outputs: [],
+        candidateReferenceImageIds: candidatePhotoIds,
+      },
+      status: 'pending',
+    })
+    .select()
+    .single()
+
+  if (jobError || !job) {
+    console.error('[tryon] failed to create presetless generation job:', jobError)
+    return jsonError(500, 'JOB_CREATION_FAILED', 'Failed to start generation job. Please try again.')
+  }
+
+  await service
+    .from('generation_jobs')
+    .update({ status: 'processing', error_message: null })
+    .eq('id', job.id)
+
+  // ── GLOBAL RATE LIMIT (Redis) ─────────────────────────────────────────
+  let redisGlobalAcquired = false
+  try {
+    if (!TRYON_RATE_LIMIT_DISABLED && process.env.NODE_ENV === 'production' && isRedisConfigured()) {
+      try {
+        const redis = getRedisConnection()
+        const activeCount = await redis.incr(GLOBAL_ACTIVE_KEY)
+        redisGlobalAcquired = true
+        if (activeCount === 1) {
+          await redis.expire(GLOBAL_ACTIVE_KEY, GLOBAL_ACTIVE_TTL_SECONDS)
+        }
+        if (activeCount > GLOBAL_ACTIVE_LIMIT) {
+          await redis.decr(GLOBAL_ACTIVE_KEY)
+          redisGlobalAcquired = false
+          await service
+            .from('generation_jobs')
+            .update({
+              status: 'failed',
+              error_message: 'Server busy, please wait and retry.',
+            })
+            .eq('id', job.id)
+          return NextResponse.json(
+            {
+              error: 'Server busy, please wait and retry.',
+              code: 'SERVER_BUSY',
+              retryAfterSeconds: 10,
+              jobId: job.id,
+            },
+            { status: 429, headers: { 'Retry-After': '10', 'Cache-Control': 'no-store' } }
+          )
+        }
+      } catch (redisErr) {
+        console.warn('[tryon] global guard unavailable, continuing without cap:', redisErr)
+        redisGlobalAcquired = false
+      }
+    }
+
+    // ── GARMENT INTELLIGENCE (cached) ────────────────────────────────────
+    if (isDev) {
+      console.log('\n━━━ GARMENT INTELLIGENCE ━━━')
+      console.log(`   Original garment size: ${normalizedGarment.length} chars (${Math.round(normalizedGarment.length * 0.75 / 1024)}KB)`)
+      console.log(`   Processed garment size: ${processedGarment.length} chars (${Math.round(processedGarment.length * 0.75 / 1024)}KB)`)
+      console.log(`   Garment preprocessing: extracted=${garmentPreprocess.wasExtracted} bodyDetected=${garmentPreprocess.bodyDetected} method=${garmentPreprocess.extractionMethod}`)
+    }
+
+    // ── SEQUENTIAL GENERATION (with AI backup candidates) ────────────────
+    const successfulOutputs: PresetlessPersistedOutput[] = []
+    const failedAttempts: Array<{ referenceImageId: string; error: string }> = []
+    const targetOutputCount = 3
+
+    for (let candidateIndex = 0; candidateIndex < orderedPhotos.length; candidateIndex += 1) {
+      if (successfulOutputs.length >= targetOutputCount) break
+
+      const photo = orderedPhotos[candidateIndex]
+
+      // Add delay between generations to respect Gemini rate limits
+      if (candidateIndex > 0) {
+        if (isDev) console.log(`⏳ Waiting ${INTER_GENERATION_DELAY_MS}ms before generation attempt ${candidateIndex + 1}...`)
+        await sleep(INTER_GENERATION_DELAY_MS)
+      }
+
+      const outputSlot = successfulOutputs.length + 1
+
+      try {
+        const referenceImageBase64 = orderedReferenceBase64s[candidateIndex]
+
+        // Build an intelligent prompt using garment analysis
+        const smartPrompt = composeSmartPrompt(garmentIntel, {
+          aspectRatio: payload.aspectRatio || '4:5',
+          polishNotes: payload.polishNotes?.trim() || undefined,
+        })
+
+        if (isDev) {
+          console.log(`\n🎯 Intelligent Generation Attempt ${candidateIndex + 1}/${orderedPhotos.length}`)
+          console.log(`   Target output slot: ${outputSlot}/${targetOutputCount}`)
+          console.log(`   Reference photo: ${photo.id}`)
+          console.log(`   Garment: ${garmentIntel.garmentType} (${garmentIntel.coverage})`)
+          console.log(`   Prompt: ${smartPrompt.length} chars`)
+        }
+
+        // Image generation — the ONLY expensive API call per variant
+        const generatedImage = await generateTryOnDirect({
+          personImageBase64: referenceImageBase64,
+          garmentImageBase64: processedGarment,
+          characterReferenceBase64s: [],
+          prompt: smartPrompt,
+          aspectRatio: payload.aspectRatio || '4:5',
+          model: directRenderModel,
+        })
+
+        const validation = await validateGeneratedOutputStrict({
+          qaMode: TRYON_OUTPUT_QA_MODE,
+          referenceImageBase64,
+          generatedImageBase64: generatedImage,
+          garmentImageBase64: processedGarment,
+          garmentClassification,
+        })
+
+        if (isDev) {
+          if (validation.qualityAssessment) {
+            console.log(
+              `🛡️ Output accepted by QA: ${formatQualityGateScores(validation.qualityAssessment.scores)}`
+            )
+          } else {
+            console.log('🛡️ Output accepted by fallback QA path (primary quality assessment unavailable)')
+          }
+          if (validation.garmentValidation && garmentClassification) {
+            console.log(
+              `   Garment guardrail: expected ${garmentClassification.category}/${garmentClassification.hemline_position}, actual ${validation.garmentValidation.details.actual_type}/${validation.garmentValidation.details.actual_hemline}`
+            )
+          }
+          if (validation.warnings.length > 0) {
+            console.log(`   Validator warnings: ${validation.warnings.join(' | ')}`)
+          }
+        }
+
+        // Save to storage
+        let outputImagePath = generatedImage
+        try {
+          const cleanBase64 = generatedImage.replace(/^data:image\/[a-z+]+;base64,/, '')
+          const storedUrl = await saveUpload(
+            cleanBase64,
+            `tryon/${userId}/${job.id}/${outputSlot}-${photo.id}.png`,
+            'try-ons'
+          )
+          if (storedUrl) {
+            outputImagePath = storedUrl
+          }
+        } catch (storageError) {
+          console.error('[tryon] failed to store output, keeping base64 fallback:', storageError)
+        }
+
+        if (isDev) console.log(`✅ Generation filled slot ${outputSlot}`)
+
+        successfulOutputs.push({
+          referenceImageId: photo.id,
+          status: 'completed',
+          outputImagePath,
+          label: `Source ${outputSlot}`,
+          validation: {
+            qualityScores: validation.qualityAssessment?.scores,
+            warnings: validation.warnings,
+            garmentGuardrail: validation.garmentValidation
+              && garmentClassification
+              ? {
+                  isValid: validation.garmentValidation.is_valid,
+                  recommendation: validation.garmentValidation.recommendation,
+                  issues: validation.garmentValidation.issues,
+                  expectedType: garmentClassification.category,
+                  actualType: validation.garmentValidation.details.actual_type,
+                  expectedHemline: garmentClassification.hemline_position,
+                  actualHemline: validation.garmentValidation.details.actual_hemline,
+                }
+              : undefined,
+          },
+        })
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Generation failed'
+        failedAttempts.push({
+          referenceImageId: photo.id,
+          error: message,
+        })
+        if (isDev) console.error(`❌ Generation attempt ${candidateIndex + 1} failed:`, message)
+      }
+    }
+
+    const outputs: PresetlessPersistedOutput[] = [...successfulOutputs]
+
+    if (outputs.length < targetOutputCount && failedAttempts.length > 0) {
+      const missingCount = targetOutputCount - outputs.length
+      const fallbackFailures = failedAttempts.slice(-missingCount)
+      fallbackFailures.forEach((failure, index) => {
+        outputs.push({
+          referenceImageId: failure.referenceImageId,
+          status: 'failed',
+          error: failure.error,
+          label: `Source ${successfulOutputs.length + index + 1}`,
+        })
+      })
+    }
+
+    selectedPhotoIds = outputs
+      .map((output) => output.referenceImageId)
+      .filter((photoId): photoId is string => Boolean(photoId))
+
+    // ── BUILD RESPONSE ──────────────────────────────────────────────────
+    const normalizedOutputs = getJobOutputsFromRecord({
+      output_image_path: null,
+      settings: { outputs },
+    })
+    const firstSuccessfulOutput = getFirstSuccessfulOutput(normalizedOutputs)
+    const successCount = normalizedOutputs.filter((output) => output.status === 'completed').length
+    const failedCount = outputs.length - successCount
+    const status =
+      successCount === 0
+        ? 'failed'
+        : successCount === outputs.length
+          ? 'completed'
+          : 'completed_partial'
+    const aggregatedError =
+      successCount === 0
+        ? outputs.map((output) => output.error).filter(Boolean).join(' | ').slice(0, 1200)
+        : failedCount > 0
+          ? `${failedCount} of ${outputs.length} outputs failed.`
+          : null
+
+    await service
+      .from('generation_jobs')
+      .update({
+        status,
+        output_image_path: firstSuccessfulOutput?.outputImagePath || null,
+        error_message: aggregatedError,
+        settings: {
+          ...(job.settings as object),
+          outputs,
+          outcome: {
+            pipeline: 'nano-banana-pro-inline-reference-library',
+            model: directRenderModel,
+            requestedModel: configuredRenderModel,
+            strictSwap: true,
+            garmentPreprocess: {
+              wasExtracted: garmentPreprocess.wasExtracted,
+              bodyDetected: garmentPreprocess.bodyDetected,
+              confidence: garmentPreprocess.confidence,
+              extractionMethod: garmentPreprocess.extractionMethod,
+            },
+            garmentClassification: garmentClassification
+              ? {
+                  category: garmentClassification.category,
+                  confidence: garmentClassification.category_confidence,
+                  hemline: garmentClassification.hemline_position,
+                }
+              : null,
+            strictOutputQa: {
+              mode: TRYON_OUTPUT_QA_MODE,
+              enabled: TRYON_OUTPUT_QA_MODE !== 'off',
+              garmentGuardrailEnabled:
+                TRYON_OUTPUT_QA_MODE !== 'off' &&
+                Boolean(
+                  garmentClassification &&
+                  garmentClassification.category !== 'UNKNOWN' &&
+                  garmentClassification.category_confidence >= GARMENT_GUARDRAIL_MIN_CONFIDENCE
+                ),
+              garmentGuardrailMinConfidence: GARMENT_GUARDRAIL_MIN_CONFIDENCE,
+            },
+            selectionMethod,
+            selectionReasoning,
+            successCount,
+            failedCount,
+            outputs,
+          },
+        },
+      })
+      .eq('id', job.id)
+
+    if (successCount === 0) {
+      const allQualityRejected = outputs.every(
+        (output) =>
+          output.status === 'failed' &&
+          /rejected by strict face consistency gate|rejected by quality gate|output rejected|garment_guardrail/i.test(output.error || '')
+      )
+
+      return NextResponse.json(
+        {
+          error: allQualityRejected
+            ? 'All three try-on drafts were rejected because face or garment fidelity was too low. Please upload stronger source photos and try again.'
+            : 'All three try-on drafts failed. Please try again.',
+          code: allQualityRejected ? 'TRYON_OUTPUT_REJECTED' : 'TRYON_GENERATION_FAILED',
+          jobId: job.id,
+          status,
+          outputs: normalizedOutputs,
+          selectionMethod,
+        },
+        { status: allQualityRejected ? 422 : 500, headers: { 'Cache-Control': 'no-store' } }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      jobId: job.id,
+      status,
+      imageUrl: firstSuccessfulOutput?.imageUrl,
+      base64Image: firstSuccessfulOutput?.base64Image,
+      output_image_path: firstSuccessfulOutput?.outputImagePath,
+      outputs: normalizedOutputs,
+      selectionMethod,
+      selectedPhotoIds,
+    })
+  } finally {
+    if (isRedisConfigured() && redisGlobalAcquired) {
+      try {
+        const redis = getRedisConnection()
+        const remaining = await redis.decr(GLOBAL_ACTIVE_KEY)
+        if (remaining < 0) {
+          await redis.set(GLOBAL_ACTIVE_KEY, '0')
+        }
+      } catch (releaseErr) {
+        console.warn('[tryon] failed to release global active counter:', releaseErr)
+      }
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// POST HANDLER
+// ═══════════════════════════════════════════════════════════════════════════
+
 export async function POST(request: Request) {
   let redisUserLockKey: string | null = null
-  let redisGlobalAcquired = false
   const configuredRenderModel = getTryOnRenderModel()
   try {
     const supabase = await createClient()
@@ -47,7 +987,7 @@ export async function POST(request: Request) {
 
     const service = createServiceClient()
 
-    if (process.env.NODE_ENV !== 'production') {
+    if (isDev) {
       console.log('🔑 Auth check:', { sessionUserId: authUser.id })
     }
 
@@ -61,11 +1001,10 @@ export async function POST(request: Request) {
     let currentProfile = profile
 
     if (profileError || !currentProfile) {
-      console.error("❌ FATAL: Profile not found for user!", {
+      console.error('❌ FATAL: Profile not found for user!', {
         sessionUserId: authUser.id,
-        error: profileError
+        error: profileError,
       })
-      // Attempt to auto-create profile if missing (fallback)
       const { data: newProfile, error: createError } = await service
         .from('profiles')
         .insert({
@@ -73,7 +1012,7 @@ export async function POST(request: Request) {
           email: authUser.email,
           role: 'influencer',
           approval_status: 'pending',
-          onboarding_completed: false
+          onboarding_completed: false,
         })
         .select()
         .single()
@@ -86,7 +1025,7 @@ export async function POST(request: Request) {
       currentProfile = newProfile
     }
 
-    if (process.env.NODE_ENV !== 'production') {
+    if (isDev) {
       console.log('📋 User Status Check:', { userId: authUser.id, role: currentProfile?.role, status: currentProfile?.approval_status })
     }
 
@@ -109,7 +1048,6 @@ export async function POST(request: Request) {
       )
     }
 
-    // Check approval status
     if (approvalStatus !== 'approved') {
       return jsonError(
         403,
@@ -134,7 +1072,7 @@ export async function POST(request: Request) {
 
     // Auto-create InfluencerProfile if missing
     if (!influencerProfile) {
-      if (process.env.NODE_ENV !== 'production') console.log('🔧 Auto-creating InfluencerProfile for approved user:', authUser.id)
+      if (isDev) console.log('🔧 Auto-creating InfluencerProfile for approved user:', authUser.id)
       try {
         const { error: influencerProfileCreateError } = await service
           .from('influencer_profiles')
@@ -151,7 +1089,7 @@ export async function POST(request: Request) {
             'We could not prepare your influencer profile for try-on yet. Please refresh once and try again.'
           )
         }
-        if (process.env.NODE_ENV !== 'production') console.log('✅ InfluencerProfile created')
+        if (isDev) console.log('✅ InfluencerProfile created')
       } catch (profileError) {
         console.error('Failed to create InfluencerProfile:', profileError)
         return jsonError(
@@ -163,9 +1101,9 @@ export async function POST(request: Request) {
     }
 
     const userId = authUser.id
-    if (process.env.NODE_ENV !== 'production') console.log('✅ User verified, generating try-on:', { userId })
+    if (isDev) console.log('✅ User verified, generating try-on:', { userId })
 
-    // Lightweight per-user guard: prevents double-click/duplicate tabs from starting parallel generations.
+    // Per-user lock
     if (!TRYON_RATE_LIMIT_DISABLED && isRedisConfigured()) {
       try {
         const redis = getRedisConnection()
@@ -182,260 +1120,34 @@ export async function POST(request: Request) {
           )
         }
       } catch (redisErr) {
-        // Fail open if Redis is unavailable: keep generation working instead of hard-failing requests.
         console.warn('[tryon] user lock unavailable, continuing without lock:', redisErr)
         redisUserLockKey = null
       }
     }
 
+    // ── ROUTE TO PRESETLESS HANDLER ─────────────────────────────────────
     const body = await request.json().catch(() => null)
-    const {
-      personImage,
-      clothingImage,
-      backgroundImage,
-      editType,
-      stylePreset,
-      userRequest,
-      background,
-      pose,
-      lighting,
-      aspectRatio: reqAspectRatio,
-      resolution: reqResolution
-    } = tryOnSchema.parse(body)
-
-    if (!personImage || !clothingImage) {
-      return jsonError(400, 'MISSING_IMAGES', 'Both person and clothing images are required.')
-    }
-
-    const presetV3 = stylePreset ? getTryOnPresetV3(stylePreset) : undefined
-
-    // Create generation job first (authoritative state in DB)
-    const { data: job, error: jobError } = await service
-      .from('generation_jobs')
-      .insert({
-        user_id: userId,
-        inputs: {
-          personImage,
-          clothingImage,
-          backgroundImage,
-          editType,
-        },
-        settings: {
-          stylePreset,
-          background,
-          pose,
-          lighting,
-          userRequest,
-          aspectRatio: reqAspectRatio ?? '1:1',
-          resolution: reqResolution ?? '2K',
-          model: configuredRenderModel,
-        },
-        status: 'pending',
-      })
-      .select()
-      .single()
-
-    if (jobError || !job) {
-      console.error("❌ FATAL: Failed to create GenerationJob!", jobError)
-      return jsonError(500, 'JOB_CREATION_FAILED', 'Failed to start generation job. Please try again.')
-    }
-
-    const preset = presetV3
-      ? {
-          id: presetV3.id,
-          background_name: presetV3.background_name,
-          lighting_name: presetV3.lighting_name,
-        }
-      : {
-          id: undefined,
-          background_name: background ?? 'keep the original background',
-          lighting_name: lighting ?? 'match the original photo lighting',
-        }
-
-    // Run inline generation directly.
-    try {
-      await service
-        .from('generation_jobs')
-        .update({ status: 'processing', error_message: null })
-        .eq('id', job.id)
-
-      // Global guard: cap concurrent inline generations so bursts return a clean "server busy" instead of collapsing.
-      if (!TRYON_RATE_LIMIT_DISABLED && process.env.NODE_ENV === 'production' && isRedisConfigured()) {
-        try {
-          const redis = getRedisConnection()
-          const activeCount = await redis.incr(GLOBAL_ACTIVE_KEY)
-          redisGlobalAcquired = true
-          if (activeCount === 1) {
-            await redis.expire(GLOBAL_ACTIVE_KEY, GLOBAL_ACTIVE_TTL_SECONDS)
-          }
-          if (activeCount > GLOBAL_ACTIVE_LIMIT) {
-            await redis.decr(GLOBAL_ACTIVE_KEY)
-            redisGlobalAcquired = false
-            await service
-              .from('generation_jobs')
-              .update({
-                status: 'failed',
-                error_message: 'Server busy, please wait and retry.',
-              })
-              .eq('id', job.id)
-            return NextResponse.json(
-              {
-                error: 'Server busy, please wait and retry.',
-                code: 'SERVER_BUSY',
-                retryAfterSeconds: 10,
-                jobId: job.id,
-              },
-              { status: 429, headers: { 'Retry-After': '10', 'Cache-Control': 'no-store' } }
-            )
-          }
-        } catch (redisErr) {
-          // Fail open on Redis global guard issues; Gemini/DB errors are still handled below.
-          console.warn('[tryon] global guard unavailable, continuing without cap:', redisErr)
-          redisGlobalAcquired = false
-        }
-      }
-
-      const normalizedPerson = normalizeBase64(personImage)
-      const normalizedClothing = normalizeBase64(clothingImage)
-      const pipelineResult = await runHybridTryOnPipeline({
-        userId,
-        personImageBase64: normalizedPerson,
-        clothingImageBase64: normalizedClothing,
-        aspectRatio: reqAspectRatio ?? '1:1',
-        preset,
-        userRequest: userRequest || undefined,
-        productId: null,
-      })
-
-      let imageUrl: string | null = null
-      const imagePath = `tryon/${userId}/${job.id}.png`
-      if (pipelineResult.image) {
-        try {
-          imageUrl = await saveUpload(pipelineResult.image, imagePath, 'try-ons')
-        } catch (storageError) {
-          console.error('[tryon] failed to store generated image, falling back to base64 response:', storageError)
-        }
-      }
-
-      await service
-        .from('generation_jobs')
-        .update({
-          status: 'completed',
-          output_image_path: imageUrl || 'base64://' + pipelineResult.image,
-          settings: {
-            ...(job.settings as object),
-            outcome: {
-              pipeline: 'nano-banana-pro-inline',
-              status: pipelineResult.status,
-              totalTimeMs: pipelineResult.debug?.totalTimeMs,
-              model: pipelineResult.debug?.rendererDebug?.model || configuredRenderModel,
-              preferredModel: pipelineResult.debug?.rendererDebug?.preferredModel || configuredRenderModel,
-              renderFallbackReason: pipelineResult.debug?.rendererDebug?.renderFallbackReason || null,
-              promptLength: pipelineResult.debug?.promptUsed?.length || 0,
-              warnings: pipelineResult.warnings,
-            },
-          },
-        })
-        .eq('id', job.id)
-
-      return NextResponse.json({
-        success: true,
-        jobId: job.id,
-        status: 'completed',
-        imageUrl: imageUrl || undefined,
-        base64Image: pipelineResult.image,
-        variants: [
-          {
-            imageUrl: imageUrl || undefined,
-            base64Image: pipelineResult.image,
-            variantId: 0,
-            label: 'Nano Banana Pro',
-          },
-        ],
-        preset: presetV3
-          ? { id: presetV3.id, name: presetV3.name, category: presetV3.category }
-          : null,
-      })
-    } catch (inlineError) {
-      if (inlineError instanceof GeminiRateLimitError) {
-        const retryAfterSeconds = Math.min(60, Math.ceil((inlineError.retryAfterMs || 30_000) / 1000)) || 30
-        await service
-          .from('generation_jobs')
-          .update({
-            status: 'failed',
-            error_message: inlineError.message || 'Rate limit reached. Please retry shortly.',
-          })
-          .eq('id', job.id)
-        return NextResponse.json(
-          {
-            error: inlineError.message || 'Rate limit reached. Please retry shortly.',
-            code: 'RATE_LIMIT',
-            retryAfterSeconds,
-            jobId: job.id,
-          },
-          {
-            status: 429,
-            headers: {
-              'Retry-After': String(retryAfterSeconds),
-              'Cache-Control': 'no-store',
-            },
-          }
-        )
-      }
-
-      const errMsg = inlineError instanceof Error ? inlineError.message : 'Generation failed'
-      const isTimeoutLikeError = /timeout|timed out|taking longer than expected|aborted|body timeout|function invocation/i.test(errMsg)
-      const isStorageLikeError = /storage|bucket|object|upload/i.test(errMsg)
-      const code = isTimeoutLikeError
-        ? 'GENERATION_TIMEOUT'
-        : isStorageLikeError
-          ? 'TRYON_STORAGE_FAILED'
-          : 'TRYON_GENERATION_FAILED'
-      await service
-        .from('generation_jobs')
-        .update({ status: 'failed', error_message: errMsg })
-        .eq('id', job.id)
-      if (isTimeoutLikeError) {
-        return NextResponse.json(
-          {
-            error: 'Generation is taking longer than expected. Please retry once or check the Generations page shortly.',
-            code,
-            retryAfterSeconds: 15,
-            jobId: job.id,
-            status: 'failed',
-          },
-          { status: 503, headers: { 'Retry-After': '15', 'Cache-Control': 'no-store' } }
-        )
-      }
-      return NextResponse.json(
-        {
-          error: isStorageLikeError
-            ? 'The try-on finished but we could not save the output image correctly. Please try again.'
-            : errMsg,
-          code,
-          jobId: job.id,
-          status: 'failed',
-        },
-        { status: 500 }
-      )
-    } finally {
-      if (isRedisConfigured() && redisGlobalAcquired) {
-        try {
-          const redis = getRedisConnection()
-          const remaining = await redis.decr(GLOBAL_ACTIVE_KEY)
-          redisGlobalAcquired = false
-          if (remaining < 0) {
-            await redis.set(GLOBAL_ACTIVE_KEY, '0')
-          }
-        } catch (releaseErr) {
-          console.warn('[tryon] failed to release global active counter:', releaseErr)
-        }
-      }
-    }
+    return await handlePresetlessTryOnRequest({
+      service,
+      userId,
+      body,
+      configuredRenderModel,
+    })
   } catch (error) {
     console.error('Try-on generation error:', error)
     if (error instanceof ZodError) {
       return jsonError(400, 'INVALID_TRYON_INPUT', 'Try-on input is invalid. Please re-upload your images and try again.')
+    }
+    if (error instanceof GeminiRateLimitError) {
+      const retryAfterSeconds = Math.min(60, Math.ceil((error.retryAfterMs || 30_000) / 1000)) || 30
+      return NextResponse.json(
+        {
+          error: error.message || 'Rate limit reached. Please retry shortly.',
+          code: 'RATE_LIMIT',
+          retryAfterSeconds,
+        },
+        { status: 429, headers: { 'Retry-After': String(retryAfterSeconds), 'Cache-Control': 'no-store' } }
+      )
     }
     const message = error instanceof Error ? error.message : 'Internal server error'
     return jsonError(500, 'TRYON_REQUEST_FAILED', message)

@@ -110,7 +110,7 @@ export default function InfluencerDashboard() {
     )
   }
 
-  const completedGenerations = generations?.filter((g: any) => g.outputImagePath) || []
+  const completedGenerations = generations?.filter((g: any) => g.outputImagePath || (Array.isArray(g.outputs) && g.outputs.length > 0)) || []
   const statsAreReady = !statsLoading && !!profileStats
   const dashboardStats = {
     generations: statsAreReady ? profileStats.generations : generationsLoading ? '...' : completedGenerations.length,
@@ -193,6 +193,18 @@ export default function InfluencerDashboard() {
   const getGenerationVariants = (generation: any) => {
     const variants: { url: string; label: string }[] = []
     const mainUrl = generation.outputImagePath
+
+    if (Array.isArray(generation.outputs) && generation.outputs.length > 0) {
+      generation.outputs.forEach((output: any, index: number) => {
+        const variantUrl = output.imageUrl || (output.base64Image ? `data:image/jpeg;base64,${output.base64Image}` : '')
+        if (variantUrl) {
+          variants.push({ url: variantUrl, label: output.label || `Option ${index + 1}` })
+        }
+      })
+      if (variants.length > 0) {
+        return variants
+      }
+    }
 
     if (!mainUrl) return [{ url: '', label: 'Result' }]
 
@@ -406,7 +418,7 @@ export default function InfluencerDashboard() {
                       </p>
                     </div>
                     {/* Status Dot */}
-                    <div className={`w-3 h-3 rounded-none border border-black ${job.status?.toLowerCase() === 'completed' || job.status?.toLowerCase() === 'complete' ? 'bg-[#98FB98]' : 'bg-[#FFE4B5]'}`} />
+                    <div className={`w-3 h-3 rounded-none border border-black ${job.status?.toLowerCase() === 'completed' || job.status?.toLowerCase() === 'complete' || job.status?.toLowerCase() === 'completed_partial' ? 'bg-[#98FB98]' : 'bg-[#FFE4B5]'}`} />
                   </div>
                 </motion.div>
               ))}

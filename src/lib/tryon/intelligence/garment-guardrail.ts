@@ -8,6 +8,7 @@
 import 'server-only'
 import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 import { GarmentCategory, HemlinePosition } from './garment-classifier'
+import { extractJson } from '@/lib/tryon/json-repair'
 
 export interface GarmentValidationResult {
     is_valid: boolean
@@ -17,6 +18,8 @@ export interface GarmentValidationResult {
     color_match: boolean
     issues: string[]
     recommendation: 'accept' | 'reject' | 'retry'
+    validationAvailable?: boolean
+    explicitDecision?: boolean
     details: {
         expected_type: GarmentCategory
         actual_type: GarmentCategory
@@ -92,28 +95,63 @@ Return JSON:
                     ]
                 }
             ],
+            response_format: { type: 'json_object' },
             max_tokens: 500,
             temperature: 0.1
         })
 
         const content = response.choices[0]?.message?.content || ''
-        const jsonMatch = content.match(/\{[\s\S]*\}/)
+        const parsed = extractJson<{
+            type_match?: boolean
+            actual_type?: GarmentCategory
+            length_match?: boolean
+            actual_hemline?: HemlinePosition
+            pattern_match?: boolean
+            color_match?: boolean
+            issues?: string[]
+            recommendation?: 'accept' | 'reject' | 'retry'
+        }>(content)
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
+        const hasStructuredDecision =
+            typeof parsed.type_match === 'boolean' &&
+            typeof parsed.length_match === 'boolean'
 
-        if (!jsonMatch) {
-            throw new Error('No JSON in response')
+        if (!hasStructuredDecision) {
+            return {
+                is_valid: false,
+                type_match: false,
+                length_match: false,
+                pattern_match: false,
+                color_match: false,
+                issues: ['Validation unavailable'],
+                recommendation: 'retry',
+                validationAvailable: false,
+                explicitDecision: false,
+                details: {
+                    expected_type: expectedCategory,
+                    actual_type: 'UNKNOWN',
+                    expected_hemline: expectedHemline,
+                    actual_hemline: 'unknown'
+                }
+            }
         }
 
-        const parsed = JSON.parse(jsonMatch[0])
-        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
+        const typeMatch = parsed.type_match === true
+        const lengthMatch = parsed.length_match === true
+        const recommendation =
+            parsed.recommendation ||
+            (typeMatch && lengthMatch ? 'accept' : 'retry')
 
         const result: GarmentValidationResult = {
-            is_valid: parsed.type_match && parsed.length_match,
-            type_match: parsed.type_match || false,
-            length_match: parsed.length_match || false,
-            pattern_match: parsed.pattern_match || false,
-            color_match: parsed.color_match || false,
+            is_valid: typeMatch && lengthMatch,
+            type_match: typeMatch,
+            length_match: lengthMatch,
+            pattern_match: Boolean(parsed.pattern_match),
+            color_match: Boolean(parsed.color_match),
             issues: parsed.issues || [],
-            recommendation: parsed.recommendation || 'reject',
+            recommendation,
+            validationAvailable: true,
+            explicitDecision: recommendation !== 'retry' || (parsed.issues || []).length > 0,
             details: {
                 expected_type: expectedCategory,
                 actual_type: parsed.actual_type || 'UNKNOWN',
@@ -133,15 +171,20 @@ Return JSON:
         return result
 
     } catch (error) {
-        console.error('Garment validation failed:', error)
+        console.warn(
+            '[tryon] garment guardrail unavailable:',
+            error instanceof Error ? error.message : String(error)
+        )
         return {
             is_valid: false,
             type_match: false,
             length_match: false,
             pattern_match: false,
             color_match: false,
-            issues: ['Validation error'],
+            issues: ['Validation unavailable'],
             recommendation: 'retry',
+            validationAvailable: false,
+            explicitDecision: false,
             details: {
                 expected_type: expectedCategory,
                 actual_type: 'UNKNOWN',

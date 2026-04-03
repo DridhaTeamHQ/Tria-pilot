@@ -37,19 +37,21 @@ export const loginSchema = z
   })
   .strict()
 
+const base64ImageSchema = z.string().min(1).max(15_000_000)
+
 export const tryOnSchema = z
   .object({
   // Base64 images can be large; cap to avoid abuse while remaining functional.
-  personImage: z.string().min(1).max(15_000_000),
-  personImages: z.array(z.string().min(1).max(15_000_000)).max(5).optional(),
+  personImage: base64ImageSchema,
+  personImages: z.array(base64ImageSchema).max(5).optional(),
   editType: z
     .enum(['clothing_change', 'background_change', 'lighting_change', 'pose_change', 'camera_change'])
     .optional()
     .default('clothing_change'),
-  clothingImage: z.string().min(1).max(15_000_000).optional(),
-  backgroundImage: z.string().min(1).max(15_000_000).optional(),
+  clothingImage: base64ImageSchema.optional(),
+  backgroundImage: base64ImageSchema.optional(),
   // NEW: Accessory support for edit mode
-  accessoryImages: z.array(z.string().min(1).max(15_000_000)).max(10).optional(), // Array of base64 accessory images
+  accessoryImages: z.array(base64ImageSchema).max(10).optional(), // Array of base64 accessory images
   accessoryTypes: z
     .array(z.enum(['purse', 'shoes', 'hat', 'jewelry', 'bag', 'watch', 'sunglasses', 'scarf', 'other']))
     .max(10)
@@ -68,6 +70,27 @@ export const tryOnSchema = z
   resolution: z.enum(['1K', '2K']).optional().default('2K'),
 })
   .strict()
+
+export const presetlessTryOnSchema = z
+  .object({
+    productId: z.string().trim().min(1).max(100).optional(),
+    clothingImage: base64ImageSchema.optional(),
+    garmentImageUrl: z.string().trim().min(1).max(4096).optional(),
+    selectedReferenceImageIds: z
+      .array(z.string().trim().min(1).max(120))
+      .length(3)
+      .refine((ids) => new Set(ids).size === ids.length, 'Select 3 different reference photos.')
+      .optional(),
+    autoSelect: z.boolean().optional().default(false),
+    polishNotes: z.string().trim().max(240).optional(),
+    aspectRatio: z.enum(['1:1', '4:5', '3:4', '9:16']).optional().default('4:5'),
+    resolution: z.enum(['1K', '2K']).optional().default('2K'),
+    model: z.enum(['flash', 'production']).optional().default('production'),
+  })
+  .refine((value) => Boolean(value.productId || value.clothingImage || value.garmentImageUrl), {
+    message: 'Either productId or clothingImage is required.',
+    path: ['productId'],
+  })
 
 export const adGenerationSchema = z
   .object({

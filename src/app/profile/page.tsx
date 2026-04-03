@@ -23,17 +23,50 @@ import {
   ChevronDown,
   Upload,
   Trash2,
-  ShieldCheck,
+  RefreshCw,
   ImagePlus
 } from 'lucide-react'
 import { toast } from '@/lib/simple-sonner'
 import Link from 'next/link'
 import { createClient } from '@/lib/auth-client'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
-import {
-  type IdentityImageType,
-  IDENTITY_IMAGE_REQUIREMENTS
-} from '@/lib/identity/types'
+
+type ReferencePhotoSource = 'app_upload' | 'migrated_profile' | 'migrated_identity'
+type ReferencePhotoStatus = 'pending' | 'approved' | 'rejected'
+
+interface ReferencePhotoAnalysis {
+  faceDetectionConfidence: number
+  faceCount: number
+  sharpness: number
+  lightingQuality: number
+  bodyVisibility: 'full' | 'upper' | 'face_only' | 'none'
+  framing: 'portrait' | 'half' | 'full_body' | 'group'
+  faceOccluded: boolean
+  heavyAccessories: boolean
+  garmentSwapSuitability: number
+  rejectionNote?: string
+}
+
+interface ReferencePhoto {
+  id: string
+  imageUrl: string
+  source: ReferencePhotoSource
+  status: ReferencePhotoStatus
+  qualityScore: number | null
+  analysis: ReferencePhotoAnalysis | null
+  approvedForTryOn: boolean
+  rejectionReasons: string[]
+  createdAt: string
+}
+
+interface ReferencePhotosResponse {
+  photos: ReferencePhoto[]
+  totalCount: number
+  approvedCount: number
+  isReadyForTryOn: boolean
+  minRequired: number
+  photosNeeded: number
+}
 
 function BrutalCard({ children, className = '', title }: { children: React.ReactNode, className?: string, title?: string }) {
   return (
@@ -86,13 +119,6 @@ const fetchProfileData = async () => {
 
 type SectionKey = 'about' | 'character' | 'social' | 'metrics'
 
-interface CharacterImage {
-  id: string
-  imageType: IdentityImageType
-  imageUrl: string
-  isActive: boolean
-}
-
 export default function ProfilePage() {
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState('')
@@ -108,13 +134,16 @@ export default function ProfilePage() {
     social: true,
     metrics: true,
   })
-  const [characterImages, setCharacterImages] = useState<CharacterImage[]>([])
-  const [characterProgress, setCharacterProgress] = useState(0)
-  const [characterComplete, setCharacterComplete] = useState(false)
-  const [uploadingSlot, setUploadingSlot] = useState<IdentityImageType | null>(null)
-  const [deletingSlot, setDeletingSlot] = useState<IdentityImageType | null>(null)
-  const characterInputRef = useRef<HTMLInputElement>(null)
-  const pendingSlotRef = useRef<IdentityImageType | null>(null)
+  const [referencePhotos, setReferencePhotos] = useState<ReferencePhoto[]>([])
+  const [referencePhotosLoading, setReferencePhotosLoading] = useState(false)
+  const [referencePhotosReady, setReferencePhotosReady] = useState(false)
+  const [referenceMinRequired, setReferenceMinRequired] = useState(5)
+  const [referenceApprovedCount, setReferenceApprovedCount] = useState(0)
+  const [referencePhotosNeeded, setReferencePhotosNeeded] = useState(5)
+  const [referenceUploadProgress, setReferenceUploadProgress] = useState(0)
+  const [referenceUploading, setReferenceUploading] = useState(false)
+  const [referenceDeletingId, setReferenceDeletingId] = useState<string | null>(null)
+  const referenceInputRef = useRef<HTMLInputElement>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const queryClient = useQueryClient()
@@ -155,108 +184,111 @@ export default function ProfilePage() {
     fetchProfileImage()
   }, [])
 
-  // Fetch character / identity images
-  const fetchCharacterImages = useCallback(async () => {
+  // Fetch the canonical reference-photo library used by try-on.
+  const fetchReferencePhotos = useCallback(async () => {
+    setReferencePhotosLoading(true)
     try {
-      const res = await fetch('/api/identity-images')
+      const res = await fetch('/api/reference-photos', { credentials: 'include' })
       if (!res.ok) return
       const data = await res.json()
-      setCharacterImages(data.images || [])
-      setCharacterProgress(data.progress || 0)
-      setCharacterComplete(data.isComplete || false)
+      const payload = data as ReferencePhotosResponse
+      setReferencePhotos(Array.isArray(payload.photos) ? payload.photos : [])
+      setReferencePhotosReady(Boolean(payload.isReadyForTryOn))
+      setReferenceMinRequired(Number(payload.minRequired || 5))
+      setReferenceApprovedCount(Number(payload.approvedCount || 0))
+      setReferencePhotosNeeded(Number(payload.photosNeeded || 0))
     } catch (err) {
-      console.error('Failed to fetch character images:', err)
+      console.error('Failed to fetch reference photos:', err)
+    } finally {
+      setReferencePhotosLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    fetchCharacterImages()
-  }, [fetchCharacterImages])
+    fetchReferencePhotos()
+  }, [fetchReferencePhotos])
 
-  const handleCharacterUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+  const handleReferencePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
     e.currentTarget.value = ''
-    if (!file || !pendingSlotRef.current) return
+    if (files.length === 0) return
 
-    const imageType = pendingSlotRef.current
-    pendingSlotRef.current = null
+    setReferenceUploading(true)
+    setReferenceUploadProgress(0)
 
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file')
-      return
-    }
-    if (file.size > 15 * 1024 * 1024) {
-      toast.error('Image must be less than 15MB')
-      return
-    }
+    let uploadedCount = 0
+    let failedCount = 0
 
-    setUploadingSlot(imageType)
     try {
-      const uploadFile = await preparePhotoForUpload(file)
+      for (let index = 0; index < files.length; index += 1) {
+        const file = files[index]
+        if (!file.type.startsWith('image/')) {
+          failedCount += 1
+          continue
+        }
+        if (file.size > 15 * 1024 * 1024) {
+          failedCount += 1
+          continue
+        }
 
-      const supabase = createClient()
-      const { data: userData } = await supabase.auth.getUser()
-      if (!userData.user) throw new Error('You must be logged in to upload.')
+        try {
+          const uploadFile = await preparePhotoForUpload(file)
+          const formData = new FormData()
+          formData.append('file', uploadFile)
 
-      const fileName = `${userData.user.id}/${imageType}-${Date.now()}.jpg`
+          const res = await fetch('/api/reference-photos', {
+            method: 'POST',
+            credentials: 'include',
+            body: formData,
+          })
 
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('identity-images')
-        .upload(fileName, uploadFile, { contentType: uploadFile.type, upsert: true })
+          if (!res.ok) {
+            const errBody = await res.json().catch(() => ({}))
+            throw new Error(errBody.error || `Upload failed with status ${res.status}`)
+          }
 
-      if (uploadError) {
-        throw new Error(uploadError.message || 'Failed to upload image to storage')
+          uploadedCount += 1
+        } catch (uploadError) {
+          console.error('Reference photo upload error:', uploadError)
+          failedCount += 1
+        } finally {
+          setReferenceUploadProgress(Math.round(((index + 1) / files.length) * 100))
+        }
       }
 
-      const { data: { publicUrl } } = supabase.storage.from('identity-images').getPublicUrl(fileName)
-
-      const res = await fetch('/api/identity-images', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageType, fileName, publicUrl }),
-      })
-
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}))
-        throw new Error(errBody.error || `Failed to save image record with status: ${res.status}`)
+      if (uploadedCount > 0) {
+        toast.success(uploadedCount === 1 ? 'Reference photo uploaded' : `${uploadedCount} reference photos uploaded`)
       }
-
-      const data = await res.json()
-      toast.success(`${IDENTITY_IMAGE_REQUIREMENTS.find(r => r.type === imageType)?.label || 'Photo'} uploaded!`)
-      setCharacterProgress(data.progress || characterProgress)
-      setCharacterComplete(data.isComplete || false)
-      await fetchCharacterImages()
+      if (failedCount > 0) {
+        toast.error(failedCount === 1 ? 'One photo could not be uploaded' : `${failedCount} photos could not be uploaded`)
+      }
+      await fetchReferencePhotos()
     } catch (err) {
-      console.error('Character image upload error:', err)
-      toast.error(err instanceof Error ? err.message : 'Failed to upload image. Please try again.')
+      toast.error(err instanceof Error ? err.message : 'Failed to upload reference photos')
     } finally {
-      setUploadingSlot(null)
+      setReferenceUploading(false)
+      setReferenceUploadProgress(0)
     }
   }
 
-  const handleCharacterDelete = async (imageType: IdentityImageType) => {
-    setDeletingSlot(imageType)
+  const handleReferencePhotoDelete = async (photoId: string) => {
+    setReferenceDeletingId(photoId)
     try {
-      const res = await fetch(`/api/identity-images?imageType=${imageType}`, {
+      const res = await fetch(`/api/reference-photos?id=${encodeURIComponent(photoId)}`, {
         method: 'DELETE',
         credentials: 'include',
       })
-      if (!res.ok) throw new Error('Delete failed')
-      const data = await res.json()
-      toast.success('Photo removed')
-      setCharacterProgress(data.progress || 0)
-      setCharacterComplete(data.isComplete || false)
-      await fetchCharacterImages()
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}))
+        throw new Error(errBody.error || 'Delete failed')
+      }
+      toast.success('Reference photo removed')
+      await fetchReferencePhotos()
     } catch (err) {
-      toast.error('Failed to remove photo')
+      toast.error(err instanceof Error ? err.message : 'Failed to remove reference photo')
     } finally {
-      setDeletingSlot(null)
+      setReferenceDeletingId(null)
     }
-  }
-
-  const triggerCharacterUpload = (slot: IdentityImageType) => {
-    pendingSlotRef.current = slot
-    characterInputRef.current?.click()
   }
 
   const toggleSection = (key: SectionKey) => {
@@ -516,6 +548,61 @@ export default function ProfilePage() {
     return { label: 'Starter', bg: 'bg-yellow-400' }
   }
 
+  const getReferenceSelectionScore = (photo: ReferencePhoto) => {
+    const analysis = photo.analysis
+    if (!analysis) return photo.qualityScore ?? 0.25
+
+    const bodyVisibilityScore =
+      analysis.bodyVisibility === 'full' ? 1 :
+        analysis.bodyVisibility === 'upper' ? 0.7 :
+          analysis.bodyVisibility === 'face_only' ? 0.35 : 0
+
+    const faceClarity = analysis.faceCount === 1 && !analysis.faceOccluded && !analysis.heavyAccessories
+      ? analysis.faceDetectionConfidence
+      : analysis.faceDetectionConfidence * 0.35
+
+    const qualityScore = photo.qualityScore ?? 0
+
+    return (
+      faceClarity * 0.35 +
+      (analysis.garmentSwapSuitability || 0) * 0.3 +
+      bodyVisibilityScore * 0.15 +
+      analysis.sharpness * 0.1 +
+      analysis.lightingQuality * 0.1 +
+      qualityScore * 0.05
+    )
+  }
+
+  const sortedReferencePhotos = [...referencePhotos].sort((a, b) => {
+    const scoreDelta = getReferenceSelectionScore(b) - getReferenceSelectionScore(a)
+    if (Math.abs(scoreDelta) > 0.0001) return scoreDelta
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  })
+  const suggestedReferencePhotos = sortedReferencePhotos.filter((photo) => photo.status === 'approved').slice(0, 3)
+  const remainingReferencePhotos = sortedReferencePhotos.filter((photo) => !suggestedReferencePhotos.some((selected) => selected.id === photo.id))
+
+  const getReferenceStatusTone = (status: ReferencePhotoStatus) => {
+    switch (status) {
+      case 'approved':
+        return { label: 'Approved', color: 'bg-[#B4F056]' }
+      case 'rejected':
+        return { label: 'Rejected', color: 'bg-[#FF9AA2]' }
+      default:
+        return { label: 'Pending', color: 'bg-[#FFD93D]' }
+    }
+  }
+
+  const getReferenceSourceLabel = (source: ReferencePhotoSource) => {
+    switch (source) {
+      case 'migrated_profile':
+        return 'Migrated from profile photos'
+      case 'migrated_identity':
+        return 'Migrated from identity photos'
+      default:
+        return 'App upload'
+    }
+  }
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
@@ -740,8 +827,8 @@ export default function ProfilePage() {
               </div>
             </BrutalCard>
 
-            {/* ── MY CHARACTER ── */}
-            <BrutalCard title="My Character">
+            {/* ── REFERENCE LIBRARY ── */}
+            <BrutalCard title="Reference Library">
               <button type="button"
                 onClick={() => toggleSection('character')}
                 className="md:hidden w-full mb-4 flex items-center justify-between border-[2px] border-black px-3 py-2 font-bold uppercase text-xs"
@@ -751,138 +838,191 @@ export default function ProfilePage() {
               </button>
 
               <div className={`${expanded.character ? 'block' : 'hidden'} md:block`}>
-                {/* Progress */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    {characterComplete ? (
-                      <div className="flex items-center gap-2 px-3 py-1 bg-green-300 border-[2px] border-black text-xs font-bold uppercase">
-                        <ShieldCheck className="w-4 h-4" />
-                        Character Ready
+                <div className="grid lg:grid-cols-12 gap-6 items-start">
+                  <div className="lg:col-span-4 space-y-4">
+                    <div className="border-[3px] border-black bg-[#FFF9E5] p-4 shadow-[4px_4px_0_0_rgba(0,0,0,1)]">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">Try-on readiness</p>
+                          <p className="text-xl font-black uppercase leading-tight mt-1">
+                            {referencePhotosReady ? 'Ready to generate' : `${referencePhotosNeeded} more approved photos`}
+                          </p>
+                        </div>
+                        <div className={`px-3 py-1 border-[2px] border-black font-black uppercase text-[10px] ${referencePhotosReady ? 'bg-[#B4F056]' : 'bg-[#FFD93D]'}`}>
+                          {referencePhotosReady ? 'Ready' : 'Locked'}
+                        </div>
+                      </div>
+
+                      <div className="mt-4 w-full h-3 border-[2px] border-black bg-white overflow-hidden">
+                        <motion.div
+                          className="h-full bg-[#FFD93D]"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min(100, (referenceApprovedCount / Math.max(1, referenceMinRequired)) * 100)}%` }}
+                          transition={{ duration: 0.5, ease: 'easeOut' }}
+                        />
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <span className="px-2 py-1 border-[2px] border-black bg-white text-[10px] font-black uppercase">Approved {referenceApprovedCount}/{referenceMinRequired}</span>
+                        <span className="px-2 py-1 border-[2px] border-black bg-white text-[10px] font-black uppercase">Total {referencePhotos.length}</span>
+                        <span className="px-2 py-1 border-[2px] border-black bg-white text-[10px] font-black uppercase">Pending {referencePhotos.filter((photo) => photo.status === 'pending').length}</span>
+                        <span className="px-2 py-1 border-[2px] border-black bg-white text-[10px] font-black uppercase">Rejected {referencePhotos.filter((photo) => photo.status === 'rejected').length}</span>
+                      </div>
+                    </div>
+
+                    <div className="border-[3px] border-black bg-white p-4 shadow-[4px_4px_0_0_rgba(0,0,0,1)] space-y-3">
+                      <button
+                        type="button"
+                        onClick={() => referenceInputRef.current?.click()}
+                        disabled={referenceUploading}
+                        className="w-full px-4 py-3 bg-black text-white border-[2px] border-black font-black uppercase tracking-wide shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all inline-flex items-center justify-center gap-2"
+                      >
+                        {referenceUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                        Upload Photos
+                      </button>
+                      <input
+                        ref={referenceInputRef}
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleReferencePhotoUpload}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => void fetchReferencePhotos()}
+                        className="w-full px-4 py-3 bg-white text-black border-[2px] border-black font-black uppercase tracking-wide shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all inline-flex items-center justify-center gap-2"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        Refresh Library
+                      </button>
+                      {referenceUploading && referenceUploadProgress > 0 && (
+                        <p className="text-[11px] font-bold uppercase text-black/60">
+                          Uploading... {referenceUploadProgress}%
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="border-[2px] border-black bg-white p-3">
+                        <p className="text-[10px] font-black uppercase tracking-wide text-black/50">Suggested picks</p>
+                        <p className="text-2xl font-black">{Math.min(3, suggestedReferencePhotos.length)}</p>
+                      </div>
+                      <div className="border-[2px] border-black bg-white p-3">
+                        <p className="text-[10px] font-black uppercase tracking-wide text-black/50">Need for v1</p>
+                        <p className="text-2xl font-black">{Math.max(0, referenceMinRequired - referenceApprovedCount)}</p>
+                      </div>
+                    </div>
+
+                    <div className="border-[2px] border-dashed border-black/20 p-4 bg-[#F8FAFC]">
+                      <p className="text-xs font-bold text-black/60 leading-relaxed">
+                        Upload clear solo photos from different angles. The try-on flow will auto-pick the strongest 3 approved photos from this library and only use those as source references.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="lg:col-span-8 space-y-6">
+                    {referencePhotosLoading ? (
+                      <div className="border-[3px] border-black bg-white p-8 text-center font-black uppercase animate-pulse">
+                        <Loader2 className="w-5 h-5 animate-spin inline mr-2" />
+                        Loading reference library...
+                      </div>
+                    ) : referencePhotos.length === 0 ? (
+                      <div className="border-[3px] border-black bg-white p-8 text-center">
+                        <ImagePlus className="w-10 h-10 mx-auto mb-3" />
+                        <h3 className="text-xl font-black uppercase">No reference photos yet</h3>
+                        <p className="text-sm font-medium text-black/60 mt-2 max-w-md mx-auto">
+                          Add app-uploaded solo photos to build your try-on library. Once you have {referenceMinRequired} approved photos, the try-on pipeline unlocks.
+                        </p>
                       </div>
                     ) : (
-                      <p className="text-xs font-bold uppercase text-black/50 tracking-widest">
-                        {characterProgress}% Complete — Upload all 7 photos
-                      </p>
+                      <>
+                        {suggestedReferencePhotos.length > 0 && (
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <h3 className="text-sm font-black uppercase tracking-widest">Auto-picked top 3</h3>
+                              <span className="text-[10px] font-black uppercase text-black/40">Best approved source photos for try-on</span>
+                            </div>
+                            <div className="grid sm:grid-cols-3 gap-4">
+                              {suggestedReferencePhotos.map((photo) => {
+                                const statusTone = getReferenceStatusTone(photo.status)
+                                return (
+                                  <div key={photo.id} className="border-[3px] border-black bg-white shadow-[4px_4px_0_0_rgba(0,0,0,1)] overflow-hidden">
+                                    <div className="aspect-[3/4] bg-black/5">
+                                      <img src={photo.imageUrl} alt="Reference photo" className="w-full h-full object-cover" />
+                                    </div>
+                                    <div className="p-3 space-y-2">
+                                      <div className="flex items-center justify-between gap-2">
+                                        <span className={`px-2 py-1 border-[2px] border-black text-[10px] font-black uppercase ${statusTone.color}`}>{statusTone.label}</span>
+                                        <span className="text-[10px] font-black uppercase text-black/45">{getReferenceSourceLabel(photo.source)}</span>
+                                      </div>
+                                      <p className="text-xs font-bold text-black/70">Score {Math.round((photo.qualityScore ?? getReferenceSelectionScore(photo)) * 100)}%</p>
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <h3 className="text-sm font-black uppercase tracking-widest">All photos</h3>
+                            <span className="text-[10px] font-black uppercase text-black/40">{referencePhotos.length} total</span>
+                          </div>
+                          <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                            {remainingReferencePhotos.map((photo) => {
+                              const statusTone = getReferenceStatusTone(photo.status)
+                              return (
+                                <div key={photo.id} className="border-[3px] border-black bg-white shadow-[4px_4px_0_0_rgba(0,0,0,1)] overflow-hidden">
+                                  <div className="relative aspect-[3/4] bg-black/5">
+                                    <img src={photo.imageUrl} alt="Reference photo" className="w-full h-full object-cover" />
+                                    <div className="absolute top-2 left-2">
+                                      <span className={`px-2 py-1 border-[2px] border-black text-[10px] font-black uppercase ${statusTone.color}`}>{statusTone.label}</span>
+                                    </div>
+                                    <div className="absolute top-2 right-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => void handleReferencePhotoDelete(photo.id)}
+                                        disabled={referenceDeletingId === photo.id}
+                                        className="w-9 h-9 flex items-center justify-center bg-white border-[2px] border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+                                        title="Remove reference photo"
+                                      >
+                                        {referenceDeletingId === photo.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div className="p-3 space-y-2">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span className="text-[10px] font-black uppercase text-black/45">{getReferenceSourceLabel(photo.source)}</span>
+                                      <span className="text-[10px] font-black uppercase text-black/45">Score {Math.round((photo.qualityScore ?? getReferenceSelectionScore(photo)) * 100)}%</span>
+                                    </div>
+                                    <p className="text-xs font-bold text-black/65">
+                                      {photo.approvedForTryOn ? 'Counts toward try-on readiness' : 'Not counted toward readiness yet'}
+                                    </p>
+                                    {photo.analysis?.rejectionNote && (
+                                      <p className="text-[11px] font-bold text-black/60">{photo.analysis.rejectionNote}</p>
+                                    )}
+                                    {photo.rejectionReasons.length > 0 && (
+                                      <div className="space-y-1">
+                                        {photo.rejectionReasons.map((reason) => (
+                                          <p key={reason} className="text-[11px] font-bold text-red-600">
+                                            {reason}
+                                          </p>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>
-
-                {/* Progress Bar */}
-                <div className="w-full h-3 border-[2px] border-black bg-white overflow-hidden mb-6">
-                  <motion.div
-                    className="h-full bg-[#FFD93D]"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${characterProgress}%` }}
-                    transition={{ duration: 0.5, ease: 'easeOut' }}
-                  />
-                </div>
-
-                {/* Hidden File Input for Character Images */}
-                <input
-                  ref={characterInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleCharacterUpload}
-                  className="hidden"
-                />
-
-                {/* Upload Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                  {IDENTITY_IMAGE_REQUIREMENTS.map((req) => {
-                    const existing = characterImages.find(img => img.imageType === req.type && img.isActive !== false)
-                    const isUploading = uploadingSlot === req.type
-                    const isDeleting = deletingSlot === req.type
-
-                    return (
-                      <div key={req.type} className="relative group">
-                        <div className="aspect-[3/4] border-[3px] border-black bg-white overflow-hidden shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px]">
-                          {existing ? (
-                            /* Uploaded — show preview */
-                            <>
-                              <img
-                                src={existing.imageUrl}
-                                alt={req.label}
-                                className="w-full h-full object-cover"
-                              />
-                              {/* Overlay on hover */}
-                              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => triggerCharacterUpload(req.type)}
-                                  disabled={isUploading}
-                                  className="px-3 py-1.5 bg-white text-black border-[2px] border-black text-xs font-bold uppercase hover:bg-[#FFD93D] transition-colors"
-                                >
-                                  Replace
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleCharacterDelete(req.type)}
-                                  disabled={isDeleting}
-                                  className="px-3 py-1.5 bg-red-400 text-black border-[2px] border-black text-xs font-bold uppercase hover:bg-red-500 transition-colors flex items-center gap-1"
-                                >
-                                  {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-                                  Remove
-                                </button>
-                              </div>
-                            </>
-                          ) : (
-                            /* Empty — upload placeholder */
-                            <button
-                              type="button"
-                              onClick={() => triggerCharacterUpload(req.type)}
-                              disabled={isUploading}
-                              className="w-full h-full flex flex-col items-center justify-center gap-2 hover:bg-[#FFD93D]/10 transition-colors cursor-pointer"
-                            >
-                              {isUploading ? (
-                                <Loader2 className="w-8 h-8 text-black/30 animate-spin" />
-                              ) : (
-                                <>
-                                  <div className="w-10 h-10 border-[2px] border-dashed border-black/30 flex items-center justify-center">
-                                    <ImagePlus className="w-5 h-5 text-black/30" />
-                                  </div>
-                                  <span className="text-[11px] font-bold uppercase text-black/40 tracking-wide">
-                                    {req.icon} {req.label}
-                                  </span>
-                                </>
-                              )}
-                            </button>
-                          )}
-
-                          {/* Uploading overlay */}
-                          {isUploading && existing && (
-                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                              <Loader2 className="w-8 h-8 text-white animate-spin" />
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Label below */}
-                        <p className="mt-1.5 text-[10px] font-bold uppercase text-black/50 tracking-wider text-center truncate">
-                          {req.label}
-                          {existing && <span className="text-green-600 ml-1">✓</span>}
-                        </p>
-                      </div>
-                    )
-                  })}
-                </div>
-
-                {/* Helper text */}
-                <div className="mt-6 border-[2px] border-dashed border-black/20 p-4 bg-[#FFF9E5]">
-                  <p className="text-xs font-bold text-black/60 leading-relaxed">
-                    📸 Upload clear, well-lit photos from multiple angles. These are used as reference for AI try-on to maintain your exact face and body identity.
-                    No sunglasses, heavy filters, or group photos.
-                  </p>
-                </div>
               </div>
-
-              {/* Hidden file input for character uploads */}
-              <input
-                ref={characterInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleCharacterUpload}
-                className="hidden"
-              />
             </BrutalCard>
 
             <BrutalCard title="Social Presence">

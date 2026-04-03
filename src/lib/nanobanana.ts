@@ -399,6 +399,7 @@ export interface DirectTryOnOptions {
   garmentImageBase64: string  // raw base64 (no data URI prefix)
   faceCropBase64?: string     // output of extractFaceCrop (raw base64)
   characterReferenceBase64s?: { base64: string; label: string }[]  // multi-angle character references
+  model?: 'gemini-2.5-flash-image' | 'gemini-3.1-flash-image-preview' | 'gemini-3-pro-image-preview'
   prompt: string              // pre-built sanitized prompt — passed AS-IS
   aspectRatio?: string
   resolution?: string
@@ -409,8 +410,8 @@ export interface DirectTryOnOptions {
  * 
  * CRITICAL: This function does NOT build any prompt internally.
  * The prompt argument is passed DIRECTLY to Gemini.
- * Content order: [person_image, prompt_text, garment_image]
- * Model: always gemini-3-pro-image-preview
+ * Content order: [person_image, garment_image, face_crop, character_refs, prompt_text]
+ * Model: caller-selected Gemini image model, defaulting to Pro for fidelity.
  */
 export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<string> {
   const {
@@ -418,6 +419,7 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
     garmentImageBase64,
     faceCropBase64,
     characterReferenceBase64s,
+    model,
     prompt,
     aspectRatio = '4:5',
     resolution = '2K',
@@ -434,7 +436,15 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
     throw new Error('Invalid garment image')
   }
 
-  if (process.env.NODE_ENV !== 'production') console.log(`🍌 DIRECT TRANSPORT: gemini-3-pro-image-preview | prompt: ${prompt.length} chars`)
+  const requestedModel =
+    model ||
+    process.env.TRYON_RENDER_MODEL?.trim() ||
+    process.env.TRYON_IMAGE_MODEL?.trim() ||
+    'gemini-3-pro-image-preview'
+
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`🍌 DIRECT TRANSPORT: ${requestedModel} | prompt: ${prompt.length} chars`)
+  }
 
   // CONTENT ORDER — all images FIRST, then prompt text LAST:
   // 1. Person image (identity anchor)
@@ -460,7 +470,7 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
         mimeType: 'image/jpeg',
       },
     } as any,
-    'Image 2: the target garment. Apply this clothing to the person.'
+    'Image 2: the target clothing. Edit the person\'s clothing so the final visible garment matches this image EXACTLY. Follow the coverage instructions in the prompt. Match color, pattern, texture, collar, sleeves, hem, structure, and fit with no reinterpretation.'
   )
 
   // Image 3: Face crop — close-up for identity reinforcement
@@ -480,10 +490,11 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
     }
   }
 
-  // Image 4+: Character references — multi-angle face photos
+  // Image 4+: Character references — LIMIT TO 2 MAX to avoid drowning out the garment
   if (characterReferenceBase64s && characterReferenceBase64s.length > 0) {
+    const maxCharRefs = 2 // Too many refs cause the model to lose focus on the garment
     let refIdx = 4
-    for (const ref of characterReferenceBase64s) {
+    for (const ref of characterReferenceBase64s.slice(0, maxCharRefs)) {
       const cleanRef = ref.base64.replace(/^data:image\/[a-z]+;base64,/, '')
       if (cleanRef && cleanRef.length > 100) {
         if (process.env.NODE_ENV !== 'production') console.log(`🪞 Adding character ref Image ${refIdx}: ${ref.label}`)
@@ -494,12 +505,27 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
               mimeType: 'image/jpeg',
             },
           } as any,
-          `Image ${refIdx}: ${ref.label} — same person, different angle. Use for face identity only. Ignore clothing.`
+          `Image ${refIdx}: ${ref.label} — same person, different angle. Use ONLY for face identity. IGNORE their clothing completely.`
         )
         refIdx++
       }
     }
+    if (characterReferenceBase64s.length > maxCharRefs && process.env.NODE_ENV !== 'production') {
+      console.log(`🪞 Skipped ${characterReferenceBase64s.length - maxCharRefs} extra character refs to preserve garment fidelity`)
+    }
   }
+
+  // GARMENT REMINDER — re-send garment image as the LAST visual before prompt
+  // This ensures the model's final visual context is the target garment, not character refs
+  contents.push(
+    {
+      inlineData: {
+        data: cleanGarment,
+        mimeType: 'image/jpeg',
+      },
+    } as any,
+    'GARMENT REMINDER: This is the EXACT garment to apply. The output clothing MUST be an identical copy of this image. Follow the prompt coverage instructions and do not simplify, reinterpret, or change any detail.'
+  )
 
   // Prompt text LAST — after all visual context is established
   contents.push(prompt)
@@ -512,26 +538,39 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
 
   const config: GenerateContentConfig = {
     responseModalities: ['TEXT', 'IMAGE'],
-    systemInstruction: `You are a photorealistic virtual try-on camera.
+    systemInstruction: `You are a photorealistic virtual try-on editor specializing in high-fidelity clothing replacement.
 
-IDENTITY: The output MUST show the SAME PERSON from Image 1. Copy their face exactly from the reference photos — do not reconstruct it from text. Every asymmetry, blemish, and feature must match.
+TASK: Edit the clothing on the person from Image 1 so the final visible garment matches the clothing shown in Image 2 exactly. Follow the coverage instructions in the prompt for whether the garment is upper-body, lower-body, layered outerwear, or full-body.
 
-GARMENT: Apply ONLY the clothing from Image 2.
+IDENTITY (NON-NEGOTIABLE):
+- The output MUST show the EXACT SAME PERSON from Image 1
+- Copy their face pixel-for-pixel from the reference photos
+- Preserve body proportions, shoulder width, skin tone, hair style, and overall build
+- Do NOT generate a different person or alter facial features
+
+GARMENT REPLACEMENT (CRITICAL):
+- Remove only the clothing that conflicts with the target garment
+- Apply the clothing from Image 2 as the PRIMARY visible garment
+- The garment must be a PIXEL-PERFECT match to Image 2 — same exact color, pattern, texture, buttons, collar, sleeves, hem, fit, silhouette, and fabric
+- Do NOT creatively reinterpret the garment. Copy it EXACTLY as shown in Image 2
+- If Image 2 contains a model, body parts, or extra non-target clothing, IGNORE those cues completely
+- Preserve untouched clothing from Image 1 exactly when the prompt says this is only an upper-body, lower-body, or layered edit
+- If the prompt says the garment is layered outerwear, the jacket/coat/cardigan structure from Image 2 must remain clearly visible
+- Do NOT collapse jackets, blazers, or outerwear into a plain t-shirt, blouse, or crop top
 
 SCENE: Follow scene instructions from the prompt.
 
-REALISM: Natural skin with visible pores. No smoothing, no CGI.`,
+REALISM: Photorealistic output only. Natural skin texture, realistic fabric drape and wrinkles. No AI smoothing, no CGI look, no plastic skin.`,
     imageConfig,
-    temperature: 0.15,
+    temperature: 0.1,
     topP: 0.8,
     topK: 12,
   }
 
   const startTime = Date.now()
 
-  // Model selection: Pro (default) or Flash (faster/cheaper)
-  // Set TRYON_IMAGE_MODEL=gemini-3.1-flash-image-preview for Nano Banana 2
-  const modelName = process.env.TRYON_IMAGE_MODEL?.trim() || 'gemini-3.1-flash-image-preview'
+  // Model selection: Pro by default for fidelity, with Flash opt-in for speed/cost.
+  const modelName = requestedModel
 
   const response = await geminiGenerateContent({
     model: modelName,

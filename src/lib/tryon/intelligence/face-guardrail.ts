@@ -7,12 +7,14 @@
 
 import 'server-only'
 import { getGeminiChat } from '@/lib/tryon/gemini-chat'
+import { extractJson } from '@/lib/tryon/json-repair'
 
 export interface FaceValidationResult {
     is_valid: boolean
     similarity_score: number  // 0-100
     issues: string[]
     recommendation: 'accept' | 'reject' | 'retry'
+    validationAvailable?: boolean
     analysis: {
         face_shape_match: boolean
         skin_tone_match: boolean
@@ -85,30 +87,34 @@ Scoring guide:
                     ]
                 }
             ],
+            response_format: { type: 'json_object' },
             max_tokens: 500,
             temperature: 0.1
         })
 
         const content = response.choices[0]?.message?.content || ''
-        const jsonMatch = content.match(/\{[\s\S]*\}/)
-
-        if (!jsonMatch) {
-            throw new Error('No JSON in response')
-        }
-
-        const parsed = JSON.parse(jsonMatch[0])
+        const parsed = extractJson<{
+            same_person?: boolean
+            similarity_score?: number
+            face_shape_match?: boolean
+            skin_tone_match?: boolean
+            features_match?: boolean
+            issues?: string[]
+            recommendation?: 'accept' | 'reject' | 'retry'
+        }>(content)
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
 
         const result: FaceValidationResult = {
-            is_valid: parsed.similarity_score >= 70,
-            similarity_score: parsed.similarity_score || 0,
+            is_valid: Number(parsed.similarity_score || 0) >= 70,
+            similarity_score: Number(parsed.similarity_score || 0),
             issues: parsed.issues || [],
             recommendation: parsed.recommendation || 'reject',
+            validationAvailable: true,
             analysis: {
-                face_shape_match: parsed.face_shape_match || false,
-                skin_tone_match: parsed.skin_tone_match || false,
-                features_match: parsed.features_match || false,
-                same_person: parsed.same_person || false
+                face_shape_match: Boolean(parsed.face_shape_match),
+                skin_tone_match: Boolean(parsed.skin_tone_match),
+                features_match: Boolean(parsed.features_match),
+                same_person: Boolean(parsed.same_person)
             }
         }
 
@@ -122,12 +128,16 @@ Scoring guide:
         return result
 
     } catch (error) {
-        console.error('Face validation failed:', error)
+        console.warn(
+            '[tryon] face guardrail unavailable:',
+            error instanceof Error ? error.message : String(error)
+        )
         return {
             is_valid: false,
             similarity_score: 0,
-            issues: ['Validation error'],
+            issues: ['Validation unavailable'],
             recommendation: 'retry',
+            validationAvailable: false,
             analysis: {
                 face_shape_match: false,
                 skin_tone_match: false,

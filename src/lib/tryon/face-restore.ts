@@ -23,7 +23,7 @@ import path from 'path'
 
 const FACE_SWAP_SERVICE_URL = process.env.FACE_SWAP_SERVICE_URL?.trim() || ''
 const FACE_SWAP_TIMEOUT_MS = Number(process.env.FACE_SWAP_TIMEOUT_MS) || 30_000
-const FACE_RESTORE_MODEL = process.env.TRYON_IMAGE_MODEL?.trim() || 'gemini-3.1-flash-image-preview'
+const FACE_RESTORE_MODEL = process.env.TRYON_IMAGE_MODEL?.trim() || 'gemini-3-pro-image-preview'
 const FACE_SWAP_AUTO_BOOT =
     process.env.FACE_SWAP_AUTO_BOOT !== 'false' && process.env.NODE_ENV !== 'production'
 let localFaceSwapBootPromise: Promise<boolean> | null = null
@@ -133,6 +133,16 @@ async function ensureLocalFaceSwapService(): Promise<boolean> {
     return localFaceSwapBootPromise
 }
 
+export async function canUseFaceSwapFastPath(): Promise<boolean> {
+    if (!FACE_SWAP_SERVICE_URL) return false
+
+    if (isLocalFaceSwapUrl(FACE_SWAP_SERVICE_URL)) {
+        return ensureLocalFaceSwapService()
+    }
+
+    return true
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN ENTRY POINT
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -142,26 +152,38 @@ export async function restoreFaceIdentity(
 ): Promise<FaceRestoreResult> {
     const isDev = process.env.NODE_ENV !== 'production'
 
-    // Primary: Gemini — produces clean skin without artifacts
-    if (isDev) console.log('\n━━━ STAGE 4: Face Restore (Gemini) ━━━')
-    try {
-        const geminiResult = await restoreViaGemini(input)
-        if (geminiResult.success) return geminiResult
-        if (isDev) console.log(`   ⚠️ Gemini face restore failed: ${geminiResult.error}`)
-    } catch (err) {
-        if (isDev) console.log(`   ⚠️ Gemini face restore error: ${err}`)
-    }
-
-    // Fallback: InsightFace microservice (only if Gemini fails)
+    // When InsightFace is available, use it FIRST — it does actual embedding-level
+    // identity transfer via inswapper_128, which is far more reliable than Gemini's
+    // generative edit pass for face identity preservation.
     if (FACE_SWAP_SERVICE_URL) {
-        if (isDev) console.log('   Falling back to InsightFace...')
+        if (isDev) console.log('\n━━━ STAGE 4: Face Restore (InsightFace PRIMARY) ━━━')
         try {
             await ensureLocalFaceSwapService()
             const result = await restoreViaInsightFace(input)
             if (result.success) return result
-            if (isDev) console.log(`   ⚠️ InsightFace also failed: ${result.error}`)
+            if (isDev) console.log(`   ⚠️ InsightFace failed: ${result.error}`)
         } catch (err) {
-            if (isDev) console.log(`   ⚠️ InsightFace unavailable: ${err}`)
+            if (isDev) console.log(`   ⚠️ InsightFace error: ${err}`)
+        }
+
+        // Fallback: Gemini edit pass (only if InsightFace failed)
+        if (isDev) console.log('   Falling back to Gemini face restore...')
+        try {
+            const geminiResult = await restoreViaGemini(input)
+            if (geminiResult.success) return geminiResult
+            if (isDev) console.log(`   ⚠️ Gemini face restore also failed: ${geminiResult.error}`)
+        } catch (err) {
+            if (isDev) console.log(`   ⚠️ Gemini face restore error: ${err}`)
+        }
+    } else {
+        // No InsightFace: Gemini is the only option
+        if (isDev) console.log('\n━━━ STAGE 4: Face Restore (Gemini) ━━━')
+        try {
+            const geminiResult = await restoreViaGemini(input)
+            if (geminiResult.success) return geminiResult
+            if (isDev) console.log(`   ⚠️ Gemini face restore failed: ${geminiResult.error}`)
+        } catch (err) {
+            if (isDev) console.log(`   ⚠️ Gemini face restore error: ${err}`)
         }
     }
 
