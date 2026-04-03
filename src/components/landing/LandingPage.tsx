@@ -105,26 +105,26 @@ export default function LandingPage() {
             <ChartColumn className="h-[56px] w-[56px]" strokeWidth={1.7} />
           </div>
 
-          <div className="relative flex min-h-[620px] flex-col items-center justify-between px-4 pb-8 pt-8 text-center sm:px-6 lg:min-h-[720px] lg:px-8">
-            <div className="pointer-events-none absolute left-[0.4%] top-[188px] hidden w-[320px] lg:block xl:left-[0.8%] xl:top-[176px] xl:w-[397px] 2xl:w-[430px]">
+          <div className="relative flex min-h-[620px] flex-col items-center justify-between px-4 pb-3 pt-8 text-center sm:px-6 md:min-h-[680px] lg:min-h-[720px] lg:px-8">
+            <div className="pointer-events-none absolute left-[-2%] top-[250px] hidden w-[240px] md:block lg:left-[0.4%] lg:top-[188px] lg:w-[320px] xl:left-[0.8%] xl:top-[176px] xl:w-[397px] 2xl:w-[430px]">
               <Image
                 src="/landing/hero-influencer.png"
                 alt="Influencer mascot"
                 width={960}
                 height={1536}
-                sizes="(min-width: 1536px) 430px, (min-width: 1280px) 397px, 320px"
+                sizes="(min-width: 1536px) 430px, (min-width: 1280px) 397px, (min-width: 1024px) 320px, 240px"
                 className="h-auto w-full object-contain drop-shadow-[0_18px_30px_rgba(0,0,0,0.1)] [transform:scaleX(1.03)]"
                 priority
               />
             </div>
-            <div className="pointer-events-none absolute right-[-0.8%] top-[208px] hidden h-[430px] w-[370px] overflow-hidden lg:block xl:right-0 xl:top-[184px] xl:h-[550px] xl:w-[474px] 2xl:right-[0.8%] 2xl:h-[590px] 2xl:w-[510px]">
+            <div className="pointer-events-none absolute right-[-5%] top-[248px] hidden h-[300px] w-[255px] overflow-hidden md:block lg:right-[-0.8%] lg:top-[208px] lg:h-[430px] lg:w-[370px] xl:right-0 xl:top-[184px] xl:h-[550px] xl:w-[474px] 2xl:right-[0.8%] 2xl:h-[590px] 2xl:w-[510px]">
               <div className="absolute inset-y-0 left-0 z-[1] w-[34px] bg-[linear-gradient(255deg,#fff_4%,rgba(255,255,255,0)_29%)]" />
               <Image
                 src="/landing/hero-brand.png"
                 alt="Brand studio display"
                 width={1250}
                 height={1325}
-                sizes="(min-width: 1536px) 510px, (min-width: 1280px) 474px, 370px"
+                sizes="(min-width: 1536px) 510px, (min-width: 1280px) 474px, (min-width: 1024px) 370px, 255px"
                 className="h-full w-full object-contain object-right drop-shadow-[0_24px_32px_rgba(0,0,0,0.08)]"
                 priority
               />
@@ -163,15 +163,15 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="relative z-10 mt-10 flex w-full flex-col items-center gap-4 lg:mt-0 lg:block">
+            <div className="relative z-10 mt-10 flex w-full flex-col items-center gap-4 md:mt-0 md:block">
               <HeroBadge
-                className="w-fit lg:absolute lg:bottom-[28px] lg:left-[7%]"
+                className="w-fit md:absolute md:bottom-[98px] md:left-[4%] lg:bottom-[88px] lg:left-[6%] xl:bottom-[112px] xl:left-[7%]"
                 icon={<Sparkles className="h-4 w-4" strokeWidth={2.4} />}
                 title="For Influencers"
                 subtitle="who want to earn"
               />
               <HeroBadge
-                className="w-fit lg:absolute lg:bottom-[42px] lg:right-[7.5%]"
+                className="w-fit md:absolute md:bottom-[112px] md:right-[4%] lg:bottom-[104px] lg:right-[6%] xl:bottom-[124px] xl:right-[7.5%]"
                 icon={<Store className="h-4 w-4" strokeWidth={2.4} />}
                 title="For Brands"
                 subtitle="who want to scale"
