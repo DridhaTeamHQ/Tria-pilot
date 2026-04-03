@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Menu, X } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { usePathname } from 'next/navigation'
 
-// Enhanced classes with rich aesthetics
 const navLinkClass =
   'flex w-full items-center justify-center rounded-2xl bg-black/5 px-4 py-4 text-[16px] font-bold text-gray-800 transition-all duration-300 hover:bg-black/10 hover:text-black active:scale-[0.98]'
 
@@ -12,19 +13,24 @@ const loginButtonClass =
   'inline-flex items-center justify-center rounded-full border-[1.5px] border-black/80 px-7 py-[11px] text-[13px] font-bold uppercase tracking-wider transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.2)] active:translate-y-0 active:shadow-none'
 
 const desktopNavItemClass =
-  'relative inline-flex items-center px-1 py-2 text-[14px] font-bold text-black/60 transition-colors duration-300 hover:text-black group'
+  'relative inline-flex items-center px-4 py-2 text-[15px] transition-colors duration-300 z-10'
 
-const desktopNavUnderlineClass =
-  'absolute -bottom-1 left-0 h-[2px] w-full origin-left scale-x-0 bg-black transition-transform duration-300 ease-out group-hover:scale-x-100'
-
-const desktopActiveItemClass =
-  'inline-flex items-center rounded-full bg-black/5 px-5 py-2 text-[14px] font-bold text-black transition-all hover:bg-black/10'
+const LINKS = [
+  { href: '/', label: 'Home' },
+  { href: '/#what-you-get', label: 'What You Get' },
+  { href: '/marketplace', label: 'Marketplace' },
+  { href: '/#contact', label: 'Contact us' }
+]
 
 export default function LandingNav() {
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const pathname = usePathname()
 
-  // Add scroll listener for dynamic navbar background
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+
+  const activeIndex = pathname === '/' ? 0 : pathname === '/marketplace' ? 2 : 0
+
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20)
@@ -33,7 +39,6 @@ export default function LandingNav() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Lock body scroll when mobile menu is open
   useEffect(() => {
     if (open) {
       document.body.style.overflow = 'hidden'
@@ -67,22 +72,38 @@ export default function LandingNav() {
             Kiwikoo
           </Link>
 
-          <div className="hidden items-center gap-10 lg:flex">
-            <Link href="/" className={desktopActiveItemClass}>
-              Home
-            </Link>
-            <Link href="/#what-you-get" className={desktopNavItemClass}>
-              What You Get
-              <span className={desktopNavUnderlineClass} />
-            </Link>
-            <Link href="/marketplace" className={desktopNavItemClass}>
-              Marketplace
-              <span className={desktopNavUnderlineClass} />
-            </Link>
-            <Link href="/#contact" className={desktopNavItemClass}>
-              Contact us
-              <span className={desktopNavUnderlineClass} />
-            </Link>
+          <div
+            className="hidden items-center gap-2 lg:flex"
+            onMouseLeave={() => setHoveredIndex(null)}
+          >
+            {LINKS.map((link, idx) => {
+              const isActive = activeIndex === idx
+              const isHovered = hoveredIndex === idx
+              const isTarget = isHovered || (isActive && hoveredIndex === null)
+
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onMouseEnter={() => setHoveredIndex(idx)}
+                  className={`${desktopNavItemClass} ${isTarget ? 'font-[900] text-black' : 'font-[800] text-[#333333] hover:text-black'}`}
+                >
+                  {isTarget && (
+                    <motion.div
+                      layoutId="nav-pill"
+                      className="absolute inset-0 rounded-[20px] border-[1.5px] border-black/15 bg-white shadow-[0_2px_8px_-2px_rgba(0,0,0,0.08)] -z-10"
+                      initial={false}
+                      transition={{
+                        type: 'spring',
+                        stiffness: 400,
+                        damping: 30
+                      }}
+                    />
+                  )}
+                  {link.label}
+                </Link>
+              )
+            })}
           </div>
 
           <div className="hidden items-center gap-4 lg:flex">
@@ -97,7 +118,6 @@ export default function LandingNav() {
             </Link>
           </div>
 
-          {/* Mobile Menu Toggle Button */}
           <button
             type="button"
             aria-label={open ? 'Close menu' : 'Open menu'}
@@ -122,7 +142,6 @@ export default function LandingNav() {
         </div>
       </nav>
 
-      {/* Mobile Menu Overlay */}
       <div
         className={`fixed inset-0 z-40 bg-white/95 backdrop-blur-3xl transition-all duration-500 ease-in-out lg:hidden ${open ? 'opacity-100' : 'pointer-events-none opacity-0'
           }`}
@@ -133,18 +152,11 @@ export default function LandingNav() {
           style={{ fontFamily: 'var(--font-plus-jakarta-sans), sans-serif' }}
         >
           <div className="flex flex-col gap-4 text-center">
-            <Link href="/" className={navLinkClass} onClick={() => setOpen(false)}>
-              Home
-            </Link>
-            <Link href="/#what-you-get" className={navLinkClass} onClick={() => setOpen(false)}>
-              What You Get
-            </Link>
-            <Link href="/marketplace" className={navLinkClass} onClick={() => setOpen(false)}>
-              Marketplace
-            </Link>
-            <Link href="/#contact" className={navLinkClass} onClick={() => setOpen(false)}>
-              Contact us
-            </Link>
+            {LINKS.map(link => (
+              <Link key={link.href} href={link.href} className={navLinkClass} onClick={() => setOpen(false)}>
+                {link.label}
+              </Link>
+            ))}
             <div className="mt-8 flex flex-col gap-3">
               <Link
                 href="/login"
