@@ -180,7 +180,7 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 border-t-[2px] border-black">
+        <div className="relative z-20 grid grid-cols-3 border-t-[2px] border-black bg-[#f2f0eb]">
           <StripCell label="No Shoots" />
           <StripCell label="No Stress" />
           <StripCell label="Just Results" active />
