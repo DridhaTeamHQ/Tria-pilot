@@ -105,7 +105,7 @@ export default function LandingPage() {
             <ChartColumn className="h-[56px] w-[56px]" strokeWidth={1.7} />
           </div>
 
-          <div className="relative flex min-h-[600px] flex-col items-center justify-between px-4 pb-0 pt-6 text-center sm:px-6 md:min-h-[590px] lg:min-h-[620px] lg:px-8">
+          <div className="relative flex min-h-[560px] flex-col items-center justify-between px-4 pb-0 pt-6 text-center sm:px-6 md:min-h-[540px] lg:min-h-[580px] lg:px-8">
             <div className="pointer-events-none absolute left-[-3%] top-[214px] hidden w-[246px] md:block lg:left-[-0.8%] lg:top-[132px] lg:w-[322px] xl:left-[-0.3%] xl:top-[120px] xl:w-[396px] 2xl:w-[424px]">
               <Image
                 src="/landing/hero-influencer.png"
@@ -158,20 +158,20 @@ export default function LandingPage() {
                 </Link>
               </div>
 
-              <div className="mt-9 text-[14px] font-black uppercase tracking-[0.45em] text-black/75">
+              <div className="mt-10 text-[14px] font-black uppercase tracking-[0.45em] text-black/75">
                 This is where it happens.
               </div>
             </div>
 
             <div className="relative z-10 mt-6 flex w-full flex-col items-center gap-4 md:mt-0 md:block">
               <HeroBadge
-                className="w-fit md:absolute md:bottom-[14px] md:left-[4%] lg:bottom-[10px] lg:left-[6%] xl:bottom-[18px] xl:left-[7%]"
+                className="w-fit md:absolute md:bottom-[54px] md:left-[2.2%] lg:bottom-[66px] lg:left-[4.5%] xl:bottom-[78px] xl:left-[5.5%]"
                 icon={<Sparkles className="h-4 w-4" strokeWidth={2.4} />}
                 title="For Influencers"
                 subtitle="who want to earn"
               />
               <HeroBadge
-                className="w-fit md:absolute md:bottom-[24px] md:right-[4%] lg:bottom-[18px] lg:right-[6%] xl:bottom-[28px] xl:right-[7.5%]"
+                className="w-fit md:absolute md:bottom-[48px] md:right-[1.5%] lg:bottom-[66px] lg:right-[3.2%] xl:bottom-[84px] xl:right-[4.2%]"
                 icon={<Store className="h-4 w-4" strokeWidth={2.4} />}
                 title="For Brands"
                 subtitle="who want to scale"
