@@ -86,7 +86,7 @@ export default function LandingPage() {
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(17,17,17,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(17,17,17,0.06)_1px,transparent_1px)] bg-[size:34px_34px]" />
           <div className="pointer-events-none absolute inset-y-0 left-0 w-[42%] bg-[radial-gradient(circle_at_28%_60%,rgba(255,140,120,0.18),transparent_48%)]" />
           <div className="pointer-events-none absolute inset-y-0 right-0 w-[50%] bg-[radial-gradient(circle_at_38%_30%,rgba(203,255,46,0.16),transparent_46%),radial-gradient(circle_at_88%_74%,rgba(255,140,120,0.14),transparent_32%)]" />
-          <div className="pointer-events-none absolute inset-x-0 top-[-18px] text-center kiwikoo-wordmark text-[clamp(8rem,19vw,17.9rem)] leading-[1.14] tracking-[0.01em] text-black/[0.04]">
+          <div className="pointer-events-none absolute inset-x-0 top-[-8px] text-center kiwikoo-wordmark text-[clamp(8rem,19vw,17.9rem)] leading-[1.14] tracking-[0.01em] text-black/[0.04]">
             KIWIKOO
           </div>
           <div className="pointer-events-none absolute left-0 top-[96px] h-[67px] w-[73.8px] overflow-visible text-[#e77142]">
@@ -105,45 +105,45 @@ export default function LandingPage() {
             <ChartColumn className="h-[56px] w-[56px]" strokeWidth={1.7} />
           </div>
 
-          <div className="relative flex min-h-[620px] flex-col items-center justify-between px-4 pb-1 pt-8 text-center sm:px-6 md:min-h-[620px] lg:min-h-[660px] lg:px-8">
-            <div className="pointer-events-none absolute left-[-2%] top-[226px] hidden w-[240px] md:block lg:left-[0.4%] lg:top-[156px] lg:w-[320px] xl:left-[0.8%] xl:top-[146px] xl:w-[397px] 2xl:w-[430px]">
+          <div className="relative flex min-h-[600px] flex-col items-center justify-between px-4 pb-0 pt-6 text-center sm:px-6 md:min-h-[590px] lg:min-h-[620px] lg:px-8">
+            <div className="pointer-events-none absolute left-[-2%] top-[206px] hidden w-[250px] md:block lg:left-[0.2%] lg:top-[122px] lg:w-[336px] xl:left-[0.6%] xl:top-[112px] xl:w-[412px] 2xl:w-[440px]">
               <Image
                 src="/landing/hero-influencer.png"
                 alt="Influencer mascot"
                 width={960}
                 height={1536}
-                sizes="(min-width: 1536px) 430px, (min-width: 1280px) 397px, (min-width: 1024px) 320px, 240px"
+                sizes="(min-width: 1536px) 440px, (min-width: 1280px) 412px, (min-width: 1024px) 336px, 250px"
                 className="h-auto w-full object-contain drop-shadow-[0_18px_30px_rgba(0,0,0,0.1)] [transform:scaleX(1.03)]"
                 priority
               />
             </div>
-            <div className="pointer-events-none absolute right-[-5%] top-[224px] hidden h-[300px] w-[255px] overflow-hidden md:block lg:right-[-0.8%] lg:top-[164px] lg:h-[430px] lg:w-[370px] xl:right-0 xl:top-[150px] xl:h-[550px] xl:w-[474px] 2xl:right-[0.8%] 2xl:h-[590px] 2xl:w-[510px]">
+            <div className="pointer-events-none absolute right-[-5%] top-[198px] hidden h-[320px] w-[270px] overflow-hidden md:block lg:right-[-0.8%] lg:top-[132px] lg:h-[452px] lg:w-[388px] xl:right-0 xl:top-[118px] xl:h-[565px] xl:w-[486px] 2xl:right-[0.8%] 2xl:h-[600px] 2xl:w-[520px]">
               <div className="absolute inset-y-0 left-0 z-[1] w-[34px] bg-[linear-gradient(255deg,#fff_4%,rgba(255,255,255,0)_29%)]" />
               <Image
                 src="/landing/hero-brand.png"
                 alt="Brand studio display"
                 width={1250}
                 height={1325}
-                sizes="(min-width: 1536px) 510px, (min-width: 1280px) 474px, (min-width: 1024px) 370px, 255px"
+                sizes="(min-width: 1536px) 520px, (min-width: 1280px) 486px, (min-width: 1024px) 388px, 270px"
                 className="h-full w-full object-contain object-right drop-shadow-[0_24px_32px_rgba(0,0,0,0.08)]"
                 priority
               />
             </div>
 
-            <div className="relative z-10 mx-auto max-w-[924px] pt-5">
+            <div className="relative z-10 mx-auto max-w-[924px] pt-4">
               <h1 className="text-center text-[clamp(3.2rem,7.4vw,6.65rem)] font-black uppercase leading-[1.02] tracking-[-0.06em] text-black">
                 <span className="block whitespace-nowrap">Where Fashion</span>
                 <span className="block whitespace-nowrap">
                   Meets <span className="text-[#ff8c78]">AI</span>
                 </span>
               </h1>
-              <p className="mx-auto mt-5 max-w-[720px] text-[15px] font-semibold leading-7 text-black/55 sm:text-[17px]">
+              <p className="mx-auto mt-4 max-w-[720px] text-[15px] font-semibold leading-7 text-black/55 sm:text-[17px]">
                 The ultimate fashion marketplace where influencers and brands connect,
                 <br className="hidden sm:block" />
                 create, and convert <span className="font-black text-black">- POWERED BY AI.</span>
               </p>
 
-              <div className="mt-7 flex flex-wrap items-center justify-center gap-4">
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
                 <Link
                   href="/signup/influencer"
                   className="inline-flex min-w-[250px] items-center justify-center rounded-full border-[2px] border-black bg-[#ff8c78] px-8 py-4 text-[15px] font-black uppercase tracking-[0.03em] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
@@ -158,20 +158,20 @@ export default function LandingPage() {
                 </Link>
               </div>
 
-              <div className="mt-10 text-[14px] font-black uppercase tracking-[0.45em] text-black/75">
+              <div className="mt-7 text-[14px] font-black uppercase tracking-[0.45em] text-black/75">
                 This is where it happens.
               </div>
             </div>
 
-            <div className="relative z-10 mt-8 flex w-full flex-col items-center gap-4 md:mt-0 md:block">
+            <div className="relative z-10 mt-6 flex w-full flex-col items-center gap-4 md:mt-0 md:block">
               <HeroBadge
-                className="w-fit md:absolute md:bottom-[48px] md:left-[4%] lg:bottom-[38px] lg:left-[6%] xl:bottom-[54px] xl:left-[7%]"
+                className="w-fit md:absolute md:bottom-[14px] md:left-[4%] lg:bottom-[10px] lg:left-[6%] xl:bottom-[18px] xl:left-[7%]"
                 icon={<Sparkles className="h-4 w-4" strokeWidth={2.4} />}
                 title="For Influencers"
                 subtitle="who want to earn"
               />
               <HeroBadge
-                className="w-fit md:absolute md:bottom-[62px] md:right-[4%] lg:bottom-[52px] lg:right-[6%] xl:bottom-[68px] xl:right-[7.5%]"
+                className="w-fit md:absolute md:bottom-[24px] md:right-[4%] lg:bottom-[18px] lg:right-[6%] xl:bottom-[28px] xl:right-[7.5%]"
                 icon={<Store className="h-4 w-4" strokeWidth={2.4} />}
                 title="For Brands"
                 subtitle="who want to scale"
