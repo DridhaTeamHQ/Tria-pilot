@@ -105,12 +105,28 @@ export default function LandingPage() {
             <ChartColumn className="h-[56px] w-[56px]" strokeWidth={1.7} />
           </div>
 
-          <div className="relative flex min-h-[620px] flex-col items-center justify-between px-4 pb-8 pt-8 text-center sm:px-6 lg:min-h-[650px] lg:px-8">
-            <div className="pointer-events-none absolute bottom-0 left-[2.2%] hidden w-[240px] lg:block xl:w-[290px]">
-              <Image src="/mascot.png" alt="Influencer mascot" width={330} height={470} className="h-auto w-full object-contain" priority />
+          <div className="relative flex min-h-[620px] flex-col items-center justify-between px-4 pb-8 pt-8 text-center sm:px-6 lg:min-h-[680px] lg:px-8">
+            <div className="pointer-events-none absolute bottom-0 left-[1.4%] hidden w-[245px] lg:block xl:left-[2.2%] xl:w-[315px] 2xl:w-[355px]">
+              <Image
+                src="/landing/hero-influencer.png"
+                alt="Influencer mascot"
+                width={960}
+                height={1536}
+                sizes="(min-width: 1536px) 355px, (min-width: 1280px) 315px, 245px"
+                className="h-auto w-full object-contain drop-shadow-[0_18px_30px_rgba(0,0,0,0.1)]"
+                priority
+              />
             </div>
-            <div className="pointer-events-none absolute bottom-[62px] right-[1.5%] hidden w-[320px] lg:block xl:w-[430px]">
-              <Image src="/assets/auth-bg-brand.png" alt="Brand studio display" width={500} height={470} className="h-auto w-full object-contain" priority />
+            <div className="pointer-events-none absolute bottom-[34px] right-[-0.6%] hidden w-[340px] lg:block xl:right-[0.6%] xl:w-[470px] 2xl:w-[560px]">
+              <Image
+                src="/landing/hero-brand.png"
+                alt="Brand studio display"
+                width={1250}
+                height={1325}
+                sizes="(min-width: 1536px) 560px, (min-width: 1280px) 470px, 340px"
+                className="h-auto w-full object-contain drop-shadow-[0_24px_32px_rgba(0,0,0,0.08)]"
+                priority
+              />
             </div>
 
             <div className="relative z-10 mx-auto max-w-[760px] pt-5">
