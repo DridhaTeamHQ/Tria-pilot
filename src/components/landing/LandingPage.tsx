@@ -86,7 +86,7 @@ export default function LandingPage() {
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(17,17,17,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(17,17,17,0.06)_1px,transparent_1px)] bg-[size:34px_34px]" />
           <div className="pointer-events-none absolute inset-y-0 left-0 w-[42%] bg-[radial-gradient(circle_at_28%_60%,rgba(255,140,120,0.18),transparent_48%)]" />
           <div className="pointer-events-none absolute inset-y-0 right-0 w-[50%] bg-[radial-gradient(circle_at_38%_30%,rgba(203,255,46,0.16),transparent_46%),radial-gradient(circle_at_88%_74%,rgba(255,140,120,0.14),transparent_32%)]" />
-          <div className="pointer-events-none absolute inset-x-0 top-[6px] text-center kiwikoo-wordmark text-[clamp(8rem,19vw,17.9rem)] leading-[1.14] tracking-[0.01em] text-black/[0.04]">
+          <div className="pointer-events-none absolute inset-x-0 top-[-18px] text-center kiwikoo-wordmark text-[clamp(8rem,19vw,17.9rem)] leading-[1.14] tracking-[0.01em] text-black/[0.04]">
             KIWIKOO
           </div>
           <div className="pointer-events-none absolute left-0 top-[96px] h-[67px] w-[73.8px] overflow-visible text-[#e77142]">
@@ -106,7 +106,7 @@ export default function LandingPage() {
           </div>
 
           <div className="relative flex min-h-[620px] flex-col items-center justify-between px-4 pb-1 pt-8 text-center sm:px-6 md:min-h-[620px] lg:min-h-[660px] lg:px-8">
-            <div className="pointer-events-none absolute left-[-2%] top-[250px] hidden w-[240px] md:block lg:left-[0.4%] lg:top-[176px] lg:w-[320px] xl:left-[0.8%] xl:top-[164px] xl:w-[397px] 2xl:w-[430px]">
+            <div className="pointer-events-none absolute left-[-2%] top-[226px] hidden w-[240px] md:block lg:left-[0.4%] lg:top-[156px] lg:w-[320px] xl:left-[0.8%] xl:top-[146px] xl:w-[397px] 2xl:w-[430px]">
               <Image
                 src="/landing/hero-influencer.png"
                 alt="Influencer mascot"
@@ -117,7 +117,7 @@ export default function LandingPage() {
                 priority
               />
             </div>
-            <div className="pointer-events-none absolute right-[-5%] top-[248px] hidden h-[300px] w-[255px] overflow-hidden md:block lg:right-[-0.8%] lg:top-[184px] lg:h-[430px] lg:w-[370px] xl:right-0 xl:top-[168px] xl:h-[550px] xl:w-[474px] 2xl:right-[0.8%] 2xl:h-[590px] 2xl:w-[510px]">
+            <div className="pointer-events-none absolute right-[-5%] top-[224px] hidden h-[300px] w-[255px] overflow-hidden md:block lg:right-[-0.8%] lg:top-[164px] lg:h-[430px] lg:w-[370px] xl:right-0 xl:top-[150px] xl:h-[550px] xl:w-[474px] 2xl:right-[0.8%] 2xl:h-[590px] 2xl:w-[510px]">
               <div className="absolute inset-y-0 left-0 z-[1] w-[34px] bg-[linear-gradient(255deg,#fff_4%,rgba(255,255,255,0)_29%)]" />
               <Image
                 src="/landing/hero-brand.png"
@@ -130,10 +130,10 @@ export default function LandingPage() {
               />
             </div>
 
-            <div className="relative z-10 mx-auto max-w-[860px] pt-5">
-              <h1 className="text-[clamp(3rem,7vw,6rem)] font-black uppercase leading-[0.9] tracking-[-0.08em] text-black">
+            <div className="relative z-10 mx-auto max-w-[924px] pt-5">
+              <h1 className="text-center text-[clamp(3.2rem,7.4vw,6.65rem)] font-black uppercase leading-[1.02] tracking-[-0.06em] text-black">
                 <span className="block whitespace-nowrap">Where Fashion</span>
-                <span className="mt-1 block whitespace-nowrap">
+                <span className="block whitespace-nowrap">
                   Meets <span className="text-[#ff8c78]">AI</span>
                 </span>
               </h1>
