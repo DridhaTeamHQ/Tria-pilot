@@ -81,12 +81,12 @@ export default function LandingPage() {
 
   return (
     <div className="bg-[#fbfaf6] text-[#111111]" style={{ fontFamily: PF }}>
-      <section className="overflow-hidden border-b-[2px] border-black bg-[#fbfaf6] pt-[86px] lg:pt-[88px]">
+      <section className="overflow-hidden border-b-[2px] border-black bg-[#fbfaf6] pt-[72px] lg:pt-[74px]">
         <div className="relative mx-auto max-w-[1438px] px-0">
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(17,17,17,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(17,17,17,0.06)_1px,transparent_1px)] bg-[size:34px_34px]" />
           <div className="pointer-events-none absolute inset-y-0 left-0 w-[42%] bg-[radial-gradient(circle_at_28%_60%,rgba(255,140,120,0.18),transparent_48%)]" />
           <div className="pointer-events-none absolute inset-y-0 right-0 w-[50%] bg-[radial-gradient(circle_at_38%_30%,rgba(203,255,46,0.16),transparent_46%),radial-gradient(circle_at_88%_74%,rgba(255,140,120,0.14),transparent_32%)]" />
-          <div className="pointer-events-none absolute inset-x-0 top-[18px] text-center kiwikoo-wordmark text-[clamp(8rem,19vw,17.9rem)] leading-[1.14] tracking-[0.01em] text-black/[0.04]">
+          <div className="pointer-events-none absolute inset-x-0 top-[6px] text-center kiwikoo-wordmark text-[clamp(8rem,19vw,17.9rem)] leading-[1.14] tracking-[0.01em] text-black/[0.04]">
             KIWIKOO
           </div>
           <div className="pointer-events-none absolute left-0 top-[96px] h-[67px] w-[73.8px] overflow-visible text-[#e77142]">
@@ -196,10 +196,6 @@ export default function LandingPage() {
               <br />
               From Here.
             </h2>
-            <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-              <InfoPill label="You don't need more tools." />
-              <InfoPill label="You need something that actually works." />
-            </div>
           </div>
 
           <div className="mt-9 grid gap-5 lg:grid-cols-2">
@@ -326,11 +322,6 @@ export default function LandingPage() {
             <h2 className="text-[clamp(2.25rem,6vw,4.3rem)] font-black uppercase leading-[0.95] tracking-[-0.05em] text-black">
               Choose Your Path
             </h2>
-            <p className="mx-auto mt-4 max-w-[620px] text-[17px] font-medium leading-7 text-black/65">
-              Create, earn, or scale - without the usual chaos.
-              <br />
-              One platform. Two paths. Real results.
-            </p>
           </div>
 
           <div className="mt-10 grid gap-5 lg:grid-cols-2">
