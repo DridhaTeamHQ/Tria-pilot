@@ -94,7 +94,6 @@ export default function LandingPage() {
 
           <div className="relative z-10 grid gap-10 lg:grid-cols-[1.02fr_0.98fr] lg:items-center">
             <div className="max-w-[620px] pt-4 text-center lg:pt-8 lg:text-left">
-              <div className="text-[15px] font-semibold text-black/55">Hi, this is Kiwikoo.</div>
               <h1 className="mt-5 text-[clamp(3.3rem,7vw,6.2rem)] font-black uppercase leading-[0.9] tracking-[-0.07em] text-black">
                 Where Fashion
                 <br />
@@ -127,7 +126,7 @@ export default function LandingPage() {
                 AI-powered
               </div>
 
-              <div className="relative min-h-[430px] rounded-[34px] border-[3px] border-black bg-[#fbfaf6] p-4 shadow-[8px_8px_0_0_rgba(0,0,0,1)] sm:min-h-[500px]">
+              <div className="relative min-h-[430px] sm:min-h-[500px]">
                 <div className="absolute inset-x-[16%] inset-y-[12%] rounded-[30px] border-[3px] border-black bg-[#ff70d5] shadow-[7px_7px_0_0_rgba(0,0,0,1)]" />
                 <div className="absolute bottom-4 right-0 z-10 w-[220px] rotate-[7deg] rounded-[26px] border-[3px] border-black bg-white p-3 shadow-[7px_7px_0_0_rgba(0,0,0,1)] sm:w-[250px]">
                   <div className="relative h-[170px] overflow-hidden rounded-[18px] bg-[#fff6f2] sm:h-[190px]">
