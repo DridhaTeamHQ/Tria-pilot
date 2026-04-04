@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import './studio.css'
 
@@ -173,6 +173,8 @@ function TryOnPageContent() {
   const [garmentIntel, setGarmentIntel] = useState<any | null>(null)
   const [loadingRecommend, setLoadingRecommend] = useState(false)
   const [selectionMode, setSelectionMode] = useState<'auto' | 'manual'>('auto')
+  const [libraryModalOpen, setLibraryModalOpen] = useState(false)
+  const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false)
   const photosRef = useRef<any[]>([])
   const generateInFlightRef = useRef(false)
   const pollAttemptRef = useRef(0)
@@ -263,7 +265,7 @@ function TryOnPageContent() {
   /* useEffect(() => {
     if (true) return
     return
-    if (!ids.length) return // Don't set empty array — would loop
+    if (!ids.length) return // Don't set empty array â€” would loop
     setSelectedReferenceIds(ids)
   }, [approvedPhotos, currentRecommendations.selected, selectedReferenceIds.length]) */
 
@@ -547,242 +549,188 @@ function TryOnPageContent() {
   }, [selectedOutput])
 
   return (
-    <div className="min-h-screen bg-[#F6F1E8] pt-20 text-black lg:pt-24">
-      <div className="mx-auto max-w-[1480px] px-4 pb-10 lg:px-6">
-        <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-          <div className="max-w-3xl">
-            <p className="text-[11px] font-black uppercase tracking-[0.28em] text-black/50">Influencer try-on studio</p>
-            <h1 className="mt-2 text-3xl font-black uppercase tracking-tight sm:text-4xl xl:text-5xl">Library-first try-on</h1>
-            <p className="mt-2 text-sm font-semibold text-black/70">
-              Upload sources, let AI choose the best three, and override only when you want more control.
-            </p>
+    <div className="relative min-h-screen bg-[#F6F1E8] text-black pt-20 lg:pt-0">
+      <div className="flex flex-col lg:flex-row lg:h-screen lg:pt-20">
+        <div className={`fixed inset-x-0 bottom-0 top-[10vh] z-50 overflow-y-auto rounded-t-[32px] border-t-[4px] border-black bg-white p-6 shadow-[0_-12px_0_0_rgba(0,0,0,0.1)] transition-transform duration-300 lg:static lg:block lg:h-full lg:w-[420px] lg:flex-shrink-0 lg:rounded-none lg:border-r-[4px] lg:border-t-0 lg:shadow-none xl:w-[460px] ${mobileSettingsOpen ? 'translate-y-0' : 'translate-y-full lg:translate-y-0'}`}>
+          <div className="mb-6 flex items-center justify-between lg:hidden">
+            <h2 className="text-2xl font-black uppercase">Try-On Settings</h2>
+            <button type="button" onClick={() => setMobileSettingsOpen(false)} className="rounded-full border-[3px] border-black bg-[#F9F8F4] px-4 py-2 text-xs font-black uppercase shadow-[3px_3px_0_0_#000]">Close</button>
           </div>
-
-          <div className="grid gap-3 sm:grid-cols-3 xl:min-w-[560px]">
-            <div className="rounded-2xl border-[3px] border-black bg-white px-4 py-3 shadow-[5px_5px_0_0_#000]">
-              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-black/50">Approved sources</div>
-              <div className="mt-1 text-lg font-black">{loadingLibrary ? 'Checking...' : `${currentRecommendations.totalApproved}/${currentRecommendations.minRequired}`}</div>
-              <div className="text-xs font-semibold text-black/60">
-                {readyForTryOn ? 'Enough photos for AI picks' : `${currentRecommendations.photosNeeded} more needed`}
+          <div className="space-y-6">
+            <div className="rounded-[24px] border-[3px] border-black bg-[#F9F8F4] p-5 shadow-[5px_5px_0_0_#000]">
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">Selected Target</div>
+              <h3 className="mt-1 text-lg font-black uppercase">{productLoading ? 'Loading product...' : (productData?.name || 'No product selected')}</h3>
+              {garmentIntel && (
+                <div className="mt-2 inline-flex items-center gap-2 rounded-full border-2 border-black bg-[#E8F5E9] px-3 py-1 text-[10px] font-black uppercase">
+                  <Check className="h-3 w-3" /> AI optimized for {garmentIntel.coverage.replace('_', ' ')}
+                </div>
+              )}
+              {productId && (productData?.images?.length > 0) && (
+                <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+                  {(productData.images).map((image: any, index: number) => {
+                    const imageUrl = typeof image === 'string' ? image : (image.imagePath ?? image.imageUrl ?? image.image_url ?? image.path ?? '');
+                    if (!imageUrl) return null;
+                    const active = selectedProductImage === imageUrl;
+                    return (
+                      <button key={`${imageUrl}-${index}`} type="button" onClick={() => setSelectedGarmentImage(imageUrl)} className={`relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-xl border-2 ${active ? 'border-[#FF8C69]' : 'border-black'} bg-white`}>
+                        <Image src={resolveStoredImageUrl(imageUrl)} alt="Product" fill unoptimized className="object-cover" />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <div className="rounded-[24px] border-[3px] border-black bg-white p-5 shadow-[5px_5px_0_0_#000]">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">Photos ({selectedPhotos.length}/3)</div>
+                <button type="button" onClick={() => setLibraryModalOpen(true)} className="rounded-full border-[2px] border-black bg-[#FFD93D] px-3 py-1 text-[10px] font-black uppercase shadow-[2px_2px_0_0_#000]">Edit Sources</button>
+              </div>
+              <p className="mt-2 text-xs font-semibold text-black/60">{selectionMode === 'manual' ? 'Using your manual selection.' : 'AI automatically picked the best photos.'}</p>
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                {[0, 1, 2].map((slot) => {
+                  const photo = photoMap.get(selectedReferenceIds[slot] ?? '');
+                  return (
+                    <div key={slot} className="relative aspect-[4/5] overflow-hidden rounded-xl border-2 border-black bg-[#F9F8F4]">
+                      {photo ? <Image src={resolveStoredImageUrl(photo.imageUrl)} alt={`Slot ${slot + 1}`} fill unoptimized className="object-cover" /> : <div className="flex h-full items-center justify-center"><ImageIcon className="h-5 w-5 text-black/20" /></div>}
+                    </div>
+                  );
+                })}
               </div>
             </div>
-            <div className="rounded-2xl border-[3px] border-black bg-white px-4 py-3 shadow-[5px_5px_0_0_#000]">
-              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-black/50">Selection mode</div>
-              <div className="mt-1 text-lg font-black">{selectionMode === 'manual' ? 'Manual override' : 'AI auto-pick'}</div>
-              <div className="text-xs font-semibold text-black/60">{selectedPhotos.length}/3 slots filled</div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">Details / Polish</label>
+                <textarea value={polishNotes} onChange={(e) => setPolishNotes(e.target.value.slice(0, POLISH_LIMIT))} placeholder="Any specific adjustments?" className="mt-1 h-20 w-full rounded-xl border-2 border-black bg-[#F9F8F4] p-3 text-xs font-semibold outline-none focus:bg-white" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">Ratio</label>
+                  <div className="mt-1 flex flex-col gap-1">
+                    {ASPECT_RATIOS.map((ratio) => <button key={ratio} type="button" onClick={() => setAspectRatio(ratio)} className={`rounded-xl border-2 py-1.5 text-xs font-black uppercase ${aspectRatio === ratio ? 'border-black bg-[#FFD93D]' : 'border-black bg-white'}`}>{ratio}</button>)}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">Quality</label>
+                  <div className="mt-1 flex flex-col gap-1">
+                    {RESOLUTIONS.map((item) => <button key={item} type="button" onClick={() => setResolution(item)} className={`rounded-xl border-2 py-1.5 text-xs font-black uppercase ${resolution === item ? 'border-black bg-[#9CFF6B]' : 'border-black bg-white'}`}>{item}</button>)}
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="rounded-2xl border-[3px] border-black bg-white px-4 py-3 shadow-[5px_5px_0_0_#000]">
-              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-black/50">Run status</div>
-              <div className="mt-1 text-lg font-black">{isGenerating ? `Generating ${elapsedSeconds}s` : outputs.length ? `${outputs.length} ready` : 'Ready to run'}</div>
-              <div className="text-xs font-semibold text-black/60">{retryAfterSeconds > 0 ? `Retry after ${retryAfterSeconds}s` : 'One source at a time for better fidelity'}</div>
-            </div>
+            <button type="button" onClick={() => { setMobileSettingsOpen(false); void submitTryOn() }} disabled={submitting || !readyForTryOn} className={`flex w-full items-center justify-center gap-3 rounded-[20px] border-[4px] border-black p-4 text-sm font-black uppercase shadow-[4px_4px_0_0_#000] ${submitting || !readyForTryOn ? 'cursor-not-allowed bg-[#E5E5E5] text-black/50' : 'bg-[#FFD93D]'}`}>
+              {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
+              {submitting ? 'Generating...' : generationLabel}
+            </button>
+            {retryAfterSeconds > 0 && <div className="text-center text-xs font-bold text-red-500">Rate limit: retry in {retryAfterSeconds}s</div>}
           </div>
         </div>
-
-        <div className="grid gap-6 lg:grid-cols-[380px_minmax(0,1fr)] xl:grid-cols-[400px_minmax(0,1fr)]">
-          <section className="space-y-4 lg:row-span-2 lg:sticky lg:top-[96px] lg:self-start">
-            <div className="rounded-[28px] border-[4px] border-black bg-white p-5 shadow-[8px_8px_0_0_#000]">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.25em] text-black/50">Reference library</div>
-                  <h2 className="mt-1 text-2xl font-black uppercase">Upload and manage source photos</h2>
-                </div>
-                <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border-[3px] border-black bg-[#FFD93D] px-4 py-2 text-sm font-black uppercase shadow-[4px_4px_0_0_#000]">
-                  {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                  Add photo
-                  <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={(event) => { const file = event.target.files?.[0]; event.currentTarget.value = ''; if (file) void uploadReferencePhoto(file) }} />
-                </label>
-              </div>
-              <p className="mt-3 text-sm text-black/60">Use clear source photos. Any approved library photo can now be AI-ranked for garment fit and face fidelity.</p>
-              <div className="mt-4 grid max-h-[420px] grid-cols-2 gap-3 overflow-y-auto pr-1 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
-                {!photos.length && !loadingLibrary ? <div className="col-span-full rounded-2xl border-2 border-dashed border-black/20 bg-[#F9F8F4] p-6 text-center text-sm font-semibold text-black/60">No source photos yet. Upload at least three approved photos to unlock AI try-on selection.</div> : null}
-                {photos.map((photo) => (
-                  <div key={photo.id} className="group relative overflow-hidden rounded-2xl border-[3px] border-black bg-[#F9F8F4] shadow-[4px_4px_0_0_#000]">
-                    <div className="relative aspect-[4/5]">
-                      <Image src={resolveStoredImageUrl(photo.imageUrl)} alt="Reference photo" fill unoptimized className="object-cover" />
-                      <div className="absolute left-2 top-2 rounded-full border-2 border-black bg-white px-2 py-0.5 text-[10px] font-black uppercase">{photo.status}</div>
-                      {photo.status === 'approved' ? <div className="absolute right-2 top-2 rounded-full border-2 border-black bg-[#9CFF6B] px-2 py-0.5 text-[10px] font-black uppercase">approved</div> : null}
-                      <button type="button" onClick={() => void archivePhoto(photo.id)} disabled={archivingId === photo.id} className="absolute bottom-2 right-2 rounded-full border-2 border-black bg-white p-2 text-black shadow-[2px_2px_0_0_#000] transition hover:bg-[#FF8C69]">{archivingId === photo.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}</button>
-                    </div>
-                    <div className="space-y-1 p-3">
-                      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">{String(photo.source).replace('_', ' ')}</div>
-                      <div className="text-xs font-semibold text-black/70">{photo.status === 'approved' ? 'Eligible for AI recommendations' : photo.rejectionReasons[0] || 'Waiting for analysis'}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+        <div className="flex-1 overflow-y-auto bg-[#FDFBF7] p-4 lg:p-8">
+          <div className="mx-auto max-w-5xl">
+            <div className="mb-6 flex flex-col gap-2">
+              <h1 className="text-3xl font-black uppercase tracking-tight lg:text-5xl">Studio Workspace</h1>
+              <p className="font-semibold text-black/60">Generate ultra-realistic try-on photos. Wait times apply to ensure maximum quality per source.</p>
             </div>
-
-            <div className="rounded-[28px] border-[4px] border-black bg-white p-5 shadow-[8px_8px_0_0_#000]">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-black uppercase">Recommended sources</h2>
-                <button type="button" onClick={() => void refreshAll()} className="inline-flex items-center gap-2 rounded-full border-2 border-black bg-[#F9F8F4] px-3 py-2 text-xs font-black uppercase shadow-[2px_2px_0_0_#000]"><RefreshCw className="h-3.5 w-3.5" />{loadingRecommend ? 'Analyzing...' : 'Refresh'}</button>
-              </div>
-              {garmentIntel ? (
-                <div className="mt-3 rounded-2xl border-2 border-black bg-[#E8F5E9] p-3">
-                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">Garment intelligence</div>
-                  <div className="mt-1 text-sm font-bold">{garmentIntel.description || `${garmentIntel.type} (${garmentIntel.coverage})`}</div>
-                  {garmentIntel.coverage === 'upper_only' && garmentIntel.bottomWearSuggestion ? (
-                    <div className="mt-1 text-xs text-black/60">Will pair with: {garmentIntel.bottomWearSuggestion}</div>
-                  ) : null}
-                </div>
-              ) : null}
-              <div className="mt-4 grid gap-3">
-                <div className="rounded-2xl border-2 border-black bg-[#F9F8F4] p-3 text-sm font-semibold">{garmentIntel ? 'Photos ranked for this garment. Click a slot to override.' : 'Select a garment to get AI-ranked photo recommendations.'}</div>
-                {[0, 1, 2].map((slot) => {
-                  const photo = photoMap.get(selectedReferenceIds[slot] ?? '')
-                  const suitability = photo?.garmentSuitability as string | undefined
-                  const suitColor = suitability === 'excellent' ? 'bg-[#9CFF6B]' : suitability === 'good' ? 'bg-[#FFD93D]' : suitability === 'fair' ? 'bg-[#FFB74D]' : suitability === 'poor' ? 'bg-[#FF8A80]' : 'bg-[#F9F8F4]'
-                  return (
-                    <button key={slot} type="button" onClick={() => setActiveSlot(slot)} className={`flex items-center gap-3 rounded-2xl border-[3px] p-3 text-left shadow-[4px_4px_0_0_#000] ${activeSlot === slot ? 'border-[#FF8C69] bg-[#FFF6F0]' : 'border-black bg-white'}`}>
-                      <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl border-2 border-black bg-[#F9F8F4]">{photo ? <Image src={resolveStoredImageUrl(photo.imageUrl)} alt={`Slot ${slot + 1}`} width={64} height={64} unoptimized className="h-full w-full object-cover" /> : <ImageIcon className="h-6 w-6 text-black/40" />}</div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-[10px] font-black uppercase tracking-[0.25em] text-black/50">Source {slot + 1}</div>
-                        <div className="truncate text-sm font-bold">{photo ? `Photo ${photo.id.slice(0, 8)}` : 'Pick a source photo'}</div>
-                        <div className="flex items-center gap-2 text-xs text-black/60">
-                          {photo?.selectionScore != null ? (
-                            <>
-                              <span className={`rounded-full border border-black/20 px-2 py-0.5 text-[10px] font-black uppercase ${suitColor}`}>{suitability || 'scored'}</span>
-                              <span>Score {Math.round((photo.selectionScore || 0) * 100)}/100</span>
-                            </>
-                          ) : 'No selection yet'}
-                        </div>
-                        {photo?.garmentReasoning ? <div className="mt-0.5 truncate text-[10px] text-black/40">{photo.garmentReasoning}</div> : null}
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          </section>
-
-          <section className="space-y-4">
-            <div className="rounded-[28px] border-[4px] border-black bg-white p-5 shadow-[8px_8px_0_0_#000]">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.25em] text-black/50">Selected garment</div>
-                  <h2 className="mt-1 text-2xl font-black uppercase">{productLoading ? 'Loading product...' : productData?.name || 'No product selected'}</h2>
-                </div>
-                {productId ? <div className="rounded-full border-2 border-black bg-[#FFD93D] px-3 py-1 text-[10px] font-black uppercase">Product mode</div> : null}
-              </div>
-              {productData?.brand?.companyName ? <div className="mt-2 text-sm font-semibold text-black/70">{productData.brand.companyName}</div> : null}
-              {productId ? (
-                <div className="mt-4 rounded-2xl border-2 border-black bg-[#F9F8F4] p-3">
-                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">Product images</div>
-                  <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-                    {(productData?.images ?? []).map((image: any, index: number) => {
-                      const imageUrl = typeof image === 'string' ? image : image.imagePath ?? image.imageUrl ?? image.image_url ?? image.path ?? ''
-                      if (!imageUrl) return null
-                      const active = selectedProductImage === imageUrl
-                      return <button key={`${imageUrl}-${index}`} type="button" onClick={() => setSelectedGarmentImage(imageUrl)} className={`relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl border-2 ${active ? 'border-[#FF8C69]' : 'border-black'} bg-white`}><Image src={resolveStoredImageUrl(imageUrl)} alt="Product image" width={64} height={64} unoptimized className="h-full w-full object-cover" /></button>
-                    })}
-                  </div>
-                </div>
-              ) : <div className="mt-4 rounded-2xl border-2 border-dashed border-black/20 bg-[#F9F8F4] p-4 text-sm font-semibold text-black/60">Open this page from a product so we can link the try-on to a garment.</div>}
-
-              <div className="mt-5 grid gap-3">
-                <div>
-                  <label className="text-[11px] font-black uppercase tracking-[0.2em] text-black/50">Polish notes</label>
-                  <textarea value={polishNotes} onChange={(event) => setPolishNotes(event.target.value.slice(0, POLISH_LIMIT))} maxLength={POLISH_LIMIT} placeholder="Crop, cleanup, wrinkle handling, color cleanup, light retouching." className="mt-2 min-h-[108px] w-full rounded-2xl border-[3px] border-black bg-[#F9F8F4] p-4 text-sm font-semibold outline-none focus:bg-white" />
-                  <div className="mt-1 text-[11px] font-semibold text-black/50">{polishNotes.length}/{POLISH_LIMIT}</div>
-                </div>
-                <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.2em] text-black/50">Aspect ratio</div>
-                  <div className="mt-2 grid grid-cols-3 gap-2">{ASPECT_RATIOS.map((ratio) => <button key={ratio} type="button" onClick={() => setAspectRatio(ratio)} className={`rounded-2xl border-[3px] px-3 py-3 text-sm font-black uppercase shadow-[3px_3px_0_0_#000] ${aspectRatio === ratio ? 'border-black bg-[#FFD93D]' : 'border-black bg-white'}`}>{ratio}</button>)}</div>
-                </div>
-                <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.2em] text-black/50">Resolution</div>
-                  <div className="mt-2 grid grid-cols-2 gap-2">{RESOLUTIONS.map((item) => <button key={item} type="button" onClick={() => setResolution(item)} className={`rounded-2xl border-[3px] px-3 py-3 text-sm font-black uppercase shadow-[3px_3px_0_0_#000] ${resolution === item ? 'border-black bg-[#9CFF6B]' : 'border-black bg-white'}`}>{item}</button>)}</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-[28px] border-[4px] border-black bg-white p-5 shadow-[8px_8px_0_0_#000]">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.25em] text-black/50">Source chooser</div>
-                  <h2 className="mt-1 text-2xl font-black uppercase">Override only if needed</h2>
-                </div>
-                <div className="rounded-full border-2 border-black bg-[#F9F8F4] px-3 py-1 text-[10px] font-black uppercase">Slot {activeSlot + 1}</div>
-              </div>
-              <div className="mt-4 grid max-h-[420px] gap-3 overflow-y-auto pr-1 sm:grid-cols-2">
-                {visibleCandidatePhotos.map((photo) => {
-                  const active = selectedReferenceIds.includes(photo.id)
-                  const slotIndex = selectedReferenceIds.findIndex((id) => id === photo.id)
-                  return (
-                    <button key={photo.id} type="button" onClick={() => updateSelectedSlot(activeSlot, photo.id)} className={`overflow-hidden rounded-2xl border-[3px] text-left shadow-[4px_4px_0_0_#000] ${active ? 'border-[#FF8C69] bg-[#FFF6F0]' : 'border-black bg-white'}`}>
-                      <div className="relative aspect-[4/5]">
-                        <Image src={resolveStoredImageUrl(photo.imageUrl)} alt="Candidate source" fill unoptimized className="object-cover" />
-                        <div className="absolute left-2 top-2 rounded-full border-2 border-black bg-white px-2 py-0.5 text-[10px] font-black uppercase">{active ? `slot ${slotIndex + 1}` : 'candidate'}</div>
-                      </div>
-                      <div className="space-y-1 p-3">
-                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">{String(photo.source).replace('_', ' ')}</div>
-                        <div className="text-sm font-bold">{photo.status === 'approved' ? 'AI-ranked approved source' : 'Pending review'}</div>
-                        <div className="text-xs text-black/60">{photo.selectionScore != null ? `Selection score ${Math.round((photo.selectionScore || 0) * 100)}/100` : 'No score yet'}</div>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          </section>
-
-          <section className="space-y-4">
-            <div className="rounded-[28px] border-[4px] border-black bg-white p-5 shadow-[8px_8px_0_0_#000]">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.25em] text-black/50">Try-on output</div>
-                  <h2 className="mt-1 text-2xl font-black uppercase">Three generated variants</h2>
-                </div>
-                {isGenerating ? <div className="rounded-full border-2 border-black bg-[#FFD93D] px-3 py-1 text-[10px] font-black uppercase">Running {elapsedSeconds}s</div> : null}
-              </div>
+            <div className="rounded-[32px] border-[4px] border-black bg-white p-4 shadow-[8px_8px_0_0_#000] lg:p-6">
               {isGenerating ? (
-                <div className="mt-4">
-                  <MonaLisaGenerationLoader
-                    elapsedSeconds={elapsedSeconds}
-                    title="Painting your try-on"
-                    description="The model is working through one source image at a time so the garment swap stays more stable."
-                  />
+                <div className="py-10">
+                  <MonaLisaGenerationLoader elapsedSeconds={elapsedSeconds} title="Painting your try-on" description="The model is working through one source image at a time." />
                 </div>
-              ) : selectedOutput ? (
-                <div className="mt-4 space-y-4">
-                  <div className="mx-auto max-w-[760px] overflow-hidden rounded-[24px] border-[4px] border-black bg-[#F9F8F4] shadow-[6px_6px_0_0_#000]">
-                    <div className="relative aspect-[4/5]">
-                      <Image src={selectedOutput.imageUrl ? resolveStoredImageUrl(selectedOutput.imageUrl) : toImageSrc(selectedOutput.base64Image)} alt="Try-on result" fill unoptimized className="object-cover" />
-                    </div>
+              ) : outputs.length > 0 ? (
+                <div className="space-y-6">
+                  <div className="relative aspect-[4/5] w-full max-w-[600px] mx-auto overflow-hidden rounded-[24px] border-[4px] border-black bg-[#F9F8F4] shadow-[6px_6px_0_0_#000]">
+                    {selectedOutput?.imageUrl || selectedOutput?.base64Image ? (
+                      <Image src={selectedOutput.imageUrl ? resolveStoredImageUrl(selectedOutput.imageUrl) : toImageSrc(selectedOutput.base64Image)} alt="Result" fill unoptimized className="object-cover" />
+                    ) : (
+                      <div className="flex h-full items-center justify-center"><AlertTriangle className="h-10 w-10 text-red-500" /></div>
+                    )}
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="grid grid-cols-3 gap-3 max-w-[600px] mx-auto">
                     {outputs.map((output: any, index: number) => (
-                      <button key={`${output.referenceImageId || index}-${index}`} type="button" onClick={() => setSelectedOutputIndex(index)} className={`overflow-hidden rounded-2xl border-[3px] text-left shadow-[4px_4px_0_0_#000] ${selectedOutputIndex === index ? 'border-[#FF8C69] bg-[#FFF6F0]' : 'border-black bg-white'}`}>
-                        <div className="relative aspect-[4/5]">
-                          {output.imageUrl || output.base64Image ? <Image src={output.imageUrl ? resolveStoredImageUrl(output.imageUrl) : toImageSrc(output.base64Image)} alt={`Variant ${index + 1}`} fill unoptimized className="object-cover" /> : <div className="flex h-full items-center justify-center bg-[#F9F8F4]"><AlertTriangle className="h-6 w-6 text-black/40" /></div>}
-                        </div>
-                        <div className="space-y-1 p-3">
-                          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">{output.label || `Variant ${index + 1}`}</div>
-                          <div className="text-xs font-semibold text-black/60">{output.error || output.status || 'ready'}</div>
-                        </div>
+                      <button key={index} type="button" onClick={() => setSelectedOutputIndex(index)} className={`relative aspect-[4/5] overflow-hidden rounded-2xl border-[3px] shadow-[4px_4px_0_0_#000] ${selectedOutputIndex === index ? 'border-[#FF8C69]' : 'border-black'}`}>
+                        {output.imageUrl || output.base64Image ? <Image src={output.imageUrl ? resolveStoredImageUrl(output.imageUrl) : toImageSrc(output.base64Image)} alt={`Variant ${index}`} fill unoptimized className="object-cover" /> : <div className="flex h-full items-center justify-center bg-gray-100"><AlertTriangle className="h-5 w-5 text-black/30" /></div>}
+                        <div className="absolute bottom-0 inset-x-0 bg-black/60 px-2 py-1 text-[10px] font-bold text-white truncate">{output.label || `Photo ${index+1}`}</div>
                       </button>
                     ))}
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <button type="button" onClick={downloadCurrent} className="inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-white px-4 py-2 text-sm font-black uppercase shadow-[4px_4px_0_0_#000]">Download</button>
+                  <div className="flex justify-center">
+                    <button type="button" onClick={downloadCurrent} className="rounded-full border-[3px] border-black bg-[#FF8C69] px-6 py-3 font-black uppercase text-white shadow-[4px_4px_0_0_#000]">Download Image</button>
                   </div>
                 </div>
-              ) : <div className="mt-4 rounded-[24px] border-2 border-dashed border-black/20 bg-[#F9F8F4] p-6 text-sm font-semibold text-black/65">Select three approved reference photos, choose a garment, add polish notes if needed, then generate three clothing-swap outputs.</div>}
+              ) : (
+                <div className="flex min-h-[40vh] items-center justify-center rounded-[24px] border-2 border-dashed border-black/20 bg-[#F9F8F4] p-6 text-center lg:min-h-[60vh]">
+                  <div className="max-w-md">
+                    <ImageIcon className="mx-auto h-12 w-12 text-black/20 mb-4" />
+                    <h3 className="text-lg font-black uppercase">Canvas is empty</h3>
+                    <p className="mt-2 text-sm font-semibold text-black/60">Configure your settings in the sidebar and hit run to generate three unique try-on variants here.</p>
+                  </div>
+                </div>
+              )}
             </div>
-
-            <div className="rounded-[28px] border-[4px] border-black bg-white p-5 shadow-[8px_8px_0_0_#000]">
-              <div className={`flex items-center gap-2 rounded-2xl border-2 border-black px-3 py-2 text-sm font-black uppercase ${currentRecommendations.isReadyForTryOn ? 'bg-[#9CFF6B]' : 'bg-[#FFD93D]'}`}>
-                {currentRecommendations.isReadyForTryOn ? <Check className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
-                {currentRecommendations.isReadyForTryOn ? 'Library ready' : `Need ${currentRecommendations.photosNeeded} more approved photo${currentRecommendations.photosNeeded === 1 ? '' : 's'}`}
-              </div>
-              <button type="button" onClick={() => void submitTryOn()} disabled={submitting || !readyForTryOn} className={`mt-3 flex w-full items-center justify-center gap-3 rounded-[22px] border-[4px] border-black px-4 py-4 text-base font-black uppercase shadow-[6px_6px_0_0_#000] ${submitting || !readyForTryOn ? 'cursor-not-allowed bg-black/10 text-black/30 shadow-none' : 'bg-[#FFD93D]'}`}>{submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}{submitting ? 'Generating...' : generationLabel}</button>
-              {retryAfterSeconds > 0 ? <div className="mt-2 text-center text-sm font-semibold text-black/60">Retry after {retryAfterSeconds}s</div> : null}
-              <div className="mt-3 rounded-2xl border-2 border-black bg-[#F9F8F4] p-3 text-xs font-semibold text-black/70">{generationHint}</div>
-            </div>
-          </section>
+          </div>
         </div>
       </div>
+      {!mobileSettingsOpen && (
+        <div className="fixed bottom-6 left-1/2 z-40 w-[90%] max-w-[340px] -translate-x-1/2 lg:hidden">
+          <button type="button" onClick={() => setMobileSettingsOpen(true)} className="flex w-full items-center justify-center gap-2 rounded-full border-[3px] border-black bg-[#FFD93D] px-6 py-4 text-base font-black uppercase shadow-[6px_6px_0_0_#000]">
+            <Sparkles className="h-5 w-5" /> Customize & Run
+          </button>
+        </div>
+      )}
+      {libraryModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-[32px] border-[4px] border-black bg-[#F6F1E8] shadow-[12px_12px_0_0_#000]">
+            <div className="flex items-center justify-between border-b-[4px] border-black bg-white p-5">
+              <div>
+                <h2 className="text-2xl font-black uppercase">Reference Library</h2>
+                <p className="text-xs font-semibold text-black/60">Pick exactly 3 photos to override the AI</p>
+              </div>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => void refreshAll()} className="rounded-full border-2 border-black bg-[#F9F8F4] p-2 hover:bg-[#FFD93D] transition"><RefreshCw className={`h-5 w-5 ${loadingRecommend ? 'animate-spin' : ''}`} /></button>
+                <button type="button" onClick={() => setLibraryModalOpen(false)} className="rounded-full border-2 border-black bg-[#FF8C69] px-4 py-2 font-black uppercase text-white hover:bg-[#FF7A50] transition">Done</button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5">
+              <div className="mb-6 flex items-center justify-end">
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border-[3px] border-black bg-[#FFD93D] px-4 py-2 text-sm font-black uppercase shadow-[4px_4px_0_0_#000]">
+                  {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} Upload New
+                  <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={(e) => { const file = e.target.files?.[0]; e.currentTarget.value = ''; if (file) void uploadReferencePhoto(file) }} />
+                </label>
+              </div>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                {!photos.length && !loadingLibrary && <p className="col-span-full py-10 text-center font-bold">No photos. Please upload.</p>}
+                {photos.map(photo => {
+                  const isActive = selectedReferenceIds.includes(photo.id);
+                  const toggle = () => {
+                    setSelectionMode('manual');
+                    if (isActive) {
+                      setSelectedReferenceIds(prev => prev.filter(id => id !== photo.id));
+                    } else {
+                      if (selectedReferenceIds.filter(Boolean).length >= 3) {
+                        const next = [...selectedReferenceIds]; next[2] = photo.id; setSelectedReferenceIds(next);
+                      } else {
+                        setSelectedReferenceIds(prev => { const next = [...prev]; const empty = next.findIndex(p => !p); if(empty>=0) next[empty]=photo.id; else next.push(photo.id); return next; });
+                      }
+                    }
+                  };
+                  return (
+                    <div key={photo.id} className={`group relative aspect-[4/5] overflow-hidden rounded-2xl border-[3px] shadow-[4px_4px_0_0_#000] cursor-pointer transition-transform hover:-translate-y-1 ${isActive ? 'border-[#FFD93D]' : 'border-black hover:border-black/50'}`} onClick={toggle}>
+                      <Image src={resolveStoredImageUrl(photo.imageUrl)} alt="Library" fill unoptimized className="object-cover" />
+                      <div className="absolute left-2 top-2 rounded-full border-2 border-black bg-white px-2 py-0.5 text-[10px] font-black uppercase">{photo.status}</div>
+                      {isActive && <div className="absolute right-2 top-2 rounded-full border-2 border-black bg-[#FFD93D] px-2 py-0.5 text-[10px] font-black uppercase"><Check className="h-3 w-3" /></div>}
+                      {photo?.garmentSuitability && (
+                        <div className="absolute bottom-2 left-2 truncate right-2 rounded-full border-2 border-black bg-white/90 px-2 text-[9px] font-bold uppercase backdrop-blur">
+                          AI Score: {Math.round((photo.selectionScore || 0) * 100)}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
+
