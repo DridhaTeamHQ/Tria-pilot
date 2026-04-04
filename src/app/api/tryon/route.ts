@@ -11,6 +11,7 @@ import { getFirstSuccessfulOutput, getJobOutputsFromRecord } from '@/lib/tryon/j
 import { getTryOnRenderModel, resolveDirectGeminiRenderModel } from '@/lib/tryon/nano-banana-pro-renderer'
 import { analyzeGarment, composeSmartPrompt, type GarmentIntelligence } from '@/lib/tryon/garment-intel'
 import { preprocessGarmentImage } from '@/lib/tryon/garment-preprocessor'
+import { extractFaceCrop } from '@/lib/tryon/face-crop'
 import {
   classifyGarment,
   type GarmentClassification,
@@ -747,10 +748,23 @@ async function handlePresetlessTryOnRequest(params: {
           console.log(`   Prompt: ${smartPrompt.length} chars`)
         }
 
+        // Extract face crop for identity reinforcement
+        let faceCropBase64: string | undefined
+        try {
+          const faceCropResult = await extractFaceCrop(referenceImageBase64)
+          if (faceCropResult.success && faceCropResult.faceCropBase64) {
+            faceCropBase64 = faceCropResult.faceCropBase64
+            if (isDev) console.log(`👤 Face crop extracted for identity anchoring (${Math.round(faceCropResult.faceCropBase64.length * 0.75 / 1024)}KB)`)
+          }
+        } catch (faceCropError) {
+          if (isDev) console.warn('⚠️ Face crop failed, continuing without:', faceCropError)
+        }
+
         // Image generation — the ONLY expensive API call per variant
         const generatedImage = await generateTryOnDirect({
           personImageBase64: referenceImageBase64,
           garmentImageBase64: processedGarment,
+          faceCropBase64,
           characterReferenceBase64s: [],
           prompt: smartPrompt,
           aspectRatio: payload.aspectRatio || '4:5',

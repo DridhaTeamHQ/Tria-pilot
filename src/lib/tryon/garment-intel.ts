@@ -317,10 +317,14 @@ export function composeSmartPrompt(
 
   return `Edit the clothing on the person from Image 1 so the final visible outfit matches the complete look shown in Image 2: ${intel.description}.
 
-IDENTITY (NON-NEGOTIABLE):
-• EXACT SAME person from Image 1 — copy face, body, skin tone, and hair pixel-for-pixel
+IDENTITY (NON-NEGOTIABLE — HIGHEST PRIORITY):
+• The output MUST show the EXACT SAME PERSON from Image 1
+• Copy the face PIXEL-FOR-PIXEL from Image 1 — same eye shape, eye color, nose structure, lip shape, jaw line, chin, brow, forehead, cheekbones, and facial hair
+• If Image 3 shows a face close-up, use it as the DEFINITIVE identity reference — the output face MUST match Image 3 exactly
+• Keep the same skin tone, skin texture, hair style, hair color, and hair volume
 • Keep the same pose, expression, and body proportions
-• This is a clothing edit — do NOT generate a different person
+• Do NOT smooth or beautify the face — preserve all natural features, marks, and asymmetries
+• This is a CLOTHING EDIT ONLY — do NOT generate, swap, or alter the person's face or body
 
 OUTFIT REPLACEMENT:
 • ${replacementInstruction}
