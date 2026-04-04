@@ -1,10 +1,16 @@
 'use client'
 
-import { useState, useEffect, useCallback, useTransition, useRef, Suspense } from 'react'
+import { useState, useEffect, useCallback, useTransition, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
+import { toast } from '@/lib/simple-sonner'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, ArrowRight, Loader2, Upload, Trash2, ImagePlus, RefreshCw } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Loader2, Upload, X } from 'lucide-react'
+import {
+  IDENTITY_IMAGE_REQUIREMENTS,
+  type IdentityImageType,
+  getUploadProgress
+} from '@/lib/identity/types'
+import { createClient } from '@/lib/auth-client'
 
 // Neo-Brutal Components
 import { OnboardingCard } from '@/components/brutal/onboarding/OnboardingCard'
@@ -17,43 +23,6 @@ const AUDIENCE_OPTIONS = ['Men', 'Women', 'Unisex', 'Kids']
 const CATEGORY_OPTIONS = ['Casual', 'Formal', 'Streetwear', 'Vintage', 'Sustainable', 'Luxury', 'Athleisure']
 const TOTAL_STEPS = 8
 
-type ReferencePhotoSource = 'app_upload' | 'migrated_profile' | 'migrated_identity'
-type ReferencePhotoStatus = 'pending' | 'approved' | 'rejected'
-
-interface ReferencePhotoAnalysis {
-  faceDetectionConfidence: number
-  faceCount: number
-  sharpness: number
-  lightingQuality: number
-  bodyVisibility: 'full' | 'upper' | 'face_only' | 'none'
-  framing: 'portrait' | 'half' | 'full_body' | 'group'
-  faceOccluded: boolean
-  heavyAccessories: boolean
-  garmentSwapSuitability: number
-  rejectionNote?: string
-}
-
-interface ReferencePhoto {
-  id: string
-  imageUrl: string
-  source: ReferencePhotoSource
-  status: ReferencePhotoStatus
-  qualityScore: number | null
-  analysis: ReferencePhotoAnalysis | null
-  approvedForTryOn: boolean
-  rejectionReasons: string[]
-  createdAt: string
-}
-
-interface ReferencePhotosResponse {
-  photos: ReferencePhoto[]
-  totalCount: number
-  approvedCount: number
-  isReadyForTryOn: boolean
-  minRequired: number
-  photosNeeded: number
-}
-
 export default function InfluencerOnboardingPage() {
   const router = useRouter()
   const [isResubmissionMode, setIsResubmissionMode] = useState(false)
@@ -63,16 +32,18 @@ export default function InfluencerOnboardingPage() {
   const [photoFiles, setPhotoFiles] = useState<File[]>([])
   const [uploadingPhotos, setUploadingPhotos] = useState(false)
   const [dataLoaded, setDataLoaded] = useState(false)
-  const [referencePhotos, setReferencePhotos] = useState<ReferencePhoto[]>([])
-  const [referencePhotosLoading, setReferencePhotosLoading] = useState(false)
-  const [referencePhotosReady, setReferencePhotosReady] = useState(false)
-  const [referenceMinRequired, setReferenceMinRequired] = useState(5)
-  const [referenceApprovedCount, setReferenceApprovedCount] = useState(0)
-  const [referencePhotosNeeded, setReferencePhotosNeeded] = useState(5)
-  const [referenceUploadProgress, setReferenceUploadProgress] = useState(0)
-  const [referenceUploading, setReferenceUploading] = useState(false)
-  const [referenceDeletingId, setReferenceDeletingId] = useState<string | null>(null)
-  const referenceInputRef = useRef<HTMLInputElement>(null)
+
+  // Identity images state
+  const [identityImages, setIdentityImages] = useState<Record<IdentityImageType, { file?: File; url?: string; uploading?: boolean }>>({
+    face_front: {},
+    face_left: {},
+    face_right: {},
+    face_smile: {},
+    body_front: {},
+    body_left: {},
+    body_right: {},
+  })
+  const [identityProgress, setIdentityProgress] = useState(0)
 
   const [formData, setFormData] = useState({
     gender: '',
@@ -87,6 +58,18 @@ export default function InfluencerOnboardingPage() {
     },
     bio: '',
   })
+
+  // Calculate identity upload progress
+  const updateIdentityProgress = useCallback(() => {
+    const uploadedTypes = Object.entries(identityImages)
+      .filter(([, data]) => data.url)
+      .map(([type]) => type as IdentityImageType)
+    setIdentityProgress(getUploadProgress(uploadedTypes))
+  }, [identityImages])
+
+  useEffect(() => {
+    updateIdentityProgress()
+  }, [identityImages, updateIdentityProgress])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -105,7 +88,11 @@ export default function InfluencerOnboardingPage() {
           const allowResubmission = approvalStatus === 'rejected' || isResubmissionMode
 
           if (data.onboardingCompleted && !allowResubmission) {
-            router.replace('/dashboard')
+            if (approvalStatus === 'approved') {
+              router.replace('/influencer/dashboard')
+            } else {
+              router.replace('/influencer/pending')
+            }
           } else if (data.profile) {
             const existingSocials = (data.profile.socials as Record<string, string>) || {}
             setFormData({
@@ -125,6 +112,20 @@ export default function InfluencerOnboardingPage() {
           setDataLoaded(true)
         })
         .catch(() => setDataLoaded(true))
+
+      // Load identity images in background
+      fetch('/api/identity-images')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.images) {
+            const existing: Record<IdentityImageType, { url?: string }> = {} as Record<IdentityImageType, { url?: string }>
+            for (const img of data.images) {
+              existing[img.imageType as IdentityImageType] = { url: img.imageUrl }
+            }
+            setIdentityImages(prev => ({ ...prev, ...existing }))
+          }
+        })
+        .catch(() => { })
     }
 
     // Defer loading to after paint
@@ -143,186 +144,6 @@ export default function InfluencerOnboardingPage() {
       body: JSON.stringify(formData),
     }).catch(err => console.warn('Background save failed:', err))
   }, [formData])
-
-  const fetchReferencePhotos = useCallback(async () => {
-    setReferencePhotosLoading(true)
-    try {
-      const res = await fetch('/api/reference-photos', { credentials: 'include' })
-      if (!res.ok) return
-      const data = await res.json()
-      const payload = data as ReferencePhotosResponse
-      setReferencePhotos(Array.isArray(payload.photos) ? payload.photos : [])
-      setReferencePhotosReady(Boolean(payload.isReadyForTryOn))
-      setReferenceMinRequired(Number(payload.minRequired || 5))
-      setReferenceApprovedCount(Number(payload.approvedCount || 0))
-      setReferencePhotosNeeded(Number(payload.photosNeeded || 0))
-    } catch (error) {
-      console.error('Failed to fetch reference photos:', error)
-    } finally {
-      setReferencePhotosLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchReferencePhotos()
-  }, [fetchReferencePhotos])
-
-  const prepareReferencePhotoForUpload = async (file: File): Promise<File> => {
-    const maxEdge = 1200
-    if (file.size <= 1.5 * 1024 * 1024 && file.type !== 'image/heic' && file.type !== 'image/heif') {
-      return file
-    }
-
-    return await new Promise<File>((resolve, reject) => {
-      const objectUrl = URL.createObjectURL(file)
-      const img = new Image()
-
-      img.onload = () => {
-        try {
-          const scale = Math.min(1, maxEdge / Math.max(img.width, img.height))
-          const width = Math.max(1, Math.round(img.width * scale))
-          const height = Math.max(1, Math.round(img.height * scale))
-
-          const canvas = document.createElement('canvas')
-          canvas.width = width
-          canvas.height = height
-
-          const ctx = canvas.getContext('2d')
-          if (!ctx) {
-            URL.revokeObjectURL(objectUrl)
-            reject(new Error('Could not process image'))
-            return
-          }
-
-          ctx.drawImage(img, 0, 0, width, height)
-          canvas.toBlob((blob) => {
-            URL.revokeObjectURL(objectUrl)
-            if (!blob) {
-              reject(new Error('Could not compress image'))
-              return
-            }
-            resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }))
-          }, 'image/jpeg', 0.78)
-        } catch (err) {
-          URL.revokeObjectURL(objectUrl)
-          reject(err instanceof Error ? err : new Error('Image compression failed'))
-        }
-      }
-
-      img.onerror = () => {
-        URL.revokeObjectURL(objectUrl)
-        reject(new Error('Failed to read image'))
-      }
-
-      img.src = objectUrl
-    })
-  }
-
-  const handleReferencePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
-    e.currentTarget.value = ''
-    if (files.length === 0) return
-
-    setReferenceUploading(true)
-    setReferenceUploadProgress(0)
-
-    let uploadedCount = 0
-    let failedCount = 0
-
-    try {
-      for (let index = 0; index < files.length; index += 1) {
-        const file = files[index]
-        if (!file.type.startsWith('image/')) {
-          failedCount += 1
-          continue
-        }
-        if (file.size > 15 * 1024 * 1024) {
-          failedCount += 1
-          continue
-        }
-
-        try {
-          const uploadFile = await prepareReferencePhotoForUpload(file)
-          const formData = new FormData()
-          formData.append('file', uploadFile)
-
-          const res = await fetch('/api/reference-photos', {
-            method: 'POST',
-            credentials: 'include',
-            body: formData,
-          })
-
-          if (!res.ok) {
-            const errBody = await res.json().catch(() => ({}))
-            throw new Error(errBody.error || `Upload failed with status ${res.status}`)
-          }
-
-          uploadedCount += 1
-        } catch (uploadError) {
-          console.error('Reference photo upload error:', uploadError)
-          failedCount += 1
-        } finally {
-          setReferenceUploadProgress(Math.round(((index + 1) / files.length) * 100))
-        }
-      }
-
-      if (uploadedCount > 0) {
-        toast.success(uploadedCount === 1 ? 'Reference photo uploaded' : `${uploadedCount} reference photos uploaded`)
-      }
-      if (failedCount > 0) {
-        toast.error(failedCount === 1 ? 'One photo could not be uploaded' : `${failedCount} photos could not be uploaded`)
-      }
-      await fetchReferencePhotos()
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to upload reference photos')
-    } finally {
-      setReferenceUploading(false)
-      setReferenceUploadProgress(0)
-    }
-  }
-
-  const handleReferencePhotoDelete = async (photoId: string) => {
-    setReferenceDeletingId(photoId)
-    try {
-      const res = await fetch(`/api/reference-photos?id=${encodeURIComponent(photoId)}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      })
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}))
-        throw new Error(errBody.error || 'Delete failed')
-      }
-      toast.success('Reference photo removed')
-      await fetchReferencePhotos()
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to remove reference photo')
-    } finally {
-      setReferenceDeletingId(null)
-    }
-  }
-
-  const getReferenceSelectionScore = (photo: ReferencePhoto) => {
-    const analysis = photo.analysis
-    if (!analysis) return photo.qualityScore ?? 0.25
-
-    const bodyVisibilityScore =
-      analysis.bodyVisibility === 'full' ? 1 :
-        analysis.bodyVisibility === 'upper' ? 0.7 :
-          analysis.bodyVisibility === 'face_only' ? 0.35 : 0
-
-    const faceClarity = analysis.faceCount === 1 && !analysis.faceOccluded && !analysis.heavyAccessories
-      ? analysis.faceDetectionConfidence
-      : analysis.faceDetectionConfidence * 0.35
-
-    return (
-      faceClarity * 0.35 +
-      (analysis.garmentSwapSuitability || 0) * 0.3 +
-      bodyVisibilityScore * 0.15 +
-      analysis.sharpness * 0.1 +
-      analysis.lightingQuality * 0.1 +
-      (photo.qualityScore ?? 0) * 0.05
-    )
-  }
 
   const hasAtLeastOneSocial = useCallback(() => {
     const values = Object.values(formData.socials || {})
@@ -452,6 +273,69 @@ export default function InfluencerOnboardingPage() {
     }))
   }
 
+  const handleIdentityImageSelect = async (type: IdentityImageType, file: File) => {
+    const previewUrl = URL.createObjectURL(file)
+    setIdentityImages(prev => ({ ...prev, [type]: { file, url: previewUrl, uploading: true } }))
+
+    try {
+      // Basic compression to prevent API payload limits (similar to profile page)
+      let uploadFile = file
+      if (file.size > 2 * 1024 * 1024 && !file.type.includes('heic') && !file.type.includes('heif')) {
+        uploadFile = await new Promise<File>((resolve) => {
+          const img = new Image()
+          img.onload = () => {
+            const canvas = document.createElement('canvas')
+            const scale = Math.min(1, 1200 / Math.max(img.width, img.height))
+            canvas.width = img.width * scale
+            canvas.height = img.height * scale
+            const ctx = canvas.getContext('2d')
+            ctx?.drawImage(img, 0, 0, canvas.width, canvas.height)
+            canvas.toBlob((blob) => {
+              resolve(blob ? new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }) : file)
+            }, 'image/jpeg', 0.8)
+          }
+          img.onerror = () => resolve(file)
+          img.src = previewUrl
+        })
+      }
+
+      const supabase = createClient()
+      const { data: userData } = await supabase.auth.getUser()
+      if (!userData.user) throw new Error('You must be logged in to upload.')
+
+      const fileName = `${userData.user.id}/${type}-${Date.now()}.jpg`
+
+      const { error: uploadError } = await supabase.storage
+        .from('identity-images')
+        .upload(fileName, uploadFile, { contentType: uploadFile.type, upsert: true })
+
+      if (uploadError) {
+        throw new Error(uploadError.message || 'Failed to upload image to storage')
+      }
+
+      const { data: { publicUrl } } = supabase.storage.from('identity-images').getPublicUrl(fileName)
+
+      const response = await fetch('/api/identity-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageType: type, fileName, publicUrl }),
+      })
+
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to save image record')
+      }
+
+      setIdentityImages(prev => ({ ...prev, [type]: { url: data.image.imageUrl, uploading: false } }))
+      toast.success(`${IDENTITY_IMAGE_REQUIREMENTS.find(r => r.type === type)?.label} uploaded!`)
+    } catch (error: any) {
+      console.error('Upload failed:', error)
+      setIdentityImages(prev => ({ ...prev, [type]: { url: undefined, uploading: false } }))
+      toast.error(error.message || 'Failed to upload image. Please try again.')
+    }
+  }
+
   const getStepTitle = () => {
     switch (step) {
       case 1: return 'Gender'
@@ -460,25 +344,9 @@ export default function InfluencerOnboardingPage() {
       case 4: return 'Clothing Categories'
       case 5: return 'Social Media'
       case 6: return 'Bio'
-      case 7: return 'Reference Library'
+      case 7: return 'AI Studio Setup'
       case 8: return 'Profile Photos'
       default: return 'Profile Setup'
-    }
-  }
-
-  const getReferenceStatusLabel = (status: ReferencePhotoStatus) => {
-    switch (status) {
-      case 'approved': return { label: 'Approved', color: 'bg-[#B4F056]' }
-      case 'rejected': return { label: 'Rejected', color: 'bg-[#FF9AA2]' }
-      default: return { label: 'Pending', color: 'bg-[#FFD93D]' }
-    }
-  }
-
-  const getReferenceSourceLabel = (source: ReferencePhotoSource) => {
-    switch (source) {
-      case 'migrated_profile': return 'Migrated profile photo'
-      case 'migrated_identity': return 'Migrated identity photo'
-      default: return 'App upload'
     }
   }
 
@@ -614,166 +482,50 @@ export default function InfluencerOnboardingPage() {
             <div className="bg-[#B4F056] border-[3px] border-black rounded-xl p-4 flex items-center gap-3 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
               <span className="text-2xl">📸</span>
               <div>
-                <p className="font-black text-sm">Build your reference library for try-on</p>
-                <p className="text-xs text-black/60 font-medium">
-                  {referencePhotosReady
-                    ? 'Ready for try-on generation'
-                    : `${referencePhotosNeeded} more approved photo${referencePhotosNeeded === 1 ? '' : 's'} needed`}
-                </p>
+                <p className="font-black text-sm">Upload clear photos for best AI results!</p>
+                <p className="text-xs text-black/60 font-medium">Progress: {identityProgress}% complete</p>
               </div>
             </div>
 
-            <div className="w-full h-3 border-[2px] border-black bg-white overflow-hidden">
-              <motion.div
-                className="h-full bg-[#FFD93D]"
-                initial={{ width: 0 }}
-                animate={{ width: `${Math.min(100, (referenceApprovedCount / Math.max(1, referenceMinRequired)) * 100)}%` }}
-                transition={{ duration: 0.5, ease: 'easeOut' }}
-              />
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <span className="px-3 py-1 text-[10px] font-black uppercase border-[2px] border-black bg-white">Approved {referenceApprovedCount}/{referenceMinRequired}</span>
-              <span className="px-3 py-1 text-[10px] font-black uppercase border-[2px] border-black bg-white">Total {referencePhotos.length}</span>
-              <span className="px-3 py-1 text-[10px] font-black uppercase border-[2px] border-black bg-white">Pending {referencePhotos.filter((photo) => photo.status === 'pending').length}</span>
-              <span className="px-3 py-1 text-[10px] font-black uppercase border-[2px] border-black bg-white">Rejected {referencePhotos.filter((photo) => photo.status === 'rejected').length}</span>
-            </div>
-
-            <div className="border-[3px] border-black rounded-xl bg-white p-4 flex flex-col sm:flex-row gap-3 sm:items-center justify-between shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
-              <div>
-                <p className="font-black text-sm uppercase">Upload solo photos</p>
-                <p className="text-xs text-black/60 font-medium">Use clear, well-lit photos from different angles. No group shots.</p>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => referenceInputRef.current?.click()}
-                  disabled={referenceUploading}
-                  className="px-4 py-2 bg-black text-white border-[2px] border-black font-black uppercase text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all inline-flex items-center gap-2"
-                >
-                  {referenceUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                  Add photos
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void fetchReferencePhotos()}
-                  className="px-4 py-2 bg-white text-black border-[2px] border-black font-black uppercase text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all inline-flex items-center gap-2"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  Refresh
-                </button>
-              </div>
-              <input
-                ref={referenceInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={handleReferencePhotoUpload}
-              />
-            </div>
-
-            {referenceUploading && referenceUploadProgress > 0 && (
-              <p className="text-xs font-black uppercase text-black/50">
-                Uploading photos... {referenceUploadProgress}%
-              </p>
-            )}
-
-            {referencePhotosLoading ? (
-              <div className="border-[3px] border-black rounded-xl bg-white p-8 text-center font-black uppercase">
-                <Loader2 className="w-5 h-5 animate-spin inline mr-2" />
-                Loading reference library...
-              </div>
-            ) : referencePhotos.length === 0 ? (
-              <div className="border-[3px] border-dashed border-black/30 rounded-xl bg-white p-8 text-center">
-                <ImagePlus className="w-10 h-10 mx-auto mb-3" />
-                <h3 className="text-lg font-black uppercase">No reference photos yet</h3>
-                <p className="text-sm font-medium text-black/60 mt-2">
-                  Add app-uploaded solo photos here and we’ll score them for try-on readiness.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {referencePhotos
-                    .filter((photo) => photo.status === 'approved')
-                    .slice()
-                    .sort((a, b) => {
-                      const scoreA = a.qualityScore ?? 0
-                      const scoreB = b.qualityScore ?? 0
-                      if (scoreA !== scoreB) return scoreB - scoreA
-                      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-                    })
-                    .slice(0, 3)
-                    .map((photo) => {
-                      const statusTone = getReferenceStatusLabel(photo.status)
-                      return (
-                        <div key={photo.id} className="border-[3px] border-black rounded-xl overflow-hidden bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
-                          <div className="relative aspect-[3/4] bg-black/5">
-                            <img src={photo.imageUrl} className="w-full h-full object-cover" alt="Reference photo" />
-                            <div className="absolute top-2 left-2 px-2 py-1 border-[2px] border-black text-[10px] font-black uppercase bg-white">
-                              Top source
-                            </div>
-                            <div className={`absolute top-2 right-2 px-2 py-1 border-[2px] border-black text-[10px] font-black uppercase ${statusTone.color}`}>
-                              {statusTone.label}
-                            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
+              {IDENTITY_IMAGE_REQUIREMENTS.map((req) => (
+                <div key={req.type} className="space-y-1.5">
+                  <span className="text-xs font-bold text-black/70 ml-1">{req.label}</span>
+                  <div className="relative aspect-[3/4] border-[3px] border-dashed border-black/30 rounded-xl bg-white hover:border-black hover:bg-gray-50 transition-all cursor-pointer overflow-hidden group">
+                    {identityImages[req.type]?.url ? (
+                      <>
+                        <img src={identityImages[req.type].url} className="w-full h-full object-cover" alt={req.label} />
+                        {identityImages[req.type]?.uploading && (
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                            <Loader2 className="w-6 h-6 text-white animate-spin" />
                           </div>
-                          <div className="p-3 space-y-2">
-                            <p className="text-[10px] font-black uppercase text-black/50">{getReferenceSourceLabel(photo.source)}</p>
-                            <p className="text-xs font-bold text-black/70">
-                              Score {Math.round((photo.qualityScore ?? getReferenceSelectionScore(photo)) * 100)}%
-                            </p>
-                          </div>
-                        </div>
-                      )
-                    })}
+                        )}
+                        <button type="button"
+                          onClick={() => setIdentityImages(prev => ({ ...prev, [req.type]: {} }))}
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </>
+                    ) : (
+                      <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer p-2 text-center">
+                        <Upload className="w-7 h-7 mb-1 text-black/30" />
+                        <span className="text-[10px] font-bold text-black/40">{req.description}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) handleIdentityImageSelect(req.type, file)
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {referencePhotos.map((photo) => {
-                    const statusTone = getReferenceStatusLabel(photo.status)
-                    return (
-                      <div key={photo.id} className="border-[3px] border-black rounded-xl overflow-hidden bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
-                        <div className="relative aspect-[3/4] bg-black/5">
-                          <img src={photo.imageUrl} className="w-full h-full object-cover" alt="Reference photo" />
-                          <div className={`absolute top-2 left-2 px-2 py-1 border-[2px] border-black text-[10px] font-black uppercase ${statusTone.color}`}>
-                            {statusTone.label}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => void handleReferencePhotoDelete(photo.id)}
-                            disabled={referenceDeletingId === photo.id}
-                            className="absolute top-2 right-2 w-9 h-9 bg-white border-[2px] border-black flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
-                            title="Remove photo"
-                          >
-                            {referenceDeletingId === photo.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                          </button>
-                        </div>
-                        <div className="p-3 space-y-2">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-[10px] font-black uppercase text-black/45">{getReferenceSourceLabel(photo.source)}</span>
-                            <span className="text-[10px] font-black uppercase text-black/45">Score {Math.round((photo.qualityScore ?? getReferenceSelectionScore(photo)) * 100)}%</span>
-                          </div>
-                          <p className="text-xs font-bold text-black/60">
-                            {photo.approvedForTryOn ? 'Counts toward try-on readiness' : 'Not counted toward readiness yet'}
-                          </p>
-                          {photo.analysis?.rejectionNote && (
-                            <p className="text-[11px] font-bold text-black/60">{photo.analysis.rejectionNote}</p>
-                          )}
-                          {photo.rejectionReasons.length > 0 && (
-                            <div className="space-y-1">
-                              {photo.rejectionReasons.map((reason) => (
-                                <p key={reason} className="text-[11px] font-bold text-red-600">{reason}</p>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
         )
 

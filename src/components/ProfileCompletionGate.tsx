@@ -11,9 +11,20 @@ const SKIP_PREFIXES = [
   '/reset-password',
   '/auth/confirm',
   '/complete-profile',
+  '/onboarding/influencer',
+  '/onboarding/brand',
+  '/influencer/pending',
   '/admin/login',
   '/admin/register',
+  '/about',
+  '/contact',
+  '/privacy',
+  '/terms',
+  '/help',
 ]
+
+// Also skip the landing page exactly
+const SKIP_EXACT = ['/']
 
 export default function ProfileCompletionGate() {
   const pathname = usePathname()
@@ -23,6 +34,7 @@ export default function ProfileCompletionGate() {
   useEffect(() => {
     if (!pathname) return
     if (SKIP_PREFIXES.some((p) => pathname.startsWith(p))) return
+    if (SKIP_EXACT.includes(pathname)) return
     if (isLoading || !user) return
 
     const role = String(user.role || 'INFLUENCER').toUpperCase()

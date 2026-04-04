@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { toast } from 'sonner'
+import { toast } from '@/lib/simple-sonner'
 import { createClient } from '@/lib/auth-client'
 import { useRouter } from 'next/navigation'
 import { Building2, Camera, Sparkles, ArrowLeft } from 'lucide-react'
@@ -49,8 +49,8 @@ export default function CompleteProfilePage() {
       if (!res.ok) throw new Error(data?.error || 'Failed to complete profile')
 
       toast.success('Profile completed! Redirecting…')
-      // Redirect to dashboard which will handle onboarding/approval routing
-      router.push('/dashboard')
+      // Route directly into onboarding so pending creators do not bounce through generic dashboard routing.
+      router.replace(role === 'BRAND' ? '/onboarding/brand' : '/onboarding/influencer')
       router.refresh()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to complete profile')
