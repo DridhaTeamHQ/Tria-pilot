@@ -100,6 +100,8 @@ export async function POST(request: NextRequest) {
         coverage: garmentIntel.coverage,
         description: garmentIntel.description,
         primaryColor: garmentIntel.primaryColor,
+        visibleBottomInPhoto: garmentIntel.visibleBottomInPhoto || '',
+        visibleTopInPhoto: garmentIntel.visibleTopInPhoto || '',
         bottomWearSuggestion: garmentIntel.bottomWearSuggestion,
       },
       top3,
@@ -242,9 +244,11 @@ function selectDiverseTop3(ranked: RankedPhoto[]): string[] {
 }
 
 function shuffleRankedPhotos(ranked: RankedPhoto[]): RankedPhoto[] {
+  // Strong randomization: 25-point noise ensures real variety across calls
+  // Without this, scores clustered at 80-95 always produce the same top-3
   const decorated = ranked.map((photo) => ({
     photo,
-    weightedScore: photo.score + Math.random() * 8,
+    weightedScore: photo.score + Math.random() * 25,
   }))
 
   decorated.sort((left, right) => right.weightedScore - left.weightedScore)

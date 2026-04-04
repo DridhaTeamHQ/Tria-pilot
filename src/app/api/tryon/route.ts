@@ -277,8 +277,10 @@ function selectDiverseTop3(
 }
 
 function shuffleRankedPhotos(ranked: RankedPhoto[]): RankedPhoto[] {
+  // Strong randomization: 25-point noise ensures real variety across runs
+  // Without this, scores clustered at 80-95 always produce the same top-3
   const decorated = ranked.map((photo) => {
-    const noise = Math.random() * 8
+    const noise = Math.random() * 25
     return {
       photo,
       weightedScore: photo.score + noise,
