@@ -142,7 +142,7 @@ export default function LandingPage() {
                 </div>
                 <div className="absolute inset-x-[6%] bottom-0 top-[12%] z-10">
                   <Image
-                    src="/landing/hero-influencer.png"
+                    src="/landing/hero-influencer-transparent.png"
                     alt="Influencer"
                     fill
                     sizes="(min-width: 1024px) 420px, 320px"
