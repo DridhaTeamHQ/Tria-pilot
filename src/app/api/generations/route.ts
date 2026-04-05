@@ -5,9 +5,16 @@
  */
 import { createClient, createServiceClient } from '@/lib/auth'
 import { NextResponse } from 'next/server'
-import { getFirstSuccessfulOutput, getJobOutputsFromRecord } from '@/lib/tryon/job-outputs'
 
 export const dynamic = 'force-dynamic'
+
+function normalizeGenerationImagePath(path: string | null): string | null {
+    if (!path) return null
+    if (path.startsWith('base64://')) {
+        return `data:image/png;base64,${path.replace('base64://', '')}`
+    }
+    return path
+}
 
 export async function GET() {
     try {
@@ -39,20 +46,14 @@ export async function GET() {
         }
 
         // Transform to match frontend expectations (camelCase)
-        const transformedGenerations = (generations || []).map(g => {
-            const outputs = getJobOutputsFromRecord(g)
-            const primaryOutput = getFirstSuccessfulOutput(outputs)
-            return {
-                id: g.id,
-                status: g.status,
-                outputImagePath: primaryOutput?.imageUrl || (primaryOutput?.base64Image ? `data:image/jpeg;base64,${primaryOutput.base64Image}` : g.output_image_path),
-                primaryOutputPath: primaryOutput?.outputImagePath || g.output_image_path,
-                outputs,
-                settings: g.settings,
-                createdAt: g.created_at,
-                updatedAt: g.updated_at,
-            }
-        })
+        const transformedGenerations = (generations || []).map(g => ({
+            id: g.id,
+            status: g.status,
+            outputImagePath: normalizeGenerationImagePath(g.output_image_path),
+            settings: g.settings,
+            createdAt: g.created_at,
+            updatedAt: g.updated_at,
+        }))
 
         return NextResponse.json({ generations: transformedGenerations })
     } catch (error) {
