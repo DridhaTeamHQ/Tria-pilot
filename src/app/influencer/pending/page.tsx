@@ -10,7 +10,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { toast } from 'sonner'
+import { toast } from '@/lib/simple-sonner'
 import {
   CheckCircle2,
   Clock,
@@ -255,12 +255,12 @@ export default function InfluencerPendingPage() {
                 className="text-3xl lg:text-4xl font-black text-black mb-3 tracking-tight"
                 style={{ fontFamily: 'var(--font-playfair), serif' }}
               >
-                {isRejected ? 'Application Not Approved' : 'Almost There!'}
+                {isRejected ? 'Application Not Approved' : 'Profile Under Review'}
               </h1>
               <p className="text-black/60 font-medium max-w-md mx-auto">
                 {isRejected
                   ? "Your application needs a few updates before approval. Reopen onboarding, improve your details, and send it back for review."
-                  : "Your account is created! We're reviewing your profile. You'll get access once approved."
+                  : "Your account already exists. We're reviewing your creator profile, and dashboard access will unlock once approval is complete."
                 }
               </p>
             </div>
