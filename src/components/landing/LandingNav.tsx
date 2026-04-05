@@ -15,7 +15,7 @@ const LINKS = [
   { href: '/', label: 'Home' },
   { href: '/#what-you-get', label: 'What You Get' },
   { href: '/marketplace', label: 'Marketplace' },
-  { href: '/#contact', label: 'Contact us' }
+  { href: '/contact', label: 'Contact us' }
 ]
 
 export default function LandingNav() {

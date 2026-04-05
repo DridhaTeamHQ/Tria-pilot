@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { type ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
@@ -12,11 +12,8 @@ import {
   Facebook,
   Instagram,
   Linkedin,
-  Mail,
   Megaphone,
-  Phone,
   Rocket,
-  Sparkles,
   Store,
   UserRoundX,
 } from 'lucide-react'
@@ -24,61 +21,6 @@ import {
 const PF = 'var(--font-plus-jakarta-sans), sans-serif'
 
 export default function LandingPage() {
-  const [contactForm, setContactForm] = useState({
-    name: '',
-    email: '',
-    userType: 'Influencer',
-    message: '',
-  })
-  const [contactState, setContactState] = useState<{
-    loading: boolean
-    message: string | null
-    kind: 'success' | 'error' | null
-  }>({
-    loading: false,
-    message: null,
-    kind: null,
-  })
-
-  async function handleContactSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setContactState({ loading: true, message: null, kind: null })
-
-    try {
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...contactForm,
-          subject: `Landing page inquiry from ${contactForm.userType}`,
-        }),
-      })
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}))
-        throw new Error(data.error || 'Failed to send message')
-      }
-
-      setContactForm({
-        name: '',
-        email: '',
-        userType: 'Influencer',
-        message: '',
-      })
-      setContactState({
-        loading: false,
-        message: 'Message sent. We usually reply within 24 hours.',
-        kind: 'success',
-      })
-    } catch (error) {
-      setContactState({
-        loading: false,
-        message: error instanceof Error ? error.message : 'Failed to send message',
-        kind: 'error',
-      })
-    }
-  }
-
   return (
     <div className="bg-[#f7eee4] px-3 pb-8 pt-[106px] text-[#111111] sm:px-4 lg:px-6 lg:pt-[128px]" style={{ fontFamily: PF }}>
       <div className="mx-auto max-w-[1320px] overflow-hidden rounded-[34px] border-[3px] border-black bg-[#fbfaf6] shadow-[10px_10px_0_0_rgba(0,0,0,1)]">
@@ -127,8 +69,8 @@ export default function LandingPage() {
               </div>
 
               <div className="relative min-h-[430px] sm:min-h-[500px]">
-                <div className="absolute inset-x-[16%] inset-y-[12%] rounded-[30px] border-[3px] border-black bg-[linear-gradient(180deg,#fff4da_0%,#eaffc8_100%)] shadow-[7px_7px_0_0_rgba(0,0,0,1)]" />
-                <div className="pointer-events-none absolute inset-x-[20%] inset-y-[18%] rounded-[26px] bg-[radial-gradient(circle_at_25%_30%,rgba(255,140,120,0.28),transparent_38%),radial-gradient(circle_at_78%_28%,rgba(203,255,46,0.22),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.8),rgba(255,247,232,0.55))]" />
+                <div className="absolute inset-x-[16%] inset-y-[12%] rounded-[30px] border-[3px] border-black bg-[linear-gradient(180deg,#fff7ec_0%,#f6ffd9_100%)] shadow-[7px_7px_0_0_rgba(0,0,0,1)]" />
+                <div className="pointer-events-none absolute inset-x-[20%] inset-y-[18%] rounded-[26px] bg-[radial-gradient(circle_at_25%_30%,rgba(255,140,120,0.2),transparent_38%),radial-gradient(circle_at_78%_28%,rgba(203,255,46,0.18),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.75),rgba(255,247,232,0.45))]" />
                 <div className="absolute bottom-4 right-0 z-10 w-[220px] rotate-[7deg] rounded-[26px] border-[3px] border-black bg-white p-3 shadow-[7px_7px_0_0_rgba(0,0,0,1)] sm:w-[250px]">
                   <div className="relative h-[170px] overflow-hidden rounded-[18px] bg-[#fff6f2] sm:h-[190px]">
                     <Image
@@ -142,11 +84,16 @@ export default function LandingPage() {
                   </div>
                 </div>
                 <div className="absolute inset-x-[6%] bottom-0 top-[12%] z-10 flex items-end justify-center">
-                  <img
-                    src="/landing/hero-influencer-transparent.png?v=2"
-                    alt="Influencer"
-                    className="h-full w-auto max-w-full object-contain object-bottom drop-shadow-[0_18px_28px_rgba(0,0,0,0.18)]"
-                  />
+                  <div className="relative h-full w-full">
+                    <Image
+                      src="/landing/hero-influencer.png"
+                      alt="Influencer"
+                      fill
+                      sizes="(min-width: 1024px) 420px, 70vw"
+                      className="object-contain object-bottom drop-shadow-[0_18px_28px_rgba(0,0,0,0.18)]"
+                      priority
+                    />
+                  </div>
                 </div>
                 <div className="absolute bottom-5 left-5 z-20 rounded-full border-[3px] border-black bg-white px-4 py-2 text-[12px] font-black uppercase tracking-[0.08em] text-black shadow-[5px_5px_0_0_rgba(0,0,0,1)]">
                   Available for brands
@@ -279,85 +226,6 @@ export default function LandingPage() {
             <BandWord label="Share" />
             <BandArrow />
             <BandWord label="Earn" />
-          </div>
-        </section>
-
-        <section id="contact" className="border-t-[3px] border-black bg-[#f5f4ef] px-5 py-12 sm:px-8 lg:px-10 lg:py-14">
-          <div className="grid gap-8 lg:grid-cols-[0.92fr_1.08fr] lg:gap-12">
-            <div className="pt-2">
-              <div className="text-[14px] font-semibold text-black/50">Contact</div>
-              <h2 className="mt-4 text-[clamp(2.3rem,5vw,4rem)] font-black uppercase leading-[0.95] tracking-[-0.05em] text-black">
-                Got something in mind?
-                <br />
-                Let's talk.
-              </h2>
-
-              <div className="mt-8 space-y-5">
-                <ContactItem
-                  icon={<Mail className="h-4 w-4" strokeWidth={2.2} />}
-                  label="Email us at"
-                  content={<a href="mailto:team@kiwikoo.com" className="underline underline-offset-4">team@kiwikoo.com</a>}
-                />
-                <ContactItem
-                  icon={<Phone className="h-4 w-4" strokeWidth={2.2} />}
-                  label="Contact number"
-                  content={<span>+91 89775 33164</span>}
-                />
-              </div>
-            </div>
-
-            <div className="rounded-[24px] border-[3px] border-black bg-white p-5 shadow-[8px_8px_0_0_rgba(0,0,0,1)] sm:p-6">
-              <form onSubmit={handleContactSubmit} className="grid gap-4">
-                <FormField
-                  label="Name"
-                  value={contactForm.name}
-                  onChange={(value) => setContactForm((prev) => ({ ...prev, name: value }))}
-                  placeholder=""
-                />
-                <FormField
-                  type="email"
-                  label="Email"
-                  value={contactForm.email}
-                  onChange={(value) => setContactForm((prev) => ({ ...prev, email: value }))}
-                  placeholder=""
-                />
-                <div>
-                  <div className="mb-2 text-[11px] font-black uppercase tracking-[0.12em] text-black/65">You Are</div>
-                  <select
-                    value={contactForm.userType}
-                    onChange={(event) => setContactForm((prev) => ({ ...prev, userType: event.target.value }))}
-                    className="h-12 w-full rounded-[12px] border-[2px] border-black bg-white px-4 text-[14px] font-semibold text-black outline-none"
-                  >
-                    <option value="Influencer">Influencer</option>
-                    <option value="Brand">Brand</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-                <div>
-                  <div className="mb-2 text-[11px] font-black uppercase tracking-[0.12em] text-black/65">Tell Us About It</div>
-                  <textarea
-                    value={contactForm.message}
-                    onChange={(event) => setContactForm((prev) => ({ ...prev, message: event.target.value }))}
-                    placeholder="Your message goes here..."
-                    className="min-h-[150px] w-full rounded-[12px] border-[2px] border-black bg-white px-4 py-3 text-[14px] font-medium text-black outline-none"
-                    required
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={contactState.loading}
-                  className="mt-2 inline-flex h-12 items-center justify-center gap-2 rounded-full border-[3px] border-black bg-[#cbff2e] px-6 text-[13px] font-black uppercase tracking-[0.05em] shadow-[0_4px_0_0_rgba(0,0,0,1)] transition hover:translate-y-[2px] hover:shadow-none disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  {contactState.loading ? 'Sending...' : 'Send Message'}
-                  <ArrowRight className="h-4 w-4" strokeWidth={2.6} />
-                </button>
-                {contactState.message ? (
-                  <p className={`text-[13px] font-semibold ${contactState.kind === 'error' ? 'text-[#cf3d3d]' : 'text-black/65'}`}>
-                    {contactState.message}
-                  </p>
-                ) : null}
-              </form>
-            </div>
           </div>
         </section>
 
