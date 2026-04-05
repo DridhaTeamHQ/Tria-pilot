@@ -11,16 +11,16 @@ function normalizeRole(value: unknown): SupportedRole | null {
 }
 
 function sanitizeNextPath(next: string | null): string {
-  if (!next) return '/dashboard'
+  if (!next) return '/marketplace'
   const value = next.trim()
 
   // Allow only app-internal absolute paths.
   if (!value.startsWith('/') || value.startsWith('//')) {
-    return '/dashboard'
+    return '/marketplace'
   }
 
   if (value.includes('\r') || value.includes('\n')) {
-    return '/dashboard'
+    return '/marketplace'
   }
 
   return value

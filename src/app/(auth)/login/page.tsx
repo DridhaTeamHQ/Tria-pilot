@@ -43,12 +43,12 @@ function LoginContent() {
 
   const getSafeRedirectTarget = () => {
     const redirectTarget = searchParams.get('redirect')
-    if (!redirectTarget) return '/dashboard'
+    if (!redirectTarget) return '/marketplace'
 
     const value = redirectTarget.trim()
-    if (!value.startsWith('/') || value.startsWith('//')) return '/dashboard'
-    if (value.includes('\r') || value.includes('\n')) return '/dashboard'
-    if (value.startsWith('/admin')) return '/dashboard'
+    if (!value.startsWith('/') || value.startsWith('//')) return '/marketplace'
+    if (value.includes('\r') || value.includes('\n')) return '/marketplace'
+    if (value.startsWith('/admin')) return '/marketplace'
 
     return value
   }
@@ -67,7 +67,7 @@ function LoginContent() {
 
     if (role === 'BRAND') {
       if (!onboardingCompleted) return '/onboarding/brand'
-      return fallbackTarget === '/dashboard' ? '/brand/dashboard' : fallbackTarget
+      return fallbackTarget
     }
 
     if (!onboardingCompleted) return '/onboarding/influencer'
@@ -156,6 +156,7 @@ function LoginContent() {
           identifier: normalizedIdentifier,
           password,
           rememberMe: true,
+          portalRole: userType,
         }),
       })
 
@@ -174,6 +175,19 @@ function LoginContent() {
 
         if (data?.errorCode === 'RATE_LIMITED') {
           showWarningToast('Too many attempts', 'Please wait a bit before trying again.')
+          return
+        }
+
+        if (data?.errorCode === 'ROLE_MISMATCH') {
+          const requestedLabel = data?.requestedRole === 'brand' ? 'brand' : 'influencer'
+          const actualLabel = data?.actualRole === 'brand' ? 'brand' : 'influencer'
+          if (data?.actualRole === 'brand' || data?.actualRole === 'influencer') {
+            setUserType(data.actualRole)
+          }
+          showErrorToast(
+            'Wrong portal for this account',
+            `This account belongs to the ${actualLabel} portal. Use the ${actualLabel} login instead of ${requestedLabel}.`
+          )
           return
         }
 
