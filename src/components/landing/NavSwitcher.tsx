@@ -6,8 +6,8 @@ import LandingNav from './LandingNav'
 
 export default function NavSwitcher() {
   const pathname = usePathname()
-  const isHome = pathname === '/'
+  const isLandingChromePage = pathname === '/' || pathname === '/contact'
 
-  if (isHome) return <LandingNav />
+  if (isLandingChromePage) return <LandingNav />
   return <BrutalNavbar />
 }

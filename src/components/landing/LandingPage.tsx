@@ -365,7 +365,7 @@ function AnalyticsPanel() {
 
   return (
     <div className="relative rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_84%_18%,rgba(203,255,46,0.12),transparent_30%),linear-gradient(180deg,#151515_0%,#191919_100%)] p-5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03)]">
-      <div className="absolute -left-3 bottom-8 rounded-[16px] border border-white/12 bg-[#2a2a2a] px-5 py-4 shadow-[0_5px_0_0_rgba(0,0,0,0.4)]">
+      <div className="absolute -left-8 bottom-16 z-20 rounded-[16px] border border-white/12 bg-[#2a2a2a] px-5 py-4 shadow-[0_5px_0_0_rgba(0,0,0,0.4)]">
         <div className="text-[26px] font-black leading-none text-[#cbff2e]">40M+</div>
         <div className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-white/40">Data Points</div>
       </div>
