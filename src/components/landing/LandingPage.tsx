@@ -127,7 +127,8 @@ export default function LandingPage() {
               </div>
 
               <div className="relative min-h-[430px] sm:min-h-[500px]">
-                <div className="absolute inset-x-[16%] inset-y-[12%] rounded-[30px] border-[3px] border-black bg-[#ff70d5] shadow-[7px_7px_0_0_rgba(0,0,0,1)]" />
+                <div className="absolute inset-x-[16%] inset-y-[12%] rounded-[30px] border-[3px] border-black bg-[linear-gradient(180deg,#fff4da_0%,#eaffc8_100%)] shadow-[7px_7px_0_0_rgba(0,0,0,1)]" />
+                <div className="pointer-events-none absolute inset-x-[20%] inset-y-[18%] rounded-[26px] bg-[radial-gradient(circle_at_25%_30%,rgba(255,140,120,0.28),transparent_38%),radial-gradient(circle_at_78%_28%,rgba(203,255,46,0.22),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.8),rgba(255,247,232,0.55))]" />
                 <div className="absolute bottom-4 right-0 z-10 w-[220px] rotate-[7deg] rounded-[26px] border-[3px] border-black bg-white p-3 shadow-[7px_7px_0_0_rgba(0,0,0,1)] sm:w-[250px]">
                   <div className="relative h-[170px] overflow-hidden rounded-[18px] bg-[#fff6f2] sm:h-[190px]">
                     <Image
@@ -140,14 +141,11 @@ export default function LandingPage() {
                     />
                   </div>
                 </div>
-                <div className="absolute inset-x-[6%] bottom-0 top-[12%] z-10">
-                  <Image
-                    src="/landing/hero-influencer-transparent.png"
+                <div className="absolute inset-x-[6%] bottom-0 top-[12%] z-10 flex items-end justify-center">
+                  <img
+                    src="/landing/hero-influencer-transparent.png?v=2"
                     alt="Influencer"
-                    fill
-                    sizes="(min-width: 1024px) 420px, 320px"
-                    className="object-contain object-bottom"
-                    priority
+                    className="h-full w-auto max-w-full object-contain object-bottom drop-shadow-[0_18px_28px_rgba(0,0,0,0.18)]"
                   />
                 </div>
                 <div className="absolute bottom-5 left-5 z-20 rounded-full border-[3px] border-black bg-white px-4 py-2 text-[12px] font-black uppercase tracking-[0.08em] text-black shadow-[5px_5px_0_0_rgba(0,0,0,1)]">
