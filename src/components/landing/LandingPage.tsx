@@ -52,13 +52,13 @@ export default function LandingPage() {
                   href="/signup/influencer"
                   className="inline-flex items-center justify-center rounded-[16px] border-[3px] border-black bg-[#ffd243] px-7 py-4 text-[18px] font-black text-black shadow-[5px_5px_0_0_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
                 >
-                  Start creating
+                  Start Creating
                 </Link>
                 <Link
                   href="/signup/brand"
                   className="inline-flex items-center justify-center rounded-[16px] border-[3px] border-black bg-[#cbff2e] px-7 py-4 text-[18px] font-black text-black shadow-[5px_5px_0_0_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
                 >
-                  Start scaling
+                  Start Scaling
                 </Link>
               </div>
             </div>
