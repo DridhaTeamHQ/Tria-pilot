@@ -55,7 +55,7 @@ export default function LandingPage() {
                   Start creating
                 </Link>
                 <div className="rounded-full border-[2px] border-black bg-white px-4 py-2 text-[13px] font-bold uppercase tracking-[0.16em] text-black/70">
-                  Fashion AI studio
+                  Available for brands
                 </div>
               </div>
             </div>
@@ -64,13 +64,11 @@ export default function LandingPage() {
               <div className="absolute -left-2 top-12 z-20 rounded-[22px] border-[3px] border-black bg-[#FFD93D] px-4 py-4 shadow-[6px_6px_0_0_rgba(0,0,0,1)] sm:-left-5">
                 <Zap className="h-8 w-8 text-black" strokeWidth={2.4} />
               </div>
-              <div className="absolute right-0 top-2 z-20 flex items-center gap-2 rounded-full border-[3px] border-black bg-[#89a6ff] px-5 py-3 shadow-[6px_6px_0_0_rgba(0,0,0,1)]">
-                <Sparkles className="h-5 w-5 text-black" strokeWidth={2.4} />
-                <span className="text-[16px] font-black text-black sm:text-[18px]">Kiwikoo</span>
+              <div className="absolute right-0 top-2 z-20 rounded-[22px] border-[3px] border-black bg-[#89a6ff] px-4 py-4 shadow-[6px_6px_0_0_rgba(0,0,0,1)]">
+                <Sparkles className="h-8 w-8 text-black" strokeWidth={2.4} />
               </div>
-              <div className="absolute right-6 top-28 z-20 flex items-center gap-1.5 rounded-full border-[3px] border-black bg-[#cbff2e] px-4 py-2 shadow-[5px_5px_0_0_rgba(0,0,0,1)]">
-                <Star className="h-4 w-4 text-black" strokeWidth={2.4} />
-                <span className="text-[12px] font-black uppercase tracking-[0.08em] text-black">AI-powered</span>
+              <div className="absolute right-6 top-28 z-20 rounded-[22px] border-[3px] border-black bg-[#cbff2e] px-4 py-4 shadow-[5px_5px_0_0_rgba(0,0,0,1)]">
+                <Star className="h-7 w-7 text-black" strokeWidth={2.4} />
               </div>
 
               <div className="relative min-h-[430px] sm:min-h-[500px]">
@@ -101,7 +99,7 @@ export default function LandingPage() {
                   </div>
                 </div>
                 <div className="absolute bottom-4 left-1/2 z-10 w-max -translate-x-1/2 rounded-full border-[3px] border-black bg-white px-5 py-2 text-[12px] font-black uppercase tracking-[0.08em] text-black shadow-[5px_5px_0_0_rgba(0,0,0,1)] sm:bottom-5">
-                  Available for brands
+                  Fashion AI studio
                 </div>
               </div>
             </div>
@@ -350,37 +348,28 @@ function FeatureLine({
 }
 
 function AnalyticsPanel() {
-  const bars = [
-    { label: 'Jan', height: '28%' },
-    { label: 'Feb', height: '42%' },
-    { label: 'Mar', height: '34%' },
-    { label: 'Apr', height: '66%', tone: 'coral' as const },
-    { label: 'May', height: '46%' },
-    { label: 'Jun', height: '58%' },
-    { label: 'Jul', height: '36%' },
-    { label: 'Aug', height: '82%' },
-    { label: 'Sep', height: '44%' },
-    { label: 'Oct', height: '72%', tone: 'lime' as const },
-    { label: 'Nov', height: '58%' },
-    { label: 'Dec', height: '66%' },
+  const steps = [
+    { label: 'Upload Photo', icon: <Camera className="h-5 w-5" strokeWidth={2.4} />, done: true },
+    { label: 'Pick Outfit', icon: <Store className="h-5 w-5" strokeWidth={2.4} />, done: true },
+    { label: 'AI Try-On', icon: <Sparkles className="h-5 w-5" strokeWidth={2.4} />, done: false },
   ]
 
   return (
     <div className="relative rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_84%_18%,rgba(203,255,46,0.12),transparent_30%),linear-gradient(180deg,#151515_0%,#191919_100%)] p-5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03)]">
       <div className="absolute -left-8 bottom-16 z-20 rounded-[16px] border border-white/12 bg-[#2a2a2a] px-5 py-4 shadow-[0_5px_0_0_rgba(0,0,0,0.4)]">
-        <div className="text-[26px] font-black leading-none text-[#cbff2e]">40M+</div>
-        <div className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-white/40">Data Points</div>
+        <div className="text-[26px] font-black leading-none text-[#cbff2e]">3 Steps</div>
+        <div className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-white/40">To Try-On</div>
       </div>
       <div className="absolute -right-3 -top-3 rounded-[16px] border border-white/12 bg-[#2e2e2e] px-5 py-4 text-right shadow-[0_5px_0_0_rgba(0,0,0,0.4)]">
-        <div className="text-[26px] font-black leading-none text-[#ff9d85]">99.9%</div>
-        <div className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-white/40">Accuracy</div>
+        <div className="text-[26px] font-black leading-none text-[#ff9d85]">AI</div>
+        <div className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-white/40">Powered</div>
       </div>
 
-      <div className="rounded-[20px] border border-white/10 bg-[#1c1c1c] px-5 py-5">
+      <div className="rounded-[20px] border border-white/10 bg-[#1c1c1c] px-6 py-6">
         <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.12em] text-white/70">
           <div className="flex items-center gap-2">
-            <ChartColumn className="h-4 w-4 text-[#cbff2e]" strokeWidth={2.2} />
-            <span>Market Pulse Analytics</span>
+            <Sparkles className="h-4 w-4 text-[#cbff2e]" strokeWidth={2.2} />
+            <span>Try-On Studio</span>
           </div>
           <div className="flex gap-1">
             <span className="h-2 w-2 rounded-full bg-[#cbff2e]" />
@@ -389,24 +378,52 @@ function AnalyticsPanel() {
           </div>
         </div>
 
-        <div className="mt-8 grid h-[220px] grid-cols-12 items-end gap-2 border-b border-white/10 pb-12">
-          {bars.map((bar, index) => (
-            <div key={`${bar.label}-${index}`} className="relative flex h-full flex-col justify-end">
-              <div
-                className={`rounded-t-[6px] ${
-                  bar.tone === 'coral'
-                    ? 'bg-[#ff8c78] shadow-[0_0_16px_rgba(255,140,120,0.4)]'
-                    : bar.tone === 'lime'
-                      ? 'bg-[#cbff2e] shadow-[0_0_16px_rgba(203,255,46,0.35)]'
-                      : 'bg-white/10'
-                }`}
-                style={{ height: bar.height }}
-              />
-              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-[8px] font-black uppercase tracking-[0.12em] text-white/35">
-                {bar.label}
-              </span>
-            </div>
-          ))}
+        {/* Orbital step flow */}
+        <div className="relative mt-8 flex items-center justify-center py-4">
+          {/* Connecting arc */}
+          <div className="absolute inset-x-[15%] top-1/2 h-px -translate-y-1/2 bg-gradient-to-r from-[#cbff2e]/0 via-[#cbff2e]/30 to-[#ff8c78]/30" />
+          <div className="absolute inset-x-[15%] top-1/2 h-px -translate-y-1/2 blur-[3px] bg-gradient-to-r from-[#cbff2e]/0 via-[#cbff2e]/20 to-[#ff8c78]/20" />
+
+          <div className="relative z-10 flex w-full items-center justify-between px-2">
+            {steps.map((step, i) => (
+              <div key={step.label} className="flex flex-col items-center gap-3">
+                <div className="relative">
+                  {/* Glow ring */}
+                  <div className={`absolute -inset-1.5 rounded-full blur-[6px] ${step.done ? 'bg-[#cbff2e]/20' : 'bg-[#ff8c78]/25 animate-pulse'}`} />
+                  <div className={`relative flex h-16 w-16 items-center justify-center rounded-full border-[2.5px] ${step.done ? 'border-[#cbff2e] bg-[#cbff2e]/10 text-[#cbff2e]' : 'border-[#ff8c78] bg-[#ff8c78]/10 text-[#ff8c78]'}`}>
+                    {step.icon}
+                  </div>
+                  {step.done && (
+                    <div className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#cbff2e] text-black">
+                      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    </div>
+                  )}
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-[0.1em] text-white/60">{step.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom cards */}
+        <div className="mt-6 grid grid-cols-3 gap-2">
+          {['Person', 'Outfit', 'Result'].map((label, i) => {
+            const colors = ['#89a6ff', '#ff8c78', '#cbff2e']
+            const icons = [
+              <Camera key="c" className="h-7 w-7" strokeWidth={1.8} style={{ color: colors[i] }} />,
+              <Store key="s" className="h-7 w-7" strokeWidth={1.8} style={{ color: colors[i] }} />,
+              <Sparkles key="sp" className="h-7 w-7" strokeWidth={1.8} style={{ color: colors[i] }} />,
+            ]
+            return (
+              <div key={label} className="group relative overflow-hidden rounded-[16px] border border-white/8 bg-white/[0.02] py-5 text-center transition-colors hover:bg-white/[0.05]">
+                <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100" style={{ background: `radial-gradient(circle at 50% 80%, ${colors[i]}15, transparent 70%)` }} />
+                <div className="relative mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-white/10" style={{ background: `${colors[i]}10` }}>
+                  {icons[i]}
+                </div>
+                <div className="relative mt-3 text-[10px] font-black uppercase tracking-[0.12em] text-white/45">{label}</div>
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>
@@ -428,22 +445,43 @@ function PathPanel({
   href: string
   cta: string
 }) {
+  const isCoral = tone === 'coral'
   return (
-    <div className={`flex h-full flex-col rounded-[24px] border-[3px] border-black p-6 shadow-[8px_8px_0_0_rgba(0,0,0,1)] ${tone === 'coral' ? 'bg-[#ff8c78]' : 'bg-[#cbff2e]'}`}>
-      <MiniPill label={label} />
-      <div className="mt-6 flex flex-1 flex-col">
-        <h3 className="min-h-[3.15em] whitespace-pre-line text-[clamp(2rem,3vw,3rem)] font-black leading-[1.03] tracking-[-0.05em] text-black">
-          {title}
-        </h3>
-        <p className="mt-4 max-w-[520px] text-[18px] leading-8 text-black/78">{body}</p>
+    <div className="group relative h-full">
+      {/* Shadow layer */}
+      <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-[28px] bg-black" />
+      {/* Main card */}
+      <div className="relative flex h-full flex-col overflow-hidden rounded-[28px] border-[3px] border-black bg-[#1a1a1a] transition-transform group-hover:-translate-y-1">
+        {/* Colored accent bar */}
+        <div className={`h-2 w-full ${isCoral ? 'bg-[#ff8c78]' : 'bg-[#cbff2e]'}`} />
+        {/* Decorative corner shapes */}
+        <div className={`pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full blur-[50px] ${isCoral ? 'bg-[#ff8c78]/25' : 'bg-[#cbff2e]/25'}`} />
+        <div className={`pointer-events-none absolute -bottom-6 -left-6 h-24 w-24 rounded-full blur-[40px] ${isCoral ? 'bg-[#ff8c78]/15' : 'bg-[#cbff2e]/15'}`} />
+
+        <div className="relative flex flex-1 flex-col p-7 sm:p-8">
+          {/* Label pill */}
+          <div className={`inline-flex w-fit items-center gap-2 rounded-full border-[2px] border-black px-4 py-2 text-[11px] font-black uppercase tracking-[0.1em] shadow-[3px_3px_0_0_rgba(0,0,0,1)] ${isCoral ? 'bg-[#ff8c78] text-black' : 'bg-[#cbff2e] text-black'}`}>
+            <CircleDot className="h-3 w-3" strokeWidth={3} />
+            {label}
+          </div>
+
+          <div className="mt-7 flex flex-1 flex-col">
+            <h3 className="min-h-[3.15em] whitespace-pre-line text-[clamp(2rem,3vw,3rem)] font-black leading-[1.03] tracking-[-0.05em] text-white">
+              {title}
+            </h3>
+            <p className="mt-4 max-w-[520px] text-[17px] leading-8 text-white/55">{body}</p>
+          </div>
+
+          {/* CTA */}
+          <Link
+            href={href}
+            className={`mt-8 inline-flex items-center justify-center gap-2.5 self-start rounded-full border-[3px] border-black px-7 py-3.5 text-[14px] font-black uppercase tracking-[0.06em] shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none ${isCoral ? 'bg-[#ff8c78] text-black' : 'bg-[#cbff2e] text-black'}`}
+          >
+            {cta}
+            <ArrowRight className="h-4 w-4" strokeWidth={2.7} />
+          </Link>
+        </div>
       </div>
-      <Link
-        href={href}
-        className="mt-7 inline-flex items-center justify-center gap-2 self-start rounded-full border-[3px] border-black bg-white px-6 py-3 text-[15px] font-black uppercase tracking-[0.04em] shadow-[0_4px_0_0_rgba(0,0,0,1)] transition hover:translate-y-[2px] hover:shadow-none"
-      >
-        {cta}
-        <ArrowRight className="h-4 w-4" strokeWidth={2.7} />
-      </Link>
     </div>
   )
 }
