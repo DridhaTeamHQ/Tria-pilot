@@ -46,7 +46,7 @@ export default function LandingPage() {
                 Meets <span className="text-[#ff8c78]">AI.</span>
               </h1>
               <p className="mt-6 max-w-[560px] text-[18px] leading-8 text-black/68 max-lg:mx-auto">
-                The cleanest way for creators and brands to create, launch, and convert with AI-powered fashion tools.
+                The easiest way for creators and brands to create, launch, and convert with AI-powered fashion tools.
               </p>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-4 lg:justify-start">
                 <Link
