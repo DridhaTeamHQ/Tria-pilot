@@ -356,10 +356,6 @@ function AnalyticsPanel() {
 
   return (
     <div className="relative rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_84%_18%,rgba(203,255,46,0.12),transparent_30%),linear-gradient(180deg,#151515_0%,#191919_100%)] p-5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03)]">
-      <div className="absolute left-3 top-3 z-20 rounded-[16px] border border-white/12 bg-[#2a2a2a] px-5 py-4 shadow-[0_5px_0_0_rgba(0,0,0,0.4)]">
-        <div className="text-[26px] font-black leading-none text-[#cbff2e]">3 Steps</div>
-        <div className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-white/40">To Try-On</div>
-      </div>
       <div className="absolute -right-3 -top-3 rounded-[16px] border border-white/12 bg-[#2e2e2e] px-5 py-4 text-right shadow-[0_5px_0_0_rgba(0,0,0,0.4)]">
         <div className="text-[26px] font-black leading-none text-[#ff9d85]">AI</div>
         <div className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-white/40">Powered</div>
