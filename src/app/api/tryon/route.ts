@@ -760,16 +760,42 @@ async function handlePresetlessTryOnRequest(params: {
           if (isDev) console.warn('⚠️ Face crop failed, continuing without:', faceCropError)
         }
 
-        // Image generation — the ONLY expensive API call per variant
-        const generatedImage = await generateTryOnDirect({
-          personImageBase64: referenceImageBase64,
-          garmentImageBase64: processedGarment,
-          faceCropBase64,
-          characterReferenceBase64s: [],
-          prompt: smartPrompt,
-          aspectRatio: payload.aspectRatio || '4:5',
-          model: directRenderModel,
-        })
+        // Image generation — with one retry for transient failures (safety blocks, empty responses)
+        let generatedImage: string | null = null
+        let lastGenerationError: string = ''
+        const MAX_GENERATION_RETRIES = 2
+
+        for (let genAttempt = 0; genAttempt < MAX_GENERATION_RETRIES; genAttempt++) {
+          try {
+            if (genAttempt > 0) {
+              if (isDev) console.log(`🔄 Retrying generation (attempt ${genAttempt + 1}/${MAX_GENERATION_RETRIES}) after 2s cooldown...`)
+              await sleep(2000)
+            }
+
+            generatedImage = await generateTryOnDirect({
+              personImageBase64: referenceImageBase64,
+              garmentImageBase64: processedGarment,
+              faceCropBase64,
+              characterReferenceBase64s: [],
+              prompt: smartPrompt,
+              aspectRatio: payload.aspectRatio || '4:5',
+              model: directRenderModel,
+            })
+            break // success
+          } catch (genError) {
+            lastGenerationError = genError instanceof Error ? genError.message : 'Generation failed'
+            if (isDev) console.warn(`⚠️ Generation attempt ${genAttempt + 1} failed: ${lastGenerationError}`)
+
+            // Don't retry on rate limits — the executor already handles retries for 429
+            if (lastGenerationError.includes('rate limit') || lastGenerationError.includes('429')) {
+              break
+            }
+          }
+        }
+
+        if (!generatedImage) {
+          throw new Error(lastGenerationError || 'All generation attempts failed')
+        }
 
         const validation = await validateGeneratedOutputStrict({
           qaMode: TRYON_OUTPUT_QA_MODE,
