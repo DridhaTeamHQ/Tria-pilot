@@ -59,7 +59,7 @@ export default function LandingPage() {
                       Start Creating
                     </span>
                     <span className="absolute inset-x-0 top-[1.6em] block text-center text-[0.9em] uppercase tracking-[0.08em] opacity-0 transition-all duration-300 group-hover:top-0 group-hover:opacity-100">
-                      For Creators
+                      Creator
                     </span>
                   </span>
                 </Link>
@@ -73,7 +73,7 @@ export default function LandingPage() {
                       Start Scaling
                     </span>
                     <span className="absolute inset-x-0 top-[1.6em] block text-center text-[0.9em] uppercase tracking-[0.08em] opacity-0 transition-all duration-300 group-hover:top-0 group-hover:opacity-100">
-                      For Brands
+                      Brand
                     </span>
                   </span>
                 </Link>
