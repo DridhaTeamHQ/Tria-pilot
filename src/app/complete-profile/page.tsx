@@ -48,8 +48,7 @@ export default function CompleteProfilePage() {
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.error || 'Failed to complete profile')
 
-      toast.success('Profile completed! Redirecting…')
-      // Route directly into onboarding so pending creators do not bounce through generic dashboard routing.
+      toast.success('Profile completed! Redirecting...')
       router.replace(role === 'BRAND' ? '/onboarding/brand' : '/onboarding/influencer')
       router.refresh()
     } catch (err) {
@@ -80,7 +79,7 @@ export default function CompleteProfilePage() {
             <span className="italic">setup</span>
           </h1>
           <p className="text-lg text-charcoal/70 max-w-md">
-            We found your account, but you need to choose how you’ll use Kiwikoo before continuing.
+            We found your account, but you need to choose how you&apos;ll use Kiwikoo before continuing.
           </p>
         </div>
       </motion.div>
@@ -107,7 +106,7 @@ export default function CompleteProfilePage() {
           </div>
 
           <h2 className="text-3xl font-serif text-charcoal mb-2">Complete your profile</h2>
-          <p className="text-charcoal/60 mb-8">Choose a role and we’ll finish setting up your account.</p>
+          <p className="text-charcoal/60 mb-8">Choose a role and we&apos;ll finish setting up your account.</p>
 
           <div className="grid gap-4 mb-6">
             <button
@@ -172,7 +171,7 @@ export default function CompleteProfilePage() {
                   <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
                     <Sparkles className="w-5 h-5" />
                   </motion.div>
-                  Saving…
+                  Saving...
                 </span>
               ) : (
                 <>

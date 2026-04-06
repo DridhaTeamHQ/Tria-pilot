@@ -32,6 +32,7 @@ export default function InfluencerOnboardingPage() {
   const [photoFiles, setPhotoFiles] = useState<File[]>([])
   const [uploadingPhotos, setUploadingPhotos] = useState(false)
   const [dataLoaded, setDataLoaded] = useState(false)
+  const [redirectChecking, setRedirectChecking] = useState(true)
 
   // Identity images state
   const [identityImages, setIdentityImages] = useState<Record<IdentityImageType, { file?: File; url?: string; uploading?: boolean }>>({
@@ -77,46 +78,60 @@ export default function InfluencerOnboardingPage() {
     setIsResubmissionMode(params.get('mode') === 'resubmit')
   }, [])
 
-  // DEFERRED data loading - runs AFTER initial paint
   useEffect(() => {
-    // Use requestIdleCallback to defer API calls
-    const loadData = () => {
-      fetch('/api/onboarding/influencer')
-        .then((res) => res.json())
-        .then((data) => {
-          const approvalStatus = String(data?.approvalStatus || 'none').toLowerCase()
-          const allowResubmission = approvalStatus === 'rejected' || isResubmissionMode
+    let cancelled = false
 
-          if (data.onboardingCompleted && !allowResubmission) {
-            if (approvalStatus === 'approved') {
-              router.replace('/influencer/dashboard')
-            } else {
-              router.replace('/influencer/pending')
-            }
-          } else if (data.profile) {
-            const existingSocials = (data.profile.socials as Record<string, string>) || {}
-            setFormData({
-              gender: data.profile.gender || '',
-              niches: (data.profile.niches as string[]) || [],
-              audienceType: (data.profile.audienceType as string[]) || [],
-              preferredCategories: (data.profile.preferredCategories as string[]) || [],
-              socials: {
-                instagram: existingSocials.instagram || '',
-                youtube: existingSocials.youtube || '',
-                snapchat: existingSocials.snapchat || '',
-                facebook: existingSocials.facebook || '',
-              },
-              bio: data.profile.bio || '',
-            })
+    const loadData = async () => {
+      try {
+        const res = await fetch('/api/onboarding/influencer')
+        const data = await res.json().catch(() => ({}))
+        if (cancelled) return
+
+        const approvalStatus = String(data?.approvalStatus || 'none').toLowerCase()
+        const allowResubmission = approvalStatus === 'rejected' || isResubmissionMode
+
+        if (data.onboardingCompleted && !allowResubmission) {
+          setRedirectChecking(false)
+          if (approvalStatus === 'approved') {
+            router.replace('/influencer/dashboard')
+          } else {
+            router.replace('/influencer/pending')
           }
-          setDataLoaded(true)
-        })
-        .catch(() => setDataLoaded(true))
+          return
+        }
 
-      // Load identity images in background
+        if (data.profile) {
+          const existingSocials = (data.profile.socials as Record<string, string>) || {}
+          setFormData({
+            gender: data.profile.gender || '',
+            niches: (data.profile.niches as string[]) || [],
+            audienceType: (data.profile.audienceType as string[]) || [],
+            preferredCategories: (data.profile.preferredCategories as string[]) || [],
+            socials: {
+              instagram: existingSocials.instagram || '',
+              youtube: existingSocials.youtube || '',
+              snapchat: existingSocials.snapchat || '',
+              facebook: existingSocials.facebook || '',
+            },
+            bio: data.profile.bio || '',
+          })
+        }
+
+        setDataLoaded(true)
+      } catch {
+        if (!cancelled) {
+          setDataLoaded(true)
+        }
+      } finally {
+        if (!cancelled) {
+          setRedirectChecking(false)
+        }
+      }
+
       fetch('/api/identity-images')
         .then((res) => res.json())
         .then((data) => {
+          if (cancelled) return
           if (data.images) {
             const existing: Record<IdentityImageType, { url?: string }> = {} as Record<IdentityImageType, { url?: string }>
             for (const img of data.images) {
@@ -128,11 +143,10 @@ export default function InfluencerOnboardingPage() {
         .catch(() => { })
     }
 
-    // Defer loading to after paint
-    if (typeof requestIdleCallback !== 'undefined') {
-      requestIdleCallback(loadData)
-    } else {
-      setTimeout(loadData, 100)
+    void loadData()
+
+    return () => {
+      cancelled = true
     }
   }, [router, isResubmissionMode])
 
@@ -218,6 +232,8 @@ export default function InfluencerOnboardingPage() {
       }
 
       if (data.onboardingCompleted) {
+        let photoUploadFailed = false
+
         if (photoFiles.length > 0) {
           setUploadingPhotos(true)
           try {
@@ -232,7 +248,7 @@ export default function InfluencerOnboardingPage() {
             const files = photoFiles.slice(0, 3)
             for (let i = 0; i < files.length; i++) {
               const base64 = await toBase64(files[i])
-              await fetch('/api/profile-images', {
+              const uploadResponse = await fetch('/api/profile-images', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -241,17 +257,29 @@ export default function InfluencerOnboardingPage() {
                   makePrimary: i === 0,
                 }),
               })
+
+              if (!uploadResponse.ok) {
+                const uploadData = await uploadResponse.json().catch(() => ({}))
+                throw new Error(uploadData?.error || 'Failed to upload profile photo')
+              }
             }
           } catch (e) {
             console.warn('Profile photo upload failed:', e)
+            photoUploadFailed = true
           } finally {
             setUploadingPhotos(false)
           }
         }
 
-        toast.success(isResubmissionMode ? 'Profile updated and resubmitted for review.' : 'Onboarding completed! Pending admin approval.', {
-          style: { background: '#FFD93D', border: '2px solid black', color: 'black', fontWeight: 'bold' }
-        })
+        if (photoUploadFailed) {
+          toast.error('Your profile was submitted, but we could not save your profile photos. Please upload them again after approval.', {
+            style: { background: 'white', border: '2px solid black', color: 'black', fontWeight: 'bold' }
+          })
+        } else {
+          toast.success(isResubmissionMode ? 'Profile updated and resubmitted for review.' : 'Onboarding completed! Pending admin approval.', {
+            style: { background: '#FFD93D', border: '2px solid black', color: 'black', fontWeight: 'bold' }
+          })
+        }
         // Redirect to pending approval page (admin must approve before dashboard access)
         router.replace('/influencer/pending?resubmitted=1')
       } else {
@@ -360,6 +388,17 @@ export default function InfluencerOnboardingPage() {
       case 'snapchat': return `https://www.snapchat.com/add/${cleanUsername}`
       default: return undefined
     }
+  }
+
+  if (redirectChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#FDF6EC]">
+        <div className="text-center">
+          <div className="w-16 h-16 border-[4px] border-[#FF8C69] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-black/60 font-bold">Checking your profile...</p>
+        </div>
+      </div>
+    )
   }
 
   const renderStep = () => {
