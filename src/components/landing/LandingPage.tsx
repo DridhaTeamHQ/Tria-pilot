@@ -166,7 +166,7 @@ export default function LandingPage() {
         <section id="creator-brand-paths" className="border-t-[3px] border-black bg-white px-5 py-12 sm:px-8 lg:px-10 lg:py-14">
           <div className="text-center">
             <h2 className="text-[clamp(2.35rem,5vw,3.8rem)] font-black leading-[0.95] tracking-[-0.05em] text-black">
-              Built for creators and brands
+              Built for Creators and Brands
             </h2>
           </div>
 
