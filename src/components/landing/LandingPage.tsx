@@ -48,10 +48,10 @@ export default function LandingPage() {
               <p className="mt-6 max-w-[560px] text-[18px] leading-8 text-black/68 max-lg:mx-auto">
                 The easiest way for creators and brands to create, launch, and convert with AI-powered fashion tools.
               </p>
-              <div className="mt-8 flex flex-wrap items-center justify-center gap-4 lg:justify-start">
+              <div className="mt-8 flex flex-nowrap items-center justify-center gap-3 lg:justify-start">
                 <Link
                   href="/signup/influencer"
-                  className="group relative inline-flex h-[86px] min-w-[250px] items-center justify-center overflow-hidden rounded-[16px] border-[3px] border-black bg-[#ffd243] px-7 py-4 text-[18px] font-black text-black shadow-[5px_5px_0_0_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+                  className="group relative inline-flex h-[72px] min-w-[210px] items-center justify-center overflow-hidden rounded-[16px] border-[3px] border-black bg-[#ffd243] px-5 py-3 text-[16px] font-black text-black shadow-[5px_5px_0_0_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
                 >
                   <span className="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(255,255,255,0.4),transparent_45%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                   <span className="relative block h-[1.6em] overflow-hidden">
@@ -65,7 +65,7 @@ export default function LandingPage() {
                 </Link>
                 <Link
                   href="/signup/brand"
-                  className="group relative inline-flex h-[86px] min-w-[250px] items-center justify-center overflow-hidden rounded-[16px] border-[3px] border-black bg-[#cbff2e] px-7 py-4 text-[18px] font-black text-black shadow-[5px_5px_0_0_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+                  className="group relative inline-flex h-[72px] min-w-[210px] items-center justify-center overflow-hidden rounded-[16px] border-[3px] border-black bg-[#cbff2e] px-5 py-3 text-[16px] font-black text-black shadow-[5px_5px_0_0_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
                 >
                   <span className="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(255,255,255,0.35),transparent_45%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                   <span className="relative block h-[1.6em] overflow-hidden">
