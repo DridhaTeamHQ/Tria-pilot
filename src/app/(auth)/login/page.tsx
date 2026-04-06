@@ -136,6 +136,31 @@ function LoginContent() {
   const isLayoutFlipped = userType === 'brand'
   const isUsernameEntry = Boolean(identifier.trim()) && !identifier.includes('@')
 
+  const fetchAuthoritativeUser = async () => {
+    const meRes = await fetch('/api/auth/me', {
+      credentials: 'include',
+      cache: 'no-store',
+    })
+
+    if (!meRes.ok) {
+      throw new Error('Could not verify signed-in account state')
+    }
+
+    const meData = await meRes.json().catch(() => ({}))
+    if (!meData?.user) {
+      throw new Error('Signed in, but account data could not be loaded')
+    }
+
+    return {
+      ...meData.user,
+      onboardingCompleted:
+        meData.user.onboardingCompleted ?? Boolean(meData.profile?.onboarding_completed),
+      approvalStatus:
+        meData.user.approvalStatus ?? meData.profile?.approval_status ?? 'none',
+      avatarUrl: meData.user.avatarUrl ?? meData.profile?.avatar_url ?? null,
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -197,14 +222,18 @@ function LoginContent() {
 
       const sessionUser = data?.user ?? null
       const redirectTarget = getSafeRedirectTarget()
-      const nextTarget = getPostLoginDestination(sessionUser, redirectTarget)
+      let resolvedUser = sessionUser
       const normalizedRecoveryEmail = recoveryEmail.trim().toLowerCase()
 
       if (sessionUser) {
-        queryClient.setQueryData(['user'], sessionUser)
+        queryClient.removeQueries({ queryKey: ['user'] })
+        resolvedUser = await fetchAuthoritativeUser()
+        queryClient.setQueryData(['user'], resolvedUser)
       }
 
-      if (sessionUser && isSyntheticEmail(sessionUser.email) && normalizedRecoveryEmail) {
+      const nextTarget = getPostLoginDestination(resolvedUser, redirectTarget)
+
+      if (resolvedUser && isSyntheticEmail(resolvedUser.email) && normalizedRecoveryEmail) {
         const recoveryRes = await fetch('/api/auth/change-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

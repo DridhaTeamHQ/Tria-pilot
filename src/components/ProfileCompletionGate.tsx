@@ -21,6 +21,7 @@ const SKIP_PREFIXES = [
   '/privacy',
   '/terms',
   '/help',
+  '/marketplace',
 ]
 
 // Also skip the landing page exactly
