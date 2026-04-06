@@ -190,9 +190,8 @@ export default function LandingPage() {
 
         <section className="border-t-[3px] border-black bg-[#fbfaf6] px-5 py-12 sm:px-8 lg:px-10 lg:py-14">
           <div className="text-center">
-            <div className="text-[14px] font-semibold text-black/50">Why Kiwikoo</div>
-            <h2 className="mt-3 text-[clamp(2.35rem,5vw,3.8rem)] font-black leading-[0.95] tracking-[-0.05em] text-black">
-              Clearer creative growth
+            <h2 className="text-[clamp(2.35rem,5vw,3.8rem)] font-black leading-[0.95] tracking-[-0.05em] text-black">
+              Why Kiwikoo
             </h2>
             <p className="mx-auto mt-4 max-w-[680px] text-[18px] leading-8 text-black/60">
               We remove the friction from creator-brand production so the work feels faster, sharper, and easier to trust.
