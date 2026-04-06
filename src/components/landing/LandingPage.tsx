@@ -25,9 +25,9 @@ const PF = 'var(--font-plus-jakarta-sans), sans-serif'
 
 export default function LandingPage() {
   return (
-    <div className="bg-[#f7eee4] px-3 pb-8 pt-[106px] text-[#111111] sm:px-4 lg:px-6 lg:pt-[128px]" style={{ fontFamily: PF }}>
+    <div className="bg-[#f7eee4] px-3 pb-8 pt-[88px] text-[#111111] sm:px-4 lg:px-6 lg:pt-[104px]" style={{ fontFamily: PF }}>
       <div className="mx-auto max-w-[1320px] overflow-hidden rounded-[34px] border-[3px] border-black bg-[#fbfaf6] shadow-[10px_10px_0_0_rgba(0,0,0,1)]">
-        <section className="relative overflow-hidden px-5 py-8 sm:px-8 lg:px-10 lg:py-12">
+        <section className="relative overflow-hidden px-5 py-6 sm:px-8 lg:px-10 lg:py-10">
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(17,17,17,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(17,17,17,0.06)_1px,transparent_1px)] bg-[size:42px_42px]" />
           <div className="pointer-events-none absolute inset-y-0 left-0 w-[28%] bg-[radial-gradient(circle_at_22%_62%,rgba(255,140,120,0.18),transparent_52%)]" />
           <div className="pointer-events-none absolute inset-y-0 right-0 w-[34%] bg-[radial-gradient(circle_at_35%_40%,rgba(203,255,46,0.16),transparent_46%)]" />
@@ -38,8 +38,8 @@ export default function LandingPage() {
           </div>
 
           <div className="relative z-10 grid gap-10 lg:grid-cols-[1.02fr_0.98fr] lg:items-center">
-            <div className="max-w-[620px] pt-4 text-center lg:pt-8 lg:text-left">
-              <h1 className="mt-5 text-[clamp(3.3rem,7vw,6.2rem)] font-black uppercase leading-[0.9] tracking-[-0.07em] text-black">
+            <div className="max-w-[620px] pt-1 text-center lg:pt-3 lg:text-left">
+              <h1 className="mt-3 text-[clamp(3.3rem,7vw,6.2rem)] font-black uppercase leading-[0.9] tracking-[-0.07em] text-black">
                 Where Fashion
                 <br />
                 Meets <span className="text-[#ff8c78]">AI.</span>
