@@ -9,7 +9,7 @@ import RequestCollaborationButton from '@/components/collaborations/RequestColla
 import FavoriteButton from '@/components/product/FavoriteButton'
 import ProductShareButton from '@/components/product/ProductShareButton'
 
-export default async function ProductDetailPage({ params }: any) {
+export default async function ProductDetailPage({ params }: { params: Promise<{ productId: string }> }) {
   const { productId } = await params
 
   const authPromise = getIdentity()

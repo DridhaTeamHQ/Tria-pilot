@@ -61,7 +61,12 @@ export default function BrutalNavbar() {
             });
 
             if (typeof window !== "undefined") {
-                localStorage.clear();
+                // Remove only auth-related keys, preserve user preferences
+                Object.keys(localStorage).forEach((key) => {
+                    if (key.startsWith('sb-') || key.startsWith('supabase')) {
+                        localStorage.removeItem(key);
+                    }
+                });
                 sessionStorage.clear();
                 setAuthToast("logged_out");
             }

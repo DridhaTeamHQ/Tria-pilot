@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { toast } from 'sonner'
+import { toast } from '@/lib/simple-sonner'
 import { ArrowRight, Shield, Sparkles, KeyRound } from 'lucide-react'
 import { DecorativeShapes } from '@/components/brutal/onboarding/DecorativeShapes'
 

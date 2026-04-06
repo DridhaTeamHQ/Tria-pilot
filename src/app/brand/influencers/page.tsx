@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
+import { toast } from '@/lib/simple-sonner'
 import {
     Users,
     Search,
@@ -15,7 +15,6 @@ import {
     TrendingUp,
     ChevronDown
 } from 'lucide-react'
-import { BrutalLoader } from '@/components/ui/BrutalLoader'
 
 interface Influencer {
     id: string
@@ -239,7 +238,7 @@ export default function BrandInfluencersPage() {
                                             {influencer.bio || 'Content Creator'}
                                         </p>
                                         <div className="flex flex-wrap gap-1 mt-2">
-                                            {influencer.niches.slice(0, 2).map(niche => (
+                                            {influencer.niches?.slice(0, 2).map(niche => (
                                                 <span
                                                     key={niche}
                                                     className="px-2 py-0.5 text-xs font-bold bg-gray-100 border border-black"

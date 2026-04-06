@@ -25,6 +25,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "sonner": [
+        "./src/lib/simple-sonner.tsx"
       ]
     }
   },

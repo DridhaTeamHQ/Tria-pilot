@@ -73,7 +73,11 @@ export default function Header() {
             })
 
             if (typeof window !== 'undefined') {
-                localStorage.clear()
+                Object.keys(localStorage).forEach((key) => {
+                    if (key.startsWith('sb-') || key.startsWith('supabase')) {
+                        localStorage.removeItem(key);
+                    }
+                });
                 sessionStorage.clear()
                 setAuthToast('logged_out')
             }

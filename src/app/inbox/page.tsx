@@ -3,8 +3,8 @@
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Mail, CheckCircle2, Clock, MessageSquare, Bell, Sparkles, ArrowRight } from 'lucide-react'
-import { toast } from 'sonner'
+import { Mail, CheckCircle2, Clock, MessageSquare, Bell, ArrowRight } from 'lucide-react'
+import { toast } from '@/lib/simple-sonner'
 import {
   useNotifications,
   useMarkNotificationRead,
@@ -69,6 +69,7 @@ export default function InboxPage() {
         await markAsReadMutation.mutateAsync(notification.id)
       } catch (error) {
         console.error('Failed to mark as read:', error)
+        toast.error('Failed to mark as read')
       }
     }
 

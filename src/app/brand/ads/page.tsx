@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Input } from '@/components/ui/input'
-import { toast } from 'sonner'
+import { toast } from '@/lib/simple-sonner'
 import Link from 'next/link'
 import {
   Camera,
@@ -15,8 +15,6 @@ import {
   Upload,
   X,
   Check,
-  Lock,
-  Unlock,
   Smartphone,
   Zap,
   MessageCircle,
@@ -74,7 +72,6 @@ import { cn } from '@/lib/utils'
 import {
   staggerContainer,
   staggerItem,
-  cardHover,
   pageVariants,
   imageRevealVariants,
 } from '@/lib/animations'

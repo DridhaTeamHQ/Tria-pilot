@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from '@/lib/simple-sonner'
 import AdInpaintModal from '@/components/brand/AdInpaintModal'
 
 type InpaintDraft = {

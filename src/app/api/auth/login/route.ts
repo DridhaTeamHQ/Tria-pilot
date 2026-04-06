@@ -83,7 +83,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { identifier: rawIdentifier, password, rememberMe = true } = loginSchema.parse(body)
+    const { identifier: rawIdentifier, password, rememberMe = true, portalRole } = loginSchema.parse(body)
     const identifier = normalizeIdentifier(rawIdentifier)
 
     const supabase = await createClient()
@@ -122,7 +122,13 @@ export async function POST(request: Request) {
 
       let errorMessage = 'Invalid username/email or password.'
       let statusCode = 401
-      let errorCode: 'USER_NOT_FOUND' | 'INVALID_PASSWORD' | 'EMAIL_NOT_CONFIRMED' | 'RATE_LIMITED' | null = null
+      let errorCode:
+        | 'USER_NOT_FOUND'
+        | 'INVALID_PASSWORD'
+        | 'INVALID_CREDENTIALS'
+        | 'EMAIL_NOT_CONFIRMED'
+        | 'RATE_LIMITED'
+        | null = null
 
       if (lowerMessage.includes('email not confirmed') || lowerMessage.includes('email_not_confirmed')) {
         errorMessage = 'Please verify your email address before signing in. Check your inbox for the confirmation link.'
@@ -135,7 +141,7 @@ export async function POST(request: Request) {
       } else if (lowerMessage.includes('invalid login credentials') || lowerMessage.includes('invalid credentials')) {
         errorMessage = 'Invalid username/email or password.'
         statusCode = 401
-        errorCode = null
+        errorCode = 'INVALID_CREDENTIALS'
       }
 
       return NextResponse.json(
@@ -241,6 +247,20 @@ export async function POST(request: Request) {
     }
 
     const normalizedRole = (profile.role || 'influencer').toLowerCase()
+
+    if (portalRole && normalizedRole !== portalRole) {
+      await supabase.auth.signOut()
+
+      return NextResponse.json(
+        {
+          error: `This account belongs to the ${normalizedRole} portal.`,
+          errorCode: 'ROLE_MISMATCH',
+          requestedRole: portalRole,
+          actualRole: normalizedRole,
+        },
+        { status: 403 }
+      )
+    }
 
     if (normalizedRole === 'influencer') {
       try {

@@ -8,7 +8,7 @@ import {
     DollarSign, Sparkles, FileText, Megaphone, BarChart3, Zap, Layers,
     Send, ChevronDown, ChevronUp, Star, Play,
 } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from '@/lib/simple-sonner'
 import { useCampaign, useUpdateCampaign, useDeleteCampaign } from '@/lib/hooks/useCampaigns'
 
 /* ━━━━━━━━━━━━━ TYPES ━━━━━━━━━━━━━ */
@@ -624,8 +624,8 @@ export default function CampaignDetailPage() {
 
     const handleDelete = useCallback(async () => {
         if (!confirm('Are you sure you want to delete this campaign? This cannot be undone.')) return
-        setDeleting(true)
         if (!id) return
+        setDeleting(true)
         deleteMutation.mutate(id, {
             onSuccess: () => { toast.success('Campaign deleted'); router.push('/brand/campaigns') },
             onError: () => { toast.error('Failed to delete'); setDeleting(false) },

@@ -14,7 +14,7 @@ import {
   BarChart3,
   ArrowRight
 } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from '@/lib/simple-sonner'
 import { useQuery } from '@tanstack/react-query'
 import { BrutalLoader } from '@/components/ui/BrutalLoader'
 

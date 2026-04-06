@@ -19,7 +19,7 @@ import {
     Wand2,
     RefreshCw,
 } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from '@/lib/simple-sonner'
 import type {
     StrategistPhase,
     StrategistMessage,

@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { ArrowLeft, Loader2, RefreshCcw } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from '@/lib/simple-sonner'
 
 type DiagnosticsResponse = {
   actor?: {
@@ -116,7 +116,7 @@ export default function AuthDiagnosticsPage() {
               <div className="mt-4 flex flex-wrap gap-3">
                 <StatusPill ok={Boolean(data.mail?.smtp.configured)} label={data.mail?.smtp.configured ? 'SMTP Ready' : 'SMTP Missing'} />
                 <StatusPill ok={Boolean(data.mail?.resend.configured)} label={data.mail?.resend.configured ? 'Resend Ready' : 'Resend Missing'} />
-                <StatusPill ok={Boolean(data.mail?.fallback.supabaseAuthEmailsAvailable)} label="Supabase Fallback" />
+                <StatusPill ok={Boolean(data.mail?.fallback?.supabaseAuthEmailsAvailable)} label="Supabase Fallback" />
               </div>
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 <div className="border-[2px] border-black bg-[#F6F6F0] p-4 text-sm font-bold">

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
+import { toast } from '@/lib/simple-sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react'
 

@@ -71,7 +71,7 @@ function AdminLoginContent() {
 
       const data = await response.json().catch(() => ({}))
       if (!response.ok) {
-        if (data?.errorCode === 'INVALID_PASSWORD') {
+        if (data?.errorCode === 'INVALID_PASSWORD' || data?.errorCode === 'INVALID_CREDENTIALS') {
           throw new Error('Incorrect password. Please try again.')
         }
         throw new Error(data?.error || 'Login failed')

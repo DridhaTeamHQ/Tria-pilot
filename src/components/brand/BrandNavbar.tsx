@@ -60,7 +60,11 @@ export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: B
 
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
       if (typeof window !== 'undefined') {
-        localStorage.clear()
+        Object.keys(localStorage).forEach((key) => {
+          if (key.startsWith('sb-') || key.startsWith('supabase')) {
+            localStorage.removeItem(key);
+          }
+        });
         sessionStorage.clear()
         setAuthToast('logged_out')
       }
@@ -90,11 +94,10 @@ export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: B
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`px-2.5 lg:px-3 py-1.5 rounded-xl text-sm lg:text-[15px] font-bold transition-all duration-150 flex items-center justify-center gap-1.5 border-2 border-black whitespace-nowrap ${
-                    active
+                  className={`px-2.5 lg:px-3 py-1.5 rounded-xl text-sm lg:text-[15px] font-bold transition-all duration-150 flex items-center justify-center gap-1.5 border-2 border-black whitespace-nowrap ${active
                       ? 'bg-[#B4F056] text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
                       : 'bg-white text-black hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
-                  }`}
+                    }`}
                 >
                   <Icon className="w-3.5 h-3.5 lg:w-4 lg:h-4 shrink-0" />
                   <span className="whitespace-nowrap">{item.label}</span>
@@ -165,11 +168,10 @@ export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: B
                   key={item.href}
                   href={item.href}
                   onClick={() => setMobileOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-black text-base font-bold transition-all ${
-                    active
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-black text-base font-bold transition-all ${active
                       ? 'bg-[#B4F056] text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
                       : 'bg-white text-black hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
-                  }`}
+                    }`}
                 >
                   <Icon className="w-5 h-5" />
                   <span>{item.label}</span>

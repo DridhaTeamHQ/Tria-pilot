@@ -2,8 +2,8 @@
 
 import Image from 'next/image'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Check, X, Clock, User, Mail, Calendar, RefreshCw, Search, TrendingUp, Users, Filter } from 'lucide-react'
-import { toast } from 'sonner'
+import { Check, X, Clock, User, Mail, Calendar, RefreshCw, Search } from 'lucide-react'
+import { toast } from '@/lib/simple-sonner'
 import BadgeDisplay, { type BadgeTier } from '@/components/influencer/BadgeDisplay'
 import { DecorativeShapes } from '@/components/brutal/onboarding/DecorativeShapes'
 import { createClient } from '@/lib/auth-client'
@@ -75,7 +75,6 @@ export default function AdminDashboardClient({ initialApplications, dataSource =
   const [activeFilter, setActiveFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'none'>('pending')
   const [sortBy, setSortBy] = useState<'created_at' | 'badgeScore' | 'followers' | 'engagementRate'>('created_at')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
-  const [showFilters, setShowFilters] = useState(false)
   const [filterNiche, setFilterNiche] = useState<string>('')
   const [filterGender, setFilterGender] = useState<string>('')
   const [filterPlatform, setFilterPlatform] = useState<string>('')

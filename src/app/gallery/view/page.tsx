@@ -1,9 +1,9 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useState, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Download, ImageIcon, X } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from '@/lib/simple-sonner'
 
 function sanitizeInternalPath(path: string): string | null {
     const value = path.trim()
@@ -62,6 +62,18 @@ function GalleryViewContent() {
     )
     const imageUrl = resolveImageUrl(rawImageUrl)
 
+    const handleBack = useCallback(() => {
+        if (backPath) {
+            router.push(backPath)
+            return
+        }
+        if (window.history.length > 1) {
+            router.back()
+            return
+        }
+        router.push('/')
+    }, [router, backPath])
+
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
@@ -77,19 +89,7 @@ function GalleryViewContent() {
             document.removeEventListener('keydown', handleKeyDown)
             document.body.style.overflow = previousOverflow
         }
-    }, [])
-
-    const handleBack = () => {
-        if (backPath) {
-            router.push(backPath)
-            return
-        }
-        if (window.history.length > 1) {
-            router.back()
-            return
-        }
-        router.push('/')
-    }
+    }, [handleBack])
 
     const handleDownload = async () => {
         if (!imageUrl) return
