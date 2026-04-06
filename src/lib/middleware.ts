@@ -228,6 +228,10 @@ export async function updateSession(request: NextRequest) {
     // Authenticated users on root → redirect to /dashboard
     // (Let /dashboard page handle role-based routing)
     if (user && pathname === '/') {
+        return applySecurityHeaders(supabaseResponse)
+    }
+
+    if (user && pathname === '/') {
         const url = request.nextUrl.clone()
         url.pathname = '/dashboard'
         const redirectResponse = NextResponse.redirect(url)

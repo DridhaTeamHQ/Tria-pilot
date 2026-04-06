@@ -2,9 +2,9 @@ import type { Metadata } from 'next'
 import type React from 'react'
 import { Bungee } from 'next/font/google'
 import AuthToastBridge from '@/components/auth-toast-bridge'
-import InitialSiteLoader from '@/components/initial-site-loader'
 import { Toaster } from '@/components/ui/sonner'
 import NavSwitcher from '@/components/landing/NavSwitcher'
+import FooterSwitcher from '@/components/landing/FooterSwitcher'
 import ProfileCompletionGate from '@/components/ProfileCompletionGate'
 import { ReactQueryProvider } from '@/lib/react-query/provider'
 import { RealtimeListener } from '@/components/providers/realtime-listener'
@@ -55,8 +55,8 @@ export default function RootLayout({
             <main className="animate-fade-in">
               {children}
             </main>
+            <FooterSwitcher />
           </ReactLenis>
-          <InitialSiteLoader />
         </ReactQueryProvider>
       </body>
     </html>
