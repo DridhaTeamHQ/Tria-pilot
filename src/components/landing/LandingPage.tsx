@@ -39,6 +39,10 @@ export default function LandingPage() {
 
           <div className="relative z-10 grid gap-10 lg:grid-cols-[1.02fr_0.98fr] lg:items-center">
             <div className="max-w-[620px] pt-4 text-center lg:pt-8 lg:text-left">
+              <div className="inline-flex items-center gap-2 rounded-full border-[2px] border-black bg-white px-4 py-2 text-[12px] font-black uppercase tracking-[0.12em] text-black shadow-[4px_4px_0_0_rgba(0,0,0,1)]">
+                <Sparkles className="h-4 w-4" strokeWidth={2.4} />
+                Creator x Brand Flow
+              </div>
               <h1 className="mt-5 text-[clamp(3.3rem,7vw,6.2rem)] font-black uppercase leading-[0.9] tracking-[-0.07em] text-black">
                 Where Fashion
                 <br />
@@ -61,23 +65,57 @@ export default function LandingPage() {
                   Start scaling
                 </Link>
               </div>
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
+                <Link
+                  href="#what-you-get"
+                  className="inline-flex items-center gap-2 rounded-full border-[2px] border-black bg-white px-4 py-2 text-[12px] font-black uppercase tracking-[0.1em] text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5"
+                >
+                  <Camera className="h-4 w-4" strokeWidth={2.3} />
+                  Explore Tools
+                </Link>
+                <Link
+                  href="#creator-brand-paths"
+                  className="inline-flex items-center gap-2 rounded-full border-[2px] border-black bg-[#fff4d6] px-4 py-2 text-[12px] font-black uppercase tracking-[0.1em] text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5"
+                >
+                  <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
+                  Choose Your Lane
+                </Link>
+                <Link
+                  href="#why-kiwikoo"
+                  className="inline-flex items-center gap-2 rounded-full border-[2px] border-black bg-[#eef8d4] px-4 py-2 text-[12px] font-black uppercase tracking-[0.1em] text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5"
+                >
+                  <Star className="h-4 w-4" strokeWidth={2.3} />
+                  Why Kiwikoo
+                </Link>
+              </div>
             </div>
 
-            <div className="relative mx-auto w-full max-w-[520px]">
-              <div className="absolute -left-2 top-12 z-20 rounded-[22px] border-[3px] border-black bg-[#FFD93D] px-4 py-4 shadow-[6px_6px_0_0_rgba(0,0,0,1)] sm:-left-5">
+            <div className="group relative mx-auto w-full max-w-[520px]">
+              <div className="absolute -left-2 top-12 z-20 rounded-[22px] border-[3px] border-black bg-[#FFD93D] px-4 py-4 shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition-transform duration-300 group-hover:-translate-y-2 group-hover:rotate-[-8deg] sm:-left-5">
                 <Zap className="h-8 w-8 text-black" strokeWidth={2.4} />
               </div>
-              <div className="absolute right-0 top-2 z-20 rounded-[22px] border-[3px] border-black bg-[#89a6ff] px-4 py-4 shadow-[6px_6px_0_0_rgba(0,0,0,1)]">
+              <div className="absolute right-0 top-2 z-20 rounded-[22px] border-[3px] border-black bg-[#89a6ff] px-4 py-4 shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-2 group-hover:rotate-[8deg]">
                 <Sparkles className="h-8 w-8 text-black" strokeWidth={2.4} />
               </div>
-              <div className="absolute right-6 top-28 z-20 rounded-[22px] border-[3px] border-black bg-[#cbff2e] px-4 py-4 shadow-[5px_5px_0_0_rgba(0,0,0,1)]">
+              <div className="absolute right-6 top-28 z-20 rounded-[22px] border-[3px] border-black bg-[#cbff2e] px-4 py-4 shadow-[5px_5px_0_0_rgba(0,0,0,1)] transition-transform duration-300 group-hover:translate-y-1 group-hover:rotate-[6deg]">
                 <Star className="h-7 w-7 text-black" strokeWidth={2.4} />
               </div>
 
               <div className="relative min-h-[430px] sm:min-h-[500px]">
-                <div className="absolute inset-x-[16%] inset-y-[12%] rounded-[30px] border-[3px] border-black bg-[linear-gradient(180deg,#fff7ec_0%,#f6ffd9_100%)] shadow-[7px_7px_0_0_rgba(0,0,0,1)]" />
+                <div className="absolute inset-x-[16%] inset-y-[12%] rounded-[30px] border-[3px] border-black bg-[linear-gradient(180deg,#fff7ec_0%,#f6ffd9_100%)] shadow-[7px_7px_0_0_rgba(0,0,0,1)] transition-transform duration-500 group-hover:scale-[1.01]" />
                 <div className="pointer-events-none absolute inset-x-[20%] inset-y-[18%] rounded-[26px] bg-[radial-gradient(circle_at_25%_30%,rgba(255,140,120,0.2),transparent_38%),radial-gradient(circle_at_78%_28%,rgba(203,255,46,0.18),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.75),rgba(255,247,232,0.45))]" />
-                <div className="absolute bottom-5 right-0 z-10 w-[220px] rotate-[7deg] rounded-[26px] border-[3px] border-black bg-white p-3 shadow-[7px_7px_0_0_rgba(0,0,0,1)] sm:w-[250px]">
+                <div className="absolute bottom-5 left-0 z-30 hidden rounded-[18px] border-[3px] border-black bg-white px-4 py-3 shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition-transform duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1 sm:block">
+                  <div className="text-[10px] font-black uppercase tracking-[0.14em] text-black/50">Live workflow</div>
+                  <div className="mt-2 flex items-center gap-2 text-[13px] font-black uppercase tracking-[0.08em] text-black">
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border-[2px] border-black bg-[#ffd243]">
+                      <Camera className="h-3.5 w-3.5" strokeWidth={2.4} />
+                    </span>
+                    Creator
+                    <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.8} />
+                    Brand
+                  </div>
+                </div>
+                <div className="absolute bottom-5 right-0 z-10 w-[220px] rotate-[7deg] rounded-[26px] border-[3px] border-black bg-white p-3 shadow-[7px_7px_0_0_rgba(0,0,0,1)] transition-transform duration-300 group-hover:translate-y-1 group-hover:rotate-[10deg] sm:w-[250px]">
                   <div className="relative h-[170px] overflow-hidden rounded-[18px] bg-[#fff6f2] sm:h-[190px]">
                     <Image
                       src="/landing/hero-brand.png"
@@ -96,12 +134,13 @@ export default function LandingPage() {
                       alt="Creator"
                       fill
                       sizes="(min-width: 1024px) 420px, 70vw"
-                      className="object-contain object-bottom drop-shadow-[0_18px_28px_rgba(0,0,0,0.18)]"
+                      className="object-contain object-bottom drop-shadow-[0_18px_28px_rgba(0,0,0,0.18)] transition-transform duration-500 group-hover:scale-[1.03]"
                       priority
                     />
                   </div>
                 </div>
-                <div className="absolute bottom-4 left-1/2 z-10 w-max -translate-x-1/2 rounded-full border-[3px] border-black bg-white px-5 py-2 text-[12px] font-black uppercase tracking-[0.08em] text-black shadow-[5px_5px_0_0_rgba(0,0,0,1)] sm:bottom-5">
+                <div className="absolute bottom-4 left-1/2 z-10 flex w-max -translate-x-1/2 items-center gap-2 rounded-full border-[3px] border-black bg-white px-5 py-2 text-[12px] font-black uppercase tracking-[0.08em] text-black shadow-[5px_5px_0_0_rgba(0,0,0,1)] transition-transform duration-300 group-hover:-translate-y-1 sm:bottom-5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#cbff2e]" />
                   Fashion AI studio
                 </div>
               </div>
@@ -162,7 +201,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="border-t-[3px] border-black bg-white px-5 py-12 sm:px-8 lg:px-10 lg:py-14">
+        <section id="creator-brand-paths" className="border-t-[3px] border-black bg-white px-5 py-12 sm:px-8 lg:px-10 lg:py-14">
           <div className="text-center">
             <h2 className="text-[clamp(2.35rem,5vw,3.8rem)] font-black leading-[0.95] tracking-[-0.05em] text-black">
               Built for creators and brands
@@ -189,7 +228,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="border-t-[3px] border-black bg-[#fbfaf6] px-5 py-12 sm:px-8 lg:px-10 lg:py-14">
+        <section id="why-kiwikoo" className="border-t-[3px] border-black bg-[#fbfaf6] px-5 py-12 sm:px-8 lg:px-10 lg:py-14">
           <div className="text-center">
             <h2 className="text-[clamp(2.35rem,5vw,3.8rem)] font-black leading-[0.95] tracking-[-0.05em] text-black">
               Why Kiwikoo
@@ -314,14 +353,36 @@ function ServiceCard({
       : tone === 'teal'
         ? 'bg-[#2bb7aa]'
         : 'bg-[#ff62b8]'
+  const accentSoft =
+    tone === 'blue'
+      ? 'bg-[#a8b9ff]/18'
+      : tone === 'teal'
+        ? 'bg-[#2bb7aa]/18'
+        : 'bg-[#ff62b8]/18'
+  const footerLabel =
+    tone === 'blue'
+      ? 'Virtual looks'
+      : tone === 'teal'
+        ? 'Campaign-ready'
+        : 'Creator revenue'
 
   return (
-    <div className="rounded-[24px] border-[3px] border-black bg-white p-6 shadow-[8px_8px_0_0_rgba(0,0,0,1)]">
-      <div className={`inline-flex h-16 w-16 items-center justify-center rounded-[18px] border-[3px] border-black ${accent} shadow-[4px_4px_0_0_rgba(0,0,0,1)]`}>
+    <div className="group relative overflow-hidden rounded-[24px] border-[3px] border-black bg-white p-6 shadow-[8px_8px_0_0_rgba(0,0,0,1)] transition-transform duration-300 hover:-translate-y-1">
+      <div className={`pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full ${accentSoft} blur-[2px] transition-transform duration-300 group-hover:scale-125`} />
+      <div className={`inline-flex h-16 w-16 items-center justify-center rounded-[18px] border-[3px] border-black ${accent} shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition-transform duration-300 group-hover:rotate-[-8deg]`}>
         {icon}
       </div>
       <h3 className="mt-6 text-[28px] font-black leading-[1.02] tracking-[-0.04em] text-black">{title}</h3>
       <p className="mt-3 text-[17px] leading-8 text-black/60">{body}</p>
+      <div className="mt-5 flex items-center justify-between border-t-[2px] border-black/10 pt-4">
+        <span className="rounded-full border-[2px] border-black bg-[#fbfaf6] px-3 py-1 text-[11px] font-black uppercase tracking-[0.1em] text-black">
+          {footerLabel}
+        </span>
+        <span className="inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-[0.1em] text-black/55 transition-transform duration-300 group-hover:translate-x-1">
+          Hover
+          <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.8} />
+        </span>
+      </div>
     </div>
   )
 }
@@ -518,13 +579,18 @@ function WhyCard({
   body: string
 }) {
   return (
-    <div className="rounded-[24px] border-[3px] border-black bg-white p-6 shadow-[8px_8px_0_0_rgba(0,0,0,1)]">
+    <div className="group rounded-[24px] border-[3px] border-black bg-white p-6 shadow-[8px_8px_0_0_rgba(0,0,0,1)] transition-transform duration-300 hover:-translate-y-1">
       <div className="flex items-start gap-5">
-        <div className={`inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px] border-[3px] border-black ${tone === 'coral' ? 'bg-[#ff8c78]' : 'bg-[#cbff2e]'} shadow-[4px_4px_0_0_rgba(0,0,0,1)]`}>
+        <div className={`inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px] border-[3px] border-black ${tone === 'coral' ? 'bg-[#ff8c78]' : 'bg-[#cbff2e]'} shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition-transform duration-300 group-hover:rotate-[-8deg]`}>
           {icon}
         </div>
-        <div>
-          <div className="text-[24px] font-black leading-[1.02] tracking-[-0.04em] text-black">{title}</div>
+        <div className="flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <div className="text-[24px] font-black leading-[1.02] tracking-[-0.04em] text-black">{title}</div>
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border-[2px] border-black bg-[#fbfaf6] text-black transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-1">
+              <ArrowRight className="h-4 w-4" strokeWidth={2.8} />
+            </span>
+          </div>
           <p className="mt-3 text-[17px] leading-8 text-black/60">{body}</p>
         </div>
       </div>
