@@ -48,7 +48,7 @@ Return JSON only:
   "lipDescription": "<short phrase: lip fullness + shape, e.g. 'medium-full lips with defined cupid's bow'>",
   "skinTexture": "<smooth/lightly textured/visibly porous/rough — describe actual skin surface quality>",
   "facialHairDescription": "<short phrase: density + style + coverage. Say 'none' if clean-shaven or no facial hair>",
-  "distinguishingMarks": "<moles, dimples, scars, beauty marks, facial asymmetry — or 'none'. These are CRITICAL for identity locking>",
+  "distinguishingMarks": "<only obvious, unambiguous large scars or dimples that are clearly visible — otherwise 'none'>",
   "eyeShape": "<almond/round/hooded/deep-set/monolid/etc>",
   "eyeSpacing": "<narrow/medium/wide>",
   "irisColor": "<dark brown/light brown/hazel/blue/green/etc>",
@@ -66,7 +66,7 @@ Rules:
 - Describe what you ACTUALLY SEE, not what looks average or typical.
 - Be specific about face width and fullness — this is the #1 drift in AI generation.
 - If the face is round and wide, say so explicitly. If cheeks are full, say full.
-- distinguishingMarks is CRITICAL — moles, dimples, scars, beauty marks, and any facial asymmetry are the strongest identity anchors. Look carefully.
+- Use distinguishingMarks only for obvious, repeated, unambiguous features. Ignore tiny dark spots, compression noise, freckles, or uncertain blemishes. Prefer 'none' when unsure.
 - Do not infer name, age, ethnicity, or sensitive attributes.
 - Keep each field concise but precise.
 - Garment context: ${params.garmentDescription || 'garment from Image 2'}.`
@@ -155,10 +155,6 @@ Rules:
     parsed.facialHairDescription && parsed.facialHairDescription !== 'none'
       ? parsed.facialHairDescription
       : null,
-    // Distinguishing marks are the strongest identity anchors
-    parsed.distinguishingMarks && parsed.distinguishingMarks !== 'none'
-      ? parsed.distinguishingMarks
-      : null,
     parsed.eyewearDescription && parsed.eyewearDescription !== 'none'
       ? `${parsed.eyewearDescription} eyewear`
       : null,
@@ -195,9 +191,8 @@ Rules:
   if (parsed.skinTexture && /porous|textured|rough/i.test(parsed.skinTexture)) {
     antiDriftParts.push('Preserve visible pores and natural skin texture.')
   }
-  if (parsed.distinguishingMarks && parsed.distinguishingMarks !== 'none') {
-    antiDriftParts.push(`Keep these marks: ${parsed.distinguishingMarks}.`)
-  }
+  // Do not anchor tiny marks by default; they are often false positives from
+  // shadows/compression and can cause Gemini to invent pimples or moles.
 
   // Gender-specific (positive framing)
   if (gender === 'feminine') {

@@ -108,15 +108,22 @@ async function sendWithResend(payload: SendEmailPayload): Promise<SendEmailResul
 export async function sendEmail(payload: SendEmailPayload): Promise<SendEmailResult> {
   const smtpResult = await sendWithSmtp(payload)
   if (smtpResult.ok) return smtpResult
-  if (!smtpResult.skipped) return smtpResult
 
   const resendResult = await sendWithResend(payload)
   if (resendResult.ok) return resendResult
 
-  if (resendResult.skipped) {
+  if (smtpResult.skipped && resendResult.skipped) {
     console.warn('No SMTP or Resend email transport configured, skipping email send')
     return { ok: false, skipped: true, error: 'No email transport configured' }
   }
 
-  return resendResult
+  const parts = [
+    smtpResult.skipped ? null : `SMTP: ${smtpResult.error || 'Unknown failure'}`,
+    resendResult.skipped ? null : `Resend: ${resendResult.error || 'Unknown failure'}`,
+  ].filter(Boolean)
+
+  return {
+    ok: false,
+    error: parts.join(' | ') || resendResult.error || smtpResult.error || 'Failed to send email',
+  }
 }

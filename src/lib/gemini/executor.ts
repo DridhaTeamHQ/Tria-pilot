@@ -3,21 +3,21 @@ import Bottleneck from 'bottleneck'
 import { GoogleGenAI, type GenerateContentParameters } from '@google/genai'
 import { getGeminiKey } from '@/lib/config/api-keys'
 
-const GEMINI_MAX_RETRIES = 3
-const BASE_BACKOFF_MS = 500
+const GEMINI_MAX_RETRIES = 4
+const BASE_BACKOFF_MS = 1500
 const RETRYABLE_STATUS_CODES = new Set([429, 503, 529])
 
 // Rate limit cooldown per key (ms) — if a key hits 429, skip it for this duration
 const KEY_COOLDOWN_MS = 60_000
 
 const proImageLimiter = new Bottleneck({
-  maxConcurrent: 2,
-  minTime: 500,
+  maxConcurrent: 1,
+  minTime: 2000,
 })
 
 const flashLimiter = new Bottleneck({
-  maxConcurrent: 4,
-  minTime: 200,
+  maxConcurrent: 2,
+  minTime: 500,
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -136,6 +136,7 @@ function markKeyRateLimited(client: GoogleGenAI, retryAfterMs?: number): void {
 
 function pickLimiter(model: string): Bottleneck {
   if (model.includes('gemini-3-pro-image-preview')) return proImageLimiter
+  if (model.includes('gemini-2.5-flash-image') || model.includes('flash')) return flashLimiter
   return flashLimiter
 }
 

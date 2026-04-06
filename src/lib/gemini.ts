@@ -74,6 +74,8 @@ export async function generateIntelligentAdComposition(
   options?: {
     /** When true, influencer image is placed FIRST for stronger identity attention */
     lockFaceIdentity?: boolean
+    /** Optional tight face crop for stronger identity reinforcement */
+    faceCropBase64?: string
     /** Output aspect ratio — injected into prompt as composition instruction */
     aspectRatio?: '1:1' | '9:16' | '16:9' | '4:5'
     /** Override temperature for face-lock (lower = more deterministic / less face drift) */
@@ -115,6 +117,15 @@ export async function generateIntelligentAdComposition(
           mimeType: parsed.mimeType,
         },
       })
+      if (options.faceCropBase64) {
+        const faceCrop = parseBase64Image(options.faceCropBase64)
+        parts.push({
+          inlineData: {
+            data: faceCrop.data,
+            mimeType: faceCrop.mimeType,
+          },
+        })
+      }
       // Then product image
       if (productImage) {
         const parsed2 = parseBase64Image(productImage)

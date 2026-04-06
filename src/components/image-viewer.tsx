@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
-import { X, ImageOff } from 'lucide-react'
+import { Expand, ImageOff, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface ImageViewerProps {
@@ -23,6 +23,25 @@ export function ImageViewer({ src, alt, className = '' }: ImageViewerProps) {
       setIsLoading(true)
     }
   }, [src])
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false)
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = previousOverflow
+    }
+  }, [isOpen])
 
   if (!src) return null
 
@@ -66,38 +85,61 @@ export function ImageViewer({ src, alt, className = '' }: ImageViewerProps) {
             setIsLoading(false)
           }}
         />
+        {!isLoading && (
+          <button
+            type="button"
+            onClick={() => setIsOpen(true)}
+            className="absolute bottom-3 right-3 inline-flex items-center gap-2 rounded-full border-[2px] border-black bg-white/95 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-transform hover:-translate-y-0.5"
+            aria-label="Open image preview"
+          >
+            <Expand className="h-3.5 w-3.5" />
+            View
+          </button>
+        )}
       </div>
       {isOpen && (
         <div
-          className="fixed inset-0 z-[120] flex items-start justify-center bg-black/85 p-3 pt-[max(0.75rem,3vh)] backdrop-blur-md sm:items-center sm:p-6"
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-[#050505]/82 p-3 backdrop-blur-lg sm:p-6"
           onClick={() => setIsOpen(false)}
         >
           <div
-            className="my-auto w-full max-w-[min(94vw,1220px)] overflow-hidden rounded-[28px] border-[3px] border-black bg-[#FFFDF8] shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]"
+            className="relative my-auto flex max-h-[calc(100dvh-1.5rem)] w-full max-w-[min(94vw,1220px)] flex-col overflow-hidden rounded-[30px] border-[3px] border-black bg-[#fff9ef] shadow-[12px_12px_0px_0px_rgba(0,0,0,0.9)] sm:max-h-[calc(100dvh-3rem)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b-[3px] border-black bg-[#FFF4D9] px-4 py-3 sm:px-5">
-              <p className="truncate pr-3 text-xs font-black uppercase tracking-wide text-black sm:text-sm">
-                {alt || 'Image Preview'}
-              </p>
+            <div className="flex items-center justify-between gap-4 border-b-[3px] border-black bg-[#fff0d6] px-4 py-3 sm:px-5 sm:py-4">
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-black/45">Image Preview</p>
+                <p className="truncate pr-3 text-sm font-black text-black sm:text-base">
+                  {alt || 'Image Preview'}
+                </p>
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-10 w-10 shrink-0 rounded-xl border-[2px] border-black bg-white text-black hover:bg-[#FFD93D]"
+                className="h-10 w-10 shrink-0 rounded-2xl border-[2px] border-black bg-white text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:bg-[#FFD93D]"
                 onClick={() => setIsOpen(false)}
               >
                 <X className="h-5 w-5" />
               </Button>
             </div>
-            <div className="flex max-h-[calc(min(92dvh,920px)-64px)] items-center justify-center bg-[#FFF8E8] p-3 sm:p-4">
+            <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top,#fff7ea_0%,#ffeccd_42%,#f4dcc0_100%)] p-3 sm:p-5">
+              <div className="pointer-events-none absolute inset-0 opacity-60">
+                <div className="absolute -left-12 top-8 h-36 w-36 rounded-full bg-[#FFD93D]/18 blur-3xl" />
+                <div className="absolute right-0 top-1/3 h-40 w-40 rounded-full bg-[#FF8C69]/12 blur-3xl" />
+                <div className="absolute bottom-0 left-1/3 h-40 w-40 rounded-full bg-white/40 blur-3xl" />
+              </div>
               <Image
                 src={src}
                 alt={alt}
                 width={1600}
                 height={1600}
                 unoptimized
-                className="max-h-[calc(min(92dvh,920px)-96px)] max-w-full rounded-2xl border-[2px] border-black bg-white object-contain"
+                className="relative z-10 max-h-full max-w-full rounded-[24px] border-[3px] border-black bg-white object-contain shadow-[0_28px_80px_rgba(0,0,0,0.24)]"
               />
+            </div>
+            <div className="flex items-center justify-between gap-3 border-t-[3px] border-black bg-[#fff0d6] px-4 py-3 text-[11px] font-bold uppercase tracking-[0.16em] text-black/55 sm:px-5">
+              <span>Click outside or press Esc to close</span>
+              <span className="hidden sm:inline">Full image fit</span>
             </div>
           </div>
         </div>

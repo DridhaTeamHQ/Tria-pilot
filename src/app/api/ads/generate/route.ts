@@ -17,6 +17,11 @@ import { getOpenAIKey } from '@/lib/config/api-keys'
 import { generateIntelligentAdComposition } from '@/lib/gemini'
 import { GeminiRateLimitError } from '@/lib/gemini/executor'
 import { saveUpload } from '@/lib/storage'
+import { getGeminiChat } from '@/lib/tryon/gemini-chat'
+import { buildForensicFaceAnchor } from '@/lib/tryon/face-forensics'
+import { extractFaceCrop } from '@/lib/tryon/face-crop'
+import { detectFaceCoordinates } from '@/lib/tryon/face-coordinates'
+import { restoreFaceIdentity } from '@/lib/tryon/face-restore'
 import {
   AD_PRESET_IDS,
   AD_PRESETS,
@@ -54,7 +59,7 @@ const adGenerationSchema = z
     strictRealism: z.boolean().optional().default(true),
 
     // Model selection: GPT Image 1.5 or Gemini
-    imageModel: z.enum(['gpt', 'gemini']).optional().default('gpt'),
+    imageModel: z.enum(['gpt', 'gemini']).optional().default('gemini'),
 
     // Character config
     characterType: z
@@ -144,7 +149,7 @@ function buildQualityPreamble(hasTextOverlay: boolean): string {
     : `\nCRITICAL: Do NOT include any text, letters, numbers, words, brand names, slogans, watermarks, or typography in the image. ZERO written content.`
   return `PHOTOGRAPHIC FIDELITY & COMPOSITION (MANDATORY):
 OUTPUT STYLE: This MUST look like a REAL PHOTOGRAPH taken by a professional photographer with a REAL CAMERA. NOT an illustration, NOT digital art, NOT a painting, NOT a render, NOT stylized, NOT cartoon, NOT anime, NOT CGI. RAW EDITORIAL PHOTOGRAPHY ONLY.
-SKIN: Natural pore-level texture, sharp wet-look corneal reflections, realistic subsurface scattering, visible micro-imperfections (moles, pores, fine lines). No plastic/waxy/CGI/airbrushed skin. No beauty filter smoothing.
+SKIN: Natural pore-level texture, sharp wet-look corneal reflections, realistic subsurface scattering, visible pores and fine lines. No plastic/waxy/CGI/airbrushed skin. No beauty filter smoothing. Do not invent pimples, moles, freckles, or blemishes that are not clearly present in the reference image.
 HANDS: Correct anatomy — five fingers per hand, natural bone structure, realistic nail beds. No extra or fused fingers.
 COMPOSITION: Strong focal hierarchy with clear subject separation from background. Use depth layering (foreground interest, mid-ground subject, background context). Balanced negative space.
 PRODUCT: The uploaded product garment/item must be the visual hero — accurate color, fabric texture, pattern, cut, and design details preserved exactly. Product must be clearly visible and well-lit.
@@ -172,22 +177,53 @@ function buildGeminiFaceLockFallbackPrompt(params: {
   cameraAngle?: string
   subject?: { pose?: string; expression?: string }
   textOverlay?: { headline?: string; subline?: string; tagline?: string }
+  faceAnchor?: string
+  eyesAnchor?: string
+  antiDriftDirectives?: string
+  bodyAnchor?: string
+  appearanceSummary?: string
+  characterSummary?: string
+  perceivedGender?: 'masculine' | 'feminine' | 'neutral'
 }): string {
   const hasText = Boolean(
     params.textOverlay?.headline || params.textOverlay?.subline || params.textOverlay?.tagline
   )
 
-  return (
+  const prompt =
     buildQualityPreamble(hasText) +
     buildFaceLockedAdEditPrompt({
       faceAnchor:
-        'Preserve the exact same person from the influencer reference image: same face shape, eyes, nose, lips, skin tone, hair, and distinguishing marks.',
+        params.faceAnchor ||
+        'Preserve the exact same person from the influencer reference image: same face shape, eyes, nose, lips, skin tone, hair, and overall facial asymmetry.',
       preset: params.preset,
       cameraAngle: params.cameraAngle,
       subject: params.subject,
       textOverlay: params.textOverlay,
     })
-  )
+
+  const extras: string[] = []
+  if (params.eyesAnchor?.trim()) {
+    extras.push(`EYE LOCK: ${params.eyesAnchor}.`)
+  }
+  if (params.appearanceSummary?.trim()) {
+    extras.push(`APPEARANCE LOCK: ${params.appearanceSummary}.`)
+  }
+  if (params.characterSummary?.trim()) {
+    extras.push(`CHARACTER LOCK: ${params.characterSummary}.`)
+  }
+  if (params.bodyAnchor?.trim()) {
+    extras.push(`BODY LOCK: ${params.bodyAnchor}.`)
+  }
+  if (params.antiDriftDirectives?.trim()) {
+    extras.push(`ANTI-DRIFT: ${params.antiDriftDirectives}.`)
+  }
+  if (params.perceivedGender === 'masculine') {
+    extras.push('Preserve masculine facial proportions, brow weight, jaw fullness, and facial hair exactly as photographed.')
+  } else if (params.perceivedGender === 'feminine') {
+    extras.push('Preserve feminine facial proportions, eye size, nose width, hairline, and natural asymmetry exactly as photographed.')
+  }
+
+  return extras.length > 0 ? `${prompt}\n\n${extras.join('\n')}` : prompt
 }
 
 /**
@@ -218,8 +254,8 @@ async function extractFaceAnchorDescription(
           '3. Nose structure (bridge width, tip shape)',
           '4. Lip description (fullness, shape)',
           '5. Jawline and chin (angular, soft, rounded, pointed)',
-          '6. Skin tone and texture (include pores, marks)',
-          '7. Distinguishing marks (moles, dimples, scars, beauty marks, asymmetry) — CRITICAL',
+          '6. Skin tone and texture (include pores and natural texture, but ignore tiny blemishes or uncertain marks)',
+          '7. Overall asymmetry and clearly visible structural traits only',
           '8. Hair description',
           'Use geometric terms. Do NOT use beauty adjectives.',
           'Keep under 120 words. Output ONLY the description.',
@@ -234,7 +270,7 @@ async function extractFaceAnchorDescription(
           },
           {
             type: 'text' as const,
-            text: 'Describe this person\'s face with precise geometric detail. Include EVERY distinguishing mark (moles, dimples, scars). These are the strongest identity anchors.',
+            text: 'Describe this person\'s face with precise geometric detail. Focus on shape, proportions, asymmetry, and skin tone. Ignore tiny blemishes, uncertain dark spots, or possible compression noise.',
           },
         ],
       },
@@ -258,11 +294,11 @@ async function extractFaceAnchorDescription(
  * Returns a 0-100 score where 100 = identical face, 90+ = very similar.
  */
 async function scoreFaceSimilarity(
-  openaiClient: OpenAI,
   originalImage: string,
   generatedImage: string
 ): Promise<number> {
   try {
+    const gemini = getGeminiChat()
     const originalUri = originalImage.startsWith('data:')
       ? originalImage
       : `data:image/png;base64,${originalImage}`
@@ -270,9 +306,10 @@ async function scoreFaceSimilarity(
       ? generatedImage
       : `data:image/png;base64,${generatedImage}`
 
-    const response = await openaiClient.chat.completions.create({
-      model: 'gpt-4o',
-      max_tokens: 10,
+    const response = await gemini.chat.completions.create({
+      model: 'gemini-2.5-flash',
+      max_tokens: 20,
+      temperature: 0.1,
       messages: [
         {
           role: 'user',
@@ -287,7 +324,7 @@ async function scoreFaceSimilarity(
             },
             {
               type: 'text',
-              text: `Compare faces in Image 1 (original) and Image 2 (generated). Score face IDENTITY similarity 0-100. Focus only on face shape, eyes, nose, lips, skin tone. Ignore outfit/background/pose. Reply with ONLY a number.`,
+              text: `Compare faces in Image 1 (original) and Image 2 (generated). Score face IDENTITY similarity 0-100. Focus only on face shape, facial fullness, eye geometry, nose, lips, jawline, and skin tone. Ignore outfit, background, and pose. Reply with ONLY a number.`,
             },
           ],
         },
@@ -330,12 +367,12 @@ function buildFaceLockedAdEditPrompt(opts: {
   parts.push(``)
 
   // Face preservation (positive framing)
-  parts.push(`FACE PRESERVATION: Preserve natural skin pores, facial asymmetry, original proportions, and all distinguishing marks (moles, dimples, scars, beauty marks) exactly as photographed.`)
+  parts.push(`FACE PRESERVATION: Preserve natural skin pores, facial asymmetry, and original proportions exactly as photographed. Keep the skin clean and do not invent moles, pimples, freckles, or blemishes.`)
   parts.push(``)
 
   // Editing instructions
   parts.push(`EDIT INSTRUCTIONS:`)
-  parts.push(`1. Keep this exact person's face, head, and hair completely unchanged — same face shape, same eyes, same nose, same lips, same skin, same hair, same distinguishing marks.`)
+  parts.push(`1. Keep this exact person's face, head, and hair completely unchanged — same face shape, same eyes, same nose, same lips, same skin tone and texture, same hair, same asymmetry.`)
   parts.push(`2. Change ONLY their outfit to match the garment in Image 2 — same color, fabric, cut, pattern, design details.`)
 
   // Scene from preset
@@ -376,7 +413,7 @@ function buildFaceLockedAdEditPrompt(opts: {
   parts.push(``)
 
   // Consistency reminder
-  parts.push(`Same person, same face, same marks. Edit only outfit and background.`)
+  parts.push(`Same person, same face, same overall facial structure. Edit only outfit and background.`)
   if (preset.avoid.length > 0) {
     parts.push(`AVOID: ${preset.avoid.join(', ')}, beautification, skin smoothing`)
   }
@@ -593,97 +630,96 @@ export async function POST(request: Request) {
     // ═══════════════════════════════════════════════════════
     let generatedImage = ''
     let compositionPrompt = ''
-    let promptUsed: string = input.imageModel || 'gpt'
+    let promptUsed: string = input.imageModel || 'gemini'
+    let faceLockScore: number | null = null
+    let influencerFaceCropBase64: string | undefined
+    let influencerPerceivedGender: 'masculine' | 'feminine' | 'neutral' | undefined
 
     // Auto face-lock: always lock when influencer image is present
     const shouldLockFace = Boolean(input.influencerImage)
 
     if (shouldLockFace && input.influencerImage) {
-      // ── FACE-LOCKED: GPT Image 1.5 (always, regardless of model choice) ──
+      // ── FACE-LOCKED: Gemini (always when a reference face is provided) ──
       if (process.env.NODE_ENV !== 'production') {
-        console.log('[AdsAPI] FACE-LOCKED mode with GPT Image 1.5 + Face Anchor')
+        console.log('[AdsAPI] FACE-LOCKED mode with Gemini')
       }
 
       const presetObj = AD_PRESETS.find(p => p.id === input.preset) ?? AD_PRESETS[0]
+      const forensicAnchor = await buildForensicFaceAnchor({
+        personImageBase64: input.influencerImage,
+        garmentDescription: 'product from Image 2',
+      }).catch(() => null)
+      influencerPerceivedGender = forensicAnchor?.perceivedGender
+      const faceCropResult = await extractFaceCrop(input.influencerImage).catch(() => ({
+        success: false,
+        faceCropBase64: '',
+      }))
+      influencerFaceCropBase64 = faceCropResult.success ? faceCropResult.faceCropBase64 : undefined
+      compositionPrompt = buildGeminiFaceLockFallbackPrompt({
+        preset: presetObj,
+        cameraAngle: input.cameraAngle,
+        subject: input.subject,
+        textOverlay: input.textOverlay,
+        faceAnchor: forensicAnchor?.faceAnchor,
+        eyesAnchor: forensicAnchor?.eyesAnchor,
+        antiDriftDirectives: forensicAnchor?.antiDriftDirectives,
+        bodyAnchor: forensicAnchor?.bodyAnchor,
+        appearanceSummary: forensicAnchor?.appearanceSummary,
+        characterSummary: forensicAnchor?.characterSummary,
+        perceivedGender: forensicAnchor?.perceivedGender,
+      })
+      const MAX_FACE_ATTEMPTS = 2
+      const FACE_THRESHOLD = 84
+      let bestImage = ''
+      let bestScore = 0
 
-      try {
-        const openaiClient = new OpenAI({ apiKey: getOpenAIKey() })
-
-        const MAX_FACE_ATTEMPTS = 2
-        const FACE_THRESHOLD = 85
-        let bestImage = ''
-        let bestPrompt = ''
-        let bestScore = 0
-
-        for (let attempt = 1; attempt <= MAX_FACE_ATTEMPTS; attempt++) {
-          if (process.env.NODE_ENV !== 'production') {
-            console.log(`[FaceLock] Attempt ${attempt}/${MAX_FACE_ATTEMPTS}...`)
-          }
-
-          try {
-            const result = await generateFaceLockedAdWithOpenAI({
-              influencerImage: input.influencerImage,
-              productImage: input.productImage,
-              preset: presetObj,
-              aspectRatio: input.aspectRatio as AspectRatio | undefined,
-              cameraAngle: input.cameraAngle,
-              subject: input.subject,
-              textOverlay: input.textOverlay,
-            })
-
-            const faceScore = await scoreFaceSimilarity(openaiClient, input.influencerImage, result.image)
-
-            if (process.env.NODE_ENV !== 'production') {
-              console.log(`[FaceLock] Attempt ${attempt} face similarity: ${faceScore}%`)
-            }
-
-            if (faceScore > bestScore) {
-              bestScore = faceScore
-              bestImage = result.image
-              bestPrompt = result.prompt
-            }
-
-            if (faceScore >= FACE_THRESHOLD) {
-              break
-            }
-
-            if (attempt < MAX_FACE_ATTEMPTS && timeRemaining() < 30_000) {
-              break
-            }
-          } catch (err: any) {
-            console.error(`[FaceLock] Attempt ${attempt} failed:`, err?.message || err)
-            if (attempt === MAX_FACE_ATTEMPTS && !bestImage) throw err
-          }
+      for (let attempt = 1; attempt <= MAX_FACE_ATTEMPTS; attempt++) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`[AdsAPI] Gemini face-lock attempt ${attempt}/${MAX_FACE_ATTEMPTS}...`)
         }
 
-        generatedImage = bestImage
-        compositionPrompt = bestPrompt
-        promptUsed = 'gpt-image-1.5-face'
-      } catch (error) {
-        if (!isOpenAIAvailabilityError(error)) throw error
+        const retryPrompt = attempt === 1
+          ? compositionPrompt
+          : `${compositionPrompt}\n\nRETRY PRIORITY:\nPrevious attempt changed the face too much. Keep the exact same person from the reference image and tight face crop this time, especially face width, cheek fullness, eye geometry, jawline, and overall facial asymmetry.`
 
-        compositionPrompt = buildGeminiFaceLockFallbackPrompt({
-          preset: presetObj,
-          cameraAngle: input.cameraAngle,
-          subject: input.subject,
-          textOverlay: input.textOverlay,
-        })
-        generatedImage = await generateIntelligentAdComposition(
+        const candidateImage = await generateIntelligentAdComposition(
           input.productImage,
           input.influencerImage,
-          compositionPrompt,
+          retryPrompt,
           {
             lockFaceIdentity: true,
+            faceCropBase64: faceCropResult.success ? faceCropResult.faceCropBase64 : undefined,
             aspectRatio: input.aspectRatio as AspectRatio | undefined,
-            temperature: 0.2,
+            temperature: attempt === 1 ? 0.18 : 0.12,
           }
         )
-        promptUsed = 'gemini-face-fallback'
+
+        const faceScore = await scoreFaceSimilarity(input.influencerImage, candidateImage)
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`[AdsAPI] Gemini face-lock attempt ${attempt} score: ${faceScore}%`)
+        }
+
+        if (faceScore > bestScore) {
+          bestScore = faceScore
+          bestImage = candidateImage
+        }
+
+        if (faceScore >= FACE_THRESHOLD) {
+          break
+        }
+
+        if (attempt < MAX_FACE_ATTEMPTS && timeRemaining() < 25_000) {
+          break
+        }
       }
+
+      generatedImage = bestImage
+      faceLockScore = bestScore
+      promptUsed = 'gemini-face-lock'
     } else if (input.imageModel === 'gpt') {
       // ── NORMAL GPT: GPT Image 1.5 without face lock ──
       try {
-        if (process.env.NODE_ENV !== 'production') console.log('[AdsAPI] Building prompt with GPT-4o vision...')
+        if (process.env.NODE_ENV !== 'production') console.log('[AdsAPI] Building prompt with Gemini vision...')
         const { prompt: rawCompositionPrompt, fallback } = await buildAdPrompt(
         generationInput,
         input.productImage
@@ -745,7 +781,7 @@ export async function POST(request: Request) {
       }
     } else {
       // ── NORMAL GEMINI: Gemini-based generation ──
-      if (process.env.NODE_ENV !== 'production') console.log('[AdsAPI] Building prompt with GPT-4o vision...')
+      if (process.env.NODE_ENV !== 'production') console.log('[AdsAPI] Building prompt with Gemini vision...')
       const { prompt: rawCompositionPrompt, fallback } = await buildAdPrompt(
         generationInput,
         input.productImage
@@ -769,6 +805,49 @@ export async function POST(request: Request) {
           aspectRatio: input.aspectRatio as AspectRatio | undefined,
         }
       )
+    }
+
+    if (input.influencerImage && timeRemaining() > 18_000) {
+      const currentFaceScore = faceLockScore ?? await scoreFaceSimilarity(input.influencerImage, generatedImage)
+      if (currentFaceScore < 84) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`[AdsAPI] Face score ${currentFaceScore}% below target. Running face restore...`)
+        }
+
+        try {
+          const [personFace, generatedFace] = await Promise.all([
+            detectFaceCoordinates(input.influencerImage, { allowHeuristicFallback: true }),
+            detectFaceCoordinates(generatedImage),
+          ])
+
+          if (personFace && generatedFace) {
+            const restored = await restoreFaceIdentity({
+              generatedImageBase64: generatedImage,
+              personImageBase64: input.influencerImage,
+              faceCropBase64: influencerFaceCropBase64,
+              generatedFace,
+              personFace,
+              aspectRatio: input.aspectRatio,
+              perceivedGender: influencerPerceivedGender,
+            })
+
+            if (restored.success && restored.restoredImageBase64) {
+              const restoredScore = await scoreFaceSimilarity(input.influencerImage, restored.restoredImageBase64)
+              if (process.env.NODE_ENV !== 'production') {
+                console.log(`[AdsAPI] Face restore score: ${restoredScore}% (was ${currentFaceScore}%)`)
+              }
+
+              if (restoredScore >= currentFaceScore + 4 || restoredScore >= 84) {
+                generatedImage = restored.restoredImageBase64
+                faceLockScore = restoredScore
+                promptUsed = `${promptUsed}+face-restore`
+              }
+            }
+          }
+        } catch (err) {
+          console.warn('[AdsAPI] Face restore skipped after generation:', err)
+        }
+      }
     }
 
 

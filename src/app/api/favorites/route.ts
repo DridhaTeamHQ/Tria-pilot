@@ -36,7 +36,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(products || [], {
       headers: {
-        'Cache-Control': 'private, max-age=10',
+        'Cache-Control': 'no-store',
       },
     })
   } catch (error) {

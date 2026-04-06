@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
 import { deleteUpload } from '@/lib/storage'
+import { getAllOutputPaths, getJobOutputsFromRecord } from '@/lib/tryon/job-outputs'
 
 const BUCKET = 'try-ons'
 
@@ -45,7 +46,7 @@ export async function DELETE(_request: Request, ctx: { params: Promise<{ id: str
     // Find the generation
     const { data: existing, error: findError } = await service
       .from('generation_jobs')
-      .select('id, output_image_path')
+      .select('id, output_image_path, settings')
       .eq('id', id)
       .eq('user_id', authUser.id)
       .single()
@@ -67,12 +68,20 @@ export async function DELETE(_request: Request, ctx: { params: Promise<{ id: str
 
     // Best-effort storage cleanup (non-fatal if missing)
     try {
-      const key = inferTryOnStorageKey({
-        outputImagePath: existing.output_image_path,
-        userId: authUser.id,
-        jobId: id
-      })
-      await deleteUpload(key, BUCKET)
+      const outputPaths = getAllOutputPaths(getJobOutputsFromRecord(existing))
+      const keys = outputPaths
+        .map((outputPath) =>
+          inferTryOnStorageKey({
+            outputImagePath: outputPath,
+            userId: authUser.id,
+            jobId: id,
+          })
+        )
+        .filter((key) => !key.startsWith('base64://'))
+
+      for (const key of new Set(keys)) {
+        await deleteUpload(key, BUCKET)
+      }
     } catch (storageErr) {
       console.warn('Failed to delete try-on image from storage (non-fatal):', storageErr)
     }

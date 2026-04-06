@@ -84,6 +84,21 @@ export function buildEmailConfirmationEmail(params: { confirmUrl: string }): Ema
   }
 }
 
+export function buildPasswordResetEmail(params: { resetUrl: string }): EmailTemplate {
+  const content = renderLayout(
+    'Reset your password',
+    'Use the button below to choose a new password for your Kiwikoo account.',
+    'Reset password',
+    params.resetUrl,
+    'If you did not request a password reset, you can ignore this email.'
+  )
+
+  return {
+    subject: 'Reset your Kiwikoo password',
+    ...content,
+  }
+}
+
 export function buildEmailChangeCurrentEmail(params: { confirmUrl: string; newEmail: string }): EmailTemplate {
   const content = renderLayout(
     'Approve your email change',

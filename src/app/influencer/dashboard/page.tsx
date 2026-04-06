@@ -1,6 +1,6 @@
-'use client'
+﻿'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -19,11 +19,10 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react'
-import { useUser, useGenerations } from '@/lib/react-query/hooks'
+import { useGenerations, useProfileStats, useUser } from '@/lib/react-query/hooks'
 import { ShareModal } from '@/components/tryon/ShareModal'
 import { PortalModal } from '@/components/ui/PortalModal'
-import { toast } from 'sonner'
-import { createClient } from '@/lib/auth-client'
+import { toast } from '@/lib/simple-sonner'
 
 // Animation variants
 const containerVariants = {
@@ -53,9 +52,9 @@ const cardVariants = {
 
 export default function InfluencerDashboard() {
   const router = useRouter()
-  const { data: user } = useUser()
+  const { data: user, isLoading: userLoading } = useUser()
+  const { data: profileStats, isLoading: statsLoading } = useProfileStats()
   const { data: generations, isLoading: generationsLoading } = useGenerations()
-  const [approvalChecked, setApprovalChecked] = useState(false)
 
   // NOTE: hooks must be declared unconditionally (before any early returns)
   const [selectedGeneration, setSelectedGeneration] = useState<any>(null)
@@ -64,84 +63,68 @@ export default function InfluencerDashboard() {
   const [shareImageUrl, setShareImageUrl] = useState<string | null>(null)
   const [shareImageBase64, setShareImageBase64] = useState<string | undefined>(undefined)
 
-  // Check influencer approval status and onboarding completion
-  // CRITICAL: Server-side checks are primary, but this provides client-side validation
   useEffect(() => {
-    async function checkStatus() {
-      if (!user?.id) return
+    if (userLoading) return
 
-      try {
-        // Fetch profile status from API
-        const profileRes = await fetch('/api/auth/profile-status')
-
-        if (profileRes.status === 401) {
-          console.warn('Session expired or unauthorized, redirecting to login')
-          const supabase = createClient()
-          await supabase.auth.signOut()
-          router.replace('/login')
-          return
-        }
-
-        if (!profileRes.ok) {
-          throw new Error(`Failed to fetch profile status: ${profileRes.status} ${profileRes.statusText}`)
-        }
-
-        const profileData = await profileRes.json()
-
-        // DEFENSIVE: Assert valid state
-        if (!profileData.onboarding_completed) {
-          // Redirect to onboarding if not completed
-          router.replace('/onboarding/influencer')
-          return
-        }
-
-        // Check approval status
-        // Only 'approved' status grants access
-        if (profileData.approval_status === 'rejected') {
-          router.replace('/onboarding/influencer?mode=resubmit')
-          return
-        }
-
-        if (profileData.approval_status !== 'approved') {
-          // Redirect to pending page if not approved
-          router.replace('/influencer/pending')
-          return
-        }
-
-        setApprovalChecked(true)
-      } catch (error) {
-        console.error('Error checking status:', error)
-        // On error, allow access (fail open) - server-side checks are primary
-        setApprovalChecked(true)
-      }
+    if (!user) {
+      router.replace('/login')
+      return
     }
 
-    if (user?.id && user?.role === 'INFLUENCER') {
-      checkStatus()
+    if (user.role !== 'INFLUENCER') {
+      router.replace('/brand/dashboard')
+      return
     }
-  }, [user?.id, user?.role, router])
 
-  // Show loading while checking approval
-  if (!approvalChecked && user?.role === 'INFLUENCER') {
+    if (!user.onboardingCompleted) {
+      router.replace('/onboarding/influencer')
+      return
+    }
+
+    if (user.approvalStatus === 'rejected') {
+      router.replace('/onboarding/influencer?mode=resubmit')
+      return
+    }
+
+    if (user.approvalStatus !== 'approved') {
+      router.replace('/influencer/pending')
+    }
+  }, [router, user, userLoading])
+
+  const isDashboardBootstrapping =
+    userLoading ||
+    !user ||
+    user.role !== 'INFLUENCER' ||
+    !user.onboardingCompleted ||
+    user.approvalStatus !== 'approved'
+
+  // Show loading while auth or approval state is still resolving
+  if (isDashboardBootstrapping) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-cream">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-peach border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-charcoal/60">Checking approval status...</p>
+          <p className="text-charcoal/60">Loading your dashboard...</p>
         </div>
       </div>
     )
   }
 
-  const completedGenerations = generations?.filter((g: any) => g.outputImagePath) || []
-  const generationsCount = generationsLoading ? '...' : completedGenerations.length
+  const completedGenerations = generations?.filter((g: any) => g.outputImagePath || (Array.isArray(g.outputs) && g.outputs.length > 0)) || []
+  const statsAreReady = !statsLoading && !!profileStats
+  const dashboardStats = {
+    generations: statsAreReady ? profileStats.generations : generationsLoading ? '...' : completedGenerations.length,
+    portfolioItems: statsAreReady ? profileStats.portfolioItems : '...',
+    collaborations: statsAreReady ? profileStats.collaborations : '...',
+    level: statsAreReady ? profileStats.level : '...',
+  }
 
   // Stats data
   const stats = [
-    { label: 'Try-Ons Generated', value: generationsCount, icon: Sparkles, color: 'bg-peach/20 text-peach' },
-    { label: 'Portfolio Items', value: 0, icon: Camera, color: 'bg-blue-100 text-blue-600' },
-    { label: 'Collaborations', value: 0, icon: Users, color: 'bg-green-100 text-green-600' },
-    { label: 'Profile Views', value: 0, icon: TrendingUp, color: 'bg-purple-100 text-purple-600' },
+    { label: 'Try-Ons Generated', value: dashboardStats.generations, icon: Sparkles, color: 'bg-peach/20 text-peach' },
+    { label: 'Portfolio Items', value: dashboardStats.portfolioItems, icon: Camera, color: 'bg-blue-100 text-blue-600' },
+    { label: 'Collaborations', value: dashboardStats.collaborations, icon: Users, color: 'bg-green-100 text-green-600' },
+    { label: 'Creator Level', value: dashboardStats.level, icon: TrendingUp, color: 'bg-purple-100 text-purple-600' },
   ]
 
   // Quick Actions
@@ -210,6 +193,18 @@ export default function InfluencerDashboard() {
   const getGenerationVariants = (generation: any) => {
     const variants: { url: string; label: string }[] = []
     const mainUrl = generation.outputImagePath
+
+    if (Array.isArray(generation.outputs) && generation.outputs.length > 0) {
+      generation.outputs.forEach((output: any, index: number) => {
+        const variantUrl = output.imageUrl || (output.base64Image ? `data:image/jpeg;base64,${output.base64Image}` : '')
+        if (variantUrl) {
+          variants.push({ url: variantUrl, label: output.label || `Option ${index + 1}` })
+        }
+      })
+      if (variants.length > 0) {
+        return variants
+      }
+    }
 
     if (!mainUrl) return [{ url: '', label: 'Result' }]
 
@@ -423,7 +418,7 @@ export default function InfluencerDashboard() {
                       </p>
                     </div>
                     {/* Status Dot */}
-                    <div className={`w-3 h-3 rounded-none border border-black ${job.status?.toLowerCase() === 'completed' || job.status?.toLowerCase() === 'complete' ? 'bg-[#98FB98]' : 'bg-[#FFE4B5]'}`} />
+                    <div className={`w-3 h-3 rounded-none border border-black ${job.status?.toLowerCase() === 'completed' || job.status?.toLowerCase() === 'complete' || job.status?.toLowerCase() === 'completed_partial' ? 'bg-[#98FB98]' : 'bg-[#FFE4B5]'}`} />
                   </div>
                 </motion.div>
               ))}
@@ -454,146 +449,111 @@ export default function InfluencerDashboard() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-md flex flex-col"
+            className="fixed inset-0 flex items-center justify-center bg-black/85 p-2 backdrop-blur-md sm:p-4"
             onClick={closeVariantViewer}
           >
-            {/* Large Floating Back Button - Restored & Styled - Z-Index Safe */}
-            <motion.button
-              onClick={closeVariantViewer}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="absolute top-4 left-4 z-[10000] md:hidden flex items-center gap-2 px-4 py-3 bg-white text-black rounded-xl font-bold border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              <span className="sr-only">Back</span>
-            </motion.button>
-
-            {/* Header */}
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-white/20 relative z-[200]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Left side - Back button + Actions */}
-              <div className="flex items-center gap-3">
-                <motion.button
-                  onClick={closeVariantViewer}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-white text-black rounded-lg text-sm font-bold border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-colors"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Back
-                </motion.button>
-                <motion.button
-                  onClick={() => handleDownload(getGenerationVariants(selectedGeneration)[selectedVariantIndex]?.url)}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-white text-black rounded-lg text-sm font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-[2px] border-black"
-                >
-                  <Download className="w-4 h-4" />
-                  Download
-                </motion.button>
-                <motion.button
-                  onClick={() => handleShare(getGenerationVariants(selectedGeneration)[selectedVariantIndex]?.url)}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-[#FF8C69] text-black rounded-lg text-sm font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-[2px] border-black"
-                >
-                  <Share2 className="w-4 h-4" />
-                  Share
-                </motion.button>
-              </div>
-
-              <div className="text-center">
-                <span className="text-white/60 text-xs font-mono">Generation</span>
-                <p className="text-white font-mono text-sm">#{selectedGeneration.id.slice(0, 8)}</p>
-              </div>
-
+            <div className="relative flex h-[min(92dvh,960px)] w-full max-w-[min(96vw,1240px)] flex-col overflow-hidden rounded-[28px] border-[3px] border-black bg-[#171717] shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
               <motion.button
                 onClick={closeVariantViewer}
-                whileHover={{ scale: 1.1, rotate: 90 }}
-                whileTap={{ scale: 0.9 }}
-                className="p-2.5 bg-white text-black rounded-lg border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="absolute top-4 left-4 z-[10000] flex items-center gap-2 rounded-xl border-[3px] border-black bg-white px-4 py-3 font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] md:hidden"
               >
-                <X className="w-5 h-5" />
+                <ArrowLeft className="w-5 h-5" />
+                <span className="sr-only">Back</span>
               </motion.button>
-            </motion.div>
 
-            {/* Main Image Display */}
-            <div className="flex-1 flex items-center justify-center p-4 sm:p-8 relative z-[100]" onClick={(e) => e.stopPropagation()}>
-              {/* Navigation Arrows */}
-              {getGenerationVariants(selectedGeneration).length > 1 && (
-                <>
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="relative z-[200] flex items-center justify-between border-b border-white/10 bg-[#111111] px-4 py-4 sm:px-6"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex flex-wrap items-center gap-3">
                   <motion.button
-                    onClick={() => navigateVariant('prev')}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    className="absolute left-4 sm:left-8 p-3 bg-white text-black rounded-full border-[2px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-10"
-                  >
-                    <ChevronLeft className="w-6 h-6" />
-                  </motion.button>
-                  <motion.button
-                    onClick={() => navigateVariant('next')}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    className="absolute right-4 sm:right-8 p-3 bg-white text-black rounded-full border-[2px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-10"
-                  >
-                    <ChevronRight className="w-6 h-6" />
-                  </motion.button>
-                </>
-              )}
-
-              <motion.img
-                key={selectedVariantIndex}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                src={getGenerationVariants(selectedGeneration)[selectedVariantIndex]?.url}
-                alt="Generated image"
-                className="max-w-full max-h-[85vh] object-contain rounded-xl border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(255,255,255,0.2)]"
-                draggable={false}
-              />
-            </div>
-
-            {/* Variant Thumbnails */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="px-4 sm:px-6 py-4 border-t border-white/10 relative z-[200]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-center gap-4">
-                {getGenerationVariants(selectedGeneration).map((variant: any, idx: number) => (
-                  <motion.button
-                    key={idx}
-                    onClick={() => setSelectedVariantIndex(idx)}
+                    onClick={closeVariantViewer}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className={`relative rounded-lg overflow-hidden border-[3px] transition-all ${selectedVariantIndex === idx
-                      ? 'border-[#FF8C69] shadow-[4px_4px_0px_0px_#FF8C69]'
-                      : 'border-white/20 hover:border-white/50'
-                      }`}
+                    className="flex items-center gap-2 rounded-lg border-[2px] border-black bg-white px-4 py-2.5 text-sm font-bold text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-colors"
                   >
-                    <img
-                      src={variant.url}
-                      alt={variant.label}
-                      className="w-20 h-28 sm:w-24 sm:h-32 object-cover"
-                    />
-                    <div className={`absolute bottom-0 left-0 right-0 py-1.5 text-center text-[10px] font-bold uppercase ${selectedVariantIndex === idx
-                      ? 'bg-[#FF8C69] text-black'
-                      : 'bg-black/60 text-white'
-                      }`}>
-                      {variant.label}
-                    </div>
+                    <ArrowLeft className="w-4 h-4" />
+                    Back
                   </motion.button>
-                ))}
+                  <motion.button
+                    onClick={() => handleDownload(getGenerationVariants(selectedGeneration)[selectedVariantIndex]?.url)}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center gap-2 rounded-lg border-[2px] border-black bg-white px-4 py-2.5 text-sm font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download
+                  </motion.button>
+                  <motion.button
+                    onClick={() => handleShare(getGenerationVariants(selectedGeneration)[selectedVariantIndex]?.url)}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center gap-2 rounded-lg border-[2px] border-black bg-[#FF8C69] px-4 py-2.5 text-sm font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    Share
+                  </motion.button>
+                </div>
+
+                <div className="text-center">
+                  <span className="text-xs font-mono text-white/60">Generation</span>
+                  <p className="text-sm font-mono text-white">#{selectedGeneration.id.slice(0, 8)}</p>
+                </div>
+
+                <motion.button
+                  onClick={closeVariantViewer}
+                  whileHover={{ scale: 1.1, rotate: 90 }}
+                  whileTap={{ scale: 0.9 }}
+                  className="rounded-lg border-[2px] border-black bg-white p-2.5 text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                >
+                  <X className="w-5 h-5" />
+                </motion.button>
+              </motion.div>
+
+              <div className="relative z-[100] flex min-h-0 flex-1 p-2 sm:p-4" onClick={(e) => e.stopPropagation()}>
+                {getGenerationVariants(selectedGeneration).length > 1 && (
+                  <>
+                    <motion.button
+                      onClick={() => navigateVariant('prev')}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      className="absolute left-4 top-1/2 z-10 -translate-y-1/2 rounded-full border-[2px] border-black bg-white p-3 text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:left-8"
+                    >
+                      <ChevronLeft className="w-6 h-6" />
+                    </motion.button>
+                    <motion.button
+                      onClick={() => navigateVariant('next')}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      className="absolute right-4 top-1/2 z-10 -translate-y-1/2 rounded-full border-[2px] border-black bg-white p-3 text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:right-8"
+                    >
+                      <ChevronRight className="w-6 h-6" />
+                    </motion.button>
+                  </>
+                )}
+
+                <div className="flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.14),_rgba(255,255,255,0.04)_38%,_rgba(0,0,0,0.22)_100%)] px-4 py-5 sm:px-10 sm:py-8">
+                  <motion.img
+                    key={selectedVariantIndex}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    src={getGenerationVariants(selectedGeneration)[selectedVariantIndex]?.url}
+                    alt="Generated image"
+                    className="block h-auto max-h-full w-auto max-w-full rounded-[20px] border-[3px] border-black/70 object-contain shadow-[0_20px_40px_rgba(0,0,0,0.38)]"
+                    draggable={false}
+                  />
+                </div>
               </div>
-            </motion.div>
+
+            </div>
           </motion.div>
         )}
       </PortalModal>
@@ -612,6 +572,4 @@ export default function InfluencerDashboard() {
     </div>
   )
 }
-
-
 

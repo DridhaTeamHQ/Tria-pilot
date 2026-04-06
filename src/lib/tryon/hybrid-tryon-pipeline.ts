@@ -25,6 +25,7 @@ import { compositeFacePixels, extractFacePixels, type FaceBox } from './face-pix
 import { runIntelligentPreAnalysis } from './intelligence/intelligent-pipeline'
 import { runIntelligentRAG } from './intelligent-rag-system'
 import { getWebResearchContext } from './web-research'
+import { assessIdentityAndComposition } from './identity-composition-check'
 
 import { generateWithNanoBananaPro } from './nano-banana-pro-renderer'
 
@@ -69,6 +70,9 @@ export interface HybridTryOnInput {
   productId?: string | null
   inputPose?: 'standing' | 'sitting' | 'leaning'
   inputFraming?: 'close' | 'mid' | 'full'
+  strictSwap?: boolean
+  polishNotes?: string
+  characterReferenceBase64s?: { base64: string; label: string }[]
 }
 
 export interface HybridTryOnResult {
@@ -339,6 +343,7 @@ async function resolveGarmentAssetLocal(params: {
 }): Promise<{
   cleanGarmentBase64: string
   garmentDescription: string
+  garmentIdentityLock: string
 }> {
   const rawBase64 = stripDataUrl(params.clothingImageBase64)
   const garmentHash = hashImageForGarment(rawBase64)
@@ -347,6 +352,7 @@ async function resolveGarmentAssetLocal(params: {
   if (isDev) console.log('👕 Analyzing garment reference image...')
   let garmentAnalysis: GarmentAnalysis | null = null
   let garmentDescription = ''
+  let garmentIdentityLock = ''
   try {
     garmentAnalysis = await analyzeGarmentForensic(params.clothingImageBase64)
     const dominantColor = await estimateDominantGarmentColor(params.clothingImageBase64)
@@ -366,10 +372,16 @@ async function resolveGarmentAssetLocal(params: {
     if (sampledColor && analyzedColor && sampledColor.toLowerCase() !== analyzedColor.toLowerCase()) {
       if (isDev) console.log(`   Color fidelity: sampled="${sampledColor}", analyzed="${analyzedColor}" (using sampled)`)
     }
+    garmentIdentityLock = buildGarmentIdentityLock({
+      ...garmentAnalysis,
+      primaryColor,
+    })
     if (isDev) console.log(`   Description: "${garmentDescription}"`)
+    if (isDev && garmentIdentityLock) console.log(`   Garment lock: "${garmentIdentityLock}"`)
   } catch (analysisErr) {
     console.warn('⚠️ Garment analysis failed, using generic description:', analysisErr)
     garmentDescription = 'garment from reference image'
+    garmentIdentityLock = ''
   }
 
   // Check if we already have a clean extracted garment cached
@@ -379,6 +391,7 @@ async function resolveGarmentAssetLocal(params: {
     return {
       cleanGarmentBase64: await fetchImageAsBase64(existing.clean_garment_image_url),
       garmentDescription,
+      garmentIdentityLock,
     }
   }
 
@@ -407,7 +420,33 @@ async function resolveGarmentAssetLocal(params: {
     verified: false,
   })
 
-  return { cleanGarmentBase64: extractedGarmentBase64, garmentDescription }
+  return { cleanGarmentBase64: extractedGarmentBase64, garmentDescription, garmentIdentityLock }
+}
+
+function buildGarmentIdentityLock(analysis: GarmentAnalysis): string {
+  const parts: string[] = []
+
+  if (analysis.garmentType) parts.push(`same ${analysis.garmentType}`)
+  if (analysis.primaryColor) parts.push(`same ${analysis.primaryColor} color`)
+  if (analysis.colorDetails && analysis.colorDetails !== 'solid throughout') parts.push(analysis.colorDetails)
+  if (analysis.necklineType) parts.push(`${analysis.necklineType} neckline`)
+  if (analysis.sleeveType) parts.push(`${analysis.sleeveType} sleeves`)
+  if (analysis.fitType) parts.push(`${analysis.fitType} fit`)
+  if (analysis.lengthStyle) parts.push(`${analysis.lengthStyle} length`)
+  if (analysis.fabricType || analysis.fabricTexture) {
+    parts.push([analysis.fabricTexture, analysis.fabricType].filter(Boolean).join(' '))
+  }
+  if (analysis.patternType && analysis.patternType !== 'solid') {
+    parts.push(`${analysis.patternType} pattern`)
+  }
+  if (analysis.patternDescription && analysis.patternDescription !== 'no pattern') {
+    parts.push(analysis.patternDescription)
+  }
+  if (analysis.designElements?.length) {
+    parts.push(`details: ${analysis.designElements.slice(0, 4).join(', ')}`)
+  }
+
+  return parts.join('; ')
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -433,7 +472,7 @@ export async function runHybridTryOnPipeline(
   // - If person detected in reference → Flash extracts clean garment
   // - Returns: clean garment image + text description
   // ═══════════════════════════════════════════════════════════════
-  const { cleanGarmentBase64, garmentDescription } = await resolveGarmentAssetLocal({
+  const { cleanGarmentBase64, garmentDescription, garmentIdentityLock } = await resolveGarmentAssetLocal({
     clothingImageBase64: input.clothingImageBase64,
     productId: input.productId,
   })
@@ -447,7 +486,8 @@ export async function runHybridTryOnPipeline(
   let webResearchCacheHit: boolean | undefined
   let webResearchSourceCount: number | undefined
   let preAnalysisEnabled = false
-  try {
+  if (!input.strictSwap && ENABLE_INTELLIGENT_PREANALYSIS) {
+    try {
     const preAnalysis = await runIntelligentPreAnalysis(
       input.personImageBase64,
       cleanGarmentBase64
@@ -474,6 +514,7 @@ export async function runHybridTryOnPipeline(
   } catch (intelligenceError) {
     console.warn('⚠️ Intelligent pre-analysis/RAG unavailable, continuing with base pipeline:', intelligenceError)
   }
+  }
 
   // STEP 2: Nano Banana Pro Rendering
   // - Final image model is hard-locked to gemini-3-pro-image-preview
@@ -482,6 +523,7 @@ export async function runHybridTryOnPipeline(
     personImageBase64: input.personImageBase64,
     garmentImageBase64: cleanGarmentBase64,
     garmentDescription,
+    garmentIdentityLock,
     aspectRatio: input.aspectRatio,
     presetId: input.preset?.id,
     // Pass the FULL scene description (not just the internal ID)
@@ -491,6 +533,9 @@ export async function runHybridTryOnPipeline(
     researchContext: intelligenceContext,
     webResearchContext,
     userId: input.userId,  // For character reference resolution
+    strictSwap: input.strictSwap,
+    polishNotes: input.polishNotes,
+    characterReferenceBase64s: input.characterReferenceBase64s,
   })
 
   if (!renderResult.success) {
@@ -563,6 +608,37 @@ export async function runHybridTryOnPipeline(
     faceLockReason = 'not_needed_low_drift'
   }
 
+  if (faceConsistencyGateFailed && !faceOverwritten) {
+    const gateReason = String(renderResult.debug?.faceConsistencyGate?.reason || 'unknown')
+    warnings.push(`Strict face consistency gate flagged output (${gateReason}). Running output QA before final decision.`)
+  }
+
+  let outputQualityAssessment: Awaited<ReturnType<typeof assessIdentityAndComposition>> | null = null
+  try {
+    outputQualityAssessment = await assessIdentityAndComposition({
+      sourceImageBase64: input.personImageBase64,
+      generatedImageBase64: finalImage,
+      garmentImageBase64: cleanGarmentBase64,
+      presetId: input.preset?.id,
+      anchorZone: input.preset?.background_name,
+    })
+
+    if (outputQualityAssessment.shouldRetry) {
+      const { faceIdentity, bodyConsistency, garmentFidelity, compositionQuality, backgroundIntegrity } = outputQualityAssessment.scores
+      warnings.push(
+        `Output quality gate flagged mismatch (face=${faceIdentity}, body=${bodyConsistency}, garment=${garmentFidelity}, composition=${compositionQuality}, background=${backgroundIntegrity}).`
+      )
+      throw new Error(
+        `Try-on output rejected by quality gate: face=${faceIdentity}, garment=${garmentFidelity}, body=${bodyConsistency}, composition=${compositionQuality}, background=${backgroundIntegrity}`
+      )
+    }
+  } catch (qualityError) {
+    if (outputQualityAssessment?.shouldRetry) {
+      throw qualityError
+    }
+    console.warn('⚠️ Output quality assessment unavailable, continuing with rendered image:', qualityError)
+  }
+
   // 3. Return Result
   return {
     success: true,
@@ -589,6 +665,7 @@ export async function runHybridTryOnPipeline(
           applied: faceOverwritten,
           reason: faceLockReason,
         },
+        outputQualityAssessment,
       }
     }
   }

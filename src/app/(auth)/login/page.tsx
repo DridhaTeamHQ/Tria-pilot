@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { motion, LayoutGroup } from 'framer-motion'
 import Link from 'next/link'
 import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { setAuthToast } from '@/components/auth-toast-bridge'
 import { createClient } from '@/lib/auth-client'
 import { getPublicSiteUrlClient } from '@/lib/site-url'
@@ -30,6 +31,7 @@ export default function LoginPage() {
 
 function LoginContent() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const searchParams = useSearchParams()
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
@@ -41,12 +43,12 @@ function LoginContent() {
 
   const getSafeRedirectTarget = () => {
     const redirectTarget = searchParams.get('redirect')
-    if (!redirectTarget) return '/dashboard'
+    if (!redirectTarget) return '/marketplace'
 
     const value = redirectTarget.trim()
-    if (!value.startsWith('/') || value.startsWith('//')) return '/dashboard'
-    if (value.includes('\r') || value.includes('\n')) return '/dashboard'
-    if (value.startsWith('/admin')) return '/dashboard'
+    if (!value.startsWith('/') || value.startsWith('//')) return '/marketplace'
+    if (value.includes('\r') || value.includes('\n')) return '/marketplace'
+    if (value.startsWith('/admin')) return '/marketplace'
 
     return value
   }
@@ -65,7 +67,7 @@ function LoginContent() {
 
     if (role === 'BRAND') {
       if (!onboardingCompleted) return '/onboarding/brand'
-      return fallbackTarget === '/dashboard' ? '/brand/dashboard' : fallbackTarget
+      return fallbackTarget
     }
 
     if (!onboardingCompleted) return '/onboarding/influencer'
@@ -134,19 +136,29 @@ function LoginContent() {
   const isLayoutFlipped = userType === 'brand'
   const isUsernameEntry = Boolean(identifier.trim()) && !identifier.includes('@')
 
-  const waitForServerSession = async () => {
-    for (let i = 0; i < 10; i++) {
-      const meRes = await fetch('/api/auth/me', {
-        credentials: 'include',
-        cache: 'no-store',
-      })
-      if (meRes.ok) {
-        const meData = await meRes.json().catch(() => null)
-        if (meData?.user) return meData.user
-      }
-      await new Promise((resolve) => setTimeout(resolve, 300))
+  const fetchAuthoritativeUser = async () => {
+    const meRes = await fetch('/api/auth/me', {
+      credentials: 'include',
+      cache: 'no-store',
+    })
+
+    if (!meRes.ok) {
+      throw new Error('Could not verify signed-in account state')
     }
-    return null
+
+    const meData = await meRes.json().catch(() => ({}))
+    if (!meData?.user) {
+      throw new Error('Signed in, but account data could not be loaded')
+    }
+
+    return {
+      ...meData.user,
+      onboardingCompleted:
+        meData.user.onboardingCompleted ?? Boolean(meData.profile?.onboarding_completed),
+      approvalStatus:
+        meData.user.approvalStatus ?? meData.profile?.approval_status ?? 'none',
+      avatarUrl: meData.user.avatarUrl ?? meData.profile?.avatar_url ?? null,
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -169,6 +181,7 @@ function LoginContent() {
           identifier: normalizedIdentifier,
           password,
           rememberMe: true,
+          portalRole: userType,
         }),
       })
 
@@ -190,16 +203,37 @@ function LoginContent() {
           return
         }
 
+        if (data?.errorCode === 'ROLE_MISMATCH') {
+          const requestedLabel = data?.requestedRole === 'brand' ? 'brand' : 'influencer'
+          const actualLabel = data?.actualRole === 'brand' ? 'brand' : 'influencer'
+          if (data?.actualRole === 'brand' || data?.actualRole === 'influencer') {
+            setUserType(data.actualRole)
+          }
+          showErrorToast(
+            'Wrong portal for this account',
+            `This account belongs to the ${actualLabel} portal. Use the ${actualLabel} login instead of ${requestedLabel}.`
+          )
+          return
+        }
+
         showErrorToast('Sign-in failed', data.error ?? 'Please try again.')
         return
       }
 
-      const sessionUser = await waitForServerSession()
+      const sessionUser = data?.user ?? null
       const redirectTarget = getSafeRedirectTarget()
-      const nextTarget = getPostLoginDestination(data?.user, redirectTarget)
+      let resolvedUser = sessionUser
       const normalizedRecoveryEmail = recoveryEmail.trim().toLowerCase()
 
-      if (sessionUser && isSyntheticEmail(sessionUser.email) && normalizedRecoveryEmail) {
+      if (sessionUser) {
+        queryClient.removeQueries({ queryKey: ['user'] })
+        resolvedUser = await fetchAuthoritativeUser()
+        queryClient.setQueryData(['user'], resolvedUser)
+      }
+
+      const nextTarget = getPostLoginDestination(resolvedUser, redirectTarget)
+
+      if (resolvedUser && isSyntheticEmail(resolvedUser.email) && normalizedRecoveryEmail) {
         const recoveryRes = await fetch('/api/auth/change-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -227,16 +261,8 @@ function LoginContent() {
         showInfoToast('Profile under review', 'Your creator account is still pending approval.')
       }
 
-      if (typeof window !== 'undefined') {
-        window.location.assign(nextTarget)
-        return
-      }
-
-      if (sessionUser) {
-        router.replace(nextTarget)
-      } else {
-        router.replace('/dashboard')
-      }
+      router.replace(nextTarget)
+      router.refresh()
     } catch (error: unknown) {
       console.error('Login error:', error)
       showErrorToast('Sign-in failed', error instanceof Error ? error.message : 'Please try again.')

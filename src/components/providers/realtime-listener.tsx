@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { createClient } from '@/lib/auth-client'
 import { useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { toast } from '@/lib/simple-sonner'
 import { useUser } from '@/lib/react-query/hooks'
 import { useRouter } from 'next/navigation'
 
@@ -56,7 +56,7 @@ export function RealtimeListener() {
                 {
                     event: 'UPDATE',
                     schema: 'public',
-                    table: 'generations',
+                    table: 'generation_jobs',
                     filter: `user_id=eq.${user.id}`,
                 },
                 (payload: any) => {

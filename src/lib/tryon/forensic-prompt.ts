@@ -18,6 +18,7 @@ import type { PresetStrengthProfile } from './preset-strength-profile'
 
 export interface ForensicPromptInput {
   garmentDescription?: string
+  garmentIdentityLock?: string
   preset?: string
   lighting?: string
   realismGuidance?: string
@@ -60,77 +61,112 @@ export interface ForensicPromptInput {
   perceivedGender?: 'masculine' | 'feminine' | 'neutral'
   /** Anti-drift directives from face forensics */
   antiDriftDirectives?: string
+  /** Strict swap mode keeps scene, pose, and camera anchored to Image 1 */
+  strictSwap?: boolean
+  /** Limited finish notes for cleanup, crop, and polish */
+  polishNotes?: string
 }
 
 export function buildForensicPrompt(input: ForensicPromptInput): string {
-  const isGPT = Boolean(input.useGPTImageFormat)
   const aspectRatio = input.aspectRatio || '1:1'
   const hasFaceReference = Boolean(input.hasFaceReference)
 
-  // Image references differ between Gemini and GPT Image
-  const personRef = isGPT ? 'the person photo' : 'Image 1'
-  const garmentRef = isGPT ? 'the garment photo' : 'Image 2'
-  const faceCropRef = isGPT ? 'the face close-up photo' : 'Image 3 (close-up)'
+  // Always use "Image 1/2/3" references — Gemini is the primary render engine
+  const personRef = 'Image 1'
+  const garmentRef = 'Image 2'
+  const faceCropRef = 'Image 3'
   const garment = input.garmentDescription?.trim() || `garment from ${garmentRef}`
 
-  // Extract a SHORT scene description (max 120 chars) from the preset
   const rawPreset = input.preset?.trim() || ''
-  const keepBgPhrase = isGPT ? 'keep the original background' : 'keep background from Image 1'
-  const isSceneChange = rawPreset && rawPreset !== keepBgPhrase
-  // Use the full scene description so Gemini understands the preset deeply
-  const sceneBrief = isSceneChange ? input.preset : ''
+  const isStrictSwap = Boolean(input.strictSwap)
+  const isSceneChange = !isStrictSwap && rawPreset && rawPreset !== `keep background from ${personRef}`
+  const polishNotes = sanitizePolishNotes(input.polishNotes)
 
-  // Provide the full lighting blueprint for realistic integration
+  // CONDENSE scene and lighting to save token budget for identity signal
+  const sceneBrief = isSceneChange ? condenseScene(rawPreset, 150) : ''
   const lightingBrief = isSceneChange && input.lightingBlueprint
-    ? input.lightingBlueprint
+    ? condenseLighting(input.lightingBlueprint, 60)
     : ''
 
   // ═══════════════════════════════════════════════════════════════════════
-  // CLEAN, CREATIVE PROMPT — ~400-600 chars total
-  // Let 4o be creative. Only lock: face identity + garment design.
-  // Everything else (pose, angle, expression, lighting, depth) = 4o's choice.
+  // CONCISE PROMPT — target ~500-800 chars
+  // Research shows: shorter prompt = stronger image-reference signal.
+  // Let the reference images dictate the face. Text only provides
+  // macro-level identity + scene composition + garment instruction.
   // ═══════════════════════════════════════════════════════════════════════
 
   const lines: string[] = []
 
-  // ── BLOCK 1: WHO (face identity — first position for max attention) ──
-  const namePrefix = input.nameAnchor ? `${input.nameAnchor}. ` : ''
+  // ── BLOCK 1: WHO (minimal — let images do the talking) ──
   if (input.identityDNA) {
     lines.push(
-      `${namePrefix}Photograph this exact person: ${input.identityDNA} Use ${personRef}${hasFaceReference ? ` and ${faceCropRef}` : ''} as face reference — same face, same features, same person.`
+      `${personRef}: ${input.identityDNA}`
     )
   } else {
     lines.push(
-      `${namePrefix}Photograph the exact person from ${personRef}${hasFaceReference ? ` and ${faceCropRef}` : ''} — same face, same features, same skin, same person.`
+      `Create a photorealistic edit of the exact person from ${personRef}${hasFaceReference ? ` and ${faceCropRef}` : ''}.`
     )
+  }
+  lines.push(`Copy the face from the reference photos exactly. Do not reconstruct from text.`)
+  if (input.bodyAnchor) {
+    lines.push(`Keep the same body build and proportions from ${personRef}.`)
+  }
+  if (isStrictSwap) {
+    lines.push(`Keep the original pose, camera angle, framing, and scene from ${personRef}.`)
+  }
+  lines.push(`Treat this as editing ${personRef} with a new outfit, not generating a different person.`)
+  lines.push('')
+
+  // ── BLOCK 2: WHAT ──
+  lines.push(
+    `OUTFIT: Dress in the garment from ${garmentRef}: ${garment}. Match exact garment type, hem length, neckline, sleeves, colors, pattern, and fabric.`
+  )
+  if (input.garmentIdentityLock) {
+    lines.push(`Garment lock: ${input.garmentIdentityLock}.`)
   }
   lines.push('')
 
-  // ── BLOCK 2: WHAT (garment — must be strong enough for 4o to follow) ──
-  lines.push(
-    `OUTFIT: Put this person in the COMPLETE outfit shown in ${garmentRef} — ${garment}. Copy every piece of clothing visible in ${garmentRef}: top, bottom, layers, accessories, shoes. Match the exact colors, patterns, and fabric from ${garmentRef}. Do NOT keep any clothing from ${personRef}. The outfit must come ONLY from ${garmentRef}.`
-  )
-  lines.push('')
-
+  // ── BLOCK 3: WHERE ──
   if (isSceneChange && sceneBrief) {
     lines.push(
-      `Scene Environment: ${sceneBrief}.
-Lighting & Atmosphere: ${lightingBrief || 'Natural lighting'}
-Photograph this person as if they were actually in this exact environment. Ensure their lighting matches the environment lighting perfectly. One cohesive, photorealistic photograph, ${aspectRatio} aspect ratio.`
+      `Scene: ${sceneBrief}. Photorealistic, ${aspectRatio}.`
     )
   } else {
     lines.push(
-      `Keep original background from ${personRef}. Photorealistic, ${aspectRatio} aspect ratio.`
+      `Keep original background from ${personRef}. Photorealistic, ${aspectRatio}.`
     )
   }
 
-  // ── RETRY (only if previous attempt failed) ──
+  if (isStrictSwap) {
+    lines.push(`Only replace the clothing and harmonize lighting, color, cleanup, crop, and final polish.`)
+  }
+  if (polishNotes) {
+    lines.push(`Polish only: ${polishNotes}.`)
+  }
+
+  // ── RETRY ──
   if (input.retryMode) {
     lines.push('')
-    lines.push(`IMPORTANT: Previous attempt changed the face. This time, copy the face from ${personRef} exactly.`)
+    lines.push(`Previous attempt drifted from the references. Copy the face from ${personRef} exactly and keep the garment from ${garmentRef} unchanged this time.`)
   }
 
   return lines.join('\n')
+}
+
+function sanitizePolishNotes(notes?: string): string {
+  const value = notes?.trim()
+  if (!value) return ''
+
+  const forbidden = /(background|scene|location|set|studio|street|pose|camera|lens|angle|zoom|environment)/i
+  const sentences = value
+    .split(/[.!?]+/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean)
+    .filter((sentence) => !forbidden.test(sentence))
+
+  const sanitized = sentences.join('. ').trim()
+  if (!sanitized) return ''
+  return sanitized.length <= 180 ? sanitized : sanitized.slice(0, 177).trimEnd() + '...'
 }
 
 /**
@@ -199,4 +235,10 @@ function condenseLighting(lighting: string, maxLen: number): string {
   // Fallback: take first short phrase
   const brief = lighting.split('.')[0].trim()
   return brief.length > maxLen ? brief.substring(0, maxLen - 3) + '...' : brief
+}
+
+function condenseIdentityDirective(text: string, maxLen: number): string {
+  const normalized = text.replace(/\s+/g, ' ').trim()
+  if (normalized.length <= maxLen) return normalized
+  return normalized.substring(0, maxLen - 3).trimEnd() + '...'
 }

@@ -212,13 +212,8 @@ Return ONLY valid JSON with this structure:
 
         const content = response.choices[0]?.message?.content || ''
 
-        // Parse JSON
-        const jsonMatch = content.match(/\{[\s\S]*\}/)
-        if (!jsonMatch) {
-            throw new Error('No JSON found in response')
-        }
-
-        const parsed = JSON.parse(jsonMatch[0])
+        const { extractJson } = await import('@/lib/tryon/json-repair')
+        const parsed = extractJson<Record<string, any>>(content)
 
         const analysis: UserAnalysis = {
             face: {

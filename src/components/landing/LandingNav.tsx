@@ -2,49 +2,31 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Menu, X } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { usePathname } from 'next/navigation'
 
 const navLinkClass =
-  'flex w-full items-center justify-center rounded-2xl bg-black/5 px-4 py-4 text-[16px] font-bold text-gray-800 transition-all duration-300 hover:bg-black/10 hover:text-black active:scale-[0.98]'
-
-const loginButtonClass =
-  'inline-flex items-center justify-center rounded-full border-[1.5px] border-black/80 px-7 py-[11px] text-[13px] font-bold uppercase tracking-wider transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.2)] active:translate-y-0 active:shadow-none'
+  'flex w-full items-center justify-center rounded-[14px] border border-black/10 bg-white/75 px-4 py-3 text-[15px] font-bold text-gray-800 backdrop-blur-sm transition-all duration-300 hover:border-black/20 hover:bg-white/90 hover:text-black active:scale-[0.98]'
 
 const desktopNavItemClass =
-  'relative inline-flex items-center px-4 py-2 text-[15px] transition-colors duration-300 z-10'
+  'relative inline-flex items-center justify-center rounded-full px-4 py-2 text-[15px] font-black transition-colors duration-300 z-10'
 
 const LINKS = [
   { href: '/', label: 'Home' },
   { href: '/#what-you-get', label: 'What You Get' },
   { href: '/marketplace', label: 'Marketplace' },
-  { href: '/#contact', label: 'Contact us' }
+  { href: '/contact', label: 'Contact us' }
 ]
 
 export default function LandingNav() {
   const [open, setOpen] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
   const pathname = usePathname()
-
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
 
   const activeIndex = pathname === '/' ? 0 : pathname === '/marketplace' ? 2 : 0
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20)
-    }
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
-
-  useEffect(() => {
-    if (open) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = 'unset'
-    }
+    document.body.style.overflow = open ? 'hidden' : 'unset'
     return () => {
       document.body.style.overflow = 'unset'
     }
@@ -54,123 +36,115 @@ export default function LandingNav() {
     <>
       <nav
         aria-label="Main navigation"
-        className={`fixed inset-x-0 top-0 z-50 transition-all duration-500 ${scrolled || open
-            ? 'border-b border-black/5 bg-white/80 shadow-sm backdrop-blur-xl'
-            : 'border-b border-transparent bg-transparent'
-          }`}
+        className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-4 lg:px-6 lg:pt-4"
         style={{ fontFamily: 'var(--font-plus-jakarta-sans), sans-serif' }}
       >
-        <div
-          className={`mx-auto flex max-w-[1438px] items-center justify-between gap-5 px-5 transition-all duration-500 lg:px-8 xl:px-10 ${scrolled ? 'py-3' : 'py-5'
-            }`}
-        >
-          <Link
-            href="/"
-            className="kiwikoo-wordmark relative z-50 text-[24px] font-black leading-none text-black transition-transform duration-300 hover:scale-105 sm:text-[28px]"
-            onClick={() => setOpen(false)}
-          >
-            Kiwikoo
-          </Link>
-
-          <div
-            className="hidden items-center gap-2 lg:flex"
-            onMouseLeave={() => setHoveredIndex(null)}
-          >
-            {LINKS.map((link, idx) => {
-              const isActive = activeIndex === idx
-              const isHovered = hoveredIndex === idx
-              const isTarget = isHovered || (isActive && hoveredIndex === null)
-
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onMouseEnter={() => setHoveredIndex(idx)}
-                  className={`${desktopNavItemClass} ${isTarget ? 'font-[900] text-black' : 'font-[800] text-[#333333] hover:text-black'}`}
-                >
-                  {isTarget && (
-                    <motion.div
-                      layoutId="nav-pill"
-                      className="absolute inset-0 rounded-[20px] border-[1.5px] border-black/15 bg-white shadow-[0_2px_8px_-2px_rgba(0,0,0,0.08)] -z-10"
-                      initial={false}
-                      transition={{
-                        type: 'spring',
-                        stiffness: 400,
-                        damping: 30
-                      }}
-                    />
-                  )}
-                  {link.label}
-                </Link>
-              )
-            })}
-          </div>
-
-          <div className="hidden items-center gap-4 lg:flex">
+        <div className="mx-auto max-w-[1320px] rounded-[26px] border-[2px] border-black/85 bg-[rgba(255,255,255,0.68)] px-4 py-2.5 shadow-[5px_6px_0_0_rgba(0,0,0,0.92)] backdrop-blur-xl sm:px-5 lg:px-6">
+          <div className="flex items-center justify-between gap-4">
             <Link
-              href="/login"
-              className={`${loginButtonClass} bg-[#ff8c78] text-black border-transparent shadow-[0_4px_14px_0_rgba(255,140,120,0.39)] hover:shadow-[0_6px_20px_rgba(255,140,120,0.23)] hover:border-[#ff8c78]/50`}
+              href="/"
+              className="kiwikoo-wordmark text-[21px] font-black leading-none text-black transition-transform duration-300 hover:scale-[1.03] sm:text-[24px]"
+              onClick={() => setOpen(false)}
             >
-              Influencer Login
+              Kiwikoo
             </Link>
-            <Link href="/login?from=brand" className={`${loginButtonClass} bg-white text-black`}>
-              Brand Login
-            </Link>
-          </div>
 
-          <button
-            type="button"
-            aria-label={open ? 'Close menu' : 'Open menu'}
-            onClick={() => setOpen((prev) => !prev)}
-            className="relative z-50 inline-flex h-11 w-11 items-center justify-center rounded-full bg-black/5 text-black transition-all duration-300 hover:bg-black/10 active:scale-90 lg:hidden"
-          >
-            <div className="relative flex h-5 w-5 items-center justify-center">
-              <span
-                className={`absolute h-[2px] w-5 bg-black transition-all duration-300 ${open ? 'rotate-45' : '-translate-y-1.5'
-                  }`}
-              />
-              <span
-                className={`absolute h-[2px] w-5 bg-black transition-all duration-300 ${open ? 'opacity-0' : 'opacity-100'
-                  }`}
-              />
-              <span
-                className={`absolute h-[2px] w-5 bg-black transition-all duration-300 ${open ? '-rotate-45' : 'translate-y-1.5'
-                  }`}
-              />
+            <div
+              className="hidden items-center gap-2 lg:flex"
+              onMouseLeave={() => setHoveredIndex(null)}
+            >
+              {LINKS.map((link, idx) => {
+                const isActive = activeIndex === idx
+                const isHovered = hoveredIndex === idx
+                const isTarget = isHovered || (isActive && hoveredIndex === null)
+
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onMouseEnter={() => setHoveredIndex(idx)}
+                    className={`${desktopNavItemClass} ${isTarget ? 'text-black' : 'text-black/65 hover:text-black'}`}
+                  >
+                  {isTarget && (
+                    <motion.span
+                      layoutId="landing-nav-pill"
+                      className="absolute inset-0 -z-10 rounded-full border-[2px] border-black bg-white/95 shadow-[2px_3px_0_0_rgba(0,0,0,0.95)]"
+                      initial={false}
+                      transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+                    />
+                    )}
+                    {link.label}
+                  </Link>
+                )
+              })}
             </div>
-          </button>
+
+            <div className="hidden items-center gap-2 lg:flex">
+              <div className="flex items-center gap-1.5 rounded-full border-[2px] border-black bg-white/88 p-1 shadow-[3px_4px_0_0_rgba(0,0,0,0.95)] backdrop-blur-sm">
+                <Link
+                  href="/login"
+                  className="inline-flex items-center justify-center rounded-full px-5 py-2.5 text-[13px] font-black uppercase tracking-[0.08em] text-black/85 transition-colors duration-300 hover:text-black"
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/register"
+                  className="inline-flex items-center justify-center rounded-full border-[1.5px] border-black bg-[#ff8c78] px-5 py-2.5 text-[13px] font-black uppercase tracking-[0.08em] text-black transition-transform duration-300 hover:-translate-y-0.5"
+                >
+                  Sign Up
+                </Link>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              aria-label={open ? 'Close menu' : 'Open menu'}
+              onClick={() => setOpen((prev) => !prev)}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-[16px] border-[2px] border-black bg-white/88 shadow-[3px_4px_0_0_rgba(0,0,0,0.95)] backdrop-blur-sm transition-all duration-300 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_3px_0_0_rgba(0,0,0,0.95)] active:translate-x-[2px] active:translate-y-[2px] lg:hidden"
+            >
+              <div className="relative flex h-5 w-5 items-center justify-center">
+                <span
+                  className={`absolute h-[2px] w-5 bg-black transition-all duration-300 ${open ? 'rotate-45' : '-translate-y-1.5'}`}
+                />
+                <span
+                  className={`absolute h-[2px] w-5 bg-black transition-all duration-300 ${open ? 'opacity-0' : 'opacity-100'}`}
+                />
+                <span
+                  className={`absolute h-[2px] w-5 bg-black transition-all duration-300 ${open ? '-rotate-45' : 'translate-y-1.5'}`}
+                />
+              </div>
+            </button>
+          </div>
         </div>
       </nav>
 
       <div
-        className={`fixed inset-0 z-40 bg-white/95 backdrop-blur-3xl transition-all duration-500 ease-in-out lg:hidden ${open ? 'opacity-100' : 'pointer-events-none opacity-0'
-          }`}
+        className={`fixed inset-0 z-40 bg-[#f7eee4]/90 backdrop-blur-xl transition-all duration-400 lg:hidden ${open ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
       >
         <div
-          className={`flex h-full flex-col justify-center px-6 transition-transform duration-500 ease-in-out ${open ? 'translate-y-0 scale-100' : 'translate-y-8 scale-95'
-            }`}
+          className={`mx-4 mt-[88px] rounded-[24px] border-[2px] border-black bg-[rgba(251,250,246,0.9)] p-5 shadow-[5px_6px_0_0_rgba(0,0,0,0.92)] backdrop-blur-xl transition-all duration-400 ${open ? 'translate-y-0 scale-100' : 'translate-y-5 scale-95'}`}
           style={{ fontFamily: 'var(--font-plus-jakarta-sans), sans-serif' }}
         >
-          <div className="flex flex-col gap-4 text-center">
-            {LINKS.map(link => (
+          <div className="flex flex-col gap-3 text-center">
+            {LINKS.map((link) => (
               <Link key={link.href} href={link.href} className={navLinkClass} onClick={() => setOpen(false)}>
                 {link.label}
               </Link>
             ))}
-            <div className="mt-8 flex flex-col gap-3">
+            <div className="mt-3 grid gap-3">
               <Link
                 href="/login"
-                className={`${loginButtonClass} bg-[#ff8c78] text-black border-transparent w-full`}
+                className="inline-flex w-full items-center justify-center rounded-full border-[2px] border-black bg-white/92 px-6 py-3.5 text-[13px] font-black uppercase tracking-[0.08em] text-black shadow-[3px_4px_0_0_rgba(0,0,0,0.95)]"
                 onClick={() => setOpen(false)}
               >
-                Influencer Login
+                Login
               </Link>
               <Link
-                href="/login?from=brand"
-                className={`${loginButtonClass} bg-white text-black w-full`}
+                href="/register"
+                className="inline-flex w-full items-center justify-center rounded-full border-[2px] border-black bg-[#ff8c78] px-6 py-3.5 text-[13px] font-black uppercase tracking-[0.08em] text-black shadow-[3px_4px_0_0_rgba(0,0,0,0.95)]"
                 onClick={() => setOpen(false)}
               >
-                Brand Login
+                Sign Up
               </Link>
             </div>
           </div>
