@@ -54,9 +54,12 @@ export default function LandingPage() {
                 >
                   Start creating
                 </Link>
-                <div className="rounded-full border-[2px] border-black bg-white px-4 py-2 text-[13px] font-bold uppercase tracking-[0.16em] text-black/70">
-                  Available for brands
-                </div>
+                <Link
+                  href="/signup/brand"
+                  className="inline-flex items-center justify-center rounded-[16px] border-[3px] border-black bg-[#cbff2e] px-7 py-4 text-[18px] font-black text-black shadow-[5px_5px_0_0_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+                >
+                  Start scaling
+                </Link>
               </div>
             </div>
 
