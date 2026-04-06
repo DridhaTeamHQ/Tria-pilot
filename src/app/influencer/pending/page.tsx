@@ -259,7 +259,7 @@ export default function InfluencerPendingPage() {
               <p className="text-black/60 font-medium max-w-md mx-auto">
                 {isRejected
                   ? "Your application needs a few updates before approval. Reopen onboarding, improve your details, and send it back for review."
-                  : "Your account already exists. We're reviewing your creator profile, and dashboard access will unlock once approval is complete."
+                  : "We're reviewing your creator profile, and dashboard access will unlock once approval is complete."
                 }
               </p>
             </div>

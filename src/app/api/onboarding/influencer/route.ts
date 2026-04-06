@@ -15,6 +15,10 @@ const ALLOWED_SOCIAL_PLATFORMS = ['instagram', 'youtube', 'snapchat', 'facebook'
 
 const onboardingSchema = z
   .object({
+    firstName: z.string().trim().max(120).optional(),
+    lastName: z.string().trim().max(120).optional(),
+    dateOfBirth: z.string().trim().max(40).optional(),
+    email: z.string().email().optional(),
     gender: z
       .union([z.enum(['Male', 'Female', 'Other']), z.literal(''), z.null()])
       .transform((val) => (val === '' || val === null ? undefined : val))
@@ -88,7 +92,7 @@ export async function POST(request: Request) {
     // Get profile from profiles table
     const { data: profile, error: profileError } = await service
       .from('profiles')
-      .select('id, email, role, onboarding_completed, approval_status')
+      .select('id, email, role, onboarding_completed, approval_status, full_name')
       .eq('id', authUser.id)
       .single()
 
@@ -104,6 +108,23 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => null)
     const data = onboardingSchema.parse(body)
     const normalizedSocials = normalizeSocials(data.socials)
+    const fullName = [data.firstName?.trim(), data.lastName?.trim()].filter(Boolean).join(' ').trim()
+
+    if (data.email && profile.email && data.email.trim().toLowerCase() !== String(profile.email).toLowerCase()) {
+      return NextResponse.json({ error: 'Email confirmation does not match your account email' }, { status: 400 })
+    }
+
+    if (fullName && fullName !== String(profile.full_name || '').trim()) {
+      const { error: profileUpdateError } = await service
+        .from('profiles')
+        .update({ full_name: fullName })
+        .eq('id', authUser.id)
+
+      if (profileUpdateError) {
+        console.error('Failed to update profile name:', profileUpdateError)
+        return NextResponse.json({ error: 'Failed to save your name' }, { status: 500 })
+      }
+    }
 
     // Get or create influencer profile
     let { data: infProfile, error: infError } = await service
@@ -162,17 +183,16 @@ export async function POST(request: Request) {
     }
 
     // Check if onboarding is complete
+    const hasFullName = fullName || profile.full_name
     const hasGender = data.gender || infProfile?.gender
     const hasNiches = (data.niches && data.niches.length > 0) ||
       (Array.isArray(infProfile?.niches) && infProfile.niches.length > 0)
-    const hasAudienceType = (data.audienceType && data.audienceType.length > 0) ||
-      (Array.isArray(infProfile?.audience_type) && infProfile.audience_type.length > 0)
     const hasCategories = (data.preferredCategories && data.preferredCategories.length > 0) ||
       (Array.isArray(infProfile?.preferred_categories) && infProfile.preferred_categories.length > 0)
     const existingSocials = normalizeSocials(infProfile?.socials)
     const hasSocials = Object.keys(normalizedSocials).length > 0 || Object.keys(existingSocials).length > 0
 
-    const isCompleted = Boolean(hasGender && hasNiches && hasAudienceType && hasCategories && hasSocials)
+    const isCompleted = Boolean(hasFullName && hasGender && hasNiches && hasCategories && hasSocials)
 
     const currentApprovalStatus = String(profile.approval_status || 'none').toLowerCase()
 
@@ -239,7 +259,7 @@ export async function GET() {
     // Get profile status
     const { data: profile } = await service
       .from('profiles')
-      .select('onboarding_completed, approval_status')
+      .select('onboarding_completed, approval_status, email, full_name')
       .eq('id', authUser.id)
       .single()
 
@@ -257,6 +277,8 @@ export async function GET() {
     return NextResponse.json({
       onboardingCompleted: profile.onboarding_completed || false,
       approvalStatus: (profile.approval_status || 'none').toLowerCase(),
+      email: profile.email || '',
+      fullName: profile.full_name || '',
       profile: infProfile ? {
         gender: infProfile.gender,
         niches: infProfile.niches,

@@ -17,6 +17,7 @@ import {
   Sparkles,
   Star,
   Store,
+  Youtube,
   UserRoundX,
   Zap,
 } from 'lucide-react'
@@ -211,7 +212,7 @@ export default function LandingPage() {
               icon={<CircleDot className="h-5 w-5" strokeWidth={2.2} />}
               tone="lime"
               title="No Chasing Creators / Brands"
-              body="Fewer loose threads. Better communication and faster campaign progress."
+              body="Better communication and faster campaign progress."
             />
             <WhyCard
               icon={<Megaphone className="h-5 w-5" strokeWidth={2.2} />}
@@ -240,7 +241,7 @@ export default function LandingPage() {
                 {[
                   { icon: <Facebook className="h-4 w-4" strokeWidth={2.2} />, label: 'Facebook' },
                   { icon: <Instagram className="h-4 w-4" strokeWidth={2.2} />, label: 'Instagram' },
-                  { icon: <CircleDot className="h-4 w-4" strokeWidth={2.2} />, label: 'X' },
+                  { icon: <Youtube className="h-4 w-4" strokeWidth={2.2} />, label: 'YouTube' },
                   { icon: <Linkedin className="h-4 w-4" strokeWidth={2.2} />, label: 'LinkedIn' },
                 ].map((item) => (
                   <span

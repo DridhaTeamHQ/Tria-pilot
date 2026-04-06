@@ -13,9 +13,8 @@ import { BrutalInput, BrutalTextarea } from '@/components/brutal/onboarding/Brut
 import { DecorativeShapes } from '@/components/brutal/onboarding/DecorativeShapes'
 
 const NICHE_OPTIONS = ['Fashion', 'Lifestyle', 'Tech', 'Beauty', 'Fitness', 'Travel', 'Food', 'Gaming']
-const AUDIENCE_OPTIONS = ['Men', 'Women', 'Unisex', 'Kids']
 const CATEGORY_OPTIONS = ['Casual', 'Formal', 'Streetwear', 'Vintage', 'Sustainable', 'Luxury', 'Athleisure']
-const TOTAL_STEPS = 8
+const TOTAL_STEPS = 7
 
 type ReferencePhotoSource = 'app_upload' | 'migrated_profile' | 'migrated_identity'
 type ReferencePhotoStatus = 'pending' | 'approved' | 'rejected'
@@ -61,8 +60,6 @@ export default function InfluencerOnboardingPage() {
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [isPending, startTransition] = useTransition()
-  const [photoFiles, setPhotoFiles] = useState<File[]>([])
-  const [uploadingPhotos, setUploadingPhotos] = useState(false)
   const [dataLoaded, setDataLoaded] = useState(false)
   const [redirectChecking, setRedirectChecking] = useState(true)
 
@@ -89,6 +86,10 @@ export default function InfluencerOnboardingPage() {
   const referenceInputRef = useRef<HTMLInputElement>(null)
 
   const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    dateOfBirth: '',
+    email: '',
     gender: '',
     niches: [] as string[],
     audienceType: [] as string[],
@@ -101,6 +102,8 @@ export default function InfluencerOnboardingPage() {
     },
     bio: '',
   })
+
+  const [emailConfirmed, setEmailConfirmed] = useState(false)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -119,6 +122,9 @@ export default function InfluencerOnboardingPage() {
 
         const approvalStatus = String(data?.approvalStatus || 'none').toLowerCase()
         const allowResubmission = approvalStatus === 'rejected' || isResubmissionMode
+        const existingFullName = String(data?.fullName || '').trim()
+        const [firstName = '', ...lastNameParts] = existingFullName.split(/\s+/).filter(Boolean)
+        const lastName = lastNameParts.join(' ')
 
         if (data.onboardingCompleted && !allowResubmission) {
           setRedirectChecking(false)
@@ -133,6 +139,10 @@ export default function InfluencerOnboardingPage() {
         if (data.profile) {
           const existingSocials = (data.profile.socials as Record<string, string>) || {}
           setFormData({
+            firstName,
+            lastName,
+            dateOfBirth: '',
+            email: String(data?.email || ''),
             gender: data.profile.gender || '',
             niches: (data.profile.niches as string[]) || [],
             audienceType: (data.profile.audienceType as string[]) || [],
@@ -145,6 +155,13 @@ export default function InfluencerOnboardingPage() {
             },
             bio: data.profile.bio || '',
           })
+        } else {
+          setFormData((prev) => ({
+            ...prev,
+            firstName,
+            lastName,
+            email: String(data?.email || prev.email || ''),
+          }))
         }
 
         setDataLoaded(true)
@@ -375,24 +392,34 @@ export default function InfluencerOnboardingPage() {
     return values.some((value) => String(value || '').trim().length > 0)
   }, [formData.socials])
 
+  const getGenerationLabel = useCallback((dateString: string) => {
+    if (!dateString) return null
+    const year = new Date(dateString).getUTCFullYear()
+    if (!Number.isFinite(year)) return null
+    return year >= 2005 ? `Gen Z (${year})` : `Millennial (${year})`
+  }, [])
+
   // Check if current step has required data filled
   const canProceed = () => {
     switch (step) {
-      case 1: // Gender - REQUIRED
-        return formData.gender !== ''
-      case 2: // Niches - REQUIRED (at least 1)
+      case 1:
+        return Boolean(
+          formData.firstName.trim() &&
+          formData.lastName.trim() &&
+          formData.dateOfBirth &&
+          formData.gender
+        )
+      case 2:
+        return Boolean(formData.email.trim() && emailConfirmed)
+      case 3:
         return formData.niches.length > 0
-      case 3: // Target Audience - REQUIRED (at least 1)
-        return formData.audienceType.length > 0
-      case 4: // Clothing Categories - REQUIRED (at least 1)
+      case 4:
         return formData.preferredCategories.length > 0
-      case 5: // Social Media - REQUIRED (at least one platform)
+      case 5:
         return hasAtLeastOneSocial()
-      case 6: // Bio - OPTIONAL
+      case 6:
         return true
-      case 7: // AI Studio - OPTIONAL
-        return true
-      case 8: // Profile Photos - OPTIONAL
+      case 7:
         return true
       default:
         return true
@@ -403,10 +430,10 @@ export default function InfluencerOnboardingPage() {
   const handleNext = () => {
     if (!canProceed()) {
       const messages: Record<number, string> = {
-        1: 'Please select your gender to continue.',
-        2: 'Please select at least one niche.',
-        3: 'Please select at least one target audience.',
-        4: 'Please select at least one clothing category.',
+        1: 'Please complete your first name, last name, date of birth, and gender.',
+        2: 'Please confirm your email to continue.',
+        3: 'Please select at least one niche.',
+        4: 'Please select at least one interest.',
         5: 'Please add at least one social account.',
       }
       toast.error(messages[step] || 'Please complete this step.')
@@ -443,54 +470,9 @@ export default function InfluencerOnboardingPage() {
       }
 
       if (data.onboardingCompleted) {
-        let photoUploadFailed = false
-
-        if (photoFiles.length > 0) {
-          setUploadingPhotos(true)
-          try {
-            const toBase64 = (file: File) =>
-              new Promise<string>((resolve, reject) => {
-                const reader = new FileReader()
-                reader.onload = () => resolve(String(reader.result))
-                reader.onerror = () => reject(new Error('Failed to read image'))
-                reader.readAsDataURL(file)
-              })
-
-            const files = photoFiles.slice(0, 3)
-            for (let i = 0; i < files.length; i++) {
-              const base64 = await toBase64(files[i])
-              const uploadResponse = await fetch('/api/profile-images', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  imageBase64: base64,
-                  label: i === 0 ? 'primary' : `onboarding_${i + 1}`,
-                  makePrimary: i === 0,
-                }),
-              })
-
-              if (!uploadResponse.ok) {
-                const uploadData = await uploadResponse.json().catch(() => ({}))
-                throw new Error(uploadData?.error || 'Failed to upload profile photo')
-              }
-            }
-          } catch (e) {
-            console.warn('Profile photo upload failed:', e)
-            photoUploadFailed = true
-          } finally {
-            setUploadingPhotos(false)
-          }
-        }
-
-        if (photoUploadFailed) {
-          toast.error('Your profile was submitted, but we could not save your profile photos. Please upload them again after approval.', {
-            style: { background: 'white', border: '2px solid black', color: 'black', fontWeight: 'bold' }
-          })
-        } else {
-          toast.success(isResubmissionMode ? 'Profile updated and resubmitted for review.' : 'Onboarding completed! Pending admin approval.', {
-            style: { background: '#FFD93D', border: '2px solid black', color: 'black', fontWeight: 'bold' }
-          })
-        }
+        toast.success(isResubmissionMode ? 'Profile updated and resubmitted for review.' : 'Onboarding completed! Pending admin approval.', {
+          style: { background: '#FFD93D', border: '2px solid black', color: 'black', fontWeight: 'bold' }
+        })
         // Redirect to pending approval page (admin must approve before dashboard access)
         router.replace('/influencer/pending?resubmitted=1')
       } else {
@@ -514,14 +496,13 @@ export default function InfluencerOnboardingPage() {
 
   const getStepTitle = () => {
     switch (step) {
-      case 1: return 'Gender'
-      case 2: return 'Your Niches'
-      case 3: return 'Target Audience'
-      case 4: return 'Clothing Categories'
+      case 1: return 'About Yourself'
+      case 2: return 'Confirm Email'
+      case 3: return 'Your Niches'
+      case 4: return 'Your Interests'
       case 5: return 'Social Media'
       case 6: return 'Bio'
       case 7: return 'Reference Library'
-      case 8: return 'Profile Photos'
       default: return 'Profile Setup'
     }
   }
@@ -569,20 +550,94 @@ export default function InfluencerOnboardingPage() {
     switch (step) {
       case 1:
         return (
-          <div className="flex flex-col gap-3">
-            {['Male', 'Female', 'Other'].map((option) => (
-              <ChoiceChip
-                key={option}
-                label={option}
-                selected={formData.gender === option}
-                onClick={() => setFormData({ ...formData, gender: option })}
-                icon={option === 'Male' ? '👨' : option === 'Female' ? '👩' : '🧑'}
+          <div className="space-y-5">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <BrutalInput
+                label="First Name"
+                placeholder="Enter your first name"
+                value={formData.firstName}
+                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
               />
-            ))}
+              <BrutalInput
+                label="Last Name"
+                placeholder="Enter your last name"
+                value={formData.lastName}
+                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1.15fr_0.85fr]">
+              <div className="space-y-1.5">
+                <label className="ml-1 flex items-center gap-2 text-sm font-bold tracking-wide text-black">
+                  Date of Birth
+                </label>
+                <input
+                  type="date"
+                  value={formData.dateOfBirth}
+                  max={new Date().toISOString().split('T')[0]}
+                  onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                  className="w-full rounded-xl border-[2px] border-black bg-white px-3 py-3 text-sm font-medium text-black focus:border-black focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:px-4 sm:py-6 sm:text-base"
+                />
+                {getGenerationLabel(formData.dateOfBirth) && (
+                  <div className="inline-flex rounded-full border-[2px] border-black bg-[#FFF4CC] px-3 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-black">
+                    {getGenerationLabel(formData.dateOfBirth)}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <label className="ml-1 flex items-center gap-2 text-sm font-bold tracking-wide text-black">
+                  Gender
+                </label>
+                <div className="flex flex-col gap-3">
+                  {['Male', 'Female', 'Other'].map((option) => (
+                    <ChoiceChip
+                      key={option}
+                      label={option}
+                      selected={formData.gender === option}
+                      onClick={() => setFormData({ ...formData, gender: option })}
+                      icon={option === 'Male' ? '👨' : option === 'Female' ? '👩' : '🧑'}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         )
 
       case 2:
+        return (
+          <div className="space-y-5">
+            <BrutalInput
+              label="Email Address"
+              type="email"
+              placeholder="your@email.com"
+              value={formData.email}
+              onChange={(e) => {
+                setFormData({ ...formData, email: e.target.value })
+                setEmailConfirmed(false)
+              }}
+            />
+            <div className="rounded-2xl border-[3px] border-black bg-white p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={emailConfirmed}
+                  onChange={(e) => setEmailConfirmed(e.target.checked)}
+                  className="mt-1 h-5 w-5 rounded border-2 border-black accent-[#FF8C69]"
+                />
+                <div>
+                  <p className="text-sm font-black uppercase tracking-[0.12em] text-black">Confirm email</p>
+                  <p className="mt-1 text-sm font-medium leading-relaxed text-black/65">
+                    We&apos;ll use this email for approvals, onboarding updates, and important account communication.
+                  </p>
+                </div>
+              </label>
+            </div>
+          </div>
+        )
+
+      case 3:
         return (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {NICHE_OPTIONS.map((niche) => (
@@ -596,23 +651,13 @@ export default function InfluencerOnboardingPage() {
           </div>
         )
 
-      case 3:
-        return (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {AUDIENCE_OPTIONS.map((audience) => (
-              <ChoiceChip
-                key={audience}
-                label={audience}
-                selected={formData.audienceType.includes(audience)}
-                onClick={() => toggleSelection('audienceType', audience)}
-              />
-            ))}
-          </div>
-        )
-
       case 4:
         return (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="space-y-3">
+            <p className="text-sm font-bold text-black/60">
+              Pick the style lanes and product spaces you are most interested in creating around.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {CATEGORY_OPTIONS.map((category) => (
               <ChoiceChip
                 key={category}
@@ -621,6 +666,7 @@ export default function InfluencerOnboardingPage() {
                 onClick={() => toggleSelection('preferredCategories', category)}
               />
             ))}
+            </div>
           </div>
         )
 
@@ -843,46 +889,6 @@ export default function InfluencerOnboardingPage() {
                     )
                   })}
                 </div>
-              </div>
-            )}
-          </div>
-        )
-
-      case 8:
-        return (
-          <div className="space-y-4">
-            <div className="border-[3px] border-dashed border-black/30 rounded-xl p-8 bg-white text-center cursor-pointer hover:border-black hover:bg-gray-50 transition-all">
-              <input
-                type="file"
-                multiple
-                className="hidden"
-                id="profile-photos"
-                onChange={(e) => {
-                  const files = Array.from(e.target.files || [])
-                  setPhotoFiles(files.slice(0, 3))
-                }}
-              />
-              <label htmlFor="profile-photos" className="cursor-pointer">
-                <div className="w-16 h-16 bg-[#FF8C69] rounded-full flex items-center justify-center mx-auto mb-4 border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                  <Upload className="w-7 h-7 text-black" />
-                </div>
-                <h3 className="text-xl font-black mb-1">Upload Profile Photos</h3>
-                <p className="text-sm text-black/50 font-medium">Select up to 3 of your best shots</p>
-              </label>
-            </div>
-            {photoFiles.length > 0 && (
-              <div className="flex gap-2 justify-center flex-wrap">
-                {photoFiles.map((f, i) => (
-                  <div key={i} className="text-xs font-bold bg-[#FFD93D] px-3 py-1.5 rounded-full border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                    {f.name.length > 15 ? f.name.slice(0, 15) + '...' : f.name}
-                  </div>
-                ))}
-              </div>
-            )}
-            {uploadingPhotos && (
-              <div className="text-center text-sm font-bold text-black/60">
-                <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
-                Uploading photos...
               </div>
             )}
           </div>

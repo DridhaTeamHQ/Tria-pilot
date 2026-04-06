@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import Link from 'next/link'
-import { ShoppingBag, Filter, Sparkles, Search, X } from 'lucide-react'
+import { ShoppingBag, Filter, Sparkles, Search, X, ArrowLeft, ArrowRight, Megaphone } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import ProductCard from './ProductCard'
 
@@ -35,10 +35,38 @@ interface MarketplaceClientProps {
     activeCategory: string
 }
 
+const DUMMY_CAMPAIGNS = [
+    {
+        eyebrow: 'Featured Campaign',
+        title: 'Summer Streetwear Drop',
+        body: 'Creators needed for casual fit checks, reels, and product-led styling edits.',
+        accent: 'bg-[#FFD93D]',
+        stat: '12 creators',
+        tone: 'text-black',
+    },
+    {
+        eyebrow: 'Sponsored Ad Burst',
+        title: 'Beauty Launch Sprint',
+        body: 'Fast-moving UGC push for launch week with try-on visuals and conversion-first hooks.',
+        accent: 'bg-[#FF8C69]',
+        stat: '48h launch',
+        tone: 'text-black',
+    },
+    {
+        eyebrow: 'Brand Collaboration',
+        title: 'Gen-Z Campus Edit',
+        body: 'Lifestyle campaign built for creators with playful styling, campus stories, and affiliate links.',
+        accent: 'bg-[#B4F056]',
+        stat: 'High engagement',
+        tone: 'text-black',
+    },
+]
+
 export default function MarketplaceClient({ products, categories, activeCategory }: MarketplaceClientProps) {
     const router = useRouter()
+    const [searchInput, setSearchInput] = useState('')
     const [searchQuery, setSearchQuery] = useState('')
-    const [showSearch, setShowSearch] = useState(false)
+    const [activeCampaign, setActiveCampaign] = useState(0)
 
     // Memoize filtered products
     const filteredProducts = useMemo(() => {
@@ -50,12 +78,27 @@ export default function MarketplaceClient({ products, categories, activeCategory
         )
     }, [products, searchQuery])
 
-    const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearchQuery(e.target.value)
+    const handleSearchInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchInput(e.target.value)
     }, [])
 
-    const clearSearch = useCallback(() => setSearchQuery(''), [])
-    const toggleSearch = useCallback(() => setShowSearch(prev => !prev), [])
+    const applySearch = useCallback(() => {
+        setSearchQuery(searchInput.trim())
+    }, [searchInput])
+
+    const clearSearch = useCallback(() => {
+        setSearchInput('')
+        setSearchQuery('')
+    }, [])
+
+    const showPrevCampaign = useCallback(() => {
+        setActiveCampaign((prev) => (prev === 0 ? DUMMY_CAMPAIGNS.length - 1 : prev - 1))
+    }, [])
+
+    const showNextCampaign = useCallback(() => {
+        setActiveCampaign((prev) => (prev + 1) % DUMMY_CAMPAIGNS.length)
+    }, [])
+
     useEffect(() => {
         // Prefetch top visible product routes so first click feels instant.
         products.slice(0, 8).forEach((p) => {
@@ -63,12 +106,19 @@ export default function MarketplaceClient({ products, categories, activeCategory
         })
     }, [products, router])
 
+    useEffect(() => {
+        const interval = window.setInterval(() => {
+            setActiveCampaign((prev) => (prev + 1) % DUMMY_CAMPAIGNS.length)
+        }, 4500)
+        return () => window.clearInterval(interval)
+    }, [])
+
     return (
         <div className="min-h-screen bg-gradient-to-b from-cream via-cream to-white pt-24 pb-16">
             <div className="container mx-auto px-4 sm:px-6">
                 {/* Header */}
                 <div className="mb-10 animate-fade-in">
-                    <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-8">
+                    <div className="mb-8">
                         <div className="relative max-w-2xl overflow-hidden rounded-[28px] border-[3px] border-black bg-white p-5 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:p-8">
                             <div className="relative z-10">
                                 <div className="flex items-center gap-3 mb-4">
@@ -86,40 +136,6 @@ export default function MarketplaceClient({ products, categories, activeCategory
                             </div>
                             {/* Decorative elements */}
                             <div className="absolute right-0 top-0 z-0 h-32 w-32 rounded-bl-full border-b-[3px] border-l-[3px] border-black bg-gray-100 opacity-50 -mr-[3px] -mt-[3px]" />
-                        </div>
-
-                        {/* Search toggle */}
-                        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
-                            {showSearch && (
-                                <div className="relative w-full animate-scale-fade sm:w-[250px]">
-                                    <input
-                                        type="text"
-                                        placeholder="Search products..."
-                                        value={searchQuery}
-                                        onChange={handleSearchChange}
-                                        className="w-full px-4 py-2.5 pr-10 rounded-lg border-[3px] border-black bg-white focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-sm font-medium transition-all text-charcoal"
-                                        autoFocus
-                                    />
-                                    {searchQuery && (
-                                        <button type="button"
-                                            onClick={clearSearch}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal hover:scale-110 transition-transform"
-                                        >
-                                            <X className="w-4 h-4 font-bold" />
-                                        </button>
-                                    )}
-                                </div>
-                            )}
-
-                            <button type="button"
-                                onClick={toggleSearch}
-                                className={`self-start p-3 rounded-lg border-[3px] border-black transition-all duration-200 sm:self-auto ${showSearch
-                                    ? 'bg-peach text-charcoal shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -translate-y-1'
-                                    : 'bg-white text-charcoal hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1'
-                                    }`}
-                            >
-                                <Search className="w-5 h-5 font-bold" />
-                            </button>
                         </div>
                     </div>
 
@@ -151,6 +167,117 @@ export default function MarketplaceClient({ products, categories, activeCategory
                                 </Link>
                             )
                         })}
+                    </div>
+
+                    <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center">
+                        <div className="relative flex-1">
+                            <input
+                                type="text"
+                                placeholder="Search products, campaigns, or collab ideas..."
+                                value={searchInput}
+                                onChange={handleSearchInputChange}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault()
+                                        applySearch()
+                                    }
+                                }}
+                                className="w-full rounded-xl border-[3px] border-black bg-white px-4 py-3 pr-11 text-sm font-medium text-charcoal transition-all focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                            />
+                            {searchInput && (
+                                <button
+                                    type="button"
+                                    onClick={clearSearch}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal transition-transform hover:scale-110"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            )}
+                        </div>
+                        <button
+                            type="button"
+                            onClick={applySearch}
+                            className="inline-flex items-center justify-center gap-2 rounded-xl border-[3px] border-black bg-[#FFD93D] px-5 py-3 text-sm font-black uppercase tracking-[0.08em] text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+                        >
+                            <Search className="h-4 w-4" />
+                            Search
+                        </button>
+                    </div>
+                </div>
+
+                <div className="mb-8 overflow-hidden rounded-[26px] border-[3px] border-black bg-white p-5 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:p-6">
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-xl border-[3px] border-black bg-[#B4F056] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+                                <Megaphone className="h-5 w-5 text-black" />
+                            </div>
+                            <div>
+                                <p className="text-xs font-black uppercase tracking-[0.16em] text-charcoal/45">Dummy campaign carousel</p>
+                                <p className="text-lg font-black text-charcoal">Sample ads and brand pushes</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={showPrevCampaign}
+                                className="inline-flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-black bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition hover:-translate-y-0.5"
+                            >
+                                <ArrowLeft className="h-4 w-4" />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={showNextCampaign}
+                                className="inline-flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-black bg-[#FFD93D] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition hover:-translate-y-0.5"
+                            >
+                                <ArrowRight className="h-4 w-4" />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+                        <div className="rounded-[24px] border-[3px] border-black bg-[#fff7e3] p-5 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                    <p className="text-[11px] font-black uppercase tracking-[0.16em] text-charcoal/50">
+                                        {DUMMY_CAMPAIGNS[activeCampaign].eyebrow}
+                                    </p>
+                                    <h3 className="mt-3 text-[clamp(1.9rem,4vw,3rem)] font-black uppercase leading-[0.92] text-charcoal">
+                                        {DUMMY_CAMPAIGNS[activeCampaign].title}
+                                    </h3>
+                                </div>
+                                <span className={`rounded-full border-[3px] border-black px-4 py-2 text-xs font-black uppercase tracking-[0.12em] ${DUMMY_CAMPAIGNS[activeCampaign].accent} ${DUMMY_CAMPAIGNS[activeCampaign].tone}`}>
+                                    {DUMMY_CAMPAIGNS[activeCampaign].stat}
+                                </span>
+                            </div>
+                            <p className="mt-4 max-w-xl border-l-[3px] border-black/20 pl-4 text-base font-medium leading-7 text-charcoal/70">
+                                {DUMMY_CAMPAIGNS[activeCampaign].body}
+                            </p>
+                        </div>
+
+                        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+                            {DUMMY_CAMPAIGNS.map((campaign, index) => {
+                                const isActive = index === activeCampaign
+                                return (
+                                    <button
+                                        key={campaign.title}
+                                        type="button"
+                                        onClick={() => setActiveCampaign(index)}
+                                        className={`rounded-[20px] border-[3px] p-4 text-left transition-all ${isActive
+                                            ? 'border-black bg-[#F4F0E8] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+                                            : 'border-black/30 bg-white hover:border-black hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                                            }`}
+                                    >
+                                        <div className="flex items-center justify-between gap-3">
+                                            <p className="text-sm font-black uppercase leading-tight text-charcoal">{campaign.title}</p>
+                                            <span className={`h-3.5 w-3.5 rounded-full border-2 border-black ${campaign.accent}`} />
+                                        </div>
+                                        <p className="mt-2 text-xs font-medium leading-5 text-charcoal/55">
+                                            {campaign.eyebrow}
+                                        </p>
+                                    </button>
+                                )
+                            })}
+                        </div>
                     </div>
                 </div>
 
