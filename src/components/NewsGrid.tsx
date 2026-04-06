@@ -27,7 +27,7 @@ const newsItems = [
     },
     {
         id: "4",
-        title: "Influencer Marketing Trends",
+        title: "Creator Marketing Trends",
         category: "Insights",
         img: "https://images.unsplash.com/photo-1469334031218-e382a71b716b?q=80&w=1000&auto=format&fit=crop",
         height: 600,

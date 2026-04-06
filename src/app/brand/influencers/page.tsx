@@ -100,7 +100,7 @@ export default function BrandInfluencersPage() {
             <div className="mb-8">
                 <h1 className="text-2xl sm:text-3xl font-black text-black mb-1">
                     <Users className="inline-block w-8 h-8 mr-2 -mt-1" />
-                    Discover Influencers
+                    Discover Creators
                 </h1>
                 <p className="text-black/60 font-medium">
                     Find the perfect creators for your brand collaborations
@@ -201,7 +201,7 @@ export default function BrandInfluencersPage() {
             ) : influencers.length === 0 ? (
                 <div className="text-center py-20 border-2 border-dashed border-black/20">
                     <Users className="w-16 h-16 mx-auto mb-4 text-black/30" />
-                    <h3 className="text-xl font-black text-black/60 mb-2">No Influencers Found</h3>
+                    <h3 className="text-xl font-black text-black/60 mb-2">No Creators Found</h3>
                     <p className="text-black/40 font-medium">
                         Try adjusting your filters or search terms
                     </p>

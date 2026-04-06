@@ -5,9 +5,9 @@ import Link from 'next/link'
 
 const faqs = [
   {
-    category: 'Influencer Approval',
-    question: 'I can’t access influencer features',
-    answer: 'Influencer accounts require admin approval. Check your status at /influencer/pending.',
+    category: 'Creator Approval',
+    question: 'I can’t access creator features',
+    answer: 'Creator accounts require admin approval. Check your status at /influencer/pending.',
     link: '/influencer/pending',
   },
   {
@@ -23,7 +23,7 @@ const faqs = [
   {
     category: 'Collaborations',
     question: 'How do I request a collaboration?',
-    answer: 'Brands can request collaborations from the influencer profile page in the marketplace.',
+    answer: 'Brands can request collaborations from the creator profile page in the marketplace.',
   },
   {
     category: 'Payments & Payouts',

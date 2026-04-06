@@ -23,7 +23,7 @@ const navItems = [
   { href: '/brand/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/brand/campaigns', label: 'Campaigns', icon: Target },
   { href: '/brand/profile', label: 'Profile', icon: User },
-  { href: '/brand/influencers', label: 'Influencers', icon: Users },
+  { href: '/brand/influencers', label: 'Creators', icon: Users },
   { href: '/brand/ads/creatives', label: 'Ad Creatives', icon: Sparkles },
   { href: '/brand/products', label: 'Products', icon: Package },
   { href: '/brand/inbox', label: 'Inbox', icon: Inbox },

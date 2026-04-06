@@ -121,7 +121,7 @@ export default function CompleteProfilePage() {
                   <Camera className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="font-semibold text-charcoal">Influencer</div>
+                  <div className="font-semibold text-charcoal">Creator</div>
                   <div className="text-sm text-charcoal/60">Create try-ons and collaborate with brands</div>
                 </div>
               </div>

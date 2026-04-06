@@ -131,7 +131,7 @@ function LoginContent() {
         sideAccent: 'campaign mode',
         sideBody: 'Launch products, manage collaborations, and review generated assets from one bold control room.',
       }
-  const floatingLabel = userType === 'influencer' ? 'Influencer Login' : 'Brand Login'
+  const floatingLabel = userType === 'influencer' ? 'Creator Login' : 'Brand Login'
 
   const isLayoutFlipped = userType === 'brand'
   const isUsernameEntry = Boolean(identifier.trim()) && !identifier.includes('@')
@@ -498,7 +498,7 @@ function AuthCard({
           onClick={() => onUserTypeChange('influencer')}
           className={`flex-1 rounded-xl py-3 text-xs font-black uppercase tracking-[0.2em] transition-all ${userType === 'influencer' ? 'border-[2px] border-black bg-[#FF8C69] text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'text-black/50 hover:text-black'}`}
         >
-          Influencer
+          Creator
         </button>
         <button
           type="button"

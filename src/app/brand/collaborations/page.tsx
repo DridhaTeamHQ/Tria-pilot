@@ -75,12 +75,12 @@ export default function BrandCollaborationsPage() {
               <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100">Collaborations</h1>
             </div>
             <p className="text-zinc-600 dark:text-zinc-400 text-base ml-10">
-              Manage the collaboration requests you have sent to influencers.
+              Manage the collaboration requests you have sent to creators.
             </p>
           </div>
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Button asChild className="shrink-0">
-              <Link href="/brand/influencers">Discover Influencers</Link>
+              <Link href="/brand/influencers">Discover Creators</Link>
             </Button>
           </motion.div>
         </motion.div>
@@ -163,12 +163,12 @@ export default function BrandCollaborationsPage() {
             </h3>
             <p className="text-zinc-600 dark:text-zinc-400 text-center max-w-md mb-6">
               {filter === 'all'
-                ? "You haven't sent any collaboration requests yet. Start by discovering influencers."
+                ? "You haven't sent any collaboration requests yet. Start by discovering creators."
                 : `No ${filter} collaborations found.`}
             </p>
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button asChild>
-                <Link href="/brand/influencers">Browse Influencers</Link>
+                <Link href="/brand/influencers">Browse Creators</Link>
               </Button>
             </motion.div>
           </motion.div>
@@ -196,7 +196,7 @@ export default function BrandCollaborationsPage() {
                           <div className="flex items-center gap-3 mb-2">
                             <CardTitle className="text-lg flex items-center gap-2">
                               <User className="h-5 w-5 text-zinc-500" />
-                              {collab.influencer?.name || 'Influencer'}
+                              {collab.influencer?.name || 'Creator'}
                             </CardTitle>
                             {getStatusBadge(collab.status)}
                           </div>
@@ -260,7 +260,7 @@ export default function BrandCollaborationsPage() {
                             href={`/brand/influencers/${collab.influencer.id}`}
                             className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center gap-1"
                           >
-                            View Influencer Profile <ArrowRight className="h-3 w-3" />
+                            View Creator Profile <ArrowRight className="h-3 w-3" />
                           </Link>
                         </div>
                       ) : null}

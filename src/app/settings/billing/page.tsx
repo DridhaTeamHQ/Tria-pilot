@@ -77,7 +77,7 @@ export default function BillingPage() {
         key: checkout.keyId,
         subscription_id: checkout.subscriptionId,
         name: 'Kiwikoo',
-        description: `${data.role === 'brand' ? 'Brand' : 'Influencer'} ${checkout.plan.label} plan`,
+        description: `${data.role === 'brand' ? 'Brand' : 'Creator'} ${checkout.plan.label} plan`,
         prefill: checkout.prefill,
         notes: {
           role: data.role,

@@ -116,7 +116,7 @@ export default function SignupPage() {
 
   const copy = isInfluencer
     ? {
-        eyebrow: 'Influencer Sign Up',
+        eyebrow: 'Creator Sign Up',
         title: 'Welcome,',
         subtitle: 'sign up to continue',
         sideTitle: 'Build your creator front row',

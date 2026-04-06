@@ -8,7 +8,7 @@ const schema = z
     email: z.string().email(),
     subject: z.string().trim().min(3).max(200),
     message: z.string().trim().min(10).max(4000),
-    userType: z.enum(['Influencer', 'Brand', 'Other']),
+    userType: z.enum(['Creator', 'Influencer', 'Brand', 'Other']),
   })
   .strict()
 

@@ -45,7 +45,7 @@ export default function LandingPage() {
                 Meets <span className="text-[#ff8c78]">AI.</span>
               </h1>
               <p className="mt-6 max-w-[560px] text-[18px] leading-8 text-black/68 max-lg:mx-auto">
-                The cleanest way for influencers and brands to create, launch, and convert with AI-powered fashion tools.
+                The cleanest way for creators and brands to create, launch, and convert with AI-powered fashion tools.
               </p>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-4 lg:justify-start">
                 <Link
@@ -90,7 +90,7 @@ export default function LandingPage() {
                   <div className="relative h-full w-full">
                     <Image
                       src="/landing/hero-influencer.png"
-                      alt="Influencer"
+                      alt="Creator"
                       fill
                       sizes="(min-width: 1024px) 420px, 70vw"
                       className="object-contain object-bottom drop-shadow-[0_18px_28px_rgba(0,0,0,0.18)]"
@@ -137,7 +137,7 @@ export default function LandingPage() {
           <div className="mt-6 rounded-[28px] border-[3px] border-black bg-[#111111] p-6 text-white shadow-[8px_8px_0_0_rgba(0,0,0,1)] lg:p-8">
             <div className="grid gap-8 lg:grid-cols-[0.84fr_1.16fr] lg:items-center">
               <div>
-                <MiniPill label="For Both" dark />
+                <MiniPill label="For Creators and Brands" dark />
                 <div className="mt-7 space-y-6">
                   <FeatureLine
                     icon={<ChartColumn className="h-5 w-5" strokeWidth={2.2} />}
@@ -168,7 +168,7 @@ export default function LandingPage() {
 
           <div className="mt-10 grid gap-5 lg:grid-cols-2">
             <PathPanel
-              label="For Influencers"
+              label="For Creators"
               tone="coral"
               title={`You've got the style?\nStart earning now.`}
               body="Create AI looks, post faster, and earn from every conversion without shoots, delays, or chasing brands."
@@ -356,7 +356,7 @@ function AnalyticsPanel() {
 
   return (
     <div className="relative rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_84%_18%,rgba(203,255,46,0.12),transparent_30%),linear-gradient(180deg,#151515_0%,#191919_100%)] p-5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03)]">
-      <div className="absolute -left-8 bottom-16 z-20 rounded-[16px] border border-white/12 bg-[#2a2a2a] px-5 py-4 shadow-[0_5px_0_0_rgba(0,0,0,0.4)]">
+      <div className="absolute left-3 top-3 z-20 rounded-[16px] border border-white/12 bg-[#2a2a2a] px-5 py-4 shadow-[0_5px_0_0_rgba(0,0,0,0.4)]">
         <div className="text-[26px] font-black leading-none text-[#cbff2e]">3 Steps</div>
         <div className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-white/40">To Try-On</div>
       </div>
@@ -446,40 +446,61 @@ function PathPanel({
   cta: string
 }) {
   const isCoral = tone === 'coral'
+  const accent = isCoral ? '#ff8c78' : '#cbff2e'
+
   return (
-    <div className="group relative h-full">
-      {/* Shadow layer */}
-      <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-[28px] bg-black" />
-      {/* Main card */}
-      <div className="relative flex h-full flex-col overflow-hidden rounded-[28px] border-[3px] border-black bg-[#1a1a1a] transition-transform group-hover:-translate-y-1">
-        {/* Colored accent bar */}
-        <div className={`h-2 w-full ${isCoral ? 'bg-[#ff8c78]' : 'bg-[#cbff2e]'}`} />
-        {/* Decorative corner shapes */}
-        <div className={`pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full blur-[50px] ${isCoral ? 'bg-[#ff8c78]/25' : 'bg-[#cbff2e]/25'}`} />
-        <div className={`pointer-events-none absolute -bottom-6 -left-6 h-24 w-24 rounded-full blur-[40px] ${isCoral ? 'bg-[#ff8c78]/15' : 'bg-[#cbff2e]/15'}`} />
+    <div
+      className="group relative h-full"
+      style={{ perspective: '900px' }}
+    >
+      <div
+        className="relative flex h-full flex-col overflow-hidden border-[3px] border-black p-7 transition-transform duration-500 ease-out sm:p-8 group-hover:[transform:rotateY(-2deg)_rotateX(2deg)_scale(1.02)]"
+        style={{
+          borderRadius: '48px 48px 12px 48px',
+          background: isCoral
+            ? 'linear-gradient(145deg, #ff8c78 0%, #ffb89e 40%, #ffe8de 100%)'
+            : 'linear-gradient(145deg, #cbff2e 0%, #e2ff80 40%, #f4ffe0 100%)',
+          boxShadow: `8px 8px 0 0 rgba(0,0,0,1), inset 0 -60px 80px -40px rgba(0,0,0,0.08)`,
+          transformStyle: 'preserve-3d',
+        }}
+      >
+        {/* Large faded accent circle */}
+        <div
+          className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full opacity-30 blur-[2px]"
+          style={{ border: `3px solid ${isCoral ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.1)'}` }}
+        />
+        <div
+          className="pointer-events-none absolute -bottom-10 -left-10 h-36 w-36 rounded-full opacity-20 blur-[1px]"
+          style={{ border: `3px solid ${isCoral ? 'rgba(0,0,0,0.1)' : 'rgba(0,0,0,0.08)'}` }}
+        />
 
-        <div className="relative flex flex-1 flex-col p-7 sm:p-8">
-          {/* Label pill */}
-          <div className={`inline-flex w-fit items-center gap-2 rounded-full border-[2px] border-black px-4 py-2 text-[11px] font-black uppercase tracking-[0.1em] shadow-[3px_3px_0_0_rgba(0,0,0,1)] ${isCoral ? 'bg-[#ff8c78] text-black' : 'bg-[#cbff2e] text-black'}`}>
-            <CircleDot className="h-3 w-3" strokeWidth={3} />
-            {label}
-          </div>
+        {/* Label */}
+        <div className="inline-flex w-fit items-center gap-2 rounded-full border-[2.5px] border-black bg-white px-5 py-2.5 text-[11px] font-black uppercase tracking-[0.1em] text-black shadow-[4px_4px_0_0_rgba(0,0,0,1)]">
+          <CircleDot className="h-3 w-3" strokeWidth={3} />
+          {label}
+        </div>
 
-          <div className="mt-7 flex flex-1 flex-col">
-            <h3 className="min-h-[3.15em] whitespace-pre-line text-[clamp(2rem,3vw,3rem)] font-black leading-[1.03] tracking-[-0.05em] text-white">
-              {title}
-            </h3>
-            <p className="mt-4 max-w-[520px] text-[17px] leading-8 text-white/55">{body}</p>
-          </div>
+        <div className="mt-7 flex flex-1 flex-col">
+          <h3 className="min-h-[3.15em] whitespace-pre-line text-[clamp(2rem,3vw,3rem)] font-black leading-[1.03] tracking-[-0.05em] text-black">
+            {title}
+          </h3>
+          <p className="mt-4 max-w-[520px] text-[17px] leading-8 text-black/60">{body}</p>
+        </div>
 
-          {/* CTA */}
-          <Link
-            href={href}
-            className={`mt-8 inline-flex items-center justify-center gap-2.5 self-start rounded-full border-[3px] border-black px-7 py-3.5 text-[14px] font-black uppercase tracking-[0.06em] shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none ${isCoral ? 'bg-[#ff8c78] text-black' : 'bg-[#cbff2e] text-black'}`}
-          >
-            {cta}
-            <ArrowRight className="h-4 w-4" strokeWidth={2.7} />
-          </Link>
+        {/* CTA */}
+        <Link
+          href={href}
+          className="mt-8 inline-flex items-center justify-center gap-2.5 self-start rounded-full border-[3px] border-black bg-black px-7 py-3.5 text-[14px] font-black uppercase tracking-[0.06em] text-white shadow-[4px_4px_0_0_rgba(0,0,0,0.3)] transition-all duration-300 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+        >
+          {cta}
+          <ArrowRight className="h-4 w-4" strokeWidth={2.7} />
+        </Link>
+
+        {/* Bottom-right decorative dot cluster */}
+        <div className="pointer-events-none absolute bottom-5 right-6 flex items-end gap-1.5 opacity-25">
+          <div className="h-2 w-2 rounded-full bg-black" />
+          <div className="h-3 w-3 rounded-full bg-black" />
+          <div className="h-1.5 w-1.5 rounded-full bg-black" />
         </div>
       </div>
     </div>

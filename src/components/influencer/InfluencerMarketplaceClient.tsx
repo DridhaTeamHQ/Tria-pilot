@@ -72,7 +72,7 @@ export default function InfluencerMarketplaceClient({
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <CardTitle className="text-lg break-words">{influencer.user?.name || 'Influencer'}</CardTitle>
+                        <CardTitle className="text-lg break-words">{influencer.user?.name || 'Creator'}</CardTitle>
                         <BadgeDisplay tier={influencer.badgeTier ?? null} />
                       </div>
                       <CardDescription className="line-clamp-2 text-xs">

@@ -13,7 +13,7 @@ export default function ContactPage() {
     email: '',
     subject: '',
     message: '',
-    userType: 'Influencer',
+    userType: 'Creator',
   })
   const [loading, setLoading] = useState(false)
 
@@ -29,7 +29,7 @@ export default function ContactPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to send message')
       toast.success('Message sent! We will respond shortly.')
-      setForm({ name: '', email: '', subject: '', message: '', userType: 'Influencer' })
+      setForm({ name: '', email: '', subject: '', message: '', userType: 'Creator' })
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to send message')
     } finally {
@@ -118,7 +118,7 @@ export default function ContactPage() {
                       onChange={(e) => setForm({ ...form, userType: e.target.value })}
                       className="h-14 w-full rounded-[16px] border-[2px] border-black bg-[#fffdf8] px-4 text-[17px] font-semibold text-black outline-none transition focus:translate-x-[1px] focus:translate-y-[1px] focus:shadow-[3px_3px_0_0_rgba(0,0,0,1)]"
                     >
-                      <option>Influencer</option>
+                      <option>Creator</option>
                       <option>Brand</option>
                       <option>Other</option>
                     </select>

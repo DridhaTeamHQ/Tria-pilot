@@ -67,7 +67,7 @@ export default function InfluencerDetailPage({
         if (found) {
           setInfluencer({
             id: found.id,
-            fullName: found.name || 'Influencer',
+            fullName: found.name || 'Creator',
             email: found.email || '',
             bio: found.bio || '',
             niche: found.niches?.[0],
@@ -105,14 +105,14 @@ export default function InfluencerDetailPage({
     return (
       <div className="min-h-screen bg-[#FFFCF5] pt-24 px-6">
         <div className="max-w-4xl mx-auto text-center py-20">
-          <h1 className="text-2xl font-black mb-4">Influencer Not Found</h1>
-          <p className="text-black/60 mb-6">This influencer profile doesn&apos;t exist or has been removed.</p>
+          <h1 className="text-2xl font-black mb-4">Creator Not Found</h1>
+          <p className="text-black/60 mb-6">This creator profile doesn&apos;t exist or has been removed.</p>
           <Link
             href="/brand/influencers"
             className="inline-flex items-center gap-2 px-6 py-3 bg-[#B4F056] border-[3px] border-black font-bold"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Influencers
+            Back to Creators
           </Link>
         </div>
       </div>
@@ -128,7 +128,7 @@ export default function InfluencerDetailPage({
           className="inline-flex items-center gap-2 text-sm font-bold text-black/60 hover:text-black mb-8 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Influencers
+          Back to Creators
         </Link>
 
         {/* Profile Card */}

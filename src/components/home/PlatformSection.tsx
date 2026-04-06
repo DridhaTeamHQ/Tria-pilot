@@ -38,7 +38,7 @@ export default function PlatformSection() {
                                     : "text-black hover:bg-black/10"
                             }`}
                         >
-                            For Influencers
+                            For Creators
                         </button>
                     </div>
                 </div>
@@ -56,7 +56,7 @@ export default function PlatformSection() {
                             <div className="p-8 md:p-12 flex flex-col justify-center">
                                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-white border-[3px] border-black font-black text-xs uppercase tracking-wider w-fit mb-6">
                                     {activeTab === "brands" ? <ShoppingBag className="w-4 h-4" /> : <Users className="w-4 h-4" />}
-                                    {activeTab === "brands" ? "For Brands" : "For Influencers"}
+                                    {activeTab === "brands" ? "For Brands" : "For Creators"}
                                 </div>
 
                                 <h3 className="text-2xl md:text-3xl font-black text-black uppercase tracking-tight leading-tight mb-4">
@@ -67,14 +67,14 @@ export default function PlatformSection() {
 
                                 <p className="text-base text-black/80 font-bold leading-relaxed mb-8">
                                     {activeTab === "brands"
-                                        ? "Connect with verified influencers, launch campaigns, and track performance with our analytics suite."
+                                        ? "Connect with verified creators, launch campaigns, and track performance with our analytics suite."
                                         : "Join creators earning through AI Try-Ons, branded collaborations, and high-commission affiliate links."}
                                 </p>
 
                                 <ul className="space-y-3 mb-8">
                                     {(activeTab === "brands"
                                         ? [
-                                            "Access Thousands Of Verified Gen-Z Influencers",
+                                            "Access Thousands Of Verified Gen-Z Creators",
                                             "AI-Powered Content Moderation And Brand Protection",
                                             "Real-Time Insights And Performance Tracking",
                                         ]
@@ -103,7 +103,7 @@ export default function PlatformSection() {
                                     href={activeTab === "brands" ? "/register?role=brand" : "/register?role=influencer"}
                                     className="inline-flex items-center gap-2 w-fit px-6 py-4 bg-[var(--brutal-lime)] text-black font-black text-sm uppercase tracking-wide border-[4px] border-black shadow-[6px_6px_0_0_#000] hover:shadow-[3px_3px_0_0_#000] hover:translate-x-[3px] hover:translate-y-[3px] active:shadow-none active:translate-x-[6px] active:translate-y-[6px] transition-all"
                                 >
-                                    {activeTab === "brands" ? "Join as Brand" : "Join as Influencer"}
+                                    {activeTab === "brands" ? "Join as Brand" : "Join as Creator"}
                                     <ArrowRight className="w-4 h-4" />
                                 </Link>
                             </div>

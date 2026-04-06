@@ -116,7 +116,7 @@ export default function Hero() {
                         }}
                         className="mt-8 text-lg md:text-xl text-charcoal/60 max-w-2xl mx-auto font-sans leading-relaxed"
                     >
-                        Connect influencers and brands with virtual try-on capabilities,
+                        Connect creators and brands with virtual try-on capabilities,
                         intelligent ad generation, and seamless collaboration.
                     </motion.p>
 
@@ -190,7 +190,7 @@ export default function Hero() {
                         {[
                             { value: "10K+", label: "Try-Ons" },
                             { value: "500+", label: "Brands" },
-                            { value: "2K+", label: "Influencers" },
+                            { value: "2K+", label: "Creators" },
                         ].map((stat) => (
                             <div key={stat.label} className="text-center">
                                 <div className="text-3xl md:text-4xl font-serif text-charcoal">{stat.value}</div>

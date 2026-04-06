@@ -134,7 +134,7 @@ export default function Header() {
     const brandLinks = [
         { href: '/brand/campaigns', label: 'Campaigns', icon: Megaphone },
         { href: '/profile', label: 'Profile', icon: User },
-        { href: '/brand/marketplace', label: 'Influencers', icon: ShoppingBag },
+        { href: '/brand/marketplace', label: 'Creators', icon: ShoppingBag },
         { href: '/brand/ads', label: 'Ads', icon: Sparkles },
         { href: '/brand/products', label: 'Products', icon: Box },
         { href: '/inbox', label: 'Inbox', icon: Mail },
@@ -144,7 +144,7 @@ export default function Header() {
         { href: '/#features', label: 'Features' },
         { href: '/influencer/try-on', label: 'Virtual Try-On' },
         { href: '/signup/brand', label: 'For Brands' },
-        { href: '/signup/influencer', label: 'For Influencers' },
+        { href: '/signup/influencer', label: 'For Creators' },
     ]
 
     let links: typeof influencerLinks | typeof brandLinks = []

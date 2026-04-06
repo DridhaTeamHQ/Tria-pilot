@@ -53,7 +53,7 @@ export default async function BrandDashboard({
   const companyName = (brandData.companyName as string) || profile.name || 'Brand'
   const brandType = (brandData.brandType as string) || ''
   const vertical = (brandData.vertical as string) || ''
-  const brandSummary = [brandType, vertical].filter(Boolean).join(' - ')
+  const brandSummary = [brandType, vertical].filter(Boolean).join(' - ')
 
   const campaigns = (campaignsListReq.data || []) as Array<{
     id: string
@@ -92,7 +92,7 @@ export default async function BrandDashboard({
       statLabel: 'products',
     },
     {
-      title: 'Discover Influencers',
+      title: 'Discover Creators',
       description: 'Find creators for collaborations',
       href: '/brand/influencers',
       icon: Users,
@@ -376,7 +376,7 @@ export default async function BrandDashboard({
               href="/brand/influencers"
               className="px-6 py-3 text-center bg-white border-[3px] border-black font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
             >
-              Browse Influencers
+              Browse Creators
             </Link>
           </div>
         </div>

@@ -104,7 +104,7 @@ function RegisterContent() {
               Kiwikoo flow
             </h1>
             <p className="mt-4 max-w-2xl text-base font-semibold leading-relaxed text-black/65 sm:text-lg">
-              Pick the mode that fits you best. Influencers get a faster content engine. Brands get a sharper campaign workspace.
+              Pick the mode that fits you best. Creators get a faster content engine. Brands get a sharper campaign workspace.
             </p>
           </div>
 
@@ -162,7 +162,7 @@ function RoleCard({
 
           <div className="min-w-0 flex-1">
             <h3 className="pr-12 text-2xl font-black uppercase text-black sm:pr-16 sm:text-3xl">
-              {role === 'INFLUENCER' ? 'Influencer' : 'Brand'}
+              {role === 'INFLUENCER' ? 'Creator' : 'Brand'}
             </h3>
             <p
               className="mt-2 text-lg font-black italic leading-none sm:text-xl"

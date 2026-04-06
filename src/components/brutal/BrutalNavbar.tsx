@@ -102,7 +102,7 @@ export default function BrutalNavbar() {
     const brandLinks = [
         { href: "/brand/campaigns", label: "Campaigns", icon: Megaphone },
         { href: "/profile", label: "Profile", icon: User },
-        { href: "/brand/marketplace", label: "Influencers", icon: ShoppingBag },
+        { href: "/brand/marketplace", label: "Creators", icon: ShoppingBag },
         { href: "/brand/ads", label: "Ads", icon: Sparkles },
         { href: "/brand/products", label: "Products", icon: Box },
         { href: "/inbox", label: "Inbox", icon: Mail },
@@ -111,7 +111,7 @@ export default function BrutalNavbar() {
     // Public links for logged-out users (matching user request)
     const publicLinks = [
         { href: "/influencer/try-on", label: "Try-On" },
-        { href: "/register?role=influencer", label: "For Influencers" },
+        { href: "/register?role=influencer", label: "For Creators" },
         { href: "/register?role=brand", label: "For Brands" },
     ];
 
