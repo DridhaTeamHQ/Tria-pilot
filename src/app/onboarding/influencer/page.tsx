@@ -19,6 +19,7 @@ const TOTAL_STEPS = 8
 
 type ReferencePhotoSource = 'app_upload' | 'migrated_profile' | 'migrated_identity'
 type ReferencePhotoStatus = 'pending' | 'approved' | 'rejected'
+type IdentityImageType = 'face_front' | 'face_left' | 'face_right' | 'face_smile' | 'body_front' | 'body_left' | 'body_right'
 
 interface ReferencePhotoAnalysis {
   faceDetectionConfidence: number
@@ -63,7 +64,6 @@ export default function InfluencerOnboardingPage() {
   const [photoFiles, setPhotoFiles] = useState<File[]>([])
   const [uploadingPhotos, setUploadingPhotos] = useState(false)
   const [dataLoaded, setDataLoaded] = useState(false)
-<<<<<<< HEAD
   const [redirectChecking, setRedirectChecking] = useState(true)
 
   // Identity images state
@@ -77,7 +77,6 @@ export default function InfluencerOnboardingPage() {
     body_right: {},
   })
   const [identityProgress, setIdentityProgress] = useState(0)
-=======
   const [referencePhotos, setReferencePhotos] = useState<ReferencePhoto[]>([])
   const [referencePhotosLoading, setReferencePhotosLoading] = useState(false)
   const [referencePhotosReady, setReferencePhotosReady] = useState(false)
@@ -88,7 +87,6 @@ export default function InfluencerOnboardingPage() {
   const [referenceUploading, setReferenceUploading] = useState(false)
   const [referenceDeletingId, setReferenceDeletingId] = useState<string | null>(null)
   const referenceInputRef = useRef<HTMLInputElement>(null)
->>>>>>> codex/tryon-reliability-hardening
 
   const [formData, setFormData] = useState({
     gender: '',
@@ -129,7 +127,6 @@ export default function InfluencerOnboardingPage() {
           } else {
             router.replace('/influencer/pending')
           }
-<<<<<<< HEAD
           return
         }
 
@@ -174,11 +171,6 @@ export default function InfluencerOnboardingPage() {
           }
         })
         .catch(() => { })
-=======
-          setDataLoaded(true)
-        })
-        .catch(() => setDataLoaded(true))
->>>>>>> codex/tryon-reliability-hardening
     }
 
     void loadData()
