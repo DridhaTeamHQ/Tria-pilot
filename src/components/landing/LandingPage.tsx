@@ -183,7 +183,7 @@ export default function LandingPage() {
             <PathPanel
               label="For Brands"
               tone="lime"
-              title="Spending on marketing without seeing the result? There's a smarter way."
+              title="Spending on marketing without clear results? There's a smarter way."
               body="Find the right creators, generate strong campaign visuals, and launch with more confidence."
               href="/signup/brand"
               cta="Start scaling"
