@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
     staggerContainer,
     staggerItem,
-    cardHover,
     pageVariants,
     overlayVariants,
     scaleFade,
@@ -33,7 +32,7 @@ import {
     ArrowRight,
     ArrowLeft,
 } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from '@/lib/simple-sonner'
 import BrutalCard from '@/components/brutal/BrutalCard'
 import { BrutalLoader } from '@/components/ui/BrutalLoader'
 
@@ -635,7 +634,10 @@ export default function CreativesPage() {
                 setCreatives(creativesData.creatives || [])
                 setCampaigns(campaignsData || [])
             })
-            .catch(console.error)
+            .catch((err) => {
+                console.error(err)
+                toast.error('Failed to load creatives')
+            })
             .finally(() => setLoading(false))
     }, [])
 

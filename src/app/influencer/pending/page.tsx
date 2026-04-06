@@ -24,7 +24,6 @@ import {
   Zap
 } from 'lucide-react'
 import { DecorativeShapes } from '@/components/brutal/onboarding/DecorativeShapes'
-import { BrutalLoader } from '@/components/ui/BrutalLoader'
 import { createClient } from '@/lib/auth-client'
 
 type Status = 'draft' | 'pending' | 'approved' | 'rejected'

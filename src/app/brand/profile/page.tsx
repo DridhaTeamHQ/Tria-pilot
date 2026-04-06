@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
-import { toast } from 'sonner'
+import { toast } from '@/lib/simple-sonner'
 import {
   User,
   Building2,

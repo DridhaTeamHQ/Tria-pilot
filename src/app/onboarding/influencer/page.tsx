@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useTransition, useRef, Suspense } from 'react'
+import { useState, useEffect, useCallback, useTransition, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from '@/lib/simple-sonner'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -150,6 +150,7 @@ export default function InfluencerOnboardingPage() {
         setDataLoaded(true)
       } catch {
         if (!cancelled) {
+          toast.error('Failed to load onboarding data')
           setDataLoaded(true)
         }
       } finally {

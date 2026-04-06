@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { toast } from 'sonner'
+import { toast } from '@/lib/simple-sonner'
 import { motion } from 'framer-motion'
 import { ArrowRight, ArrowLeft, Mail, Loader2, KeyRound, Sparkles, Shield } from 'lucide-react'
 

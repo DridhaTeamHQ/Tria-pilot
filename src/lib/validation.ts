@@ -34,6 +34,7 @@ export const loginSchema = z
     // Allow short passwords so Supabase can return a consistent auth error, but cap length.
     password: z.string().min(1).max(128),
     rememberMe: z.boolean().optional(),
+    portalRole: z.enum(['influencer', 'brand']).optional(),
   })
   .strict()
 

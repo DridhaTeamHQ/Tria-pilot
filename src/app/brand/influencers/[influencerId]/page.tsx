@@ -12,7 +12,7 @@ import Link from 'next/link'
 import { ArrowLeft, Mail, Instagram, MessageCircle } from 'lucide-react'
 import { BrutalLoader } from '@/components/ui/BrutalLoader'
 import { Button } from '@/components/ui/button'
-import { toast } from 'sonner'
+import { toast } from '@/lib/simple-sonner'
 
 interface InfluencerData {
   id: string

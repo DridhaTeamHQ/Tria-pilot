@@ -57,7 +57,7 @@ export default function ContactPage() {
               <h1 className="mt-6 text-[clamp(3.1rem,7vw,5.8rem)] font-black uppercase leading-[0.9] tracking-[-0.07em] text-black">
                 Contact
                 <br />
-                Kiwikoo
+                Us
               </h1>
               <p className="mt-5 max-w-[500px] text-[18px] leading-8 text-black/65">
                 Need help with onboarding, approvals, payments, or your account? Send us a message and we&apos;ll point you to the right team quickly.

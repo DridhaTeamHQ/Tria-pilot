@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { toast } from '@/lib/simple-sonner'
 
 interface ProductLinkData {
   maskedUrl: string | null

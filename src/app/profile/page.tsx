@@ -28,7 +28,6 @@ import {
 } from 'lucide-react'
 import { toast } from '@/lib/simple-sonner'
 import Link from 'next/link'
-import { createClient } from '@/lib/auth-client'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
 
 type ReferencePhotoSource = 'app_upload' | 'migrated_profile' | 'migrated_identity'
@@ -629,7 +628,8 @@ export default function ProfilePage() {
 
   const level = getLevelInfo(Number(profile?.badgeScore || 0))
   const followers = Number(profile?.followers || 0)
-  const engagementRate = Number(profile?.engagementRate || 0)
+  const rawEngagement = Number(profile?.engagementRate || 0)
+  const engagementRate = rawEngagement <= 1 && rawEngagement > 0 ? +(rawEngagement * 100).toFixed(2) : +rawEngagement.toFixed(2)
   const audienceRate = Number(profile?.audienceRate || 0)
   const hasSocials = Boolean(profile?.socials && Object.keys(profile.socials).length > 0)
   return (
@@ -1107,7 +1107,7 @@ export default function ProfilePage() {
                       <div>
                         <p className="text-xs font-bold uppercase text-black/50">Followers</p>
                         <p className="text-2xl font-black">{followers.toLocaleString()}</p>
-                        <p className="text-[11px] text-black/50 font-semibold">+{Math.max(1, Math.round(followers * 0.012)).toLocaleString()} this month</p>
+                        <p className="text-[11px] text-black/50 font-semibold">Total followers</p>
                       </div>
                     </div>
                   </div>

@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -21,7 +21,6 @@ import {
     ImageIcon,
     Share2
 } from 'lucide-react'
-import { BrutalLoader } from '@/components/ui/BrutalLoader'
 import { useDeleteGeneration, useGenerations } from '@/lib/react-query/hooks'
 import { toast } from '@/lib/simple-sonner'
 import { ShareModal } from '@/components/tryon/ShareModal'

@@ -1,736 +1,2072 @@
-﻿'use client'
+'use client'
 
-import './studio.css'
-
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useState, useEffect, Suspense, useCallback, useRef } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
-import {
-  AlertTriangle,
-  Check,
-  Image as ImageIcon,
-  Loader2,
-  RefreshCw,
-  Sparkles,
-  Trash2,
-  Upload,
-} from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import Link from 'next/link'
+import { useQueryClient } from '@tanstack/react-query'
+import { toast } from '@/lib/simple-sonner'
+import { Upload, Sparkles, Palette, Download, ArrowRight, X, PartyPopper, AlertTriangle, Loader2, Share2, RefreshCw, Check, ShoppingBag, Copy, Link as LinkIcon } from 'lucide-react'
 import { useProduct, useUser } from '@/lib/react-query/hooks'
 import { safeParseResponse } from '@/lib/api-utils'
+import { useProductLink } from '@/lib/hooks/useProductLink'
+import { createClient } from '@/lib/auth-client'
 import { showErrorToast, showInfoToast, showSuccessToast, showWarningToast } from '@/lib/kiwikoo-toast'
+
+// Try-on preset type (v3)
+interface TryOnPreset {
+    id: string
+    name: string
+    description: string
+    category: string
+    vibe?: string
+    poseHint?: string
+    framingHint?: string
+    sceneObjects?: string
+    styleTags?: string[]
+    faceStability?: 'max' | 'high'
+    lightingHint?: string
+}
+// Inline loading animation - no popup overlay
+import { ShareModal } from '@/components/tryon/ShareModal'
+import { bounceInVariants } from '@/lib/animations'
 import { BrutalLoader } from '@/components/ui/BrutalLoader'
-import { MonaLisaGenerationLoader } from '@/components/ui/MonaLisaGenerationLoader'
 
-const MIN_TRYON_SOURCES = 3
-const ASPECT_RATIOS = ['1:1', '4:5', '9:16'] as const
-const RESOLUTIONS = ['1K', '2K'] as const
-const POLISH_LIMIT = 240
-
-function resolveStoredImageUrl(url?: string | null) {
-  if (!url) return ''
-  if (url.startsWith('/api/images/proxy')) return url
-  try {
-    const parsed = new URL(url)
-    const isSupabase = (parsed.hostname.endsWith('.supabase.co') || parsed.hostname.endsWith('.supabase.in')) && parsed.pathname.includes('/storage/')
-    return isSupabase ? `/api/images/proxy?url=${encodeURIComponent(parsed.toString())}` : url
-  } catch {
-    return url
-  }
+interface Product {
+    id: string
+    name: string
+    category?: string
+    brand?: {
+        companyName: string
+    }
+    tryOnImage?: string
 }
 
-function toImageSrc(image?: string | null) {
-  if (!image) return ''
-  if (image.startsWith('data:') || image.startsWith('http://') || image.startsWith('https://')) return image
-  return `data:image/jpeg;base64,${image}`
+const SHOW_ACCESSORIES_SECTION = false
+const TRYON_PRESETS_CACHE_KEY = 'tryon:presets:v1'
+const TRYON_IDENTITY_IMAGES_CACHE_KEY = 'tryon:identity-images:v1'
+const TRYON_PROFILE_IMAGES_CACHE_KEY = 'tryon:profile-images:v1'
+const TRYON_PRESETS_CACHE_TTL_MS = 10 * 60 * 1000
+const TRYON_LIBRARY_CACHE_TTL_MS = 5 * 60 * 1000
+
+type SessionCacheEntry<T> = {
+    timestamp: number
+    data: T
 }
 
-function normalizePhoto(raw: any) {
-  const id = String(raw?.id ?? '')
-  const imageUrl = String(raw?.imageUrl ?? raw?.image_url ?? '')
-  if (!id || !imageUrl) return null
-  return {
-    id,
-    imageUrl,
-    source: String(raw?.source ?? 'app_upload'),
-    status: String(raw?.status ?? 'pending'),
-    qualityScore: raw?.qualityScore ?? raw?.quality_score ?? null,
-    selectionScore: raw?.selectionScore ?? null,
-    analysis: raw?.analysis ?? null,
-    approvedForTryOn: Boolean(raw?.approvedForTryOn ?? raw?.approved_for_tryon ?? false),
-    rejectionReasons: Array.isArray(raw?.rejectionReasons) ? raw.rejectionReasons : Array.isArray(raw?.rejection_reasons) ? raw.rejection_reasons : [],
-    createdAt: String(raw?.createdAt ?? raw?.created_at ?? ''),
-    updatedAt: String(raw?.updatedAt ?? raw?.updated_at ?? ''),
-    isActive: raw?.isActive ?? raw?.is_active,
-  }
+function readSessionCache<T>(key: string, ttlMs: number): T | null {
+    if (typeof window === 'undefined') return null
+
+    try {
+        const raw = window.sessionStorage.getItem(key)
+        if (!raw) return null
+
+        const parsed = JSON.parse(raw) as SessionCacheEntry<T>
+        if (!parsed || typeof parsed.timestamp !== 'number') {
+            window.sessionStorage.removeItem(key)
+            return null
+        }
+
+        if (Date.now() - parsed.timestamp > ttlMs) {
+            window.sessionStorage.removeItem(key)
+            return null
+        }
+
+        return parsed.data
+    } catch {
+        window.sessionStorage.removeItem(key)
+        return null
+    }
 }
 
-function dedupeById(items: any[]) {
-  const seen = new Set<string>()
-  return items.filter((item) => {
-    if (!item || !item.id || seen.has(item.id)) return false
-    seen.add(item.id)
-    return true
-  })
+function writeSessionCache<T>(key: string, data: T) {
+    if (typeof window === 'undefined') return
+
+    try {
+        const payload: SessionCacheEntry<T> = {
+            timestamp: Date.now(),
+            data,
+        }
+        window.sessionStorage.setItem(key, JSON.stringify(payload))
+    } catch {
+        // Ignore cache write failures (private browsing, quota, etc.)
+    }
 }
 
-function getApprovedPhotos(photos: any[]) {
-  return photos.filter((photo) => photo.status === 'approved' && photo.isActive !== false)
-}
+function scheduleDeferredTask(task: () => void, timeout = 800) {
+    if (typeof window === 'undefined') {
+        return () => undefined
+    }
 
-function deriveRecommendations(photos: any[]) {
-  const approved = getApprovedPhotos(photos)
-    .sort((a, b) => (b.selectionScore ?? b.qualityScore ?? 0) - (a.selectionScore ?? a.qualityScore ?? 0))
-  return {
-    selected: approved.slice(0, 3),
-    alternates: approved.slice(3, 8),
-    totalApproved: approved.length,
-    isReadyForTryOn: approved.length >= MIN_TRYON_SOURCES,
-    minRequired: MIN_TRYON_SOURCES,
-    photosNeeded: Math.max(0, MIN_TRYON_SOURCES - approved.length),
-  }
-}
+    const idleWindow = window as typeof window & {
+        requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number
+        cancelIdleCallback?: (handle: number) => void
+    }
 
-function normalizeRecommendation(raw: any, photos: any[]) {
-  const fallback = deriveRecommendations(photos)
-  const selected = dedupeById((Array.isArray(raw?.selected) ? raw.selected : []).map(normalizePhoto).filter(Boolean))
-  const alternates = dedupeById((Array.isArray(raw?.alternates) ? raw.alternates : []).map(normalizePhoto).filter(Boolean))
-  if (!selected.length && !alternates.length) return fallback
-  return {
-    selected: selected.length ? selected : fallback.selected,
-    alternates: alternates.length ? alternates : fallback.alternates,
-    totalApproved: fallback.totalApproved,
-    isReadyForTryOn: fallback.isReadyForTryOn,
-    minRequired: fallback.minRequired,
-    photosNeeded: fallback.photosNeeded,
-  }
-}
+    if (typeof idleWindow.requestIdleCallback === 'function') {
+        const handle = idleWindow.requestIdleCallback(() => task(), { timeout })
+        return () => {
+            if (typeof idleWindow.cancelIdleCallback === 'function') {
+                idleWindow.cancelIdleCallback(handle)
+            }
+        }
+    }
 
-function normalizeResult(raw: any) {
-  if (!raw) return { outputs: [] }
-  const outputs = Array.isArray(raw.outputs)
-    ? raw.outputs
-        .map((output: any, index: number) => ({
-          referenceImageId: String(output?.referenceImageId ?? output?.reference_image_id ?? ''),
-          status: String(output?.status ?? 'completed'),
-          imageUrl: String(output?.imageUrl ?? output?.image_url ?? ''),
-          base64Image: output?.base64Image ?? output?.base64_image ?? '',
-          error: output?.error ? String(output.error) : '',
-          label: String(output?.label ?? `Variant ${index + 1}`),
-        }))
-        .filter((output: any) => output.imageUrl || output.base64Image || output.error)
-    : []
-  return {
-    jobId: raw.jobId ?? raw.job_id ?? '',
-    status: raw.status ?? '',
-    imageUrl: raw.imageUrl ?? raw.image_url ?? '',
-    base64Image: raw.base64Image ?? raw.base64_image ?? '',
-    outputs,
-    error: raw.error ? String(raw.error) : '',
-    output_image_path: raw.output_image_path ?? '',
-  }
-}
-
-function pickProductImage(product: any, selected: string) {
-  if (selected) return selected
-  if (product?.tryOnImage) return product.tryOnImage
-  const first = product?.images?.[0]
-  if (!first) return ''
-  if (typeof first === 'string') return first
-  return first.imagePath ?? first.imageUrl ?? first.image_url ?? first.path ?? ''
-}
-
-export default function TryOnPage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-[#FDFBF7] pt-24 flex items-center justify-center"><BrutalLoader size="lg" tone="influencer" label="Loading try-on studio" /></div>}>
-      <TryOnPageContent />
-    </Suspense>
-  )
+    const handle = window.setTimeout(task, timeout)
+    return () => window.clearTimeout(handle)
 }
 
 function TryOnPageContent() {
-  const { data: user } = useUser()
-  const searchParams = useSearchParams()
-  const productId = searchParams.get('productId')
-  const { data: productData, isLoading: productLoading } = useProduct(productId)
+    const router = useRouter()
+    const queryClient = useQueryClient()
+    const { data: user } = useUser()
+    const searchParams = useSearchParams()
+    const productId = searchParams.get('productId')
 
-  const [photos, setPhotos] = useState<any[]>([])
-  const [recommendations, setRecommendations] = useState<any | null>(null)
-  const [loadingLibrary, setLoadingLibrary] = useState(true)
-  const [uploading, setUploading] = useState(false)
-  const [archivingId, setArchivingId] = useState('')
-  const [selectedReferenceIds, setSelectedReferenceIds] = useState<string[]>([])
-  const [activeSlot, setActiveSlot] = useState(0)
-  const [selectedGarmentImage, setSelectedGarmentImage] = useState('')
-  const [polishNotes, setPolishNotes] = useState('')
-  const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '9:16'>('4:5')
-  const [resolution, setResolution] = useState<'1K' | '2K'>('2K')
-  const [submitting, setSubmitting] = useState(false)
-  const [retryAfterSeconds, setRetryAfterSeconds] = useState(0)
-  const [activeJobId, setActiveJobId] = useState('')
-  const [elapsedSeconds, setElapsedSeconds] = useState(0)
-  const [result, setResult] = useState<any | null>(null)
-  const [selectedOutputIndex, setSelectedOutputIndex] = useState(0)
-  const [garmentIntel, setGarmentIntel] = useState<any | null>(null)
-  const [loadingRecommend, setLoadingRecommend] = useState(false)
-  const [selectionMode, setSelectionMode] = useState<'auto' | 'manual'>('auto')
-  const [libraryModalOpen, setLibraryModalOpen] = useState(false)
-  const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false)
-  const photosRef = useRef<any[]>([])
-  const generateInFlightRef = useRef(false)
-  const pollAttemptRef = useRef(0)
-  const pollCooldownUntilRef = useRef(0)
+    const [personImage, setPersonImage] = useState<string>('')
+    const [personImageBase64, setPersonImageBase64] = useState<string>('')
+    const [clothingImage, setClothingImage] = useState<string>('')
+    const [clothingImageBase64, setClothingImageBase64] = useState<string>('')
+    const [backgroundImage, setBackgroundImage] = useState<string>('')
+    const [backgroundImageBase64, setBackgroundImageBase64] = useState<string>('')
+    const [editType, setEditType] = useState<'clothing_change' | 'background_change' | 'lighting_change' | 'pose_change' | 'camera_change'>('clothing_change')
+    const [userRequest, setUserRequest] = useState<string>('')
 
-  const photoMap = useMemo(() => new Map(photos.map((photo) => [photo.id, photo])), [photos])
-  const approvedPhotos = useMemo(() => getApprovedPhotos(photos), [photos])
-  const recommendationPhotoKey = useMemo(
-    () => photos.map((photo) => `${photo.id}:${photo.status}:${photo.isActive !== false}`).join('|'),
-    [photos]
-  )
-  const derivedRecommendations = useMemo(() => deriveRecommendations(photos), [photos])
-  const currentRecommendations = recommendations ?? derivedRecommendations
-  const candidatePhotos = useMemo(
-    () => dedupeById([...currentRecommendations.selected, ...currentRecommendations.alternates, ...approvedPhotos]),
-    [approvedPhotos, currentRecommendations.alternates, currentRecommendations.selected]
-  )
-  const defaultSelectedReferenceIds = useMemo(
-    () =>
-      (currentRecommendations.selected.length ? currentRecommendations.selected : approvedPhotos)
-        .slice(0, 3)
-        .map((photo: any) => photo.id)
-        .filter(Boolean),
-    [approvedPhotos, currentRecommendations.selected]
-  )
-  const selectedPhotos = selectedReferenceIds.map((id) => photoMap.get(id)).filter(Boolean)
-  const selectedProductImage = pickProductImage(productData, selectedGarmentImage)
-  const outputs = useMemo(() => {
-    if (!result) return []
-    if (Array.isArray(result.outputs) && result.outputs.length) return result.outputs
-    if (result.imageUrl || result.base64Image || result.output_image_path) {
-      return [
-        {
-          referenceImageId: selectedReferenceIds[0] ?? '',
-          status: result.status ?? 'completed',
-          imageUrl: result.imageUrl || result.output_image_path || '',
-          base64Image: result.base64Image,
-          error: result.error || '',
-          label: 'Result',
-        },
-      ]
-    }
-    return []
-  }, [result, selectedReferenceIds])
-  const selectedOutput = outputs[selectedOutputIndex] ?? outputs[0] ?? null
-  const hasCompleteSelection = selectedReferenceIds.filter(Boolean).length === 3 && selectedPhotos.length === 3
-  const hasManualSelection = selectionMode === 'manual' && hasCompleteSelection
-  const readyForTryOn = currentRecommendations.totalApproved >= currentRecommendations.minRequired
-  const isGenerating = submitting || Boolean(activeJobId)
-  const visibleCandidatePhotos = candidatePhotos.slice(0, 8)
-  const generationLabel = hasManualSelection ? 'Generate with chosen sources' : 'Generate with AI-picked sources'
-  const generationHint = hasManualSelection
-    ? 'You are locking the three visible source slots for this run.'
-    : 'AI will keep re-ranking approved photos for this garment before each run.'
+    const [savedProfileImages, setSavedProfileImages] = useState<Array<{ id: string; imageUrl: string; isPrimary: boolean; label: string | null }>>([])
+    const [savedProfileImagesLoading, setSavedProfileImagesLoading] = useState(false)
+    const [savedProfileImagesReady, setSavedProfileImagesReady] = useState(false)
+    const [saveUploadedPersonToProfile, setSaveUploadedPersonToProfile] = useState(false)
+    // Identity images for better face consistency (auto-fetched from profile)
+    const [identityImages, setIdentityImages] = useState<Array<{ type: string; imageUrl: string }>>([])
+    const [identityImagesLoading, setIdentityImagesLoading] = useState(false)
+    const [useIdentityImages, setUseIdentityImages] = useState(true) // Toggle for using identity refs
+    // NEW: Accessory states for Edit Mode
+    const [accessoryImages, setAccessoryImages] = useState<string[]>([])
+    const [accessoryTypes, setAccessoryTypes] = useState<('purse' | 'shoes' | 'hat' | 'jewelry' | 'bag' | 'watch' | 'sunglasses' | 'scarf' | 'other')[]>([])
+    const [loading, setLoading] = useState(false)
+    const [retryAfterSeconds, setRetryAfterSeconds] = useState(0)
+    const [retryReason, setRetryReason] = useState<'job_in_progress' | 'rate_limit' | null>(null)
+    const [activeJobId, setActiveJobId] = useState<string | null>(null)
+    const [queueStatus, setQueueStatus] = useState<'idle' | 'queued' | 'generating'>('idle')
+    const [uploadingImage, setUploadingImage] = useState<'person' | 'clothing' | 'background' | 'accessory' | null>(null)
+    // Multi-variant support: generate 3 variants, user selects one
+    const [result, setResult] = useState<{ jobId: string; imageUrl: string; base64Image?: string } | null>(null)
+    const [variants, setVariants] = useState<Array<{ imageUrl: string; base64Image?: string; variantId: number; label?: string }>>([])
+    const [selectedVariant, setSelectedVariant] = useState<number>(0)
+    const [product, setProduct] = useState<Product | null>(null)
+    const [selectedPreset, setSelectedPreset] = useState<string>('')
+    const [presetCategory, setPresetCategory] = useState<string>('all')
+    const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '3:4' | '9:16'>('1:1')
+    const [quality, setQuality] = useState<'1K' | '2K'>('2K')
+    const [dragOver, setDragOver] = useState<'person' | 'clothing' | null>(null)
+    const [showCelebration, setShowCelebration] = useState(false)
+    const [showShareModal, setShowShareModal] = useState(false)
+    const [elapsedSeconds, setElapsedSeconds] = useState(0)
+    const [downloading, setDownloading] = useState(false)
+    const generateInFlightRef = useRef(false)
+    const lastGenerateAttemptAtRef = useRef(0)
+    const pollCooldownUntilRef = useRef(0)
+    const pollAttemptRef = useRef(0)
 
-  const loadLibrary = useCallback(async () => {
-    setLoadingLibrary(true)
-    try {
-      const libRes = await fetch('/api/reference-photos', { cache: 'no-store', credentials: 'include' })
-      const libData = await safeParseResponse<any>(libRes, 'reference photos')
-      const nextPhotos = Array.isArray(libData?.photos) ? libData.photos.map(normalizePhoto).filter(Boolean) : []
-      setPhotos(nextPhotos)
-      try {
-        const recRes = await fetch('/api/reference-photos/recommendations', { cache: 'no-store', credentials: 'include' })
-        if (recRes.ok) {
-          const recData = await safeParseResponse<any>(recRes, 'reference photo recommendations')
-          setRecommendations(normalizeRecommendation(recData, nextPhotos))
-        } else {
-          setRecommendations(deriveRecommendations(nextPhotos))
-        }
-      } catch {
-        setRecommendations(deriveRecommendations(nextPhotos))
-      }
-    } catch (error) {
-      console.error('[try-on] library load failed:', error)
-      showErrorToast('Library unavailable', 'We could not load your reference photo library.')
-      setPhotos([])
-      setRecommendations(deriveRecommendations([]))
-    } finally {
-      setLoadingLibrary(false)
-    }
-  }, [])
+    // Presets
+    const [presets, setPresets] = useState<TryOnPreset[]>([])
+    const [presetsLoading, setPresetsLoading] = useState(true)
+    const [presetCategories, setPresetCategories] = useState<string[]>([])
+    const selectedPresetDetails = presets.find((preset) => preset.id === selectedPreset) ?? null
 
-  useEffect(() => {
-    void loadLibrary()
-  }, [loadLibrary])
-
-  /* useEffect(() => {
-    if (true) return
-    return
-    if (!ids.length) return // Don't set empty array â€” would loop
-    setSelectedReferenceIds(ids)
-  }, [approvedPhotos, currentRecommendations.selected, selectedReferenceIds.length]) */
-
-  useEffect(() => {
-    if (!defaultSelectedReferenceIds.length) return
-
-    setSelectedReferenceIds((previousIds) => {
-      if (previousIds.length > 0) return previousIds
-      if (
-        previousIds.length === defaultSelectedReferenceIds.length &&
-        previousIds.every((id, index) => id === defaultSelectedReferenceIds[index])
-      ) {
-        return previousIds
-      }
-      return defaultSelectedReferenceIds
-    })
-  }, [defaultSelectedReferenceIds])
-
-  useEffect(() => {
-    if (!activeJobId) return
-    setElapsedSeconds(0)
-    const timer = setInterval(() => setElapsedSeconds((s) => s + 1), 1000)
-    return () => clearInterval(timer)
-  }, [activeJobId])
-
-  useEffect(() => {
-    photosRef.current = photos
-  }, [photos])
-
-  useEffect(() => {
-    if (retryAfterSeconds <= 0) return
-    const timer = setInterval(() => setRetryAfterSeconds((s) => Math.max(0, s - 1)), 1000)
-    return () => clearInterval(timer)
-  }, [retryAfterSeconds])
-
-  // Garment-aware recommendation: when product image changes, re-rank photos
-  useEffect(() => {
-    const currentPhotos = photosRef.current
-    if (!selectedProductImage || !currentPhotos.length) return
-    let cancelled = false
-    const fetchRecommendations = async () => {
-      setLoadingRecommend(true)
-      try {
-        const isBase64 = selectedProductImage.startsWith('data:image/')
-        const body: Record<string, string> = {}
-        if (isBase64) {
-          body.garmentBase64 = selectedProductImage
-        } else {
-          body.garmentImageUrl = selectedProductImage
-        }
-        const res = await fetch('/api/tryon/recommend', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify(body),
-        })
-        if (!res.ok) throw new Error('Recommend API failed')
-        const data = await res.json()
-        if (cancelled) return
-
-        setGarmentIntel(data.garmentIntel ?? null)
-
-        // Update photo selection scores from garment recommendations
-        let nextPhotos = currentPhotos
-        if (Array.isArray(data.recommendations) && data.recommendations.length) {
-          const scoreMap = new Map(data.recommendations.map((r: any) => [r.id, r]))
-          nextPhotos = currentPhotos.map((photo) => {
-            const rec = scoreMap.get(photo.id) as any
-            if (rec) {
-              return { ...photo, selectionScore: rec.score / 100, garmentSuitability: rec.suitability, garmentReasoning: rec.reasoning }
-            }
-            return photo
-          })
-          setPhotos(nextPhotos)
-        }
-
-        const nextPhotoMap = new Map(nextPhotos.map((photo) => [photo.id, photo]))
-        const approvedRankablePhotos = getApprovedPhotos(nextPhotos)
-        const rankedCandidatePhotos = Array.isArray(data.recommendations)
-          ? dedupeById(
-              data.recommendations
-                .map((recommendation: any) => nextPhotoMap.get(String(recommendation?.id ?? '')))
-                .filter(Boolean)
+    const fetchPresets = useCallback(async ({ force = false }: { force?: boolean } = {}) => {
+        if (!force) {
+            const cached = readSessionCache<{ presets: TryOnPreset[]; categories: string[] }>(
+                TRYON_PRESETS_CACHE_KEY,
+                TRYON_PRESETS_CACHE_TTL_MS
             )
-          : []
-        const rankedPhotos = rankedCandidatePhotos.length
-          ? rankedCandidatePhotos
-          : approvedRankablePhotos
-              .slice()
-              .sort((left, right) => (right.selectionScore ?? right.qualityScore ?? 0) - (left.selectionScore ?? left.qualityScore ?? 0))
+            if (cached) {
+                setPresets(cached.presets)
+                setPresetCategories(cached.categories)
+                setPresetsLoading(false)
+                return cached.presets
+            }
+        }
 
-        setRecommendations({
-          selected: rankedPhotos.slice(0, 3),
-          alternates: rankedPhotos.slice(3, 8),
-          totalApproved: approvedRankablePhotos.length,
-          isReadyForTryOn: approvedRankablePhotos.length >= MIN_TRYON_SOURCES,
-          minRequired: MIN_TRYON_SOURCES,
-          photosNeeded: Math.max(0, MIN_TRYON_SOURCES - approvedRankablePhotos.length),
+        setPresetsLoading(true)
+        try {
+            const res = await fetch('/api/presets')
+            const data = await safeParseResponse(res, 'presets')
+            if (res.ok && data.presets) {
+                const nextPresets = data.presets as TryOnPreset[]
+                const nextCategories = (data.categories || []) as string[]
+                setPresets(nextPresets)
+                setPresetCategories(nextCategories)
+                writeSessionCache(TRYON_PRESETS_CACHE_KEY, {
+                    presets: nextPresets,
+                    categories: nextCategories,
+                })
+                return nextPresets
+            }
+        } catch (e) {
+            console.error('Failed to fetch presets:', e)
+        } finally {
+            setPresetsLoading(false)
+        }
+
+        return [] as TryOnPreset[]
+    }, [])
+
+    useEffect(() => {
+        void fetchPresets()
+    }, [fetchPresets])
+
+    // Countdown timer for loading state
+    useEffect(() => {
+        if (loading) {
+            setElapsedSeconds(0)
+            const interval = setInterval(() => {
+                setElapsedSeconds(prev => prev + 1)
+            }, 1000)
+            return () => clearInterval(interval)
+        }
+    }, [loading])
+
+    // Reset retry cooldown on mount so we never show a stale "Job in progress" from a previous session
+    useEffect(() => {
+        setRetryAfterSeconds(0)
+        setRetryReason(null)
+    }, [])
+
+    // Retry cooldown timer (for 429 / job-in-progress responses)
+    useEffect(() => {
+        if (retryAfterSeconds <= 0) {
+            setRetryReason(null)
+            return
+        }
+        const t = setInterval(() => {
+            setRetryAfterSeconds(prev => Math.max(0, prev - 1))
+        }, 1000)
+        return () => clearInterval(t)
+    }, [retryAfterSeconds])
+
+    const pollTryOnJob = useCallback(async (
+        jobId: string,
+        options?: { onStatus?: (status: 'pending' | 'processing') => void }
+    ) => {
+        const startedAt = Date.now()
+        const timeoutMs = 10 * 60 * 1000
+        const baseIntervalMs = 3000
+        let consecutiveRateLimitCount = 0
+
+        while (Date.now() - startedAt < timeoutMs) {
+            const now = Date.now()
+            const cooldownUntil = pollCooldownUntilRef.current
+            if (cooldownUntil > now) {
+                await new Promise(resolve => setTimeout(resolve, cooldownUntil - now))
+            }
+
+            try {
+                const pollResponse = await fetch(`/api/tryon/jobs/${jobId}`, { cache: 'no-store', credentials: 'include' })
+                const pollData = await safeParseResponse<any>(pollResponse, 'try-on job polling')
+                const status = pollData?.status as string | undefined
+
+                pollAttemptRef.current += 1
+                consecutiveRateLimitCount = 0
+
+                if (status === 'pending' || status === 'processing') {
+                    options?.onStatus?.(status)
+                    const dynamicIntervalMs = Math.min(12000, baseIntervalMs + Math.floor(pollAttemptRef.current / 3) * 1000)
+                    const jitterMs = Math.floor(Math.random() * 350)
+                    await new Promise(resolve => setTimeout(resolve, dynamicIntervalMs + jitterMs))
+                    continue
+                }
+
+                if (status === 'completed' || status === 'failed') {
+                    return pollData
+                }
+
+                await new Promise(resolve => setTimeout(resolve, baseIntervalMs))
+            } catch (error) {
+                const structured = error as (Error & { status?: number; retryAfterSeconds?: number })
+                const isRateLimited = structured?.status === 429 || structured?.status === 503
+
+                if (!isRateLimited) {
+                    throw error
+                }
+
+                consecutiveRateLimitCount += 1
+                const serverRetry = Math.max(1, Number(structured?.retryAfterSeconds ?? (structured?.status === 503 ? 12 : 8)))
+                const exponentialPenalty = Math.min(120, 2 ** Math.min(consecutiveRateLimitCount, 6))
+                const retrySeconds = Math.max(serverRetry, exponentialPenalty)
+                pollCooldownUntilRef.current = Date.now() + retrySeconds * 1000
+
+                setRetryAfterSeconds(prev => Math.max(prev, retrySeconds))
+                setRetryReason('rate_limit')
+
+                const remainingMs = timeoutMs - (Date.now() - startedAt)
+                const waitMs = Math.min(retrySeconds * 1000, remainingMs)
+                if (waitMs <= 0) break
+
+                await new Promise(resolve => setTimeout(resolve, waitMs))
+            }
+        }
+
+        throw new Error('Generation is taking longer than expected. Please check Generations history.')
+    }, [])
+
+    useEffect(() => {
+        if (!user?.id || generateInFlightRef.current) return
+
+        let cancelled = false
+        const restoreActiveJob = async () => {
+            try {
+                const response = await fetch('/api/tryon/jobs/active', { cache: 'no-store', credentials: 'include' })
+
+                if (response.status === 404) {
+                    sessionStorage.removeItem('tryonActiveJobId')
+                    return
+                }
+
+                const active = await safeParseResponse<any>(response, 'active try-on job')
+                if (!active?.jobId || (active?.status !== 'pending' && active?.status !== 'processing')) {
+                    sessionStorage.removeItem('tryonActiveJobId')
+                    return
+                }
+
+                if (cancelled) return
+
+                const restoredJobId = String(active.jobId)
+                setActiveJobId(restoredJobId)
+                setLoading(true)
+                setQueueStatus(active.status === 'pending' ? 'queued' : 'generating')
+                sessionStorage.setItem('tryonActiveJobId', restoredJobId)
+
+                const finalJob = await pollTryOnJob(restoredJobId, {
+                    onStatus: (status) => {
+                        setQueueStatus(status === 'pending' ? 'queued' : 'generating')
+                    },
+                })
+
+                if (cancelled) return
+
+                if (finalJob.status === 'failed') {
+                    throw new Error(finalJob.error || 'Try-on generation failed')
+                }
+
+                if (!finalJob.imageUrl && !finalJob.base64Image) {
+                    throw new Error('Try-on completed but no image was returned')
+                }
+
+                setVariants([])
+                  setResult({
+                      jobId: restoredJobId,
+                      imageUrl: finalJob.imageUrl || '',
+                      base64Image: finalJob.base64Image,
+                  })
+                  queryClient.invalidateQueries({ queryKey: ['generations'] })
+                  queryClient.invalidateQueries({ queryKey: ['profile-stats'] })
+                  showSuccessToast('Try-on ready', 'Your existing generated image is ready.')
+                setShowCelebration(true)
+                setTimeout(() => setShowCelebration(false), 5000)
+            } catch (error) {
+                if (cancelled) return
+                const structured = error as (Error & { status?: number })
+                if (structured?.status !== 404) {
+                    const message = error instanceof Error ? error.message : 'Failed to resume active try-on job'
+                    showErrorToast('Try-on resume failed', message)
+                }
+            } finally {
+                if (cancelled) return
+                setLoading(false)
+                setActiveJobId(null)
+                setQueueStatus('idle')
+                pollAttemptRef.current = 0
+                pollCooldownUntilRef.current = 0
+                sessionStorage.removeItem('tryonActiveJobId')
+            }
+        }
+
+        restoreActiveJob()
+        return () => {
+            cancelled = true
+        }
+    }, [user?.id, pollTryOnJob])
+
+    const fetchIdentityImages = useCallback(async ({ force = false }: { force?: boolean } = {}) => {
+        if (!force) {
+            const cached = readSessionCache<Array<{ type: string; imageUrl: string }>>(
+                TRYON_IDENTITY_IMAGES_CACHE_KEY,
+                TRYON_LIBRARY_CACHE_TTL_MS
+            )
+            if (cached) {
+                setIdentityImages(cached)
+                return cached
+            }
+        }
+
+        setIdentityImagesLoading(true)
+        try {
+            const res = await fetch('/api/identity-images')
+            const data = await safeParseResponse(res, 'identity-images')
+            if (!res.ok) return []
+
+            const images = Array.isArray(data)
+                ? data
+                : (Array.isArray(data?.images) ? data.images : [])
+
+            const reqOrder = new Map<string, number>(
+                Array.isArray(data?.requirements)
+                    ? data.requirements.map((r: any) => [String(r.type), Number(r.order ?? 999)])
+                    : []
+            )
+
+            const normalized = images
+                .map((img: any) => ({
+                    type: String(img.imageType ?? img.type ?? ''),
+                    imageUrl: String(img.imageUrl ?? ''),
+                }))
+                .filter((x: any) => x.type && x.imageUrl)
+                .sort((a: any, b: any) => (reqOrder.get(a.type) ?? 999) - (reqOrder.get(b.type) ?? 999))
+
+            setIdentityImages(normalized)
+            writeSessionCache(TRYON_IDENTITY_IMAGES_CACHE_KEY, normalized)
+            return normalized
+        } catch (e) {
+            console.warn('Failed to load identity images:', e)
+            return []
+        } finally {
+            setIdentityImagesLoading(false)
+        }
+    }, [])
+
+    useEffect(() => {
+        const cancelDeferredLoad = scheduleDeferredTask(() => {
+            void fetchIdentityImages()
+        }, 1200)
+
+        return cancelDeferredLoad
+    }, [fetchIdentityImages])
+
+    const { data: productData, isLoading: productLoading } = useProduct(productId)
+    const { maskedLink, originalUrl, displayUrl, loading: linkLoading, copyLink, copied: linkCopied } = useProductLink(productId)
+
+    const fetchSavedProfileImages = useCallback(async () => {
+        const cached = readSessionCache<Array<{ id: string; imageUrl: string; isPrimary: boolean; label: string | null }>>(
+            TRYON_PROFILE_IMAGES_CACHE_KEY,
+            TRYON_LIBRARY_CACHE_TTL_MS
+        )
+        if (cached) {
+            setSavedProfileImages(cached)
+            setSavedProfileImagesLoading(false)
+            setSavedProfileImagesReady(true)
+            return cached
+        }
+
+        setSavedProfileImagesLoading(true)
+        try {
+            const res = await fetch('/api/profile-images')
+            const data = await safeParseResponse(res, 'profile-images')
+            if (!res.ok) throw new Error(data.error || 'Failed to fetch profile images')
+            const nextImages = (data.images || []) as Array<{ id: string; imageUrl: string; isPrimary: boolean; label: string | null }>
+            setSavedProfileImages(nextImages)
+            writeSessionCache(TRYON_PROFILE_IMAGES_CACHE_KEY, nextImages)
+            return nextImages
+        } catch (e) {
+            console.warn('Failed to load profile images:', e)
+            return []
+        } finally {
+            setSavedProfileImagesLoading(false)
+            setSavedProfileImagesReady(true)
+        }
+    }, [])
+
+    const refreshSavedProfileImages = useCallback(async () => {
+        setSavedProfileImagesLoading(true)
+        try {
+            const res = await fetch('/api/profile-images')
+            const data = await safeParseResponse(res, 'profile-images')
+            if (!res.ok) throw new Error(data.error || 'Failed to fetch profile images')
+            const nextImages = (data.images || []) as Array<{ id: string; imageUrl: string; isPrimary: boolean; label: string | null }>
+            setSavedProfileImages(nextImages)
+            writeSessionCache(TRYON_PROFILE_IMAGES_CACHE_KEY, nextImages)
+            return nextImages
+        } catch (e) {
+            console.warn('Failed to load profile images:', e)
+            return []
+        } finally {
+            setSavedProfileImagesLoading(false)
+            setSavedProfileImagesReady(true)
+        }
+    }, [])
+
+    useEffect(() => {
+        const cancelDeferredLoad = scheduleDeferredTask(() => {
+            void fetchSavedProfileImages()
+        }, 600)
+
+        return cancelDeferredLoad
+    }, [fetchSavedProfileImages])
+
+    // Auto-select the primary (or first) saved profile image so the button is immediately usable
+    const autoPersonLoadedRef = useRef(false)
+    useEffect(() => {
+        if (autoPersonLoadedRef.current) return
+        if (personImage || personImageBase64) return
+        if (savedProfileImages.length === 0) return
+
+        const pick = savedProfileImages.find((img) => img.isPrimary) || savedProfileImages[0]
+        if (!pick?.imageUrl) return
+
+        autoPersonLoadedRef.current = true
+            ; (async () => {
+                try {
+                    setUploadingImage('person')
+                    const res = await fetch(pick.imageUrl)
+                    const blob = await res.blob()
+                    const base64: string = await new Promise((resolve, reject) => {
+                        const reader = new FileReader()
+                        reader.onloadend = () => resolve(reader.result as string)
+                        reader.onerror = () => reject(new Error('Failed to read image'))
+                        reader.readAsDataURL(blob)
+                    })
+                    setPersonImage(base64)
+                    setPersonImageBase64(base64)
+                } catch {
+                    console.warn('[tryon] auto-select person image failed')
+                } finally {
+                    setUploadingImage(null)
+                }
+            })()
+    }, [savedProfileImages, personImage, personImageBase64])
+
+    // Track if we've already loaded the product image to prevent infinite loops
+    const productImageLoadedRef = useRef<string | null>(null)
+
+    useEffect(() => {
+        if (productData && productData.id) {
+            // Legacy logic: API returns images array with isTryOnReference flag
+            const tryOnImageUrl = productData.images?.find((img: any) => img.isTryOnReference)?.imagePath
+
+            setProduct({
+                id: productData.id,
+                name: productData.name,
+                category: productData.category,
+                brand: productData.brand,
+                tryOnImage: tryOnImageUrl,
+            })
+
+            // Auto-load clothing image if found and not already loaded for this product
+            if (tryOnImageUrl && productImageLoadedRef.current !== productData.id) {
+                productImageLoadedRef.current = productData.id
+                setClothingImage(tryOnImageUrl)
+
+                fetch(tryOnImageUrl)
+                    .then((res) => res.blob())
+                    .then((blob) => {
+                        const reader = new FileReader()
+                        reader.onloadend = () => {
+                            setClothingImageBase64(reader.result as string)
+                            toast.success(`Loaded try-on reference for ${productData.name}`)
+                        }
+                        reader.readAsDataURL(blob)
+                    })
+                    .catch((error) => {
+                        console.error('Failed to load image:', error)
+                        toast.error('Failed to load product image')
+                    })
+            }
+        }
+    }, [productData])
+
+    // NOTE: No image analysis in the new pipeline (strict image edit only)
+
+    const handleImageUpload = useCallback((file: File, type: 'person' | 'clothing' | 'background') => {
+        if (!file.type.startsWith('image/')) {
+            toast.error('Please select an image file')
+            return
+        }
+
+        const maxSize = 10 * 1024 * 1024
+        if (file.size > maxSize) {
+            toast.error('Image size must be less than 10MB')
+            return
+        }
+
+        setUploadingImage(type)
+
+        const reader = new FileReader()
+        reader.onload = (event) => {
+            const base64 = event.target?.result as string
+            if (!base64 || base64.length < 100) {
+                toast.error('Invalid image data')
+                setUploadingImage(null)
+                return
+            }
+
+            if (type === 'person') {
+                setPersonImage(base64)
+                setPersonImageBase64(base64)
+                toast.success('Person image uploaded')
+                if (saveUploadedPersonToProfile) {
+                    fetch('/api/profile-images', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ imageBase64: base64, label: 'tryon_upload' }),
+                    })
+                        .then(() => refreshSavedProfileImages())
+                        .catch(() => { /* non-blocking */ })
+                }
+            } else {
+                if (type === 'background') {
+                    setBackgroundImage(base64)
+                    setBackgroundImageBase64(base64)
+                    toast.success('Background image uploaded')
+                } else {
+                    setClothingImage(base64)
+                    setClothingImageBase64(base64)
+                    toast.success('Clothing image uploaded')
+                }
+            }
+            setUploadingImage(null)
+        }
+        reader.onerror = () => {
+            toast.error('Failed to read image file')
+            setUploadingImage(null)
+        }
+        reader.readAsDataURL(file)
+    }, [refreshSavedProfileImages, saveUploadedPersonToProfile])
+
+    const loadUrlToBase64 = async (url: string) => {
+        const res = await fetch(url)
+        const blob = await res.blob()
+        return await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onloadend = () => resolve(reader.result as string)
+            reader.onerror = () => reject(new Error('Failed to read image'))
+            reader.readAsDataURL(blob)
         })
+    }
 
-        if (Array.isArray(data.top3) && data.top3.length >= 3) {
-          setSelectedReferenceIds(data.top3.slice(0, 3))
-          setSelectionMode('auto')
-        } else if (rankedPhotos.length >= 3) {
-          setSelectedReferenceIds(rankedPhotos.slice(0, 3).map((photo: any) => photo.id))
-          setSelectionMode('auto')
+    const handleSelectProductImage = async (imageUrl: string) => {
+        setClothingImage(imageUrl)
+        try {
+            // Fetch blob for base64 conversion (needed for generation API)
+            const res = await fetch(imageUrl)
+            const blob = await res.blob()
+            const base64 = await new Promise<string>((resolve) => {
+                const reader = new FileReader()
+                reader.onloadend = () => resolve(reader.result as string)
+                reader.readAsDataURL(blob)
+            })
+            setClothingImageBase64(base64)
+            toast.success('Selected garment style')
+        } catch (e) {
+            console.error('Failed to load image blob', e)
         }
-      } catch (err) {
-        console.warn('[try-on] garment recommendation failed:', err)
-      } finally {
-        if (!cancelled) setLoadingRecommend(false)
-      }
     }
-    void fetchRecommendations()
-    return () => { cancelled = true }
-  }, [recommendationPhotoKey, selectedProductImage])
 
-  const refreshAll = useCallback(async () => {
-    await loadLibrary()
-  }, [loadLibrary])
-
-  const pollTryOnJob = useCallback(async (jobId: string) => {
-    const startedAt = Date.now()
-    const timeoutMs = 10 * 60 * 1000
-    while (Date.now() - startedAt < timeoutMs) {
-      const now = Date.now()
-      if (pollCooldownUntilRef.current > now) {
-        await new Promise((resolve) => setTimeout(resolve, pollCooldownUntilRef.current - now))
-      }
-      try {
-        const res = await fetch(`/api/tryon/jobs/${jobId}`, { cache: 'no-store', credentials: 'include' })
-        const data = normalizeResult(await safeParseResponse<any>(res, 'try-on job polling'))
-        pollAttemptRef.current += 1
-        if (data.status === 'pending' || data.status === 'processing') {
-          await new Promise((resolve) => setTimeout(resolve, Math.min(12000, 2500 + Math.floor(pollAttemptRef.current / 3) * 1000)))
-          continue
+    const handleSelectSavedPersonImage = async (url: string) => {
+        try {
+            setUploadingImage('person')
+            const base64 = await loadUrlToBase64(url)
+            setPersonImage(base64)
+            setPersonImageBase64(base64)
+            toast.success('Selected saved photo')
+        } catch {
+            toast.error('Failed to load saved photo')
+        } finally {
+            setUploadingImage(null)
         }
-        return data
-      } catch (error) {
-        const structured = error as Error & { status?: number; retryAfterSeconds?: number }
-        if (structured.status !== 429 && structured.status !== 503) throw error
-        const retrySeconds = Math.max(1, Number(structured.retryAfterSeconds ?? (structured.status === 503 ? 12 : 8)))
-        pollCooldownUntilRef.current = Date.now() + retrySeconds * 1000
-        setRetryAfterSeconds((s) => Math.max(s, retrySeconds))
-        await new Promise((resolve) => setTimeout(resolve, Math.min(retrySeconds * 1000, timeoutMs - (Date.now() - startedAt))))
-      }
-    }
-    throw new Error('Generation is taking longer than expected. Please check your generation history.')
-  }, [])
-
-  const updateSelectedSlot = useCallback((slot: number, photoId: string) => {
-    setSelectedReferenceIds((prev) => {
-      const next = [...prev]
-      while (next.length < 3) next.push('')
-      const otherIndex = next.findIndex((id, index) => index !== slot && id === photoId)
-      const previous = next[slot]
-      next[slot] = photoId
-      if (otherIndex >= 0) next[otherIndex] = previous || ''
-      return next
-    })
-    setSelectionMode('manual')
-    setActiveSlot(slot)
-  }, [])
-
-  const uploadReferencePhoto = useCallback(async (file: File) => {
-    setUploading(true)
-    try {
-      const form = new FormData()
-      form.append('file', file)
-      const res = await fetch('/api/reference-photos', { method: 'POST', body: form, credentials: 'include' })
-      const data = await safeParseResponse<any>(res, 'reference photo upload')
-      showSuccessToast('Photo uploaded', data?.message || 'Your reference photo is being analyzed.')
-      await refreshAll()
-    } catch (error) {
-      showErrorToast('Upload failed', error instanceof Error ? error.message : 'Failed to upload photo.')
-    } finally {
-      setUploading(false)
-    }
-  }, [refreshAll])
-
-  const archivePhoto = useCallback(async (photoId: string) => {
-    if (!window.confirm('Archive this reference photo?')) return
-    setArchivingId(photoId)
-    try {
-      const res = await fetch(`/api/reference-photos?id=${encodeURIComponent(photoId)}`, { method: 'DELETE', credentials: 'include' })
-      await safeParseResponse(res, 'reference photo archive')
-      showInfoToast('Photo archived', 'The photo was removed from your active library.')
-      setSelectedReferenceIds((prev) => prev.map((id) => (id === photoId ? '' : id)))
-      await refreshAll()
-    } catch (error) {
-      showErrorToast('Archive failed', error instanceof Error ? error.message : 'Failed to archive photo.')
-    } finally {
-      setArchivingId('')
-    }
-  }, [refreshAll])
-
-  const submitTryOn = useCallback(async () => {
-    if (!currentRecommendations.isReadyForTryOn) {
-      showWarningToast('More library photos needed', `${currentRecommendations.photosNeeded} more approved photo${currentRecommendations.photosNeeded === 1 ? '' : 's'} are required before try-on is enabled.`)
-      return
-    }
-    if (!productId && !selectedProductImage) {
-      showWarningToast('Choose a garment', 'Open the page from a product or choose a product image first.')
-      return
     }
 
-    const sourceIds = selectedReferenceIds.filter(Boolean)
-    const useAutoSelect = selectionMode === 'auto' || sourceIds.length !== 3
-    const isGarmentBase64 = Boolean(selectedProductImage?.startsWith('data:image/'))
+    // NEW: Accessory upload handlers for Edit Mode
+    const handleAccessoryUpload = useCallback((file: File, type: 'purse' | 'shoes' | 'hat' | 'jewelry' | 'bag' | 'watch' | 'sunglasses' | 'scarf' | 'other') => {
+        if (accessoryImages.length >= 5) {
+            toast.error('Maximum 5 accessories allowed')
+            return
+        }
 
-    const payload: Record<string, unknown> = {
-      productId: productId || undefined,
-      clothingImage: isGarmentBase64 ? selectedProductImage : undefined,
-      garmentImageUrl: !isGarmentBase64 ? (selectedProductImage || undefined) : undefined,
-      polishNotes: polishNotes.trim() || undefined,
-      aspectRatio,
-      resolution,
-      model: 'production',
+        if (!file.type.startsWith('image/')) {
+            toast.error('Please select an image file')
+            return
+        }
+
+        setUploadingImage('accessory')
+        const reader = new FileReader()
+        reader.onload = (event) => {
+            const base64 = event.target?.result as string
+            if (base64 && base64.length >= 100) {
+                setAccessoryImages(prev => [...prev, base64])
+                setAccessoryTypes(prev => [...prev, type])
+                toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} added!`)
+            }
+            setUploadingImage(null)
+        }
+        reader.onerror = () => {
+            toast.error('Failed to read image file')
+            setUploadingImage(null)
+        }
+        reader.readAsDataURL(file)
+    }, [accessoryImages.length])
+
+    const handleRemoveAccessory = (index: number) => {
+        setAccessoryImages(prev => prev.filter((_, i) => i !== index))
+        setAccessoryTypes(prev => prev.filter((_, i) => i !== index))
     }
 
-    if (useAutoSelect) {
-      payload.autoSelect = true
-    } else {
-      payload.selectedReferenceImageIds = sourceIds
+    const handleDrop = useCallback((e: React.DragEvent, type: 'person' | 'clothing') => {
+        e.preventDefault()
+        setDragOver(null)
+        const file = e.dataTransfer.files[0]
+        if (file) handleImageUpload(file, type)
+    }, [handleImageUpload])
+
+    const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'person' | 'clothing') => {
+        const file = e.target.files?.[0]
+        if (file) handleImageUpload(file, type)
     }
 
-    generateInFlightRef.current = true
-    setSubmitting(true)
-    setRetryAfterSeconds(0)
-    setResult(null)
-
-    try {
-      const res = await fetch('/api/tryon', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(payload),
-      })
-      const data = normalizeResult(await safeParseResponse<any>(res, 'try-on generation'))
-
-      // If the API returned which photos were auto-selected, update our state
-      if (useAutoSelect && Array.isArray((data as any).selectedPhotoIds)) {
-        setSelectedReferenceIds((data as any).selectedPhotoIds.slice(0, 3))
-        setSelectionMode('auto')
-      }
-
-      if (data.jobId && (data.status === 'pending' || data.status === 'processing')) {
-        setActiveJobId(String(data.jobId))
-        const finalJob = await pollTryOnJob(String(data.jobId))
-        setResult(finalJob)
-        setSelectedOutputIndex(0)
-        showSuccessToast('Try-on ready', 'Your new try-on is finished.')
-      } else if (data.jobId && !data.outputs?.length && !data.imageUrl && !data.base64Image) {
-        setActiveJobId(String(data.jobId))
-        const finalJob = await pollTryOnJob(String(data.jobId))
-        setResult(finalJob)
-        setSelectedOutputIndex(0)
-        showSuccessToast('Try-on ready', 'Your new try-on is finished.')
-      } else {
-        setResult(data)
-        setSelectedOutputIndex(0)
-        showSuccessToast('Try-on ready', 'We generated your three try-on images.')
-      }
-    } catch (error) {
-      const structured = error as Error & { retryAfterSeconds?: number }
-      if (structured.retryAfterSeconds) setRetryAfterSeconds(structured.retryAfterSeconds)
-      showErrorToast('Try-on failed', error instanceof Error ? error.message : 'Generation failed.')
-    } finally {
-      setSubmitting(false)
-      setActiveJobId('')
-      generateInFlightRef.current = false
+    // Helper to convert URL to base64
+    const urlToBase64 = async (url: string): Promise<string | null> => {
+        try {
+            const res = await fetch(url)
+            const blob = await res.blob()
+            return await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader()
+                reader.onloadend = () => resolve(reader.result as string)
+                reader.onerror = reject
+                reader.readAsDataURL(blob)
+            })
+        } catch {
+            return null
+        }
     }
-  }, [aspectRatio, currentRecommendations.isReadyForTryOn, currentRecommendations.photosNeeded, pollTryOnJob, polishNotes, productId, resolution, selectedProductImage, selectedReferenceIds, selectionMode])
 
-  const downloadCurrent = useCallback(() => {
-    if (!selectedOutput?.imageUrl && !selectedOutput?.base64Image) return
-    const a = document.createElement('a')
-    a.href = selectedOutput.imageUrl ? resolveStoredImageUrl(selectedOutput.imageUrl) : toImageSrc(selectedOutput.base64Image)
-    a.download = 'try-on.png'
-    a.click()
-  }, [selectedOutput])
+    const handleGenerate = async () => {
+        if (generateInFlightRef.current) {
+            return
+        }
+        const now = Date.now()
+        if (now - lastGenerateAttemptAtRef.current < 2500) {
+            toast.error('Please wait a moment before trying again.')
+            return
+        }
+        lastGenerateAttemptAtRef.current = now
 
-  return (
-    <div className="relative min-h-screen bg-[#F6F1E8] text-black pt-20 lg:pt-0">
-      <div className="flex flex-col lg:flex-row lg:h-screen lg:pt-20">
-        <div className={`fixed inset-x-0 bottom-0 top-[10vh] z-50 overflow-y-auto rounded-t-[32px] border-t-[4px] border-black bg-white p-6 shadow-[0_-12px_0_0_rgba(0,0,0,0.1)] transition-transform duration-300 lg:static lg:block lg:h-full lg:w-[420px] lg:flex-shrink-0 lg:rounded-none lg:border-r-[4px] lg:border-t-0 lg:shadow-none xl:w-[460px] ${mobileSettingsOpen ? 'translate-y-0' : 'translate-y-full lg:translate-y-0'}`}>
-          <div className="mb-6 flex items-center justify-between lg:hidden">
-            <h2 className="text-2xl font-black uppercase">Try-On Settings</h2>
-            <button type="button" onClick={() => setMobileSettingsOpen(false)} className="rounded-full border-[3px] border-black bg-[#F9F8F4] px-4 py-2 text-xs font-black uppercase shadow-[3px_3px_0_0_#000]">Close</button>
-          </div>
-          <div className="space-y-6">
-            <div className="rounded-[24px] border-[3px] border-black bg-[#F9F8F4] p-5 shadow-[5px_5px_0_0_#000]">
-              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">Selected Target</div>
-              <h3 className="mt-1 text-lg font-black uppercase">{productLoading ? 'Loading product...' : (productData?.name || 'No product selected')}</h3>
-              {garmentIntel && (
-                <div className="mt-2 inline-flex items-center gap-2 rounded-full border-2 border-black bg-[#E8F5E9] px-3 py-1 text-[10px] font-black uppercase">
-                  <Check className="h-3 w-3" /> AI optimized for {garmentIntel.coverage.replace('_', ' ')}
-                </div>
-              )}
-              {productId && (productData?.images?.length > 0) && (
-                <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
-                  {(productData.images).map((image: any, index: number) => {
-                    const imageUrl = typeof image === 'string' ? image : (image.imagePath ?? image.imageUrl ?? image.image_url ?? image.path ?? '');
-                    if (!imageUrl) return null;
-                    const active = selectedProductImage === imageUrl;
-                    return (
-                      <button key={`${imageUrl}-${index}`} type="button" onClick={() => setSelectedGarmentImage(imageUrl)} className={`relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-xl border-2 ${active ? 'border-[#FF8C69]' : 'border-black'} bg-white`}>
-                        <Image src={resolveStoredImageUrl(imageUrl)} alt="Product" fill unoptimized className="object-cover" />
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-            <div className="rounded-[24px] border-[3px] border-black bg-white p-5 shadow-[5px_5px_0_0_#000]">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">Photos ({selectedPhotos.length}/3)</div>
-                <button type="button" onClick={() => setLibraryModalOpen(true)} className="rounded-full border-[2px] border-black bg-[#FFD93D] px-3 py-1 text-[10px] font-black uppercase shadow-[2px_2px_0_0_#000]">Edit Sources</button>
-              </div>
-              <p className="mt-2 text-xs font-semibold text-black/60">{selectionMode === 'manual' ? 'Using your manual selection.' : 'AI automatically picked the best photos.'}</p>
-              <div className="mt-4 grid grid-cols-3 gap-2">
-                {[0, 1, 2].map((slot) => {
-                  const photo = photoMap.get(selectedReferenceIds[slot] ?? '');
-                  return (
-                    <div key={slot} className="relative aspect-[4/5] overflow-hidden rounded-xl border-2 border-black bg-[#F9F8F4]">
-                      {photo ? <Image src={resolveStoredImageUrl(photo.imageUrl)} alt={`Slot ${slot + 1}`} fill unoptimized className="object-cover" /> : <div className="flex h-full items-center justify-center"><ImageIcon className="h-5 w-5 text-black/20" /></div>}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">Details / Polish</label>
-                <textarea value={polishNotes} onChange={(e) => setPolishNotes(e.target.value.slice(0, POLISH_LIMIT))} placeholder="Any specific adjustments?" className="mt-1 h-20 w-full rounded-xl border-2 border-black bg-[#F9F8F4] p-3 text-xs font-semibold outline-none focus:bg-white" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">Ratio</label>
-                  <div className="mt-1 flex flex-col gap-1">
-                    {ASPECT_RATIOS.map((ratio) => <button key={ratio} type="button" onClick={() => setAspectRatio(ratio)} className={`rounded-xl border-2 py-1.5 text-xs font-black uppercase ${aspectRatio === ratio ? 'border-black bg-[#FFD93D]' : 'border-black bg-white'}`}>{ratio}</button>)}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">Quality</label>
-                  <div className="mt-1 flex flex-col gap-1">
-                    {RESOLUTIONS.map((item) => <button key={item} type="button" onClick={() => setResolution(item)} className={`rounded-xl border-2 py-1.5 text-xs font-black uppercase ${resolution === item ? 'border-black bg-[#9CFF6B]' : 'border-black bg-white'}`}>{item}</button>)}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <button type="button" onClick={() => { setMobileSettingsOpen(false); void submitTryOn() }} disabled={submitting || !readyForTryOn} className={`flex w-full items-center justify-center gap-3 rounded-[20px] border-[4px] border-black p-4 text-sm font-black uppercase shadow-[4px_4px_0_0_#000] ${submitting || !readyForTryOn ? 'cursor-not-allowed bg-[#E5E5E5] text-black/50' : 'bg-[#FFD93D]'}`}>
-              {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
-              {submitting ? 'Generating...' : generationLabel}
-            </button>
-            {retryAfterSeconds > 0 && <div className="text-center text-xs font-bold text-red-500">Rate limit: retry in {retryAfterSeconds}s</div>}
-          </div>
-        </div>
-        <div className="flex-1 overflow-y-auto bg-[#FDFBF7] p-4 lg:p-8">
-          <div className="mx-auto max-w-5xl">
-            <div className="mb-6 flex flex-col gap-2">
-              <h1 className="text-3xl font-black uppercase tracking-tight lg:text-5xl">Studio Workspace</h1>
-              <p className="font-semibold text-black/60">Generate ultra-realistic try-on photos. Wait times apply to ensure maximum quality per source.</p>
-            </div>
-            <div className="rounded-[32px] border-[4px] border-black bg-white p-4 shadow-[8px_8px_0_0_#000] lg:p-6">
-              {isGenerating ? (
-                <div className="py-10">
-                  <MonaLisaGenerationLoader elapsedSeconds={elapsedSeconds} title="Painting your try-on" description="The model is working through one source image at a time." />
-                </div>
-              ) : outputs.length > 0 ? (
-                <div className="space-y-6">
-                  <div className="relative aspect-[4/5] w-full max-w-[600px] mx-auto overflow-hidden rounded-[24px] border-[4px] border-black bg-[#F9F8F4] shadow-[6px_6px_0_0_#000]">
-                    {selectedOutput?.imageUrl || selectedOutput?.base64Image ? (
-                      <Image src={selectedOutput.imageUrl ? resolveStoredImageUrl(selectedOutput.imageUrl) : toImageSrc(selectedOutput.base64Image)} alt="Result" fill unoptimized className="object-cover" />
-                    ) : (
-                      <div className="flex h-full items-center justify-center"><AlertTriangle className="h-10 w-10 text-red-500" /></div>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-3 gap-3 max-w-[600px] mx-auto">
-                    {outputs.map((output: any, index: number) => (
-                      <button key={index} type="button" onClick={() => setSelectedOutputIndex(index)} className={`relative aspect-[4/5] overflow-hidden rounded-2xl border-[3px] shadow-[4px_4px_0_0_#000] ${selectedOutputIndex === index ? 'border-[#FF8C69]' : 'border-black'}`}>
-                        {output.imageUrl || output.base64Image ? <Image src={output.imageUrl ? resolveStoredImageUrl(output.imageUrl) : toImageSrc(output.base64Image)} alt={`Variant ${index}`} fill unoptimized className="object-cover" /> : <div className="flex h-full items-center justify-center bg-gray-100"><AlertTriangle className="h-5 w-5 text-black/30" /></div>}
-                        <div className="absolute bottom-0 inset-x-0 bg-black/60 px-2 py-1 text-[10px] font-bold text-white truncate">{output.label || `Photo ${index+1}`}</div>
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex justify-center">
-                    <button type="button" onClick={downloadCurrent} className="rounded-full border-[3px] border-black bg-[#FF8C69] px-6 py-3 font-black uppercase text-white shadow-[4px_4px_0_0_#000]">Download Image</button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex min-h-[40vh] items-center justify-center rounded-[24px] border-2 border-dashed border-black/20 bg-[#F9F8F4] p-6 text-center lg:min-h-[60vh]">
-                  <div className="max-w-md">
-                    <ImageIcon className="mx-auto h-12 w-12 text-black/20 mb-4" />
-                    <h3 className="text-lg font-black uppercase">Canvas is empty</h3>
-                    <p className="mt-2 text-sm font-semibold text-black/60">Configure your settings in the sidebar and hit run to generate three unique try-on variants here.</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-      {!mobileSettingsOpen && (
-        <div className="fixed bottom-6 left-1/2 z-40 w-[90%] max-w-[340px] -translate-x-1/2 lg:hidden">
-          <button type="button" onClick={() => setMobileSettingsOpen(true)} className="flex w-full items-center justify-center gap-2 rounded-full border-[3px] border-black bg-[#FFD93D] px-6 py-4 text-base font-black uppercase shadow-[6px_6px_0_0_#000]">
-            <Sparkles className="h-5 w-5" /> Customize & Run
-          </button>
-        </div>
-      )}
-      {libraryModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-[32px] border-[4px] border-black bg-[#F6F1E8] shadow-[12px_12px_0_0_#000]">
-            <div className="flex items-center justify-between border-b-[4px] border-black bg-white p-5">
-              <div>
-                <h2 className="text-2xl font-black uppercase">Reference Library</h2>
-                <p className="text-xs font-semibold text-black/60">Pick exactly 3 photos to override the AI</p>
-              </div>
-              <div className="flex gap-2">
-                <button type="button" onClick={() => void refreshAll()} className="rounded-full border-2 border-black bg-[#F9F8F4] p-2 hover:bg-[#FFD93D] transition"><RefreshCw className={`h-5 w-5 ${loadingRecommend ? 'animate-spin' : ''}`} /></button>
-                <button type="button" onClick={() => setLibraryModalOpen(false)} className="rounded-full border-2 border-black bg-[#FF8C69] px-4 py-2 font-black uppercase text-white hover:bg-[#FF7A50] transition">Done</button>
-              </div>
-            </div>
-            <div className="flex-1 overflow-y-auto p-5">
-              <div className="mb-6 flex items-center justify-end">
-                <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border-[3px] border-black bg-[#FFD93D] px-4 py-2 text-sm font-black uppercase shadow-[4px_4px_0_0_#000]">
-                  {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} Upload New
-                  <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={(e) => { const file = e.target.files?.[0]; e.currentTarget.value = ''; if (file) void uploadReferencePhoto(file) }} />
-                </label>
-              </div>
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                {!photos.length && !loadingLibrary && <p className="col-span-full py-10 text-center font-bold">No photos. Please upload.</p>}
-                {photos.map(photo => {
-                  const isActive = selectedReferenceIds.includes(photo.id);
-                  const toggle = () => {
-                    setSelectionMode('manual');
-                    if (isActive) {
-                      setSelectedReferenceIds(prev => prev.filter(id => id !== photo.id));
-                    } else {
-                      if (selectedReferenceIds.filter(Boolean).length >= 3) {
-                        const next = [...selectedReferenceIds]; next[2] = photo.id; setSelectedReferenceIds(next);
-                      } else {
-                        setSelectedReferenceIds(prev => { const next = [...prev]; const empty = next.findIndex(p => !p); if(empty>=0) next[empty]=photo.id; else next.push(photo.id); return next; });
-                      }
+        if (retryAfterSeconds > 0) {
+            toast.error(`Rate limited. Try again in ${retryAfterSeconds}s.`)
+            return
+        }
+        if (!personImage) {
+            toast.error('Please upload a person image')
+            return
+        }
+        if (editType === 'clothing_change' && !(clothingImageBase64 || clothingImage)) {
+            toast.error('Please upload a clothing reference')
+            return
+        }
+        if (editType === 'background_change' && !(backgroundImageBase64 || backgroundImage)) {
+            toast.error('Please upload a background reference')
+            return
+        }
+
+        setLoading(true)
+        setQueueStatus('idle')
+        generateInFlightRef.current = true
+        pollAttemptRef.current = 0
+        pollCooldownUntilRef.current = 0
+
+        try {
+            // Collect identity references (Flash: 1-2 strong face refs)
+            const allAdditionalImages: string[] = []
+
+            let resolvedIdentityImages = identityImages
+            if (useIdentityImages && resolvedIdentityImages.length === 0) {
+                resolvedIdentityImages = await fetchIdentityImages()
+            }
+
+            // Add identity images if available and enabled
+            if (useIdentityImages && resolvedIdentityImages.length > 0) {
+                const faceOnlyTypes = new Set(['face_front', 'face_smile', 'face_left', 'face_right'])
+                const identityForModel = resolvedIdentityImages.filter((x) => faceOnlyTypes.has(x.type)).slice(0, 2)
+
+                for (const idImg of identityForModel) {
+                    const base64 = await urlToBase64(idImg.imageUrl)
+                    if (base64) {
+                        allAdditionalImages.push(base64)
                     }
-                  };
-                  return (
-                    <div key={photo.id} className={`group relative aspect-[4/5] overflow-hidden rounded-2xl border-[3px] shadow-[4px_4px_0_0_#000] cursor-pointer transition-transform hover:-translate-y-1 ${isActive ? 'border-[#FFD93D]' : 'border-black hover:border-black/50'}`} onClick={toggle}>
-                      <Image src={resolveStoredImageUrl(photo.imageUrl)} alt="Library" fill unoptimized className="object-cover" />
-                      <div className="absolute left-2 top-2 rounded-full border-2 border-black bg-white px-2 py-0.5 text-[10px] font-black uppercase">{photo.status}</div>
-                      {isActive && <div className="absolute right-2 top-2 rounded-full border-2 border-black bg-[#FFD93D] px-2 py-0.5 text-[10px] font-black uppercase"><Check className="h-3 w-3" /></div>}
-                      {photo?.garmentSuitability && (
-                        <div className="absolute bottom-2 left-2 truncate right-2 rounded-full border-2 border-black bg-white/90 px-2 text-[9px] font-bold uppercase backdrop-blur">
-                          AI Score: {Math.round((photo.selectionScore || 0) * 100)}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                }
+            }
+
+            const submitTimeoutMs = 115000
+            const controller = new AbortController()
+            const timeoutId = setTimeout(() => controller.abort(), submitTimeoutMs)
+
+            let response: Response
+            try {
+                response = await fetch('/api/tryon', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    signal: controller.signal,
+                    body: JSON.stringify({
+                        personImage: personImageBase64 || personImage,
+                        personImages: allAdditionalImages.length > 0 ? allAdditionalImages : undefined,
+                        editType,
+                        clothingImage: clothingImageBase64 || clothingImage || undefined,
+                        backgroundImage: backgroundImageBase64 || backgroundImage || undefined,
+                        accessoryImages: accessoryImages.length > 0 ? accessoryImages : undefined,
+                        accessoryTypes: accessoryTypes.length > 0 ? accessoryTypes : undefined,
+                        model: 'flash',
+                        stylePreset: selectedPreset || undefined,
+                        userRequest: userRequest || undefined,
+                        aspectRatio,
+                        resolution: quality,
+                    }),
+                })
+            } finally {
+                clearTimeout(timeoutId)
+            }
+            // Safe parse handles non-JSON and error responses gracefully
+            const data = await safeParseResponse(response, 'try-on generation')
+
+            if (!response.ok) {
+                throw new Error(data?.error || 'Failed to submit try-on job')
+            }
+
+            const jobId = data?.jobId as string | undefined
+            if (!jobId) {
+                throw new Error('Try-on job was accepted without a job id')
+            }
+
+            // Inline completion (no worker): API returned image directly
+            if (data?.status === 'completed' && (data?.imageUrl || data?.base64Image)) {
+                const variants = Array.isArray(data?.variants) ? data.variants : [{ imageUrl: data?.imageUrl, base64Image: data?.base64Image, variantId: 0, label: 'Nano Banana Pro' }]
+                setVariants(variants.map((v: any, idx: number) => ({ imageUrl: v?.imageUrl, base64Image: v?.base64Image, variantId: idx, label: v?.label })))
+                setSelectedVariant(0)
+                  setResult({
+                      jobId,
+                      imageUrl: data?.imageUrl || variants[0]?.imageUrl || '',
+                      base64Image: data?.base64Image ?? variants[0]?.base64Image,
+                  })
+                  queryClient.invalidateQueries({ queryKey: ['generations'] })
+                  queryClient.invalidateQueries({ queryKey: ['profile-stats'] })
+                  showSuccessToast('Try-on generated', 'Your image is ready to preview.')
+                setShowCelebration(true)
+                setTimeout(() => setShowCelebration(false), 5000)
+                return
+            }
+
+            setActiveJobId(jobId)
+            setQueueStatus('queued')
+            sessionStorage.setItem('tryonActiveJobId', jobId)
+            showInfoToast('Generation started', 'Your try-on job has been accepted.')
+
+            const finalJob = await pollTryOnJob(jobId, {
+                onStatus: (status) => {
+                    setQueueStatus(status === 'pending' ? 'queued' : 'generating')
+                },
+            })
+
+            if (finalJob.status === 'failed') {
+                throw new Error(finalJob.error || 'Try-on generation failed')
+            }
+
+            if (!finalJob.imageUrl && !finalJob.base64Image) {
+                throw new Error('Try-on completed but no image was returned')
+            }
+
+            setVariants([])
+             setResult({
+                 jobId,
+                 imageUrl: finalJob.imageUrl || '',
+                 base64Image: finalJob.base64Image,
+             })
+             queryClient.invalidateQueries({ queryKey: ['generations'] })
+             queryClient.invalidateQueries({ queryKey: ['profile-stats'] })
+             showSuccessToast('Try-on generated', 'Your image is ready to preview.')
+
+            setShowCelebration(true)
+            // Show celebration for 5 seconds to let success video play fully
+            setTimeout(() => setShowCelebration(false), 5000)
+        } catch (error) {
+            if (error instanceof Error && error.name === 'AbortError') {
+                showWarningToast('Request timed out', 'Checking your active try-on job now.')
+                try {
+                    const activeRes = await fetch('/api/tryon/jobs/active', { cache: 'no-store', credentials: 'include' })
+                    const active = await safeParseResponse<any>(activeRes, 'active try-on job after timeout')
+                    if (activeRes.ok && active?.jobId && (active?.status === 'pending' || active?.status === 'processing')) {
+                        const timeoutJobId = String(active.jobId)
+                        setActiveJobId(timeoutJobId)
+                        setQueueStatus(active.status === 'pending' ? 'queued' : 'generating')
+                        const finalJob = await pollTryOnJob(timeoutJobId, {
+                            onStatus: (status) => {
+                                setQueueStatus(status === 'pending' ? 'queued' : 'generating')
+                            },
+                        })
+
+                        if (finalJob.status === 'failed') {
+                            throw new Error(finalJob.error || 'Try-on generation failed')
+                        }
+
+                        if (!finalJob.imageUrl && !finalJob.base64Image) {
+                            throw new Error('Try-on completed but no image was returned')
+                        }
+
+                        setVariants([])
+                         setResult({
+                             jobId: timeoutJobId,
+                             imageUrl: finalJob.imageUrl || '',
+                             base64Image: finalJob.base64Image,
+                         })
+                         queryClient.invalidateQueries({ queryKey: ['generations'] })
+                         queryClient.invalidateQueries({ queryKey: ['profile-stats'] })
+                         showSuccessToast('Try-on complete', 'Your generated image is now ready.')
+                        setShowCelebration(true)
+                        setTimeout(() => setShowCelebration(false), 5000)
+                        return
+                    }
+                } catch (resumeError) {
+                    console.warn('Failed to resume timed-out job:', resumeError)
+                }
+
+                showErrorToast('Generation timed out', 'Please try again.')
+                return
+            }
+
+            // Handle structured error codes from API
+            const structured = error as (Error & { status?: number; retryAfterSeconds?: number; code?: string })
+            const errorMessage = error instanceof Error ? error.message : 'Generation failed'
+
+            const is429 = structured?.status === 429
+            const is503 = structured?.status === 503
+            const code = structured?.code
+            const isJobInProgress = is429 && (code === 'JOB_IN_PROGRESS' || /already in progress/i.test(errorMessage))
+            const isServerBusy = is503 || (is429 && code === 'SERVER_BUSY')
+            const isProviderRateLimit = is429 && code === 'RATE_LIMIT'
+            if (is429 || is503) {
+                const retry = Math.max(1, Math.min(1800, Number(structured?.retryAfterSeconds ?? (is503 ? 20 : 15))))
+                setRetryAfterSeconds(retry)
+                setRetryReason(isJobInProgress ? 'job_in_progress' : 'rate_limit')
+
+                const msg = isJobInProgress
+                    ? `A try-on is still in progress. Please wait ${retry}s.`
+                    : isServerBusy
+                        ? `Service is busy. Please wait ${retry}s and try again.`
+                        : isProviderRateLimit
+                            ? `Model provider is rate-limited. Please wait ${retry}s before retrying.`
+                            : `Too many requests. Please wait ${retry}s before trying again.`
+                toast.error(msg)
+                return
+            }
+
+            if (structured?.status === 500 && /rate limit|timeout/i.test(errorMessage)) {
+                toast.error('Generation failed: rate limit or timeout. Please try again in a minute.')
+                return
+            }
+
+            // Check for specific error codes embedded in the error message
+            if (code === 'ONBOARDING_INCOMPLETE' || errorMessage.includes('PROFILE_INCOMPLETE') || errorMessage.includes('complete your influencer profile')) {
+                toast.error('Complete your onboarding before using try-on studio.')
+                router.push('/onboarding/influencer')
+                return
+            }
+
+            if (code === 'ACCOUNT_REJECTED') {
+                toast.error('Your profile was rejected. Update it and resubmit for review.')
+                router.push('/onboarding/influencer?mode=resubmit')
+                return
+            }
+
+            if (errorMessage.includes('NOT_APPROVED') || errorMessage.includes('pending') || errorMessage.includes('approval')) {
+                toast.error('Your account is pending approval. Please wait for admin review.')
+                return
+            }
+
+            if (errorMessage.includes('USER_NOT_FOUND')) {
+                toast.error('Session expired. Please log out and log in again.')
+                router.push('/login')
+                return
+            }
+
+            if (code === 'PROFILE_SETUP_FAILED') {
+                toast.error('Your creator profile is still being prepared. Please refresh once and try again.')
+                return
+            }
+
+            if (code === 'INVALID_TRYON_INPUT' || code === 'MISSING_IMAGES') {
+                toast.error('Please upload both a person photo and a clothing image, then try again.')
+                return
+            }
+
+            if (code === 'TRYON_STORAGE_FAILED') {
+                toast.error('The image was generated but saving it failed. Please try again.')
+                return
+            }
+
+            if (code === 'TRYON_GENERATION_FAILED' || code === 'TRYON_REQUEST_FAILED') {
+                toast.error('The try-on server hit an issue. Please try again in a moment.')
+                return
+            }
+
+            toast.error(errorMessage)
+        } finally {
+            setLoading(false)
+            setActiveJobId(null)
+            setQueueStatus('idle')
+            pollAttemptRef.current = 0
+            pollCooldownUntilRef.current = 0
+            sessionStorage.removeItem('tryonActiveJobId')
+            generateInFlightRef.current = false
+        }
+    }
+
+    const handleDownload = async () => {
+        if (!result || downloading) return
+
+        setDownloading(true)
+        try {
+            // Use base64 if available (much faster and avoids cross-origin fetch issues)
+            if (result.base64Image) {
+                const base64Data = result.base64Image.startsWith('data:')
+                    ? result.base64Image
+                    : `data:image/jpeg;base64,${result.base64Image}`
+
+                const link = document.createElement('a')
+                link.href = base64Data
+                link.download = `kiwikoo-tryon-${result.jobId || Date.now()}.jpg`
+                document.body.appendChild(link)
+                link.click()
+                document.body.removeChild(link)
+                toast.success('Image downloaded!')
+                return
+            }
+
+            // Fallback to fetching the imageUrl as a blob
+            if (result.imageUrl) {
+                const response = await fetch(result.imageUrl)
+                const blob = await response.blob()
+                const blobUrl = window.URL.createObjectURL(blob)
+                const link = document.createElement('a')
+                link.href = blobUrl
+                link.download = `kiwikoo-tryon-${result.jobId || Date.now()}.jpg`
+                document.body.appendChild(link)
+                link.click()
+                document.body.removeChild(link)
+                window.URL.revokeObjectURL(blobUrl)
+                toast.success('Image downloaded!')
+            }
+        } catch (error) {
+            console.error('Download error:', error)
+            toast.error('Failed to download image')
+        } finally {
+            setDownloading(false)
+        }
+    }
+
+    const hasPersonInput = Boolean(personImageBase64 || personImage)
+    const hasClothingInput = Boolean(clothingImageBase64 || clothingImage)
+    const hasBackgroundInput = Boolean(backgroundImageBase64 || backgroundImage)
+    const missingRequiredInput =
+        !hasPersonInput ||
+        (editType === 'clothing_change' && !hasClothingInput) ||
+        (editType === 'background_change' && !hasBackgroundInput)
+    const isGenerateDisabled = loading || retryAfterSeconds > 0 || missingRequiredInput
+
+    return (
+        <div className="relative min-h-screen pt-20 sm:pt-24 pb-8 sm:pb-12 bg-[#FDFBF7]">
+            {/* Background: overflow-hidden here only so fixed modals (Share, etc.) are not clipped by the page shell */}
+            <div className="absolute inset-0 -z-10 overflow-hidden opacity-30 pointer-events-none">
+                <div className="absolute right-[-20%] top-[-8%] h-[280px] w-[280px] rounded-full bg-[#FFD93D] opacity-20 sm:right-[-10%] sm:h-[420px] sm:w-[420px] lg:right-[-5%] lg:h-[600px] lg:w-[600px]" />
+                <div className="absolute bottom-[-8%] left-[-18%] h-[240px] w-[240px] rounded-full bg-[#FF6B6B] opacity-[0.18] sm:left-[-10%] sm:h-[360px] sm:w-[360px] lg:left-[-5%] lg:h-[500px] lg:w-[500px]" />
             </div>
-          </div>
+
+            <div className="container mx-auto px-3 sm:px-4 md:px-6 z-10 relative">
+
+
+                {/* Success Celebration */}
+                <AnimatePresence>
+                    {showCelebration && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none"
+                        >
+                            <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" />
+                            <motion.div
+                                initial={{ scale: 0.5, opacity: 0, rotate: -10 }}
+                                animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                                exit={{ scale: 0.5, opacity: 0, rotate: 10 }}
+                                className="relative z-[101] flex items-center gap-6 bg-white p-8 border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
+                            >
+                                <div className="p-4 bg-[#FFD93D] border-[2px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                                    <PartyPopper className="w-8 h-8 text-black" />
+                                </div>
+                                <div className="text-left">
+                                    <h3 className="text-2xl font-black uppercase text-black tracking-tighter">Amazing!</h3>
+                                    <p className="text-sm font-bold text-black/60 uppercase tracking-widest">Your try-on is ready</p>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Header */}
+                <div className="mb-8 sm:mb-12">
+                    <motion.h1
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-4xl sm:text-5xl md:text-7xl font-black text-black uppercase tracking-tighter mb-2"
+                    >
+                        Virtual <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF6B6B] to-[#FF8F8F] stroke-black" style={{ WebkitTextStroke: '2px black' }}>Try-On</span>
+                    </motion.h1>
+                    <motion.p
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="block w-full text-center text-xs sm:text-sm md:text-xl font-bold text-black border-[2px] border-black bg-white px-3 sm:px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:inline-block sm:w-auto sm:text-left"
+                    >
+                        UPLOAD YOUR PHOTO - SELECT CLOTHING - SEE THE MAGIC
+                    </motion.p>
+                </div>
+
+
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
+                    {/* LEFT PANEL: Inputs */}
+                    <div className="lg:col-span-5 space-y-5 sm:space-y-6">
+
+                        {/* Upload Section Card */}
+                        <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.2 }}
+                            className="relative overflow-hidden p-3 sm:p-6 bg-[linear-gradient(180deg,#FFFFFF_0%,#FFF8F0_100%)] border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] space-y-4 sm:space-y-6"
+                        >
+                            <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border-[3px] border-black/70 bg-[#FFD93D]/40" />
+                            <div className="pointer-events-none absolute bottom-6 right-6 h-16 w-16 rounded-2xl border-[3px] border-black/50 bg-[#FF8C69]/15 rotate-12" />
+                            <h3 className="font-serif text-xl text-charcoal flex items-center gap-2">
+                                <Upload className="w-5 h-5 text-peach" />
+                                Upload Images
+                            </h3>
+
+                            {/* Saved Profile Photos */}
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between gap-3 flex-wrap">
+                                    <span className="text-xs font-semibold text-charcoal/50 uppercase tracking-widest">
+                                        Use Saved Photos (Profile)
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => { void refreshSavedProfileImages() }}
+                                        className="text-xs text-charcoal/50 hover:text-charcoal transition-colors"
+                                    >
+                                        Refresh
+                                    </button>
+                                </div>
+                                {!savedProfileImagesReady || savedProfileImagesLoading ? (
+                                    <div className="flex items-center gap-2 text-xs text-charcoal/50">
+                                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                        Loading...
+                                    </div>
+                                ) : savedProfileImages.length === 0 ? (
+                                    <div className="text-xs text-charcoal/50">
+                                        No saved photos yet. Add some in your Profile.
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                                        {savedProfileImages.slice(0, 8).map((img) => (
+                                            <button
+                                                key={img.id}
+                                                type="button"
+                                                onClick={() => handleSelectSavedPersonImage(img.imageUrl)}
+                                                className={`relative rounded-xl overflow-hidden border transition-all ${personImage && personImage === img.imageUrl
+                                                    ? 'border-peach ring-2 ring-peach/20'
+                                                    : 'border-white/60 hover:border-peach/40'
+                                                    }`}
+                                                title={img.label || 'saved photo'}
+                                            >
+                                                <Image unoptimized width={1200} height={1200} src={img.imageUrl} alt={img.label || 'saved'} loading="lazy" decoding="async" className="w-full h-12 sm:h-14 object-cover" />
+                                                {img.isPrimary && (
+                                                    <div className="absolute top-1 left-1 px-1.5 py-0.5 bg-black/60 text-white text-[10px] rounded-full">
+                                                        Primary
+                                                    </div>
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+
+
+
+
+                            {/* Side-by-Side Upload Grid - Stacks on mobile */}
+                            <div className="grid grid-cols-1 min-[520px]:grid-cols-2 gap-3 sm:gap-4">
+                                {/* Person Upload */}
+                                <div className="space-y-2">
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs sm:text-sm">
+                                        <span className="font-medium text-charcoal/80">Your Photo <span className="text-rose-400">*</span></span>
+                                        {personImage && (
+                                            <button type="button"
+                                                onClick={() => { setPersonImage(''); setPersonImageBase64(''); }}
+                                                className="text-[10px] sm:text-xs text-charcoal/40 hover:text-rose-500 transition-colors self-start sm:self-auto"
+                                            >
+                                                Remove
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    <div
+                                        onDragOver={(e) => { e.preventDefault(); setDragOver('person'); }}
+                                        onDragLeave={() => setDragOver(null)}
+                                        onDrop={(e) => handleDrop(e, 'person')}
+                                        className={`
+                                            group relative aspect-[4/5] sm:aspect-[3/4] transition-all duration-200 border-[3px] 
+                                            ${personImage
+                                                ? 'border-transparent shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+                                                : dragOver === 'person'
+                                                    ? 'border-black bg-[#FFD93D] scale-[1.02]'
+                                                    : 'border-black bg-white hover:bg-gray-50 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'}
+                                        `}
+                                    >
+                                        {personImage ? (
+                                            <>
+                                                <Image unoptimized width={1200} height={1200} src={personImage} alt="Person" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            </>
+                                        ) : (
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center p-2 sm:p-6 text-center">
+                                                <div className="w-10 h-10 sm:w-14 sm:h-14 mb-2 sm:mb-3 rounded-full bg-gradient-to-br from-white/80 to-white/40 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300 border border-white/50">
+                                                    {uploadingImage === 'person' ? (
+                                                        <RefreshCw className="w-4 h-4 sm:w-6 sm:h-6 text-peach animate-spin" />
+                                                    ) : (
+                                                        <Upload className="w-4 h-4 sm:w-6 sm:h-6 text-charcoal/40 group-hover:text-peach transition-colors" />
+                                                    )}
+                                                </div>
+                                                <p className="text-[11px] sm:text-lg font-black uppercase text-black group-hover:underline decoration-2 underline-offset-4 text-center leading-tight">Upload Photo</p>
+                                                <p className="text-[9px] sm:text-xs font-bold text-black/40 mt-1 uppercase tracking-wider text-center">Good Lighting</p>
+                                            </div>
+                                        )}
+                                        <input
+                                            type="file"
+                                            onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'person')}
+                                            accept="image/*"
+                                            className="absolute inset-0 opacity-0 cursor-pointer"
+                                        />
+
+                                        {/* Validation Badge */}
+                                        {personImage && (
+                                            <div className="absolute bottom-3 left-3 px-2 py-1 bg-white/90 backdrop-blur-md text-peach text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-sm border border-peach/20">
+                                                <Check className="w-3 h-3" /> Ready
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Save to Profile Checkbox */}
+                                    <label className="flex items-center gap-2 text-xs text-charcoal/60 hover:text-charcoal/80 transition-colors cursor-pointer ml-1">
+                                        <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${saveUploadedPersonToProfile ? 'bg-peach border-peach' : 'border-charcoal/20 bg-white'}`}>
+                                            {saveUploadedPersonToProfile && <Check className="w-2.5 h-2.5 text-white" />}
+                                        </div>
+                                        <input
+                                            type="checkbox"
+                                            className="hidden"
+                                            checked={saveUploadedPersonToProfile}
+                                            onChange={(e) => setSaveUploadedPersonToProfile(e.target.checked)}
+                                        />
+                                        Save to Profile
+                                    </label>
+                                </div>
+
+                                {/* Clothing Upload */}
+                                <div className="space-y-2">
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs sm:text-sm">
+                                        <span className="font-medium text-charcoal/80">Clothing <span className="text-rose-400">*</span></span>
+                                        {clothingImage && !product && (
+                                            <button type="button"
+                                                onClick={() => { setClothingImage(''); setClothingImageBase64(''); }}
+                                                className="text-[10px] sm:text-xs text-charcoal/40 hover:text-rose-500 transition-colors self-start sm:self-auto"
+                                            >
+                                                Remove
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    <div
+                                        onDragOver={(e) => { e.preventDefault(); setDragOver('clothing'); }}
+                                        onDragLeave={() => setDragOver(null)}
+                                        onDrop={(e) => handleDrop(e, 'clothing')}
+                                        className={`
+                                            group relative aspect-[4/5] sm:aspect-[3/4] transition-all duration-200 border-[3px] 
+                                            ${clothingImage
+                                                ? 'border-transparent shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+                                                : dragOver === 'clothing'
+                                                    ? 'border-black bg-[#FFD93D] scale-[1.02]'
+                                                    : 'border-black bg-white hover:bg-gray-50 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'}
+                                        `}
+                                    >
+                                        {clothingImage ? (
+                                            <>
+                                                <Image unoptimized width={1200} height={1200} src={clothingImage} alt="Clothing" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            </>
+                                        ) : (
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center p-2 sm:p-4 text-center">
+                                                <div className="w-10 h-10 sm:w-14 sm:h-14 mb-2 sm:mb-3 rounded-full bg-gradient-to-br from-white/80 to-white/40 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300 border border-white/50">
+                                                    {uploadingImage === 'clothing' ? (
+                                                        <RefreshCw className="w-4 h-4 sm:w-6 sm:h-6 text-purple-500 animate-spin" />
+                                                    ) : (
+                                                        <ShoppingBag className="w-4 h-4 sm:w-6 sm:h-6 text-charcoal/40 group-hover:text-purple-500 transition-colors" />
+                                                    )}
+                                                </div>
+                                                <p className="text-[11px] sm:text-lg font-black uppercase text-black group-hover:underline decoration-2 underline-offset-4 text-center leading-tight">Upload Garment</p>
+                                                <p className="text-[9px] sm:text-xs font-bold text-black/40 mt-1 uppercase tracking-wider text-center">Or select from Hub</p>
+                                            </div>
+                                        )}
+                                        <input
+                                            type="file"
+                                            onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'clothing')}
+                                            accept="image/*"
+                                            className="absolute inset-0 opacity-0 cursor-pointer"
+                                            disabled={!!product}
+                                        />
+
+                                        {product && clothingImage && (
+                                            <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 px-1.5 py-0.5 sm:px-2 sm:py-1 bg-black/70 backdrop-blur-md text-white text-[9px] sm:text-[10px] font-medium rounded-full flex items-center gap-1">
+                                                <Sparkles className="w-2.5 h-2.5 text-purple-400" /> Auto-Selected
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Product Images Carousel - Restored Feature */}
+                                    {productData && productData.images && productData.images.length > 0 && (
+                                        <div className="mt-2 sm:mt-3">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-[10px] font-bold text-charcoal/50 uppercase tracking-widest">
+                                                    Available Styles ({productData.images.length})
+                                                </span>
+                                            </div>
+                                            <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-2 scrollbar-thin snap-x">
+                                                {productData.images.map((img: any, idx: number) => {
+                                                    const url = typeof img === 'string' ? img : img.imagePath
+                                                    const isRef = typeof img === 'object' && img.isTryOnReference
+                                                    const isSelected = clothingImage === url
+
+                                                    return (
+                                                        <button type="button"
+                                                            key={idx}
+                                                            onClick={() => handleSelectProductImage(url)}
+                                                            className={`
+                                                                relative w-14 h-14 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all snap-start
+                                                                ${isSelected
+                                                                    ? 'border-peach ring-2 ring-peach/20 shadow-md scale-105'
+                                                                    : 'border-transparent hover:border-black/10 hover:scale-105 bg-white'}
+                                                            `}
+                                                            title={isRef ? "Recommended Try-On Reference" : "Product Variant"}
+                                                        >
+                                                            <Image unoptimized width={1200} height={1200} src={url} alt={`Var ${idx}`} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                                                            {isRef && (
+                                                                <div className="absolute top-0.5 right-0.5 w-2.5 h-2.5 bg-peach rounded-full border border-white shadow-sm flex items-center justify-center">
+                                                                    <Sparkles className="w-1.5 h-1.5 text-white" />
+                                                                </div>
+                                                            )}
+                                                        </button>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Background Reference (only when needed) */}
+                            {editType === 'background_change' && (
+                                <div className="space-y-2">
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs sm:text-sm">
+                                        <span className="font-medium text-charcoal/80">Background Reference <span className="text-rose-400">*</span></span>
+                                        {backgroundImage && (
+                                            <button
+                                                type="button"
+                                                onClick={() => { setBackgroundImage(''); setBackgroundImageBase64(''); }}
+                                                className="text-[10px] sm:text-xs text-charcoal/40 hover:text-rose-500 transition-colors self-start sm:self-auto"
+                                            >
+                                                Remove
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div
+                                        className={`relative aspect-[16/9] rounded-2xl overflow-hidden transition-all duration-300 border-2 border-dashed ${backgroundImage ? 'border-transparent shadow-md' : 'border-charcoal/10 hover:border-peach/50 bg-white/30'
+                                            }`}
+                                    >
+                                        {backgroundImage ? (
+                                            <Image unoptimized width={1200} height={1200} src={backgroundImage} alt="Background" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center p-2 sm:p-4 text-center">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-full bg-white/50 flex items-center justify-center shadow-sm">
+                                                        {uploadingImage === 'background' ? (
+                                                            <RefreshCw className="w-5 h-5 text-peach animate-spin" />
+                                                        ) : (
+                                                            <Upload className="w-5 h-5 text-charcoal/40" />
+                                                        )}
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <p className="text-sm font-medium text-charcoal/70">Upload Background</p>
+                                                        <p className="text-xs text-charcoal/40">Real-to-life environment reference</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                        <input
+                                            type="file"
+                                            onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'background')}
+                                            accept="image/*"
+                                            className="absolute inset-0 opacity-0 cursor-pointer"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ACCESSORIES SECTION (Pro Only) - hidden behind feature flag */}
+                            {SHOW_ACCESSORIES_SECTION && (
+                                <div className="pt-4 border-t border-charcoal/5 hidden sm:block">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <div className="flex items-center gap-2">
+                                            <div className="p-1.5 bg-purple-100 rounded-md">
+                                                <ShoppingBag className="w-3 h-3 text-purple-600" />
+                                            </div>
+                                            <h3 className="text-sm font-bold text-charcoal">Add Accessories</h3>
+                                        </div>
+                                        <span className="text-xs text-charcoal/40">{accessoryImages.length}/5</span>
+                                    </div>
+
+                                    <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                                        {['purse', 'shoes', 'hat', 'jewelry', 'other'].map((type) => (
+                                            <div key={type} className="relative aspect-square border-[2px] border-black bg-white hover:bg-[#FFD93D] transition-colors cursor-pointer flex flex-col items-center justify-center gap-1 group shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+                                                <span className="text-[10px] uppercase font-bold text-black group-hover:text-black">{type}</span>
+                                                <span className="text-xl font-black text-black group-hover:text-black">+</span>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                                    onChange={(e) => e.target.files && handleAccessoryUpload(e.target.files[0], type as any)}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Accessory Preview List */}
+                                    {accessoryImages.length > 0 && (
+                                        <div className="mt-3 flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
+                                            {accessoryImages.map((img: string, idx: number) => (
+                                                <div key={idx} className="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden border border-white shadow-sm group">
+                                                    <Image unoptimized width={1200} height={1200} src={img} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                                        <button type="button" onClick={() => handleRemoveAccessory(idx)} className="text-white hover:text-red-400">
+                                                            <X className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-[8px] text-white text-center truncate px-1">
+                                                        {accessoryTypes[idx]}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                        </motion.div>
+
+                        {/* Desktop-only controls on left column */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.45 }}
+                            className="hidden lg:block"
+                        >
+                            <h3 className="font-serif text-xl text-charcoal mb-4">
+                                Choose Your Aspect Ratio
+                            </h3>
+                            <div className="grid grid-cols-3 gap-3">
+                                {['1:1', '4:5', '9:16'].map((ratio) => (
+                                    <button type="button"
+                                        key={ratio}
+                                        onClick={() => setAspectRatio(ratio as any)}
+                                        className={`
+                                                flex-1 py-3 border-[3px] border-black text-sm font-black uppercase tracking-wider transition-all
+                                                ${aspectRatio === ratio
+                                                ? 'bg-[#FFD93D] text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+                                                : 'bg-white text-black hover:bg-gray-50 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'}
+                                            `}
+                                    >
+                                        {ratio}
+                                    </button>
+                                ))}
+                            </div>
+                        </motion.div>
+
+                        <div className="hidden lg:block pt-1">
+                            {(loading || retryAfterSeconds > 0) && (
+                                <div className="mb-3 rounded-md border-[2px] border-black bg-[#FFF3BF] px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-black">
+                                    {loading
+                                        ? (queueStatus === 'queued'
+                                            ? `In queue${activeJobId ? ` - job ${activeJobId.slice(0, 8)}` : ''}. We are waiting for a free generation slot.`
+                                            : `Generating now${activeJobId ? ` - job ${activeJobId.slice(0, 8)}` : ''}. Please keep this tab open.`)
+                                        : (retryReason === 'job_in_progress'
+                                            ? `A job is already running. Try again in ${retryAfterSeconds}s.`
+                                            : `Rate limit active. Try again in ${retryAfterSeconds}s.`)}
+                                </div>
+                            )}
+                            <button type="button"
+                                onClick={handleGenerate}
+                                disabled={isGenerateDisabled}
+                                className={`
+                    w-full py-3.5 text-sm font-black uppercase tracking-wider flex items-center justify-center gap-3 transition-all duration-200 border-[3px] border-black
+                    ${isGenerateDisabled
+                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+                                        : 'bg-[#FFD93D] text-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-[6px] active:shadow-none'}
+                  `}
+                            >
+                                {loading ? (
+                                    'Creating Magic...'
+                                ) : retryAfterSeconds > 0 ? (
+                                    retryReason === 'job_in_progress'
+                                        ? `Job in progress (${retryAfterSeconds}s)`
+                                        : `Try again in ${retryAfterSeconds}s`
+                                ) : (
+                                    <>
+                                        <Sparkles className="w-6 h-6" />
+                                        Generate Try-On
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* RIGHT PANEL: Output & Presets */}
+                    <div className="lg:col-span-7 space-y-5 sm:space-y-6 lg:space-y-7">
+
+                        {/* No analysis block in new pipeline */}
+
+                        {/* Presets Gallery */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.4 }}
+                        >
+                            <div className="mb-4 rounded-[22px] border-[3px] border-black bg-[linear-gradient(135deg,#FFFDF8_0%,#FFF6EC_100%)] px-4 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:px-5">
+                                <div className="flex flex-col gap-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border-[3px] border-black bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+                                            <Palette className="h-4 w-4 text-peach" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-black/45">Preset Library</p>
+                                            <h3 className="font-serif text-[2.1rem] leading-[0.95] text-charcoal sm:text-[2.35rem]">
+                                                Style Presets
+                                            </h3>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-wrap gap-2">
+                                    <button type="button"
+                                        onClick={() => setPresetCategory('all')}
+                                        className={`
+                                            min-h-[42px] whitespace-nowrap rounded-full border-[3px] border-black px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] transition-all sm:px-5 sm:text-[11px]
+                                            ${presetCategory === 'all'
+                                                ? 'bg-black text-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                                                : 'bg-white text-black hover:-translate-y-0.5 hover:bg-[#FFF6EC] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'}
+                                        `}
+                                    >
+                                        All
+                                    </button>
+                                    {presetCategories.map(cat => (
+                                        <button type="button"
+                                            key={cat}
+                                            onClick={() => setPresetCategory(cat)}
+                                            className={`
+                                                min-h-[42px] whitespace-nowrap rounded-full border-[3px] border-black px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] transition-all sm:px-5 sm:text-[11px]
+                                                ${presetCategory === cat
+                                                    ? 'bg-black text-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                                                    : 'bg-white text-black hover:-translate-y-0.5 hover:bg-[#FFF6EC] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'}
+                                            `}
+                                        >
+                                            {cat}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            </div>
+
+                            {selectedPresetDetails && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="mb-4 flex flex-col gap-3 rounded-[24px] border-[3px] border-black bg-[linear-gradient(135deg,#FFF7E8_0%,#FFE0CC_100%)] px-4 py-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:flex-row sm:items-center sm:justify-between"
+                                >
+                                    <div>
+                                        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-black/50">Selected preset</p>
+                                        <h4 className="mt-1 text-lg font-black uppercase text-black">{selectedPresetDetails.name}</h4>
+                                        <p className="text-sm font-bold text-black/60">
+                                            {selectedPresetDetails.category}{selectedPresetDetails.faceStability === 'max' ? ' / face lock max' : ''}
+                                        </p>
+                                    </div>
+                                    <div className="inline-flex items-center gap-2 self-start rounded-full border-[3px] border-black bg-white px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                                        <Sparkles className="h-4 w-4" />
+                                        Ready for styling
+                                    </div>
+                                </motion.div>
+                            )}
+
+                            {presetsLoading ? (
+                                <div className="flex items-center justify-center py-8">
+                                    <Loader2 className="w-6 h-6 animate-spin text-peach" />
+                                    <span className="ml-2 text-sm text-charcoal/60">Loading presets...</span>
+                                </div>
+                            ) : (
+                                <div className="relative group/presets">
+                                    {/* Left Arrow */}
+                                    <button type="button"
+                                        onClick={() => {
+                                            const container = document.getElementById('preset-scroll-container')
+                                            if (container) container.scrollBy({ left: -300, behavior: 'smooth' })
+                                        }}
+                                        className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/90 backdrop-blur-md rounded-full shadow-lg border border-charcoal/10 flex items-center justify-center opacity-0 group-hover/presets:opacity-100 transition-opacity hover:bg-charcoal hover:text-white -ml-5"
+                                    >
+                                        <ArrowRight className="w-5 h-5 rotate-180" />
+                                    </button>
+
+                                    {/* Right Arrow */}
+                                    <button type="button"
+                                        onClick={() => {
+                                            const container = document.getElementById('preset-scroll-container')
+                                            if (container) container.scrollBy({ left: 300, behavior: 'smooth' })
+                                        }}
+                                        className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/90 backdrop-blur-md rounded-full shadow-lg border border-charcoal/10 flex items-center justify-center opacity-0 group-hover/presets:opacity-100 transition-opacity hover:bg-charcoal hover:text-white -mr-5"
+                                    >
+                                        <ArrowRight className="w-5 h-5" />
+                                    </button>
+
+                                    {/* Scrollable Container */}
+                                    <div
+                                        id="preset-scroll-container"
+                                        className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide scroll-smooth"
+                                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                                    >
+                                        {/* No Preset Option */}
+                                        <button type="button"
+                                            onClick={() => setSelectedPreset('')}
+                                            className={`
+                                                flex-shrink-0 group relative p-3 border-[3px] border-black text-left transition-all duration-200 overflow-hidden h-32 w-40 bg-[linear-gradient(180deg,#FFFFFF_0%,#F7F7F7_100%)]
+                                                ${selectedPreset === ''
+                                                    ? 'bg-[#FFD93D] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] translate-x-[2px] translate-y-[2px]'
+                                                    : 'hover:bg-gray-50 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[2px] hover:-translate-y-[2px] hover:rotate-[-1deg]'}
+                                            `}
+                                        >
+                                            <div className="absolute inset-x-0 top-0 h-2 bg-[#FFD93D] border-b-[2px] border-black" />
+                                            <div className="relative z-10 flex flex-col h-full justify-between">
+                                                <div className={`w-8 h-8 rounded-full mb-2 flex items-center justify-center ${selectedPreset === '' ? 'bg-white/10' : 'bg-charcoal/5'}`}>
+                                                    <X className="w-4 h-4" />
+                                                </div>
+                                                <div>
+                                                    <div className="font-serif text-sm">Clothing Only</div>
+                                                </div>
+                                            </div>
+                                        </button>
+
+                                        {/* Preset Cards */}
+                                        {presets
+                                            .filter(p => presetCategory === 'all' || p.category === presetCategory)
+                                            .map(preset => {
+                                                return (
+                                                    <button type="button"
+                                                        key={preset.id}
+                                                        onClick={() => setSelectedPreset(preset.id)}
+                                                        className={`
+                                                            flex-shrink-0 group relative p-3 border-[3px] border-black text-left transition-all duration-200 overflow-hidden h-32 w-40
+                                                            ${selectedPreset === preset.id
+                                                                ? 'ring-4 ring-[#FFD93D] ring-offset-2 ring-offset-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] scale-[1.01]'
+                                                                : 'border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 hover:rotate-[-1deg]'}
+                                                        `}
+                                                    >
+                                                        {/* Solid Backgrounds instead of Gradient */}
+                                                        <div className={`absolute inset-0 z-0 ${preset.category === 'studio' ? 'bg-[#FFE5E5]' :
+                                                            preset.category === 'street' ? 'bg-[#E5F6FF]' :
+                                                                preset.category === 'outdoor' ? 'bg-[#FFF1E6]' :
+                                                                    preset.category === 'lifestyle' ? 'bg-[#FFF4E5]' :
+                                                                        preset.category === 'home' ? 'bg-[#FFF7E5]' :
+                                                                            preset.category === 'office' ? 'bg-[#E5FBFF]' :
+                                                                                preset.category === 'travel' ? 'bg-[#EEF1FF]' :
+                                                                                    'bg-gray-100'
+                                                            }`} />
+                                                        <div className="absolute inset-x-0 top-0 h-2 bg-[#FFD93D] border-b-[2px] border-black z-0" />
+                                                        <div className="absolute inset-0 border-b-[3px] border-black z-0 opacity-10" />
+                                                        <div className="absolute right-3 bottom-3 z-0 h-10 w-10 rounded-full border-[2px] border-black/20 bg-white/30" />
+
+                                                        <div className="relative z-10 h-full flex flex-col justify-between">
+                                                            {/* Category Badge */}
+                                                            <div className="flex justify-between items-start">
+                                                                <span className="text-[9px] font-black uppercase tracking-wider text-black border border-black bg-white px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+                                                                    {preset.category}
+                                                                </span>
+                                                                {preset.faceStability === 'max' && (
+                                                                    <span className="text-[8px] font-black uppercase tracking-wider text-black border border-black bg-[#FFB39A] px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] ml-1">
+                                                                        Face Lock: Max
+                                                                    </span>
+                                                                )}
+                                                                {selectedPreset === preset.id && (
+                                                                    <Check className="w-4 h-4 text-peach" />
+                                                                )}
+                                                            </div>
+
+                                                            {/* Name */}
+                                                            <div className="text-black mt-auto">
+                                                                <div className="font-black text-sm uppercase leading-tight mb-1">{preset.name}</div>
+                                                            </div>
+                                                        </div>
+                                                    </button>
+                                                )
+                                            })}
+                                    </div>
+                                </div>
+                            )}
+                        </motion.div>
+
+                        {/* Aspect Ratio Selection (Moved to Right Panel) */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.45 }}
+                            className="mb-6 lg:hidden"
+                        >
+                            <h3 className="font-serif text-xl sm:text-2xl text-charcoal mb-4">
+                                Choose Your Aspect Ratio
+                            </h3>
+                            <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                                {['1:1', '4:5', '9:16'].map((ratio) => (
+                                    <button type="button"
+                                        key={ratio}
+                                        onClick={() => setAspectRatio(ratio as any)}
+                                        className={`
+                                                flex-1 py-3 border-[3px] border-black text-sm font-black uppercase tracking-wider transition-all
+                                                ${aspectRatio === ratio
+                                                ? 'bg-[#FFD93D] text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+                                                : 'bg-white text-black hover:bg-gray-50 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'}
+                                            `}
+                                    >
+                                        {ratio}
+                                    </button>
+                                ))}
+                            </div>
+
+                        </motion.div>
+
+                        {/* Generate Button (end of config) */}
+                        <div className="pt-2 lg:hidden">
+                            {(loading || retryAfterSeconds > 0) && (
+                                <div className="mb-3 rounded-md border-[2px] border-black bg-[#FFF3BF] px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-black">
+                                    {loading
+                                        ? (queueStatus === 'queued'
+                                            ? `In queue${activeJobId ? ` - job ${activeJobId.slice(0, 8)}` : ''}. We are waiting for a free generation slot.`
+                                            : `Generating now${activeJobId ? ` - job ${activeJobId.slice(0, 8)}` : ''}. Please keep this tab open.`)
+                                        : (retryReason === 'job_in_progress'
+                                            ? `A job is already running. Try again in ${retryAfterSeconds}s.`
+                                            : `Rate limit active. Try again in ${retryAfterSeconds}s.`)}
+                                </div>
+                            )}
+                            <button type="button"
+                                onClick={handleGenerate}
+                                disabled={isGenerateDisabled}
+                                className={`
+                    w-full py-3.5 sm:py-4 text-sm sm:text-base font-black uppercase tracking-wider flex items-center justify-center gap-3 transition-all duration-200 border-[3px] border-black
+                    ${isGenerateDisabled
+                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+                                        : 'bg-[#FFD93D] text-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-[6px] active:shadow-none'}
+                  `}
+                            >
+                                {loading ? (
+                                    'Creating Magic...'
+                                ) : retryAfterSeconds > 0 ? (
+                                    retryReason === 'job_in_progress'
+                                        ? `Job in progress (${retryAfterSeconds}s)`
+                                        : `Try again in ${retryAfterSeconds}s`
+                                ) : (
+                                    <>
+                                        <Sparkles className="w-6 h-6" />
+                                        Generate Try-On
+                                    </>
+                                )}
+                            </button>
+                        </div>
+
+
+                        {/* RESULT DISPLAY */}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.98 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.5 }}
+                            className="relative overflow-hidden bg-[linear-gradient(180deg,#FFFFFF_0%,#FFF8F0_100%)] border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] min-h-[380px] sm:min-h-[500px] flex flex-col"
+                        >
+                            {/* Loading state takes priority - shows animation every time */}
+                            {loading ? (
+                                /* SVG DRAWING ANIMATION - White background, no gradient */
+                                <div className="flex-1 flex items-center justify-center bg-white min-h-[380px] sm:min-h-[500px]">
+                                    <div className="text-center">
+                                        {/* SVG Drawing Loader from Uiverse.io */}
+                                        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="svg-drawing-loader mx-auto mb-6">
+                                            <path pathLength={360} d="M 56.3752 2 H 7.6248 C 7.2797 2 6.9999 2.268 6.9999 2.5985 V 61.4015 C 6.9999 61.7321 7.2797 62 7.6248 62 H 56.3752 C 56.7203 62 57.0001 61.7321 57.0001 61.4015 V 2.5985 C 57.0001 2.268 56.7203 2 56.3752 2 Z" />
+                                            <path pathLength={360} d="M 55.7503 60.803 H 8.2497 V 3.1971 H 55.7503 V 60.803 Z" />
+                                            <path pathLength={360} d="M 29.7638 47.6092 C 29.4971 47.3997 29.1031 47.4368 28.8844 47.6925 C 28.6656 47.9481 28.7046 48.3253 28.9715 48.5348 L 32.8768 51.6023 C 32.9931 51.6936 33.1333 51.738 33.2727 51.738 C 33.4533 51.738 33.6328 51.6634 33.7562 51.519 C 33.975 51.2634 33.936 50.8862 33.6692 50.6767 L 29.7638 47.6092 Z" />
+                                            <path pathLength={360} d="M 42.3557 34.9046 C 38.4615 34.7664 36.9617 37.6749 36.7179 39.2213 L 35.8587 44.2341 C 35.8029 44.5604 36.0335 44.8681 36.374 44.9218 C 36.4084 44.9272 36.4424 44.9299 36.476 44.9299 C 36.7766 44.9299 37.0415 44.7214 37.0918 44.4281 L 37.9523 39.4076 C 37.9744 39.2673 38.544 35.9737 42.311 36.1007 C 42.6526 36.1124 42.9454 35.8544 42.9577 35.524 C 42.9702 35.1937 42.7006 34.9164 42.3557 34.9046 Z" />
+                                            <path pathLength={360} d="M 13.1528 55.5663 C 13.1528 55.8968 13.4326 56.1648 13.7777 56.1648 H 50.2223 C 50.5674 56.1648 50.8472 55.8968 50.8472 55.5663 V 8.4339 C 50.8472 8.1034 50.5674 7.8354 50.2223 7.8354 H 13.7777 C 13.4326 7.8354 13.1528 8.1034 13.1528 8.4339 V 55.5663 Z" />
+                                            <path pathLength={360} d="M 25.3121 26.5567 C 24.9717 27.4941 25.0042 28.8167 25.0634 29.5927 C 23.6244 29.8484 20.3838 31.0913 18.9478 37.0352 C 18.5089 37.5603 17.8746 38.1205 17.2053 38.7114 C 16.2598 39.546 15.2351 40.4515 14.4027 41.5332 V 20.5393 H 23.7222 C 23.7178 22.6817 24.1666 25.4398 25.3121 26.5567 Z" />
+                                            <path pathLength={360} d="M 49.5975 43.4819 C 48.3838 39.1715 46.3138 33.6788 43.4709 29.7736 C 42.6161 28.5995 40.7095 27.0268 39.6852 26.1818 L 39.6352 26.1405 C 39.4176 24.783 39.1158 22.5803 38.8461 20.5394 H 49.5976 V 43.4819 Z" />
+                                            <path pathLength={360} d="M 29.8161 45.151 C 29.0569 44.7516 28.3216 44.4344 27.6455 44.185 C 27.6488 44.0431 27.6397 43.8917 27.6478 43.7715 C 27.9248 39.7036 30.4491 36.2472 35.1502 33.4979 C 38.7221 31.4091 42.2682 30.5427 42.3036 30.5341 C 42.3563 30.5213 42.416 30.5119 42.4781 30.5037 C 42.6695 30.7681 42.8577 31.0407 43.0425 31.3217 C 42.1523 31.4917 39.6591 32.0721 37.0495 33.6188 C 34.2273 35.2912 30.7775 38.4334 29.9445 44.0105 C 29.9025 44.2924 29.8211 45.0524 29.8161 45.151 Z" />
+                                            <path pathLength={360} d="M 32.2021 33.6346 C 29.1519 33.8959 26.6218 32.5634 25.6481 31.4461 C 25.9518 30.3095 28.4436 28.4847 30.2282 27.4911 C 30.436 27.3755 30.5563 27.1556 30.5372 26.9261 L 30.4311 25.6487 C 30.5264 25.6565 30.622 25.6621 30.7181 25.6642 L 30.8857 25.6672 C 32.0645 25.6912 33.2094 25.302 34.1059 24.5658 L 34.112 24.5607 L 34.4024 32.5344 C 33.8302 32.8724 33.2863 33.2227 32.7728 33.5852 C 32.5227 33.6032 32.3068 33.6258 32.2021 33.6346 Z" />
+                                            <path pathLength={360} d="M 27.8056 17.9207 C 27.8041 17.9207 27.8025 17.9207 27.8012 17.9207 L 27.0155 17.9259 L 26.8123 15.4718 C 26.8174 15.4609 26.8238 15.4501 26.8282 15.4389 C 27.2218 15.0856 28.158 14.3463 29.1923 14.252 C 31.0985 14.0778 33.442 14.3386 33.8213 16.5565 L 34.0564 23.0299 L 33.2927 23.6566 C 32.6306 24.2004 31.7888 24.4889 30.9118 24.4703 L 30.7437 24.4673 C 29.7977 24.4473 28.8841 24.0555 28.2376 23.3933 C 27.9671 23.1152 27.748 22.7967 27.5871 22.4474 C 27.426 22.0961 27.3292 21.7272 27.2989 21.3494 L 27.1145 19.1223 L 27.8097 19.1178 C 28.1548 19.1154 28.4327 18.8457 28.4303 18.5152 C 28.4278 18.186 28.1487 17.9207 27.8056 17.9207 Z" />
+                                            <path pathLength={360} d="M 38.4358 26.5433 C 38.4589 26.6829 38.5326 26.8101 38.6443 26.9026 L 38.8697 27.0889 C 39.5266 27.6307 40.6931 28.5938 41.5811 29.4829 C 40.6409 29.7428 38.2545 30.4762 35.6283 31.8516 L 35.3161 23.281 C 35.316 23.2777 35.3158 23.2743 35.3157 23.271 L 35.0692 16.4785 C 35.0682 16.455 35.0659 16.4316 35.0621 16.4082 C 34.6703 13.9692 32.4875 12.7498 29.0741 13.0603 C 28.5659 13.1067 28.0885 13.255 27.6614 13.4468 C 28.321 12.6324 29.4568 11.8605 31.3984 11.8605 C 32.892 11.8605 34.2086 12.4323 35.3118 13.5599 C 36.3478 14.6187 36.9981 15.9821 37.1923 17.5023 C 37.5097 19.987 38.0932 24.4655 38.4358 26.5433 Z" />
+                                            <path pathLength={360} d="M 25.6994 17.1716 L 26.053 21.4425 C 26.094 21.9536 26.225 22.4539 26.4434 22.93 C 26.6613 23.403 26.9574 23.8335 27.3242 24.2106 C 27.833 24.7317 28.4641 25.128 29.1549 25.3746 L 29.2609 26.6526 C 28.8063 26.9219 27.959 27.4459 27.0978 28.0926 C 26.7982 28.3177 26.5261 28.5365 26.2766 28.7503 C 26.2677 27.9385 26.3477 27.0941 26.6128 26.699 C 26.7087 26.5561 26.7368 26.3807 26.6898 26.2168 C 26.6428 26.0528 26.5253 25.9159 26.3667 25.8398 C 25.2812 25.3198 24.639 20.7943 25.134 18.7283 C 25.2757 18.1366 25.4822 17.6126 25.6994 17.1716 Z" />
+                                            <path pathLength={360} d="M 14.4025 54.9677 V 43.9616 C 15.1297 42.1745 16.6798 40.8031 18.052 39.5917 C 18.5756 39.1296 19.0771 38.6852 19.5054 38.243 C 20.1455 38.2763 21.8243 38.4721 22.2856 39.611 C 22.526 40.696 22.9861 41.6387 23.6573 42.3985 C 23.7809 42.5383 23.9573 42.6104 24.1347 42.6104 C 24.2773 42.6104 24.4206 42.5639 24.5381 42.4688 C 24.8014 42.2553 24.8343 41.8776 24.6115 41.6252 C 22.2978 39.0062 23.8504 34.5445 23.8663 34.4997 C 23.9782 34.1872 23.8046 33.8471 23.4785 33.7397 C 23.1507 33.6321 22.7964 33.7986 22.6843 34.1111 C 22.6657 34.1631 22.2262 35.4024 22.1149 37.0253 C 22.0992 37.2529 22.0927 37.476 22.0916 37.6958 C 21.4663 37.3478 20.7678 37.1827 20.215 37.1057 C 21.266 32.9598 23.2109 31.5061 24.4867 30.9973 C 24.4164 31.2001 24.3769 31.3974 24.3692 31.5894 C 24.3639 31.7208 24.404 31.8501 24.4831 31.9575 C 25.0708 32.7551 26.1363 33.5207 27.4065 34.0584 C 28.2686 34.4232 29.5576 34.8194 31.1457 34.861 C 28.2499 37.3877 26.6257 40.39 26.4009 43.6936 C 26.3992 43.7195 26.3962 43.7461 26.3928 43.7729 C 25.1023 43.399 24.2167 43.2969 24.1252 43.2873 C 23.9888 43.2728 23.8487 43.3023 23.7304 43.3716 C 23.0495 43.7702 22.591 44.3922 22.4046 45.1703 C 22.2331 45.8868 22.3106 46.6885 22.6019 47.3807 C 22.0046 47.6438 21.3269 47.7784 20.7914 47.848 C 19.4939 45.6912 20.8219 44.6351 20.989 44.5146 C 21.2655 44.3207 21.3274 43.9492 21.1268 43.6822 C 20.9253 43.4139 20.5346 43.3533 20.2546 43.5462 C 19.4539 44.0983 18.406 45.6195 19.3656 47.7888 C 18.685 47.5329 17.6255 46.8145 17.8055 44.832 C 17.8836 43.9718 18.1884 43.3352 18.7117 42.9403 C 19.5815 42.2834 20.8198 42.451 20.8366 42.4537 C 21.1748 42.503 21.4952 42.2819 21.5494 41.9563 C 21.6037 41.6297 21.3713 41.3231 21.0306 41.2712 C 20.9582 41.2599 19.2558 41.0142 17.9494 41.9917 C 17.1375 42.5992 16.6703 43.5199 16.5605 44.7282 C 16.1991 48.7092 19.7376 49.1126 19.7732 49.116 C 19.7951 49.1182 22.2326 49.1079 23.7782 48.1211 C 23.8053 48.1039 24.4158 47.7528 24.4158 47.7528 C 24.5214 47.8841 24.6624 48.0532 24.8294 48.2438 L 22.3598 49.4874 C 22.1544 49.5908 22.0257 49.7949 22.0257 50.0171 V 51.8127 C 22.0257 52.1432 22.3054 52.4112 22.6505 52.4112 S 23.2754 52.1432 23.2754 51.8127 V 50.3786 L 25.6987 49.1582 C 26.021 49.4709 26.3894 49.7985 26.7963 50.1188 L 24.6627 50.7144 C 24.4768 50.7663 24.3269 50.8977 24.2559 51.0702 L 23.3968 53.1651 C 23.2704 53.4729 23.4286 53.8202 23.7498 53.9409 C 23.8248 53.9694 23.9023 53.9825 23.9782 53.9825 C 24.2277 53.9825 24.4632 53.8384 24.5599 53.6028 L 25.307 51.7814 L 28.0879 51.0053 C 28.5412 51.2713 29.0239 51.51 29.5341 51.6979 C 29.6079 51.7252 29.6836 51.738 29.7582 51.738 C 30.0092 51.738 30.246 51.592 30.3415 51.3542 C 30.4653 51.0457 30.3048 50.6994 29.9825 50.5808 C 27.1642 49.5423 25.2952 46.9394 25.2771 46.9138 C 25.1245 46.6979 24.8439 46.6013 24.5831 46.6746 L 23.7537 46.9082 C 23.5672 46.4465 23.5125 45.8992 23.623 45.4377 C 23.7168 45.046 23.9138 44.7341 24.21 44.508 C 25.267 44.6734 29.863 45.5842 33.2732 49.2905 C 33.3967 49.4247 33.569 49.4932 33.7423 49.4932 C 33.889 49.4932 34.0364 49.444 34.1551 49.3437 C 34.414 49.1251 34.439 48.747 34.2108 48.4989 C 33.9947 48.2641 33.7738 48.0421 33.5507 47.8278 L 38.211 47.0175 C 38.3595 47.0014 40.1672 46.8356 41.295 48.2161 C 41.4182 48.3671 41.6019 48.4458 41.7875 48.4458 C 41.9222 48.4458 42.0578 48.4043 42.1721 48.3186 C 42.4439 48.1148 42.4919 47.7386 42.2791 47.4784 C 40.6703 45.5094 38.1379 45.8184 38.0305 45.8327 C 38.0218 45.8339 38.0132 45.8353 38.0043 45.8368 L 32.3855 46.8136 C 31.945 46.4667 31.4998 46.1528 31.0557 45.8697 C 31.0618 45.5534 31.0651 45.1775 31.0836 44.9842 C 31.1138 44.6713 31.1524 44.3635 31.1997 44.0606 C 31.8329 40.0032 34.0061 36.8432 37.6695 34.6587 C 40.6334 32.8915 43.5195 32.4536 43.5682 32.4464 C 43.604 32.4413 43.663 32.4341 43.7302 32.4251 C 47.2229 38.3378 49.3982 46.7588 49.5976 49.5158 V 54.9673 H 14.4025 Z" />
+                                            <path pathLength={360} d="M 49.5975 9.0325 V 19.3422 H 38.689 C 38.5937 18.6105 38.5061 17.9301 38.4329 17.3569 C 38.2063 15.5828 37.4422 13.9868 36.2237 12.7413 C 34.8748 11.3624 33.2514 10.6633 31.3984 10.6633 C 27.3688 10.6633 25.8233 13.5309 25.556 15.0901 C 25.1526 15.5932 24.3175 16.7856 23.916 18.46 C 23.8568 18.7069 23.8106 19.0066 23.7778 19.3421 H 14.4025 V 9.0323 H 49.5975 Z" />
+                                            <path pathLength={360} d="M 30.2223 21.2875 C 30.5674 21.2875 30.8471 21.0195 30.8471 20.6889 V 18.92 L 31.9916 18.9675 C 32.3376 18.9833 32.628 18.7259 32.643 18.3956 C 32.658 18.0654 32.3907 17.786 32.0459 17.7717 L 30.2495 17.6969 C 30.077 17.6889 29.9133 17.7497 29.7902 17.8624 C 29.6671 17.9753 29.5976 18.1315 29.5976 18.2948 V 20.6889 C 29.5974 21.0195 29.8772 21.2875 30.2223 21.2875 Z" />
+                                        </svg>
+
+                                        {/* Supporting Text */}
+                                        <h3 className="text-xl sm:text-2xl font-serif text-charcoal mb-2 px-4">
+                                            {queueStatus === 'queued'
+                                                ? "You're in queue. Your turn will come shortly."
+                                                : 'Your image is generating...'}
+                                        </h3>
+
+                                        {/* Real-time countdown */}
+                                        {(() => {
+                                            // Realistic times for 3-variant generation (Flash only)
+                                            const estimatedTotal = 70
+                                            const remaining = Math.max(0, estimatedTotal - elapsedSeconds)
+                                            const isAlmostDone = remaining <= 10 && remaining > 0
+                                            const isOverEstimate = remaining === 0
+
+                                            return (
+                                                <>
+                                                    <div className="text-3xl font-bold text-charcoal mb-2 tabular-nums">
+                                                        {isOverEstimate
+                                                            ? 'Almost there...'
+                                                            : `${remaining}s`}
+                                                    </div>
+                                                    <p className="text-charcoal/60 text-sm mb-2">
+                                                        {isOverEstimate
+                                                            ? 'Finishing up your images!'
+                                                            : isAlmostDone
+                                                                ? 'Just a few more seconds!'
+                                                                : `${elapsedSeconds}s elapsed`}
+                                                    </p>
+                                                    <p className="text-charcoal/40 text-xs mb-4">
+                                                        {activeJobId
+                                                            ? queueStatus === 'queued'
+                                                                ? `In queue for job ${activeJobId.slice(0, 8)}...`
+                                                                : `Generating job ${activeJobId.slice(0, 8)}...`
+                                                            : 'Rendering your try-on'}
+                                                    </p>
+                                                </>
+                                            )
+                                        })()}
+
+                                        {/* Model badge */}
+                                        <div className="inline-block px-4 py-2 rounded-full text-sm font-medium bg-charcoal/10 text-charcoal">
+                                            Flash Mode
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : result ? (
+                                <>
+                                    <div className="flex-1 flex items-center justify-center group relative">
+                                        <Image unoptimized width={1200} height={1200}
+                                            src={result.base64Image ? (result.base64Image.startsWith('data:') ? result.base64Image : `data:image/jpeg;base64,${result.base64Image}`) : result.imageUrl}
+                                            alt="Generated Result"
+                                            className="w-full h-full object-contain max-h-[600px] bg-charcoal/90"
+                                            onError={(e) => {
+                                                console.error('Image failed to load:', result.imageUrl)
+                                                const target = e.target as HTMLImageElement
+                                                if (target.src !== result.imageUrl) {
+                                                    target.src = result.imageUrl
+                                                }
+                                            }}
+                                        />
+
+                                        {/* Overlay Controls (on hover) */}
+                                        <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4">
+                                            <button type="button"
+                                                onClick={handleDownload}
+                                                disabled={downloading}
+                                                className="px-6 py-3 bg-white text-charcoal rounded-full font-medium flex items-center gap-2 hover:bg-peach hover:text-white transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                                            >
+                                                {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                                                {downloading ? 'Downloading...' : 'Download'}
+                                            </button>
+                                            <button type="button"
+                                                onClick={() => setShowShareModal(true)}
+                                                className="px-6 py-3 bg-white text-charcoal rounded-full font-medium flex items-center gap-2 hover:bg-peach hover:text-white transition-colors"
+                                            >
+                                                <Share2 className="w-4 h-4" /> Share
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Variant Selector - Shows when multiple variants exist */}
+                                    {variants.length > 1 && (
+                                        <div className="p-4 bg-white/80 backdrop-blur-md border-t border-white/30">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <span className="text-sm font-medium text-charcoal/70">
+                                                    Choose your favorite variant
+                                                </span>
+                                                <span className="text-xs text-charcoal/50">
+                                                    {selectedVariant + 1} of {variants.length}
+                                                </span>
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-3">
+                                                {variants.map((variant, idx) => (
+                                                    <button type="button"
+                                                        key={idx}
+                                                        onClick={() => {
+                                                            setSelectedVariant(idx)
+                                                            setResult({
+                                                                jobId: result?.jobId || '',
+                                                                imageUrl: variant.imageUrl,
+                                                                base64Image: variant.base64Image
+                                                            })
+                                                        }}
+                                                        className={`relative aspect-[3/4] overflow-hidden border-[3px] transition-all ${selectedVariant === idx
+                                                            ? 'border-black ring-4 ring-[#FFD93D] ring-offset-2 ring-offset-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] scale-105 z-10'
+                                                            : 'border-black/20 opacity-70 hover:opacity-100 hover:border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 z-0 grayscale-[30%] hover:grayscale-0'
+                                                            }`}
+                                                    >
+                                                        <Image unoptimized width={1200} height={1200}
+                                                            src={variant.base64Image ? (variant.base64Image.startsWith('data:') ? variant.base64Image : `data:image/jpeg;base64,${variant.base64Image}`) : variant.imageUrl}
+                                                            alt={`Variant ${idx + 1}`}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                        {/* Variant label */}
+                                                        <div className={`absolute bottom-0 left-0 right-0 py-2 text-center text-[10px] font-black uppercase ${selectedVariant === idx
+                                                            ? 'bg-[#FFD93D] text-black border-t-[3px] border-black'
+                                                            : 'bg-black text-white'
+                                                            }`}>
+                                                            {variant.label || `Option ${idx + 1}`}
+                                                        </div>
+                                                        {selectedVariant === idx && (
+                                                            <div className="absolute top-2 right-2 w-6 h-6 bg-[#FFD93D] border-[2px] border-black flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                                                                <Check className="w-4 h-4 text-black" />
+                                                            </div>
+                                                        )}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Product Link Display in Result Area */}
+                                    {productId && result && (
+                                        <div className="p-4 bg-white/80 backdrop-blur-md border-t border-white/30">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <LinkIcon className="w-4 h-4 text-charcoal/50" />
+                                                <span className="text-sm font-medium text-charcoal/70">Share Product Link</span>
+                                            </div>
+                                            {linkLoading ? (
+                                                <div className="flex items-center gap-2 text-sm text-charcoal/50">
+                                                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                                    <span>Generating link...</span>
+                                                </div>
+                                            ) : maskedLink && displayUrl ? (
+                                                <div className="flex items-center gap-2">
+                                                    <code className="flex-1 text-xs bg-white px-3 py-2 border-[2px] border-black text-black font-mono truncate font-bold">
+                                                        {displayUrl}
+                                                    </code>
+                                                    <button type="button"
+                                                        onClick={copyLink}
+                                                        className="p-2 bg-white border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[1px] hover:shadow-none transition-all"
+                                                        title="Copy tracked link"
+                                                    >
+                                                        {linkCopied ? (
+                                                            <Check className="w-4 h-4 text-black" />
+                                                        ) : (
+                                                            <Copy className="w-4 h-4 text-black" />
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <p className="text-xs text-charcoal/40">Link unavailable</p>
+                                            )}
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                /* IDLE STATE - Simple static placeholder, no animation */
+                                <div className="flex-1 flex items-center justify-center bg-white min-h-[380px] sm:min-h-[500px]">
+                                    <div className="flex flex-col items-center text-center p-8 border-[3px] border-black m-8 bg-gray-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                                        <div className="w-20 h-20 bg-[#FFD93D] border-[3px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded-full flex items-center justify-center mb-6">
+                                            <Sparkles className="w-10 h-10 text-black fill-white" />
+                                        </div>
+                                        <h3 className="text-2xl sm:text-3xl font-black uppercase text-black mb-2">Ready to Create</h3>
+                                        <p className="text-black/60 font-bold max-w-xs">
+                                            Upload your photo and clothing to start the magic.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                        </motion.div>
+
+                        {/* Action Buttons - Always Visible when result exists */}
+                        {result && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex flex-col sm:flex-row gap-4"
+                            >
+                                <button type="button"
+                                    onClick={handleDownload}
+                                    disabled={downloading}
+                                    className="flex-1 px-6 py-4 bg-white border-[3px] border-black text-black font-black uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-gray-50 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:-translate-y-0"
+                                >
+                                    {downloading ? <Loader2 className="w-5 h-5 animate-spin text-black" /> : <Download className="w-5 h-5" />}
+                                    {downloading ? 'Downloading...' : 'Download'}
+                                </button>
+                                <button type="button"
+                                    onClick={() => setShowShareModal(true)}
+                                    className="flex-1 px-6 py-4 bg-[#FFD93D] border-[3px] border-black text-black font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+                                >
+                                    <Share2 className="w-5 h-5" />
+                                    Share to Social
+                                </button>
+                            </motion.div>
+                        )}
+
+
+                    </div>
+                </div>
+            </div>
+
+            {/* Share Modal */}
+            {result && (
+                <ShareModal
+                    isOpen={showShareModal}
+                    onClose={() => setShowShareModal(false)}
+                    imageUrl={result.imageUrl}
+                    imageBase64={result.base64Image}
+                    productId={productId || undefined}
+                />
+            )}
         </div>
-      )}
-    </div>
-  )
+    )
+}
+
+export default function TryOnPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-[#FDFBF7] pt-24 flex items-center justify-center">
+                <BrutalLoader size="lg" tone="influencer" label="Generating try-on" />
+            </div>
+        }>
+            <TryOnPageContent />
+        </Suspense>
+    )
 }
 

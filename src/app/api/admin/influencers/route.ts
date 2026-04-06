@@ -218,10 +218,10 @@ export async function PATCH(request: Request) {
             approvalStatus === 'approved'
               ? buildApprovalEmail(baseUrl, targetProfile.full_name)
               : buildInfluencerRejectionEmail({
-                  name: targetProfile.full_name,
-                  baseUrl,
-                  reviewNote: review_note,
-                })
+                name: targetProfile.full_name,
+                baseUrl,
+                reviewNote: review_note,
+              })
 
           await sendEmail({
             to: targetProfile.email,
@@ -261,6 +261,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ success: true, influencerProfile: data })
   } catch (error) {
     if (error instanceof z.ZodError) return NextResponse.json({ error: 'Invalid' }, { status: 400 })
+    console.error('Admin influencer PATCH error:', error)
     return NextResponse.json({ error: 'Error' }, { status: 500 })
   }
 }

@@ -14,8 +14,11 @@ import {
   Linkedin,
   Megaphone,
   Rocket,
+  Sparkles,
+  Star,
   Store,
   UserRoundX,
+  Zap,
 } from 'lucide-react'
 
 const PF = 'var(--font-plus-jakarta-sans), sans-serif'
@@ -58,14 +61,16 @@ export default function LandingPage() {
             </div>
 
             <div className="relative mx-auto w-full max-w-[520px]">
-              <div className="absolute -left-2 top-12 z-20 rounded-[22px] border-[3px] border-black bg-[#2bb7aa] px-4 py-4 shadow-[6px_6px_0_0_rgba(0,0,0,1)] sm:-left-5">
-                <ChartColumn className="h-8 w-8 text-black" strokeWidth={2.4} />
+              <div className="absolute -left-2 top-12 z-20 rounded-[22px] border-[3px] border-black bg-[#FFD93D] px-4 py-4 shadow-[6px_6px_0_0_rgba(0,0,0,1)] sm:-left-5">
+                <Zap className="h-8 w-8 text-black" strokeWidth={2.4} />
               </div>
-              <div className="absolute right-0 top-2 z-20 rounded-full border-[3px] border-black bg-[#89a6ff] px-6 py-3 text-[16px] font-black text-black shadow-[6px_6px_0_0_rgba(0,0,0,1)] sm:text-[18px]">
-                Kiwikoo
+              <div className="absolute right-0 top-2 z-20 flex items-center gap-2 rounded-full border-[3px] border-black bg-[#89a6ff] px-5 py-3 shadow-[6px_6px_0_0_rgba(0,0,0,1)]">
+                <Sparkles className="h-5 w-5 text-black" strokeWidth={2.4} />
+                <span className="text-[16px] font-black text-black sm:text-[18px]">Kiwikoo</span>
               </div>
-              <div className="absolute right-6 top-28 z-20 rounded-full border-[3px] border-black bg-[#cbff2e] px-4 py-2 text-[12px] font-black uppercase tracking-[0.08em] text-black shadow-[5px_5px_0_0_rgba(0,0,0,1)]">
-                AI-powered
+              <div className="absolute right-6 top-28 z-20 flex items-center gap-1.5 rounded-full border-[3px] border-black bg-[#cbff2e] px-4 py-2 shadow-[5px_5px_0_0_rgba(0,0,0,1)]">
+                <Star className="h-4 w-4 text-black" strokeWidth={2.4} />
+                <span className="text-[12px] font-black uppercase tracking-[0.08em] text-black">AI-powered</span>
               </div>
 
               <div className="relative min-h-[430px] sm:min-h-[500px]">
@@ -105,8 +110,7 @@ export default function LandingPage() {
 
         <section id="what-you-get" className="border-t-[3px] border-black bg-[#fbfaf6] px-5 py-12 sm:px-8 lg:px-10 lg:py-14">
           <div className="text-center">
-            <div className="text-[14px] font-semibold text-black/50">Passion led us here</div>
-            <h2 className="mt-3 text-[clamp(2.4rem,5vw,4rem)] font-black leading-[0.95] tracking-[-0.05em] text-black">
+            <h2 className="text-[clamp(2.4rem,5vw,4rem)] font-black leading-[0.95] tracking-[-0.05em] text-black">
               What Kiwikoo can do for you
             </h2>
           </div>
@@ -159,8 +163,7 @@ export default function LandingPage() {
 
         <section className="border-t-[3px] border-black bg-white px-5 py-12 sm:px-8 lg:px-10 lg:py-14">
           <div className="text-center">
-            <div className="text-[14px] font-semibold text-black/50">Choose your path</div>
-            <h2 className="mt-3 text-[clamp(2.35rem,5vw,3.8rem)] font-black leading-[0.95] tracking-[-0.05em] text-black">
+            <h2 className="text-[clamp(2.35rem,5vw,3.8rem)] font-black leading-[0.95] tracking-[-0.05em] text-black">
               Built for creators and brands
             </h2>
           </div>
@@ -187,9 +190,8 @@ export default function LandingPage() {
 
         <section className="border-t-[3px] border-black bg-[#fbfaf6] px-5 py-12 sm:px-8 lg:px-10 lg:py-14">
           <div className="text-center">
-            <div className="text-[14px] font-semibold text-black/50">Why Kiwikoo</div>
-            <h2 className="mt-3 text-[clamp(2.35rem,5vw,3.8rem)] font-black leading-[0.95] tracking-[-0.05em] text-black">
-              Clearer creative growth
+            <h2 className="text-[clamp(2.35rem,5vw,3.8rem)] font-black leading-[0.95] tracking-[-0.05em] text-black">
+              Why Kiwikoo
             </h2>
             <p className="mx-auto mt-4 max-w-[680px] text-[18px] leading-8 text-black/60">
               We remove the friction from creator-brand production so the work feels faster, sharper, and easier to trust.
