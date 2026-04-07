@@ -272,12 +272,10 @@ export function composeSmartPrompt(
 
     case 'upper_only':
     default:
-      replacementInstruction = `Replace the person's upper-body clothing with the ${intel.garmentType} from Image 2.`
+      replacementInstruction = `COMPLETELY REMOVE all upper-body clothing from the person, then dress them in the ${intel.garmentType} from Image 2. No traces of the original top/shirt/blouse/cardigan should remain.`
       if (intel.visibleBottomInPhoto) {
-        // Product photo shows a model wearing the top WITH specific pants/skirt — replicate BOTH
         supportingInstruction = `IMPORTANT: The product photo (Image 2) shows this ${intel.garmentType} being worn with ${intel.visibleBottomInPhoto}. You MUST also change the person's bottom-wear to match: ${intel.visibleBottomInPhoto}. Replicate the complete look from Image 2 — NOT just the top. The final outfit must be: ${intel.description} on top + ${intel.visibleBottomInPhoto} on bottom.`
       } else {
-        // No bottom visible in product photo — suggest a complementary one
         supportingInstruction = `Pair with ${intel.bottomWearSuggestion}. Do NOT keep the person's original bottom-wear. The bottom must be clean and complementary to the ${intel.garmentType}.`
       }
       break
@@ -326,16 +324,26 @@ IDENTITY (NON-NEGOTIABLE — HIGHEST PRIORITY):
 • Do NOT smooth or beautify the face — preserve all natural features, marks, and asymmetries
 • This is a CLOTHING EDIT ONLY — do NOT generate, swap, or alter the person's face or body
 
-OUTFIT REPLACEMENT:
+OUTFIT REPLACEMENT (STRIP-AND-REPLACE WORKFLOW):
+• STEP 1: Mentally REMOVE all clothing from the affected body area — treat the body area as bare
+• STEP 2: Apply ONLY the garment from Image 2 onto that bare area
+• STEP 3: Verify NO traces of the original clothing remain visible
 • ${replacementInstruction}
 • ${supportingInstruction}
 
-GARMENT FIDELITY (CRITICAL — must match Image 2 and the GARMENT REMINDER image EXACTLY):
+GARMENT FIDELITY (CRITICAL — must match Image 2 EXACTLY):
 ${fidelityChecks.map((c) => `• ${c}`).join('\n')}
 • PIXEL-PERFECT copy of the garment — do NOT simplify or reinterpret any detail
 • If Image 2 shows a model wearing the garment, focus on the GARMENT only — ignore the model's face/body
 ${bottomFidelity}${topFidelity}${outerwearGuard}
 ${modifiers}
+
+ANTI-HALLUCINATION RULES (CRITICAL):
+• The output must contain ONLY the garment from Image 2 in the replaced area
+• Do NOT invent or add extra layers (cardigans, jackets, vests, shawls) that are not in Image 2
+• Do NOT keep any part of the original clothing from Image 1 (no sleeves, collars, or hems from the original)
+• Do NOT create hybrid garments mixing features from Image 1 and Image 2
+• If the garment from Image 2 has short sleeves, the output must show bare arms beyond the sleeves — not covered by leftover fabric from the original outfit
 
 SCENE & REALISM:
 • Keep the original background from Image 1

@@ -538,18 +538,27 @@ IDENTITY (NON-NEGOTIABLE):
 - If Image 3 is a face close-up, use it as the definitive identity anchor
 - Do NOT generate a different person or alter any facial features
 
-GARMENT REPLACEMENT:
-- Replace only the relevant clothing with the garment from Image 2
-- PIXEL-PERFECT match: same color, pattern, texture, collar, sleeves, hem, fit, silhouette, and fabric
-- Do NOT reinterpret or simplify the garment
+GARMENT REPLACEMENT (STRICT RULES):
+- FIRST: Mentally STRIP all existing clothing from the affected body area
+- THEN: Apply ONLY the garment from Image 2 onto the bare body area
+- The output must show ONLY the garment from Image 2 — NO traces of the original clothing
+- Do NOT blend, layer, or mix the original clothing with the new garment
+- Do NOT add any clothing item that is not explicitly shown in Image 2 (no extra cardigans, jackets, layers, sleeves, or accessories)
+- PIXEL-PERFECT match: same color, pattern, texture, collar, sleeves, hem, fit, silhouette, and fabric as Image 2
 - If Image 2 shows a model, IGNORE their face/body — only copy the GARMENT
-- Preserve untouched clothing from Image 1 when the prompt specifies partial coverage
+- Only preserve clothing from Image 1 in body areas NOT covered by the Image 2 garment (e.g. keep pants when replacing only the top)
+
+FORBIDDEN HALLUCINATIONS:
+- Do NOT invent extra layers (cardigans, jackets, vests) not present in Image 2
+- Do NOT keep sleeves, collars, or hems from the person's ORIGINAL clothing in Image 1
+- Do NOT create hybrid garments that mix features from Image 1 and Image 2
+- The ONLY visible garment in the replaced area must be an exact copy of Image 2
 
 REALISM: Photorealistic output. Natural skin, realistic fabric drape. No AI smoothing or CGI look.`,
     imageConfig,
-    temperature: 0.15,
-    topP: 0.85,
-    topK: 16,
+    temperature: 0.1,
+    topP: 0.8,
+    topK: 12,
   }
 
   const startTime = Date.now()
