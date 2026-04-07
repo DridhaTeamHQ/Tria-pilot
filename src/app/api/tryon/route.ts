@@ -13,7 +13,6 @@ import { analyzeGarment, composeSmartPrompt, type GarmentIntelligence } from '@/
 import { preprocessGarmentImage } from '@/lib/tryon/garment-preprocessor'
 import { extractFaceCrop } from '@/lib/tryon/face-crop'
 import {
-  classifyGarment,
   type GarmentClassification,
 } from '@/lib/tryon/intelligence/garment-classifier'
 import {
@@ -314,6 +313,26 @@ interface StrictOutputValidationResult {
   warnings: string[]
 }
 
+interface GarmentClassificationSummary {
+  category: GarmentClassification['category']
+  confidence: GarmentClassification['category_confidence']
+  hemline: GarmentClassification['hemline_position']
+}
+
+function summarizeGarmentClassification(
+  garmentClassification: GarmentClassification | null
+): GarmentClassificationSummary | null {
+  if (!garmentClassification) {
+    return null
+  }
+
+  return {
+    category: garmentClassification.category,
+    confidence: garmentClassification.category_confidence,
+    hemline: garmentClassification.hemline_position,
+  }
+}
+
 async function validateGeneratedOutputStrict(params: {
   qaMode: 'off' | 'soft' | 'strict'
   referenceImageBase64: string
@@ -574,6 +593,7 @@ async function handlePresetlessTryOnRequest(params: {
   // Skip classification entirely to save time
   const garmentIntel = await analyzeGarment(processedGarment)
   const garmentClassification: GarmentClassification | null = null
+  const garmentClassificationSummary = summarizeGarmentClassification(garmentClassification)
 
   // ── PHOTO SELECTION (manual or garment-aware auto-select) ─────────────
   let selectedPhotoIds: string[]
@@ -849,9 +869,9 @@ async function handlePresetlessTryOnRequest(params: {
           } else {
             console.log('🛡️ Output accepted by fallback QA path (primary quality assessment unavailable)')
           }
-          if (validation.garmentValidation && garmentClassification) {
+          if (validation.garmentValidation && garmentClassificationSummary) {
             console.log(
-              `   Garment guardrail: expected ${garmentClassification.category}/${garmentClassification.hemline_position}, actual ${validation.garmentValidation.details.actual_type}/${validation.garmentValidation.details.actual_hemline}`
+              `   Garment guardrail: expected ${garmentClassificationSummary.category}/${garmentClassificationSummary.hemline}, actual ${validation.garmentValidation.details.actual_type}/${validation.garmentValidation.details.actual_hemline}`
             )
           }
           if (validation.warnings.length > 0) {
@@ -886,14 +906,14 @@ async function handlePresetlessTryOnRequest(params: {
             qualityScores: validation.qualityAssessment?.scores,
             warnings: validation.warnings,
             garmentGuardrail: validation.garmentValidation
-              && garmentClassification
+              && garmentClassificationSummary
               ? {
                   isValid: validation.garmentValidation.is_valid,
                   recommendation: validation.garmentValidation.recommendation,
                   issues: validation.garmentValidation.issues,
-                  expectedType: garmentClassification.category,
+                  expectedType: garmentClassificationSummary.category,
                   actualType: validation.garmentValidation.details.actual_type,
-                  expectedHemline: garmentClassification.hemline_position,
+                  expectedHemline: garmentClassificationSummary.hemline,
                   actualHemline: validation.garmentValidation.details.actual_hemline,
                 }
               : undefined,
@@ -969,22 +989,16 @@ async function handlePresetlessTryOnRequest(params: {
               confidence: garmentPreprocess.confidence,
               extractionMethod: garmentPreprocess.extractionMethod,
             },
-            garmentClassification: garmentClassification
-              ? {
-                  category: garmentClassification.category,
-                  confidence: garmentClassification.category_confidence,
-                  hemline: garmentClassification.hemline_position,
-                }
-              : null,
+            garmentClassification: garmentClassificationSummary,
             strictOutputQa: {
               mode: TRYON_OUTPUT_QA_MODE,
               enabled: TRYON_OUTPUT_QA_MODE !== 'off',
               garmentGuardrailEnabled:
                 TRYON_OUTPUT_QA_MODE !== 'off' &&
                 Boolean(
-                  garmentClassification &&
-                  garmentClassification.category !== 'UNKNOWN' &&
-                  garmentClassification.category_confidence >= GARMENT_GUARDRAIL_MIN_CONFIDENCE
+                  garmentClassificationSummary &&
+                  garmentClassificationSummary.category !== 'UNKNOWN' &&
+                  garmentClassificationSummary.confidence >= GARMENT_GUARDRAIL_MIN_CONFIDENCE
                 ),
               garmentGuardrailMinConfidence: GARMENT_GUARDRAIL_MIN_CONFIDENCE,
             },
