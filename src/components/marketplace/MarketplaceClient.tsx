@@ -119,8 +119,8 @@ export default function MarketplaceClient({ products, categories, activeCategory
             <div className="container mx-auto px-4 sm:px-6">
                 {/* Header */}
                 <div className="mb-10 animate-fade-in">
-                    <div className="mb-8 grid grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] items-stretch gap-3 sm:gap-4 xl:gap-6">
-                        <div className="relative h-full overflow-hidden rounded-[28px] border-[3px] border-black bg-white p-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:p-8">
+                    <div className="mb-8 grid grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] items-stretch gap-3 sm:gap-4 xl:gap-5">
+                        <div className="relative h-full overflow-hidden rounded-[28px] border-[3px] border-black bg-white p-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:p-6">
                             <div className="relative z-10">
                                 <div className="mb-3 flex items-center gap-2 sm:mb-4 sm:gap-3">
                                     <div className="flex h-8 w-8 items-center justify-center border-[2px] border-black bg-[#FFD93D] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:h-10 sm:w-10">
@@ -128,19 +128,19 @@ export default function MarketplaceClient({ products, categories, activeCategory
                                     </div>
                                     <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-charcoal/70 sm:text-sm sm:tracking-widest">Discover & Collaborate</span>
                                 </div>
-                                <h1 className="mb-3 text-[clamp(1.9rem,5vw,3.75rem)] font-black uppercase leading-[0.9] text-charcoal sm:mb-4">
+                                <h1 className="mb-3 text-[clamp(1.65rem,4.2vw,3.25rem)] font-black uppercase leading-[0.9] text-charcoal sm:mb-4">
                                     Brand <br /><span className="block break-all bg-gradient-to-r from-charcoal to-gray-500 bg-clip-text text-transparent sm:break-normal">Marketplace</span>
                                 </h1>
-                                <p className="max-w-md border-l-[3px] border-[#FFD93D] pl-3 text-sm font-medium text-charcoal/70 sm:pl-4 sm:text-lg">
+                                <p className="max-w-md border-l-[3px] border-[#FFD93D] pl-3 text-xs font-medium text-charcoal/70 sm:pl-4 sm:text-base">
                                     Find perfect collaboration opportunities tailored to your niche.
                                 </p>
                             </div>
                             <div className="absolute right-0 top-0 z-0 h-32 w-32 rounded-bl-full border-b-[3px] border-l-[3px] border-black bg-gray-100 opacity-50 -mr-[3px] -mt-[3px]" />
                         </div>
 
-                        <div className="min-h-[232px] overflow-hidden rounded-[26px] border-[3px] border-black bg-white p-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:min-h-[300px] sm:p-6 xl:h-full">
+                        <div className="min-h-[212px] overflow-hidden rounded-[26px] border-[3px] border-black bg-white p-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:min-h-[260px] sm:p-5 xl:h-full">
                             <div className="h-full">
-                                <div className={`relative flex h-full flex-col justify-between overflow-hidden rounded-[24px] border-[3px] border-black bg-gradient-to-br ${DUMMY_CAMPAIGNS[activeCampaign].surface} p-4 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] sm:p-5`}>
+                                <div className={`relative flex h-full flex-col justify-between overflow-hidden rounded-[24px] border-[3px] border-black bg-gradient-to-br ${DUMMY_CAMPAIGNS[activeCampaign].surface} p-3.5 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] sm:p-4`}>
                                     <div className={`absolute -right-10 -top-10 h-36 w-36 rounded-full blur-2xl ${DUMMY_CAMPAIGNS[activeCampaign].glow}`} />
                                     <div className="absolute bottom-4 right-4 h-24 w-24 rounded-full border-[3px] border-black/15 bg-white/25" />
                                     <div className="absolute bottom-8 right-12 h-10 w-10 rounded-full border-[3px] border-black/15 bg-white/35" />
@@ -150,7 +150,7 @@ export default function MarketplaceClient({ products, categories, activeCategory
                                             <p className={`inline-flex rounded-full border-[2px] border-black/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-charcoal/55 sm:px-3 sm:text-[11px] sm:tracking-[0.16em] ${DUMMY_CAMPAIGNS[activeCampaign].tape}`}>
                                                 {DUMMY_CAMPAIGNS[activeCampaign].eyebrow}
                                             </p>
-                                            <h3 className="mt-3 max-w-[11ch] text-[clamp(1.25rem,3.4vw,3.1rem)] font-black uppercase leading-[0.88] text-charcoal sm:mt-4">
+                                            <h3 className="mt-3 max-w-[11ch] text-[clamp(1.1rem,3vw,2.6rem)] font-black uppercase leading-[0.9] text-charcoal sm:mt-3.5">
                                                 {DUMMY_CAMPAIGNS[activeCampaign].title}
                                             </h3>
                                         </div>
@@ -159,12 +159,12 @@ export default function MarketplaceClient({ products, categories, activeCategory
                                         </span>
                                     </div>
 
-                                    <div className="relative mt-3 rounded-[18px] border-[3px] border-black bg-white/75 px-3 py-2.5 backdrop-blur-sm sm:mt-5 sm:px-4 sm:py-3">
-                                        <div className="mb-2 flex items-center gap-2">
+                                    <div className="relative mt-3 rounded-[18px] border-[3px] border-black bg-white/75 px-3 py-2 backdrop-blur-sm sm:mt-4 sm:px-3.5 sm:py-2.5">
+                                        <div className="mb-1.5 flex items-center gap-2">
                                             <span className={`h-3 w-3 rounded-full border-2 border-black ${DUMMY_CAMPAIGNS[activeCampaign].accent}`} />
                                             <span className="text-[10px] font-black uppercase tracking-[0.18em] text-charcoal/55">Campaign Snapshot</span>
                                         </div>
-                                        <p className="max-h-[3.8rem] overflow-hidden text-xs font-semibold leading-5 text-charcoal/75 sm:max-h-[4.5rem] sm:text-base sm:leading-6">
+                                        <p className="max-h-[3.3rem] overflow-hidden text-[11px] font-semibold leading-[1.125rem] text-charcoal/75 sm:max-h-[4rem] sm:text-sm sm:leading-5">
                                             {DUMMY_CAMPAIGNS[activeCampaign].body}
                                         </p>
                                     </div>
