@@ -129,9 +129,9 @@ export default function MarketplaceClient({ products, categories, activeCategory
                             <div className="absolute right-0 top-0 z-0 h-32 w-32 rounded-bl-full border-b-[3px] border-l-[3px] border-black bg-gray-100 opacity-50 -mr-[3px] -mt-[3px]" />
                         </div>
 
-                        <div className="overflow-hidden rounded-[26px] border-[3px] border-black bg-white p-5 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:p-6">
+                        <div className="h-[252px] overflow-hidden rounded-[26px] border-[3px] border-black bg-white p-5 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:h-[282px] sm:p-6">
                             <div className="h-full">
-                                <div className="flex min-h-[220px] h-full flex-col justify-between rounded-[24px] border-[3px] border-black bg-[#fff7e3] p-5 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] sm:min-h-[250px]">
+                                <div className="flex h-full flex-col justify-between rounded-[24px] border-[3px] border-black bg-[#fff7e3] p-5 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]">
                                     <div className="flex flex-wrap items-start justify-between gap-3">
                                         <div>
                                             <p className="text-[11px] font-black uppercase tracking-[0.16em] text-charcoal/50">
