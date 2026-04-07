@@ -25,6 +25,8 @@ function getAllowedPublicHosts(): string[] {
     process.env.NEXT_PUBLIC_SITE_URL,
     // eslint-disable-next-line no-restricted-syntax
     (process.env as any).SITE_URL,
+    process.env.RAILWAY_PUBLIC_DOMAIN,
+    process.env.RAILWAY_STATIC_URL,
     process.env.NEXT_PUBLIC_VERCEL_URL,
     process.env.VERCEL_URL,
     process.env.PUBLIC_SITE_HOST_ALLOWLIST,
@@ -65,6 +67,7 @@ function getTrustedRequestOrigin(request: Request): string | null {
   const trustedByDefault =
     process.env.NODE_ENV !== 'production' ||
     host.endsWith('.vercel.app') ||
+    host.endsWith('.up.railway.app') ||
     host === 'localhost:3000' ||
     host === 'localhost' ||
     host.startsWith('127.0.0.1:')
@@ -106,6 +109,7 @@ function getFallbackOriginFromRequestUrl(request: Request): string | null {
  * Priority:
  * - NEXT_PUBLIC_SITE_URL (recommended; set to your production domain)
  * - SITE_URL (optional server-only alias)
+ * - RAILWAY_PUBLIC_DOMAIN / RAILWAY_STATIC_URL (Railway-provided hostnames)
  * - VERCEL_URL (auto; no protocol)
  * - window.location.origin (client fallback)
  */
@@ -114,6 +118,8 @@ export function getPublicSiteUrlClient(): string {
     process.env.NEXT_PUBLIC_SITE_URL ||
     // eslint-disable-next-line no-restricted-syntax
     (process.env as any).SITE_URL ||
+    process.env.RAILWAY_PUBLIC_DOMAIN ||
+    process.env.RAILWAY_STATIC_URL ||
     process.env.NEXT_PUBLIC_VERCEL_URL ||
     process.env.VERCEL_URL
 
@@ -127,6 +133,8 @@ export function getPublicSiteUrlFromRequest(request: Request): string {
     process.env.NEXT_PUBLIC_SITE_URL ||
     // eslint-disable-next-line no-restricted-syntax
     (process.env as any).SITE_URL ||
+    process.env.RAILWAY_PUBLIC_DOMAIN ||
+    process.env.RAILWAY_STATIC_URL ||
     process.env.NEXT_PUBLIC_VERCEL_URL ||
     process.env.VERCEL_URL
 

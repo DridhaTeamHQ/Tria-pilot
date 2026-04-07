@@ -6,12 +6,10 @@
  * sections → saves to database immediately.
  */
 import { NextResponse } from 'next/server'
-import OpenAI from 'openai'
 import { createClient, createServiceClient } from '@/lib/auth'
+import { getOpenAI } from '@/lib/openai'
 
 interface RouteParams { params: Promise<{ id: string }> }
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
 const REFINE_SYSTEM_PROMPT = `You are an elite campaign strategist AI. You ONLY return valid JSON.
 
@@ -46,6 +44,7 @@ Do NOT add markdown text, commentary, or explanations outside the JSON fence. ON
 
 export async function POST(request: Request, { params }: RouteParams) {
     try {
+        const openai = getOpenAI()
         const { id } = await params
         const supabase = await createClient()
         const { data: { user }, error: authError } = await supabase.auth.getUser()
