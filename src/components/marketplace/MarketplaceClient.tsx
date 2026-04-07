@@ -111,7 +111,7 @@ export default function MarketplaceClient({ products, categories, activeCategory
                 {/* Header */}
                 <div className="mb-10 animate-fade-in">
                     <div className="mb-8 grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] xl:items-stretch">
-                        <div className="relative overflow-hidden rounded-[28px] border-[3px] border-black bg-white p-5 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:p-8">
+                        <div className="relative h-full overflow-hidden rounded-[28px] border-[3px] border-black bg-white p-5 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:p-8">
                             <div className="relative z-10">
                                 <div className="mb-4 flex items-center gap-3">
                                     <div className="flex h-10 w-10 items-center justify-center border-[2px] border-black bg-[#FFD93D] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
@@ -129,23 +129,23 @@ export default function MarketplaceClient({ products, categories, activeCategory
                             <div className="absolute right-0 top-0 z-0 h-32 w-32 rounded-bl-full border-b-[3px] border-l-[3px] border-black bg-gray-100 opacity-50 -mr-[3px] -mt-[3px]" />
                         </div>
 
-                        <div className="h-[252px] overflow-hidden rounded-[26px] border-[3px] border-black bg-white p-5 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:h-[282px] sm:p-6">
+                        <div className="min-h-[272px] overflow-hidden rounded-[26px] border-[3px] border-black bg-white p-5 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:min-h-[300px] sm:p-6 xl:h-full">
                             <div className="h-full">
-                                <div className="flex h-full flex-col justify-between rounded-[24px] border-[3px] border-black bg-[#fff7e3] p-5 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]">
+                                <div className="flex h-full flex-col justify-between overflow-hidden rounded-[24px] border-[3px] border-black bg-[#fff7e3] p-5 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]">
                                     <div className="flex flex-wrap items-start justify-between gap-3">
-                                        <div>
+                                        <div className="min-w-0 flex-1">
                                             <p className="text-[11px] font-black uppercase tracking-[0.16em] text-charcoal/50">
                                                 {DUMMY_CAMPAIGNS[activeCampaign].eyebrow}
                                             </p>
-                                            <h3 className="mt-3 text-[clamp(1.9rem,4vw,3rem)] font-black uppercase leading-[0.92] text-charcoal">
+                                            <h3 className="mt-3 text-[clamp(1.55rem,3.6vw,2.75rem)] font-black uppercase leading-[0.9] text-charcoal">
                                                 {DUMMY_CAMPAIGNS[activeCampaign].title}
                                             </h3>
                                         </div>
-                                        <span className={`rounded-full border-[3px] border-black px-4 py-2 text-xs font-black uppercase tracking-[0.12em] ${DUMMY_CAMPAIGNS[activeCampaign].accent} ${DUMMY_CAMPAIGNS[activeCampaign].tone}`}>
+                                        <span className={`shrink-0 rounded-full border-[3px] border-black px-4 py-2 text-xs font-black uppercase tracking-[0.12em] ${DUMMY_CAMPAIGNS[activeCampaign].accent} ${DUMMY_CAMPAIGNS[activeCampaign].tone}`}>
                                             {DUMMY_CAMPAIGNS[activeCampaign].stat}
                                         </span>
                                     </div>
-                                    <p className="mt-4 max-w-xl border-l-[3px] border-black/20 pl-4 text-base font-medium leading-7 text-charcoal/70">
+                                    <p className="mt-4 max-h-[4.75rem] max-w-xl overflow-hidden border-l-[3px] border-black/20 pl-4 text-sm font-medium leading-6 text-charcoal/70 sm:max-h-[5.5rem] sm:text-base sm:leading-7">
                                         {DUMMY_CAMPAIGNS[activeCampaign].body}
                                     </p>
                                 </div>
