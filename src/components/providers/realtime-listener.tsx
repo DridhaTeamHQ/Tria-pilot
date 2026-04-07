@@ -7,19 +7,19 @@ import { toast } from '@/lib/simple-sonner'
 import { useUser } from '@/lib/react-query/hooks'
 import { useRouter } from 'next/navigation'
 
-// Create ONE stable Supabase client (module-level singleton)
-const supabase = createClient()
-
 export function RealtimeListener() {
     const queryClient = useQueryClient()
     const { data: user } = useUser()
     const router = useRouter()
     // Track the active channel to avoid recreating on every render
-    const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+    const channelRef = useRef<ReturnType<ReturnType<typeof createClient>['channel']> | null>(null)
     const activeUserIdRef = useRef<string | null>(null)
 
     useEffect(() => {
+        if (typeof window === 'undefined') return
         if (!user?.id) return
+
+        const supabase = createClient()
 
         // Don't recreate channel if already subscribed for this user
         if (activeUserIdRef.current === user.id && channelRef.current) {
@@ -46,7 +46,7 @@ export function RealtimeListener() {
                     table: 'notifications',
                     filter: `user_id=eq.${user.id}`,
                 },
-                (payload) => {
+                (_payload: unknown) => {
                     queryClient.invalidateQueries({ queryKey: ['notifications'] })
                     toast.info('New notification received')
                 }
@@ -92,7 +92,7 @@ export function RealtimeListener() {
                     }
                 }
             )
-            .subscribe((status) => {
+            .subscribe((status: string) => {
                 if (status === 'SUBSCRIBED') {
                     console.log('✅ Realtime updates connected')
                 } else if (status === 'CHANNEL_ERROR') {
