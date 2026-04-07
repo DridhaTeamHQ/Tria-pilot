@@ -40,9 +40,9 @@ const GLOBAL_ACTIVE_LIMIT = Math.max(
 const GLOBAL_ACTIVE_KEY = 'tryon:inline:active_generations'
 const INTER_GENERATION_DELAY_MS = Math.max(
   0,
-  Number.parseInt(process.env.TRYON_INTER_GENERATION_DELAY_MS || '800', 10) || 800
+  Number.parseInt(process.env.TRYON_INTER_GENERATION_DELAY_MS || '0', 10) || 0
 )
-const DEADLINE_BUFFER_MS = 30_000 // Stop generating 30s before maxDuration to allow cleanup/response
+const DEADLINE_BUFFER_MS = 25_000 // Stop generating 25s before maxDuration to allow cleanup/response
 const GARMENT_GUARDRAIL_MIN_CONFIDENCE = 60
 const TRYON_OUTPUT_QA_MODE: 'off' | 'soft' | 'strict' =
   process.env.TRYON_OUTPUT_QA_MODE === 'strict'
@@ -556,19 +556,24 @@ async function handlePresetlessTryOnRequest(params: {
   const deadlineMs = (maxDuration * 1000) - DEADLINE_BUFFER_MS
 
   const normalizedGarment = await resolvePresetlessGarmentBase64(service, payload)
-  const garmentPreprocess = await preprocessGarmentImage(normalizedGarment, {
-    model: directRenderModel === 'gemini-3-pro-image-preview' ? 'pro' : 'flash',
-    sessionId: `presetless-${userId}-${Date.now()}`,
-  })
-  const processedGarment = normalizeBase64(garmentPreprocess.processedImage)
 
-  // Parallelize garment intelligence + classification (saves ~5-8s)
-  const [garmentIntel, garmentClassification] = await Promise.all([
-    analyzeGarment(processedGarment),
-    TRYON_OUTPUT_QA_MODE === 'off'
-      ? Promise.resolve(null)
-      : classifyGarment(processedGarment).catch(() => null),
-  ])
+  // FAST PATH: Skip heavyweight garment preprocessing (saves ~15-25s)
+  // The preprocessor does 3-4 Gemini calls (body detection, forensic analysis,
+  // strict profile, extraction) which pushes us past the function timeout.
+  // Instead, use the garment image directly — the generation model handles
+  // clothing-on-model images well via the system instruction.
+  const processedGarment = normalizeBase64(normalizedGarment)
+  const garmentPreprocess = {
+    wasExtracted: false,
+    bodyDetected: false,
+    confidence: 0,
+    extractionMethod: 'passthrough' as const,
+  }
+
+  // Garment intel is lightweight (1 Gemini Flash call, ~3-5s)
+  // Skip classification entirely to save time
+  const garmentIntel = await analyzeGarment(processedGarment)
+  const garmentClassification = null
 
   // ── PHOTO SELECTION (manual or garment-aware auto-select) ─────────────
   let selectedPhotoIds: string[]
@@ -631,11 +636,13 @@ async function handlePresetlessTryOnRequest(params: {
     orderedPhotos.map((photo) => fetchReferencePhotoAsBase64(photo.image_url).then((base64) => normalizeBase64(base64)))
   )
 
-  // ── PRE-EXTRACT ALL FACE CROPS IN PARALLEL (saves ~6-10s vs sequential) ──
+  // ── PRE-EXTRACT FACE CROPS (heuristic-only, no Gemini call) ────────────
+  // Use null for preDetectedFace to force heuristic center-top crop
+  // This avoids a Gemini face-detection call per photo (~3-5s each)
   const preExtractedFaceCrops = await Promise.all(
     orderedReferenceBase64s.slice(0, 6).map(async (refBase64) => {
       try {
-        const result = await extractFaceCrop(refBase64)
+        const result = await extractFaceCrop(refBase64, null)
         return result.success && result.faceCropBase64 ? result.faceCropBase64 : undefined
       } catch {
         return undefined
@@ -644,7 +651,7 @@ async function handlePresetlessTryOnRequest(params: {
   )
   if (isDev) {
     const successCount = preExtractedFaceCrops.filter(Boolean).length
-    console.log(`👤 Pre-extracted ${successCount}/${preExtractedFaceCrops.length} face crops in parallel (${Date.now() - pipelineStartTime}ms elapsed)`)
+    console.log(`👤 Pre-extracted ${successCount}/${preExtractedFaceCrops.length} face crops (heuristic, ${Date.now() - pipelineStartTime}ms elapsed)`)
   }
 
   // ── CREATE GENERATION JOB ─────────────────────────────────────────────
@@ -739,7 +746,7 @@ async function handlePresetlessTryOnRequest(params: {
     // ── SEQUENTIAL GENERATION (with deadline guard + AI backup candidates) ─
     const successfulOutputs: PresetlessPersistedOutput[] = []
     const failedAttempts: Array<{ referenceImageId: string; error: string }> = []
-    const targetOutputCount = 3
+    const targetOutputCount = 2
 
     for (let candidateIndex = 0; candidateIndex < orderedPhotos.length; candidateIndex += 1) {
       if (successfulOutputs.length >= targetOutputCount) break
