@@ -27,7 +27,7 @@ import {
 import { GeminiRateLimitError } from '@/lib/gemini/executor'
 import { ZodError } from 'zod'
 
-export const maxDuration = 180
+export const maxDuration = 300
 const TRYON_RATE_LIMIT_DISABLED =
   process.env.TRYON_RATE_LIMIT_DISABLED === 'true' ||
   process.env.NODE_ENV !== 'production'
@@ -40,8 +40,9 @@ const GLOBAL_ACTIVE_LIMIT = Math.max(
 const GLOBAL_ACTIVE_KEY = 'tryon:inline:active_generations'
 const INTER_GENERATION_DELAY_MS = Math.max(
   0,
-  Number.parseInt(process.env.TRYON_INTER_GENERATION_DELAY_MS || '1500', 10) || 1500
+  Number.parseInt(process.env.TRYON_INTER_GENERATION_DELAY_MS || '800', 10) || 800
 )
+const DEADLINE_BUFFER_MS = 30_000 // Stop generating 30s before maxDuration to allow cleanup/response
 const GARMENT_GUARDRAIL_MIN_CONFIDENCE = 60
 const TRYON_OUTPUT_QA_MODE: 'off' | 'soft' | 'strict' =
   process.env.TRYON_OUTPUT_QA_MODE === 'strict'
@@ -551,17 +552,23 @@ async function handlePresetlessTryOnRequest(params: {
     return jsonError(400, 'NOT_ENOUGH_APPROVED', 'Need at least 3 approved reference photos for auto-selection.')
   }
 
+  const pipelineStartTime = Date.now()
+  const deadlineMs = (maxDuration * 1000) - DEADLINE_BUFFER_MS
+
   const normalizedGarment = await resolvePresetlessGarmentBase64(service, payload)
   const garmentPreprocess = await preprocessGarmentImage(normalizedGarment, {
     model: directRenderModel === 'gemini-3-pro-image-preview' ? 'pro' : 'flash',
     sessionId: `presetless-${userId}-${Date.now()}`,
   })
   const processedGarment = normalizeBase64(garmentPreprocess.processedImage)
-  const garmentIntel = await analyzeGarment(processedGarment)
-  const garmentClassification =
+
+  // Parallelize garment intelligence + classification (saves ~5-8s)
+  const [garmentIntel, garmentClassification] = await Promise.all([
+    analyzeGarment(processedGarment),
     TRYON_OUTPUT_QA_MODE === 'off'
-      ? null
-      : await classifyGarment(processedGarment)
+      ? Promise.resolve(null)
+      : classifyGarment(processedGarment).catch(() => null),
+  ])
 
   // ── PHOTO SELECTION (manual or garment-aware auto-select) ─────────────
   let selectedPhotoIds: string[]
@@ -623,6 +630,22 @@ async function handlePresetlessTryOnRequest(params: {
   const orderedReferenceBase64s = await Promise.all(
     orderedPhotos.map((photo) => fetchReferencePhotoAsBase64(photo.image_url).then((base64) => normalizeBase64(base64)))
   )
+
+  // ── PRE-EXTRACT ALL FACE CROPS IN PARALLEL (saves ~6-10s vs sequential) ──
+  const preExtractedFaceCrops = await Promise.all(
+    orderedReferenceBase64s.slice(0, 6).map(async (refBase64) => {
+      try {
+        const result = await extractFaceCrop(refBase64)
+        return result.success && result.faceCropBase64 ? result.faceCropBase64 : undefined
+      } catch {
+        return undefined
+      }
+    })
+  )
+  if (isDev) {
+    const successCount = preExtractedFaceCrops.filter(Boolean).length
+    console.log(`👤 Pre-extracted ${successCount}/${preExtractedFaceCrops.length} face crops in parallel (${Date.now() - pipelineStartTime}ms elapsed)`)
+  }
 
   // ── CREATE GENERATION JOB ─────────────────────────────────────────────
   const { data: job, error: jobError } = await service
@@ -713,13 +736,20 @@ async function handlePresetlessTryOnRequest(params: {
       console.log(`   Garment preprocessing: extracted=${garmentPreprocess.wasExtracted} bodyDetected=${garmentPreprocess.bodyDetected} method=${garmentPreprocess.extractionMethod}`)
     }
 
-    // ── SEQUENTIAL GENERATION (with AI backup candidates) ────────────────
+    // ── SEQUENTIAL GENERATION (with deadline guard + AI backup candidates) ─
     const successfulOutputs: PresetlessPersistedOutput[] = []
     const failedAttempts: Array<{ referenceImageId: string; error: string }> = []
     const targetOutputCount = 3
 
     for (let candidateIndex = 0; candidateIndex < orderedPhotos.length; candidateIndex += 1) {
       if (successfulOutputs.length >= targetOutputCount) break
+
+      // ── DEADLINE GUARD: stop generating if near timeout ──────────────
+      const elapsedMs = Date.now() - pipelineStartTime
+      if (elapsedMs > deadlineMs && successfulOutputs.length > 0) {
+        console.warn(`⏰ DEADLINE GUARD: ${Math.round(elapsedMs / 1000)}s elapsed, returning ${successfulOutputs.length} outputs (deadline: ${Math.round(deadlineMs / 1000)}s)`)
+        break
+      }
 
       const photo = orderedPhotos[candidateIndex]
 
@@ -748,22 +778,14 @@ async function handlePresetlessTryOnRequest(params: {
           console.log(`   Prompt: ${smartPrompt.length} chars`)
         }
 
-        // Extract face crop for identity reinforcement
-        let faceCropBase64: string | undefined
-        try {
-          const faceCropResult = await extractFaceCrop(referenceImageBase64)
-          if (faceCropResult.success && faceCropResult.faceCropBase64) {
-            faceCropBase64 = faceCropResult.faceCropBase64
-            if (isDev) console.log(`👤 Face crop extracted for identity anchoring (${Math.round(faceCropResult.faceCropBase64.length * 0.75 / 1024)}KB)`)
-          }
-        } catch (faceCropError) {
-          if (isDev) console.warn('⚠️ Face crop failed, continuing without:', faceCropError)
-        }
+        // Use pre-extracted face crop (already done in parallel above)
+        const faceCropBase64 = preExtractedFaceCrops[candidateIndex]
+        if (isDev && faceCropBase64) console.log(`👤 Using pre-extracted face crop for identity anchoring (${Math.round(faceCropBase64.length * 0.75 / 1024)}KB)`)
 
-        // Image generation — with one retry for transient failures (safety blocks, empty responses)
+        // Image generation — single attempt in production to stay within deadline
         let generatedImage: string | null = null
         let lastGenerationError: string = ''
-        const MAX_GENERATION_RETRIES = 2
+        const MAX_GENERATION_RETRIES = isDev ? 2 : 1
 
         for (let genAttempt = 0; genAttempt < MAX_GENERATION_RETRIES; genAttempt++) {
           try {
@@ -797,13 +819,20 @@ async function handlePresetlessTryOnRequest(params: {
           throw new Error(lastGenerationError || 'All generation attempts failed')
         }
 
-        const validation = await validateGeneratedOutputStrict({
-          qaMode: TRYON_OUTPUT_QA_MODE,
-          referenceImageBase64,
-          generatedImageBase64: generatedImage,
-          garmentImageBase64: processedGarment,
-          garmentClassification,
-        })
+        // Skip heavy QA validation if we're running low on time
+        const remainingMs = deadlineMs - (Date.now() - pipelineStartTime)
+        const shouldSkipQa = TRYON_OUTPUT_QA_MODE === 'off' || remainingMs < 45_000
+        if (shouldSkipQa && isDev) console.log(`⏩ Skipping QA validation (mode=${TRYON_OUTPUT_QA_MODE}, remaining=${Math.round(remainingMs / 1000)}s)`)
+
+        const validation = shouldSkipQa
+          ? { qualityAssessment: null, garmentValidation: null, warnings: ['qa_skipped_deadline'] as string[] }
+          : await validateGeneratedOutputStrict({
+              qaMode: TRYON_OUTPUT_QA_MODE,
+              referenceImageBase64,
+              generatedImageBase64: generatedImage,
+              garmentImageBase64: processedGarment,
+              garmentClassification,
+            })
 
         if (isDev) {
           if (validation.qualityAssessment) {
