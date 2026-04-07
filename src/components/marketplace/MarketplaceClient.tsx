@@ -118,24 +118,99 @@ export default function MarketplaceClient({ products, categories, activeCategory
             <div className="container mx-auto px-4 sm:px-6">
                 {/* Header */}
                 <div className="mb-10 animate-fade-in">
-                    <div className="mb-8">
-                        <div className="relative max-w-2xl overflow-hidden rounded-[28px] border-[3px] border-black bg-white p-5 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:p-8">
+                    <div className="mb-8 grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] xl:items-stretch">
+                        <div className="relative overflow-hidden rounded-[28px] border-[3px] border-black bg-white p-5 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:p-8">
                             <div className="relative z-10">
-                                <div className="flex items-center gap-3 mb-4">
-                                    <div className="w-10 h-10 border-[2px] border-black bg-[#FFD93D] flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                                        <Sparkles className="w-5 h-5 text-black" />
+                                <div className="mb-4 flex items-center gap-3">
+                                    <div className="flex h-10 w-10 items-center justify-center border-[2px] border-black bg-[#FFD93D] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                                        <Sparkles className="h-5 w-5 text-black" />
                                     </div>
                                     <span className="text-sm font-bold uppercase tracking-widest text-charcoal/70">Discover & Collaborate</span>
                                 </div>
-                                <h1 className="text-4xl sm:text-6xl font-black text-charcoal mb-4 uppercase leading-[0.9]">
-                                    Brand <br /><span className="block break-all sm:break-normal text-transparent bg-clip-text bg-gradient-to-r from-charcoal to-gray-500">Marketplace</span>
+                                <h1 className="mb-4 text-4xl font-black uppercase leading-[0.9] text-charcoal sm:text-6xl">
+                                    Brand <br /><span className="block break-all bg-gradient-to-r from-charcoal to-gray-500 bg-clip-text text-transparent sm:break-normal">Marketplace</span>
                                 </h1>
-                                <p className="text-charcoal/70 text-lg font-medium max-w-md border-l-[3px] border-[#FFD93D] pl-4">
+                                <p className="max-w-md border-l-[3px] border-[#FFD93D] pl-4 text-lg font-medium text-charcoal/70">
                                     Find perfect collaboration opportunities tailored to your niche.
                                 </p>
                             </div>
-                            {/* Decorative elements */}
                             <div className="absolute right-0 top-0 z-0 h-32 w-32 rounded-bl-full border-b-[3px] border-l-[3px] border-black bg-gray-100 opacity-50 -mr-[3px] -mt-[3px]" />
+                        </div>
+
+                        <div className="overflow-hidden rounded-[26px] border-[3px] border-black bg-white p-5 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:p-6">
+                            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex h-11 w-11 items-center justify-center rounded-xl border-[3px] border-black bg-[#B4F056] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+                                        <Megaphone className="h-5 w-5 text-black" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-black uppercase tracking-[0.16em] text-charcoal/45">Dummy campaign carousel</p>
+                                        <p className="text-lg font-black text-charcoal">Sample ads and brand pushes</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={showPrevCampaign}
+                                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-black bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition hover:-translate-y-0.5"
+                                    >
+                                        <ArrowLeft className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={showNextCampaign}
+                                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-black bg-[#FFD93D] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition hover:-translate-y-0.5"
+                                    >
+                                        <ArrowRight className="h-4 w-4" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr] xl:h-[calc(100%-4.5rem)]">
+                                <div className="rounded-[24px] border-[3px] border-black bg-[#fff7e3] p-5 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]">
+                                    <div className="flex flex-wrap items-start justify-between gap-3">
+                                        <div>
+                                            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-charcoal/50">
+                                                {DUMMY_CAMPAIGNS[activeCampaign].eyebrow}
+                                            </p>
+                                            <h3 className="mt-3 text-[clamp(1.9rem,4vw,3rem)] font-black uppercase leading-[0.92] text-charcoal">
+                                                {DUMMY_CAMPAIGNS[activeCampaign].title}
+                                            </h3>
+                                        </div>
+                                        <span className={`rounded-full border-[3px] border-black px-4 py-2 text-xs font-black uppercase tracking-[0.12em] ${DUMMY_CAMPAIGNS[activeCampaign].accent} ${DUMMY_CAMPAIGNS[activeCampaign].tone}`}>
+                                            {DUMMY_CAMPAIGNS[activeCampaign].stat}
+                                        </span>
+                                    </div>
+                                    <p className="mt-4 max-w-xl border-l-[3px] border-black/20 pl-4 text-base font-medium leading-7 text-charcoal/70">
+                                        {DUMMY_CAMPAIGNS[activeCampaign].body}
+                                    </p>
+                                </div>
+
+                                <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+                                    {DUMMY_CAMPAIGNS.map((campaign, index) => {
+                                        const isActive = index === activeCampaign
+                                        return (
+                                            <button
+                                                key={campaign.title}
+                                                type="button"
+                                                onClick={() => setActiveCampaign(index)}
+                                                className={`rounded-[20px] border-[3px] p-4 text-left transition-all ${isActive
+                                                    ? 'border-black bg-[#F4F0E8] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+                                                    : 'border-black/30 bg-white hover:border-black hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <p className="text-sm font-black uppercase leading-tight text-charcoal">{campaign.title}</p>
+                                                    <span className={`h-3.5 w-3.5 rounded-full border-2 border-black ${campaign.accent}`} />
+                                                </div>
+                                                <p className="mt-2 text-xs font-medium leading-5 text-charcoal/55">
+                                                    {campaign.eyebrow}
+                                                </p>
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -202,82 +277,6 @@ export default function MarketplaceClient({ products, categories, activeCategory
                             <Search className="h-4 w-4" />
                             Search
                         </button>
-                    </div>
-                </div>
-
-                <div className="mb-8 overflow-hidden rounded-[26px] border-[3px] border-black bg-white p-5 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:p-6">
-                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-xl border-[3px] border-black bg-[#B4F056] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
-                                <Megaphone className="h-5 w-5 text-black" />
-                            </div>
-                            <div>
-                                <p className="text-xs font-black uppercase tracking-[0.16em] text-charcoal/45">Dummy campaign carousel</p>
-                                <p className="text-lg font-black text-charcoal">Sample ads and brand pushes</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <button
-                                type="button"
-                                onClick={showPrevCampaign}
-                                className="inline-flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-black bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition hover:-translate-y-0.5"
-                            >
-                                <ArrowLeft className="h-4 w-4" />
-                            </button>
-                            <button
-                                type="button"
-                                onClick={showNextCampaign}
-                                className="inline-flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-black bg-[#FFD93D] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition hover:-translate-y-0.5"
-                            >
-                                <ArrowRight className="h-4 w-4" />
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-                        <div className="rounded-[24px] border-[3px] border-black bg-[#fff7e3] p-5 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]">
-                            <div className="flex flex-wrap items-start justify-between gap-3">
-                                <div>
-                                    <p className="text-[11px] font-black uppercase tracking-[0.16em] text-charcoal/50">
-                                        {DUMMY_CAMPAIGNS[activeCampaign].eyebrow}
-                                    </p>
-                                    <h3 className="mt-3 text-[clamp(1.9rem,4vw,3rem)] font-black uppercase leading-[0.92] text-charcoal">
-                                        {DUMMY_CAMPAIGNS[activeCampaign].title}
-                                    </h3>
-                                </div>
-                                <span className={`rounded-full border-[3px] border-black px-4 py-2 text-xs font-black uppercase tracking-[0.12em] ${DUMMY_CAMPAIGNS[activeCampaign].accent} ${DUMMY_CAMPAIGNS[activeCampaign].tone}`}>
-                                    {DUMMY_CAMPAIGNS[activeCampaign].stat}
-                                </span>
-                            </div>
-                            <p className="mt-4 max-w-xl border-l-[3px] border-black/20 pl-4 text-base font-medium leading-7 text-charcoal/70">
-                                {DUMMY_CAMPAIGNS[activeCampaign].body}
-                            </p>
-                        </div>
-
-                        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-                            {DUMMY_CAMPAIGNS.map((campaign, index) => {
-                                const isActive = index === activeCampaign
-                                return (
-                                    <button
-                                        key={campaign.title}
-                                        type="button"
-                                        onClick={() => setActiveCampaign(index)}
-                                        className={`rounded-[20px] border-[3px] p-4 text-left transition-all ${isActive
-                                            ? 'border-black bg-[#F4F0E8] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
-                                            : 'border-black/30 bg-white hover:border-black hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
-                                            }`}
-                                    >
-                                        <div className="flex items-center justify-between gap-3">
-                                            <p className="text-sm font-black uppercase leading-tight text-charcoal">{campaign.title}</p>
-                                            <span className={`h-3.5 w-3.5 rounded-full border-2 border-black ${campaign.accent}`} />
-                                        </div>
-                                        <p className="mt-2 text-xs font-medium leading-5 text-charcoal/55">
-                                            {campaign.eyebrow}
-                                        </p>
-                                    </button>
-                                )
-                            })}
-                        </div>
                     </div>
                 </div>
 

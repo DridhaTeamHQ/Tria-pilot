@@ -225,11 +225,12 @@ export async function updateSession(request: NextRequest) {
         return applySecurityHeaders(redirectResponse)
     }
 
-    // Authenticated users on root → redirect to /dashboard
-    // (Let /dashboard page handle role-based routing)
+    // Authenticated users on root → redirect to the public marketplace
+    // so signed-in users do not bounce through dashboard/pending routing
+    // when they open the main domain.
     if (user && pathname === '/') {
         const url = request.nextUrl.clone()
-        url.pathname = '/dashboard'
+        url.pathname = '/marketplace'
         const redirectResponse = NextResponse.redirect(url)
 
         supabaseResponse.cookies.getAll().forEach(cookie => {
