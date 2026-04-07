@@ -74,12 +74,12 @@ export default function InfluencerPendingPage() {
       if (approvalStatus === 'approved') {
         if (!approvedToastShownRef.current) {
           approvedToastShownRef.current = true
-          toast.success("You're approved! Redirecting to dashboard...", {
+          toast.success("You're approved! Redirecting to marketplace...", {
             style: { background: '#B4F056', border: '3px solid black', fontWeight: 'bold' }
           })
         }
         setTimeout(() => {
-          router.replace('/dashboard')
+          router.replace('/marketplace')
         }, 1500)
         return
       }
@@ -136,9 +136,9 @@ export default function InfluencerPendingPage() {
 
           if (nextStatus === 'approved' && !approvedToastShownRef.current) {
             approvedToastShownRef.current = true
-            toast.success("You're approved! Redirecting to dashboard...")
+            toast.success("You're approved! Redirecting to marketplace...")
             setTimeout(() => {
-              router.replace('/dashboard')
+              router.replace('/marketplace')
             }, 1200)
             return
           }

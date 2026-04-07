@@ -89,7 +89,6 @@ export function RealtimeListener() {
 
                     if (payload.new.approval_status === 'approved' && payload.old.approval_status !== 'approved') {
                         toast.success("You've been approved! Welcome to Kiwikoo.")
-                        router.refresh()
                     }
                 }
             )

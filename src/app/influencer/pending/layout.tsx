@@ -28,9 +28,9 @@ export default async function InfluencerPendingLayout({
     if (state.type === 'influencer_draft') {
       redirect('/onboarding/influencer')
     }
-    // If approved → redirect to dashboard
+    // If approved → redirect to marketplace
     if (state.type === 'influencer_approved') {
-      redirect('/dashboard')
+      redirect('/marketplace')
     }
     // Other states → dashboard
     redirect('/dashboard')

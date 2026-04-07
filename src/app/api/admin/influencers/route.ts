@@ -203,6 +203,7 @@ export async function PATCH(request: Request) {
         .from('profiles')
         .update({
           approval_status: approvalStatus,
+          ...(approvalStatus === 'approved' ? { onboarding_completed: true } : {}),
           influencer_data: nextInfluencerData,
         })
         .eq('id', user_id)

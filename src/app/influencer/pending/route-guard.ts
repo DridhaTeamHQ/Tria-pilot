@@ -40,9 +40,9 @@ export async function checkPendingPageAccess(userId: string): Promise<{ allowed:
     // Check approval status (normalize to lowercase for comparison)
     const status = (profile.approval_status || 'pending').toLowerCase()
 
-    // If approved, redirect to dashboard (will route to influencer dashboard)
+    // If approved, redirect straight to marketplace
     if (status === 'approved') {
-      return { allowed: false, redirectTo: '/influencer/dashboard' }
+      return { allowed: false, redirectTo: '/marketplace' }
     }
 
     // Allow access if onboarding completed and status is pending/none
