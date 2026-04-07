@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import Link from 'next/link'
-import { ShoppingBag, Filter, Sparkles, Search, X, ArrowLeft, ArrowRight, Megaphone } from 'lucide-react'
+import { ShoppingBag, Filter, Sparkles, Search, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import ProductCard from './ProductCard'
 
@@ -91,14 +91,6 @@ export default function MarketplaceClient({ products, categories, activeCategory
         setSearchQuery('')
     }, [])
 
-    const showPrevCampaign = useCallback(() => {
-        setActiveCampaign((prev) => (prev === 0 ? DUMMY_CAMPAIGNS.length - 1 : prev - 1))
-    }, [])
-
-    const showNextCampaign = useCallback(() => {
-        setActiveCampaign((prev) => (prev + 1) % DUMMY_CAMPAIGNS.length)
-    }, [])
-
     useEffect(() => {
         // Prefetch top visible product routes so first click feels instant.
         products.slice(0, 8).forEach((p) => {
@@ -138,36 +130,8 @@ export default function MarketplaceClient({ products, categories, activeCategory
                         </div>
 
                         <div className="overflow-hidden rounded-[26px] border-[3px] border-black bg-white p-5 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:p-6">
-                            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                                <div className="flex items-center gap-3">
-                                    <div className="flex h-11 w-11 items-center justify-center rounded-xl border-[3px] border-black bg-[#B4F056] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
-                                        <Megaphone className="h-5 w-5 text-black" />
-                                    </div>
-                                    <div>
-                                        <p className="text-xs font-black uppercase tracking-[0.16em] text-charcoal/45">Dummy campaign carousel</p>
-                                        <p className="text-lg font-black text-charcoal">Sample ads and brand pushes</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={showPrevCampaign}
-                                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-black bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition hover:-translate-y-0.5"
-                                    >
-                                        <ArrowLeft className="h-4 w-4" />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={showNextCampaign}
-                                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-black bg-[#FFD93D] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition hover:-translate-y-0.5"
-                                    >
-                                        <ArrowRight className="h-4 w-4" />
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="xl:h-[calc(100%-4.5rem)]">
-                                <div className="rounded-[24px] border-[3px] border-black bg-[#fff7e3] p-5 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]">
+                            <div className="h-full">
+                                <div className="flex min-h-[220px] h-full flex-col justify-between rounded-[24px] border-[3px] border-black bg-[#fff7e3] p-5 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] sm:min-h-[250px]">
                                     <div className="flex flex-wrap items-start justify-between gap-3">
                                         <div>
                                             <p className="text-[11px] font-black uppercase tracking-[0.16em] text-charcoal/50">
