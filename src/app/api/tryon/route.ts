@@ -573,7 +573,7 @@ async function handlePresetlessTryOnRequest(params: {
   // Garment intel is lightweight (1 Gemini Flash call, ~3-5s)
   // Skip classification entirely to save time
   const garmentIntel = await analyzeGarment(processedGarment)
-  const garmentClassification = null
+  const garmentClassification: GarmentClassification | null = null
 
   // ── PHOTO SELECTION (manual or garment-aware auto-select) ─────────────
   let selectedPhotoIds: string[]
