@@ -166,7 +166,7 @@ export default function MarketplaceClient({ products, categories, activeCategory
                                 </div>
                             </div>
 
-                            <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr] xl:h-[calc(100%-4.5rem)]">
+                            <div className="xl:h-[calc(100%-4.5rem)]">
                                 <div className="rounded-[24px] border-[3px] border-black bg-[#fff7e3] p-5 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]">
                                     <div className="flex flex-wrap items-start justify-between gap-3">
                                         <div>
@@ -184,31 +184,6 @@ export default function MarketplaceClient({ products, categories, activeCategory
                                     <p className="mt-4 max-w-xl border-l-[3px] border-black/20 pl-4 text-base font-medium leading-7 text-charcoal/70">
                                         {DUMMY_CAMPAIGNS[activeCampaign].body}
                                     </p>
-                                </div>
-
-                                <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-                                    {DUMMY_CAMPAIGNS.map((campaign, index) => {
-                                        const isActive = index === activeCampaign
-                                        return (
-                                            <button
-                                                key={campaign.title}
-                                                type="button"
-                                                onClick={() => setActiveCampaign(index)}
-                                                className={`rounded-[20px] border-[3px] p-4 text-left transition-all ${isActive
-                                                    ? 'border-black bg-[#F4F0E8] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
-                                                    : 'border-black/30 bg-white hover:border-black hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
-                                                    }`}
-                                            >
-                                                <div className="flex items-center justify-between gap-3">
-                                                    <p className="text-sm font-black uppercase leading-tight text-charcoal">{campaign.title}</p>
-                                                    <span className={`h-3.5 w-3.5 rounded-full border-2 border-black ${campaign.accent}`} />
-                                                </div>
-                                                <p className="mt-2 text-xs font-medium leading-5 text-charcoal/55">
-                                                    {campaign.eyebrow}
-                                                </p>
-                                            </button>
-                                        )
-                                    })}
                                 </div>
                             </div>
                         </div>
