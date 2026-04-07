@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Menu,
@@ -25,7 +25,6 @@ import LogoutButton from "@/components/LogoutButton";
 
 export default function BrutalNavbar() {
     const pathname = usePathname();
-    const router = useRouter();
     const queryClient = useQueryClient();
     const { data: user, isLoading, isFetching } = useUser();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -71,14 +70,18 @@ export default function BrutalNavbar() {
                 setAuthToast("logged_out");
             }
 
-            router.replace("/");
-            router.refresh();
+            if (typeof window !== "undefined") {
+                window.location.replace("/");
+                return;
+            }
         } catch (error) {
             console.error("Logout error:", error);
-            router.replace("/");
-            router.refresh();
+            if (typeof window !== "undefined") {
+                window.location.replace("/");
+                return;
+            }
         }
-    }, [isLoggingOut, queryClient, router]);
+    }, [isLoggingOut, queryClient]);
 
     const isActive = (path: string) =>
         pathname === path || pathname?.startsWith(path + "/");
