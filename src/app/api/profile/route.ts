@@ -11,7 +11,8 @@ import { getGenerationTagFromDob, normalizeDateOfBirth } from '@/lib/profile-dem
 
 const updateProfileSchema = z
   .object({
-    name: z.string().trim().min(1).max(120),
+    name: z.string().trim().min(1).max(120).optional(),
+    dateOfBirth: z.string().trim().max(40).optional(),
   })
   .strict()
 
@@ -33,35 +34,83 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
     }
 
-    const { name } = updateProfileSchema.parse(body)
+    const { name, dateOfBirth } = updateProfileSchema.parse(body)
+    const trimmedName = name?.trim()
+    const normalizedDateOfBirth = normalizeDateOfBirth(dateOfBirth)
 
-    console.log('[PROFILE PATCH] Updating name for user:', authUser.id, 'to:', name.trim())
-
-    const { data: updated, error } = await service
-      .from('profiles')
-      .update({ full_name: name.trim() })
-      .eq('id', authUser.id)
-      .select()
-      .single()
-
-    if (error) {
-      console.error('[PROFILE PATCH] Update error:', error)
-      return NextResponse.json({ error: `Failed to update profile: ${error.message}` }, { status: 500 })
+    if (!trimmedName && typeof dateOfBirth === 'undefined') {
+      return NextResponse.json({ error: 'Nothing to update' }, { status: 400 })
     }
 
-    if (!updated) {
-      console.error('[PROFILE PATCH] No profile found for user:', authUser.id)
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    if (trimmedName) {
+      console.log('[PROFILE PATCH] Updating name for user:', authUser.id, 'to:', trimmedName)
     }
 
-    console.log('[PROFILE PATCH] Success, updated name to:', updated.full_name)
+    let updatedProfile: any = null
+
+    if (trimmedName) {
+      const { data: updated, error } = await service
+        .from('profiles')
+        .update({ full_name: trimmedName })
+        .eq('id', authUser.id)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('[PROFILE PATCH] Update error:', error)
+        return NextResponse.json({ error: `Failed to update profile: ${error.message}` }, { status: 500 })
+      }
+
+      if (!updated) {
+        console.error('[PROFILE PATCH] No profile found for user:', authUser.id)
+        return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+      }
+
+      updatedProfile = updated
+    } else {
+      const { data: existingProfile, error: existingProfileError } = await service
+        .from('profiles')
+        .select('id, email, full_name, role')
+        .eq('id', authUser.id)
+        .single()
+
+      if (existingProfileError || !existingProfile) {
+        return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+      }
+
+      updatedProfile = existingProfile
+    }
+
+    if (typeof dateOfBirth !== 'undefined') {
+      const { data: authLookup, error: authLookupError } = await service.auth.admin.getUserById(authUser.id)
+      if (authLookupError) {
+        console.error('[PROFILE PATCH] Failed to fetch auth metadata:', authLookupError)
+        return NextResponse.json({ error: 'Failed to load profile metadata' }, { status: 500 })
+      }
+
+      const currentMetadata = (authLookup.user?.user_metadata || authUser.user_metadata || {}) as Record<string, unknown>
+      const nextMetadata: Record<string, unknown> = {
+        ...currentMetadata,
+        date_of_birth: normalizedDateOfBirth,
+        generation_tag: getGenerationTagFromDob(normalizedDateOfBirth),
+      }
+
+      const { error: metadataError } = await service.auth.admin.updateUserById(authUser.id, {
+        user_metadata: nextMetadata,
+      })
+
+      if (metadataError) {
+        console.error('[PROFILE PATCH] Failed to update demographics metadata:', metadataError)
+        return NextResponse.json({ error: 'Failed to update date of birth' }, { status: 500 })
+      }
+    }
 
     return NextResponse.json({
       user: {
-        id: updated.id,
-        email: updated.email,
-        name: updated.full_name,
-        role: updated.role,
+        id: updatedProfile.id,
+        email: updatedProfile.email,
+        name: updatedProfile.full_name,
+        role: updatedProfile.role,
       }
     })
   } catch (error) {

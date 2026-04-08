@@ -25,6 +25,7 @@ export function useUser() {
 
       return {
         ...data.user,
+        profile: data.profile ?? null,
         onboardingCompleted:
           data.user.onboardingCompleted ?? Boolean(data.profile?.onboarding_completed),
         approvalStatus:

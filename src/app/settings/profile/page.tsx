@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import { toast } from '@/lib/simple-sonner'
 import { ArrowLeft, Mail, Shield, Sparkles, Save, Lock } from 'lucide-react'
 import { useUser } from '@/lib/react-query/hooks'
+import { formatDateOfBirth } from '@/lib/profile-demographics'
 
 function BrutalCard({ children, className = '', title }: { children: React.ReactNode, className?: string, title?: string }) {
   return (
@@ -24,11 +25,16 @@ export default function SettingsProfilePage() {
   const { data: user, isLoading } = useUser()
   const [newEmail, setNewEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [saving, setSaving] = useState(false)
+  const [emailSaving, setEmailSaving] = useState(false)
+  const [dobSaving, setDobSaving] = useState(false)
+  const [dateOfBirth, setDateOfBirth] = useState('')
 
   const currentEmail = user?.email?.trim().toLowerCase() || ''
   const normalizedNewEmail = newEmail.trim().toLowerCase()
   const emailUnchanged = Boolean(currentEmail) && normalizedNewEmail === currentEmail
+  const currentDob = typeof (user as any)?.profile?.date_of_birth === 'string' ? (user as any).profile.date_of_birth : ''
+  const currentGenerationTag = typeof (user as any)?.profile?.generation_tag === 'string' ? (user as any).profile.generation_tag : ''
+  const dobUnchanged = (dateOfBirth || '') === currentDob
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -37,6 +43,10 @@ export default function SettingsProfilePage() {
       toast.success('Email confirmed! Your sign-in email has been updated.')
     }
   }, [])
+
+  useEffect(() => {
+    setDateOfBirth(currentDob)
+  }, [currentDob])
 
   const handleChangeEmail = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -56,7 +66,7 @@ export default function SettingsProfilePage() {
       return
     }
 
-    setSaving(true)
+    setEmailSaving(true)
     try {
       const res = await fetch('/api/auth/change-email', {
         method: 'POST',
@@ -72,7 +82,36 @@ export default function SettingsProfilePage() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to change email')
     } finally {
-      setSaving(false)
+      setEmailSaving(false)
+    }
+  }
+
+  const handleSaveDob = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!dateOfBirth) {
+      toast.error('Please choose a date of birth')
+      return
+    }
+
+    setDobSaving(true)
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dateOfBirth }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data?.error || 'Failed to update date of birth')
+
+      toast.success('Date of birth updated')
+      if (typeof window !== 'undefined') {
+        window.location.reload()
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update date of birth')
+    } finally {
+      setDobSaving(false)
     }
   }
 
@@ -110,6 +149,62 @@ export default function SettingsProfilePage() {
             Manage your account security and preferences
           </p>
         </div>
+
+        <BrutalCard title="Profile Details" className="mb-10">
+          <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6 mb-8 text-center sm:text-left">
+            <div className="w-16 h-16 border-[3px] border-black bg-[#B4F056] flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mx-auto sm:mx-0 shrink-0">
+              <Save className="w-8 h-8 text-black" />
+            </div>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black uppercase">Date Of Birth</h2>
+              <p className="text-sm sm:text-base text-black/70 font-medium">Existing users can update DOB here to unlock the correct generation tag in profile.</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSaveDob} className="space-y-6 max-w-xl">
+            <div className="space-y-2">
+              <label htmlFor="dateOfBirth" className="block text-sm font-bold uppercase tracking-wide text-black">
+                Date of Birth
+              </label>
+              <input
+                id="dateOfBirth"
+                type="date"
+                value={dateOfBirth}
+                onChange={(e) => setDateOfBirth(e.target.value)}
+                className="w-full px-4 py-3 bg-white border-[3px] border-black text-black font-bold focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+              />
+              <p className="text-xs font-bold text-black/50 uppercase tracking-wide">
+                {currentDob ? `Current DOB ${formatDateOfBirth(currentDob) || currentDob}` : 'No date of birth saved yet'}
+              </p>
+            </div>
+
+            {currentGenerationTag && (
+              <div className="inline-flex px-4 py-2 border-[3px] border-black bg-[#B4F056] font-black uppercase tracking-wide shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                {currentGenerationTag}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={dobSaving || !dateOfBirth || dobUnchanged}
+              className="w-full py-4 bg-black text-white font-black uppercase tracking-wider border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] hover:bg-white hover:text-black transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {dobSaving ? (
+                <>
+                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+                    <Sparkles className="w-5 h-5" />
+                  </motion.div>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-5 h-5" />
+                  Save Date Of Birth
+                </>
+              )}
+            </button>
+          </form>
+        </BrutalCard>
 
         <BrutalCard title="Account Security">
           <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6 mb-8 text-center sm:text-left">
@@ -181,10 +276,10 @@ export default function SettingsProfilePage() {
 
             <button
               type="submit"
-              disabled={saving || !normalizedNewEmail || !password || emailUnchanged}
+              disabled={emailSaving || !normalizedNewEmail || !password || emailUnchanged}
               className="w-full py-4 bg-black text-white font-black uppercase tracking-wider border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] hover:bg-white hover:text-black transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {saving ? (
+              {emailSaving ? (
                 <>
                   <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
                     <Sparkles className="w-5 h-5" />
