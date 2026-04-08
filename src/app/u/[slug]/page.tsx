@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft, ExternalLink, Instagram, Youtube, Facebook, BadgeCheck, Users, TrendingUp } from 'lucide-react'
 import { createServiceClient } from '@/lib/auth'
+import { getGenerationTagFromDob, normalizeDateOfBirth } from '@/lib/profile-demographics'
 
 export const dynamic = 'force-dynamic'
 
@@ -92,6 +93,10 @@ export default async function PublicInfluencerProfilePage({
     .eq('user_id', profile.id)
     .maybeSingle()
 
+  const { data: authLookup } = await service.auth.admin.getUserById(profile.id)
+  const dateOfBirth = normalizeDateOfBirth(authLookup.user?.user_metadata?.date_of_birth)
+  const generationTag = getGenerationTagFromDob(dateOfBirth)
+
   const socials = (influencerProfile?.socials || {}) as Partial<Record<SocialKey, string>>
   const socialEntries = (Object.entries(socials) as Array<[SocialKey, string]>)
     .filter(([, value]) => typeof value === 'string' && value.trim().length > 0)
@@ -155,6 +160,14 @@ export default async function PublicInfluencerProfilePage({
                         {String(niche)}
                       </span>
                     ))}
+                  </div>
+                )}
+
+                {generationTag && (
+                  <div className="mt-4">
+                    <span className="inline-flex border-[2px] border-black bg-[#B4F056] px-3 py-2 text-xs font-black uppercase tracking-[0.14em] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+                      {generationTag}
+                    </span>
                   </div>
                 )}
               </div>

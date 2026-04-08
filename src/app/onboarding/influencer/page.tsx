@@ -141,7 +141,7 @@ export default function InfluencerOnboardingPage() {
           setFormData({
             firstName,
             lastName,
-            dateOfBirth: '',
+            dateOfBirth: String(data?.dateOfBirth || ''),
             email: String(data?.email || ''),
             gender: data.profile.gender || '',
             niches: (data.profile.niches as string[]) || [],
@@ -160,6 +160,7 @@ export default function InfluencerOnboardingPage() {
             ...prev,
             firstName,
             lastName,
+            dateOfBirth: String(data?.dateOfBirth || prev.dateOfBirth || ''),
             email: String(data?.email || prev.email || ''),
           }))
         }

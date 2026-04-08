@@ -29,6 +29,7 @@ import {
 import { toast } from '@/lib/simple-sonner'
 import Link from 'next/link'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
+import { formatDateOfBirth } from '@/lib/profile-demographics'
 
 type ReferencePhotoSource = 'app_upload' | 'migrated_profile' | 'migrated_identity'
 type ReferencePhotoStatus = 'pending' | 'approved' | 'rejected'
@@ -164,6 +165,8 @@ export default function ProfilePage() {
 
   const user = data?.user
   const profile = user?.influencerProfile
+  const formattedDob = formatDateOfBirth(profile?.dateOfBirth)
+  const generationTag = typeof profile?.generationTag === 'string' ? profile.generationTag : null
 
   useEffect(() => {
     async function fetchProfileImage() {
@@ -806,6 +809,17 @@ export default function ProfilePage() {
                 )}
 
                 <div className="mt-8">
+                  {(formattedDob || generationTag || profile?.gender) && (
+                    <div className="mb-6">
+                      <h3 className="text-xs font-bold uppercase text-black/50 tracking-widest mb-4">Identity Snapshot</h3>
+                      <div className="flex flex-wrap gap-3">
+                        {formattedDob && <BrutalTag label={`DOB ${formattedDob}`} color="bg-[#FFF3E8]" />}
+                        {generationTag && <BrutalTag label={generationTag} color="bg-[#B4F056]" />}
+                        {profile?.gender && <BrutalTag label={String(profile.gender)} color="bg-[#FFD93D]" />}
+                      </div>
+                    </div>
+                  )}
+
                   <h3 className="text-xs font-bold uppercase text-black/50 tracking-widest mb-4">Niches & Focus</h3>
                   <div className="flex flex-wrap gap-3">
                     {profile?.niches && Array.isArray(profile.niches) && profile.niches.map((niche: string) => (

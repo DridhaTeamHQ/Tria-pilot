@@ -8,6 +8,7 @@
  */
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
+import { getGenerationTagFromDob, normalizeDateOfBirth } from '@/lib/profile-demographics'
 
 export async function GET() {
   try {
@@ -64,6 +65,8 @@ export async function GET() {
 
     const role = (profile.role || 'influencer').toLowerCase()
     const approvalStatus = (profile.approval_status || 'none').toLowerCase()
+    const dateOfBirth = normalizeDateOfBirth(authUser.user_metadata?.date_of_birth)
+    const generationTag = getGenerationTagFromDob(dateOfBirth)
     const subscription = {
       provider: profile.subscription_provider || null,
       role: profile.subscription_role || role,
@@ -94,6 +97,8 @@ export async function GET() {
         approval_status: approvalStatus,
         brand_data: profile.brand_data || null,
         avatar_url: profile.avatar_url || null,
+        date_of_birth: dateOfBirth,
+        generation_tag: generationTag,
         subscription,
       },
     })

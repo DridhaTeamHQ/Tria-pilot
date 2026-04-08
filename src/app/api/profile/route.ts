@@ -7,6 +7,7 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
 import { z } from 'zod'
+import { getGenerationTagFromDob, normalizeDateOfBirth } from '@/lib/profile-demographics'
 
 const updateProfileSchema = z
   .object({
@@ -84,6 +85,10 @@ export async function GET() {
     }
 
     const service = createServiceClient()
+    const { data: authLookup } = await service.auth.admin.getUserById(authUser.id)
+    const authMetadata = (authLookup.user?.user_metadata || authUser.user_metadata || {}) as Record<string, unknown>
+    const dateOfBirth = normalizeDateOfBirth(authMetadata.date_of_birth)
+    const generationTag = getGenerationTagFromDob(dateOfBirth)
 
     const { data: profile, error } = await service
       .from('profiles')
@@ -118,6 +123,8 @@ export async function GET() {
           badgeTier: infProfile.badge_tier,
           badgeScore: infProfile.badge_score,
           gender: infProfile.gender,
+          dateOfBirth,
+          generationTag,
         }
       }
     }

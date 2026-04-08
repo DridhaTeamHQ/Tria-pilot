@@ -10,6 +10,7 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
 import { z } from 'zod'
+import { getGenerationTagFromDob, normalizeDateOfBirth } from '@/lib/profile-demographics'
 
 const ALLOWED_SOCIAL_PLATFORMS = ['instagram', 'youtube', 'snapchat', 'facebook'] as const
 
@@ -109,9 +110,32 @@ export async function POST(request: Request) {
     const data = onboardingSchema.parse(body)
     const normalizedSocials = normalizeSocials(data.socials)
     const fullName = [data.firstName?.trim(), data.lastName?.trim()].filter(Boolean).join(' ').trim()
+    const normalizedDateOfBirth = normalizeDateOfBirth(data.dateOfBirth)
 
     if (data.email && profile.email && data.email.trim().toLowerCase() !== String(profile.email).toLowerCase()) {
       return NextResponse.json({ error: 'Email confirmation does not match your account email' }, { status: 400 })
+    }
+
+    const currentMetadata = (authUser.user_metadata || {}) as Record<string, unknown>
+    const nextMetadata: Record<string, unknown> = {
+      ...currentMetadata,
+      date_of_birth: normalizedDateOfBirth,
+      generation_tag: getGenerationTagFromDob(normalizedDateOfBirth),
+    }
+
+    const metadataNeedsUpdate =
+      currentMetadata.date_of_birth !== nextMetadata.date_of_birth ||
+      currentMetadata.generation_tag !== nextMetadata.generation_tag
+
+    if (metadataNeedsUpdate) {
+      const { error: metadataError } = await service.auth.admin.updateUserById(authUser.id, {
+        user_metadata: nextMetadata,
+      })
+
+      if (metadataError) {
+        console.error('Failed to update influencer demographics metadata:', metadataError)
+        return NextResponse.json({ error: 'Failed to save date of birth' }, { status: 500 })
+      }
     }
 
     if (fullName && fullName !== String(profile.full_name || '').trim()) {
@@ -274,11 +298,18 @@ export async function GET() {
       .eq('user_id', authUser.id)
       .single()
 
+    const { data: authLookup } = await service.auth.admin.getUserById(authUser.id)
+    const metadata = (authLookup.user?.user_metadata || authUser.user_metadata || {}) as Record<string, unknown>
+    const dateOfBirth = normalizeDateOfBirth(metadata.date_of_birth)
+    const generationTag = getGenerationTagFromDob(dateOfBirth)
+
     return NextResponse.json({
       onboardingCompleted: profile.onboarding_completed || false,
       approvalStatus: (profile.approval_status || 'none').toLowerCase(),
       email: profile.email || '',
       fullName: profile.full_name || '',
+      dateOfBirth,
+      generationTag,
       profile: infProfile ? {
         gender: infProfile.gender,
         niches: infProfile.niches,
