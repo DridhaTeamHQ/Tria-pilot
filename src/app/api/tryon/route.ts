@@ -1021,6 +1021,7 @@ async function handlePresetlessTryOnRequest(params: {
 
       return NextResponse.json(
         {
+          success: false,
           error: allQualityRejected
             ? 'All three try-on drafts were rejected because face or garment fidelity was too low. Please upload stronger source photos and try again.'
             : 'All three try-on drafts failed. Please try again.',
@@ -1030,7 +1031,7 @@ async function handlePresetlessTryOnRequest(params: {
           outputs: normalizedOutputs,
           selectionMethod,
         },
-        { status: allQualityRejected ? 422 : 500, headers: { 'Cache-Control': 'no-store' } }
+        { headers: { 'Cache-Control': 'no-store' } }
       )
     }
 
