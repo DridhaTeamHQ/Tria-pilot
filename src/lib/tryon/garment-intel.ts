@@ -224,133 +224,22 @@ export async function analyzeGarment(garmentImageBase64: string): Promise<Garmen
 
 // ── SMART PROMPT COMPOSER ────────────────────────────────────────────────────
 
-/**
- * Build an intelligent, coverage-aware prompt that handles:
- * - Top-only products (with or without visible bottom in product photo)
- * - Bottom-only products (pants, skirts)
- * - Full-body products (dresses, jumpsuits, sarees)
- * - Layered products (jackets, outerwear)
- *
- * KEY PRINCIPLE: When the product photo shows the garment being worn with
- * visible complementary clothing (e.g., top + khaki pants), the prompt
- * instructs the model to replicate BOTH — not invent random bottom wear.
- */
 export function composeSmartPrompt(
   intel: GarmentIntelligence,
   options: { aspectRatio?: string; polishNotes?: string }
 ): string {
-  const { aspectRatio = '4:5', polishNotes } = options
+  const { polishNotes } = options
 
-  let replacementInstruction: string
-  let supportingInstruction: string
+  const polishSection = polishNotes?.trim() ? `\nAdditional styling notes: ${polishNotes.trim()}` : ''
 
-  switch (intel.coverage) {
-    case 'full_body':
-      replacementInstruction = `Replace the person's ENTIRE outfit with the COMPLETE ${intel.garmentType} from Image 2.`
-      supportingInstruction = 'This garment covers both top and bottom — the final outfit must be the exact full piece shown in Image 2. Remove ALL existing clothing.'
-      break
+  return `Replace all the clothing on the person in the first image with the clothing shown in the second image.
 
-    case 'lower_only':
-      // Product IS pants/skirt — swap the BOTTOM, keep the top
-      replacementInstruction = `Replace ONLY the person's bottom-wear (pants, skirt, shorts, lehenga, etc.) with the ${intel.garmentType} from Image 2.`
-      if (intel.visibleTopInPhoto) {
-        // Product photo shows a top too — replicate it
-        supportingInstruction = `The product photo shows the ${intel.garmentType} worn with ${intel.visibleTopInPhoto}. Replace the person's top with a similar ${intel.visibleTopInPhoto} to match the complete look from Image 2. The BOTTOM garment (${intel.garmentType}) is the priority — it must be pixel-perfect.`
-      } else {
-        supportingInstruction = `Keep the person's existing upper-body clothing from Image 1 as-is. Only change the bottom-wear to match Image 2 exactly.`
-      }
-      break
+The clothing to apply: ${intel.description} (${intel.primaryColor}, ${intel.pattern}, ${intel.material})
 
-    case 'layered':
-      replacementInstruction = `Add the ${intel.garmentType} from Image 2 as an outer layer on the person.`
-      if (intel.visibleBottomInPhoto) {
-        supportingInstruction = `The product photo shows this ${intel.garmentType} worn with ${intel.visibleBottomInPhoto}. Apply the outerwear AND change the bottom-wear to ${intel.visibleBottomInPhoto} to replicate the complete styling from Image 2.`
-      } else {
-        supportingInstruction = `Keep the person's existing bottom-wear from Image 1. Layer the ${intel.garmentType} on top as shown in Image 2.`
-      }
-      break
-
-    case 'upper_only':
-    default:
-      replacementInstruction = `COMPLETELY REMOVE all upper-body clothing from the person, then dress them in the ${intel.garmentType} from Image 2. No traces of the original top/shirt/blouse/cardigan should remain.`
-      if (intel.visibleBottomInPhoto) {
-        supportingInstruction = `IMPORTANT: The product photo (Image 2) shows this ${intel.garmentType} being worn with ${intel.visibleBottomInPhoto}. You MUST also change the person's bottom-wear to match: ${intel.visibleBottomInPhoto}. Replicate the complete look from Image 2 — NOT just the top. The final outfit must be: ${intel.description} on top + ${intel.visibleBottomInPhoto} on bottom.`
-      } else {
-        supportingInstruction = `Pair with ${intel.bottomWearSuggestion}. Do NOT keep the person's original bottom-wear. The bottom must be clean and complementary to the ${intel.garmentType}.`
-      }
-      break
-  }
-
-  const fidelityChecks = [
-    `Color: exact ${intel.primaryColor}${intel.secondaryColor ? ` with ${intel.secondaryColor} accents` : ''}`,
-    `Pattern: ${intel.pattern}`,
-    `Material: ${intel.material} (realistic texture and drape)`,
-    `Neckline: ${intel.neckline}`,
-    `Sleeves: ${intel.sleeves}`,
-    `Fit: ${intel.fit}`,
-    `Length: ${intel.length}`,
-    ...(intel.keyFeatures.length > 0 ? [`Key details: ${intel.keyFeatures.join(', ')}`] : []),
-  ]
-
-  const modifiers = intel.promptModifiers.length > 0
-    ? `\nGARMENT-SPECIFIC NOTES:\n${intel.promptModifiers.map((m) => `• ${m}`).join('\n')}`
-    : ''
-
-  const outerwearGuard =
-    intel.garmentType === 'outerwear'
-      ? '\n• This garment is outerwear — the output must clearly show the jacket/coat/cardigan structure from Image 2, NOT collapse into a plain top.'
-      : ''
-
-  // If bottom is visible in photo, add explicit bottom fidelity instruction
-  const bottomFidelity = intel.visibleBottomInPhoto
-    ? `\n• BOTTOM-WEAR from Image 2: The model in the product photo is wearing "${intel.visibleBottomInPhoto}". Copy this bottom-wear onto the person as well.`
-    : ''
-
-  // If product is pants/skirt and top is visible, add top instruction
-  const topFidelity = (intel.coverage === 'lower_only' && intel.visibleTopInPhoto)
-    ? `\n• TOP from Image 2: The model in the product photo is wearing a "${intel.visibleTopInPhoto}". Apply a similar clean top to complement the ${intel.garmentType}.`
-    : ''
-
-  const polishSection = polishNotes?.trim() ? `\nSTYLING NOTES: ${polishNotes.trim()}` : ''
-
-  return `Edit the clothing on the person from Image 1 so the final visible outfit matches the complete look shown in Image 2: ${intel.description}.
-
-IDENTITY (NON-NEGOTIABLE — HIGHEST PRIORITY):
-• The output MUST show the EXACT SAME PERSON from Image 1
-• Copy the face PIXEL-FOR-PIXEL from Image 1 — same eye shape, eye color, nose structure, lip shape, jaw line, chin, brow, forehead, cheekbones, and facial hair
-• If Image 3 shows a face close-up, use it as the DEFINITIVE identity reference — the output face MUST match Image 3 exactly
-• Keep the same skin tone, skin texture, hair style, hair color, and hair volume
-• Keep the same pose, expression, and body proportions
-• Do NOT smooth or beautify the face — preserve all natural features, marks, and asymmetries
-• This is a CLOTHING EDIT ONLY — do NOT generate, swap, or alter the person's face or body
-
-OUTFIT REPLACEMENT (STRIP-AND-REPLACE WORKFLOW):
-• STEP 1: Mentally REMOVE all clothing from the affected body area — treat the body area as bare
-• STEP 2: Apply ONLY the garment from Image 2 onto that bare area
-• STEP 3: Verify NO traces of the original clothing remain visible
-• ${replacementInstruction}
-• ${supportingInstruction}
-
-GARMENT FIDELITY (CRITICAL — must match Image 2 EXACTLY):
-${fidelityChecks.map((c) => `• ${c}`).join('\n')}
-• PIXEL-PERFECT copy of the garment — do NOT simplify or reinterpret any detail
-• If Image 2 shows a model wearing the garment, focus on the GARMENT only — ignore the model's face/body
-${bottomFidelity}${topFidelity}${outerwearGuard}
-${modifiers}
-
-ANTI-HALLUCINATION RULES (CRITICAL):
-• The output must contain ONLY the garment from Image 2 in the replaced area
-• Do NOT invent or add extra layers (cardigans, jackets, vests, shawls) that are not in Image 2
-• Do NOT keep any part of the original clothing from Image 1 (no sleeves, collars, or hems from the original)
-• Do NOT create hybrid garments mixing features from Image 1 and Image 2
-• If the garment from Image 2 has short sleeves, the output must show bare arms beyond the sleeves — not covered by leftover fabric from the original outfit
-
-SCENE & REALISM:
-• Keep the original background from Image 1
-• Match the original photo lighting and shadows
-• Photorealistic — natural skin texture, realistic fabric drape and wrinkles
-• No AI smoothing, no plastic skin, no CGI look
-${polishSection}
-
-Output: ${aspectRatio} aspect ratio, photorealistic editorial quality.`
+CRITICAL RULES:
+1. REMOVE all of the person's current clothes first, then dress them in the second image's garment.
+2. The person's face, hair, body, pose, and background must stay exactly the same — do not change the person at all.
+3. The final garment must exactly match the second image — same color, pattern, texture, fit, and details.
+4. Output a photorealistic photo, not an AI-looking image.
+${polishSection}`
 }

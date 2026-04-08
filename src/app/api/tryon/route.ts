@@ -11,7 +11,7 @@ import { getFirstSuccessfulOutput, getJobOutputsFromRecord } from '@/lib/tryon/j
 import { getTryOnRenderModel, resolveDirectGeminiRenderModel } from '@/lib/tryon/nano-banana-pro-renderer'
 import { analyzeGarment, composeSmartPrompt, type GarmentIntelligence } from '@/lib/tryon/garment-intel'
 import { preprocessGarmentImage } from '@/lib/tryon/garment-preprocessor'
-import { extractFaceCrop } from '@/lib/tryon/face-crop'
+// face-crop removed — simple pipeline
 import {
   type GarmentClassification,
 } from '@/lib/tryon/intelligence/garment-classifier'
@@ -39,7 +39,7 @@ const GLOBAL_ACTIVE_LIMIT = Math.max(
 const GLOBAL_ACTIVE_KEY = 'tryon:inline:active_generations'
 const INTER_GENERATION_DELAY_MS = Math.max(
   0,
-  Number.parseInt(process.env.TRYON_INTER_GENERATION_DELAY_MS || '0', 10) || 0
+  Number.parseInt(process.env.TRYON_INTER_GENERATION_DELAY_MS || '10000', 10) || 10000
 )
 const DEADLINE_BUFFER_MS = 25_000 // Stop generating 25s before maxDuration to allow cleanup/response
 const GARMENT_GUARDRAIL_MIN_CONFIDENCE = 60
@@ -656,25 +656,8 @@ async function handlePresetlessTryOnRequest(params: {
     orderedPhotos.map((photo) => fetchReferencePhotoAsBase64(photo.image_url).then((base64) => normalizeBase64(base64)))
   )
 
-  // ── PRE-EXTRACT FACE CROPS (heuristic-only, no Gemini call) ────────────
-  // Use null for preDetectedFace to force heuristic center-top crop
-  // This avoids a Gemini face-detection call per photo (~3-5s each)
-  const preExtractedFaceCrops = await Promise.all(
-    orderedReferenceBase64s.slice(0, 6).map(async (refBase64) => {
-      try {
-        const result = await extractFaceCrop(refBase64, null)
-        return result.success && result.faceCropBase64 ? result.faceCropBase64 : undefined
-      } catch {
-        return undefined
-      }
-    })
-  )
-  if (isDev) {
-    const successCount = preExtractedFaceCrops.filter(Boolean).length
-    console.log(`👤 Pre-extracted ${successCount}/${preExtractedFaceCrops.length} face crops (heuristic, ${Date.now() - pipelineStartTime}ms elapsed)`)
-  }
 
-  // ── CREATE GENERATION JOB ─────────────────────────────────────────────
+    // ── CREATE GENERATION JOB ─────────────────────────────────────────────
   const { data: job, error: jobError } = await service
     .from('generation_jobs')
     .insert({
@@ -766,7 +749,7 @@ async function handlePresetlessTryOnRequest(params: {
     // ── SEQUENTIAL GENERATION (with deadline guard + AI backup candidates) ─
     const successfulOutputs: PresetlessPersistedOutput[] = []
     const failedAttempts: Array<{ referenceImageId: string; error: string }> = []
-    const targetOutputCount = 2
+    const targetOutputCount = 3
 
     for (let candidateIndex = 0; candidateIndex < orderedPhotos.length; candidateIndex += 1) {
       if (successfulOutputs.length >= targetOutputCount) break
@@ -805,10 +788,6 @@ async function handlePresetlessTryOnRequest(params: {
           console.log(`   Prompt: ${smartPrompt.length} chars`)
         }
 
-        // Use pre-extracted face crop (already done in parallel above)
-        const faceCropBase64 = preExtractedFaceCrops[candidateIndex]
-        if (isDev && faceCropBase64) console.log(`👤 Using pre-extracted face crop for identity anchoring (${Math.round(faceCropBase64.length * 0.75 / 1024)}KB)`)
-
         // Image generation — single attempt in production to stay within deadline
         let generatedImage: string | null = null
         let lastGenerationError: string = ''
@@ -824,8 +803,6 @@ async function handlePresetlessTryOnRequest(params: {
             generatedImage = await generateTryOnDirect({
               personImageBase64: referenceImageBase64,
               garmentImageBase64: processedGarment,
-              faceCropBase64,
-              characterReferenceBase64s: [],
               prompt: smartPrompt,
               aspectRatio: payload.aspectRatio || '4:5',
               model: directRenderModel,
@@ -926,6 +903,13 @@ async function handlePresetlessTryOnRequest(params: {
           error: message,
         })
         if (isDev) console.error(`❌ Generation attempt ${candidateIndex + 1} failed:`, message)
+
+        // If rate-limited, add an extra cooldown before the next attempt
+        if (error instanceof GeminiRateLimitError) {
+          const extraCooldown = Math.min(error.retryAfterMs || 15_000, 30_000)
+          if (isDev) console.log(`⏳ Rate limit cooldown: waiting ${(extraCooldown / 1000).toFixed(1)}s before next candidate...`)
+          await sleep(extraCooldown)
+        }
       }
     }
 

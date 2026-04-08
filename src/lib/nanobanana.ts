@@ -417,24 +417,18 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
   const {
     personImageBase64,
     garmentImageBase64,
-    faceCropBase64,
-    characterReferenceBase64s,
     model,
     prompt,
     aspectRatio = '4:5',
     resolution = '2K',
   } = options
 
-  // Clean base64 (strip data URI prefix if present)
+  // Clean base64
   const cleanPerson = personImageBase64.replace(/^data:image\/[a-z]+;base64,/, '')
   const cleanGarment = garmentImageBase64.replace(/^data:image\/[a-z]+;base64,/, '')
 
-  if (!cleanPerson || cleanPerson.length < 100) {
-    throw new Error('Invalid person image')
-  }
-  if (!cleanGarment || cleanGarment.length < 100) {
-    throw new Error('Invalid garment image')
-  }
+  if (!cleanPerson || cleanPerson.length < 100) throw new Error('Invalid person image')
+  if (!cleanGarment || cleanGarment.length < 100) throw new Error('Invalid garment image')
 
   const requestedModel =
     model ||
@@ -442,138 +436,36 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
     process.env.TRYON_IMAGE_MODEL?.trim() ||
     'gemini-3-pro-image-preview'
 
-  if (process.env.NODE_ENV !== 'production') {
-    console.log(`🍌 DIRECT TRANSPORT: ${requestedModel} | prompt: ${prompt.length} chars`)
-  }
+  const isDev = process.env.NODE_ENV !== 'production'
+  if (isDev) console.log(`🍌 DIRECT TRANSPORT: ${requestedModel} | prompt: ${prompt.length} chars`)
 
-  // CONTENT ORDER — all images FIRST, then prompt text LAST:
-  // 1. Person image (identity anchor)
-  // 2. Garment image
-  // 3. Face crop (identity reinforcement)
-  // 4+ Character refs (multi-angle identity)
-  // LAST: Prompt text (instructions after all visual context is established)
+  // Simple content: person photo → garment photo → short instruction
   const contents: ContentListUnion = [
-    {
-      inlineData: {
-        data: cleanPerson,
-        mimeType: 'image/jpeg',
-      },
-    } as any,
-    'Image 1: the person.',
+    { inlineData: { data: cleanPerson, mimeType: 'image/jpeg' } } as any,
+    { inlineData: { data: cleanGarment, mimeType: 'image/jpeg' } } as any,
+    prompt,
   ]
-
-  // Image 2: Garment — immediately after person for contiguous visual chain
-  contents.push(
-    {
-      inlineData: {
-        data: cleanGarment,
-        mimeType: 'image/jpeg',
-      },
-    } as any,
-    'Image 2: the target clothing. Edit the person\'s clothing so the final visible garment matches this image EXACTLY. Follow the coverage instructions in the prompt. Match color, pattern, texture, collar, sleeves, hem, structure, and fit with no reinterpretation.'
-  )
-
-  // Image 3: Face crop — close-up for identity reinforcement
-  if (faceCropBase64 && faceCropBase64.length > 100) {
-    const cleanFaceCrop = faceCropBase64.replace(/^data:image\/[a-z]+;base64,/, '')
-    if (cleanFaceCrop.length > 100) {
-      if (process.env.NODE_ENV !== 'production') console.log('👤 Adding face crop as Image 3')
-      contents.push(
-        {
-          inlineData: {
-            data: cleanFaceCrop,
-            mimeType: 'image/jpeg',
-          },
-        } as any,
-        'Image 3: face close-up of the same person from Image 1.'
-      )
-    }
-  }
-
-  // Image 4+: Character references — LIMIT TO 2 MAX to avoid drowning out the garment
-  if (characterReferenceBase64s && characterReferenceBase64s.length > 0) {
-    const maxCharRefs = 2 // Too many refs cause the model to lose focus on the garment
-    let refIdx = 4
-    for (const ref of characterReferenceBase64s.slice(0, maxCharRefs)) {
-      const cleanRef = ref.base64.replace(/^data:image\/[a-z]+;base64,/, '')
-      if (cleanRef && cleanRef.length > 100) {
-        if (process.env.NODE_ENV !== 'production') console.log(`🪞 Adding character ref Image ${refIdx}: ${ref.label}`)
-        contents.push(
-          {
-            inlineData: {
-              data: cleanRef,
-              mimeType: 'image/jpeg',
-            },
-          } as any,
-          `Image ${refIdx}: ${ref.label} — same person, different angle. Use ONLY for face identity. IGNORE their clothing completely.`
-        )
-        refIdx++
-      }
-    }
-    if (characterReferenceBase64s.length > maxCharRefs && process.env.NODE_ENV !== 'production') {
-      console.log(`🪞 Skipped ${characterReferenceBase64s.length - maxCharRefs} extra character refs to preserve garment fidelity`)
-    }
-  }
-
-  // Prompt text LAST — after all visual context is established
-  // NOTE: Garment reminder image removed — sending the garment twice caused model confusion
-  // and occasional glitches. The garment is already sent as Image 2 with strong instructions.
-  contents.push(prompt)
-
-  const imageConfig = {
-    aspectRatio,
-    personGeneration: 'allow_adult',
-    imageSize: resolution,
-  } as ImageConfig
 
   const config: GenerateContentConfig = {
     responseModalities: ['IMAGE'],
-    systemInstruction: `You are a photorealistic virtual try-on editor. Output ONLY an edited image — no text.
-
-TASK: Edit the clothing on the person from Image 1 so the final visible garment matches Image 2 exactly.
-
-IDENTITY (NON-NEGOTIABLE):
-- The output MUST show the EXACT SAME PERSON from Image 1
-- Copy their face pixel-for-pixel — preserve every facial feature, skin tone, hair, and body proportion
-- If Image 3 is a face close-up, use it as the definitive identity anchor
-- Do NOT generate a different person or alter any facial features
-
-GARMENT REPLACEMENT (STRICT RULES):
-- FIRST: Mentally STRIP all existing clothing from the affected body area
-- THEN: Apply ONLY the garment from Image 2 onto the bare body area
-- The output must show ONLY the garment from Image 2 — NO traces of the original clothing
-- Do NOT blend, layer, or mix the original clothing with the new garment
-- Do NOT add any clothing item that is not explicitly shown in Image 2 (no extra cardigans, jackets, layers, sleeves, or accessories)
-- PIXEL-PERFECT match: same color, pattern, texture, collar, sleeves, hem, fit, silhouette, and fabric as Image 2
-- If Image 2 shows a model, IGNORE their face/body — only copy the GARMENT
-- Only preserve clothing from Image 1 in body areas NOT covered by the Image 2 garment (e.g. keep pants when replacing only the top)
-
-FORBIDDEN HALLUCINATIONS:
-- Do NOT invent extra layers (cardigans, jackets, vests) not present in Image 2
-- Do NOT keep sleeves, collars, or hems from the person's ORIGINAL clothing in Image 1
-- Do NOT create hybrid garments that mix features from Image 1 and Image 2
-- The ONLY visible garment in the replaced area must be an exact copy of Image 2
-
-REALISM: Photorealistic output. Natural skin, realistic fabric drape. No AI smoothing or CGI look.`,
-    imageConfig,
-    temperature: 0.1,
-    topP: 0.8,
-    topK: 12,
+    systemInstruction: 'You are a virtual try-on tool. You receive two images: first is a person, second is a clothing item. REMOVE all the person\'s current clothing and REPLACE it with the clothing from the second image. The output must show the exact same person (same face, hair, body, pose, background) but wearing ONLY the new clothing. If the second image shows a model wearing the clothes, ignore that model completely — only copy the garment itself. Output one photorealistic image.',
+    imageConfig: {
+      aspectRatio,
+      personGeneration: 'allow_adult',
+      imageSize: resolution,
+    } as ImageConfig,
   }
 
   const startTime = Date.now()
 
-  // Model selection: Pro by default for fidelity, with Flash opt-in for speed/cost.
-  const modelName = requestedModel
-
   const response = await geminiGenerateContent({
-    model: modelName,
+    model: requestedModel,
     contents,
     config,
   })
 
   const duration = ((Date.now() - startTime) / 1000).toFixed(2)
-  if (process.env.NODE_ENV !== 'production') console.log(`🍌 DIRECT TRANSPORT: ${modelName} responded in ${duration}s`)
+  if (isDev) console.log(`🍌 DIRECT TRANSPORT: ${requestedModel} responded in ${duration}s`)
 
   // Extract image from response
   if (response.data) {
@@ -582,50 +474,20 @@ REALISM: Photorealistic output. Natural skin, realistic fabric drape. No AI smoo
 
   if (response.candidates && response.candidates.length > 0) {
     const candidate = response.candidates[0]
-
-    // Check for safety blocks / finish reasons that prevent image output
     const finishReason = (candidate as any).finishReason
     if (finishReason && finishReason !== 'STOP' && finishReason !== 'MAX_TOKENS') {
-      const safetyRatings = (candidate as any).safetyRatings
-      const safetyInfo = safetyRatings
-        ? safetyRatings.map((r: any) => `${r.category}:${r.probability}`).join(', ')
-        : 'unknown'
-      if (process.env.NODE_ENV !== 'production') {
-        console.warn(`⚠️ Gemini blocked output: finishReason=${finishReason}, safety=[${safetyInfo}]`)
-      }
       throw new Error(`Generation blocked by safety filter (${finishReason})`)
     }
-
     if (candidate.content && candidate.content.parts) {
       for (const part of candidate.content.parts) {
         if (part.inlineData && part.inlineData.mimeType?.startsWith('image/')) {
           return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`
         }
       }
-
-      // Log if we got text but no image (shouldn't happen with IMAGE-only modality)
-      const textPart = candidate.content.parts.find(p => p.text)
-      if (textPart && process.env.NODE_ENV !== 'production') {
-        console.warn('⚠️ Gemini returned text instead of image:', textPart.text?.substring(0, 300))
-      }
     }
   }
 
-  // Log the raw response structure for debugging empty outputs
-  if (process.env.NODE_ENV !== 'production') {
-    const debugInfo = {
-      hasData: Boolean(response.data),
-      candidateCount: response.candidates?.length ?? 0,
-      firstCandidate: response.candidates?.[0] ? {
-        finishReason: (response.candidates[0] as any).finishReason,
-        hasParts: Boolean(response.candidates[0].content?.parts?.length),
-        partTypes: response.candidates[0].content?.parts?.map(p => p.inlineData ? 'image' : p.text ? 'text' : 'unknown'),
-      } : null,
-    }
-    console.error('❌ No image in Gemini response. Debug:', JSON.stringify(debugInfo))
-  }
-
-  throw new Error('No image generated by Gemini — the model returned an empty or text-only response')
+  throw new Error('No image generated by Gemini')
 }
 
 // ═══════════════════════════════════════════════════════════════════════

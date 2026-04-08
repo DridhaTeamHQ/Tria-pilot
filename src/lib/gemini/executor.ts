@@ -3,16 +3,18 @@ import Bottleneck from 'bottleneck'
 import { GoogleGenAI, type GenerateContentParameters } from '@google/genai'
 import { getGeminiKey } from '@/lib/config/api-keys'
 
-const GEMINI_MAX_RETRIES = 4
-const BASE_BACKOFF_MS = 1500
+const GEMINI_MAX_RETRIES = 6
+const BASE_BACKOFF_MS = 2000
+const BASE_BACKOFF_IMAGE_MS = 4000 // Image generation models need longer cooldowns
 const RETRYABLE_STATUS_CODES = new Set([429, 503, 529])
+const SINGLE_KEY_429_WAIT_MS = 15_000 // Wait 15s on single-key 429 before retrying
 
 // Rate limit cooldown per key (ms) — if a key hits 429, skip it for this duration
 const KEY_COOLDOWN_MS = 60_000
 
 const proImageLimiter = new Bottleneck({
   maxConcurrent: 1,
-  minTime: 2000,
+  minTime: 5000, // Pro image model has strict RPM limits (~2 RPM free tier)
 })
 
 const flashLimiter = new Bottleneck({
@@ -192,6 +194,8 @@ export class GeminiRateLimitError extends Error {
 async function generateWithBackoff(params: GenerateContentParameters) {
   const pool = initKeyPool()
   const hasMultipleKeys = pool.length > 1
+  const isImageModel = params.model.includes('image') || params.model.includes('pro-image')
+  const baseBackoff = isImageModel ? BASE_BACKOFF_IMAGE_MS : BASE_BACKOFF_MS
   let attempt = 0
   let lastError: unknown = null
 
@@ -219,11 +223,31 @@ async function generateWithBackoff(params: GenerateContentParameters) {
         }
       }
 
+      // On 429 with SINGLE key: wait a mandatory cooldown before retrying
+      // This is critical for image generation models which have strict RPM limits
+      if (status === 429 && !hasMultipleKeys) {
+        const serverRetryMs = parseRetryAfterMs(error)
+        const singleKeyWait = serverRetryMs ?? SINGLE_KEY_429_WAIT_MS
+        const isDev = process.env.NODE_ENV !== 'production'
+        if (isDev) {
+          console.log(`⏳ Single-key 429: waiting ${(singleKeyWait / 1000).toFixed(1)}s before retry (attempt ${attempt + 1}/${GEMINI_MAX_RETRIES})`)
+        }
+        attempt += 1
+        if (attempt >= GEMINI_MAX_RETRIES) {
+          throw new GeminiRateLimitError(
+            `Gemini rate limit persisted after ${GEMINI_MAX_RETRIES} attempts`,
+            singleKeyWait
+          )
+        }
+        await sleep(singleKeyWait)
+        continue
+      }
+
       if (!RETRYABLE_STATUS_CODES.has(status as number)) throw error
 
       const backoffMs =
         parseRetryAfterMs(error) ??
-        BASE_BACKOFF_MS * Math.pow(2, attempt) + randomJitterMs()
+        baseBackoff * Math.pow(2, attempt) + randomJitterMs()
 
       attempt += 1
       if (attempt >= GEMINI_MAX_RETRIES) {
