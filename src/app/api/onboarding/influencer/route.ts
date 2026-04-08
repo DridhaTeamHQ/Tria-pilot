@@ -208,6 +208,7 @@ export async function POST(request: Request) {
 
     // Check if onboarding is complete
     const hasFullName = fullName || profile.full_name
+    const hasDateOfBirth = Boolean(normalizedDateOfBirth || currentMetadata.date_of_birth)
     const hasGender = data.gender || infProfile?.gender
     const hasNiches = (data.niches && data.niches.length > 0) ||
       (Array.isArray(infProfile?.niches) && infProfile.niches.length > 0)
@@ -216,7 +217,7 @@ export async function POST(request: Request) {
     const existingSocials = normalizeSocials(infProfile?.socials)
     const hasSocials = Object.keys(normalizedSocials).length > 0 || Object.keys(existingSocials).length > 0
 
-    const isCompleted = Boolean(hasFullName && hasGender && hasNiches && hasCategories && hasSocials)
+    const isCompleted = Boolean(hasFullName && hasDateOfBirth && hasGender && hasNiches && hasCategories && hasSocials)
 
     const currentApprovalStatus = String(profile.approval_status || 'none').toLowerCase()
 

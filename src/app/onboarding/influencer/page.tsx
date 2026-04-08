@@ -11,6 +11,7 @@ import { OnboardingCard } from '@/components/brutal/onboarding/OnboardingCard'
 import { ChoiceChip } from '@/components/brutal/onboarding/ChoiceChip'
 import { BrutalInput, BrutalTextarea } from '@/components/brutal/onboarding/BrutalInput'
 import { DecorativeShapes } from '@/components/brutal/onboarding/DecorativeShapes'
+import { getGenerationTagFromDob, normalizeDateOfBirth } from '@/lib/profile-demographics'
 
 const NICHE_OPTIONS = ['Fashion', 'Lifestyle', 'Tech', 'Beauty', 'Fitness', 'Travel', 'Food', 'Gaming']
 const CATEGORY_OPTIONS = ['Casual', 'Formal', 'Streetwear', 'Vintage', 'Sustainable', 'Luxury', 'Athleisure']
@@ -394,10 +395,13 @@ export default function InfluencerOnboardingPage() {
   }, [formData.socials])
 
   const getGenerationLabel = useCallback((dateString: string) => {
-    if (!dateString) return null
-    const year = new Date(dateString).getUTCFullYear()
+    const normalized = normalizeDateOfBirth(dateString)
+    if (!normalized) return null
+    const year = new Date(`${normalized}T00:00:00.000Z`).getUTCFullYear()
     if (!Number.isFinite(year)) return null
-    return year >= 2005 ? `Gen Z (${year})` : `Millennial (${year})`
+    const generationTag = getGenerationTagFromDob(normalized)
+    if (!generationTag) return null
+    return `${generationTag} (${year})`
   }, [])
 
   // Check if current step has required data filled

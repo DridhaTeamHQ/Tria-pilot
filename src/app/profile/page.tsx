@@ -841,7 +841,7 @@ export default function ProfilePage() {
               </div>
             </BrutalCard>
 
-            {/* ── REFERENCE LIBRARY ── */}
+            {/* Reference library */}
             <BrutalCard title="Reference Library">
               <button type="button"
                 onClick={() => toggleSection('character')}

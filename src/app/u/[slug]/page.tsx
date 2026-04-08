@@ -93,9 +93,19 @@ export default async function PublicInfluencerProfilePage({
     .eq('user_id', profile.id)
     .maybeSingle()
 
-  const { data: authLookup } = await service.auth.admin.getUserById(profile.id)
-  const dateOfBirth = normalizeDateOfBirth(authLookup.user?.user_metadata?.date_of_birth)
-  const generationTag = getGenerationTagFromDob(dateOfBirth)
+  let dateOfBirth: string | null = null
+  let generationTag: string | null = null
+  try {
+    const { data: authLookup, error: authLookupError } = await service.auth.admin.getUserById(profile.id)
+    if (authLookupError) {
+      console.warn('Public profile demographics lookup failed:', authLookupError.message)
+    } else {
+      dateOfBirth = normalizeDateOfBirth(authLookup.user?.user_metadata?.date_of_birth)
+      generationTag = getGenerationTagFromDob(dateOfBirth)
+    }
+  } catch (error) {
+    console.warn('Public profile demographics lookup failed:', error)
+  }
 
   const socials = (influencerProfile?.socials || {}) as Partial<Record<SocialKey, string>>
   const socialEntries = (Object.entries(socials) as Array<[SocialKey, string]>)
