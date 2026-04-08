@@ -39,7 +39,7 @@ const GLOBAL_ACTIVE_LIMIT = Math.max(
 const GLOBAL_ACTIVE_KEY = 'tryon:inline:active_generations'
 const INTER_GENERATION_DELAY_MS = Math.max(
   0,
-  Number.parseInt(process.env.TRYON_INTER_GENERATION_DELAY_MS || '10000', 10) || 10000
+  Number.parseInt(process.env.TRYON_INTER_GENERATION_DELAY_MS || '3000', 10) || 3000
 )
 const DEADLINE_BUFFER_MS = 25_000 // Stop generating 25s before maxDuration to allow cleanup/response
 const GARMENT_GUARDRAIL_MIN_CONFIDENCE = 60
@@ -906,7 +906,7 @@ async function handlePresetlessTryOnRequest(params: {
 
         // If rate-limited, add an extra cooldown before the next attempt
         if (error instanceof GeminiRateLimitError) {
-          const extraCooldown = Math.min(error.retryAfterMs || 15_000, 30_000)
+          const extraCooldown = Math.min(error.retryAfterMs || 5_000, 5_000)
           if (isDev) console.log(`⏳ Rate limit cooldown: waiting ${(extraCooldown / 1000).toFixed(1)}s before next candidate...`)
           await sleep(extraCooldown)
         }

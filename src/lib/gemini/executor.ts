@@ -3,11 +3,11 @@ import Bottleneck from 'bottleneck'
 import { GoogleGenAI, type GenerateContentParameters } from '@google/genai'
 import { getGeminiKey } from '@/lib/config/api-keys'
 
-const GEMINI_MAX_RETRIES = 6
-const BASE_BACKOFF_MS = 2000
-const BASE_BACKOFF_IMAGE_MS = 4000 // Image generation models need longer cooldowns
+const GEMINI_MAX_RETRIES = 3
+const BASE_BACKOFF_MS = 1500
+const BASE_BACKOFF_IMAGE_MS = 3000
 const RETRYABLE_STATUS_CODES = new Set([429, 503, 529])
-const SINGLE_KEY_429_WAIT_MS = 15_000 // Wait 15s on single-key 429 before retrying
+const SINGLE_KEY_429_WAIT_MS = 8_000 // Wait 8s on single-key 429 before retrying
 
 // Rate limit cooldown per key (ms) — if a key hits 429, skip it for this duration
 const KEY_COOLDOWN_MS = 60_000
