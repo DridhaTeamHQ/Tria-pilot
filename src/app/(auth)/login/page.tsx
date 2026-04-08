@@ -15,17 +15,34 @@ import { showErrorToast, showInfoToast, showSuccessToast, showWarningToast } fro
 export default function LoginPage() {
   return (
     <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center bg-[#F9F8F4]">
-          <div className="text-center">
-            <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-[#FF8C69] border-t-transparent" />
-            <p className="font-medium text-black/60">Loading...</p>
-          </div>
-        </div>
-      }
+      fallback={<LoginPageShell />}
     >
       <LoginContent />
     </Suspense>
+  )
+}
+
+function LoginPageShell() {
+  return (
+    <div className="min-h-screen bg-[#F9F8F4] px-4 py-10">
+      <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-6xl items-center justify-center">
+        <div className="grid w-full overflow-hidden rounded-[32px] border-[3px] border-black bg-white shadow-[10px_10px_0_0_rgba(0,0,0,1)] lg:grid-cols-[1.02fr_0.98fr]">
+          <div className="hidden min-h-[620px] border-r-[3px] border-black bg-[#FF8C69]/10 lg:block" />
+          <div className="flex min-h-[620px] items-center justify-center px-6 py-10 sm:px-8">
+            <div className="w-full max-w-md rounded-[24px] border-[3px] border-black bg-[#FFFDF8] p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)]">
+              <div className="mb-6 h-7 w-40 rounded-full bg-black/10" />
+              <div className="mb-3 h-4 w-56 rounded-full bg-black/10" />
+              <div className="mb-8 h-4 w-44 rounded-full bg-black/10" />
+              <div className="space-y-4">
+                <div className="h-14 rounded-[16px] border-[2px] border-black/15 bg-white/70" />
+                <div className="h-14 rounded-[16px] border-[2px] border-black/15 bg-white/70" />
+                <div className="h-12 rounded-full border-[3px] border-black/20 bg-[#FF8C69]/20" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 

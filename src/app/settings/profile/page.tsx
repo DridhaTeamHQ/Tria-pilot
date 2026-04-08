@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { toast } from '@/lib/simple-sonner'
 import { ArrowLeft, Mail, Shield, Sparkles, Save, Lock } from 'lucide-react'
@@ -22,6 +24,8 @@ function BrutalCard({ children, className = '', title }: { children: React.React
 }
 
 export default function SettingsProfilePage() {
+  const router = useRouter()
+  const queryClient = useQueryClient()
   const { data: user, isLoading } = useUser()
   const [newEmail, setNewEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -105,9 +109,8 @@ export default function SettingsProfilePage() {
       if (!res.ok) throw new Error(data?.error || 'Failed to update date of birth')
 
       toast.success('Date of birth updated')
-      if (typeof window !== 'undefined') {
-        window.location.reload()
-      }
+      await queryClient.invalidateQueries({ queryKey: ['user'] })
+      router.refresh()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to update date of birth')
     } finally {

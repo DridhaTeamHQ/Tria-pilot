@@ -225,8 +225,9 @@ export async function updateSession(request: NextRequest) {
         return applySecurityHeaders(redirectResponse)
     }
 
-    // Authenticated users on root → redirect to the public marketplace
+    // Authenticated users on root -> redirect to the public marketplace
     // so signed-in users do not bounce through dashboard/pending routing
     // when they open the main domain.
     return applySecurityHeaders(supabaseResponse)
 }
+

@@ -2,12 +2,14 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { toast } from '@/lib/simple-sonner'
 import { ArrowRight, Shield, Sparkles, KeyRound } from 'lucide-react'
 import { DecorativeShapes } from '@/components/brutal/onboarding/DecorativeShapes'
 
 export default function AdminRegisterPage() {
+  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -51,7 +53,8 @@ export default function AdminRegisterPage() {
       }
 
       toast.success('Admin account created. You can sign in now.')
-      window.location.href = '/admin/login'
+      router.replace('/admin/login')
+      router.refresh()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to create admin account')
     } finally {
