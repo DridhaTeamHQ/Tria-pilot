@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from '@/lib/simple-sonner'
 import {
@@ -25,6 +25,7 @@ import { useQueryClient } from '@tanstack/react-query'
 
 export default function Header() {
     const pathname = usePathname()
+    const router = useRouter()
     const queryClient = useQueryClient()
     const { data: user, isLoading } = useUser()
     const [scrolled, setScrolled] = useState(false)
@@ -81,19 +82,19 @@ export default function Header() {
                 setAuthToast('logged_out')
             }
 
-            if (typeof window !== 'undefined') {
-                window.location.replace('/')
-                return
-            }
+            setMobileMenuOpen(false)
+            router.replace('/')
+            router.refresh()
+            return
         } catch (error) {
             console.error('Logout error:', error)
             toast.error('Failed to logout cleanly')
-            if (typeof window !== 'undefined') {
-                window.location.replace('/')
-                return
-            }
+            setMobileMenuOpen(false)
+            router.replace('/')
+            router.refresh()
+            return
         }
-    }, [isLoggingOut, queryClient])
+    }, [isLoggingOut, queryClient, router])
 
     const isHomePage = pathname === '/'
 

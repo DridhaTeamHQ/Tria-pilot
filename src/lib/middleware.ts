@@ -228,16 +228,5 @@ export async function updateSession(request: NextRequest) {
     // Authenticated users on root → redirect to the public marketplace
     // so signed-in users do not bounce through dashboard/pending routing
     // when they open the main domain.
-    if (user && pathname === '/') {
-        const url = request.nextUrl.clone()
-        url.pathname = '/marketplace'
-        const redirectResponse = NextResponse.redirect(url)
-
-        supabaseResponse.cookies.getAll().forEach(cookie => {
-            redirectResponse.cookies.set(cookie.name, cookie.value, cookie as any)
-        })
-        return applySecurityHeaders(redirectResponse)
-    }
-
     return applySecurityHeaders(supabaseResponse)
 }

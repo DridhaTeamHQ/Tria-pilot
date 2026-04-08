@@ -36,7 +36,7 @@ export default function CompleteProfilePage() {
       const { data: auth } = await supabase.auth.getUser()
       if (!auth?.user?.email) {
         toast.error('Please sign in again')
-        router.push('/login')
+        router.replace('/login')
         return
       }
 

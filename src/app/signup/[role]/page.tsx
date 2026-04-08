@@ -71,12 +71,13 @@ export default function SignupPage() {
 
       if (data?.requiresManualLogin) {
         toast.success('Account created. Please sign in.')
-        router.push('/login')
+        router.replace('/login')
         return
       }
 
       toast.success('Account created!')
-      router.push('/dashboard')
+      router.replace(isInfluencer ? '/onboarding/influencer' : '/onboarding/brand')
+      router.refresh()
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Signup failed'
       const normalized = message.toLowerCase()
