@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useTransition, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from '@/lib/simple-sonner'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, MailCheck, Upload, Trash2, ImagePlus, RefreshCw } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Loader2, Upload, Trash2, ImagePlus, RefreshCw } from 'lucide-react'
 
 // Neo-Brutal Components
 import { OnboardingCard } from '@/components/brutal/onboarding/OnboardingCard'
@@ -105,9 +105,6 @@ export default function InfluencerOnboardingPage() {
   })
 
   const [emailConfirmed, setEmailConfirmed] = useState(false)
-  const [emailOtp, setEmailOtp] = useState('')
-  const [emailVerificationSent, setEmailVerificationSent] = useState(false)
-  const [emailVerificationLoading, setEmailVerificationLoading] = useState(false)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -168,10 +165,6 @@ export default function InfluencerOnboardingPage() {
             email: String(data?.email || prev.email || ''),
           }))
         }
-
-        setEmailConfirmed(Boolean(data?.emailVerified))
-        setEmailVerificationSent(Boolean(data?.emailVerified))
-        setEmailOtp('')
 
         setDataLoaded(true)
       } catch {
@@ -411,67 +404,6 @@ export default function InfluencerOnboardingPage() {
     return `${generationTag} (${year})`
   }, [])
 
-  const handleSendEmailVerification = async () => {
-    const email = formData.email.trim().toLowerCase()
-    if (!email) {
-      toast.error('Please enter your email first.')
-      return
-    }
-
-    setEmailVerificationLoading(true)
-    try {
-      const res = await fetch('/api/auth/onboarding-email-verification', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data?.error || 'Failed to send verification code')
-
-      setEmailVerificationSent(true)
-      setEmailConfirmed(false)
-      toast.success('Verification code sent to your email.')
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to send verification code')
-    } finally {
-      setEmailVerificationLoading(false)
-    }
-  }
-
-  const handleVerifyEmailCode = async () => {
-    const email = formData.email.trim().toLowerCase()
-    const code = emailOtp.trim()
-    if (!email) {
-      toast.error('Please enter your email first.')
-      return
-    }
-    if (!/^\d{6}$/.test(code)) {
-      toast.error('Enter the 6-digit verification code.')
-      return
-    }
-
-    setEmailVerificationLoading(true)
-    try {
-      const res = await fetch('/api/auth/onboarding-email-verification', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, code }),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data?.error || 'Failed to verify email')
-
-      setFormData((prev) => ({ ...prev, email: String(data?.email || email) }))
-      setEmailConfirmed(true)
-      setEmailVerificationSent(true)
-      setEmailOtp('')
-      toast.success('Email verified. You can continue now.')
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to verify email')
-    } finally {
-      setEmailVerificationLoading(false)
-    }
-  }
-
   // Check if current step has required data filled
   const canProceed = () => {
     switch (step) {
@@ -689,62 +621,23 @@ export default function InfluencerOnboardingPage() {
               onChange={(e) => {
                 setFormData({ ...formData, email: e.target.value })
                 setEmailConfirmed(false)
-                setEmailVerificationSent(false)
-                setEmailOtp('')
               }}
             />
-            <div className="rounded-2xl border-[3px] border-black bg-white p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] space-y-4">
-              <div className="flex items-start justify-between gap-4">
+            <div className="rounded-2xl border-[3px] border-black bg-white p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={emailConfirmed}
+                  onChange={(e) => setEmailConfirmed(e.target.checked)}
+                  className="mt-1 h-5 w-5 rounded border-2 border-black accent-[#FF8C69]"
+                />
                 <div>
-                  <p className="text-sm font-black uppercase tracking-[0.12em] text-black">Verify email</p>
+                  <p className="text-sm font-black uppercase tracking-[0.12em] text-black">Confirm email</p>
                   <p className="mt-1 text-sm font-medium leading-relaxed text-black/65">
                     We&apos;ll use this email for approvals, onboarding updates, and important account communication.
                   </p>
                 </div>
-                {emailConfirmed && (
-                  <div className="inline-flex items-center gap-2 rounded-full border-[2px] border-black bg-[#B4F056] px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em]">
-                    <CheckCircle2 className="h-4 w-4" />
-                    Verified
-                  </div>
-                )}
-              </div>
-
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <button
-                  type="button"
-                  onClick={handleSendEmailVerification}
-                  disabled={emailVerificationLoading || !formData.email.trim()}
-                  className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border-[3px] border-black bg-[#FFD93D] px-5 text-sm font-black uppercase tracking-[0.12em] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {emailVerificationLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <MailCheck className="h-4 w-4" />}
-                  {emailVerificationSent ? 'Resend Code' : 'Verify Email'}
-                </button>
-
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength={6}
-                  placeholder="Enter 6-digit code"
-                  value={emailOtp}
-                  onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  className="h-12 flex-1 rounded-xl border-[3px] border-black bg-white px-4 text-sm font-bold tracking-[0.18em] text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] outline-none placeholder:text-black/35"
-                />
-
-                <button
-                  type="button"
-                  onClick={handleVerifyEmailCode}
-                  disabled={emailVerificationLoading || emailConfirmed || emailOtp.trim().length !== 6}
-                  className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border-[3px] border-black bg-[#FF8C69] px-5 text-sm font-black uppercase tracking-[0.12em] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {emailVerificationLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                  Confirm
-                </button>
-              </div>
-
-              <p className="text-xs font-bold text-black/55">
-                Change the email if needed, then use the verification code from your inbox before moving to the next step.
-              </p>
+              </label>
             </div>
           </div>
         )

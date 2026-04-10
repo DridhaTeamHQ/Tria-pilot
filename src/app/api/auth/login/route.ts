@@ -72,35 +72,6 @@ async function signInByCandidates(
   return { data: null, emailUsed: null, error: lastError }
 }
 
-async function findEmailByUsername(identifier: string): Promise<string | null> {
-  try {
-    const service = createServiceClient()
-    const perPage = 1000
-    let page = 1
-
-    while (true) {
-      const { data, error } = await service.auth.admin.listUsers({ page, perPage })
-      if (error) {
-        console.warn('Username lookup via auth admin failed:', error)
-        return null
-      }
-
-      const users = data?.users || []
-      const match = users.find((user) => {
-        const username = normalizeIdentifier(String(user.user_metadata?.username || ''))
-        return username === identifier
-      })
-
-      if (match?.email) return match.email
-      if (users.length < perPage) return null
-      page += 1
-    }
-  } catch (error) {
-    console.warn('Username lookup via service role unavailable:', error)
-    return null
-  }
-}
-
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => null)
@@ -121,11 +92,6 @@ export async function POST(request: Request) {
       : [usernameToSyntheticEmail(identifier)]
 
     if (!isEmailIdentifier(identifier)) {
-      const emailFromUsername = await findEmailByUsername(identifier)
-      if (emailFromUsername) {
-        candidateEmails = Array.from(new Set([...candidateEmails, emailFromUsername]))
-      }
-
       try {
         const lookupClient = getPrivilegedClient(supabase)
         const { data: profileMatches, error: profileMatchError } = await lookupClient

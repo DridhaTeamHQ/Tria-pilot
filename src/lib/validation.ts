@@ -22,7 +22,6 @@ const usernameSchema = z
 export const registerSchema = z
   .object({
     username: usernameSchema,
-    email: emailSchema,
     password: passwordSchema,
     role: z.enum(['INFLUENCER', 'BRAND']),
     name: nameSchema.optional(),

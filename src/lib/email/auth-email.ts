@@ -84,21 +84,6 @@ export function buildEmailConfirmationEmail(params: { confirmUrl: string }): Ema
   }
 }
 
-export function buildEmailOtpVerificationEmail(params: { code: string }): EmailTemplate {
-  const content = renderLayout(
-    'Verify your email',
-    `Use this one-time code to verify your email address in Kiwikoo: ${params.code}`,
-    'Open Kiwikoo',
-    'https://kiwikoo.com/login',
-    'This code expires in 10 minutes. If you did not request it, you can ignore this email.'
-  )
-
-  return {
-    subject: 'Your Kiwikoo verification code',
-    ...content,
-  }
-}
-
 export function buildPasswordResetEmail(params: { resetUrl: string }): EmailTemplate {
   const content = renderLayout(
     'Reset your password',
