@@ -210,14 +210,12 @@ export async function POST(request: Request) {
     const hasFullName = fullName || profile.full_name
     const hasDateOfBirth = Boolean(normalizedDateOfBirth || currentMetadata.date_of_birth)
     const hasGender = data.gender || infProfile?.gender
-    const hasNiches = (data.niches && data.niches.length > 0) ||
-      (Array.isArray(infProfile?.niches) && infProfile.niches.length > 0)
     const hasCategories = (data.preferredCategories && data.preferredCategories.length > 0) ||
       (Array.isArray(infProfile?.preferred_categories) && infProfile.preferred_categories.length > 0)
     const existingSocials = normalizeSocials(infProfile?.socials)
     const hasSocials = Object.keys(normalizedSocials).length > 0 || Object.keys(existingSocials).length > 0
 
-    const isCompleted = Boolean(hasFullName && hasDateOfBirth && hasGender && hasNiches && hasCategories && hasSocials)
+    const isCompleted = Boolean(hasFullName && hasDateOfBirth && hasGender && hasCategories && hasSocials)
 
     const currentApprovalStatus = String(profile.approval_status || 'none').toLowerCase()
 

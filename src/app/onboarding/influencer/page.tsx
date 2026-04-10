@@ -13,9 +13,8 @@ import { BrutalInput, BrutalTextarea } from '@/components/brutal/onboarding/Brut
 import { DecorativeShapes } from '@/components/brutal/onboarding/DecorativeShapes'
 import { getGenerationTagFromDob, normalizeDateOfBirth } from '@/lib/profile-demographics'
 
-const NICHE_OPTIONS = ['Fashion', 'Lifestyle', 'Tech', 'Beauty', 'Fitness', 'Travel', 'Food', 'Gaming']
 const CATEGORY_OPTIONS = ['Casual', 'Formal', 'Streetwear', 'Vintage', 'Sustainable', 'Luxury', 'Athleisure']
-const TOTAL_STEPS = 7
+const TOTAL_STEPS = 6
 
 type ReferencePhotoSource = 'app_upload' | 'migrated_profile' | 'migrated_identity'
 type ReferencePhotoStatus = 'pending' | 'approved' | 'rejected'
@@ -417,14 +416,12 @@ export default function InfluencerOnboardingPage() {
       case 2:
         return Boolean(formData.email.trim() && emailConfirmed)
       case 3:
-        return formData.niches.length > 0
-      case 4:
         return formData.preferredCategories.length > 0
-      case 5:
+      case 4:
         return hasAtLeastOneSocial()
-      case 6:
+      case 5:
         return true
-      case 7:
+      case 6:
         return true
       default:
         return true
@@ -437,9 +434,8 @@ export default function InfluencerOnboardingPage() {
       const messages: Record<number, string> = {
         1: 'Please complete your first name, last name, date of birth, and gender.',
         2: 'Please confirm your email to continue.',
-        3: 'Please select at least one niche.',
-        4: 'Please select at least one interest.',
-        5: 'Please add at least one social account.',
+        3: 'Please select at least one interest.',
+        4: 'Please add at least one social account.',
       }
       toast.error(messages[step] || 'Please complete this step.')
       return
@@ -490,7 +486,7 @@ export default function InfluencerOnboardingPage() {
     }
   }
 
-  const toggleSelection = (field: 'niches' | 'audienceType' | 'preferredCategories', value: string) => {
+  const toggleSelection = (field: 'audienceType' | 'preferredCategories', value: string) => {
     setFormData((prev) => ({
       ...prev,
       [field]: prev[field].includes(value)
@@ -503,11 +499,10 @@ export default function InfluencerOnboardingPage() {
     switch (step) {
       case 1: return 'About Yourself'
       case 2: return 'Confirm Email'
-      case 3: return 'Your Niches'
-      case 4: return 'Your Interests'
-      case 5: return 'Social Media'
-      case 6: return 'Bio'
-      case 7: return 'Reference Library'
+      case 3: return 'Your Interests'
+      case 4: return 'Social Media'
+      case 5: return 'Bio'
+      case 6: return 'Reference Library'
       default: return 'Profile Setup'
     }
   }
@@ -644,20 +639,6 @@ export default function InfluencerOnboardingPage() {
 
       case 3:
         return (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {NICHE_OPTIONS.map((niche) => (
-              <ChoiceChip
-                key={niche}
-                label={niche}
-                selected={formData.niches.includes(niche)}
-                onClick={() => toggleSelection('niches', niche)}
-              />
-            ))}
-          </div>
-        )
-
-      case 4:
-        return (
           <div className="space-y-3">
             <p className="text-sm font-bold text-black/60">
               Pick the style lanes and product spaces you are most interested in creating around.
@@ -675,7 +656,7 @@ export default function InfluencerOnboardingPage() {
           </div>
         )
 
-      case 5:
+      case 4:
         return (
           <div className="space-y-5">
             <BrutalInput
@@ -720,7 +701,7 @@ export default function InfluencerOnboardingPage() {
           </div>
         )
 
-      case 6:
+      case 5:
         return (
           <BrutalTextarea
             label="Tell us about your style"
@@ -730,7 +711,7 @@ export default function InfluencerOnboardingPage() {
           />
         )
 
-      case 7:
+      case 6:
         return (
           <div className="space-y-5">
             <div className="bg-[#B4F056] border-[3px] border-black rounded-xl p-4 flex items-center gap-3 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
