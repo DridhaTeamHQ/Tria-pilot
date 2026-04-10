@@ -1,7 +1,30 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
 import { registerSchema } from '@/lib/validation'
-import { normalizeUsername, usernameToSyntheticEmail } from '@/lib/auth-username'
+import { normalizeUsername } from '@/lib/auth-username'
+
+async function findExistingUserByUsernameOrEmail(service: ReturnType<typeof createServiceClient>, username: string, email: string) {
+  const perPage = 1000
+  let page = 1
+
+  while (true) {
+    const { data, error } = await service.auth.admin.listUsers({ page, perPage })
+    if (error) {
+      throw error
+    }
+
+    const users = data?.users || []
+    const match = users.find((user) => {
+      const userEmail = user.email?.trim().toLowerCase()
+      const userUsername = String(user.user_metadata?.username || '').trim().toLowerCase()
+      return userEmail === email || userUsername === username
+    })
+
+    if (match) return match
+    if (users.length < perPage) return null
+    page += 1
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -12,9 +35,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid signup data' }, { status: 400 })
     }
 
-    const { username: rawUsername, password, role } = parsed.data
+    const { username: rawUsername, email: rawEmail, password, role } = parsed.data
     const username = normalizeUsername(rawUsername)
-    const email = usernameToSyntheticEmail(username)
+    const email = rawEmail.trim().toLowerCase()
     const normalizedRole = role.toLowerCase() === 'brand' ? 'brand' : 'influencer'
     const supabase = await createClient()
 
@@ -58,6 +81,16 @@ export async function POST(request: Request) {
 
     try {
       const service = createServiceClient()
+      const existingUser = await findExistingUserByUsernameOrEmail(service, username, email)
+
+      if (existingUser) {
+        const existingEmail = existingUser.email?.trim().toLowerCase()
+        const existingUsername = String(existingUser.user_metadata?.username || '').trim().toLowerCase()
+        return NextResponse.json(
+          { error: existingEmail === email ? 'Email already exists. Please sign in.' : 'Username already exists. Please sign in.' },
+          { status: 409 }
+        )
+      }
 
       const { data: createdUser, error: createUserError } = await service.auth.admin.createUser({
         email,

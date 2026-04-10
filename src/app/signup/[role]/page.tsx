@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { toast } from '@/lib/simple-sonner'
-import { ArrowRight, Eye, EyeOff, Loader2, Lock, User } from 'lucide-react'
+import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, User } from 'lucide-react'
 import { createClient } from '@/lib/auth-client'
 import { getPublicSiteUrlClient } from '@/lib/site-url'
 
@@ -25,6 +25,7 @@ export default function SignupPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [formData, setFormData] = useState({
     username: '',
+    email: '',
     password: '',
     confirmPassword: '',
     agreeTerms: false,
@@ -39,6 +40,10 @@ export default function SignupPage() {
     }
     if (formData.username.trim().length < 3) {
       toast.error('Username must be at least 3 characters')
+      return
+    }
+    if (!formData.email.trim()) {
+      toast.error('Please enter your email address')
       return
     }
     if (formData.password !== formData.confirmPassword) {
@@ -59,6 +64,7 @@ export default function SignupPage() {
         credentials: 'include',
         body: JSON.stringify({
           username: formData.username.trim().toLowerCase(),
+          email: formData.email.trim().toLowerCase(),
           password: formData.password,
           role: isInfluencer ? 'INFLUENCER' : 'BRAND',
         }),
@@ -67,6 +73,12 @@ export default function SignupPage() {
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
         throw new Error(data?.error || 'Signup failed')
+      }
+
+      if (data?.requiresEmailVerification) {
+        toast.success('Verification email sent. Please check your inbox before signing in.')
+        router.replace('/login')
+        return
       }
 
       if (data?.requiresManualLogin) {
@@ -256,6 +268,7 @@ export default function SignupPage() {
 
 type FormState = {
   username: string
+  email: string
   password: string
   confirmPassword: string
   agreeTerms: boolean
@@ -315,6 +328,17 @@ function SignupCard({
             placeholder="your username"
             value={formData.username}
             onChange={(e) => setFormData((prev) => ({ ...prev, username: e.target.value }))}
+            required
+            className="h-14 w-full rounded-2xl border-[3px] border-black bg-white pl-16 pr-4 text-base font-semibold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none transition-all placeholder:text-black/35 focus:translate-x-[2px] focus:translate-y-[2px] focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+          />
+        </AuthField>
+
+        <AuthField label="Email" icon={<Mail className="h-4 w-4 text-black" strokeWidth={2.5} />} iconBg="#FF8C69">
+          <input
+            type="email"
+            placeholder="you@example.com"
+            value={formData.email}
+            onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
             required
             className="h-14 w-full rounded-2xl border-[3px] border-black bg-white pl-16 pr-4 text-base font-semibold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none transition-all placeholder:text-black/35 focus:translate-x-[2px] focus:translate-y-[2px] focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
           />

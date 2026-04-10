@@ -112,11 +112,8 @@ export async function POST(request: Request) {
     const fullName = [data.firstName?.trim(), data.lastName?.trim()].filter(Boolean).join(' ').trim()
     const normalizedDateOfBirth = normalizeDateOfBirth(data.dateOfBirth)
 
-    if (data.email && profile.email && data.email.trim().toLowerCase() !== String(profile.email).toLowerCase()) {
-      return NextResponse.json({ error: 'Email confirmation does not match your account email' }, { status: 400 })
-    }
-
     const currentMetadata = (authUser.user_metadata || {}) as Record<string, unknown>
+    const verifiedEmail = String(currentMetadata.onboarding_verified_email || '').trim().toLowerCase()
     const nextMetadata: Record<string, unknown> = {
       ...currentMetadata,
       date_of_birth: normalizedDateOfBirth,
@@ -209,6 +206,7 @@ export async function POST(request: Request) {
     // Check if onboarding is complete
     const hasFullName = fullName || profile.full_name
     const hasDateOfBirth = Boolean(normalizedDateOfBirth || currentMetadata.date_of_birth)
+    const hasVerifiedEmail = Boolean(data.email?.trim().toLowerCase() && verifiedEmail === data.email.trim().toLowerCase())
     const hasGender = data.gender || infProfile?.gender
     const hasNiches = (data.niches && data.niches.length > 0) ||
       (Array.isArray(infProfile?.niches) && infProfile.niches.length > 0)
@@ -217,7 +215,7 @@ export async function POST(request: Request) {
     const existingSocials = normalizeSocials(infProfile?.socials)
     const hasSocials = Object.keys(normalizedSocials).length > 0 || Object.keys(existingSocials).length > 0
 
-    const isCompleted = Boolean(hasFullName && hasDateOfBirth && hasGender && hasNiches && hasCategories && hasSocials)
+    const isCompleted = Boolean(hasFullName && hasDateOfBirth && hasVerifiedEmail && hasGender && hasNiches && hasCategories && hasSocials)
 
     const currentApprovalStatus = String(profile.approval_status || 'none').toLowerCase()
 
@@ -303,11 +301,14 @@ export async function GET() {
     const metadata = (authLookup.user?.user_metadata || authUser.user_metadata || {}) as Record<string, unknown>
     const dateOfBirth = normalizeDateOfBirth(metadata.date_of_birth)
     const generationTag = getGenerationTagFromDob(dateOfBirth)
+    const verifiedEmail = String(metadata.onboarding_verified_email || '').trim().toLowerCase()
 
     return NextResponse.json({
       onboardingCompleted: profile.onboarding_completed || false,
       approvalStatus: (profile.approval_status || 'none').toLowerCase(),
       email: profile.email || '',
+      emailVerified: Boolean(verifiedEmail && verifiedEmail === String(profile.email || '').trim().toLowerCase()),
+      verifiedEmail,
       fullName: profile.full_name || '',
       dateOfBirth,
       generationTag,
