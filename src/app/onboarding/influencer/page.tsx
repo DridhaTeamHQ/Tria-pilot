@@ -129,7 +129,7 @@ export default function InfluencerOnboardingPage() {
         if (data.onboardingCompleted && !allowResubmission) {
           setRedirectChecking(false)
           if (approvalStatus === 'approved') {
-            router.replace('/influencer/dashboard')
+            router.replace('/marketplace')
           } else {
             router.replace('/influencer/pending')
           }
@@ -475,7 +475,7 @@ export default function InfluencerOnboardingPage() {
           style: { background: '#FFD93D', border: '2px solid black', color: 'black', fontWeight: 'bold' }
         })
         // Redirect to pending approval page (admin must approve before dashboard access)
-        router.replace('/influencer/pending?resubmitted=1')
+        router.replace(typeof data.redirectTo === 'string' && data.redirectTo ? data.redirectTo : '/influencer/pending')
       } else {
         toast.error('Please fill all required fields')
       }

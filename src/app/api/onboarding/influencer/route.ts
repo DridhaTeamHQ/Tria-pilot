@@ -240,10 +240,16 @@ export async function POST(request: Request) {
       }
     }
 
+    const redirectTo = isCompleted
+      ? currentApprovalStatus === 'rejected'
+        ? '/influencer/pending?resubmitted=1'
+        : '/influencer/pending'
+      : null
+
     return NextResponse.json({
       success: true,
       onboardingCompleted: isCompleted,
-      redirectTo: isCompleted ? '/influencer/pending?resubmitted=1' : null,
+      redirectTo,
     })
   } catch (error) {
     console.error('Onboarding error:', error)
