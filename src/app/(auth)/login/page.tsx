@@ -1,7 +1,7 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, LayoutGroup } from 'framer-motion'
 import Link from 'next/link'
 import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react'
@@ -12,44 +12,28 @@ import { getPublicSiteUrlClient } from '@/lib/site-url'
 import { isSyntheticEmail } from '@/lib/auth-username'
 import { showErrorToast, showInfoToast, showSuccessToast, showWarningToast } from '@/lib/kiwikoo-toast'
 
+type LoginQueryState = {
+  redirect: string | null
+  from: string | null
+  confirmed: string | null
+  error: string | null
+  details: string | null
+  requested: string | null
+  actual: string | null
+}
+
 export default function LoginPage() {
-  return (
-    <Suspense
-      fallback={<LoginPageShell />}
-    >
-      <LoginContent />
-    </Suspense>
-  )
-}
-
-function LoginPageShell() {
-  return (
-    <div className="min-h-screen bg-[#F9F8F4] px-4 py-10">
-      <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-6xl items-center justify-center">
-        <div className="grid w-full overflow-hidden rounded-[32px] border-[3px] border-black bg-white shadow-[10px_10px_0_0_rgba(0,0,0,1)] lg:grid-cols-[1.02fr_0.98fr]">
-          <div className="hidden min-h-[620px] border-r-[3px] border-black bg-[#FF8C69]/10 lg:block" />
-          <div className="flex min-h-[620px] items-center justify-center px-6 py-10 sm:px-8">
-            <div className="w-full max-w-md rounded-[24px] border-[3px] border-black bg-[#FFFDF8] p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)]">
-              <div className="mb-6 h-7 w-40 rounded-full bg-black/10" />
-              <div className="mb-3 h-4 w-56 rounded-full bg-black/10" />
-              <div className="mb-8 h-4 w-44 rounded-full bg-black/10" />
-              <div className="space-y-4">
-                <div className="h-14 rounded-[16px] border-[2px] border-black/15 bg-white/70" />
-                <div className="h-14 rounded-[16px] border-[2px] border-black/15 bg-white/70" />
-                <div className="h-12 rounded-full border-[3px] border-black/20 bg-[#FF8C69]/20" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function LoginContent() {
   const router = useRouter()
   const queryClient = useQueryClient()
-  const searchParams = useSearchParams()
+  const [queryState, setQueryState] = useState<LoginQueryState>({
+    redirect: null,
+    from: null,
+    confirmed: null,
+    error: null,
+    details: null,
+    requested: null,
+    actual: null,
+  })
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [recoveryEmail, setRecoveryEmail] = useState('')
@@ -58,8 +42,21 @@ function LoginContent() {
   const [showPassword, setShowPassword] = useState(false)
   const [userType, setUserType] = useState<'influencer' | 'brand'>('influencer')
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    setQueryState({
+      redirect: params.get('redirect'),
+      from: params.get('from'),
+      confirmed: params.get('confirmed'),
+      error: params.get('error'),
+      details: params.get('details'),
+      requested: params.get('requested'),
+      actual: params.get('actual'),
+    })
+  }, [])
+
   const getSafeRedirectTarget = () => {
-    const redirectTarget = searchParams.get('redirect')
+    const redirectTarget = queryState.redirect
     if (!redirectTarget) return '/marketplace'
 
     const value = redirectTarget.trim()
@@ -95,18 +92,18 @@ function LoginContent() {
   }
 
   useEffect(() => {
-    const from = searchParams.get('from')
+    const from = queryState.from
     if (from === 'brand') {
       setUserType('brand')
     }
-  }, [searchParams])
+  }, [queryState.from])
 
   useEffect(() => {
-    const confirmed = searchParams.get('confirmed')
-    const error = searchParams.get('error')
-    const details = searchParams.get('details')
-    const requestedRole = searchParams.get('requested')
-    const actualRole = searchParams.get('actual')
+    const confirmed = queryState.confirmed
+    const error = queryState.error
+    const details = queryState.details
+    const requestedRole = queryState.requested
+    const actualRole = queryState.actual
 
     if (confirmed === 'true') {
       showSuccessToast('Email confirmed', 'You can now sign in to continue.')
@@ -127,7 +124,7 @@ function LoginContent() {
     } else if (error) {
       showErrorToast('Authentication error', details || 'Please try again.')
     }
-  }, [searchParams])
+  }, [queryState.actual, queryState.confirmed, queryState.details, queryState.error, queryState.requested])
 
   const accentColor = userType === 'influencer' ? '#FF8C69' : '#B4F056'
   const accentButtonClass = userType === 'influencer'

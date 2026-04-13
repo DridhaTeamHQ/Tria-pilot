@@ -218,6 +218,7 @@ export async function POST(request: Request) {
     const isCompleted = Boolean(hasFullName && hasDateOfBirth && hasGender && hasCategories && hasSocials)
 
     const currentApprovalStatus = String(profile.approval_status || 'none').toLowerCase()
+    const isResubmission = currentApprovalStatus === 'rejected'
 
     // Update profiles table when onboarding completes.
     // Rejected creators should be able to edit and resubmit back into review.
@@ -228,7 +229,7 @@ export async function POST(request: Request) {
         profileUpdate.onboarding_completed = true
       }
 
-      if (currentApprovalStatus === 'rejected' || currentApprovalStatus === 'none') {
+      if (isResubmission || currentApprovalStatus === 'none') {
         profileUpdate.approval_status = 'pending'
       }
 
@@ -241,7 +242,7 @@ export async function POST(request: Request) {
     }
 
     const redirectTo = isCompleted
-      ? currentApprovalStatus === 'rejected'
+      ? isResubmission
         ? '/influencer/pending?resubmitted=1'
         : '/influencer/pending'
       : null

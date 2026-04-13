@@ -20,15 +20,26 @@ function normalizeHostCandidate(value: string | null): string | null {
   return hostPattern.test(candidate) ? candidate : null
 }
 
+function getConfiguredPublicUrl(): string | null {
+  const candidate =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    // eslint-disable-next-line no-restricted-syntax
+    (process.env as any).APP_URL ||
+    // eslint-disable-next-line no-restricted-syntax
+    (process.env as any).SITE_URL
+
+  return candidate ? stripTrailingSlash(ensureProtocol(candidate)) : null
+}
+
 function getAllowedPublicHosts(): string[] {
   const rawValues = [
+    process.env.NEXT_PUBLIC_APP_URL,
     process.env.NEXT_PUBLIC_SITE_URL,
     // eslint-disable-next-line no-restricted-syntax
+    (process.env as any).APP_URL,
+    // eslint-disable-next-line no-restricted-syntax
     (process.env as any).SITE_URL,
-    process.env.RAILWAY_PUBLIC_DOMAIN,
-    process.env.RAILWAY_STATIC_URL,
-    process.env.NEXT_PUBLIC_VERCEL_URL,
-    process.env.VERCEL_URL,
     process.env.PUBLIC_SITE_HOST_ALLOWLIST,
   ]
     .filter(Boolean)
@@ -107,38 +118,21 @@ function getFallbackOriginFromRequestUrl(request: Request): string | null {
  * Public base URL for links that must work from emails (confirm/reset/change-email).
  *
  * Priority:
- * - NEXT_PUBLIC_SITE_URL (recommended; set to your production domain)
- * - SITE_URL (optional server-only alias)
- * - RAILWAY_PUBLIC_DOMAIN / RAILWAY_STATIC_URL (Railway-provided hostnames)
- * - VERCEL_URL (auto; no protocol)
+ * - NEXT_PUBLIC_APP_URL / NEXT_PUBLIC_SITE_URL (recommended; set to your production domain)
+ * - APP_URL / SITE_URL (optional server-only aliases)
  * - window.location.origin (client fallback)
  */
 export function getPublicSiteUrlClient(): string {
-  const env =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    // eslint-disable-next-line no-restricted-syntax
-    (process.env as any).SITE_URL ||
-    process.env.RAILWAY_PUBLIC_DOMAIN ||
-    process.env.RAILWAY_STATIC_URL ||
-    process.env.NEXT_PUBLIC_VERCEL_URL ||
-    process.env.VERCEL_URL
-
-  if (env) return stripTrailingSlash(ensureProtocol(env))
+  const env = getConfiguredPublicUrl()
+  if (env) return env
   if (typeof window !== 'undefined') return stripTrailingSlash(window.location.origin)
-  return 'http://localhost:3000'
+  if (process.env.NODE_ENV !== 'production') return 'http://localhost:3000'
+  throw new Error('Unable to determine public site URL on the client')
 }
 
 export function getPublicSiteUrlFromRequest(request: Request): string {
-  const env =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    // eslint-disable-next-line no-restricted-syntax
-    (process.env as any).SITE_URL ||
-    process.env.RAILWAY_PUBLIC_DOMAIN ||
-    process.env.RAILWAY_STATIC_URL ||
-    process.env.NEXT_PUBLIC_VERCEL_URL ||
-    process.env.VERCEL_URL
-
-  if (env) return stripTrailingSlash(ensureProtocol(env))
+  const env = getConfiguredPublicUrl()
+  if (env) return env
 
   const trustedOrigin = getTrustedRequestOrigin(request)
   if (trustedOrigin) return stripTrailingSlash(trustedOrigin)
@@ -146,7 +140,8 @@ export function getPublicSiteUrlFromRequest(request: Request): string {
   const requestUrlOrigin = getFallbackOriginFromRequestUrl(request)
   if (requestUrlOrigin) return stripTrailingSlash(requestUrlOrigin)
 
-  return 'http://localhost:3000'
+  if (process.env.NODE_ENV !== 'production') return 'http://localhost:3000'
+  throw new Error('Unable to determine public site URL from request')
 }
 
 export function joinPublicUrl(base: string, path: string) {

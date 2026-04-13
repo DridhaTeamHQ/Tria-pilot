@@ -2,6 +2,27 @@ function normalizeHost(host: string): string {
   return host.trim().toLowerCase()
 }
 
+function stripTrailingSlash(url: string): string {
+  return url.endsWith('/') ? url.slice(0, -1) : url
+}
+
+function ensureProtocol(url: string): string {
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
+  return `https://${url}`
+}
+
+function getConfiguredPublicBaseUrl(): string | null {
+  const value =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    // eslint-disable-next-line no-restricted-syntax
+    (process.env as any).APP_URL ||
+    // eslint-disable-next-line no-restricted-syntax
+    (process.env as any).SITE_URL
+
+  return value ? stripTrailingSlash(ensureProtocol(value)) : null
+}
+
 function isPrivateIpv4(hostname: string): boolean {
   const parts = hostname.split('.').map((part) => Number(part))
   if (parts.length !== 4 || parts.some((part) => Number.isNaN(part) || part < 0 || part > 255)) {
@@ -33,24 +54,14 @@ function isBlockedHost(hostname: string): boolean {
  * Fully automatic - uses environment variables or request origin
  */
 export function getMaskedUrl(linkCode: string, requestOrigin?: string): string {
-  let baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.RAILWAY_PUBLIC_DOMAIN ||
-    process.env.RAILWAY_STATIC_URL
+  let baseUrl = getConfiguredPublicBaseUrl()
   
   if (!baseUrl) {
     // Try to use request origin if available (for server-side)
     if (requestOrigin) {
-      baseUrl = requestOrigin.startsWith('http') ? requestOrigin : `https://${requestOrigin}`
-    } else if (process.env.RAILWAY_PUBLIC_DOMAIN) {
-      baseUrl = `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
-    } else if (process.env.RAILWAY_STATIC_URL) {
-      baseUrl = process.env.RAILWAY_STATIC_URL.startsWith('http')
-        ? process.env.RAILWAY_STATIC_URL
-        : `https://${process.env.RAILWAY_STATIC_URL}`
-    } else if (process.env.NEXT_PUBLIC_VERCEL_URL) {
-      baseUrl = `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+      baseUrl = stripTrailingSlash(
+        requestOrigin.startsWith('http') ? requestOrigin : `https://${requestOrigin}`
+      )
     } else if (process.env.NODE_ENV === 'development') {
       // Only allow localhost in development
       baseUrl = 'http://localhost:3000'
