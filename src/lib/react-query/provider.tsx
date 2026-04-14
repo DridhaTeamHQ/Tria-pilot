@@ -2,11 +2,19 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState } from 'react'
+import type { CurrentUserQueryData } from '@/lib/current-user'
 
-export function ReactQueryProvider({ children }: { children: React.ReactNode }) {
+export function ReactQueryProvider({
+  children,
+  initialUser,
+}: {
+  children: React.ReactNode
+  initialUser?: CurrentUserQueryData
+}) {
   const [queryClient] = useState(
     () =>
-      new QueryClient({
+      {
+        const client = new QueryClient({
         defaultOptions: {
           queries: {
             // Stale time: data is considered fresh for 60 seconds (increased for better caching)
@@ -34,8 +42,14 @@ export function ReactQueryProvider({ children }: { children: React.ReactNode }) 
           },
         },
       })
+
+        if (typeof initialUser !== 'undefined') {
+          client.setQueryData(['user'], initialUser)
+        }
+
+        return client
+      }
   )
 
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 }
-

@@ -8,6 +8,7 @@ import FooterSwitcher from '@/components/landing/FooterSwitcher'
 import ProfileCompletionGate from '@/components/ProfileCompletionGate'
 import { ReactQueryProvider } from '@/lib/react-query/provider'
 import { RealtimeListener } from '@/components/providers/realtime-listener'
+import { getCurrentUserPayload, toCurrentUserQueryData } from '@/lib/current-user'
 import './globals.css'
 import { ReactLenis } from '@/lib/lenis'
 
@@ -37,15 +38,17 @@ const FONT_VARS = {
   '--font-geist-mono': '"SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
 } as React.CSSProperties
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const initialUser = toCurrentUserQueryData(await getCurrentUserPayload())
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${bungee.variable} antialiased bg-cream text-charcoal`} style={FONT_VARS} suppressHydrationWarning>
-        <ReactQueryProvider>
+        <ReactQueryProvider initialUser={initialUser}>
           <Toaster />
           <AuthToastBridge />
           <ReactLenis>
