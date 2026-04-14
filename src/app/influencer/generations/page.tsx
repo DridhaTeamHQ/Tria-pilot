@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { AppImage } from '@/components/ui/AppImage'
 import {
     ArrowLeft,
     Download,
@@ -598,9 +599,13 @@ export default function GenerationsPage() {
                             <div className="relative z-[100] flex min-h-0 flex-1 p-2 sm:p-4">
                                 {!imageError ? (
                                     <div className="flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden rounded-[20px] border border-white/10 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.16),_rgba(255,255,255,0.04)_35%,_rgba(0,0,0,0.15)_100%)] px-3 py-4 sm:px-6 sm:py-6">
-                                        <img
+                                        <AppImage
                                             src={getImageUrl(selectedImage)}
                                             alt="Generation Result"
+                                            fill={false}
+                                            width={1600}
+                                            height={1600}
+                                            sizes="100vw"
                                             className="block h-auto max-h-full w-auto max-w-full rounded-[18px] object-contain shadow-[0_18px_40px_rgba(0,0,0,0.38)]"
                                             draggable={false}
                                             onError={() => setImageError(true)}
@@ -659,12 +664,13 @@ export default function GenerationsPage() {
                             {/* Image preview */}
                             {deleteConfirm.imageUrl && (
                                 <div className="relative h-48 overflow-hidden bg-white border-b-[3px] border-black">
-                                    <img
+                                    <AppImage
                                         src={getImageUrl(deleteConfirm.imageUrl)}
                                         alt="To delete"
-                                        className="w-full h-full object-cover"
+                                        className="object-cover"
+                                        sizes="384px"
                                         onError={(e) => {
-                                            const target = e.target as HTMLImageElement
+                                            const target = e.currentTarget as HTMLImageElement
                                             target.style.display = 'none'
                                         }}
                                     />

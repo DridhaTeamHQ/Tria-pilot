@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { AppImage } from "@/components/ui/AppImage";
 import { motion } from "framer-motion";
 import { ArrowRight, BarChart2, Camera, Search, Users, Globe } from "lucide-react";
 
@@ -123,11 +124,11 @@ function FlipCard({ feature, index }: { feature: (typeof features)[0]; index: nu
                     transition={{ duration: 0.2 }}
                     style={{ zIndex: isFlipped ? 0 : 10 }}
                 >
-                    <img
+                    <AppImage
                         src={feature.image}
                         alt={feature.title}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
+                        className="object-cover"
+                        sizes="(min-width: 768px) 25vw, 100vw"
                     />
                     <div className="absolute inset-0 bg-black/40 z-10" />
                     <div className="absolute top-0 left-0 w-full h-1.5 z-20" style={{ backgroundColor: feature.accent }} />

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { AppImage } from "@/components/ui/AppImage";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -194,12 +195,13 @@ export default function BrutalNavbar() {
                     <div className="flex items-center gap-4 shrink-0">
                         {authResolving ? null : isLoggedIn ? (
                             <div className="hidden lg:flex items-center gap-3">
-                                <div className="w-10 h-10 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black">
+                                <div className="relative w-10 h-10 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black">
                                     {showAvatarImage ? (
-                                        <img
+                                        <AppImage
                                             src={avatarUrl!}
                                             alt={user?.name || "Profile"}
-                                            className="h-full w-full object-cover"
+                                            className="object-cover"
+                                            sizes="40px"
                                             onError={() => setAvatarFailed(true)}
                                         />
                                     ) : (
@@ -265,12 +267,13 @@ export default function BrutalNavbar() {
                                 <>
                                     {/* User Info */}
                                     <div className="flex items-center gap-3 pb-4 border-b-2 border-black">
-                                        <div className="w-12 h-12 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black text-lg">
+                                        <div className="relative w-12 h-12 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black text-lg">
                                             {showAvatarImage ? (
-                                                <img
+                                                <AppImage
                                                     src={avatarUrl!}
                                                     alt={user?.name || "Profile"}
-                                                    className="h-full w-full object-cover"
+                                                    className="object-cover"
+                                                    sizes="48px"
                                                     onError={() => setAvatarFailed(true)}
                                                 />
                                             ) : (

@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { AppImage } from '@/components/ui/AppImage'
 import { ArrowLeft, Download, ImageIcon, X } from 'lucide-react'
 import { toast } from '@/lib/simple-sonner'
 
@@ -186,9 +187,13 @@ function GalleryViewContent() {
                                 </div>
                             ) : (
                                 <div className="relative z-10 flex h-full min-h-0 w-full items-center justify-center p-3 sm:p-5">
-                                    <img
+                                    <AppImage
                                         src={imageUrl}
                                         alt={title}
+                                        fill={false}
+                                        width={1600}
+                                        height={1600}
+                                        sizes="100vw"
                                         className="block h-auto w-auto max-h-full max-w-full rounded-[24px] border border-white/12 bg-black/5 object-contain shadow-[0_24px_70px_rgba(0,0,0,0.42)]"
                                         onError={() => setImageError(true)}
                                     />

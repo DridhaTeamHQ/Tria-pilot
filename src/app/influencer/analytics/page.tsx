@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
+import { AppImage } from '@/components/ui/AppImage'
 import {
   ArrowLeft,
   Copy,
@@ -247,10 +248,11 @@ export default function InfluencerAnalyticsPage() {
                         {/* Product Image */}
                         <div className="w-24 h-24 border-[3px] border-black bg-gray-100 flex-shrink-0 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden relative">
                           {product.productImage ? (
-                            <img
+                            <AppImage
                               src={product.productImage}
                               alt={product.productName}
-                              className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-300"
+                              className="object-cover grayscale group-hover:grayscale-0 transition-all duration-300"
+                              sizes="96px"
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">

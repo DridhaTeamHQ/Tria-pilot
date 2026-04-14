@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { AppImage } from "@/components/ui/AppImage";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, BarChart2, CheckCircle, ShoppingBag, Users } from "lucide-react";
 
@@ -109,15 +110,15 @@ export default function PlatformSection() {
                             </div>
 
                             <div className="relative h-[320px] md:h-[480px] md:min-h-full border-t-[4px] md:border-t-0 md:border-l-[4px] border-black bg-black overflow-hidden">
-                                <img
+                                <AppImage
                                     src={
                                         activeTab === "brands"
                                             ? "https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2000&auto=format&fit=crop"
                                             : "https://images.unsplash.com/photo-1469334031218-e382a71b716b?q=80&w=2000&auto=format&fit=crop"
                                     }
                                     alt="Platform"
-                                    className="w-full h-full object-cover opacity-90"
-                                    loading="lazy"
+                                    className="object-cover opacity-90"
+                                    sizes="(min-width: 768px) 50vw, 100vw"
                                 />
                                 <div className="absolute bottom-4 left-4 right-4 p-4 bg-white border-[4px] border-black shadow-[4px_4px_0_0_#000]">
                                     <div className="flex justify-between items-center mb-3">

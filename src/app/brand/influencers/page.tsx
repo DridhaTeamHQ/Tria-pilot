@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { AppImage } from '@/components/ui/AppImage'
 import { toast } from '@/lib/simple-sonner'
 import {
     Users,
@@ -217,12 +218,13 @@ export default function BrandInfluencersPage() {
                             <div className="p-4 border-b-2 border-black">
                                 <div className="flex items-start gap-4">
                                     {/* Avatar */}
-                                    <div className="w-16 h-16 bg-gradient-to-br from-[#B4F056] to-[#FFD93D] border-2 border-black flex items-center justify-center shrink-0">
+                                    <div className="relative w-16 h-16 bg-gradient-to-br from-[#B4F056] to-[#FFD93D] border-2 border-black flex items-center justify-center shrink-0">
                                         {influencer.profile_image ? (
-                                            <img
+                                            <AppImage
                                                 src={influencer.profile_image}
                                                 alt={influencer.name}
-                                                className="w-full h-full object-cover"
+                                                className="object-cover"
+                                                sizes="64px"
                                             />
                                         ) : (
                                             <span className="text-2xl font-black">

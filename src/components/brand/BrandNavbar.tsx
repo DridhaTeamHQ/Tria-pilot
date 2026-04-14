@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import Link from 'next/link'
+import { AppImage } from '@/components/ui/AppImage'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
@@ -109,12 +110,13 @@ export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: B
           </nav>
 
           <div className="hidden lg:flex items-center justify-end gap-2 shrink-0">
-            <div className="w-9 h-9 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black text-sm">
+            <div className="relative w-9 h-9 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black text-sm">
               {showAvatarImage ? (
-                <img
+                <AppImage
                   src={avatarUrl!}
                   alt={brandName || 'Brand'}
-                  className="h-full w-full object-contain bg-white p-0.5"
+                  className="object-contain bg-white p-0.5"
+                  sizes="36px"
                   onError={() => setAvatarFailed(true)}
                 />
               ) : (
@@ -144,12 +146,13 @@ export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: B
         <div className="lg:hidden bg-white border-t-2 border-black">
           <div className="container mx-auto px-4 py-3 space-y-2 max-h-[calc(100dvh-3.5rem)] overflow-y-auto">
             <div className="mb-3 flex items-center gap-3 rounded-xl border-2 border-black bg-[#F9F8F4] px-4 py-3 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
-              <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border-2 border-black bg-[#B4F056] font-black text-black">
+              <div className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border-2 border-black bg-[#B4F056] font-black text-black">
                 {showAvatarImage ? (
-                  <img
+                  <AppImage
                     src={avatarUrl!}
                     alt={brandName || 'Brand'}
-                    className="h-full w-full object-contain bg-white p-0.5"
+                    className="object-contain bg-white p-0.5"
+                    sizes="48px"
                     onError={() => setAvatarFailed(true)}
                   />
                 ) : (

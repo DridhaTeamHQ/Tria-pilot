@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useTransition, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { AppImage } from '@/components/ui/AppImage'
 import { toast } from '@/lib/simple-sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, ArrowRight, Loader2, Upload, Trash2, ImagePlus, RefreshCw } from 'lucide-react'
@@ -813,7 +814,7 @@ export default function InfluencerOnboardingPage() {
                       return (
                         <div key={photo.id} className="border-[3px] border-black rounded-xl overflow-hidden bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
                           <div className="relative aspect-[3/4] bg-black/5">
-                            <img src={photo.imageUrl} className="w-full h-full object-cover" alt="Reference photo" />
+                            <AppImage src={photo.imageUrl} className="object-cover" alt="Reference photo" sizes="240px" />
                             <div className="absolute top-2 left-2 px-2 py-1 border-[2px] border-black text-[10px] font-black uppercase bg-white">
                               Top source
                             </div>
@@ -838,7 +839,7 @@ export default function InfluencerOnboardingPage() {
                     return (
                       <div key={photo.id} className="border-[3px] border-black rounded-xl overflow-hidden bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
                         <div className="relative aspect-[3/4] bg-black/5">
-                          <img src={photo.imageUrl} className="w-full h-full object-cover" alt="Reference photo" />
+                          <AppImage src={photo.imageUrl} className="object-cover" alt="Reference photo" sizes="240px" />
                           <div className={`absolute top-2 left-2 px-2 py-1 border-[2px] border-black text-[10px] font-black uppercase ${statusTone.color}`}>
                             {statusTone.label}
                           </div>

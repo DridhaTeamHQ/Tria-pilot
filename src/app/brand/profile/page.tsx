@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
+import { AppImage } from '@/components/ui/AppImage'
 import { toast } from '@/lib/simple-sonner'
 import {
   User,
@@ -334,7 +335,7 @@ export default function BrandProfilePage() {
         <div className="flex flex-col items-center gap-4 text-center sm:gap-5 xl:flex-row xl:items-center xl:text-left">
           <div className="relative mx-auto h-[116px] w-[104px] shrink-0 overflow-hidden border-[4px] border-black bg-[#FFD93D] shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:h-[136px] sm:w-[120px] xl:mx-0 xl:h-[156px] xl:w-[140px]">
             {profileImageUrl ? (
-              <img src={profileImageUrl} alt="Brand profile" className="w-full h-full object-cover" />
+              <AppImage src={profileImageUrl} alt="Brand profile" className="object-cover" sizes="140px" />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 <Building2 className="w-12 h-12 text-black/35" />

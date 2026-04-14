@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback, type KeyboardEvent, type ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { AppImage } from '@/components/ui/AppImage'
 import {
     Send,
     Bot,
@@ -198,11 +199,12 @@ function GeneratedImageGallery({ images, onRegenerate }: { images: GeneratedCamp
             </div>
             <div className={`grid gap-3 ${images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                 {images.map((img, idx) => (
-                    <div key={idx} className="relative group overflow-hidden rounded-xl border border-black/10 shadow-sm">
-                        <img
+                    <div key={idx} className="relative aspect-square group overflow-hidden rounded-xl border border-black/10 shadow-sm">
+                        <AppImage
                             src={img.imageBase64}
                             alt={img.description}
-                            className="w-full aspect-square object-cover transition-transform group-hover:scale-[1.02]"
+                            className="object-cover transition-transform group-hover:scale-[1.02]"
+                            sizes="(min-width: 768px) 33vw, 100vw"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                         <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform">
@@ -251,7 +253,7 @@ function ImageUploadPreview({ images, onRemove }: { images: string[]; onRemove: 
         <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
             {images.map((img, i) => (
                 <div key={i} className="relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 border-black/15 group">
-                    <img src={img} alt={`Upload ${i + 1}`} className="w-full h-full object-cover" />
+                    <AppImage src={img} alt={`Upload ${i + 1}`} className="object-cover" sizes="64px" />
                     <button
                         type="button"
                         onClick={() => onRemove(i)}
@@ -869,9 +871,13 @@ export default function CampaignStrategist() {
                                         <div className={`flex gap-2 mb-3 ${msg.images.length > 1 ? 'flex-wrap' : ''}`}>
                                             {msg.images.map((img, imgIdx) => (
                                                 <div key={imgIdx} className="relative rounded-lg overflow-hidden border border-white/20">
-                                                    <img
+                                                    <AppImage
                                                         src={img}
                                                         alt={`Uploaded ${imgIdx + 1}`}
+                                                        fill={false}
+                                                        width={200}
+                                                        height={200}
+                                                        sizes="200px"
                                                         className="max-w-[200px] max-h-[200px] object-cover rounded-lg"
                                                     />
                                                 </div>

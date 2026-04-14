@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { AppImage } from '@/components/ui/AppImage'
 import { toast } from '@/lib/simple-sonner'
 import {
     Plus,
@@ -733,10 +734,11 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                                                     'border-black'
                                                 }`}
                                         >
-                                            <img
+                                            <AppImage
                                                 src={img}
                                                 alt={`Product ${index + 1}`}
-                                                className="w-full h-full object-cover"
+                                                className="object-cover"
+                                                sizes="96px"
                                             />
 
                                             {/* Remove button */}
@@ -824,11 +826,12 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                                         <div className="mt-3 grid gap-3 sm:grid-cols-3">
                                             {generatedVisuals.map((visual) => (
                                                 <div key={visual.id} className="overflow-hidden rounded-2xl border-2 border-black bg-[#FFFDF8]">
-                                                    <div className="aspect-square bg-[#F3F0E8]">
-                                                        <img
+                                                    <div className="relative aspect-square bg-[#F3F0E8]">
+                                                        <AppImage
                                                             src={visual.imageUrl || visual.imageBase64}
                                                             alt={visual.label}
-                                                            className="h-full w-full object-cover"
+                                                            className="object-cover"
+                                                            sizes="(min-width: 640px) 33vw, 100vw"
                                                         />
                                                     </div>
                                                     <div className="border-t-2 border-black px-3 py-2">
@@ -888,18 +891,22 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                 </div>
             ) : (
                 <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                    {products.map((product) => (
+                    {products.map((product) => {
+                        const coverImageSrc = product.cover_image ?? product.images?.[0] ?? null
+
+                        return (
                         <div
                             key={product.id}
                             className="group overflow-hidden rounded-[28px] border-[3px] border-black bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-0.5 hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] animate-fade-in"
                         >
                             {/* Image */}
                             <div className="relative aspect-[4/3] bg-[#F3F0E8]">
-                                {product.cover_image || product.images?.[0] ? (
-                                    <img
-                                        src={product.cover_image || product.images?.[0]}
+                                {coverImageSrc ? (
+                                    <AppImage
+                                        src={coverImageSrc}
                                         alt={product.name}
-                                        className="w-full h-full object-cover"
+                                        className="object-cover"
+                                        sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw"
                                     />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center">
@@ -982,7 +989,8 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                                 </div>
                             </div>
                         </div>
-                    ))}
+                        )
+                    })}
                 </div>
             )}
 

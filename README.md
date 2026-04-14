@@ -14,7 +14,7 @@ AI-powered platform connecting influencers and brands with virtual try-on capabi
 
 ## Tech Stack
 
-- **Framework**: Next.js 15 with App Router
+- **Framework**: Next.js 16 with App Router
 - **Database**: PostgreSQL (Supabase)
 - **ORM**: Prisma
 - **Authentication**: Supabase Auth

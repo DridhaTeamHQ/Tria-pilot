@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { AppImage } from '@/components/ui/AppImage'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Heart } from 'lucide-react'
 
@@ -77,12 +78,13 @@ export default async function FavoritesPage() {
               <Link key={product.id} href={`/marketplace/${product.id}`}>
                 <Card className="h-full hover:shadow-lg transition-shadow">
                   <CardHeader>
-                    <div className="aspect-square bg-zinc-100 dark:bg-zinc-800 rounded-lg mb-4 overflow-hidden">
+                    <div className="relative aspect-square bg-zinc-100 dark:bg-zinc-800 rounded-lg mb-4 overflow-hidden">
                       {coverImage ? (
-                        <img
+                        <AppImage
                           src={coverImage}
                           alt={product.name}
-                          className="w-full h-full object-cover"
+                          className="object-cover"
+                          sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-zinc-400">

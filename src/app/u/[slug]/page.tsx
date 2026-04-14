@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft, ExternalLink, Instagram, Youtube, Facebook, BadgeCheck, Users, TrendingUp } from 'lucide-react'
+import { AppImage } from '@/components/ui/AppImage'
 import { createServiceClient } from '@/lib/auth'
 import { getGenerationTagFromDob, normalizeDateOfBirth } from '@/lib/profile-demographics'
 
@@ -138,9 +139,9 @@ export default async function PublicInfluencerProfilePage({
         <div className="grid gap-8 lg:grid-cols-[1.3fr_0.7fr]">
           <section className="border-[4px] border-black bg-white p-6 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] sm:p-8">
             <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
-              <div className="h-36 w-36 shrink-0 overflow-hidden border-[4px] border-black bg-[#FFD93D] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+              <div className="relative h-36 w-36 shrink-0 overflow-hidden border-[4px] border-black bg-[#FFD93D] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
                 {profile.avatar_url ? (
-                  <img src={profile.avatar_url} alt={displayName} className="h-full w-full object-cover" />
+                  <AppImage src={profile.avatar_url} alt={displayName} className="object-cover" sizes="144px" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-5xl font-black text-black/70">
                     {avatarFallback}

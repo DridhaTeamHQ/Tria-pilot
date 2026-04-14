@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion } from 'framer-motion'
+import { AppImage } from '@/components/ui/AppImage'
 import {
   User,
   Mail,
@@ -676,7 +677,7 @@ export default function ProfilePage() {
               <div className="absolute -top-16 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-8 z-10 w-[160px] h-[180px] md:w-[180px] md:h-[200px]">
                 <div className="relative w-full h-full border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-[#FFD93D] overflow-hidden">
                   {profileImageUrl ? (
-                    <img src={profileImageUrl} alt="Profile" className="w-full h-full object-cover" />
+                    <AppImage src={profileImageUrl} alt="Profile" className="object-cover" sizes="180px" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <User className="w-14 h-14 text-black/35" />
@@ -962,8 +963,8 @@ export default function ProfilePage() {
                                 const statusTone = getReferenceStatusTone(photo.status)
                                 return (
                                   <div key={photo.id} className="border-[3px] border-black bg-white shadow-[4px_4px_0_0_rgba(0,0,0,1)] overflow-hidden">
-                                    <div className="aspect-[3/4] bg-black/5">
-                                      <img src={photo.imageUrl} alt="Reference photo" className="w-full h-full object-cover" />
+                                    <div className="relative aspect-[3/4] bg-black/5">
+                                      <AppImage src={photo.imageUrl} alt="Reference photo" className="object-cover" sizes="240px" />
                                     </div>
                                     <div className="p-3 space-y-2">
                                       <div className="flex items-center justify-between gap-2">
@@ -990,7 +991,7 @@ export default function ProfilePage() {
                               return (
                                 <div key={photo.id} className="border-[3px] border-black bg-white shadow-[4px_4px_0_0_rgba(0,0,0,1)] overflow-hidden">
                                   <div className="relative aspect-[3/4] bg-black/5">
-                                    <img src={photo.imageUrl} alt="Reference photo" className="w-full h-full object-cover" />
+                                    <AppImage src={photo.imageUrl} alt="Reference photo" className="object-cover" sizes="240px" />
                                     <div className="absolute top-2 left-2">
                                       <span className={`px-2 py-1 border-[2px] border-black text-[10px] font-black uppercase ${statusTone.color}`}>{statusTone.label}</span>
                                     </div>

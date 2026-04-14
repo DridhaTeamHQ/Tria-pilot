@@ -46,6 +46,11 @@ next-env.d.ts
 # old debug files
 old_strict_prompt*.ts
 
+# local lint/typecheck outputs
+eslint_results.txt
+lint_output.txt
+tsc_errors.log
+
 # IDE / editor
 .cursor
 
