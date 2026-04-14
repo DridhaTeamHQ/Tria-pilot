@@ -116,8 +116,8 @@ export default function BrutalNavbar() {
     // Public links for logged-out users (matching user request)
     const publicLinks = [
         { href: "/influencer/try-on", label: "Try-On" },
-        { href: "/register?role=influencer", label: "For Creators" },
-        { href: "/register?role=brand", label: "For Brands" },
+        { href: "/signup/influencer", label: "For Creators" },
+        { href: "/signup/brand", label: "For Brands" },
     ];
 
     let links: typeof influencerLinks | typeof brandLinks = [];

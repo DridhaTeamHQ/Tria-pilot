@@ -101,7 +101,7 @@ export default function PlatformSection() {
                                 </ul>
 
                                 <Link
-                                    href={activeTab === "brands" ? "/register?role=brand" : "/register?role=influencer"}
+                                    href={activeTab === "brands" ? "/signup/brand" : "/signup/influencer"}
                                     className="inline-flex items-center gap-2 w-fit px-6 py-4 bg-[var(--brutal-lime)] text-black font-black text-sm uppercase tracking-wide border-[4px] border-black shadow-[6px_6px_0_0_#000] hover:shadow-[3px_3px_0_0_#000] hover:translate-x-[3px] hover:translate-y-[3px] active:shadow-none active:translate-x-[6px] active:translate-y-[6px] transition-all"
                                 >
                                     {activeTab === "brands" ? "Join as Brand" : "Join as Creator"}
