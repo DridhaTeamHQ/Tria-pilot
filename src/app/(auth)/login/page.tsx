@@ -7,7 +7,6 @@ import Link from 'next/link'
 import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { setAuthToast } from '@/components/auth-toast-bridge'
-import { AuthModeToggle } from '@/components/auth/AuthModeToggle'
 import { createClient } from '@/lib/auth-client'
 import { getPublicSiteUrlClient } from '@/lib/site-url'
 import { isSyntheticEmail } from '@/lib/auth-username'
@@ -147,7 +146,6 @@ export default function LoginPage() {
         sideBody: 'Launch products, manage collaborations, and review generated assets from one bold control room.',
       }
   const floatingLabel = userType === 'influencer' ? 'Creator Login' : 'Brand Login'
-  const signupHref = userType === 'brand' ? '/signup/brand' : '/signup/influencer'
 
   const isLayoutFlipped = userType === 'brand'
   const isUsernameEntry = Boolean(identifier.trim()) && !identifier.includes('@')
@@ -349,7 +347,6 @@ export default function LoginPage() {
               accentButtonClass={accentButtonClass}
               floatingLabel={floatingLabel}
               accentColor={accentColor}
-              signupHref={signupHref}
             />
           </div>
         </div>
@@ -442,7 +439,6 @@ export default function LoginPage() {
                 accentButtonClass={accentButtonClass}
                 floatingLabel={floatingLabel}
                 accentColor={accentColor}
-                signupHref={signupHref}
               />
             </motion.div>
           </motion.div>
@@ -474,7 +470,6 @@ type AuthCardProps = {
   accentButtonClass: string
   floatingLabel: string
   accentColor: string
-  signupHref: string
 }
 
 function AuthCard({
@@ -499,7 +494,6 @@ function AuthCard({
   accentButtonClass,
   floatingLabel,
   accentColor,
-  signupHref,
 }: AuthCardProps) {
   return (
     <div className="relative z-20 rounded-[30px] border-[4px] border-black bg-white p-6 pt-8 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] sm:p-8">
@@ -512,13 +506,6 @@ function AuthCard({
         <h2 className="text-[2.2rem] font-black leading-none text-black sm:text-[2.5rem]">{title}</h2>
         <p className="mt-2 text-base font-bold text-black/60">{subtitle}</p>
       </div>
-      <AuthModeToggle
-        mode="login"
-        loginHref={userType === 'brand' ? '/login?from=brand' : '/login'}
-        signupHref={signupHref}
-        accentColor={accentColor}
-        className="mb-6"
-      />
       <div className="mb-6 flex rounded-2xl border-[3px] border-black bg-[#F4F4F0] p-1.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
         <button
           type="button"
@@ -638,9 +625,14 @@ function AuthCard({
           </button>
         </div>
       </div>
-      <p className="mt-4 text-center text-[13px] font-bold text-black/45 sm:text-sm">
-        Pick your portal above to jump between login and sign up.
-      </p>
+      <div className="mt-4 text-center">
+        <p className="text-[13px] font-bold text-black/60 sm:text-sm">
+          Don&apos;t have an account?{' '}
+          <Link href="/register" className="px-1 text-black underline decoration-2 transition-colors hover:bg-[#FFD93D]">
+            Join Now
+          </Link>
+        </p>
+      </div>
     </div>
   )
 }

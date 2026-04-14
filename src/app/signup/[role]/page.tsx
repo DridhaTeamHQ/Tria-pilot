@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
+import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { toast } from '@/lib/simple-sonner'
 import { ArrowRight, Eye, EyeOff, Loader2, Lock, User } from 'lucide-react'
-import { AuthModeToggle } from '@/components/auth/AuthModeToggle'
 import { createClient } from '@/lib/auth-client'
 import { getPublicSiteUrlClient } from '@/lib/site-url'
 
@@ -307,13 +307,6 @@ function SignupCard({
         <h2 className="text-[2.2rem] font-black leading-none text-black sm:text-[2.5rem]">{title}</h2>
         <p className="mt-2 text-base font-bold text-black/60">{subtitle}</p>
       </div>
-      <AuthModeToggle
-        mode="signup"
-        loginHref={isInfluencer ? '/login' : '/login?from=brand'}
-        signupHref={isInfluencer ? '/signup/influencer' : '/signup/brand'}
-        accentColor={accentColor}
-        className="mb-6"
-      />
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <AuthField label="Username" icon={<User className="h-4 w-4 text-black" strokeWidth={2.5} />} iconBg="#B4F056">
@@ -406,9 +399,17 @@ function SignupCard({
         </div>
       </div>
 
-      <p className="mt-5 text-center text-xs font-semibold text-black/50">
-        {isInfluencer ? 'Set up your creator profile in minutes.' : 'Get your brand workspace ready fast.'}
-      </p>
+      <div className="mt-5 text-center">
+        <p className="text-sm font-bold text-black/60">
+          Already have an account?{' '}
+          <Link href="/login" className="px-1 text-black underline decoration-2 transition-colors hover:bg-[#FFD93D]">
+            Sign In
+          </Link>
+        </p>
+        <p className="mt-2 text-xs font-semibold text-black/50">
+          {isInfluencer ? 'Set up your creator profile in minutes.' : 'Get your brand workspace ready fast.'}
+        </p>
+      </div>
     </div>
   )
 }
