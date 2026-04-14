@@ -5,8 +5,8 @@
  * It does NOT redirect, infer routes, or enforce permissions.
  * 
  * Database Truth (Supabase):
- * - auth.users → authentication ONLY
- * - profiles → role, onboarding, approval (SOURCE OF TRUTH)
+ * - auth.users -> authentication ONLY
+ * - profiles -> role, onboarding, approval (SOURCE OF TRUTH)
  * 
  * Usage:
  *   const auth = await getIdentity()
@@ -15,10 +15,6 @@
  */
 
 import { createClient, createServiceClient } from '@/lib/auth'
-
-// ═══════════════════════════════════════════════════════════════════════════
-// TYPES
-// ═══════════════════════════════════════════════════════════════════════════
 
 export type UserRole = 'admin' | 'brand' | 'influencer'
 export type ApprovalStatus = 'none' | 'pending' | 'approved' | 'rejected'
@@ -34,10 +30,6 @@ export interface UserIdentity {
 export type AuthResult =
   | { authenticated: false }
   | { authenticated: true; identity: UserIdentity | null }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// CORE FUNCTIONS
-// ═══════════════════════════════════════════════════════════════════════════
 
 /**
  * Fetch profile from Supabase profiles table.
@@ -111,8 +103,8 @@ export async function getIdentity(): Promise<AuthResult> {
     const identity = await fetchProfile(supabase, user.id)
 
     if (!identity) {
-      // User exists in auth but no profile → edge case
-      // E.g. Google Sign in without ?role 
+      // User exists in auth but no profile -> edge case
+      // E.g. Google Sign in without ?role
       console.warn('getIdentity: User has auth but no profile:', user.id)
       return { authenticated: true, identity: null }
     }
@@ -123,11 +115,6 @@ export async function getIdentity(): Promise<AuthResult> {
     return { authenticated: false }
   }
 }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// LEGACY EXPORTS (for backward compatibility during migration)
-// These will be removed after route guards are fully implemented.
-// ═══════════════════════════════════════════════════════════════════════════
 
 /** @deprecated Use getIdentity() instead */
 export async function getAuthState() {
@@ -166,8 +153,7 @@ export async function getAuthState() {
 
 /** @deprecated Authorization should be done at route level */
 export function getRedirectPath(state: { type: string }, currentPath: string): string | null {
-  // Minimal legacy support - routes should handle their own authorization
-  switch (state.type) {
+    switch (state.type) {
     case 'unauthenticated':
       return '/login'
     case 'influencer_draft':
@@ -186,3 +172,4 @@ export function getRedirectPath(state: { type: string }, currentPath: string): s
 export function canAccessRoute(state: { type: string }, route: string): boolean {
   return getRedirectPath(state, route) === null
 }
+

@@ -17,9 +17,6 @@ export async function safeParseResponse<T = any>(res: Response, context?: string
     const contentType = res.headers.get("content-type") || ""
     const prefix = context ? `[${context}] ` : ""
 
-    // Log response status for debugging
-    console.log(`${prefix}API Response: ${res.status} ${res.statusText}`)
-
     // Handle non-OK responses
     if (!res.ok) {
         let errorBody = ""
@@ -128,3 +125,4 @@ export async function safeFetch<T = any>(url: string, options?: RequestInit, con
         throw error
     }
 }
+

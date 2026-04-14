@@ -27,14 +27,8 @@ import {
   type ScenePreset
 } from './presets/index'
 
-// IPCR-X ANCHOR CORE - The foundation of identity preservation
 import { getAnchorCorePrompt, logAnchorCoreStatus } from './anchor-core'
 
-// ═══════════════════════════════════════════════════════════════
-// ANCHOR_CORE INTEGRATION
-// This replaces the old minimal FACE_FREEZE with comprehensive
-// face, body, hair, transition, and clothing isolation anchors.
-// ═══════════════════════════════════════════════════════════════
 
 /**
  * Get the full ANCHOR_CORE prompt.
@@ -48,20 +42,13 @@ function getIdentityAnchor(sessionId?: string): string {
   return getAnchorCorePrompt()
 }
 
-// Legacy alias for backward compatibility
 const IDENTITY_LOCK = getAnchorCorePrompt()
 
-// ═══════════════════════════════════════════════════════════════
-// GARMENT LOCK - HARD-CODED
-// ═══════════════════════════════════════════════════════════════
 
 const GARMENT_LOCK = `Dress the same person in the garment shown in Image 2.
 The garment must match Image 2 exactly in color, fabric, construction, and drape.
 The garment must FIT the subject's body - body does NOT change for clothing.`
 
-// ═══════════════════════════════════════════════════════════════
-// NEGATIVE CONSTRAINTS
-// ═══════════════════════════════════════════════════════════════
 
 const NEGATIVE_CONSTRAINTS = `Do not beautify, stylize, or artistically reinterpret.
 Do not smooth skin or alter natural features.
@@ -69,28 +56,18 @@ Do not slim, lengthen, or "improve" the body.
 Do not change eye size, face shape, or proportions.
 This is a realistic photo edit, not fashion illustration.`
 
-// ═══════════════════════════════════════════════════════════════
-// FINAL SAFEGUARD
-// ═══════════════════════════════════════════════════════════════
 
 const FINAL_SAFEGUARD = `If there is any ambiguity, preserve the person exactly as seen in Image 1.
 Recognition accuracy > visual perfection.
 If their family wouldn't recognize them, the generation FAILED.`
 
-// ═══════════════════════════════════════════════════════════════
-// SCENE BUILDER (ENVIRONMENT ONLY - NO SUBJECT LANGUAGE)
-// ═══════════════════════════════════════════════════════════════
 
 function buildSceneBlock(preset: ScenePreset): string {
-  // Extract ONLY environment/lighting/camera - NO subject language
-  return `Environment: ${preset.scene}
+    return `Environment: ${preset.scene}
 Lighting: ${preset.lighting}
 Camera: ${preset.camera}`
 }
 
-// ═══════════════════════════════════════════════════════════════
-// MAIN PROMPT ASSEMBLY
-// ═══════════════════════════════════════════════════════════════
 
 export interface PromptComposerInput {
   garmentDescription?: string
@@ -126,8 +103,7 @@ export async function composePromptWithPreset(
   let preset: ScenePreset
   let selectionMethod: 'direct' | 'gpt-selected' | 'fallback'
 
-  // Select preset
-  if (presetId) {
+    if (presetId) {
     const directPreset = getPresetById(presetId)
     if (directPreset) {
       preset = directPreset
@@ -150,10 +126,7 @@ export async function composePromptWithPreset(
     selectionMethod = 'fallback'
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // ASSEMBLE PROMPT IN STRICT ORDER
-  // ═══════════════════════════════════════════════════════════════
-
+      
   const finalPrompt = `${IDENTITY_LOCK}
 
 ${GARMENT_LOCK}
@@ -164,17 +137,6 @@ ${NEGATIVE_CONSTRAINTS}
 
 ${FINAL_SAFEGUARD}`
 
-  // Debug logging
-  console.log(`\n🎬 PROMPT COMPOSED (Identity-Safe Architecture)`)
-  console.log(`   Preset: ${preset.label} (${preset.id})`)
-  console.log(`   Selection: ${selectionMethod}`)
-  console.log(`   Length: ${finalPrompt.length} chars`)
-  console.log(`\n📋 FINAL PROMPT:\n${'─'.repeat(60)}\n${finalPrompt}\n${'─'.repeat(60)}`)
-  console.log(`\n� IDENTITY VERIFICATION:`)
-  console.log(`   ✅ Identity lock: PRESENT (Image 1 only)`)
-  console.log(`   ✅ No subject language in preset: CLEAN`)
-  console.log(`   ✅ Final safeguard: PRESENT`)
-
   return {
     prompt: finalPrompt,
     presetUsed: preset,
@@ -182,9 +144,6 @@ ${FINAL_SAFEGUARD}`
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// GPT-4o MINI PRESET SELECTOR
-// ═══════════════════════════════════════════════════════════════
 
 async function selectPresetWithGPT(
   sceneHint: string,
@@ -226,9 +185,6 @@ Default: india_home_lifestyle`
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// UTILITY FUNCTIONS
-// ═══════════════════════════════════════════════════════════════
 
 export function getMinimalPrompt(): string {
   return `${IDENTITY_LOCK}
@@ -258,5 +214,5 @@ ${NEGATIVE_CONSTRAINTS}
 ${FINAL_SAFEGUARD}`
 }
 
-// Export constants for testing
 export { IDENTITY_LOCK, GARMENT_LOCK, NEGATIVE_CONSTRAINTS, FINAL_SAFEGUARD }
+
