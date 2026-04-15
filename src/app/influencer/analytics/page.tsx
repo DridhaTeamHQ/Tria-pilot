@@ -52,6 +52,7 @@ function BrutalMetric({ label, value, icon: Icon, color = 'bg-[#90E8FF]' }: { la
 interface AnalyticsData {
   totalClicks: number
   totalProducts: number
+  totalRevenue: number
   averageClicks: number
   products: Array<{
     productId: string
@@ -62,6 +63,7 @@ interface AnalyticsData {
     linkCode: string
     clickCount: number
     uniqueClicks: number
+    revenue: number
     lastClickedAt: string | null
     createdAt: string
   }>
@@ -178,10 +180,10 @@ export default function InfluencerAnalyticsPage() {
               transition={{ delay: 0.2 }}
             >
               <BrutalMetric
-                label="Products Shared"
-                value={analytics.totalProducts}
-                icon={Package}
-                color="bg-[#FF90E8]"
+                label="Total Revenue"
+                value={`₹${analytics.totalRevenue.toLocaleString()}`}
+                icon={TrendingUp}
+                color="bg-[#BAFCA2]"
               />
             </motion.div>
 
@@ -191,10 +193,10 @@ export default function InfluencerAnalyticsPage() {
               transition={{ delay: 0.3 }}
             >
               <BrutalMetric
-                label="Avg Clicks/Product"
+                label="Avg Clicks/Link"
                 value={analytics.averageClicks.toFixed(1)}
-                icon={TrendingUp}
-                color="bg-[#90E8FF]"
+                icon={MousePointerClick}
+                color="bg-[#FFD93D]"
               />
             </motion.div>
           </div>
@@ -268,8 +270,8 @@ export default function InfluencerAnalyticsPage() {
                           </h3>
 
                           <div className="flex flex-wrap gap-3 mb-4">
-                            <div className="px-3 py-1 bg-[#BAFCA2] border-[2px] border-black text-xs font-bold uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                              {product.clickCount} Clicks
+                            <div className="px-3 py-1 bg-white border-[2px] border-black text-xs font-bold uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-[#059669]">
+                              ₹{product.revenue.toLocaleString()} Earned
                             </div>
                             <div className="px-3 py-1 bg-white border-[2px] border-black text-xs font-bold uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                               {product.uniqueClicks} Unique

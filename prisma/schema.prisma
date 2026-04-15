@@ -285,14 +285,23 @@ model Payout {
 }
 
 model AffiliateEvent {
-  id          String   @id @default(cuid())
-  influencerId String
-  influencer  InfluencerProfile @relation(fields: [influencerId], references: [id], onDelete: Cascade)
-  productId   String?
-  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
-  eventType   String   // "click" | "purchase" | "conversion"
-  metadata    Json?
-  createdAt   DateTime @default(now())
+  id            String   @id @default(cuid())
+  influencerId  String
+  influencer    InfluencerProfile @relation(fields: [influencerId], references: [id], onDelete: Cascade)
+  productId     String?
+  product       Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  trackedLinkId String?
+  trackedLink   TrackedLink? @relation(fields: [trackedLinkId], references: [id], onDelete: SetNull)
+  eventType     String   // "click" | "purchase" | "conversion"
+  amount        Decimal? @db.Decimal(10, 2)
+  currency      String   @default("INR")
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  @@index([influencerId])
+  @@index([productId])
+  @@index([trackedLinkId])
+  @@index([eventType])
 }
 
 model Feedback {
