@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import type React from 'react'
 import { Bungee } from 'next/font/google'
 import AuthToastBridge from '@/components/auth-toast-bridge'
@@ -26,6 +26,13 @@ export const metadata: Metadata = {
     shortcut: '/icon.svg',
     apple: '/icon.svg',
   },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: 'cover',
 }
 
 // Defined at module level so the object reference is stable across SSR and client,

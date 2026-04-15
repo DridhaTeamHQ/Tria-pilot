@@ -71,9 +71,9 @@ interface ReferencePhotosResponse {
 
 function BrutalCard({ children, className = '', title }: { children: React.ReactNode, className?: string, title?: string }) {
   return (
-    <div className={`bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-5 sm:p-8 relative ${className}`}>
+    <div className={`bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-4 sm:p-8 relative ${className}`}>
       {title && (
-        <div className="absolute -top-4 left-6 bg-white px-4 border-[3px] border-black text-sm font-bold uppercase tracking-widest shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+        <div className="absolute -top-4 left-4 sm:left-6 bg-white px-4 border-[3px] border-black text-xs sm:text-sm font-bold uppercase tracking-widest shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
           {title}
         </div>
       )}
@@ -673,7 +673,7 @@ export default function ProfilePage() {
 
         <div className="grid lg:grid-cols-12 gap-10">
           <div className="lg:col-span-8 space-y-10">
-            <BrutalCard className="pt-36 md:pt-10 mt-16 md:mt-12" >
+            <BrutalCard className="pt-32 sm:pt-36 md:pt-10 mt-16 md:mt-12" >
               <div className="absolute -top-16 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-8 z-10 w-[160px] h-[180px] md:w-[180px] md:h-[200px]">
                 <div className="relative w-full h-full border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-[#FFD93D] overflow-hidden">
                   {profileImageUrl ? (

@@ -140,7 +140,7 @@ export default async function BrandDashboard({
 
   // Render UI directly (Server Side Rendered)
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
+    <div className="container mx-auto px-4 sm:px-6 pt-20 sm:pt-24 pb-6 sm:pb-8">
       {/* Welcome Header */}
       <div className="mb-8 sm:mb-10">
         <h1 className="text-3xl sm:text-4xl font-black text-black mb-2">
@@ -286,43 +286,42 @@ export default async function BrandDashboard({
             </div>
           ) : (
             <div className="overflow-x-auto">
-            <table className="w-full min-w-[560px] text-left">
-              <thead>
-                <tr className="border-b-[2px] border-black bg-[#FFFDF5]">
-                  <th className="p-3 text-xs font-black uppercase">Title</th>
-                  <th className="p-3 text-xs font-black uppercase">Status</th>
-                  <th className="p-3 text-xs font-black uppercase">Created</th>
-                  <th className="p-3 text-xs font-black uppercase" />
-                </tr>
-              </thead>
-              <tbody>
-                {recentCampaigns.map((c) => (
-                  <tr key={c.id} className="border-b border-black/20 hover:bg-black/5">
-                    <td className="p-3 font-bold">{c.title}</td>
-                    <td className="p-3">
-                      <span
-                        className={`inline-block px-2 py-0.5 text-xs font-bold border-[2px] border-black ${
-                          c.status === 'active' ? 'bg-[#B4F056]' : c.status === 'completed' ? 'bg-[#FFD93D]' : 'bg-white'
-                        }`}
-                      >
-                        {c.status}
-                      </span>
-                    </td>
-                    <td className="p-3 text-sm text-black/70">
-                      {new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </td>
-                    <td className="p-3">
-                      <Link
-                        href={`/brand/campaigns?highlight=${c.id}`}
-                        className="text-xs font-bold underline hover:no-underline"
-                      >
-                        View
-                      </Link>
-                    </td>
+              <table className="w-full min-w-[560px] text-left">
+                <thead>
+                  <tr className="border-b-[2px] border-black bg-[#FFFDF5]">
+                    <th className="p-3 text-xs font-black uppercase">Title</th>
+                    <th className="p-3 text-xs font-black uppercase">Status</th>
+                    <th className="p-3 text-xs font-black uppercase">Created</th>
+                    <th className="p-3 text-xs font-black uppercase" />
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {recentCampaigns.map((c) => (
+                    <tr key={c.id} className="border-b border-black/20 hover:bg-black/5">
+                      <td className="p-3 font-bold">{c.title}</td>
+                      <td className="p-3">
+                        <span
+                          className={`inline-block px-2 py-0.5 text-xs font-bold border-[2px] border-black ${c.status === 'active' ? 'bg-[#B4F056]' : c.status === 'completed' ? 'bg-[#FFD93D]' : 'bg-white'
+                            }`}
+                        >
+                          {c.status}
+                        </span>
+                      </td>
+                      <td className="p-3 text-sm text-black/70">
+                        {new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </td>
+                      <td className="p-3">
+                        <Link
+                          href={`/brand/campaigns?highlight=${c.id}`}
+                          className="text-xs font-bold underline hover:no-underline"
+                        >
+                          View
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>

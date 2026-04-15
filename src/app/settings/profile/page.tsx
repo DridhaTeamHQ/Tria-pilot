@@ -12,7 +12,7 @@ import { formatDateOfBirth } from '@/lib/profile-demographics'
 
 function BrutalCard({ children, className = '', title }: { children: React.ReactNode, className?: string, title?: string }) {
   return (
-    <div className={`bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-8 relative ${className}`}>
+    <div className={`bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-4 sm:p-8 relative ${className}`}>
       {title && (
         <div className="absolute -top-4 left-6 bg-white px-4 border-[3px] border-black text-sm font-bold uppercase tracking-widest shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
           {title}
@@ -147,7 +147,7 @@ export default function SettingsProfilePage() {
             <ArrowLeft className="w-5 h-5" />
             Back to profile
           </Link>
-          <h1 className="text-5xl font-black text-black uppercase mb-2">Settings</h1>
+          <h1 className="text-3xl sm:text-5xl font-black text-black uppercase mb-2">Settings</h1>
           <p className="text-lg font-bold text-black/60 border-l-[4px] border-[#FFD93D] pl-4">
             Manage your account security and preferences
           </p>

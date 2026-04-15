@@ -26,14 +26,14 @@ const PF = 'var(--font-plus-jakarta-sans), sans-serif'
 
 export default function LandingPage() {
   return (
-    <div className="bg-[#f7eee4] px-3 pb-8 pt-[88px] text-[#111111] sm:px-4 lg:px-6 lg:pt-[104px]" style={{ fontFamily: PF }}>
+    <div className="bg-[#f7eee4] px-3 pb-8 pt-[88px] text-[#111111] sm:px-4 lg:px-6 lg:pt-[104px] overflow-x-hidden" style={{ fontFamily: PF }}>
       <div className="mx-auto max-w-[1320px] overflow-hidden rounded-[34px] border-[3px] border-black bg-[#fbfaf6] shadow-[10px_10px_0_0_rgba(0,0,0,1)]">
         <section className="relative overflow-hidden px-5 py-6 sm:px-8 lg:px-10 lg:py-10">
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(17,17,17,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(17,17,17,0.06)_1px,transparent_1px)] bg-[size:42px_42px]" />
           <div className="pointer-events-none absolute inset-y-0 left-0 w-[28%] bg-[radial-gradient(circle_at_22%_62%,rgba(255,140,120,0.18),transparent_52%)]" />
           <div className="pointer-events-none absolute inset-y-0 right-0 w-[34%] bg-[radial-gradient(circle_at_35%_40%,rgba(203,255,46,0.16),transparent_46%)]" />
-          <div className="pointer-events-none absolute -left-4 top-[92px] h-[88px] w-[88px] rounded-full border-[3px] border-[#ff5aa9] bg-[#ff5aa9] shadow-[6px_6px_0_0_rgba(0,0,0,1)]" />
-          <div className="pointer-events-none absolute -right-8 bottom-20 h-[92px] w-[92px] rounded-full border-[3px] border-black bg-[#ffd243] shadow-[6px_6px_0_0_rgba(0,0,0,1)]" />
+          <div className="pointer-events-none absolute -left-4 top-[92px] h-[88px] w-[88px] rounded-full border-[3px] border-[#ff5aa9] bg-[#ff5aa9] shadow-[6px_6px_0_0_rgba(0,0,0,1)] hidden sm:block" />
+          <div className="pointer-events-none absolute -right-8 bottom-20 h-[92px] w-[92px] rounded-full border-[3px] border-black bg-[#ffd243] shadow-[6px_6px_0_0_rgba(0,0,0,1)] hidden sm:block" />
           <div className="pointer-events-none absolute inset-x-0 top-3 text-center kiwikoo-wordmark text-[clamp(5rem,17vw,14rem)] leading-none tracking-[0.02em] text-black/[0.04]">
             KIWIKOO
           </div>
@@ -48,10 +48,10 @@ export default function LandingPage() {
               <p className="mt-6 max-w-[560px] text-[18px] leading-8 text-black/68 max-lg:mx-auto">
                 The easiest way for creators and brands to create, launch, and convert with AI-powered fashion tools.
               </p>
-              <div className="mt-8 flex flex-nowrap items-center justify-center gap-3 lg:justify-start">
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
                 <Link
                   href="/signup/influencer"
-                  className="group relative inline-flex h-[72px] min-w-[210px] items-center justify-center overflow-hidden rounded-[16px] border-[3px] border-black bg-[#FF8C69] px-5 py-3 text-[16px] font-black text-black shadow-[5px_5px_0_0_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+                  className="group relative inline-flex h-auto min-h-[56px] sm:min-h-[72px] w-full sm:w-auto sm:min-w-[210px] items-center justify-center overflow-hidden rounded-[16px] border-[3px] border-black bg-[#FF8C69] px-5 py-3 text-[16px] font-black text-black shadow-[5px_5px_0_0_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
                 >
                   <span className="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(255,255,255,0.4),transparent_45%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                   <span className="relative block h-[1.6em] overflow-hidden">
@@ -65,7 +65,7 @@ export default function LandingPage() {
                 </Link>
                 <Link
                   href="/signup/brand"
-                  className="group relative inline-flex h-[72px] min-w-[210px] items-center justify-center overflow-hidden rounded-[16px] border-[3px] border-black bg-[#cbff2e] px-5 py-3 text-[16px] font-black text-black shadow-[5px_5px_0_0_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+                  className="group relative inline-flex h-auto min-h-[56px] sm:min-h-[72px] w-full sm:w-auto sm:min-w-[210px] items-center justify-center overflow-hidden rounded-[16px] border-[3px] border-black bg-[#cbff2e] px-5 py-3 text-[16px] font-black text-black shadow-[5px_5px_0_0_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
                 >
                   <span className="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(255,255,255,0.35),transparent_45%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                   <span className="relative block h-[1.6em] overflow-hidden">
@@ -81,17 +81,17 @@ export default function LandingPage() {
             </div>
 
             <div className="group relative mx-auto w-full max-w-[520px]">
-              <div className="absolute -left-2 top-12 z-20 rounded-[22px] border-[3px] border-black bg-[#FFD93D] px-4 py-4 shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition-transform duration-300 group-hover:-translate-y-2 group-hover:rotate-[-8deg] sm:-left-5">
+              <div className="absolute -left-2 top-12 z-20 rounded-[22px] border-[3px] border-black bg-[#FFD93D] px-4 py-4 shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition-transform duration-300 group-hover:-translate-y-2 group-hover:rotate-[-8deg] sm:-left-5 hidden sm:block">
                 <Zap className="h-8 w-8 text-black" strokeWidth={2.4} />
               </div>
-              <div className="absolute right-0 top-2 z-20 rounded-[22px] border-[3px] border-black bg-[#89a6ff] px-4 py-4 shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-2 group-hover:rotate-[8deg]">
+              <div className="absolute right-0 top-2 z-20 rounded-[22px] border-[3px] border-black bg-[#89a6ff] px-4 py-4 shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-2 group-hover:rotate-[8deg] hidden sm:block">
                 <Sparkles className="h-8 w-8 text-black" strokeWidth={2.4} />
               </div>
-              <div className="absolute right-6 top-28 z-20 rounded-[22px] border-[3px] border-black bg-[#cbff2e] px-4 py-4 shadow-[5px_5px_0_0_rgba(0,0,0,1)] transition-transform duration-300 group-hover:translate-y-1 group-hover:rotate-[6deg]">
+              <div className="absolute right-6 top-28 z-20 rounded-[22px] border-[3px] border-black bg-[#cbff2e] px-4 py-4 shadow-[5px_5px_0_0_rgba(0,0,0,1)] transition-transform duration-300 group-hover:translate-y-1 group-hover:rotate-[6deg] hidden sm:block">
                 <Star className="h-7 w-7 text-black" strokeWidth={2.4} />
               </div>
 
-              <div className="relative min-h-[430px] sm:min-h-[500px]">
+              <div className="relative min-h-[320px] sm:min-h-[500px]">
                 <div className="absolute inset-x-[16%] inset-y-[12%] rounded-[30px] border-[3px] border-black bg-[linear-gradient(180deg,#fff7ec_0%,#f6ffd9_100%)] shadow-[7px_7px_0_0_rgba(0,0,0,1)] transition-transform duration-500 group-hover:scale-[1.01]" />
                 <div className="pointer-events-none absolute inset-x-[20%] inset-y-[18%] rounded-[26px] bg-[radial-gradient(circle_at_25%_30%,rgba(255,140,120,0.2),transparent_38%),radial-gradient(circle_at_78%_28%,rgba(203,255,46,0.18),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.75),rgba(255,247,232,0.45))]" />
                 <div className="absolute bottom-5 right-0 z-10 w-[220px] rotate-[7deg] rounded-[26px] border-[3px] border-black bg-white p-3 shadow-[7px_7px_0_0_rgba(0,0,0,1)] transition-transform duration-300 group-hover:translate-y-1 group-hover:rotate-[10deg] sm:w-[250px]">
@@ -293,7 +293,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="kiwikoo-wordmark text-[clamp(4.8rem,18vw,10rem)] leading-none text-black/[0.05]">
+            <div className="kiwikoo-wordmark text-[clamp(4.8rem,18vw,10rem)] leading-none text-black/[0.05] overflow-hidden">
               KIWIKOO
             </div>
           </div>
@@ -306,9 +306,8 @@ export default function LandingPage() {
 function MiniPill({ label, dark = false }: { label: string; dark?: boolean }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full border-[2px] px-4 py-1 text-[11px] font-black uppercase tracking-[0.12em] ${
-        dark ? 'border-white/15 bg-[#111111] text-white/90' : 'border-black/35 bg-white text-black/75'
-      }`}
+      className={`inline-flex items-center rounded-full border-[2px] px-4 py-1 text-[11px] font-black uppercase tracking-[0.12em] ${dark ? 'border-white/15 bg-[#111111] text-white/90' : 'border-black/35 bg-white text-black/75'
+        }`}
     >
       {label}
     </span>
@@ -395,7 +394,7 @@ function AnalyticsPanel() {
 
   return (
     <div className="relative rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_84%_18%,rgba(203,255,46,0.12),transparent_30%),linear-gradient(180deg,#151515_0%,#191919_100%)] p-5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03)]">
-      <div className="absolute -right-3 -top-3 rounded-[16px] border border-white/12 bg-[#2e2e2e] px-5 py-4 text-right shadow-[0_5px_0_0_rgba(0,0,0,0.4)]">
+      <div className="absolute -right-3 -top-3 rounded-[16px] border border-white/12 bg-[#2e2e2e] px-5 py-4 text-right shadow-[0_5px_0_0_rgba(0,0,0,0.4)] max-sm:right-1 max-sm:top-1 max-sm:px-3 max-sm:py-3">
         <div className="text-[26px] font-black leading-none text-[#ff9d85]">AI</div>
         <div className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-white/40">Powered</div>
       </div>
@@ -441,7 +440,7 @@ function AnalyticsPanel() {
         </div>
 
         {/* Bottom cards */}
-        <div className="mt-6 grid grid-cols-3 gap-2">
+        <div className="mt-6 grid grid-cols-3 gap-2 max-[400px]:grid-cols-1">
           {['Person', 'Outfit', 'Result'].map((label, i) => {
             const colors = ['#89a6ff', '#ff8c78', '#cbff2e']
             const icons = [

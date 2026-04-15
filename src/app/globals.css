@@ -58,6 +58,12 @@
   --font-sans-landing: var(--font-plus-jakarta-sans), ui-sans-serif, sans-serif;
 }
 
+/* Prevent horizontal overflow on mobile */
+html,
+body {
+  overflow-x: hidden;
+}
+
 .kiwikoo-wordmark {
   font-family: var(--font-bungee), "Arial Black", Impact, sans-serif;
   letter-spacing: 0.015em;
@@ -164,14 +170,31 @@
   pointer-events: none;
   z-index: 40;
 }
-.grid-line-x { border-bottom: 1px solid rgba(17, 17, 17, 0.1); }
-.grid-line-y { border-right: 1px solid rgba(17, 17, 17, 0.1); }
-.grid-line-t { border-top: 1px solid rgba(17, 17, 17, 0.1); }
-.border-strong-b { border-bottom: 2px solid var(--kblack); }
-.border-strong-t { border-top: 2px solid var(--kblack); }
+
+.grid-line-x {
+  border-bottom: 1px solid rgba(17, 17, 17, 0.1);
+}
+
+.grid-line-y {
+  border-right: 1px solid rgba(17, 17, 17, 0.1);
+}
+
+.grid-line-t {
+  border-top: 1px solid rgba(17, 17, 17, 0.1);
+}
+
+.border-strong-b {
+  border-bottom: 2px solid var(--kblack);
+}
+
+.border-strong-t {
+  border-top: 2px solid var(--kblack);
+}
+
 .neo-btn {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
+
 .neo-btn:hover {
   transform: translate(2px, 2px);
   box-shadow: 2px 2px 0 rgba(17, 17, 17, 1) !important;
@@ -215,15 +238,32 @@ body.landing-transparent-bg {
 }
 
 /* Scrollbar styling */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #faf9f6; }
-::-webkit-scrollbar-thumb { background: #d1d1d1; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #111111; }
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #faf9f6;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d1d1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #111111;
+}
 
 /* Respect reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
-  #global-bg { transform: none !important; }
-  .reveal-word { opacity: 1 !important; }
+  #global-bg {
+    transform: none !important;
+  }
+
+  .reveal-word {
+    opacity: 1 !important;
+  }
 }
 
 @layer base {
@@ -648,13 +688,104 @@ img {
   .p-6 {
     padding: 1rem;
   }
+
+  /* Reduce neo-brutal shadows on mobile to prevent horizontal overflow */
+  [class*="shadow-\[8px_8px"] {
+    box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1) !important;
+  }
+
+  [class*="shadow-\[10px_10px"] {
+    box-shadow: 5px 5px 0px 0px rgba(0, 0, 0, 1) !important;
+  }
+
+  [class*="shadow-\[12px_12px"] {
+    box-shadow: 6px 6px 0px 0px rgba(0, 0, 0, 1) !important;
+  }
+
+  /* Prevent long words from causing overflow */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  span,
+  a,
+  li {
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  /* Ensure tables don't overflow — wrap them in scrollable containers */
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+  }
+
+  /* Ensure images never overflow their containers */
+  img,
+  video,
+  canvas,
+  svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Minimum touch target size for interactive elements */
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+  }
+
+  /* Tighter container on very small screens */
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* Extra-small device adjustments (320px and below) */
+@media (max-width: 360px) {
+
+  /* Reduce heading sizes on very small screens */
+  h1 {
+    font-size: clamp(1.5rem, 8vw, 2.5rem) !important;
+  }
+
+  /* Reduce card rounded corners further */
+  .rounded-\[24px\],
+  .rounded-\[28px\],
+  .rounded-\[30px\],
+  .rounded-\[32px\],
+  .rounded-\[34px\] {
+    border-radius: 16px !important;
+  }
+
+  /* Reduce border widths on tiny screens */
+  [class*="border-\[3px\]"] {
+    border-width: 2px !important;
+  }
+
+  [class*="border-\[4px\]"] {
+    border-width: 3px !important;
+  }
+
+  /* Remove all neo-brutal shadows on very small screens */
+  [class*="shadow-\["] {
+    box-shadow: 3px 3px 0px 0px rgba(0, 0, 0, 1) !important;
+  }
 }
 
 /* ============================================
    CROSS-BROWSER SCROLLBAR STYLING
    ============================================ */
 
-/* Custom scrollbar for webkit browsers */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;

@@ -40,22 +40,22 @@ export default function Hero() {
                 <motion.div
                     animate={{ y: [0, -20, 0], rotate: [0, 5, 0] }}
                     transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute top-[20%] right-[15%] w-20 h-20 border-2 border-peach/30 rounded-2xl"
+                    className="absolute top-[20%] right-[15%] w-20 h-20 border-2 border-peach/30 rounded-2xl hidden sm:block"
                 />
                 <motion.div
                     animate={{ y: [0, 15, 0], rotate: [0, -5, 0] }}
                     transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-                    className="absolute top-[35%] left-[10%] w-16 h-16 bg-gradient-to-br from-peach/20 to-rose/20 rounded-full"
+                    className="absolute top-[35%] left-[10%] w-16 h-16 bg-gradient-to-br from-peach/20 to-rose/20 rounded-full hidden sm:block"
                 />
                 <motion.div
                     animate={{ y: [0, -10, 0], x: [0, 10, 0] }}
                     transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-                    className="absolute bottom-[25%] right-[20%] w-12 h-12 border-2 border-charcoal/10 rounded-full"
+                    className="absolute bottom-[25%] right-[20%] w-12 h-12 border-2 border-charcoal/10 rounded-full hidden sm:block"
                 />
                 <motion.div
                     animate={{ y: [0, 20, 0] }}
                     transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-                    className="absolute bottom-[30%] left-[15%] w-8 h-8 bg-gradient-to-br from-amber-200/40 to-orange-200/40 rounded-lg rotate-45"
+                    className="absolute bottom-[30%] left-[15%] w-8 h-8 bg-gradient-to-br from-amber-200/40 to-orange-200/40 rounded-lg rotate-45 hidden sm:block"
                 />
             </div>
 
@@ -206,7 +206,7 @@ export default function Hero() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 2 }}
-                className="absolute bottom-8 left-1/2 -translate-x-1/2"
+                className="absolute bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2"
             >
                 <motion.div
                     animate={{ y: [0, 10, 0] }}

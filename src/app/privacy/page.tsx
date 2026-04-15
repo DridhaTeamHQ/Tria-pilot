@@ -7,7 +7,7 @@ export default function PrivacyPage() {
         <Link href="/" className="kiwikoo-wordmark text-3xl text-charcoal">
           Kiwikoo
         </Link>
-        <h1 className="text-5xl font-serif font-bold text-charcoal mt-6">Privacy Policy</h1>
+        <h1 className="text-3xl sm:text-5xl font-serif font-bold text-charcoal mt-6">Privacy Policy</h1>
         <p className="mt-4 text-charcoal/70">
           This is a placeholder privacy policy page for Kiwikoo. Replace this content with your finalized policy before
           launching.

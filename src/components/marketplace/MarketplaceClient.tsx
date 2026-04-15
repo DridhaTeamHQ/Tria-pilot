@@ -119,7 +119,7 @@ export default function MarketplaceClient({ products, categories, activeCategory
             <div className="container mx-auto px-4 sm:px-6">
                 {/* Header */}
                 <div className="mb-10 animate-fade-in">
-                    <div className="mb-8 grid grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] items-stretch gap-3 sm:gap-4 xl:gap-5">
+                    <div className="mb-8 grid grid-cols-1 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] items-stretch gap-3 sm:gap-4 xl:gap-5">
                         <div className="relative h-full overflow-hidden rounded-[28px] border-[3px] border-black bg-white p-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:p-6">
                             <div className="relative z-10">
                                 <div className="mb-3 flex items-center gap-2 sm:mb-4 sm:gap-3">
@@ -192,8 +192,8 @@ export default function MarketplaceClient({ products, categories, activeCategory
                                 >
                                     <span
                                         className={`inline-block rounded-full border-[3px] px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${isActive
-                                                ? 'bg-[#FFD93D] text-black border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -translate-y-1'
-                                                : 'bg-white border-black text-charcoal hover:bg-gray-50 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1'
+                                            ? 'bg-[#FFD93D] text-black border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -translate-y-1'
+                                            : 'bg-white border-black text-charcoal hover:bg-gray-50 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1'
                                             }`}
                                     >
                                         {category}
