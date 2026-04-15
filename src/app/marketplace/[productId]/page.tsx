@@ -8,6 +8,7 @@ import ProductRecommendations from '@/components/product/ProductRecommendations'
 import RequestCollaborationButton from '@/components/collaborations/RequestCollaborationButton'
 import FavoriteButton from '@/components/product/FavoriteButton'
 import ProductShareButton from '@/components/product/ProductShareButton'
+import { AffiliateLinkDisplay } from '@/components/marketplace/AffiliateLinkDisplay'
 
 export default async function ProductDetailPage({ params }: { params: Promise<{ productId: string }> }) {
   const { productId } = await params
@@ -136,6 +137,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                 productName={product.name}
                 brandName={brandName}
               />
+
+              <AffiliateLinkDisplay productId={product.id} />
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 {product.link && (
