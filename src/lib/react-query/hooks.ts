@@ -33,12 +33,12 @@ export function useUser() {
         avatarUrl: data.user.avatarUrl ?? data.profile?.avatar_url ?? null,
       }
     },
-    staleTime: 30 * 1000, // Consider data fresh for 30 seconds (for navigation)
+    staleTime: 2 * 1000,
     gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
     retry: false, // Don't retry on 401 errors
-    refetchOnMount: false, // Reuse fresh auth data across route transitions
-    refetchOnWindowFocus: false, // Avoid auth flicker when switching tabs
-    refetchOnReconnect: true, // Refetch when network reconnects
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   })
 }
 

@@ -11,14 +11,8 @@ export default function NavSwitcher() {
   const isLandingPage = pathname === '/'
   const isContactPage = pathname === '/contact'
 
-  if (isContactPage) return <LandingNav />
-
-  if (isLandingPage) {
-    if (isLoading && typeof user === 'undefined') {
-      return <div aria-hidden className="h-[76px] sm:h-[84px] lg:h-[92px]" />
-    }
-
-    return user ? <BrutalNavbar /> : <LandingNav />
+  if (isContactPage || isLandingPage) {
+    return <LandingNav />
   }
 
   return <BrutalNavbar />

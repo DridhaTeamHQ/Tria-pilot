@@ -120,14 +120,15 @@ export default function BrutalNavbar() {
         { href: "/signup/brand", label: "For Brands" },
     ];
 
-    let links: typeof influencerLinks | typeof brandLinks = [];
-    if (isLoggedIn && user) {
-        if (user.role === "BRAND") {
-            links = brandLinks;
-        } else if (user.role === "INFLUENCER") {
-            links = influencerLinks;
-        }
-    }
+    // Split into Primary and Utility for cleaner layout
+    const primaryLinkLabels = ["Marketplace", "Try-On Studio", "Dashboard", "Campaigns", "Creators", "Products"];
+
+    const links = isLoggedIn && user
+        ? user.role === "BRAND" ? brandLinks : influencerLinks
+        : [];
+
+    const primaryLinks = links.filter(l => primaryLinkLabels.includes(l.label));
+    const utilityLinks = links.filter(l => !primaryLinkLabels.includes(l.label));
 
     const userInitial =
         isLoggedIn && user
@@ -142,7 +143,7 @@ export default function BrutalNavbar() {
     const showAvatarImage = Boolean(avatarUrl) && !avatarFailed;
 
     return (
-        <header className="fixed top-0 left-0 right-0 z-50 bg-[#F9F8F4] border-b-[3px] border-black">
+        <header className="fixed top-0 left-0 right-0 z-40 bg-[#F9F8F4] border-b-[3px] border-black">
             <div className="w-full max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
                 <div className="flex items-center justify-between h-16 md:h-20">
                     {/* Logo */}
@@ -154,10 +155,10 @@ export default function BrutalNavbar() {
                         Kiwikoo
                     </Link>
 
-                    {/* Desktop Navigation - Center */}
+                    {/* Desktop Navigation - Center (Primary Actions) */}
                     {authResolving ? null : isLoggedIn ? (
-                        <nav className="hidden lg:flex flex-1 items-center justify-center gap-2 lg:gap-3 px-4">
-                            {links.map((link) => {
+                        <nav className="hidden lg:flex items-center justify-center gap-2 xl:gap-3 px-4">
+                            {primaryLinks.map((link) => {
                                 const Icon = link.icon;
                                 const active = isActive(link.href);
                                 return (
@@ -165,7 +166,7 @@ export default function BrutalNavbar() {
                                         key={link.href}
                                         href={link.href}
                                         prefetch={true}
-                                        className={`px-3 xl:px-4 py-2 rounded-xl text-sm font-bold transition-all duration-150 flex items-center justify-center whitespace-nowrap gap-1.5 xl:gap-2 border-2 border-black ${active
+                                        className={`px-3 xl:px-4 py-2 rounded-xl text-sm font-bold transition-all duration-150 flex items-center justify-center whitespace-nowrap gap-2 border-2 border-black ${active
                                             ? "bg-[#FF8C69] text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
                                             : "bg-white text-black hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
                                             }`}
@@ -191,10 +192,31 @@ export default function BrutalNavbar() {
                         </nav>
                     )}
 
-                    {/* Right Side Actions */}
+                    {/* Right Side Actions & Utility Icons */}
                     <div className="flex items-center gap-4 shrink-0">
                         {authResolving ? null : isLoggedIn ? (
-                            <div className="hidden lg:flex items-center gap-3">
+                            <div className="hidden lg:flex items-center gap-2 xl:gap-3">
+                                {/* Utility Icons (Secondary Actions) */}
+                                <div className="flex items-center gap-1.5 mr-2">
+                                    {utilityLinks.map((link) => {
+                                        const Icon = link.icon;
+                                        const active = isActive(link.href);
+                                        return (
+                                            <Link
+                                                key={link.href}
+                                                href={link.href}
+                                                className={`p-2.5 rounded-xl border-2 border-black transition-all hover:-translate-y-0.5 ${active
+                                                        ? "bg-[#B4F056] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                                                        : "bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black/70 hover:text-black"
+                                                    }`}
+                                                title={link.label}
+                                            >
+                                                <Icon className="w-4 h-4" />
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+
                                 <div className="relative w-10 h-10 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black">
                                     {showAvatarImage ? (
                                         <AppImage
@@ -288,7 +310,7 @@ export default function BrutalNavbar() {
                                         </div>
                                     </div>
 
-                                    {/* Nav Links */}
+                                    {/* Nav Links - Unified for Mobile */}
                                     {links.map((link) => {
                                         const Icon = link.icon;
                                         return (
@@ -356,5 +378,3 @@ export default function BrutalNavbar() {
         </header>
     );
 }
-
-

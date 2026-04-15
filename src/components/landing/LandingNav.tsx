@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { usePathname } from 'next/navigation'
+import { useUser } from '@/lib/react-query/hooks'
+import { ArrowRight, LayoutDashboard } from 'lucide-react'
 
 const navLinkClass =
   'flex w-full items-center justify-center rounded-[14px] border border-black/10 bg-white/75 px-4 py-3 text-[15px] font-bold text-gray-800 backdrop-blur-sm transition-all duration-300 hover:border-black/20 hover:bg-white/90 hover:text-black active:scale-[0.98]'
@@ -21,7 +23,11 @@ const LINKS = [
 export default function LandingNav() {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
+  const { data: user } = useUser()
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+
+  const isLoggedIn = !!user
+  const dashboardLink = user?.role === 'BRAND' ? '/brand/dashboard' : '/influencer/dashboard'
 
   const activeIndex = pathname === '/' ? 0 : pathname === '/marketplace' ? 2 : 0
 
@@ -65,13 +71,13 @@ export default function LandingNav() {
                     onMouseEnter={() => setHoveredIndex(idx)}
                     className={`${desktopNavItemClass} ${isTarget ? 'text-black' : 'text-black/65 hover:text-black'}`}
                   >
-                  {isTarget && (
-                    <motion.span
-                      layoutId="landing-nav-pill"
-                      className="absolute inset-0 -z-10 rounded-full border-[2px] border-black bg-white/95 shadow-[2px_3px_0_0_rgba(0,0,0,0.95)]"
-                      initial={false}
-                      transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-                    />
+                    {isTarget && (
+                      <motion.span
+                        layoutId="landing-nav-pill"
+                        className="absolute inset-0 -z-10 rounded-full border-[2px] border-black bg-white/95 shadow-[2px_3px_0_0_rgba(0,0,0,0.95)]"
+                        initial={false}
+                        transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+                      />
                     )}
                     {link.label}
                   </Link>
@@ -80,20 +86,30 @@ export default function LandingNav() {
             </div>
 
             <div className="hidden items-center gap-2 lg:flex">
-              <div className="flex items-center gap-1.5 rounded-full border-[2px] border-black bg-white/88 p-1 shadow-[3px_4px_0_0_rgba(0,0,0,0.95)] backdrop-blur-sm">
+              {isLoggedIn ? (
                 <Link
-                  href="/login"
-                  className="inline-flex items-center justify-center rounded-full px-5 py-2.5 text-[13px] font-black uppercase tracking-[0.08em] text-black/85 transition-colors duration-300 hover:text-black"
+                  href={dashboardLink}
+                  className="inline-flex items-center justify-center gap-2 rounded-full border-[2px] border-black bg-[#B4F056] px-6 py-2.5 text-[14px] font-black uppercase tracking-[0.05em] text-black shadow-[3px_4px_0_0_rgba(0,0,0,0.95)] transition-all duration-300 hover:-translate-y-0.5"
                 >
-                  Login
+                  <LayoutDashboard className="h-4 w-4" />
+                  Dashboard
                 </Link>
-                <Link
-                  href="/register"
-                  className="inline-flex items-center justify-center rounded-full border-[1.5px] border-black bg-[#ff8c78] px-5 py-2.5 text-[13px] font-black uppercase tracking-[0.08em] text-black transition-transform duration-300 hover:-translate-y-0.5"
-                >
-                  Sign Up
-                </Link>
-              </div>
+              ) : (
+                <div className="flex items-center gap-1.5 rounded-full border-[2px] border-black bg-white/88 p-1 shadow-[3px_4px_0_0_rgba(0,0,0,0.95)] backdrop-blur-sm">
+                  <Link
+                    href="/login"
+                    className="inline-flex items-center justify-center rounded-full px-5 py-2.5 text-[13px] font-black uppercase tracking-[0.08em] text-black/85 transition-colors duration-300 hover:text-black"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="inline-flex items-center justify-center rounded-full border-[1.5px] border-black bg-[#ff8c78] px-5 py-2.5 text-[13px] font-black uppercase tracking-[0.08em] text-black transition-transform duration-300 hover:-translate-y-0.5"
+                  >
+                    Sign Up
+                  </Link>
+                </div>
+              )}
             </div>
 
             <button
@@ -132,20 +148,33 @@ export default function LandingNav() {
               </Link>
             ))}
             <div className="mt-3 grid gap-3">
-              <Link
-                href="/login"
-                className="inline-flex w-full items-center justify-center rounded-full border-[2px] border-black bg-white/92 px-6 py-3.5 text-[13px] font-black uppercase tracking-[0.08em] text-black shadow-[3px_4px_0_0_rgba(0,0,0,0.95)]"
-                onClick={() => setOpen(false)}
-              >
-                Login
-              </Link>
-              <Link
-                href="/register"
-                className="inline-flex w-full items-center justify-center rounded-full border-[2px] border-black bg-[#ff8c78] px-6 py-3.5 text-[13px] font-black uppercase tracking-[0.08em] text-black shadow-[3px_4px_0_0_rgba(0,0,0,0.95)]"
-                onClick={() => setOpen(false)}
-              >
-                Sign Up
-              </Link>
+              {isLoggedIn ? (
+                <Link
+                  href={dashboardLink}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full border-[2px] border-black bg-[#B4F056] px-6 py-4 text-[13px] font-black uppercase tracking-[0.08em] text-black shadow-[3px_4px_0_0_rgba(0,0,0,0.95)]"
+                  onClick={() => setOpen(false)}
+                >
+                  <LayoutDashboard className="h-5 w-5" />
+                  Dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="inline-flex w-full items-center justify-center rounded-full border-[2px] border-black bg-white/92 px-6 py-3.5 text-[13px] font-black uppercase tracking-[0.08em] text-black shadow-[3px_4px_0_0_rgba(0,0,0,0.95)]"
+                    onClick={() => setOpen(false)}
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="inline-flex w-full items-center justify-center rounded-full border-[2px] border-black bg-[#ff8c78] px-6 py-3.5 text-[13px] font-black uppercase tracking-[0.08em] text-black shadow-[3px_4px_0_0_rgba(0,0,0,0.95)]"
+                    onClick={() => setOpen(false)}
+                  >
+                    Sign Up
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
