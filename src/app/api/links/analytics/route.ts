@@ -55,10 +55,12 @@ export async function GET() {
         const totalClicks = links.reduce((sum, link) => sum + (link.click_count || 0), 0)
         const totalProducts = links.length
         const totalRevenue = events.reduce((sum, event) => sum + Number(event.amount || 0), 0)
+        const totalEarnings = totalRevenue * 0.15 // 15% commission
 
         const processedProducts = links.map((link: any) => {
             const productEvents = events.filter((e) => e.tracked_link_id === link.id)
             const revenue = productEvents.reduce((sum, e) => sum + Number(e.amount || 0), 0)
+            const earnings = revenue * 0.15 // 15% commission
 
             return {
                 productId: link.productId,
@@ -70,6 +72,7 @@ export async function GET() {
                 clickCount: link.click_count || 0,
                 uniqueClicks: link.click_count || 0, // Mock unique clicks for now
                 revenue: revenue,
+                earnings: earnings,
                 lastClickedAt: null, // Could fetch from link_clicks if needed
                 createdAt: link.created_at,
             }
@@ -79,6 +82,7 @@ export async function GET() {
             totalClicks,
             totalProducts,
             totalRevenue,
+            totalEarnings,
             averageClicks: totalProducts > 0 ? totalClicks / totalProducts : 0,
             products: processedProducts,
         })

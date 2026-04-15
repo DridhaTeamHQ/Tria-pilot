@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Copy, Check, Link as LinkIcon, ExternalLink, Loader2 } from 'lucide-react'
+import { Copy, Check, Link as LinkIcon, ExternalLink, Loader2, Sparkles } from 'lucide-react'
 import { toast } from '@/lib/simple-sonner'
 
 interface AffiliateLinkResponse {
@@ -30,6 +30,24 @@ export function AffiliateLinkDisplay({ productId }: AffiliateLinkDisplayProps) {
             return res.json()
         },
     })
+
+    const handleRecordSale = async () => {
+        if (!linkData?.linkCode) return
+
+        const amount = 1000 // Test amount
+        try {
+            const res = await fetch('/api/links/simulate-conversion', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ linkCode: linkData.linkCode, amount }),
+            })
+
+            if (!res.ok) throw new Error('Failed to record sale')
+            toast.success(`Test sale of ₹${amount} recorded! Check Analytics.`)
+        } catch (err) {
+            toast.error('Failed to record test sale')
+        }
+    }
 
     const handleCopy = async () => {
         if (!linkData?.maskedUrl) return
@@ -74,6 +92,16 @@ export function AffiliateLinkDisplay({ productId }: AffiliateLinkDisplayProps) {
                 </div>
 
                 <div className="flex shrink-0 gap-2">
+                    <button
+                        type="button"
+                        onClick={handleRecordSale}
+                        className="flex flex-1 items-center justify-center gap-2 border-[3px] border-black bg-pink-400 px-4 py-2 text-xs font-black uppercase tracking-tight shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:bg-pink-500 sm:flex-none sm:text-sm"
+                        title="Simulate a purchase for testing"
+                    >
+                        <Sparkles className="h-4 w-4" />
+                        Test Sale
+                    </button>
+
                     <button
                         type="button"
                         onClick={handleCopy}

@@ -64,6 +64,7 @@ interface AnalyticsData {
     clickCount: number
     uniqueClicks: number
     revenue: number
+    earnings: number
     lastClickedAt: string | null
     createdAt: string
   }>
@@ -180,8 +181,8 @@ export default function InfluencerAnalyticsPage() {
               transition={{ delay: 0.2 }}
             >
               <BrutalMetric
-                label="Total Revenue"
-                value={`₹${analytics.totalRevenue.toLocaleString()}`}
+                label="Total Earnings (15%)"
+                value={`₹${(analytics as any).totalEarnings?.toLocaleString() || 0}`}
                 icon={TrendingUp}
                 color="bg-[#BAFCA2]"
               />
@@ -271,10 +272,10 @@ export default function InfluencerAnalyticsPage() {
 
                           <div className="flex flex-wrap gap-3 mb-4">
                             <div className="px-3 py-1 bg-white border-[2px] border-black text-xs font-bold uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-[#059669]">
-                              ₹{product.revenue.toLocaleString()} Earned
+                              ₹{product.earnings.toLocaleString()} Earned
                             </div>
-                            <div className="px-3 py-1 bg-white border-[2px] border-black text-xs font-bold uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                              {product.uniqueClicks} Unique
+                            <div className="px-3 py-1 bg-[#EEF2FF] border-[2px] border-black text-xs font-bold uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-[#4F46E5]">
+                              ₹{product.revenue.toLocaleString()} Sales
                             </div>
                             {product.lastClickedAt && (
                               <div className="px-3 py-1 bg-white border-[2px] border-black text-xs font-bold uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black/50">

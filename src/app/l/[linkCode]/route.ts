@@ -62,7 +62,18 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid URL' }, { status: 500 })
     }
 
-    return NextResponse.redirect(redirectUrl, { status: 301 })
+    const response = NextResponse.redirect(redirectUrl, { status: 301 })
+
+    // Set a persistent cookie (30 days) to track this click for later attribution
+    response.cookies.set('tria_affiliate_code', linkCode, {
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+    })
+
+    return response
   } catch (error) {
     console.error('Link redirect error:', error)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
