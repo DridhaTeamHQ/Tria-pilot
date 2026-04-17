@@ -5,6 +5,7 @@ import { GeminiRateLimitError } from '@/lib/gemini/executor'
 import { normalizeBase64 } from '@/lib/image-processing'
 import { getRedisConnection } from '@/lib/queue/redis'
 import { TRYON_QUEUE_NAME, type TryOnQueueJobData } from '@/lib/queue/tryon-queue'
+import { getTryOnWorkerHeartbeatIntervalMs, touchTryOnWorkerHeartbeat } from '@/lib/queue/tryon-worker-health'
 import { fetchReferencePhotoAsBase64, getReferencePhotosByIds } from '@/lib/reference-photos/service'
 import { saveUpload } from '@/lib/storage'
 import { getFirstSuccessfulOutput, getJobOutputsFromRecord } from '@/lib/tryon/job-outputs'
@@ -276,6 +277,11 @@ const worker = new Worker<TryOnQueueJobData>(
   }
 )
 
+void touchTryOnWorkerHeartbeat()
+const heartbeatTimer = setInterval(() => {
+  void touchTryOnWorkerHeartbeat()
+}, getTryOnWorkerHeartbeatIntervalMs())
+
 worker.on('completed', (job) => {
   console.log(`✅ Try-on worker completed job ${job.id}`)
 })
@@ -309,6 +315,7 @@ worker.on('failed', async (job, err) => {
 
 const shutdown = async () => {
   console.log('🛑 Shutting down try-on worker...')
+  clearInterval(heartbeatTimer)
   await worker.close()
   await getRedisConnection().quit()
   process.exit(0)

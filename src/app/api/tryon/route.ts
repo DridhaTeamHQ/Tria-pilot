@@ -3,6 +3,7 @@ import { createClient, createServiceClient } from '@/lib/auth'
 import { presetlessTryOnSchema } from '@/lib/validation'
 import { getRedisConnection, isQueueAvailable, isRedisConfigured } from '@/lib/queue/redis'
 import { enqueueTryOnJob } from '@/lib/queue/tryon-queue'
+import { isTryOnWorkerOnline } from '@/lib/queue/tryon-worker-health'
 import { normalizeBase64 } from '@/lib/image-processing'
 import { saveUpload } from '@/lib/storage'
 import { generateTryOnDirect } from '@/lib/nanobanana'
@@ -751,7 +752,8 @@ async function handlePresetlessTryOnRequest(params: {
     return jsonError(500, 'JOB_CREATION_FAILED', 'Failed to start generation job. Please try again.')
   }
 
-  if (isQueueAvailable()) {
+  const workerOnline = isQueueAvailable() ? await isTryOnWorkerOnline() : false
+  if (workerOnline) {
     try {
       await enqueueTryOnJob({ jobId: job.id, userId })
       return NextResponse.json(
@@ -776,6 +778,9 @@ async function handlePresetlessTryOnRequest(params: {
         .eq('id', job.id)
       return jsonError(500, 'QUEUE_ENQUEUE_FAILED', 'Failed to queue generation job. Please try again.')
     }
+  }
+  if (isQueueAvailable()) {
+    console.warn('[tryon] queue configured but no live worker heartbeat; running inline fallback')
   }
 
   await service

@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
+import { isQueueAvailable } from '@/lib/queue/redis'
+import { isTryOnWorkerOnline } from '@/lib/queue/tryon-worker-health'
 
 export const dynamic = 'force-dynamic'
 
 // Jobs older than this are considered stale and auto-expired.
 // Queued generations can sit pending for a while under load, so keep this generous.
 const STALE_JOB_THRESHOLD_MINUTES = 30
+const STALE_JOB_THRESHOLD_MINUTES_WHEN_WORKER_OFFLINE = 8
 
 export async function GET() {
   try {
@@ -19,15 +22,22 @@ export async function GET() {
     }
 
     const service = createServiceClient()
+    const workerOnline =
+      isQueueAvailable()
+        ? await isTryOnWorkerOnline()
+        : false
+    const staleThresholdMinutes = workerOnline
+      ? STALE_JOB_THRESHOLD_MINUTES
+      : STALE_JOB_THRESHOLD_MINUTES_WHEN_WORKER_OFFLINE
 
-    // AUTO-EXPIRE: Mark any job stuck in pending/processing for > 5 minutes as failed.
-    // This prevents infinite polling loops when a job crashes, times out, or the server restarts.
+    // AUTO-EXPIRE: mark stale pending/processing jobs as failed.
+    // We keep a generous threshold when worker heartbeat is healthy, and fail faster when worker is offline.
     await service
       .from('generation_jobs')
       .update({ status: 'failed', updated_at: new Date().toISOString() })
       .eq('user_id', authUser.id)
       .in('status', ['pending', 'processing'])
-      .lt('created_at', new Date(Date.now() - STALE_JOB_THRESHOLD_MINUTES * 60 * 1000).toISOString())
+      .lt('created_at', new Date(Date.now() - staleThresholdMinutes * 60 * 1000).toISOString())
 
     // Now fetch the active job (if any remain after cleanup)
     const { data: activeJob, error } = await service

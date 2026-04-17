@@ -35,7 +35,7 @@ export function MonaLisaGenerationLoader({
   const currentFact = FUN_FACTS[factIndex]
 
   return (
-    <div className={`rounded-[28px] border-[4px] border-black bg-[#FFF7E8] p-5 shadow-[8px_8px_0_0_#000] ${className}`}>
+    <div className={`rounded-[24px] border-[3px] border-black bg-[#FFF7E8] p-4 sm:p-5 shadow-[4px_4px_0_0_#000] ${className}`}>
       <style>{`
         .loader-spin-svg {
           width: 90%;
@@ -57,13 +57,13 @@ export function MonaLisaGenerationLoader({
         }
       `}</style>
 
-      <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-center">
-        <div className="rounded-[24px] border-[3px] border-black bg-white p-4 shadow-[4px_4px_0_0_#000] flex flex-col h-full">
+      <div className="grid gap-5 lg:grid-cols-[210px_minmax(0,1fr)] lg:items-center">
+        <div className="rounded-[18px] border-2 border-black bg-white p-3 flex flex-col h-full">
           <div className="mb-3 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.22em] text-black/50">
             <span>Studio Loader</span>
             <span>{elapsedSeconds}s</span>
           </div>
-          <div className="flex flex-1 items-center justify-center rounded-[18px] border-2 border-black bg-[#F7F0E2] p-3 overflow-hidden">
+          <div className="flex flex-1 items-center justify-center rounded-[14px] border border-black/30 bg-[#F7F0E2] p-3 overflow-hidden">
             <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="loader-spin-svg">
               <path pathLength={360} d="M 56.3752 2 H 7.6248 C 7.2797 2 6.9999 2.268 6.9999 2.5985 V 61.4015 C 6.9999 61.7321 7.2797 62 7.6248 62 H 56.3752 C 56.7203 62 57.0001 61.7321 57.0001 61.4015 V 2.5985 C 57.0001 2.268 56.7203 2 56.3752 2 Z" />
               <path pathLength={360} d="M 55.7503 60.803 H 8.2497 V 3.1971 H 55.7503 V 60.803 Z" />
@@ -84,7 +84,7 @@ export function MonaLisaGenerationLoader({
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div>
             <div className="inline-flex items-center rounded-full border-2 border-black bg-[#FFD93D] px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em]">
               Generating
@@ -97,7 +97,7 @@ export function MonaLisaGenerationLoader({
             </div>
           </div>
 
-          <div className="rounded-[20px] border-[3px] border-black bg-white p-4 shadow-[4px_4px_0_0_#000]">
+          <div className="rounded-[16px] border-2 border-black bg-white p-3">
             <div className="flex items-center justify-between gap-3 text-[11px] font-black uppercase tracking-[0.18em] text-black/50">
               <span>Canvas fill</span>
               <span>{progress}%</span>
@@ -116,8 +116,8 @@ export function MonaLisaGenerationLoader({
               return (
                 <div
                   key={step}
-                  className={`rounded-2xl border-[3px] p-3 text-sm font-black uppercase shadow-[3px_3px_0_0_#000] transition-colors ${
-                    active ? 'border-black bg-white' : 'border-black/30 bg-[#F3EFE7] text-black/40 shadow-none'
+                  className={`rounded-xl border-2 p-3 text-sm font-black uppercase transition-colors ${
+                    active ? 'border-black bg-white' : 'border-black/25 bg-[#F3EFE7] text-black/40'
                   }`}
                 >
                   <div className="text-[10px] tracking-[0.16em] text-black/45">Step {index + 1}</div>
