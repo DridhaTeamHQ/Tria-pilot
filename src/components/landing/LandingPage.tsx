@@ -128,6 +128,33 @@ export default function LandingPage() {
           </div>
         </section>
 
+        <section id="creator-brand-paths" className="border-t-[3px] border-black bg-white px-5 py-12 sm:px-8 lg:px-10 lg:py-14">
+          <div className="text-center">
+            <h2 className="text-[clamp(2.35rem,5vw,3.8rem)] font-black leading-[0.95] tracking-[-0.05em] text-black">
+              Built for Creators and Brands
+            </h2>
+          </div>
+
+          <div className="mt-10 grid gap-5 lg:grid-cols-2">
+            <PathPanel
+              label="For Creators"
+              tone="coral"
+              title={`You've got the style?\nStart earning now.`}
+              body="Create AI looks, post faster, and earn from every conversion without shoots, delays, or chasing brands."
+              href="/signup/influencer"
+              cta="Start creating"
+            />
+            <PathPanel
+              label="For Brands"
+              tone="lime"
+              title="Spending on marketing without clear results? There's a smarter way."
+              body="Find the right creators, generate strong campaign visuals, and launch with more confidence."
+              href="/signup/brand"
+              cta="Start scaling"
+            />
+          </div>
+        </section>
+
         <section id="what-you-get" className="border-t-[3px] border-black bg-[#fbfaf6] px-5 py-12 sm:px-8 lg:px-10 lg:py-14">
           <motion.div
             className="text-center"
@@ -198,33 +225,6 @@ export default function LandingPage() {
               <AnalyticsPanel />
             </div>
           </motion.div>
-        </section>
-
-        <section id="creator-brand-paths" className="border-t-[3px] border-black bg-white px-5 py-12 sm:px-8 lg:px-10 lg:py-14">
-          <div className="text-center">
-            <h2 className="text-[clamp(2.35rem,5vw,3.8rem)] font-black leading-[0.95] tracking-[-0.05em] text-black">
-              Built for Creators and Brands
-            </h2>
-          </div>
-
-          <div className="mt-10 grid gap-5 lg:grid-cols-2">
-            <PathPanel
-              label="For Creators"
-              tone="coral"
-              title={`You've got the style?\nStart earning now.`}
-              body="Create AI looks, post faster, and earn from every conversion without shoots, delays, or chasing brands."
-              href="/signup/influencer"
-              cta="Start creating"
-            />
-            <PathPanel
-              label="For Brands"
-              tone="lime"
-              title="Spending on marketing without clear results? There's a smarter way."
-              body="Find the right creators, generate strong campaign visuals, and launch with more confidence."
-              href="/signup/brand"
-              cta="Start scaling"
-            />
-          </div>
         </section>
 
         <section id="why-kiwikoo" className="border-t-[3px] border-black bg-[#fbfaf6] px-5 py-12 sm:px-8 lg:px-10 lg:py-14">
