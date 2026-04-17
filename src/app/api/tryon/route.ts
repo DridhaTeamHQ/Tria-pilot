@@ -30,8 +30,9 @@ export const maxDuration = 300
 const TRYON_RATE_LIMIT_DISABLED =
   process.env.TRYON_RATE_LIMIT_DISABLED === 'true' ||
   process.env.NODE_ENV !== 'production'
-const USER_LOCK_TTL_SECONDS = 75
-const GLOBAL_ACTIVE_TTL_SECONDS = 75
+const USER_LOCK_TTL_SECONDS = Math.max(120, maxDuration + 30)
+const GLOBAL_ACTIVE_TTL_SECONDS = USER_LOCK_TTL_SECONDS
+const ACTIVE_JOB_LOOKBACK_MS = USER_LOCK_TTL_SECONDS * 1000
 const GLOBAL_ACTIVE_LIMIT = Math.max(
   1,
   Number.parseInt(process.env.TRYON_INLINE_GLOBAL_LIMIT || '8', 10) || 8
@@ -81,6 +82,30 @@ interface PresetlessPersistedOutput {
       expectedHemline: string
       actualHemline: string
     }
+  }
+}
+
+async function findRecentActiveTryOnJob(service: ServiceClient, userId: string) {
+  try {
+    const activeSinceIso = new Date(Date.now() - ACTIVE_JOB_LOOKBACK_MS).toISOString()
+    const { data, error } = await service
+      .from('generation_jobs')
+      .select('id, status, created_at')
+      .eq('user_id', userId)
+      .in('status', ['pending', 'processing'])
+      .gte('created_at', activeSinceIso)
+      .order('created_at', { ascending: false })
+      .limit(1)
+
+    if (error) {
+      console.warn('[tryon] active job fallback check failed:', error)
+      return null
+    }
+
+    return data?.[0] || null
+  } catch (error) {
+    console.warn('[tryon] active job fallback check crashed:', error)
+    return null
   }
 }
 
@@ -1180,6 +1205,21 @@ export async function POST(request: Request) {
     const userId = authUser.id
     if (isDev) console.log('✅ User verified, generating try-on:', { userId })
 
+    if (!TRYON_RATE_LIMIT_DISABLED) {
+      const activeJob = await findRecentActiveTryOnJob(service, userId)
+      if (activeJob) {
+        return NextResponse.json(
+          {
+            error: 'A try-on is already in progress. Please wait for it to finish.',
+            code: 'JOB_IN_PROGRESS',
+            retryAfterSeconds: 15,
+            jobId: activeJob.id,
+          },
+          { status: 429, headers: { 'Retry-After': '15', 'Cache-Control': 'no-store' } }
+        )
+      }
+    }
+
     // Per-user lock
     if (!TRYON_RATE_LIMIT_DISABLED && isRedisConfigured()) {
       try {
@@ -1239,3 +1279,4 @@ export async function POST(request: Request) {
     }
   }
 }
+
