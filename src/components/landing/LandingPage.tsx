@@ -3,6 +3,7 @@
 import { type ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { motion } from 'framer-motion'
 import {
   ArrowRight,
   BadgeDollarSign,
@@ -128,11 +129,24 @@ export default function LandingPage() {
         </section>
 
         <section id="what-you-get" className="border-t-[3px] border-black bg-[#fbfaf6] px-5 py-12 sm:px-8 lg:px-10 lg:py-14">
-          <div className="text-center">
+          <motion.div
+            className="text-center"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.35 }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <div className="mx-auto mb-4 flex w-fit items-center gap-2 rounded-full border-[2px] border-black bg-white px-4 py-2 text-[11px] font-black uppercase tracking-[0.14em] shadow-[4px_4px_0_0_rgba(0,0,0,1)]">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#ff8c69]" />
+              Interactive platform overview
+            </div>
             <h2 className="text-[clamp(2.4rem,5vw,4rem)] font-black leading-[0.95] tracking-[-0.05em] text-black">
               What Kiwikoo can do for you
             </h2>
-          </div>
+            <p className="mx-auto mt-4 max-w-[720px] text-[17px] leading-8 text-black/58">
+              Hover the cards, watch them lift, and let each product path feel like a live preview instead of a static brochure.
+            </p>
+          </motion.div>
 
           <div className="mt-10 grid gap-5 lg:grid-cols-3">
             <ServiceCard
@@ -155,7 +169,13 @@ export default function LandingPage() {
             />
           </div>
 
-          <div className="mt-6 rounded-[28px] border-[3px] border-black bg-[#111111] p-6 text-white shadow-[8px_8px_0_0_rgba(0,0,0,1)] lg:p-8">
+          <motion.div
+            className="mt-6 rounded-[28px] border-[3px] border-black bg-[#111111] p-6 text-white shadow-[8px_8px_0_0_rgba(0,0,0,1)] lg:p-8"
+            initial={{ opacity: 0, y: 26 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: 0.08 }}
+          >
             <div className="grid gap-8 lg:grid-cols-[0.84fr_1.16fr] lg:items-center">
               <div>
                 <MiniPill label="For Creators and Brands" dark />
@@ -177,7 +197,7 @@ export default function LandingPage() {
 
               <AnalyticsPanel />
             </div>
-          </div>
+          </motion.div>
         </section>
 
         <section id="creator-brand-paths" className="border-t-[3px] border-black bg-white px-5 py-12 sm:px-8 lg:px-10 lg:py-14">
@@ -345,19 +365,67 @@ function ServiceCard({
         : 'Creator revenue'
 
   return (
-    <div className="group relative flex h-full flex-col overflow-hidden rounded-[24px] border-[3px] border-black bg-white p-6 shadow-[8px_8px_0_0_rgba(0,0,0,1)] transition-transform duration-300 hover:-translate-y-1">
-      <div className={`pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full ${accentSoft} blur-[2px] transition-transform duration-300 group-hover:scale-125`} />
-      <div className={`inline-flex h-16 w-16 items-center justify-center rounded-[18px] border-[3px] border-black ${accent} shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition-transform duration-300 group-hover:rotate-[-8deg]`}>
-        {icon}
-      </div>
-      <h3 className="mt-6 min-h-[2.15em] text-[28px] font-black leading-[1.02] tracking-[-0.04em] text-black">{title}</h3>
-      <p className="mt-3 flex-1 text-[17px] leading-8 text-black/60">{body}</p>
+    <motion.div
+      className="group relative flex h-full flex-col overflow-hidden rounded-[24px] border-[3px] border-black bg-white p-6 shadow-[8px_8px_0_0_rgba(0,0,0,1)]"
+      initial={{ opacity: 0, y: 26, scale: 0.96 }}
+      whileInView={{ opacity: 1, y: 0, scale: 1 }}
+      viewport={{ once: true, amount: 0.3 }}
+      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      whileHover={{ y: -8, rotate: -0.7, scale: 1.01 }}
+      whileTap={{ scale: 0.985 }}
+      style={{ transformOrigin: 'center bottom' }}
+    >
+      <motion.div
+        className={`pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full ${accentSoft} blur-[2px]`}
+        animate={{ scale: [1, 1.12, 1], opacity: [0.8, 1, 0.8], x: [0, -4, 0], y: [0, 4, 0] }}
+        transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.div
+        className="absolute inset-x-4 top-4 h-px bg-gradient-to-r from-transparent via-black/10 to-transparent"
+        animate={{ opacity: [0.35, 0.8, 0.35], scaleX: [0.94, 1, 0.94] }}
+        transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.div
+        className={`inline-flex h-16 w-16 items-center justify-center rounded-[18px] border-[3px] border-black ${accent} shadow-[4px_4px_0_0_rgba(0,0,0,1)]`}
+        whileHover={{ rotate: -10, y: -2, scale: 1.06 }}
+        transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+      >
+        <motion.span
+          animate={{ rotate: [0, 8, 0] }}
+          transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+          className="inline-flex"
+        >
+          {icon}
+        </motion.span>
+      </motion.div>
+      <motion.h3
+        className="mt-6 min-h-[2.15em] text-[28px] font-black leading-[1.02] tracking-[-0.04em] text-black"
+        initial={{ y: 10, opacity: 0 }}
+        whileInView={{ y: 0, opacity: 1 }}
+        viewport={{ once: true, amount: 0.3 }}
+        transition={{ duration: 0.35, delay: 0.06 }}
+      >
+        {title}
+      </motion.h3>
+      <motion.p
+        className="mt-3 flex-1 text-[17px] leading-8 text-black/60"
+        initial={{ y: 10, opacity: 0 }}
+        whileInView={{ y: 0, opacity: 1 }}
+        viewport={{ once: true, amount: 0.3 }}
+        transition={{ duration: 0.35, delay: 0.1 }}
+      >
+        {body}
+      </motion.p>
       <div className="mt-5 border-t-[2px] border-black/10 pt-4">
-        <span className="rounded-full border-[2px] border-black bg-[#fbfaf6] px-3 py-1 text-[11px] font-black uppercase tracking-[0.1em] text-black">
+        <motion.span
+          className="inline-flex rounded-full border-[2px] border-black bg-[#fbfaf6] px-3 py-1 text-[11px] font-black uppercase tracking-[0.1em] text-black"
+          whileHover={{ scale: 1.04, x: 2 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+        >
           {footerLabel}
-        </span>
+        </motion.span>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
