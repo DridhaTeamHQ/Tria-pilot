@@ -11,7 +11,6 @@ import {
   Target,
   Package,
   Inbox,
-  User,
   Menu,
   X,
   ChevronRight,
@@ -23,7 +22,6 @@ import LogoutButton from '@/components/LogoutButton'
 const navItems = [
   { href: '/brand/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/brand/campaigns', label: 'Campaigns', icon: Target },
-  { href: '/brand/profile', label: 'Profile', icon: User },
   { href: '/brand/influencers', label: 'Creators', icon: Users },
   { href: '/brand/ads/creatives', label: 'Ad Creatives', icon: Sparkles },
   { href: '/brand/products', label: 'Products', icon: Package },
@@ -110,7 +108,11 @@ export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: B
           </nav>
 
           <div className="hidden lg:flex items-center justify-end gap-2 shrink-0">
-            <div className="relative w-9 h-9 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black text-sm">
+            <Link
+              href="/brand/profile"
+              className="relative w-9 h-9 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black text-sm transition-transform hover:-translate-y-0.5"
+              title="Profile"
+            >
               {showAvatarImage ? (
                 <AppImage
                   src={avatarUrl!}
@@ -122,7 +124,7 @@ export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: B
               ) : (
                 brandName?.charAt(0)?.toUpperCase() || 'B'
               )}
-            </div>
+            </Link>
             <LogoutButton
               onClick={() => void handleLogout()}
               disabled={isLoggingOut}
@@ -145,7 +147,11 @@ export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: B
       {mobileOpen && (
         <div className="lg:hidden bg-white border-t-2 border-black">
           <div className="container mx-auto px-4 py-3 space-y-2 max-h-[calc(100dvh-3.5rem)] overflow-y-auto">
-            <div className="mb-3 flex items-center gap-3 rounded-xl border-2 border-black bg-[#F9F8F4] px-4 py-3 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+            <Link
+              href="/brand/profile"
+              onClick={() => setMobileOpen(false)}
+              className="mb-3 flex items-center gap-3 rounded-xl border-2 border-black bg-[#F9F8F4] px-4 py-3 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+            >
               <div className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border-2 border-black bg-[#B4F056] font-black text-black">
                 {showAvatarImage ? (
                   <AppImage
@@ -161,9 +167,9 @@ export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: B
               </div>
               <div className="min-w-0">
                 <p className="truncate font-bold text-black">{brandName || 'Brand'}</p>
-                <p className="text-sm text-black/60">Brand account</p>
+                <p className="text-sm text-black/60">Brand account • Profile</p>
               </div>
-            </div>
+            </Link>
 
             {navItems.map((item) => {
               const Icon = item.icon

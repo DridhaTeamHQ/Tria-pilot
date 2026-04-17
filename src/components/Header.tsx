@@ -13,7 +13,6 @@ import {
     ShoppingBag,
     LayoutDashboard,
     Mail,
-    User,
     Box,
     Megaphone,
     BarChart3,
@@ -128,7 +127,6 @@ export default function Header() {
     // Navigation links based on auth state and role
     const influencerLinks = [
         { href: '/inbox', label: 'Inbox', icon: Mail },
-        { href: '/profile', label: 'Profile', icon: User },
         { href: '/marketplace', label: 'Marketplace', icon: ShoppingBag },
         { href: '/influencer/try-on', label: 'Try-On Studio', icon: Camera },
         { href: '/influencer/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -137,7 +135,6 @@ export default function Header() {
 
     const brandLinks = [
         { href: '/brand/campaigns', label: 'Campaigns', icon: Megaphone },
-        { href: '/profile', label: 'Profile', icon: User },
         { href: '/brand/marketplace', label: 'Creators', icon: ShoppingBag },
         { href: '/brand/ads', label: 'Ads', icon: Sparkles },
         { href: '/brand/products', label: 'Products', icon: Box },
@@ -163,6 +160,7 @@ export default function Header() {
     const userInitial = isLoggedIn && user
         ? ((user as any).full_name?.charAt(0).toUpperCase() || user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U')
         : 'U'
+    const profileHref = isLoggedIn && user?.role === 'BRAND' ? '/brand/profile' : '/profile'
 
     return (
         <header
@@ -227,12 +225,13 @@ export default function Header() {
                             </div>
                         ) : isLoggedIn ? (
                             <div className="hidden lg:flex items-center gap-3">
-                                <div
+                                <Link
+                                    href={profileHref}
                                     className="w-10 h-10 rounded-full bg-gradient-to-br from-peach to-orange-300 flex items-center justify-center text-charcoal font-semibold"
                                     data-cursor={user?.name || 'Profile'}
                                 >
                                     {userInitial}
-                                </div>
+                                </Link>
                                 <LogoutButton
                                     onClick={handleLogout}
                                     dataCursor="Logout"
@@ -290,15 +289,19 @@ export default function Header() {
                             {authResolving ? null : isLoggedIn ? (
                                 <>
                                     {/* User Info */}
-                                    <div className="flex items-center gap-3 pb-4 border-b border-subtle">
+                                    <Link
+                                        href={profileHref}
+                                        onClick={() => setMobileMenuOpen(false)}
+                                        className="flex items-center gap-3 pb-4 border-b border-subtle"
+                                    >
                                         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-peach to-orange-300 flex items-center justify-center text-charcoal font-semibold text-lg">
                                             {userInitial}
                                         </div>
                                         <div>
                                             <p className="font-medium text-charcoal">{user?.name || user?.email}</p>
-                                            <p className="text-sm text-charcoal/60">{user?.role}</p>
+                                            <p className="text-sm text-charcoal/60">{user?.role} • Profile</p>
                                         </div>
-                                    </div>
+                                    </Link>
 
                                     {/* Nav Links */}
                                     {links.map((link) => {

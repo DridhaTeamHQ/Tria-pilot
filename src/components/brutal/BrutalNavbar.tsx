@@ -13,7 +13,6 @@ import {
     ShoppingBag,
     LayoutDashboard,
     Mail,
-    User,
     Box,
     Megaphone,
     BarChart3,
@@ -97,7 +96,6 @@ export default function BrutalNavbar() {
     // Navigation links based on auth state and role
     const influencerLinks = [
         { href: "/inbox", label: "Inbox", icon: Mail },
-        { href: "/profile", label: "Profile", icon: User },
         { href: "/marketplace", label: "Marketplace", icon: ShoppingBag },
         { href: "/influencer/try-on", label: "Try-On Studio", icon: Camera },
         { href: "/influencer/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -106,7 +104,6 @@ export default function BrutalNavbar() {
 
     const brandLinks = [
         { href: "/brand/campaigns", label: "Campaigns", icon: Megaphone },
-        { href: "/profile", label: "Profile", icon: User },
         { href: "/brand/marketplace", label: "Creators", icon: ShoppingBag },
         { href: "/brand/ads", label: "Ads", icon: Sparkles },
         { href: "/brand/products", label: "Products", icon: Box },
@@ -141,6 +138,7 @@ export default function BrutalNavbar() {
             ? ((user as any).avatarUrl as string | null) || ((user as any).avatar_url as string | null) || null
             : null;
     const showAvatarImage = Boolean(avatarUrl) && !avatarFailed;
+    const profileHref = isLoggedIn && user?.role === "BRAND" ? "/brand/profile" : "/profile";
 
     return (
         <header className="fixed top-0 left-0 right-0 z-40 bg-[#F9F8F4] border-b-[3px] border-black">
@@ -217,7 +215,11 @@ export default function BrutalNavbar() {
                                     })}
                                 </div>
 
-                                <div className="relative w-10 h-10 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black">
+                                <Link
+                                    href={profileHref}
+                                    className="relative w-10 h-10 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black transition-transform hover:-translate-y-0.5"
+                                    title="Profile"
+                                >
                                     {showAvatarImage ? (
                                         <AppImage
                                             src={avatarUrl!}
@@ -229,7 +231,7 @@ export default function BrutalNavbar() {
                                     ) : (
                                         userInitial
                                     )}
-                                </div>
+                                </Link>
                                 <LogoutButton
                                     onClick={() => void handleLogout()}
                                     disabled={isLoggingOut}
@@ -288,7 +290,11 @@ export default function BrutalNavbar() {
                             {authResolving ? null : isLoggedIn ? (
                                 <>
                                     {/* User Info */}
-                                    <div className="flex items-center gap-3 pb-4 border-b-2 border-black">
+                                    <Link
+                                        href={profileHref}
+                                        onClick={() => setMobileMenuOpen(false)}
+                                        className="flex items-center gap-3 pb-4 border-b-2 border-black"
+                                    >
                                         <div className="relative w-12 h-12 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black text-lg">
                                             {showAvatarImage ? (
                                                 <AppImage
@@ -306,9 +312,9 @@ export default function BrutalNavbar() {
                                             <p className="font-bold text-black">
                                                 {user?.name || user?.email}
                                             </p>
-                                            <p className="text-sm text-black/60">{user?.role}</p>
+                                            <p className="text-sm text-black/60">{user?.role} • Profile</p>
                                         </div>
-                                    </div>
+                                    </Link>
 
                                     {/* Nav Links - Unified for Mobile */}
                                     {links.map((link) => {

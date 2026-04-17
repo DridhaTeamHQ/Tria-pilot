@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
 import { presetlessTryOnSchema } from '@/lib/validation'
-import { getRedisConnection, isRedisConfigured } from '@/lib/queue/redis'
+import { getRedisConnection, isQueueAvailable, isRedisConfigured } from '@/lib/queue/redis'
+import { enqueueTryOnJob } from '@/lib/queue/tryon-queue'
 import { normalizeBase64 } from '@/lib/image-processing'
 import { saveUpload } from '@/lib/storage'
 import { generateTryOnDirect } from '@/lib/nanobanana'
@@ -33,9 +34,14 @@ const TRYON_RATE_LIMIT_DISABLED =
 const USER_LOCK_TTL_SECONDS = Math.max(120, maxDuration + 30)
 const GLOBAL_ACTIVE_TTL_SECONDS = USER_LOCK_TTL_SECONDS
 const ACTIVE_JOB_LOOKBACK_MS = USER_LOCK_TTL_SECONDS * 1000
+const DEFAULT_PRODUCTION_GLOBAL_ACTIVE_LIMIT = 3
 const GLOBAL_ACTIVE_LIMIT = Math.max(
   1,
-  Number.parseInt(process.env.TRYON_INLINE_GLOBAL_LIMIT || '8', 10) || 8
+  Number.parseInt(
+    process.env.TRYON_INLINE_GLOBAL_LIMIT ||
+      String(process.env.NODE_ENV === 'production' ? DEFAULT_PRODUCTION_GLOBAL_ACTIVE_LIMIT : 8),
+    10
+  ) || DEFAULT_PRODUCTION_GLOBAL_ACTIVE_LIMIT
 )
 const GLOBAL_ACTIVE_KEY = 'tryon:inline:active_generations'
 const INTER_GENERATION_DELAY_MS = Math.max(
@@ -105,6 +111,27 @@ async function findRecentActiveTryOnJob(service: ServiceClient, userId: string) 
     return data?.[0] || null
   } catch (error) {
     console.warn('[tryon] active job fallback check crashed:', error)
+    return null
+  }
+}
+
+async function countRecentActiveTryOnJobs(service: ServiceClient) {
+  try {
+    const activeSinceIso = new Date(Date.now() - ACTIVE_JOB_LOOKBACK_MS).toISOString()
+    const { count, error } = await service
+      .from('generation_jobs')
+      .select('id', { count: 'exact', head: true })
+      .in('status', ['pending', 'processing'])
+      .gte('created_at', activeSinceIso)
+
+    if (error) {
+      console.warn('[tryon] global active-job count failed:', error)
+      return null
+    }
+
+    return count ?? 0
+  } catch (error) {
+    console.warn('[tryon] global active-job count crashed:', error)
     return null
   }
 }
@@ -689,8 +716,11 @@ async function handlePresetlessTryOnRequest(params: {
       user_id: userId,
       inputs: {
         productId: payload.productId || null,
+        clothingImage: payload.clothingImage || null,
         garmentImageUrl: payload.garmentImageUrl || null,
+        garmentImageBase64: processedGarment,
         selectedReferenceImageIds: selectedPhotoIds,
+        candidateReferenceImageIds: candidatePhotoIds,
         selectionMethod,
         selectionReasoning,
       },
@@ -719,6 +749,33 @@ async function handlePresetlessTryOnRequest(params: {
   if (jobError || !job) {
     console.error('[tryon] failed to create presetless generation job:', jobError)
     return jsonError(500, 'JOB_CREATION_FAILED', 'Failed to start generation job. Please try again.')
+  }
+
+  if (isQueueAvailable()) {
+    try {
+      await enqueueTryOnJob({ jobId: job.id, userId })
+      return NextResponse.json(
+        {
+          success: true,
+          queued: true,
+          jobId: job.id,
+          status: 'pending',
+          selectionMethod,
+          selectedPhotoIds,
+        },
+        { status: 202, headers: { 'Cache-Control': 'no-store' } }
+      )
+    } catch (queueError) {
+      console.error('[tryon] failed to enqueue presetless generation job:', queueError)
+      await service
+        .from('generation_jobs')
+        .update({
+          status: 'failed',
+          error_message: 'Failed to queue generation job.',
+        })
+        .eq('id', job.id)
+      return jsonError(500, 'QUEUE_ENQUEUE_FAILED', 'Failed to queue generation job. Please try again.')
+    }
   }
 
   await service
@@ -1216,6 +1273,20 @@ export async function POST(request: Request) {
             jobId: activeJob.id,
           },
           { status: 429, headers: { 'Retry-After': '15', 'Cache-Control': 'no-store' } }
+        )
+      }
+    }
+
+    if (!TRYON_RATE_LIMIT_DISABLED && !isQueueAvailable()) {
+      const activeGlobalJobs = await countRecentActiveTryOnJobs(service)
+      if (activeGlobalJobs !== null && activeGlobalJobs >= GLOBAL_ACTIVE_LIMIT) {
+        return NextResponse.json(
+          {
+            error: 'Try-on is busy right now. Please wait a bit and retry.',
+            code: 'SERVER_BUSY',
+            retryAfterSeconds: 20,
+          },
+          { status: 429, headers: { 'Retry-After': '20', 'Cache-Control': 'no-store' } }
         )
       }
     }

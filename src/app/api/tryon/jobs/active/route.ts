@@ -4,8 +4,8 @@ import { createClient, createServiceClient } from '@/lib/auth'
 export const dynamic = 'force-dynamic'
 
 // Jobs older than this are considered stale and auto-expired.
-// Normal generation takes 30-90s. 5 minutes is very generous.
-const STALE_JOB_THRESHOLD_MINUTES = 5
+// Queued generations can sit pending for a while under load, so keep this generous.
+const STALE_JOB_THRESHOLD_MINUTES = 30
 
 export async function GET() {
   try {

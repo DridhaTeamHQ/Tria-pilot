@@ -1,39 +1,66 @@
 import 'dotenv/config'
 import { Job, Worker } from 'bullmq'
 import { createServiceClient } from '@/lib/auth'
-import { getTryOnPresetV3 } from '@/lib/tryon/presets'
-import { normalizeBase64 } from '@/lib/image-processing'
-import { saveUpload } from '@/lib/storage'
-import { runHybridTryOnPipeline } from '@/lib/tryon/hybrid-tryon-pipeline'
 import { GeminiRateLimitError } from '@/lib/gemini/executor'
-import { TRYON_QUEUE_NAME, type TryOnQueueJobData } from '@/lib/queue/tryon-queue'
+import { normalizeBase64 } from '@/lib/image-processing'
 import { getRedisConnection } from '@/lib/queue/redis'
+import { TRYON_QUEUE_NAME, type TryOnQueueJobData } from '@/lib/queue/tryon-queue'
+import { fetchReferencePhotoAsBase64, getReferencePhotosByIds } from '@/lib/reference-photos/service'
+import { saveUpload } from '@/lib/storage'
+import { getFirstSuccessfulOutput, getJobOutputsFromRecord } from '@/lib/tryon/job-outputs'
+import { analyzeGarment, composeSmartPrompt } from '@/lib/tryon/garment-intel'
+import { generateTryOnDirect, type DirectTryOnOptions } from '@/lib/nanobanana'
 
-interface GenerationJobRow {
+const INTER_GENERATION_DELAY_MS = Math.max(
+  0,
+  Number.parseInt(process.env.TRYON_INTER_GENERATION_DELAY_MS || '3000', 10) || 3000
+)
+
+interface WorkerGenerationJobRow {
   id: string
   user_id: string
   inputs: {
-    personImage?: string
-    clothingImage?: string
-    backgroundImage?: string
-    editType?: string
+    productId?: string | null
+    clothingImage?: string | null
+    garmentImageUrl?: string | null
+    garmentImageBase64?: string | null
+    selectedReferenceImageIds?: string[] | null
+    candidateReferenceImageIds?: string[] | null
+    selectionMethod?: 'manual' | 'auto_scoring' | null
+    selectionReasoning?: string | null
   }
   settings: {
-    stylePreset?: string
-    userRequest?: string
-    background?: string
-    lighting?: string
-    aspectRatio?: '1:1' | '4:5' | '3:4' | '9:16'
-    resolution?: '1K' | '2K' | '4K'
+    outputs?: unknown[]
+    model?: string | null
+    requestedModel?: string | null
+    aspectRatio?: '1:1' | '4:5' | '3:4' | '9:16' | null
+    resolution?: '1K' | '2K' | '4K' | null
+    polishNotes?: string | null
   }
 }
 
-function ensureHasValue(value: string | undefined, message: string): string {
+interface WorkerPersistedOutput {
+  referenceImageId: string
+  status: 'completed' | 'failed'
+  outputImagePath?: string
+  error?: string
+  label: string
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function ensureArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.length > 0) : []
+}
+
+function ensureHasValue(value: string | undefined | null, message: string): string {
   if (!value) throw new Error(message)
   return value
 }
 
-async function fetchGenerationJob(jobId: string): Promise<GenerationJobRow> {
+async function fetchGenerationJob(jobId: string): Promise<WorkerGenerationJobRow> {
   const service = createServiceClient()
   const { data, error } = await service
     .from('generation_jobs')
@@ -45,7 +72,7 @@ async function fetchGenerationJob(jobId: string): Promise<GenerationJobRow> {
     throw new Error(`Generation job ${jobId} not found`)
   }
 
-  return data as unknown as GenerationJobRow
+  return data as unknown as WorkerGenerationJobRow
 }
 
 async function markJobStatus(jobId: string, patch: Record<string, unknown>) {
@@ -67,59 +94,159 @@ async function processTryOnJob(queueJob: Job<TryOnQueueJobData>): Promise<void> 
     error_message: null,
   })
 
+  const service = createServiceClient()
   const generationJob = await fetchGenerationJob(jobId)
   const { inputs, settings } = generationJob
+  const userId = generationJob.user_id
+  const aspectRatio = settings.aspectRatio || '4:5'
+  const directRenderModel = ensureHasValue(
+    settings.model,
+    'Missing try-on model in job settings'
+  ) as DirectTryOnOptions['model']
+  const selectedPhotoIds = ensureArray(inputs.selectedReferenceImageIds)
+  const candidatePhotoIds = ensureArray(inputs.candidateReferenceImageIds).length > 0
+    ? ensureArray(inputs.candidateReferenceImageIds)
+    : selectedPhotoIds
+  const selectionMethod = inputs.selectionMethod || 'manual'
+  const selectionReasoning = inputs.selectionReasoning || ''
+  const processedGarment = normalizeBase64(
+    ensureHasValue(
+      inputs.garmentImageBase64 || inputs.clothingImage,
+      'Missing normalized garment image in queued try-on job'
+    )
+  )
 
-  const personImage = ensureHasValue(inputs.personImage, 'Missing person image in job inputs')
-  const clothingImage = ensureHasValue(inputs.clothingImage, 'Missing clothing image in job inputs')
-
-  const normalizedPerson = normalizeBase64(personImage)
-  const normalizedClothing = normalizeBase64(clothingImage)
-
-  const presetV3 = settings.stylePreset ? getTryOnPresetV3(settings.stylePreset) : undefined
-  const preset = presetV3
-    ? {
-        id: presetV3.id,
-        background_name: presetV3.background_name,
-        lighting_name: presetV3.lighting_name,
-      }
-    : {
-        id: undefined,
-        background_name: settings.background ?? 'keep the original background',
-        lighting_name: settings.lighting ?? 'match the original photo lighting',
-      }
-
-  const pipelineResult = await runHybridTryOnPipeline({
-    personImageBase64: normalizedPerson,
-    clothingImageBase64: normalizedClothing,
-    aspectRatio: settings.aspectRatio ?? '1:1',
-    preset,
-    userRequest: settings.userRequest || undefined,
-    productId: null,
-  })
-
-  const imagePath = `tryon/${generationJob.user_id}/${jobId}.png`
-  let imageUrl: string | null = null
-
-  try {
-    if (pipelineResult.image) {
-      imageUrl = await saveUpload(pipelineResult.image, imagePath, 'try-ons')
-    }
-  } catch (saveError) {
-    console.warn(`Try-on worker storage save failed for ${jobId}:`, saveError)
+  if (candidatePhotoIds.length < 3) {
+    throw new Error('Queued try-on job is missing enough candidate reference photos.')
   }
 
+  const candidatePhotos = await getReferencePhotosByIds(service, userId, candidatePhotoIds)
+  const selectedMap = new Map(candidatePhotos.map((photo) => [photo.id, photo]))
+  const orderedPhotos = candidatePhotoIds
+    .map((photoId) => selectedMap.get(photoId) || null)
+    .filter((photo): photo is NonNullable<typeof photo> => Boolean(photo))
+
+  if (orderedPhotos.length < 3) {
+    throw new Error('Could not resolve queued reference photos for try-on.')
+  }
+
+  const orderedReferenceBase64s = await Promise.all(
+    orderedPhotos.map((photo) => fetchReferencePhotoAsBase64(photo.image_url).then((base64) => normalizeBase64(base64)))
+  )
+
+  const garmentIntel = await analyzeGarment(processedGarment)
+  const successfulOutputs: WorkerPersistedOutput[] = []
+  const failedAttempts: Array<{ referenceImageId: string; error: string }> = []
+  const targetOutputCount = 3
+
+  for (let candidateIndex = 0; candidateIndex < orderedPhotos.length; candidateIndex += 1) {
+    if (successfulOutputs.length >= targetOutputCount) break
+
+    const photo = orderedPhotos[candidateIndex]
+    const referenceImageBase64 = orderedReferenceBase64s[candidateIndex]
+    const outputSlot = successfulOutputs.length + 1
+
+    if (candidateIndex > 0) {
+      await sleep(INTER_GENERATION_DELAY_MS)
+    }
+
+    try {
+      const smartPrompt = composeSmartPrompt(garmentIntel, {
+        aspectRatio,
+        polishNotes: settings.polishNotes?.trim() || undefined,
+      })
+
+      const generatedImage = await generateTryOnDirect({
+        personImageBase64: referenceImageBase64,
+        garmentImageBase64: processedGarment,
+        prompt: smartPrompt,
+        aspectRatio,
+        model: directRenderModel,
+      })
+
+      let outputImagePath = generatedImage
+      try {
+        const cleanBase64 = generatedImage.replace(/^data:image\/[a-z+]+;base64,/, '')
+        const storedUrl = await saveUpload(
+          cleanBase64,
+          `tryon/${userId}/${jobId}/${outputSlot}-${photo.id}.png`,
+          'try-ons'
+        )
+        if (storedUrl) {
+          outputImagePath = storedUrl
+        }
+      } catch (saveError) {
+        console.warn(`Try-on worker storage save failed for ${jobId}:`, saveError)
+      }
+
+      successfulOutputs.push({
+        referenceImageId: photo.id,
+        status: 'completed',
+        outputImagePath,
+        label: `Source ${outputSlot}`,
+      })
+    } catch (error) {
+      if (error instanceof GeminiRateLimitError) {
+        throw error
+      }
+
+      failedAttempts.push({
+        referenceImageId: photo.id,
+        error: error instanceof Error ? error.message : 'Generation failed',
+      })
+    }
+  }
+
+  const outputs: WorkerPersistedOutput[] = [...successfulOutputs]
+  if (outputs.length < targetOutputCount && failedAttempts.length > 0) {
+    const missingCount = targetOutputCount - outputs.length
+    failedAttempts.slice(-missingCount).forEach((failure, index) => {
+      outputs.push({
+        referenceImageId: failure.referenceImageId,
+        status: 'failed',
+        error: failure.error,
+        label: `Source ${successfulOutputs.length + index + 1}`,
+      })
+    })
+  }
+
+  const normalizedOutputs = getJobOutputsFromRecord({
+    output_image_path: null,
+    settings: { outputs },
+  })
+  const firstSuccessfulOutput = getFirstSuccessfulOutput(normalizedOutputs)
+  const successCount = normalizedOutputs.filter((output) => output.status === 'completed').length
+  const failedCount = outputs.length - successCount
+  const status =
+    successCount === 0
+      ? 'failed'
+      : successCount === outputs.length
+        ? 'completed'
+        : 'completed_partial'
+  const aggregatedError =
+    successCount === 0
+      ? outputs.map((output) => output.error).filter(Boolean).join(' | ').slice(0, 1200)
+      : failedCount > 0
+        ? `${failedCount} of ${outputs.length} outputs failed.`
+        : null
+
   await markJobStatus(jobId, {
-    status: 'completed',
-    output_image_path: imageUrl || `base64://${pipelineResult.image}`,
+    status,
+    output_image_path: firstSuccessfulOutput?.outputImagePath || null,
+    error_message: aggregatedError,
     settings: {
       ...(settings || {}),
+      outputs,
       outcome: {
-        pipeline: 'nano-banana-pro-worker',
-        status: pipelineResult.status,
-        totalTimeMs: pipelineResult.debug.totalTimeMs,
-        promptLength: pipelineResult.debug.promptUsed?.length || 0,
-        warnings: pipelineResult.warnings,
+        pipeline: 'nano-banana-pro-worker-reference-library',
+        model: directRenderModel,
+        requestedModel: settings.requestedModel || null,
+        strictSwap: true,
+        selectionMethod,
+        selectionReasoning,
+        successCount,
+        failedCount,
+        outputs,
       },
     },
   })
@@ -133,7 +260,6 @@ const worker = new Worker<TryOnQueueJobData>(
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       if (error instanceof GeminiRateLimitError) {
-        // Let BullMQ retry with delayed backoff (configured on queue)
         throw error
       }
 

@@ -389,7 +389,7 @@ function TryOnPageContent() {
 
   const pollTryOnJob = useCallback(async (jobId: string) => {
     const startedAt = Date.now()
-    const timeoutMs = 10 * 60 * 1000
+    const timeoutMs = 20 * 60 * 1000
     while (Date.now() - startedAt < timeoutMs) {
       const now = Date.now()
       if (pollCooldownUntilRef.current > now) {
