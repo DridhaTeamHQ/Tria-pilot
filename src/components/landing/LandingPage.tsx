@@ -497,65 +497,49 @@ function FeaturePreview({
   preview: 'studio' | 'workflow' | 'network'
   accent: 'blue' | 'pink' | 'violet'
 }) {
-  const glow =
-    accent === 'blue'
-      ? 'rgba(137,166,255,0.34)'
-      : accent === 'pink'
-        ? 'rgba(255,115,187,0.34)'
-        : 'rgba(178,128,255,0.34)'
-
   if (preview === 'studio') {
     return (
-      <div className="relative mt-5 h-[72px] overflow-hidden rounded-[14px] border-[2px] border-black bg-[linear-gradient(180deg,#111827_0%,#1f2937_100%)]">
-        <div className="absolute inset-x-0 bottom-0 h-5 bg-[linear-gradient(180deg,rgba(190,120,255,0)_0%,rgba(190,120,255,0.28)_100%)]" />
-        <motion.div
-          className="absolute bottom-0 left-1/2 h-[52px] w-[24px] -translate-x-1/2 rounded-t-[16px] bg-[linear-gradient(180deg,#92f3ff_0%,#ff92c9_48%,#ffe36f_100%)]"
-          animate={{ y: [0, -2, 0] }}
-          transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-          style={{ boxShadow: `0 0 18px ${glow}` }}
+      <div className="relative mt-5 h-[88px] overflow-hidden rounded-[14px] border-[2px] border-black bg-[linear-gradient(180deg,#fff5ef_0%,#ffe7f3_100%)]">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_24%,rgba(137,166,255,0.2),transparent_28%),radial-gradient(circle_at_24%_76%,rgba(255,140,120,0.24),transparent_30%)]" />
+        <Image
+          src="/landing/hero-influencer-transparent.png"
+          alt="AI Try-On Studio preview"
+          fill
+          sizes="(min-width: 1024px) 320px, 100vw"
+          className="object-contain object-center scale-[1.16] translate-y-[10%]"
         />
-        <div className="absolute bottom-0 left-[22%] right-[22%] h-px bg-[linear-gradient(90deg,transparent,#d17eff,transparent)]" />
       </div>
     )
   }
 
   if (preview === 'workflow') {
     return (
-      <div className="relative mt-5 h-[72px] overflow-hidden rounded-[14px] border-[2px] border-black bg-[linear-gradient(180deg,#101722_0%,#182235_100%)]">
-        {[
-          { top: '20%', left: '12%' },
-          { top: '26%', left: '42%' },
-          { top: '56%', left: '66%' },
-          { top: '60%', left: '26%' },
-          { top: '24%', left: '72%' },
-        ].map((node, index) => (
-          <motion.span
-            key={`${node.top}-${node.left}`}
-            className="absolute h-2.5 w-2.5 rounded-full bg-[#d676ff]"
-            style={{ top: node.top, left: node.left, boxShadow: `0 0 10px ${glow}` }}
-            animate={{ scale: [1, 1.12, 1], opacity: [0.7, 1, 0.7] }}
-            transition={{ duration: 3.2, repeat: Infinity, delay: index * 0.2, ease: 'easeInOut' }}
-          />
-        ))}
-        <svg className="absolute inset-0 h-full w-full" viewBox="0 0 300 118" preserveAspectRatio="none">
-          <path d="M38 30 C 90 30, 90 42, 128 40 S 180 74, 208 72 S 245 34, 264 28" fill="none" stroke="#6be4ff" strokeWidth="2" strokeOpacity="0.85" />
-          <path d="M38 30 C 88 62, 118 84, 198 72" fill="none" stroke="#d676ff" strokeWidth="1.8" strokeOpacity="0.7" />
-        </svg>
+      <div className="relative mt-5 h-[88px] overflow-hidden rounded-[14px] border-[2px] border-black bg-[linear-gradient(180deg,#eef4ff_0%,#fff1f8_100%)]">
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(137,166,255,0.22),transparent_42%,rgba(255,140,120,0.22))]" />
+        <Image
+          src="/landing/hero-brand.png"
+          alt="Campaign workflow preview"
+          fill
+          sizes="(min-width: 1024px) 320px, 100vw"
+          className="object-cover object-center opacity-90"
+        />
       </div>
     )
   }
 
   return (
-    <div className="relative mt-5 h-[72px] overflow-hidden rounded-[14px] border-[2px] border-black bg-[radial-gradient(circle_at_50%_50%,#1f2445_0%,#141729_52%,#0d101d_100%)]">
-      <motion.div
-        className="absolute left-1/2 top-1/2 h-[44px] w-[44px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#a47cff]"
-        animate={{ scale: [1, 1.05, 1] }}
-        transition={{ duration: 5.4, repeat: Infinity, ease: 'easeInOut' }}
-        style={{ boxShadow: `0 0 16px ${glow}` }}
+    <div className="relative mt-5 h-[88px] overflow-hidden rounded-[14px] border-[2px] border-black bg-[linear-gradient(180deg,#fff7ef_0%,#f0f7ff_100%)]">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_30%,rgba(255,140,120,0.28),transparent_26%),radial-gradient(circle_at_80%_26%,rgba(137,166,255,0.22),transparent_24%),radial-gradient(circle_at_62%_72%,rgba(203,255,46,0.2),transparent_28%)]" />
+      <Image
+        src="/landing/hero-influencer-transparent.png"
+        alt="Affiliate engine preview"
+        fill
+        sizes="(min-width: 1024px) 320px, 100vw"
+        className="object-contain object-right-bottom scale-[1.05] translate-x-[8%] translate-y-[14%] opacity-95"
       />
-      <div className="absolute left-[18%] top-[26%] h-3 w-3 rounded-full bg-[#8fdcff]" style={{ boxShadow: `0 0 8px ${glow}` }} />
-      <div className="absolute right-[16%] top-[56%] h-2.5 w-2.5 rounded-full bg-[#d676ff]" style={{ boxShadow: `0 0 8px ${glow}` }} />
-      <div className="absolute left-[26%] bottom-[18%] h-2 w-2 rounded-full bg-[#ff84cb]" style={{ boxShadow: `0 0 7px ${glow}` }} />
+      <div className="absolute left-3 top-3 rounded-full border border-black/15 bg-white/85 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-black/60">
+        Creator revenue
+      </div>
     </div>
   )
 }
@@ -600,11 +584,6 @@ function VibeBoard() {
         viewport={{ once: true, amount: 0.3 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       >
-        <div className="pointer-events-none absolute left-0 top-4 z-10 rotate-[-4deg] rounded-[4px] border-[3px] border-black bg-[#efefef] px-3 py-2.5 text-center text-[10px] font-black uppercase tracking-[0.08em] text-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] sm:left-2">
-          Live
-          <br />
-          Signal
-        </div>
         <AnalyticsGlowCard />
       </motion.div>
 
@@ -615,10 +594,7 @@ function VibeBoard() {
         viewport={{ once: true, amount: 0.3 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.06 }}
       >
-        <div className="inline-flex rounded-[4px] border-[3px] border-black bg-[#20d8f3] px-4 py-2.5 text-[12px] font-black uppercase tracking-[0.08em] text-black shadow-[4px_4px_0_0_rgba(0,0,0,1)]">
-          Intelligence
-        </div>
-        <h3 className="mt-6 text-[clamp(2.4rem,5.8vw,4.8rem)] font-black uppercase leading-[0.9] tracking-[-0.07em] text-black">
+        <h3 className="text-[clamp(2.4rem,5.8vw,4.8rem)] font-black uppercase leading-[0.9] tracking-[-0.07em] text-black">
           Real-Time
           <br />
           Analytics
@@ -654,47 +630,47 @@ function AnalyticsGlowCard() {
   ]
 
   return (
-    <div className="group relative flex w-full max-w-[300px] flex-col rounded-xl bg-slate-950 p-3.5 shadow-[0_16px_40px_rgba(15,23,42,0.22)] transition-all duration-300 hover:translate-y-[-2px] hover:shadow-indigo-500/10">
-      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-20 blur-sm transition-opacity duration-300 group-hover:opacity-30" />
-      <div className="absolute inset-px rounded-[11px] bg-slate-950" />
+    <div className="group relative flex w-full max-w-[300px] flex-col rounded-xl border-[3px] border-black bg-[#fffaf6] p-3.5 shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition-all duration-300 hover:translate-y-[-2px]">
+      <div className="absolute inset-0 rounded-xl bg-[radial-gradient(circle_at_18%_18%,rgba(137,166,255,0.16),transparent_26%),radial-gradient(circle_at_84%_22%,rgba(255,140,120,0.16),transparent_24%),radial-gradient(circle_at_66%_80%,rgba(203,255,46,0.14),transparent_28%)] opacity-80" />
+      <div className="absolute inset-px rounded-[11px] bg-[#fffaf6]" />
 
       <div className="relative">
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500">
-              <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-black/10 bg-[linear-gradient(135deg,#89a6ff_0%,#ffb59e_100%)]">
+              <svg className="h-4 w-4 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
               </svg>
             </div>
-            <h3 className="text-[13px] font-semibold text-white">Performance Analytics</h3>
+            <h3 className="text-[13px] font-semibold text-black">Performance Analytics</h3>
           </div>
 
-          <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-500">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            Live
+          <span className="flex items-center gap-1 rounded-full bg-[#cbff2e]/30 px-2 py-1 text-xs font-medium text-black/70">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#8eaf00]" />
+            Weekly
           </span>
         </div>
 
         <div className="mb-3 grid grid-cols-2 gap-3">
-          <div className="rounded-lg bg-slate-900/50 p-2.5">
-            <p className="text-xs font-medium text-slate-400">Total Views</p>
-            <p className="text-base font-semibold text-white">24.5K</p>
-            <span className="text-xs font-medium text-emerald-500">+12.3%</span>
+          <div className="rounded-lg border border-black/8 bg-white/80 p-2.5">
+            <p className="text-xs font-medium text-black/45">Total Views</p>
+            <p className="text-base font-semibold text-black">24.5K</p>
+            <span className="text-xs font-medium text-[#5f7eff]">+12.3%</span>
           </div>
 
-          <div className="rounded-lg bg-slate-900/50 p-2.5">
-            <p className="text-xs font-medium text-slate-400">Conversions</p>
-            <p className="text-base font-semibold text-white">1.2K</p>
-            <span className="text-xs font-medium text-emerald-500">+8.1%</span>
+          <div className="rounded-lg border border-black/8 bg-white/80 p-2.5">
+            <p className="text-xs font-medium text-black/45">Conversions</p>
+            <p className="text-base font-semibold text-black">1.2K</p>
+            <span className="text-xs font-medium text-[#ff8c78]">+8.1%</span>
           </div>
         </div>
 
-        <div className="mb-3 h-20 w-full overflow-hidden rounded-lg bg-slate-900/50 p-2.5">
+        <div className="mb-3 h-20 w-full overflow-hidden rounded-lg border border-black/8 bg-white/80 p-2.5">
           <div className="flex h-full w-full items-end justify-between gap-1">
             {bars.map((bar, index) => (
-              <div key={`${bar.shell}-${index}`} className={`${bar.shell} w-2.5 rounded-sm bg-indigo-500/30`}>
+              <div key={`${bar.shell}-${index}`} className={`${bar.shell} w-2.5 rounded-sm bg-[#89a6ff]/25`}>
                 <motion.div
-                  className={`${bar.fill} w-full rounded-sm bg-indigo-500`}
+                  className={`${bar.fill} w-full rounded-sm bg-[linear-gradient(180deg,#89a6ff_0%,#ff8c78_100%)]`}
                   initial={{ scaleY: 0.6, transformOrigin: 'bottom' }}
                   whileInView={{ scaleY: 1, transformOrigin: 'bottom' }}
                   viewport={{ once: true, amount: 0.8 }}
@@ -707,15 +683,15 @@ function AnalyticsGlowCard() {
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-slate-400">Last 7 days</span>
-            <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <span className="text-xs font-medium text-black/45">Last 7 days</span>
+            <svg className="h-4 w-4 text-black/45" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
             </svg>
           </div>
 
           <button
             type="button"
-            className="flex items-center gap-1 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 px-2.5 py-1 text-[11px] font-medium text-white transition-all duration-300 hover:from-indigo-600 hover:to-purple-600"
+            className="flex items-center gap-1 rounded-lg border border-black/10 bg-[#111111] px-2.5 py-1 text-[11px] font-medium text-white transition-all duration-300 hover:bg-black/90"
           >
             View Details
             <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
