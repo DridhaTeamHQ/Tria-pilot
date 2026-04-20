@@ -186,7 +186,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="mt-10 flex justify-center lg:mt-14">
+            <div className="mt-12 flex justify-center lg:mt-16">
               <GlassFeatureStack />
             </div>
           </motion.div>
@@ -375,7 +375,8 @@ function GlassFeatureStack() {
       accent: 'from-[#89a6ff] to-[#d8b7ff]',
       icon: <Camera className="h-5 w-5" strokeWidth={2.2} />,
       rotation: -14,
-      desktopShift: '',
+      baseDesktop: 'lg:left-1/2 lg:top-8 lg:-translate-x-[290px] lg:rotate-[-16deg]',
+      hoverDesktop: 'lg:group-hover:-translate-x-[390px] lg:group-hover:-translate-y-4 lg:group-hover:rotate-[-22deg]',
     },
     {
       label: 'Launch',
@@ -384,7 +385,8 @@ function GlassFeatureStack() {
       accent: 'from-[#ffb7d6] to-[#ffd6f0]',
       icon: <Rocket className="h-5 w-5" strokeWidth={2.2} />,
       rotation: 5,
-      desktopShift: '',
+      baseDesktop: 'lg:left-1/2 lg:top-3 lg:-translate-x-1/2 lg:rotate-[4deg]',
+      hoverDesktop: 'lg:group-hover:-translate-y-8 lg:group-hover:rotate-[1deg]',
     },
     {
       label: 'Earn',
@@ -393,20 +395,22 @@ function GlassFeatureStack() {
       accent: 'from-[#e4ff9d] to-[#cbff2e]',
       icon: <BadgeDollarSign className="h-5 w-5" strokeWidth={2.2} />,
       rotation: -24,
-      desktopShift: 'lg:translate-y-3',
+      baseDesktop: 'lg:left-1/2 lg:top-8 lg:translate-x-[110px] lg:rotate-[18deg]',
+      hoverDesktop: 'lg:group-hover:translate-x-[250px] lg:group-hover:translate-y-1 lg:group-hover:rotate-[24deg]',
     },
   ] as const
 
   return (
-    <div className="relative mx-auto flex w-full max-w-[1080px] flex-col items-center gap-5 lg:min-h-[430px] lg:flex-row lg:items-end lg:justify-center lg:gap-0">
+    <div className="group relative mx-auto flex w-full max-w-[1180px] flex-col items-center gap-5 lg:h-[440px] lg:block">
+      <div className="pointer-events-none absolute inset-x-0 top-[8%] hidden h-[280px] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.72)_0%,rgba(255,255,255,0.18)_52%,transparent_78%)] blur-2xl lg:block" />
       {cards.map((card, index) => (
         <motion.div
           key={card.title}
-          className={`relative h-[270px] w-full max-w-[300px] overflow-hidden rounded-[30px] border border-white/55 bg-[linear-gradient(180deg,rgba(255,255,255,0.62),rgba(255,255,255,0.34))] p-6 shadow-[0_30px_60px_rgba(0,0,0,0.12)] backdrop-blur-[18px] transition-all duration-500 lg:h-[315px] lg:w-[320px] lg:max-w-none lg:-mx-12 ${card.desktopShift ?? ''}`}
+          className={`relative h-[280px] w-full max-w-[320px] overflow-hidden rounded-[30px] border border-white/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.68),rgba(255,255,255,0.36))] p-6 shadow-[0_30px_65px_rgba(0,0,0,0.12)] backdrop-blur-[18px] transition-[transform,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] lg:absolute lg:h-[340px] lg:w-[360px] lg:max-w-none ${card.baseDesktop} ${card.hoverDesktop}`}
           initial={{ opacity: 0, y: 20, rotate: card.rotation }}
           whileInView={{ opacity: 1, y: 0, rotate: card.rotation }}
           viewport={{ once: true, amount: 0.3 }}
-          whileHover={{ y: -10, rotate: card.rotation * 0.25 }}
+          whileHover={{ y: -8 }}
           transition={{ duration: 0.45, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
           style={{ zIndex: cards.length - index }}
         >
@@ -418,11 +422,11 @@ function GlassFeatureStack() {
                 {card.icon}
               </div>
               <div className="mt-6 text-[12px] font-black uppercase tracking-[0.14em] text-black/42">{card.label}</div>
-              <div className="mt-2 text-[30px] font-black leading-[0.94] tracking-[-0.06em] lg:text-[34px]">{card.title}</div>
+              <div className="mt-2 text-[30px] font-black leading-[0.94] tracking-[-0.06em] lg:text-[38px]">{card.title}</div>
             </div>
 
             <div>
-              <div className="max-w-[230px] text-[14px] leading-7 text-black/55 lg:max-w-[260px]">{card.description}</div>
+              <div className="max-w-[240px] text-[14px] leading-7 text-black/55 lg:max-w-[285px] lg:text-[15px]">{card.description}</div>
               <div className="mt-5 h-px bg-black/10" />
               <div className="mt-4 flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase tracking-[0.14em] text-black/36">
