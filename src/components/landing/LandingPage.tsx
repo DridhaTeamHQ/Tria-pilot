@@ -155,9 +155,9 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="what-you-get" className="relative overflow-hidden border-t-[3px] border-black bg-[linear-gradient(180deg,#fffaf3_0%,#ffe8f3_48%,#f5ffe3_100%)] px-5 py-12 sm:px-8 lg:px-10 lg:py-16">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_18%,rgba(255,90,169,0.18),transparent_22%),radial-gradient(circle_at_86%_22%,rgba(137,166,255,0.22),transparent_24%),radial-gradient(circle_at_50%_82%,rgba(203,255,46,0.18),transparent_26%)]" />
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(17,17,17,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(17,17,17,0.06)_1px,transparent_1px)] bg-[size:42px_42px] opacity-40" />
+        <section id="what-you-get" className="relative overflow-hidden border-t-[3px] border-black bg-[linear-gradient(180deg,#fffaf6_0%,#fff7fb_45%,#f9fff4_100%)] px-5 py-12 sm:px-8 lg:px-10 lg:py-16">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_18%,rgba(255,90,169,0.12),transparent_22%),radial-gradient(circle_at_86%_22%,rgba(137,166,255,0.12),transparent_24%),radial-gradient(circle_at_50%_82%,rgba(203,255,46,0.1),transparent_26%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(17,17,17,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(17,17,17,0.04)_1px,transparent_1px)] bg-[size:42px_42px] opacity-35" />
 
           <motion.div
             className="relative z-10"
@@ -169,61 +169,57 @@ export default function LandingPage() {
             <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
               <div className="max-w-[760px]">
                 <div className="inline-flex items-center gap-2 rounded-full border-[2px] border-black bg-white px-4 py-2 text-[11px] font-black uppercase tracking-[0.14em] shadow-[4px_4px_0_0_rgba(0,0,0,1)]">
-                  <span className="h-2.5 w-2.5 rounded-full bg-[#ff5aa9]" />
-                  Main character tools only
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#89a6ff]" />
+                  Platform overview
                 </div>
-                <h2 className="mt-5 text-[clamp(2.7rem,6vw,5.2rem)] font-black leading-[0.9] tracking-[-0.07em] text-black">
-                  Less boring
+                <h2 className="mt-5 text-[clamp(2.8rem,6vw,5rem)] font-black leading-[0.92] tracking-[-0.07em] text-black">
+                  What <span className="bg-[linear-gradient(90deg,#89a6ff_0%,#c874ff_52%,#ff73bb_100%)] bg-clip-text text-transparent">Kiwikoo</span>
                   <br />
-                  more <span className="text-[#ff5aa9]">scroll-stopping</span>
+                  can do for you
                 </h2>
-                <p className="mt-5 max-w-[680px] text-[18px] leading-8 text-black/66">
-                  Kiwikoo turns idea dumps into content, campaigns, and cashflow that actually feel current. Slide through the stack and watch every lane flex a different vibe.
+                <p className="mt-5 max-w-[700px] text-[18px] leading-8 text-black/62">
+                  A cleaner, lighter product section with smooth motion, cooler copy, and feature cards that feel modern without fighting the rest of your website.
                 </p>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-3 lg:max-w-[420px]">
-                <MetricChip value="3X" label="faster drop-ready visuals" tone="pink" />
-                <MetricChip value="24/7" label="always-on campaign motion" tone="blue" />
-                <MetricChip value="Live" label="revenue + analytics loops" tone="lime" />
+                <MetricChip value="Fast" label="smooth visual creation" tone="pink" />
+                <MetricChip value="Smart" label="campaign-ready flow" tone="blue" />
+                <MetricChip value="Live" label="analytics + marketplace" tone="lime" />
               </div>
             </div>
 
-            <div className="mt-10 overflow-hidden rounded-[30px] border-[3px] border-black bg-[#111111] px-4 py-5 shadow-[10px_10px_0_0_rgba(0,0,0,1)] sm:px-5">
-              <motion.div
-                className="flex w-max gap-4"
-                animate={{ x: ['0%', '-50%'] }}
-                transition={{ duration: 22, ease: 'linear', repeat: Infinity }}
-              >
-                {[0, 1].map((copy) => (
-                  <div key={copy} className="flex gap-4 pr-4">
-                    <GenZFeatureCard
-                      icon={<Camera className="h-6 w-6" strokeWidth={2.2} />}
-                      accent="pink"
-                      eyebrow="Create"
-                      title="Try-On Studio"
-                      body="Drop a fit, remix the mood, and build polished looks before the group chat finishes typing."
-                      tags={['Instant looks', 'No photoshoot spiral', 'Ready to post']}
-                    />
-                    <GenZFeatureCard
-                      icon={<Rocket className="h-6 w-6" strokeWidth={2.2} />}
-                      accent="teal"
-                      eyebrow="Launch"
-                      title="Campaign Flow"
-                      body="Move from brand brief to creator-ready assets with cleaner approvals, less chaos, and way more momentum."
-                      tags={['Fast approvals', 'Creative sync', 'Launch energy']}
-                    />
-                    <GenZFeatureCard
-                      icon={<BadgeDollarSign className="h-6 w-6" strokeWidth={2.2} />}
-                      accent="lime"
-                      eyebrow="Earn"
-                      title="Affiliate Loop"
-                      body="Connect posts, products, and performance so the content looks good and the numbers hit too."
-                      tags={['Track clicks', 'Measure sales', 'Scale what works']}
-                    />
-                  </div>
-                ))}
-              </motion.div>
+            <div className="mt-10 grid gap-5 lg:grid-cols-3">
+              <GenZFeatureCard
+                icon={<Camera className="h-6 w-6" strokeWidth={2.2} />}
+                accent="blue"
+                eyebrow="Create"
+                title="AI Try-On Studio"
+                body="Instant vibe checks for outfits and product visuals without a long shoot-production loop."
+                tags={['Virtual looks', 'Faster previews']}
+                preview="studio"
+                delay={0}
+              />
+              <GenZFeatureCard
+                icon={<Rocket className="h-6 w-6" strokeWidth={2.2} />}
+                accent="pink"
+                eyebrow="Launch"
+                title="Campaign Workflows"
+                body="Bring creators, assets, and approvals into one smoother campaign flow that moves faster."
+                tags={['Creator-ready', 'Simple approvals']}
+                preview="workflow"
+                delay={0.08}
+              />
+              <GenZFeatureCard
+                icon={<BadgeDollarSign className="h-6 w-6" strokeWidth={2.2} />}
+                accent="violet"
+                eyebrow="Earn"
+                title="Affiliate Engine"
+                body="Track action, connect products to posts, and turn creator energy into clearer revenue signals."
+                tags={['Revenue loop', 'Live tracking']}
+                preview="network"
+                delay={0.16}
+              />
             </div>
           </motion.div>
 
@@ -234,30 +230,30 @@ export default function LandingPage() {
             viewport={{ once: true, amount: 0.2 }}
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: 0.08 }}
           >
-            <div className="rounded-[30px] border-[3px] border-black bg-[#fff8df] p-6 shadow-[8px_8px_0_0_rgba(0,0,0,1)] lg:p-7">
+            <div className="rounded-[30px] border-[3px] border-black bg-[#fffdf7] p-6 shadow-[8px_8px_0_0_rgba(0,0,0,1)] lg:p-7">
               <MiniPill label="For creators + brands" />
               <div className="mt-6">
                 <div className="text-[clamp(2rem,4vw,3.2rem)] font-black leading-[0.93] tracking-[-0.06em] text-black">
-                  Your content stack
+                  Keep it clean,
                   <br />
-                  but hotter, faster, smarter.
+                  fast, and easy to get.
                 </div>
                 <p className="mt-4 max-w-[520px] text-[17px] leading-8 text-black/64">
-                  One place to make looks, launch collabs, read the signal, and keep the whole brand-to-creator loop moving without the usual lag.
+                  The section still feels premium, but now the motion is softer and the layout stays bright so it matches the rest of your landing page.
                 </p>
               </div>
 
               <div className="mt-8 space-y-4">
                 <InsightPill
                   icon={<ChartColumn className="h-5 w-5" strokeWidth={2.2} />}
-                  title="Real-time reads"
-                  description="Know what is hitting, what is stalling, and where to push next."
+                  title="Real-Time Analytics"
+                  description="Clear performance signals with a softer dashboard feel."
                   tone="pink"
                 />
                 <InsightPill
                   icon={<Store className="h-5 w-5" strokeWidth={2.2} />}
-                  title="Marketplace energy"
-                  description="Discover products, creators, and winning combos without jumping tabs."
+                  title="Creator Marketplace"
+                  description="Find products, creators, and outcomes in one easy flow."
                   tone="lime"
                 />
               </div>
@@ -409,76 +405,157 @@ function GenZFeatureCard({
   title,
   body,
   tags,
+  preview,
+  delay = 0,
 }: {
   icon: ReactNode
-  accent: 'pink' | 'teal' | 'lime'
+  accent: 'blue' | 'pink' | 'violet'
   eyebrow: string
   title: string
   body: string
   tags: string[]
+  preview: 'studio' | 'workflow' | 'network'
+  delay?: number
 }) {
   const cardTone =
-    accent === 'pink'
-      ? 'bg-[#ff5aa9]'
-      : accent === 'teal'
-        ? 'bg-[#35c7bc]'
-        : 'bg-[#cbff2e]'
+    accent === 'blue'
+      ? 'bg-[#f7f9ff]'
+      : accent === 'pink'
+        ? 'bg-[#fff7fc]'
+        : 'bg-[#faf7ff]'
   const glowTone =
-    accent === 'pink'
-      ? 'bg-[#ff5aa9]/20'
-      : accent === 'teal'
-        ? 'bg-[#35c7bc]/20'
-        : 'bg-[#cbff2e]/22'
-  const textTone = accent === 'lime' ? 'text-black' : 'text-white'
-  const eyebrowTone = accent === 'lime' ? 'text-black/70' : 'text-white/70'
-  const bodyTone = accent === 'lime' ? 'text-black/72' : 'text-white/72'
+    accent === 'blue'
+      ? 'bg-[#89a6ff]/18'
+      : accent === 'pink'
+        ? 'bg-[#ff73bb]/16'
+        : 'bg-[#b280ff]/18'
+  const iconTone =
+    accent === 'blue'
+      ? 'bg-[#e5ecff] text-[#5f7eff]'
+      : accent === 'pink'
+        ? 'bg-[#ffe0f0] text-[#e24ea0]'
+        : 'bg-[#eee3ff] text-[#8855ff]'
+  const borderGlow =
+    accent === 'blue'
+      ? 'rgba(137,166,255,0.34)'
+      : accent === 'pink'
+        ? 'rgba(255,115,187,0.32)'
+        : 'rgba(178,128,255,0.3)'
 
   return (
     <motion.div
-      className={`group relative flex min-h-[290px] w-[290px] flex-col overflow-hidden rounded-[28px] border-[3px] border-black ${cardTone} p-5 shadow-[7px_7px_0_0_rgba(0,0,0,1)] sm:w-[340px] sm:p-6`}
-      whileHover={{ y: -10, rotate: -1.2, scale: 1.01 }}
-      transition={{ type: 'spring', stiffness: 220, damping: 18 }}
+      className={`group relative flex min-h-[360px] flex-col overflow-hidden rounded-[28px] border-[3px] border-black ${cardTone} p-5 shadow-[7px_7px_0_0_rgba(0,0,0,1)] sm:p-6`}
+      initial={{ opacity: 0, y: 26 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.25 }}
+      transition={{ duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] }}
+      whileHover={{ y: -6 }}
+      whileTap={{ scale: 0.995 }}
       style={{ transformOrigin: 'center bottom' }}
     >
       <motion.div
         className={`pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full ${glowTone} blur-[6px]`}
-        animate={{ scale: [1, 1.1, 1], x: [0, -8, 0], y: [0, 8, 0] }}
-        transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
+        animate={{ scale: [1, 1.06, 1], x: [0, -4, 0], y: [0, 4, 0] }}
+        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
       />
       <motion.div
-        className="absolute left-4 right-4 top-4 h-px bg-gradient-to-r from-transparent via-black/30 to-transparent"
-        animate={{ opacity: [0.35, 0.75, 0.35] }}
-        transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
+        className="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+        style={{ boxShadow: `inset 0 0 0 1px ${borderGlow}` }}
       />
       <motion.div
-        className="inline-flex h-16 w-16 items-center justify-center rounded-[18px] border-[3px] border-black bg-white shadow-[4px_4px_0_0_rgba(0,0,0,1)] text-black"
-        whileHover={{ rotate: -10, y: -2, scale: 1.06 }}
-        transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+        className={`inline-flex h-14 w-14 items-center justify-center rounded-[16px] border-[2px] border-black/80 ${iconTone} shadow-[4px_4px_0_0_rgba(0,0,0,0.9)]`}
+        whileHover={{ y: -2 }}
+        transition={{ duration: 0.25 }}
       >
-        <motion.span
-          animate={{ rotate: [0, 8, 0] }}
-          transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-          className="inline-flex"
-        >
+        <motion.span animate={{ y: [0, -1.5, 0] }} transition={{ duration: 3.6, repeat: Infinity, ease: 'easeInOut' }} className="inline-flex">
           {icon}
         </motion.span>
       </motion.div>
-      <div className={`mt-6 text-[11px] font-black uppercase tracking-[0.16em] ${eyebrowTone}`}>{eyebrow}</div>
-      <h3 className={`mt-2 min-h-[2.1em] text-[31px] font-black leading-[0.95] tracking-[-0.05em] ${textTone}`}>
-        {title}
-      </h3>
-      <p className={`mt-4 flex-1 text-[17px] leading-7 ${bodyTone}`}>{body}</p>
+      <div className="mt-6 text-[11px] font-black uppercase tracking-[0.16em] text-black/48">{eyebrow}</div>
+      <h3 className="mt-2 min-h-[2.1em] text-[28px] font-black leading-[1] tracking-[-0.045em] text-black">{title}</h3>
+      <p className="mt-4 text-[16px] leading-7 text-black/58">{body}</p>
+      <FeaturePreview preview={preview} accent={accent} />
       <div className="mt-5 flex flex-wrap gap-2">
         {tags.map((tag) => (
           <span
             key={tag}
-            className="rounded-full border-[2px] border-black/70 bg-white/80 px-3 py-1 text-[11px] font-black uppercase tracking-[0.1em] text-black"
+            className="rounded-full border-[2px] border-black/65 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-black"
           >
             {tag}
           </span>
         ))}
       </div>
     </motion.div>
+  )
+}
+
+function FeaturePreview({
+  preview,
+  accent,
+}: {
+  preview: 'studio' | 'workflow' | 'network'
+  accent: 'blue' | 'pink' | 'violet'
+}) {
+  const glow =
+    accent === 'blue'
+      ? 'rgba(137,166,255,0.34)'
+      : accent === 'pink'
+        ? 'rgba(255,115,187,0.34)'
+        : 'rgba(178,128,255,0.34)'
+
+  if (preview === 'studio') {
+    return (
+      <div className="relative mt-6 h-[118px] overflow-hidden rounded-[18px] border-[2px] border-black bg-[linear-gradient(180deg,#111827_0%,#1f2937_100%)]">
+        <div className="absolute inset-x-0 bottom-0 h-8 bg-[linear-gradient(180deg,rgba(190,120,255,0)_0%,rgba(190,120,255,0.35)_100%)]" />
+        <motion.div
+          className="absolute bottom-0 left-1/2 h-[84px] w-[34px] -translate-x-1/2 rounded-t-[18px] bg-[linear-gradient(180deg,#92f3ff_0%,#ff92c9_48%,#ffe36f_100%)]"
+          animate={{ y: [0, -3, 0] }}
+          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+          style={{ boxShadow: `0 0 24px ${glow}` }}
+        />
+        <div className="absolute bottom-0 left-[22%] right-[22%] h-px bg-[linear-gradient(90deg,transparent,#d17eff,transparent)]" />
+      </div>
+    )
+  }
+
+  if (preview === 'workflow') {
+    return (
+      <div className="relative mt-6 h-[118px] overflow-hidden rounded-[18px] border-[2px] border-black bg-[linear-gradient(180deg,#101722_0%,#182235_100%)]">
+        {[
+          { top: '20%', left: '12%' },
+          { top: '26%', left: '42%' },
+          { top: '56%', left: '66%' },
+          { top: '60%', left: '26%' },
+          { top: '24%', left: '72%' },
+        ].map((node, index) => (
+          <motion.span
+            key={`${node.top}-${node.left}`}
+            className="absolute h-3 w-3 rounded-full bg-[#d676ff]"
+            style={{ top: node.top, left: node.left, boxShadow: `0 0 14px ${glow}` }}
+            animate={{ scale: [1, 1.18, 1], opacity: [0.7, 1, 0.7] }}
+            transition={{ duration: 2.6, repeat: Infinity, delay: index * 0.2, ease: 'easeInOut' }}
+          />
+        ))}
+        <svg className="absolute inset-0 h-full w-full" viewBox="0 0 300 118" preserveAspectRatio="none">
+          <path d="M38 30 C 90 30, 90 42, 128 40 S 180 74, 208 72 S 245 34, 264 28" fill="none" stroke="#6be4ff" strokeWidth="2" strokeOpacity="0.85" />
+          <path d="M38 30 C 88 62, 118 84, 198 72" fill="none" stroke="#d676ff" strokeWidth="1.8" strokeOpacity="0.7" />
+        </svg>
+      </div>
+    )
+  }
+
+  return (
+    <div className="relative mt-6 h-[118px] overflow-hidden rounded-[18px] border-[2px] border-black bg-[radial-gradient(circle_at_50%_50%,#1f2445_0%,#141729_52%,#0d101d_100%)]">
+      <motion.div
+        className="absolute left-1/2 top-1/2 h-[68px] w-[68px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#a47cff]"
+        animate={{ scale: [1, 1.08, 1] }}
+        transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
+        style={{ boxShadow: `0 0 24px ${glow}` }}
+      />
+      <div className="absolute left-[18%] top-[26%] h-4 w-4 rounded-full bg-[#8fdcff]" style={{ boxShadow: `0 0 12px ${glow}` }} />
+      <div className="absolute right-[16%] top-[56%] h-3 w-3 rounded-full bg-[#d676ff]" style={{ boxShadow: `0 0 12px ${glow}` }} />
+      <div className="absolute left-[26%] bottom-[18%] h-2.5 w-2.5 rounded-full bg-[#ff84cb]" style={{ boxShadow: `0 0 10px ${glow}` }} />
+    </div>
   )
 }
 
@@ -514,55 +591,51 @@ function InsightPill({
 
 function VibeBoard() {
   return (
-    <div className="relative overflow-hidden rounded-[30px] border-[3px] border-black bg-[#111111] p-5 text-white shadow-[8px_8px_0_0_rgba(0,0,0,1)] lg:p-6">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(255,90,169,0.24),transparent_24%),radial-gradient(circle_at_86%_18%,rgba(137,166,255,0.22),transparent_22%),radial-gradient(circle_at_64%_84%,rgba(203,255,46,0.18),transparent_24%)]" />
+    <div className="relative overflow-hidden rounded-[30px] border-[3px] border-black bg-[#f7f8ff] p-5 text-black shadow-[8px_8px_0_0_rgba(0,0,0,1)] lg:p-6">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(255,90,169,0.12),transparent_24%),radial-gradient(circle_at_86%_18%,rgba(137,166,255,0.14),transparent_22%),radial-gradient(circle_at_64%_84%,rgba(203,255,46,0.12),transparent_24%)]" />
       <div className="relative flex items-center justify-between gap-4">
         <div>
-          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-white/55">Live product preview</div>
-          <div className="mt-2 text-[32px] font-black leading-[0.94] tracking-[-0.05em] text-white">
-            Swipe the workflow.
+          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-black/48">Live product preview</div>
+          <div className="mt-2 text-[32px] font-black leading-[0.94] tracking-[-0.05em] text-black">
+            Smooth insights,
             <br />
-            Feel the motion.
+            lighter vibe.
           </div>
         </div>
-        <div className="rounded-[18px] border-[2px] border-white/15 bg-white/10 px-4 py-3 text-right shadow-[0_6px_0_0_rgba(0,0,0,0.25)]">
-          <div className="text-[22px] font-black leading-none text-[#cbff2e]">LIVE</div>
-          <div className="mt-1 text-[10px] font-black uppercase tracking-[0.14em] text-white/45">Synced stack</div>
+        <div className="rounded-[18px] border-[2px] border-black bg-white px-4 py-3 text-right shadow-[4px_4px_0_0_rgba(0,0,0,0.92)]">
+          <div className="text-[22px] font-black leading-none text-[#8b63ff]">LIVE</div>
+          <div className="mt-1 text-[10px] font-black uppercase tracking-[0.14em] text-black/45">Synced stack</div>
         </div>
       </div>
 
-      <div className="relative mt-7 overflow-hidden rounded-[24px] border border-white/12 bg-[#1a1a1a] p-4 sm:p-5">
+      <div className="relative mt-7 overflow-hidden rounded-[24px] border-[2px] border-black bg-white p-4 sm:p-5">
         <motion.div
           className="flex w-max gap-3"
-          animate={{ x: ['0%', '-50%'] }}
-          transition={{ duration: 16, ease: 'linear', repeat: Infinity }}
+          animate={{ x: [0, -18, 0] }}
+          transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
         >
-          {[0, 1].map((copy) => (
-            <div key={copy} className="flex gap-3 pr-3">
-              {[
-                { label: 'Moodboard', tone: 'bg-[#ff5aa9]', icon: <Sparkles className="h-5 w-5" strokeWidth={2.2} /> },
-                { label: 'Looks', tone: 'bg-[#89a6ff]', icon: <Camera className="h-5 w-5" strokeWidth={2.2} /> },
-                { label: 'Campaign', tone: 'bg-[#35c7bc]', icon: <Rocket className="h-5 w-5" strokeWidth={2.2} /> },
-                { label: 'Sales', tone: 'bg-[#cbff2e] text-black', icon: <BadgeDollarSign className="h-5 w-5" strokeWidth={2.2} /> },
-              ].map((item) => (
-                <div
-                  key={`${copy}-${item.label}`}
-                  className={`flex min-w-[140px] items-center gap-3 rounded-[20px] border-[2px] border-black px-4 py-4 font-black uppercase tracking-[0.1em] text-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] ${item.tone}`}
-                >
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border-[2px] border-black bg-white">
-                    {item.icon}
-                  </span>
-                  <span className="text-[11px]">{item.label}</span>
-                </div>
-              ))}
+          {[
+            { label: 'Moodboard', tone: 'bg-[#ffe1f1]', icon: <Sparkles className="h-5 w-5" strokeWidth={2.2} /> },
+            { label: 'Looks', tone: 'bg-[#e5ecff]', icon: <Camera className="h-5 w-5" strokeWidth={2.2} /> },
+            { label: 'Campaign', tone: 'bg-[#e9e3ff]', icon: <Rocket className="h-5 w-5" strokeWidth={2.2} /> },
+            { label: 'Sales', tone: 'bg-[#f2ffc9]', icon: <BadgeDollarSign className="h-5 w-5" strokeWidth={2.2} /> },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className={`flex min-w-[140px] items-center gap-3 rounded-[20px] border-[2px] border-black px-4 py-4 font-black uppercase tracking-[0.1em] text-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] ${item.tone}`}
+            >
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border-[2px] border-black bg-white">
+                {item.icon}
+              </span>
+              <span className="text-[11px]">{item.label}</span>
             </div>
           ))}
         </motion.div>
       </div>
 
       <div className="relative mt-5 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-[24px] border border-white/12 bg-white/[0.04] p-4">
-          <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.14em] text-white/55">
+        <div className="rounded-[24px] border-[2px] border-black bg-white p-4">
+          <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.14em] text-black/48">
             <span>Signal flow</span>
             <span>Always moving</span>
           </div>
@@ -573,11 +646,11 @@ function VibeBoard() {
               { label: 'Affiliate conversion pulse', value: '61%', tone: '#cbff2e' },
             ].map((bar) => (
               <div key={bar.label}>
-                <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-[0.1em] text-white/60">
+                <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-[0.1em] text-black/60">
                   <span>{bar.label}</span>
                   <span>{bar.value}</span>
                 </div>
-                <div className="mt-2 h-3 overflow-hidden rounded-full border border-white/10 bg-white/5">
+                <div className="mt-2 h-3 overflow-hidden rounded-full border border-black/10 bg-black/5">
                   <motion.div
                     className="h-full rounded-full"
                     style={{ backgroundColor: bar.tone }}
