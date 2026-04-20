@@ -436,8 +436,7 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
     process.env.TRYON_IMAGE_MODEL?.trim() ||
     'gemini-3-pro-image-preview'
 
-  const isDev = process.env.NODE_ENV !== 'production'
-  if (isDev) console.log(`🍌 DIRECT TRANSPORT: ${requestedModel} | prompt: ${prompt.length} chars`)
+  const isDev = process.env.VERCEL_ENV ? process.env.VERCEL_ENV !== 'production' : process.env.NODE_ENV !== 'production'
 
   // Image order: person → garment → face crop (if available) → prompt
   const contents: ContentListUnion = [
@@ -562,7 +561,7 @@ export async function generateTryOnGPT(options: DirectTryOnOptions): Promise<str
     aspectRatio = '1:1',
   } = options
 
-  const isDev = process.env.NODE_ENV !== 'production'
+  const isDev = process.env.VERCEL_ENV ? process.env.VERCEL_ENV !== 'production' : process.env.NODE_ENV !== 'production'
 
   // Clean base64 (strip data URI prefix if present)
   const cleanPerson = personImageBase64.replace(/^data:image\/[a-z]+;base64,/, '')

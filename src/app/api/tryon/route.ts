@@ -59,7 +59,10 @@ const TRYON_OUTPUT_QA_MODE: 'off' | 'soft' | 'strict' =
       ? 'soft'
       : 'off'
 
-const isDev = process.env.NODE_ENV !== 'production'
+// Fix: Vercel incorrectly sets NODE_ENV='development'. Use VERCEL_ENV instead.
+const isDev = process.env.VERCEL_ENV
+  ? process.env.VERCEL_ENV !== 'production'
+  : process.env.NODE_ENV !== 'production'
 
 function jsonError(
   status: number,

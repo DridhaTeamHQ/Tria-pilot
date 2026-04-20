@@ -15,7 +15,11 @@
 import 'server-only'
 import { geminiGenerateContent } from '@/lib/gemini/executor'
 
-const isDev = process.env.NODE_ENV !== 'production'
+// Fix: Vercel incorrectly sets NODE_ENV='development' in some regions.
+// Use VERCEL_ENV to detect production reliably.
+const isDev = process.env.VERCEL_ENV
+  ? process.env.VERCEL_ENV !== 'production'
+  : process.env.NODE_ENV !== 'production'
 
 // ── TYPES ────────────────────────────────────────────────────────────────────
 
@@ -139,87 +143,105 @@ export async function analyzeGarment(garmentImageBase64: string): Promise<Garmen
     return cached
   }
 
-  try {
-    if (isDev) console.log('🧠 Garment intel: analyzing product image...')
+  // Retry up to 2 times on 503/overload before using fallback
+  const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash']
+  const MAX_ATTEMPTS = 2
 
-    const response = await geminiGenerateContent({
-      model: 'gemini-2.5-flash',
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            { inlineData: { mimeType: 'image/jpeg', data: cleanBase64 } },
-            { text: ANALYSIS_PROMPT },
-          ],
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const model = MODELS[Math.min(attempt, MODELS.length - 1)]
+    try {
+      if (isDev) console.log(`🧠 Garment intel: analyzing (attempt ${attempt + 1}, model: ${model})...`)
+
+      const response = await geminiGenerateContent({
+        model,
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              { inlineData: { mimeType: 'image/jpeg', data: cleanBase64 } },
+              { text: ANALYSIS_PROMPT },
+            ],
+          },
+        ],
+        config: {
+          temperature: 0.1,
+          maxOutputTokens: 1500,
+          responseMimeType: 'application/json',
         },
-      ],
-      config: {
-        temperature: 0.1,
-        maxOutputTokens: 1500,
-        responseMimeType: 'application/json',
-      },
-    })
+      })
 
-    let text = ''
-    if (response.candidates?.length) {
-      for (const part of response.candidates[0].content?.parts || []) {
-        if (part.text) text += part.text
+      let text = ''
+      if (response.candidates?.length) {
+        for (const part of response.candidates[0].content?.parts || []) {
+          if (part.text) text += part.text
+        }
       }
+
+      if (!text) throw new Error('Empty response from garment analysis')
+
+      const jsonText = extractJson(text)
+      const parsed = JSON.parse(jsonText) as Partial<GarmentIntelligence>
+
+      if (!parsed.garmentType) throw new Error('Missing garmentType in analysis response')
+
+      const rawBottom = (parsed.visibleBottomInPhoto ?? '').trim().toLowerCase()
+      const rawTop = (parsed.visibleTopInPhoto ?? '').trim().toLowerCase()
+      const visibleBottom = (rawBottom && rawBottom !== 'none' && rawBottom !== 'null' && rawBottom !== 'n/a')
+        ? parsed.visibleBottomInPhoto!.trim()
+        : ''
+      const visibleTop = (rawTop && rawTop !== 'none' && rawTop !== 'null' && rawTop !== 'n/a')
+        ? parsed.visibleTopInPhoto!.trim()
+        : ''
+
+      const intel: GarmentIntelligence = {
+        garmentType: parsed.garmentType || 'top',
+        coverage: parsed.coverage || 'upper_only',
+        primaryColor: parsed.primaryColor || 'neutral',
+        secondaryColor: parsed.secondaryColor || undefined,
+        pattern: parsed.pattern || 'solid',
+        material: parsed.material || 'cotton',
+        neckline: parsed.neckline || 'round',
+        sleeves: parsed.sleeves || 'short',
+        fit: parsed.fit || 'regular',
+        length: parsed.length || 'hip',
+        keyFeatures: Array.isArray(parsed.keyFeatures) ? parsed.keyFeatures : [],
+        visibleBottomInPhoto: visibleBottom,
+        visibleTopInPhoto: visibleTop,
+        bottomWearSuggestion: parsed.bottomWearSuggestion || 'dark fitted jeans',
+        description: parsed.description || `A ${parsed.garmentType || 'garment'}`,
+        promptModifiers: Array.isArray(parsed.promptModifiers) ? parsed.promptModifiers : [],
+      }
+
+      setCache(cacheKey, intel)
+
+      if (isDev) {
+        console.log(`🧠 Garment intel: ${intel.garmentType} (${intel.coverage})`)
+        console.log(`   ${intel.description}`)
+        console.log(`   Color: ${intel.primaryColor} | Pattern: ${intel.pattern} | Material: ${intel.material}`)
+        if (intel.visibleBottomInPhoto) console.log(`   👖 Visible bottom: "${intel.visibleBottomInPhoto}"`)
+        if (intel.visibleTopInPhoto) console.log(`   👕 Visible top: "${intel.visibleTopInPhoto}"`)
+      }
+
+      return intel
+
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error)
+      const is503 = msg.includes('503') || msg.includes('UNAVAILABLE') || msg.includes('high demand') || msg.includes('overloaded')
+
+      if (is503 && attempt < MAX_ATTEMPTS - 1) {
+        const backoffMs = 1500 * (attempt + 1)
+        console.warn(`⚠️ Garment analysis 503 on ${model}, retrying in ${backoffMs}ms...`)
+        await new Promise((r) => setTimeout(r, backoffMs))
+        continue
+      }
+
+      console.warn('⚠️ Garment analysis failed, using fallback:', msg)
+      return FALLBACK_INTEL
     }
-
-    if (!text) throw new Error('Empty response from garment analysis')
-
-    const jsonText = extractJson(text)
-    const parsed = JSON.parse(jsonText) as Partial<GarmentIntelligence>
-
-    if (!parsed.garmentType) throw new Error('Missing garmentType in analysis response')
-
-    // Normalize visibleBottomInPhoto / visibleTopInPhoto
-    const rawBottom = (parsed.visibleBottomInPhoto ?? '').trim().toLowerCase()
-    const rawTop = (parsed.visibleTopInPhoto ?? '').trim().toLowerCase()
-    const visibleBottom = (rawBottom && rawBottom !== 'none' && rawBottom !== 'null' && rawBottom !== 'n/a')
-      ? parsed.visibleBottomInPhoto!.trim()
-      : ''
-    const visibleTop = (rawTop && rawTop !== 'none' && rawTop !== 'null' && rawTop !== 'n/a')
-      ? parsed.visibleTopInPhoto!.trim()
-      : ''
-
-    const intel: GarmentIntelligence = {
-      garmentType: parsed.garmentType || 'top',
-      coverage: parsed.coverage || 'upper_only',
-      primaryColor: parsed.primaryColor || 'neutral',
-      secondaryColor: parsed.secondaryColor || undefined,
-      pattern: parsed.pattern || 'solid',
-      material: parsed.material || 'cotton',
-      neckline: parsed.neckline || 'round',
-      sleeves: parsed.sleeves || 'short',
-      fit: parsed.fit || 'regular',
-      length: parsed.length || 'hip',
-      keyFeatures: Array.isArray(parsed.keyFeatures) ? parsed.keyFeatures : [],
-      visibleBottomInPhoto: visibleBottom,
-      visibleTopInPhoto: visibleTop,
-      bottomWearSuggestion: parsed.bottomWearSuggestion || 'dark fitted jeans',
-      description: parsed.description || `A ${parsed.garmentType || 'garment'}`,
-      promptModifiers: Array.isArray(parsed.promptModifiers) ? parsed.promptModifiers : [],
-    }
-
-    setCache(cacheKey, intel)
-
-    if (isDev) {
-      console.log(`🧠 Garment intel: ${intel.garmentType} (${intel.coverage})`)
-      console.log(`   ${intel.description}`)
-      console.log(`   Color: ${intel.primaryColor} | Pattern: ${intel.pattern} | Material: ${intel.material}`)
-      if (intel.visibleBottomInPhoto) console.log(`   👖 Visible bottom in photo: "${intel.visibleBottomInPhoto}"`)
-      if (intel.visibleTopInPhoto) console.log(`   👕 Visible top in photo: "${intel.visibleTopInPhoto}"`)
-      if (intel.coverage === 'upper_only' && !intel.visibleBottomInPhoto) console.log(`   Bottom suggestion: ${intel.bottomWearSuggestion}`)
-      if (intel.promptModifiers.length) console.log(`   Modifiers: ${intel.promptModifiers.join('; ')}`)
-    }
-
-    return intel
-  } catch (error) {
-    console.warn('⚠️ Garment analysis failed, using fallback:', error instanceof Error ? error.message : error)
-    return FALLBACK_INTEL
   }
+
+  // Should not reach here, but satisfy TS
+  return FALLBACK_INTEL
 }
 
 // ── SMART PROMPT COMPOSER ────────────────────────────────────────────────────
