@@ -12,6 +12,7 @@ import type { ReferencePhotoClient } from '@/lib/reference-photos/types'
 import { getFirstSuccessfulOutput, getJobOutputsFromRecord } from '@/lib/tryon/job-outputs'
 import { getTryOnRenderModel, resolveDirectGeminiRenderModel } from '@/lib/tryon/nano-banana-pro-renderer'
 import { analyzeGarment, composeSmartPrompt, type GarmentIntelligence } from '@/lib/tryon/garment-intel'
+import { extractFaceCrop } from '@/lib/tryon/face-crop'
 import { preprocessGarmentImage } from '@/lib/tryon/garment-preprocessor'
 // face-crop removed — simple pipeline
 import {
