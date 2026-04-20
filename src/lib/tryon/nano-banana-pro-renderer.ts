@@ -29,9 +29,9 @@ import { getPresetStrengthProfile } from './preset-strength-profile'
 export type TryOnRenderModel = 'gpt-image-1.5' | 'gemini-3-pro-image-preview' | 'gemini-3.1-flash-image-preview' | 'gemini-2.5-flash-image'
 export type DirectGeminiRenderModel = Exclude<TryOnRenderModel, 'gpt-image-1.5'>
 
-// Google positions Nano Banana Pro for higher-fidelity, context-heavy image editing,
-// which matches clothing-swap try-on better than the speed-first Flash image model.
-const DEFAULT_RENDER_MODEL: DirectGeminiRenderModel = 'gemini-3-pro-image-preview'
+// gemini-2.5-flash-image: faster, cheaper, same editing capabilities as Pro.
+// Override via TRYON_RENDER_MODEL env var to switch back to Pro if needed.
+const DEFAULT_RENDER_MODEL: DirectGeminiRenderModel = 'gemini-2.5-flash-image'
 const ENABLE_QUALITY_RETRY =
   process.env.TRYON_ENABLE_QUALITY_RETRY !== 'false'
 const MICRO_DRIFT_RETRY_THRESHOLD = 22

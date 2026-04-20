@@ -23,7 +23,7 @@ import path from 'path'
 
 const FACE_SWAP_SERVICE_URL = process.env.FACE_SWAP_SERVICE_URL?.trim() || ''
 const FACE_SWAP_TIMEOUT_MS = Number(process.env.FACE_SWAP_TIMEOUT_MS) || 30_000
-const FACE_RESTORE_MODEL = process.env.TRYON_IMAGE_MODEL?.trim() || 'gemini-3-pro-image-preview'
+const FACE_RESTORE_MODEL = process.env.TRYON_IMAGE_MODEL?.trim() || 'gemini-2.5-flash-image'
 const FACE_SWAP_AUTO_BOOT =
     process.env.FACE_SWAP_AUTO_BOOT !== 'false' && process.env.NODE_ENV !== 'production'
 let localFaceSwapBootPromise: Promise<boolean> | null = null
