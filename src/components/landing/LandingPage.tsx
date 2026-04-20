@@ -167,7 +167,7 @@ export default function LandingPage() {
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
               <div className="max-w-[760px]">
                 <h2 className="text-[clamp(2.6rem,5.4vw,4.5rem)] font-black leading-[0.94] tracking-[-0.065em] text-black">
                   What Kiwikoo
@@ -186,7 +186,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="mt-12 flex justify-center lg:mt-16">
+            <div className="mt-8 flex justify-center lg:mt-10">
               <GlassFeatureStack />
             </div>
           </motion.div>
@@ -396,8 +396,8 @@ function GlassFeatureStack() {
 
   return (
     <div className="mx-auto w-full max-w-[1100px]">
-      <div className="group relative flex flex-col items-center gap-5 lg:min-h-[360px] lg:flex-row lg:justify-center lg:pt-8">
-        <div className="pointer-events-none absolute inset-x-0 top-10 hidden h-[220px] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.72)_0%,rgba(255,255,255,0.12)_58%,transparent_78%)] blur-2xl lg:block" />
+      <div className="group relative flex flex-col items-center gap-5 lg:min-h-[320px] lg:flex-row lg:justify-center lg:pt-2">
+        <div className="pointer-events-none absolute inset-x-0 top-4 hidden h-[200px] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.72)_0%,rgba(255,255,255,0.12)_58%,transparent_78%)] blur-2xl lg:block" />
       {cards.map((card, index) => (
         <motion.div
           key={card.title}
@@ -421,11 +421,7 @@ function GlassFeatureStack() {
 
             <div>
               <div className="max-w-[240px] text-[14px] leading-7 text-black/55 lg:max-w-[210px] lg:text-[14px]">{card.description}</div>
-              <div className="mt-5 h-px bg-black/10" />
-              <div className="mt-4 flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase tracking-[0.14em] text-black/36">
-                  Kiwikoo flow
-                </span>
+              <div className="mt-5 flex justify-end border-t border-black/10 pt-4">
                 <div className="relative h-8 w-[96px] overflow-hidden rounded-full border border-black/10 bg-white/35">
                   <span className={`absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-gradient-to-br ${card.accent} opacity-90`} />
                   <span className="absolute left-[36px] top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border border-black/16 bg-white/72" />
