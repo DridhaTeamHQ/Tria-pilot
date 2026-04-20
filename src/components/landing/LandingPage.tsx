@@ -594,84 +594,18 @@ function VibeBoard() {
   return (
     <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
       <motion.div
-        className="relative rounded-[6px] border-[3px] border-black bg-[#232323] p-6 text-white shadow-[6px_6px_0_0_rgba(0,0,0,1)] sm:p-8"
+        className="relative flex justify-center"
         initial={{ opacity: 0, x: -18 }}
         whileInView={{ opacity: 1, x: 0 }}
         viewport={{ once: true, amount: 0.3 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       >
-        <div className="absolute -left-3 top-10 rotate-[-5deg] rounded-[4px] border-[3px] border-black bg-[#efefef] px-5 py-4 text-center text-[12px] font-black uppercase tracking-[0.08em] text-black shadow-[5px_5px_0_0_rgba(0,0,0,1)] sm:-left-8 sm:px-8 sm:py-6">
-          Data Is
+        <div className="pointer-events-none absolute -left-2 top-6 z-10 rotate-[-5deg] rounded-[4px] border-[3px] border-black bg-[#efefef] px-4 py-3 text-center text-[11px] font-black uppercase tracking-[0.08em] text-black shadow-[5px_5px_0_0_rgba(0,0,0,1)] sm:-left-4 sm:px-5 sm:py-4">
+          Live
           <br />
-          Structural
+          Signal
         </div>
-
-        <div className="pl-6 sm:pl-10">
-          <div className="text-center">
-            <div className="text-[clamp(2rem,4vw,3rem)] font-black uppercase tracking-[-0.04em] text-white">Analytics</div>
-            <div className="mt-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white/55">BORO, SAFE WORK</div>
-          </div>
-
-          <div className="relative mt-8 h-[270px] rounded-[4px] border border-white/8 bg-[#262626] p-4">
-            <div className="absolute inset-x-4 inset-y-5">
-              {Array.from({ length: 8 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="absolute left-0 right-0 border-t border-white/10"
-                  style={{ top: `${index * 13}%` }}
-                />
-              ))}
-              {Array.from({ length: 9 }).map((_, index) => (
-                <div
-                  key={`v-${index}`}
-                  className="absolute top-0 bottom-0 border-l border-white/6"
-                  style={{ left: `${index * 12}%` }}
-                />
-              ))}
-            </div>
-
-            <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between gap-3">
-              {[18, 12, 28, 46, 40, 68, 60, 70, 82].map((height, index) => (
-                <motion.div
-                  key={height}
-                  className="w-full bg-white/55"
-                  initial={{ height: 0 }}
-                  whileInView={{ height: `${height}%` }}
-                  viewport={{ once: true, amount: 0.8 }}
-                  transition={{ duration: 0.55, delay: index * 0.05, ease: [0.22, 1, 0.36, 1] }}
-                />
-              ))}
-            </div>
-
-            <svg className="absolute inset-6 h-[calc(100%-3rem)] w-[calc(100%-3rem)]" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <motion.polyline
-                fill="none"
-                stroke="#8f8f8f"
-                strokeWidth="1.1"
-                points="0,65 12,48 24,60 37,74 48,73 62,42 78,18 90,28 100,12"
-                initial={{ pathLength: 0 }}
-                whileInView={{ pathLength: 1 }}
-                viewport={{ once: true, amount: 0.7 }}
-                transition={{ duration: 1.1, ease: 'easeInOut' }}
-              />
-            </svg>
-          </div>
-
-          <div className="mt-5 grid gap-3 text-[10px] font-bold uppercase tracking-[0.12em] text-white/48 sm:grid-cols-2">
-            <div className="space-y-2">
-              <div>Sales</div>
-              <div>Gate Work</div>
-              <div>Creator Work</div>
-              <div>Marketplace</div>
-            </div>
-            <div className="space-y-2 sm:text-right">
-              <div>Q1</div>
-              <div>Q2</div>
-              <div>Q3</div>
-              <div>Q4</div>
-            </div>
-          </div>
-        </div>
+        <AnalyticsGlowCard />
       </motion.div>
 
       <motion.div
@@ -704,6 +638,92 @@ function VibeBoard() {
           />
         </div>
       </motion.div>
+    </div>
+  )
+}
+
+function AnalyticsGlowCard() {
+  const bars = [
+    { shell: 'h-[40%]', fill: 'h-[60%]' },
+    { shell: 'h-[60%]', fill: 'h-[40%]' },
+    { shell: 'h-[75%]', fill: 'h-[80%]' },
+    { shell: 'h-[45%]', fill: 'h-[50%]' },
+    { shell: 'h-[85%]', fill: 'h-[90%]' },
+    { shell: 'h-[65%]', fill: 'h-[70%]' },
+    { shell: 'h-[95%]', fill: 'h-[85%]' },
+  ]
+
+  return (
+    <div className="group relative flex w-full max-w-[360px] flex-col rounded-xl bg-slate-950 p-4 shadow-2xl transition-all duration-300 hover:scale-[1.02] hover:shadow-indigo-500/20">
+      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-20 blur-sm transition-opacity duration-300 group-hover:opacity-30" />
+      <div className="absolute inset-px rounded-[11px] bg-slate-950" />
+
+      <div className="relative">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500">
+              <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+            </div>
+            <h3 className="text-sm font-semibold text-white">Performance Analytics</h3>
+          </div>
+
+          <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-500">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            Live
+          </span>
+        </div>
+
+        <div className="mb-4 grid grid-cols-2 gap-4">
+          <div className="rounded-lg bg-slate-900/50 p-3">
+            <p className="text-xs font-medium text-slate-400">Total Views</p>
+            <p className="text-lg font-semibold text-white">24.5K</p>
+            <span className="text-xs font-medium text-emerald-500">+12.3%</span>
+          </div>
+
+          <div className="rounded-lg bg-slate-900/50 p-3">
+            <p className="text-xs font-medium text-slate-400">Conversions</p>
+            <p className="text-lg font-semibold text-white">1.2K</p>
+            <span className="text-xs font-medium text-emerald-500">+8.1%</span>
+          </div>
+        </div>
+
+        <div className="mb-4 h-24 w-full overflow-hidden rounded-lg bg-slate-900/50 p-3">
+          <div className="flex h-full w-full items-end justify-between gap-1">
+            {bars.map((bar, index) => (
+              <div key={`${bar.shell}-${index}`} className={`${bar.shell} w-3 rounded-sm bg-indigo-500/30`}>
+                <motion.div
+                  className={`${bar.fill} w-full rounded-sm bg-indigo-500`}
+                  initial={{ scaleY: 0.6, transformOrigin: 'bottom' }}
+                  whileInView={{ scaleY: 1, transformOrigin: 'bottom' }}
+                  viewport={{ once: true, amount: 0.8 }}
+                  transition={{ duration: 0.45, delay: index * 0.05, ease: [0.22, 1, 0.36, 1] }}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-slate-400">Last 7 days</span>
+            <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+
+          <button
+            type="button"
+            className="flex items-center gap-1 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 px-3 py-1 text-xs font-medium text-white transition-all duration-300 hover:from-indigo-600 hover:to-purple-600"
+          >
+            View Details
+            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
