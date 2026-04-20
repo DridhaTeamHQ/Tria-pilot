@@ -23,7 +23,7 @@ const faqs = [
   {
     category: 'Collaborations',
     question: 'How do I request a collaboration?',
-    answer: 'Brands can request collaborations from the creator profile page in the marketplace.',
+    answer: 'Brands can request collaborations from the creator profile page in Discovery.',
   },
   {
     category: 'Payments & Payouts',

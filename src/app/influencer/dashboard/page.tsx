@@ -136,7 +136,7 @@ export default function InfluencerDashboard() {
       href: '/influencer/try-on',
     },
     {
-      title: 'Browse Marketplace',
+      title: 'Browse Discovery',
       description: 'Discover products from top brands',
       icon: ShoppingBag,
       href: '/marketplace',

@@ -56,7 +56,7 @@ export default function Hero() {
                         transition={{ duration: 0.4, delay: 0.2 }}
                         className="mt-6 text-base md:text-lg text-black/80 max-w-xl font-medium leading-relaxed"
                     >
-                        The ultimate fashion marketplace connecting influencers with the hottest brands.
+                        The ultimate fashion discovery platform connecting influencers with the hottest brands.
                         Try, Share, and Earn with vertically integrated AI.
                     </motion.p>
 
@@ -92,7 +92,7 @@ export default function Hero() {
                 <div className="relative z-10 grid grid-cols-1 gap-4 px-6 py-12 sm:grid-cols-2 md:flex md:flex-col md:gap-6 md:items-end md:py-16 md:pr-12 md:pb-24 lg:pr-20">
                     {[
                         { icon: Zap, label: "Instant", sub: "Virtual Try-On" },
-                        { icon: ShoppingBag, label: "Marketplace", sub: "Brand Connect" },
+                        { icon: ShoppingBag, label: "Discovery", sub: "Brand Connect" },
                         { icon: TrendingUp, label: "Analytics", sub: "Real-time Data" },
                     ].map((item) => (
                         <div

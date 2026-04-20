@@ -19,7 +19,7 @@ const bungee = Bungee({
 })
 
 export const metadata: Metadata = {
-  title: 'Kiwikoo - AI Fashion Try-On Marketplace',
+  title: 'Kiwikoo - AI Fashion Try-On Discovery',
   description: 'AI-powered platform connecting influencers and brands with virtual try-on capabilities.',
   icons: {
     icon: '/icon.svg',

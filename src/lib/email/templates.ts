@@ -51,7 +51,7 @@ function baseLayout(title: string, body: string): string {
                 (c) ${new Date().getFullYear()} Kiwikoo. All rights reserved.
               </p>
               <p style="margin: 8px 0 0 0; font-size: 12px; color: ${COLORS.muted};">
-                AI-powered fashion try-on marketplace
+                AI-powered fashion try-on discovery platform
               </p>
             </td>
           </tr>
@@ -255,12 +255,12 @@ export function buildWelcomeEmail(params: {
     </p>
     <ul style="margin: 0 0 20px 0; padding-left: 20px; color: ${COLORS.secondary};">
       ${params.role === 'BRAND' ? `
-        <li style="margin-bottom: 8px;">Add your products to the marketplace</li>
+        <li style="margin-bottom: 8px;">Add your products to Discovery</li>
         <li style="margin-bottom: 8px;">Browse and connect with influencers</li>
         <li style="margin-bottom: 8px;">Create collaboration campaigns</li>
       ` : `
         <li style="margin-bottom: 8px;">Complete your profile</li>
-        <li style="margin-bottom: 8px;">Browse products in the marketplace</li>
+        <li style="margin-bottom: 8px;">Browse products in Discovery</li>
         <li style="margin-bottom: 8px;">Try on products with our AI studio</li>
       `}
     </ul>

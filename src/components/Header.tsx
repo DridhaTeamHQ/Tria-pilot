@@ -127,7 +127,7 @@ export default function Header() {
     // Navigation links based on auth state and role
     const influencerLinks = [
         { href: '/inbox', label: 'Inbox', icon: Mail },
-        { href: '/marketplace', label: 'Marketplace', icon: ShoppingBag },
+        { href: '/marketplace', label: 'Discovery', icon: ShoppingBag },
         { href: '/influencer/try-on', label: 'Try-On Studio', icon: Camera },
         { href: '/influencer/dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { href: '/influencer/analytics', label: 'Analytics', icon: BarChart3 },

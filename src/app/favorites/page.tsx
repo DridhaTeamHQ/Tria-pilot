@@ -47,7 +47,7 @@ export default async function FavoritesPage() {
         <div className="text-center py-12">
           <Heart className="h-16 w-16 mx-auto mb-4 text-zinc-300 dark:text-zinc-700" />
           <p className="text-zinc-600 dark:text-zinc-400">
-            No favorites yet. Start exploring the marketplace!
+            No favorites yet. Start exploring Discovery!
           </p>
           <Link
             href="/marketplace"

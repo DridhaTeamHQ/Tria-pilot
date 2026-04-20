@@ -58,7 +58,7 @@ export default function HeroTryOn() {
                     {/* Subtext with slight delay */}
                     <FadeInSection delay={0.2}>
                         <p className="text-base sm:text-lg md:text-xl font-medium text-black/80 leading-relaxed border-l-[3px] border-black pl-4 sm:pl-5">
-                            The ultimate fashion marketplace connecting influencers with the
+                            The ultimate fashion discovery platform connecting influencers with the
                             hottest brands. Try, Share, and Earn with vertically integrated AI.
                         </p>
                     </FadeInSection>
@@ -192,5 +192,4 @@ export default function HeroTryOn() {
         </div>
     );
 }
-
 

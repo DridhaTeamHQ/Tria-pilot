@@ -129,7 +129,7 @@ export default function MarketplaceClient({ products, categories, activeCategory
                                     <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-charcoal/70 sm:text-sm sm:tracking-widest">Discover & Collaborate</span>
                                 </div>
                                 <h1 className="mb-3 text-[clamp(1.65rem,4.2vw,3.25rem)] font-black uppercase leading-[0.9] text-charcoal sm:mb-4">
-                                    Brand <br /><span className="block break-all bg-gradient-to-r from-charcoal to-gray-500 bg-clip-text text-transparent sm:break-normal">Marketplace</span>
+                                    Brand <br /><span className="block break-all bg-gradient-to-r from-charcoal to-gray-500 bg-clip-text text-transparent sm:break-normal">Discovery</span>
                                 </h1>
                                 <p className="max-w-md border-l-[3px] border-[#FFD93D] pl-3 text-xs font-medium text-charcoal/70 sm:pl-4 sm:text-base">
                                     Find perfect collaboration opportunities tailored to your niche.

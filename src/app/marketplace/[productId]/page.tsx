@@ -91,7 +91,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           className="mb-5 inline-flex items-center gap-2 text-sm text-charcoal/60 transition-colors hover:text-charcoal sm:mb-8"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Marketplace
+          Back to Discovery
         </Link>
 
         <div className="mb-12 grid gap-6 lg:grid-cols-2 lg:gap-10 xl:gap-12 sm:mb-16">
