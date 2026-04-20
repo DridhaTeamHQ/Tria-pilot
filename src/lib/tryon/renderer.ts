@@ -1784,7 +1784,7 @@ export async function renderTryOnFast(params: SimpleRenderOptions): Promise<stri
 
   const client = getClient()
   const isPro = quality === 'high'
-  const model = isPro ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image'
+  const model = isPro ? 'gemini-3-pro-image-preview' : 'gemini-3.1-flash-image-preview'
   const aspectRatio = normalizeAspectRatio(userAspect || '3:4')
 
   // Clean and validate images

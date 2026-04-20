@@ -138,7 +138,7 @@ function markKeyRateLimited(client: GoogleGenAI, retryAfterMs?: number): void {
 
 function pickLimiter(model: string): Bottleneck {
   if (model.includes('gemini-3-pro-image-preview')) return proImageLimiter
-  if (model.includes('gemini-2.5-flash-image') || model.includes('flash')) return flashLimiter
+  if (model.includes('gemini-3.1-flash-image-preview') || model.includes('flash')) return flashLimiter
   return flashLimiter
 }
 

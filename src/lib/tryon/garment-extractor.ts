@@ -34,7 +34,7 @@ export interface GarmentExtractionResult {
   /** Whether extraction was successful */
   success: boolean
   /** Model used for extraction */
-  model: 'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview'
+  model: 'gemini-3.1-flash-image-preview' | 'gemini-3-pro-image-preview'
   /** Processing time in ms */
   processingTimeMs: number
 }
@@ -133,7 +133,7 @@ NOT a fashion photo. NOT stylized. EXACT reproduction only.`
  */
 export async function extractGarmentOnlyImage(params: {
   clothingImageBase64: string
-  model?: 'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview'
+  model?: 'gemini-3.1-flash-image-preview' | 'gemini-3-pro-image-preview'
 }): Promise<string> {
   const result = await extractGarmentWithFidelity(params)
   return result.image
@@ -155,12 +155,12 @@ export async function extractGarmentOnlyImage(params: {
 export async function extractGarmentWithFidelity(params: {
   clothingImageBase64: string
   garmentAnalysis?: GarmentAnalysis
-  model?: 'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview'
+  model?: 'gemini-3.1-flash-image-preview' | 'gemini-3-pro-image-preview'
 }): Promise<GarmentExtractionResult> {
   const {
     clothingImageBase64,
     garmentAnalysis,
-    model = 'gemini-2.5-flash-image'
+    model = 'gemini-3.1-flash-image-preview'
   } = params
 
   const startTime = Date.now()

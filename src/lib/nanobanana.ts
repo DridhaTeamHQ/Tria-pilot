@@ -17,7 +17,7 @@ export interface TryOnOptions {
   accessoryImages?: string[] // NEW: base64 images of accessories (purse, shoes, hat, etc.)
   accessoryTypes?: ('purse' | 'shoes' | 'hat' | 'jewelry' | 'bag' | 'watch' | 'sunglasses' | 'scarf' | 'other')[] // NEW: type labels for each accessory
   prompt: string // strict edit prompt built by templates
-  model?: 'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview'
+  model?: 'gemini-3.1-flash-image-preview' | 'gemini-3-pro-image-preview'
   aspectRatio?: '1:1' | '2:3' | '3:2' | '3:4' | '4:3' | '4:5' | '5:4' | '9:16' | '16:9' | '21:9'
   resolution?: '1K' | '2K' | '4K' // Pro model only
   // NEW: Text-based scene/background description (for presets)
@@ -46,7 +46,7 @@ export async function generateTryOn(options: TryOnOptions): Promise<string> {
     accessoryImages = [],
     accessoryTypes = [],
     prompt,
-    model = 'gemini-2.5-flash-image',
+    model = 'gemini-3.1-flash-image-preview',
     aspectRatio = '4:5',
     resolution = '2K',
     sceneDescription,
@@ -399,7 +399,7 @@ export interface DirectTryOnOptions {
   garmentImageBase64: string  // raw base64 (no data URI prefix)
   faceCropBase64?: string     // output of extractFaceCrop (raw base64)
   characterReferenceBase64s?: { base64: string; label: string }[]  // multi-angle character references
-  model?: 'gemini-2.5-flash-image' | 'gemini-3.1-flash-image-preview' | 'gemini-3-pro-image-preview'
+  model?: 'gemini-3.1-flash-image-preview' | 'gemini-3-pro-image-preview'
   prompt: string              // pre-built sanitized prompt — passed AS-IS
   aspectRatio?: string
   resolution?: string

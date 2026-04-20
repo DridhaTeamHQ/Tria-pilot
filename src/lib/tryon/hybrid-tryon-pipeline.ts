@@ -29,7 +29,7 @@ import { assessIdentityAndComposition } from './identity-composition-check'
 
 import { generateWithNanoBananaPro } from './nano-banana-pro-renderer'
 
-const GARMENT_EXTRACT_MODEL = 'gemini-2.5-flash-image' as const
+const GARMENT_EXTRACT_MODEL = 'gemini-3.1-flash-image-preview' as const
 const ENABLE_DETERMINISTIC_FACE_LOCK = process.env.TRYON_ENABLE_DETERMINISTIC_FACE_LOCK === 'true'
 const ENABLE_INTELLIGENT_PREANALYSIS =
   process.env.TRYON_ENABLE_INTELLIGENT_PREANALYSIS === 'true' ||

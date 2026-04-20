@@ -503,7 +503,7 @@ export interface FlashPipelineInput {
 
 export interface FlashPipelineOutput {
     prompt: string
-    model: 'gemini-2.5-flash-image'
+    model: 'gemini-3.1-flash-image-preview'
     temperature: number
     assertions: string[]
 }
@@ -603,7 +603,7 @@ ${masterPrompt}`
 
     return {
         prompt: finalPrompt,
-        model: 'gemini-2.5-flash-image',
+        model: 'gemini-3.1-flash-image-preview',
         temperature: 0.01,
         assertions: [
             'FACE_LOCK_ABSOLUTE',

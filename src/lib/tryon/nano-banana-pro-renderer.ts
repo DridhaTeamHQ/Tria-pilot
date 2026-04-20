@@ -26,7 +26,7 @@ import { computeMicroFaceDrift, getDriftRetryParams } from './micro-face-drift'
 import { getPresetExampleGuidance, getRequestExampleGuidance } from './presets/example-prompts-reference'
 import { getPresetStrengthProfile } from './preset-strength-profile'
 
-export type TryOnRenderModel = 'gpt-image-1.5' | 'gemini-3-pro-image-preview' | 'gemini-3.1-flash-image-preview' | 'gemini-2.5-flash-image'
+export type TryOnRenderModel = 'gpt-image-1.5' | 'gemini-3-pro-image-preview' | 'gemini-3.1-flash-image-preview'
 export type DirectGeminiRenderModel = Exclude<TryOnRenderModel, 'gpt-image-1.5'>
 
 // gemini-3-pro-image-preview: higher fidelity for clothing-swap try-on.
@@ -116,7 +116,7 @@ export interface NanoBananaProResult {
 
 export function getTryOnRenderModel(): TryOnRenderModel {
   const configured = process.env.TRYON_RENDER_MODEL?.trim()
-  if (configured === 'gpt-image-1.5' || configured === 'gemini-3-pro-image-preview' || configured === 'gemini-3.1-flash-image-preview' || configured === 'gemini-2.5-flash-image') {
+  if (configured === 'gpt-image-1.5' || configured === 'gemini-3-pro-image-preview' || configured === 'gemini-3.1-flash-image-preview') {
     return configured
   }
   return DEFAULT_RENDER_MODEL

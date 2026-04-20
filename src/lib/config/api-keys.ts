@@ -62,9 +62,9 @@ export function getGeminiModelVersion(): string {
 }
 
 /**
- * Get image generation model (defaults to gemini-2.5-flash-image)
+ * Get image generation model (defaults to gemini-3.1-flash-image-preview)
  */
 export function getImageGenModel(): string {
-  return process.env.IMAGE_GEN_MODEL || 'gemini-2.5-flash-image'
+  return process.env.IMAGE_GEN_MODEL || 'gemini-3.1-flash-image-preview'
 }
 

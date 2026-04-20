@@ -190,9 +190,9 @@ Return ONLY the prompt text, nothing else.`
       parts.push({ text: `Generate a high-quality, cinematic campaign visual image. ${imagePrompt}` })
     }
 
-    // Use gemini-2.5-flash-image — confirmed working for image generation
+    // Use gemini-3.1-flash-image-preview — confirmed working for image generation
     const response = await client.models.generateContent({
-      model: 'gemini-2.5-flash-image',
+      model: 'gemini-3.1-flash-image-preview',
       contents: [{ role: 'user', parts }],
       config: {
         responseModalities: ['TEXT', 'IMAGE'] as unknown as undefined,

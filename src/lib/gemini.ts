@@ -63,7 +63,7 @@ export async function generateWithGemini(
 
 /**
  * Generate an ad image using Gemini's native image generation.
- * Defaults to gemini-2.5-flash-image (confirmed working, supports image generation).
+ * Defaults to gemini-3.1-flash-image-preview (confirmed working, supports image generation).
  * Override via AD_IMAGE_MODEL env var for gemini-3-pro-image-preview etc.
  * Returns a base64 encoded image string (data URL).
  */

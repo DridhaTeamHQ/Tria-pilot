@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import './studio.css'
 
@@ -265,7 +265,7 @@ function TryOnPageContent() {
   /* useEffect(() => {
     if (true) return
     return
-    if (!ids.length) return // Don't set empty array â€” would loop
+    if (!ids.length) return // Don't set empty array — would loop
     setSelectedReferenceIds(ids)
   }, [approvedPhotos, currentRecommendations.selected, selectedReferenceIds.length]) */
 

@@ -65,7 +65,7 @@ export async function renderTryOnIntelligentSimple(
     console.log('═'.repeat(80))
 
     const isPro = options.quality === 'high'
-    const model = isPro ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image'
+    const model = isPro ? 'gemini-3-pro-image-preview' : 'gemini-3.1-flash-image-preview'
     const variantName = options.variantName || 'Editorial'
 
     console.log(`   Model: ${model}`)

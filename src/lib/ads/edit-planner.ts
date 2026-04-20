@@ -30,7 +30,7 @@ export interface NormalizedExpansionRect {
   height: number
 }
 
-export type SmartEditModel = 'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview'
+export type SmartEditModel = 'gemini-3.1-flash-image-preview' | 'gemini-3-pro-image-preview'
 
 export interface SmartEditPlan {
   task: Exclude<SmartEditTask, 'auto'>
@@ -148,7 +148,7 @@ function chooseModel(args: {
   }
 
   return {
-    model: 'gemini-2.5-flash-image',
+    model: 'gemini-3.1-flash-image-preview',
     reason: 'Localized edit detected; optimized for faster turnaround.',
   }
 }

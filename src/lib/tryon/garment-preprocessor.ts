@@ -199,7 +199,7 @@ export async function preprocessGarmentImage(
         // ═══════════════════════════════════════════════════════════════
         const extractionModel = options.model === 'pro'
             ? 'gemini-3-pro-image-preview'
-            : 'gemini-2.5-flash-image'
+            : 'gemini-3.1-flash-image-preview'
 
         console.log(`   ✂️ Extracting garment (model: ${options.model || 'flash'})...`)
 

@@ -38,7 +38,7 @@ export async function renderTryOnSimplified(
     console.log('═'.repeat(80))
 
     const isPro = options.quality === 'high'
-    const model = isPro ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image'
+    const model = isPro ? 'gemini-3-pro-image-preview' : 'gemini-3.1-flash-image-preview'
 
     console.log(`   Model: ${model}`)
     console.log(`   Mode: FACE-FIRST (Identity > Everything)`)
