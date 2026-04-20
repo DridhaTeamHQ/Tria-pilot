@@ -169,12 +169,8 @@ export default function LandingPage() {
           >
             <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
               <div className="max-w-[760px]">
-                <div className="inline-flex items-center gap-2 rounded-full border-[2px] border-black bg-white px-4 py-2 text-[11px] font-black uppercase tracking-[0.14em] shadow-[4px_4px_0_0_rgba(0,0,0,1)]">
-                  <span className="h-2.5 w-2.5 rounded-full bg-[#89a6ff]" />
-                  Platform overview
-                </div>
-                <h2 className="mt-4 text-[clamp(2.6rem,5.4vw,4.5rem)] font-black leading-[0.94] tracking-[-0.065em] text-black">
-                  What <span className="bg-[linear-gradient(90deg,#89a6ff_0%,#c874ff_52%,#ff73bb_100%)] bg-clip-text text-transparent">Kiwikoo</span>
+                <h2 className="text-[clamp(2.6rem,5.4vw,4.5rem)] font-black leading-[0.94] tracking-[-0.065em] text-black">
+                  What Kiwikoo
                   <br />
                   can do for you
                 </h2>
