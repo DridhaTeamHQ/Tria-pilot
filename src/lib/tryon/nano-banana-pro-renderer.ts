@@ -29,9 +29,9 @@ import { getPresetStrengthProfile } from './preset-strength-profile'
 export type TryOnRenderModel = 'gpt-image-1.5' | 'gemini-3-pro-image-preview' | 'gemini-3.1-flash-image-preview' | 'gemini-2.5-flash-image'
 export type DirectGeminiRenderModel = Exclude<TryOnRenderModel, 'gpt-image-1.5'>
 
-// gemini-2.5-flash-image: faster, cheaper, same editing capabilities as Pro.
-// Override via TRYON_RENDER_MODEL env var to switch back to Pro if needed.
-const DEFAULT_RENDER_MODEL: DirectGeminiRenderModel = 'gemini-2.5-flash-image'
+// gemini-3-pro-image-preview: higher fidelity for clothing-swap try-on.
+// Override via TRYON_RENDER_MODEL env var if needed.
+const DEFAULT_RENDER_MODEL: DirectGeminiRenderModel = 'gemini-3-pro-image-preview'
 const ENABLE_QUALITY_RETRY =
   process.env.TRYON_ENABLE_QUALITY_RETRY !== 'false'
 const MICRO_DRIFT_RETRY_THRESHOLD = 22

@@ -434,7 +434,7 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
     model ||
     process.env.TRYON_RENDER_MODEL?.trim() ||
     process.env.TRYON_IMAGE_MODEL?.trim() ||
-    'gemini-2.5-flash-image'
+    'gemini-3-pro-image-preview'
 
   const isDev = process.env.VERCEL_ENV ? process.env.VERCEL_ENV !== 'production' : process.env.NODE_ENV !== 'production'
 
