@@ -27,7 +27,7 @@ export default function TermsPage() {
           <section className="rounded-[2rem] border-[3px] border-black bg-white px-6 py-7 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:px-8">
             <h2 className="text-2xl font-black uppercase tracking-tight">1. Using Kiwikoo</h2>
             <p className="mt-4 text-base leading-8 text-black/70">
-              Kiwikoo is a fashion marketplace and creative workflow platform for creators and brands.
+              Kiwikoo is a fashion discovery and creative workflow platform for creators and brands.
               By using the service, you agree to provide accurate account information and to use the platform only for
               lawful business, content, and collaboration purposes.
             </p>

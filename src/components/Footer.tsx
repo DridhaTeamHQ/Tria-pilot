@@ -8,7 +8,7 @@ export default function Footer() {
                     <div className="space-y-4">
                         <h3 className="kiwikoo-wordmark text-xl font-black text-black">Kiwikoo</h3>
                         <p className="text-sm text-black/70 font-bold leading-relaxed max-w-xs">
-                            AI-powered fashion try-on marketplace connecting influencers and brands.
+                            AI-powered fashion try-on discovery platform connecting influencers and brands.
                         </p>
                     </div>
 
@@ -29,7 +29,7 @@ export default function Footer() {
                             </li>
                             <li>
                                 <Link href="/marketplace" className="hover:text-black hover:underline">
-                                    Marketplace
+                                    Discovery
                                 </Link>
                             </li>
                             <li>

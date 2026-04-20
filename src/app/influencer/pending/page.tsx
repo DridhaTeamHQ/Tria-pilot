@@ -74,7 +74,7 @@ export default function InfluencerPendingPage() {
       if (approvalStatus === 'approved') {
         if (!approvedToastShownRef.current) {
           approvedToastShownRef.current = true
-          toast.success("You're approved! Redirecting to marketplace...", {
+          toast.success("You're approved! Redirecting to Discovery...", {
             style: { background: '#B4F056', border: '3px solid black', fontWeight: 'bold' }
           })
         }
@@ -136,7 +136,7 @@ export default function InfluencerPendingPage() {
 
           if (nextStatus === 'approved' && !approvedToastShownRef.current) {
             approvedToastShownRef.current = true
-            toast.success("You're approved! Redirecting to marketplace...")
+            toast.success("You're approved! Redirecting to Discovery...")
             setTimeout(() => {
               router.replace('/marketplace')
             }, 1200)
@@ -271,7 +271,7 @@ export default function InfluencerPendingPage() {
               <p className="mt-2 text-sm font-semibold leading-relaxed text-black/70">
                 {isRejected
                   ? 'Reopen onboarding, improve the profile details that need attention, and resubmit to return to the approval queue.'
-                  : 'Your creator profile is currently with the review team. You can browse the marketplace now, and we will unlock dashboard access once approval is complete.'}
+                  : 'Your creator profile is currently with the review team. You can browse Discovery now, and we will unlock dashboard access once approval is complete.'}
               </p>
             </div>
 
@@ -342,7 +342,7 @@ export default function InfluencerPendingPage() {
                 className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-white text-black font-black border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all"
               >
                 <Store className="w-5 h-5" strokeWidth={2.5} />
-                Browse Marketplace
+                Browse Discovery
               </Link>
             </div>
 
@@ -364,7 +364,7 @@ export default function InfluencerPendingPage() {
               <ul className="grid gap-2 text-sm text-black/70">
                 <li className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-[#FF8C69]" />
-                  Browse the marketplace and explore products
+                  Browse Discovery and explore products
                 </li>
                 <li className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-[#FF8C69]" />

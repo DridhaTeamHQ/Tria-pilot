@@ -16,7 +16,7 @@ const desktopNavItemClass =
 const LINKS = [
   { href: '/', label: 'Home' },
   { href: '/#what-you-get', label: 'What You Get' },
-  { href: '/marketplace', label: 'Marketplace' },
+  { href: '/marketplace', label: 'Discovery' },
   { href: '/contact', label: 'Contact us' }
 ]
 

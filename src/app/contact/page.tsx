@@ -82,7 +82,7 @@ export default function ContactPage() {
                   href="/marketplace"
                   className="inline-flex items-center justify-center rounded-[16px] border-[3px] border-black bg-[#ffd243] px-6 py-3 text-[15px] font-black text-black shadow-[5px_5px_0_0_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
                 >
-                  Back to marketplace
+                  Back to Discovery
                 </Link>
               </div>
             </div>

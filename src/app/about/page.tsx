@@ -11,7 +11,7 @@ export default function AboutPage() {
         </Link>
         <h1 className="text-5xl font-serif font-bold text-charcoal mt-6">About Kiwikoo</h1>
         <p className="mt-4 text-lg text-charcoal/70">
-          Kiwikoo is an AI-powered fashion try-on marketplace that connects creators and brands. We help influencers
+          Kiwikoo is an AI-powered fashion try-on discovery platform that connects creators and brands. We help influencers
           create high-quality try-ons, and help brands launch campaigns with measurable performance.
         </p>
 

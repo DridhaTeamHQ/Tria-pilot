@@ -149,7 +149,7 @@ export default function LandingPage() {
               label="For Brands"
               tone="lime"
               title="Spending on marketing without clear results? There's a smarter way."
-              body="Find the right creators, generate strong campaign visuals, and launch with more confidence."
+              body="Find the right creators, generate strong campaign visuals with AI and launch with more confidence."
               href="/signup/brand"
               cta="Start scaling"
             />
@@ -182,7 +182,7 @@ export default function LandingPage() {
               <div className="grid gap-3 sm:grid-cols-3 lg:max-w-[820px] lg:flex-1">
                 <MetricChip value="Fast" label="smooth visual creation" tone="pink" />
                 <MetricChip value="Smart" label="campaign-ready flow" tone="blue" />
-                <MetricChip value="Live" label="analytics + marketplace" tone="lime" />
+                <MetricChip value="Live" label="analytics + discovery" tone="lime" />
               </div>
             </div>
 
@@ -220,7 +220,7 @@ export default function LandingPage() {
                 />
                 <InsightPill
                   icon={<Store className="h-5 w-5" strokeWidth={2.2} />}
-                  title="Creator Marketplace"
+                  title="Creator Discovery"
                   description="Find products, creators, and outcomes in one easy flow."
                   tone="lime"
                 />
@@ -300,7 +300,7 @@ export default function LandingPage() {
                   <div className="space-y-2 text-black">
                     <Link href="/about" className="block hover:underline">About Us</Link>
                     <Link href="/signup/influencer" className="block hover:underline">Join Us</Link>
-                    <Link href="/marketplace" className="block hover:underline">Marketplace</Link>
+                    <Link href="/marketplace" className="block hover:underline">Discovery</Link>
                   </div>
                 </div>
                 <div>

@@ -96,7 +96,7 @@ export default function BrutalNavbar() {
     // Navigation links based on auth state and role
     const influencerLinks = [
         { href: "/inbox", label: "Inbox", icon: Mail },
-        { href: "/marketplace", label: "Marketplace", icon: ShoppingBag },
+        { href: "/marketplace", label: "Discovery", icon: ShoppingBag },
         { href: "/influencer/try-on", label: "Try-On Studio", icon: Camera },
         { href: "/influencer/dashboard", label: "Dashboard", icon: LayoutDashboard },
         { href: "/influencer/analytics", label: "Analytics", icon: BarChart3 },
@@ -118,7 +118,7 @@ export default function BrutalNavbar() {
     ];
 
     // Split into Primary and Utility for cleaner layout
-    const primaryLinkLabels = ["Marketplace", "Try-On Studio", "Dashboard", "Campaigns", "Creators", "Products"];
+    const primaryLinkLabels = ["Discovery", "Try-On Studio", "Dashboard", "Campaigns", "Creators", "Products"];
 
     const links = isLoggedIn && user
         ? user.role === "BRAND" ? brandLinks : influencerLinks
