@@ -167,7 +167,7 @@ export default function LandingPage() {
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(360px,560px)] lg:items-start">
+            <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-[760px]">
                 <h2 className="text-[clamp(2.6rem,5.4vw,4.5rem)] font-black leading-[0.94] tracking-[-0.065em] text-black">
                   What Kiwikoo
@@ -179,17 +179,15 @@ export default function LandingPage() {
                 </p>
               </div>
 
-              <div className="flex flex-col gap-7 lg:items-end">
-                <div className="grid gap-3 sm:grid-cols-3 lg:w-full">
-                  <MetricChip value="Fast" label="smooth visual creation" tone="pink" />
-                  <MetricChip value="Smart" label="campaign-ready flow" tone="blue" />
-                  <MetricChip value="Live" label="analytics + marketplace" tone="lime" />
-                </div>
-
-                <div className="w-full lg:pt-3">
-                  <GlassFeatureStack />
-                </div>
+              <div className="grid gap-3 sm:grid-cols-3 lg:max-w-[820px] lg:flex-1">
+                <MetricChip value="Fast" label="smooth visual creation" tone="pink" />
+                <MetricChip value="Smart" label="campaign-ready flow" tone="blue" />
+                <MetricChip value="Live" label="analytics + marketplace" tone="lime" />
               </div>
+            </div>
+
+            <div className="mt-10 flex justify-center lg:mt-14">
+              <GlassFeatureStack />
             </div>
           </motion.div>
 
@@ -377,7 +375,7 @@ function GlassFeatureStack() {
       accent: 'from-[#89a6ff] to-[#d8b7ff]',
       icon: <Camera className="h-5 w-5" strokeWidth={2.2} />,
       rotation: -14,
-      desktop: 'lg:left-10 lg:top-8',
+      desktopShift: '',
     },
     {
       label: 'Launch',
@@ -385,8 +383,8 @@ function GlassFeatureStack() {
       description: 'Approvals, assets, and launches in one line of motion.',
       accent: 'from-[#ffb7d6] to-[#ffd6f0]',
       icon: <Rocket className="h-5 w-5" strokeWidth={2.2} />,
-      rotation: 4,
-      desktop: 'lg:left-[188px] lg:top-14',
+      rotation: 5,
+      desktopShift: '',
     },
     {
       label: 'Earn',
@@ -395,20 +393,20 @@ function GlassFeatureStack() {
       accent: 'from-[#e4ff9d] to-[#cbff2e]',
       icon: <BadgeDollarSign className="h-5 w-5" strokeWidth={2.2} />,
       rotation: -24,
-      desktop: 'lg:left-[370px] lg:top-5',
+      desktopShift: 'lg:translate-y-3',
     },
   ] as const
 
   return (
-    <div className="relative mx-auto flex w-full max-w-[620px] flex-col items-center gap-4 lg:h-[360px] lg:max-w-[620px] lg:block">
+    <div className="relative mx-auto flex w-full max-w-[1080px] flex-col items-center gap-5 lg:min-h-[430px] lg:flex-row lg:items-end lg:justify-center lg:gap-0">
       {cards.map((card, index) => (
         <motion.div
           key={card.title}
-          className={`relative h-[245px] w-full max-w-[260px] overflow-hidden rounded-[28px] border border-white/50 bg-[linear-gradient(180deg,rgba(255,255,255,0.58),rgba(255,255,255,0.32))] p-5 shadow-[0_28px_55px_rgba(0,0,0,0.12)] backdrop-blur-[18px] transition-all duration-500 lg:absolute lg:w-[260px] ${card.desktop}`}
+          className={`relative h-[270px] w-full max-w-[300px] overflow-hidden rounded-[30px] border border-white/55 bg-[linear-gradient(180deg,rgba(255,255,255,0.62),rgba(255,255,255,0.34))] p-6 shadow-[0_30px_60px_rgba(0,0,0,0.12)] backdrop-blur-[18px] transition-all duration-500 lg:h-[315px] lg:w-[320px] lg:max-w-none lg:-mx-12 ${card.desktopShift ?? ''}`}
           initial={{ opacity: 0, y: 20, rotate: card.rotation }}
           whileInView={{ opacity: 1, y: 0, rotate: card.rotation }}
           viewport={{ once: true, amount: 0.3 }}
-          whileHover={{ y: -6, rotate: card.rotation * 0.35 }}
+          whileHover={{ y: -10, rotate: card.rotation * 0.25 }}
           transition={{ duration: 0.45, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
           style={{ zIndex: cards.length - index }}
         >
@@ -420,11 +418,11 @@ function GlassFeatureStack() {
                 {card.icon}
               </div>
               <div className="mt-6 text-[12px] font-black uppercase tracking-[0.14em] text-black/42">{card.label}</div>
-              <div className="mt-2 text-[26px] font-black leading-[0.96] tracking-[-0.06em]">{card.title}</div>
+              <div className="mt-2 text-[30px] font-black leading-[0.94] tracking-[-0.06em] lg:text-[34px]">{card.title}</div>
             </div>
 
             <div>
-              <div className="text-[13px] leading-6 text-black/55">{card.description}</div>
+              <div className="max-w-[230px] text-[14px] leading-7 text-black/55 lg:max-w-[260px]">{card.description}</div>
               <div className="mt-5 h-px bg-black/10" />
               <div className="mt-4 flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase tracking-[0.14em] text-black/36">
