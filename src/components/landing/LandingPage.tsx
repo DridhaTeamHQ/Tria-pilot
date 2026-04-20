@@ -167,7 +167,7 @@ export default function LandingPage() {
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+            <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(360px,560px)] lg:items-start">
               <div className="max-w-[760px]">
                 <h2 className="text-[clamp(2.6rem,5.4vw,4.5rem)] font-black leading-[0.94] tracking-[-0.065em] text-black">
                   What Kiwikoo
@@ -179,15 +179,17 @@ export default function LandingPage() {
                 </p>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-3 lg:max-w-[380px] lg:self-center">
-                <MetricChip value="Fast" label="smooth visual creation" tone="pink" />
-                <MetricChip value="Smart" label="campaign-ready flow" tone="blue" />
-                <MetricChip value="Live" label="analytics + marketplace" tone="lime" />
-              </div>
-            </div>
+              <div className="flex flex-col gap-7 lg:items-end">
+                <div className="grid gap-3 sm:grid-cols-3 lg:w-full">
+                  <MetricChip value="Fast" label="smooth visual creation" tone="pink" />
+                  <MetricChip value="Smart" label="campaign-ready flow" tone="blue" />
+                  <MetricChip value="Live" label="analytics + marketplace" tone="lime" />
+                </div>
 
-            <div className="mt-12 flex justify-center lg:justify-end">
-              <GlassFeatureStack />
+                <div className="w-full lg:pt-3">
+                  <GlassFeatureStack />
+                </div>
+              </div>
             </div>
           </motion.div>
 
@@ -375,14 +377,16 @@ function GlassFeatureStack() {
       accent: 'from-[#89a6ff] to-[#d8b7ff]',
       icon: <Camera className="h-5 w-5" strokeWidth={2.2} />,
       rotation: -14,
+      desktop: 'lg:left-10 lg:top-8',
     },
     {
-      label: 'Code',
+      label: 'Launch',
       title: 'Campaign Flow',
       description: 'Approvals, assets, and launches in one line of motion.',
       accent: 'from-[#ffb7d6] to-[#ffd6f0]',
       icon: <Rocket className="h-5 w-5" strokeWidth={2.2} />,
       rotation: 4,
+      desktop: 'lg:left-[188px] lg:top-14',
     },
     {
       label: 'Earn',
@@ -391,38 +395,46 @@ function GlassFeatureStack() {
       accent: 'from-[#e4ff9d] to-[#cbff2e]',
       icon: <BadgeDollarSign className="h-5 w-5" strokeWidth={2.2} />,
       rotation: -24,
+      desktop: 'lg:left-[370px] lg:top-5',
     },
   ] as const
 
   return (
-    <div className="group relative flex flex-col items-center gap-4 sm:flex-row sm:gap-0">
+    <div className="relative mx-auto flex w-full max-w-[620px] flex-col items-center gap-4 lg:h-[360px] lg:max-w-[620px] lg:block">
       {cards.map((card, index) => (
         <motion.div
           key={card.title}
-          className="relative h-[220px] w-[220px] overflow-hidden rounded-[24px] border border-white/40 bg-white/18 p-4 shadow-[0_24px_50px_rgba(0,0,0,0.12)] backdrop-blur-[16px] transition-all duration-500 sm:-mx-8"
+          className={`relative h-[245px] w-full max-w-[260px] overflow-hidden rounded-[28px] border border-white/50 bg-[linear-gradient(180deg,rgba(255,255,255,0.58),rgba(255,255,255,0.32))] p-5 shadow-[0_28px_55px_rgba(0,0,0,0.12)] backdrop-blur-[18px] transition-all duration-500 lg:absolute lg:w-[260px] ${card.desktop}`}
           initial={{ opacity: 0, y: 20, rotate: card.rotation }}
           whileInView={{ opacity: 1, y: 0, rotate: card.rotation }}
           viewport={{ once: true, amount: 0.3 }}
-          whileHover={{ y: -6, rotate: 0 }}
+          whileHover={{ y: -6, rotate: card.rotation * 0.35 }}
           transition={{ duration: 0.45, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
           style={{ zIndex: cards.length - index }}
         >
-          <div className={`absolute inset-0 bg-gradient-to-br ${card.accent} opacity-18`} />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,rgba(255,255,255,0.65),transparent_28%),radial-gradient(circle_at_80%_78%,rgba(255,255,255,0.3),transparent_26%)]" />
+          <div className={`absolute inset-0 bg-gradient-to-br ${card.accent} opacity-[0.16]`} />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_16%,rgba(255,255,255,0.78),transparent_30%),radial-gradient(circle_at_84%_30%,rgba(255,255,255,0.38),transparent_24%),radial-gradient(circle_at_52%_92%,rgba(255,255,255,0.28),transparent_26%)]" />
           <div className="relative flex h-full flex-col justify-between text-black">
             <div>
-              <div className={`inline-flex h-11 w-11 items-center justify-center rounded-[14px] bg-gradient-to-br ${card.accent} shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]`}>
+              <div className={`inline-flex h-11 w-11 items-center justify-center rounded-[14px] bg-gradient-to-br ${card.accent} shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]`}>
                 {card.icon}
               </div>
-              <div className="mt-5 text-[12px] font-black uppercase tracking-[0.14em] text-black/45">{card.label}</div>
-              <div className="mt-2 text-[28px] font-black leading-[0.95] tracking-[-0.05em]">{card.title}</div>
+              <div className="mt-6 text-[12px] font-black uppercase tracking-[0.14em] text-black/42">{card.label}</div>
+              <div className="mt-2 text-[26px] font-black leading-[0.96] tracking-[-0.06em]">{card.title}</div>
             </div>
 
             <div>
-              <div className="text-[14px] leading-6 text-black/62">{card.description}</div>
-              <div className="mt-5 h-px bg-black/12" />
-              <div className="mt-3 text-[10px] font-black uppercase tracking-[0.14em] text-black/42">
-                Kiwikoo feature system
+              <div className="text-[13px] leading-6 text-black/55">{card.description}</div>
+              <div className="mt-5 h-px bg-black/10" />
+              <div className="mt-4 flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-[0.14em] text-black/36">
+                  Kiwikoo flow
+                </span>
+                <div className="relative h-8 w-[96px] overflow-hidden rounded-full border border-black/10 bg-white/35">
+                  <span className={`absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-gradient-to-br ${card.accent} opacity-90`} />
+                  <span className="absolute left-[36px] top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border border-black/16 bg-white/72" />
+                  <span className="absolute right-2 top-1/2 h-[14px] w-[34px] -translate-y-1/2 rounded-full bg-black/8" />
+                </div>
               </div>
             </div>
           </div>
