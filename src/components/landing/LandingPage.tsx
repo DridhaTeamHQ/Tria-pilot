@@ -156,7 +156,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="what-you-get" className="relative overflow-hidden border-t-[3px] border-black bg-[linear-gradient(180deg,#fffaf6_0%,#fff7fb_45%,#f9fff4_100%)] px-5 py-12 sm:px-8 lg:px-10 lg:py-16">
+        <section id="what-you-get" className="relative overflow-hidden border-t-[3px] border-black bg-[linear-gradient(180deg,#fffaf6_0%,#fff7fb_45%,#f9fff4_100%)] px-5 py-12 sm:px-8 lg:px-10 lg:py-14">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_18%,rgba(255,90,169,0.12),transparent_22%),radial-gradient(circle_at_86%_22%,rgba(137,166,255,0.12),transparent_24%),radial-gradient(circle_at_50%_82%,rgba(203,255,46,0.1),transparent_26%)]" />
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(17,17,17,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(17,17,17,0.04)_1px,transparent_1px)] bg-[size:42px_42px] opacity-35" />
 
@@ -167,30 +167,30 @@ export default function LandingPage() {
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
               <div className="max-w-[760px]">
                 <div className="inline-flex items-center gap-2 rounded-full border-[2px] border-black bg-white px-4 py-2 text-[11px] font-black uppercase tracking-[0.14em] shadow-[4px_4px_0_0_rgba(0,0,0,1)]">
                   <span className="h-2.5 w-2.5 rounded-full bg-[#89a6ff]" />
                   Platform overview
                 </div>
-                <h2 className="mt-5 text-[clamp(2.8rem,6vw,5rem)] font-black leading-[0.92] tracking-[-0.07em] text-black">
+                <h2 className="mt-4 text-[clamp(2.6rem,5.4vw,4.5rem)] font-black leading-[0.94] tracking-[-0.065em] text-black">
                   What <span className="bg-[linear-gradient(90deg,#89a6ff_0%,#c874ff_52%,#ff73bb_100%)] bg-clip-text text-transparent">Kiwikoo</span>
                   <br />
                   can do for you
                 </h2>
-                <p className="mt-5 max-w-[700px] text-[18px] leading-8 text-black/62">
+                <p className="mt-4 max-w-[640px] text-[17px] leading-7 text-black/58">
                   A cleaner, lighter product section with smooth motion, cooler copy, and feature cards that feel modern without fighting the rest of your website.
                 </p>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-3 lg:max-w-[420px]">
+              <div className="grid gap-3 sm:grid-cols-3 lg:max-w-[390px]">
                 <MetricChip value="Fast" label="smooth visual creation" tone="pink" />
                 <MetricChip value="Smart" label="campaign-ready flow" tone="blue" />
                 <MetricChip value="Live" label="analytics + marketplace" tone="lime" />
               </div>
             </div>
 
-            <div className="mt-10 grid gap-5 lg:grid-cols-3">
+            <div className="mt-9 grid gap-4 lg:grid-cols-3">
               <GenZFeatureCard
                 icon={<Camera className="h-6 w-6" strokeWidth={2.2} />}
                 accent="blue"
@@ -225,26 +225,26 @@ export default function LandingPage() {
           </motion.div>
 
           <motion.div
-            className="relative z-10 mt-6 grid gap-5 lg:grid-cols-[0.92fr_1.08fr]"
+            className="relative z-10 mt-8 grid gap-6 lg:grid-cols-[0.84fr_1.16fr] lg:items-start"
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: 0.08 }}
           >
-            <div className="rounded-[30px] border-[3px] border-black bg-[#fffdf7] p-6 shadow-[8px_8px_0_0_rgba(0,0,0,1)] lg:p-7">
+            <div className="rounded-[28px] border-[3px] border-black bg-[#fffdf7] p-5 shadow-[6px_6px_0_0_rgba(0,0,0,1)] lg:p-6">
               <MiniPill label="For creators + brands" />
-              <div className="mt-6">
-                <div className="text-[clamp(2rem,4vw,3.2rem)] font-black leading-[0.93] tracking-[-0.06em] text-black">
+              <div className="mt-5">
+                <div className="text-[clamp(1.9rem,3.4vw,2.8rem)] font-black leading-[0.94] tracking-[-0.05em] text-black">
                   Keep it clean,
                   <br />
                   fast, and easy to get.
                 </div>
-                <p className="mt-4 max-w-[520px] text-[17px] leading-8 text-black/64">
+                <p className="mt-3 max-w-[460px] text-[15px] leading-7 text-black/60">
                   The section still feels premium, but now the motion is softer and the layout stays bright so it matches the rest of your landing page.
                 </p>
               </div>
 
-              <div className="mt-8 space-y-4">
+              <div className="mt-6 space-y-3">
                 <InsightPill
                   icon={<ChartColumn className="h-5 w-5" strokeWidth={2.2} />}
                   title="Real-Time Analytics"
@@ -389,12 +389,12 @@ function MetricChip({
 
   return (
     <motion.div
-      className={`rounded-[22px] border-[3px] border-black ${toneStyles} p-4 shadow-[5px_5px_0_0_rgba(0,0,0,1)]`}
-      whileHover={{ y: -4, rotate: -1.5 }}
-      transition={{ type: 'spring', stiffness: 240, damping: 18 }}
+      className={`rounded-[18px] border-[3px] border-black ${toneStyles} p-3.5 shadow-[4px_4px_0_0_rgba(0,0,0,1)]`}
+      whileHover={{ y: -2 }}
+      transition={{ duration: 0.2 }}
     >
-      <div className="text-[28px] font-black leading-none tracking-[-0.06em] text-black">{value}</div>
-      <div className="mt-2 text-[11px] font-black uppercase leading-5 tracking-[0.12em] text-black/65">{label}</div>
+      <div className="text-[24px] font-black leading-none tracking-[-0.05em] text-black">{value}</div>
+      <div className="mt-1.5 text-[10px] font-black uppercase leading-4 tracking-[0.12em] text-black/65">{label}</div>
     </motion.div>
   )
 }
@@ -445,42 +445,42 @@ function GenZFeatureCard({
 
   return (
     <motion.div
-      className={`group relative flex min-h-[360px] flex-col overflow-hidden rounded-[28px] border-[3px] border-black ${cardTone} p-5 shadow-[7px_7px_0_0_rgba(0,0,0,1)] sm:p-6`}
+      className={`group relative flex min-h-[312px] flex-col overflow-hidden rounded-[24px] border-[3px] border-black ${cardTone} p-4 shadow-[5px_5px_0_0_rgba(0,0,0,1)] sm:p-5`}
       initial={{ opacity: 0, y: 26 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.25 }}
-      transition={{ duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] }}
-      whileHover={{ y: -6 }}
+      transition={{ duration: 0.42, delay, ease: [0.22, 1, 0.36, 1] }}
+      whileHover={{ y: -3 }}
       whileTap={{ scale: 0.995 }}
       style={{ transformOrigin: 'center bottom' }}
     >
       <motion.div
-        className={`pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full ${glowTone} blur-[6px]`}
-        animate={{ scale: [1, 1.06, 1], x: [0, -4, 0], y: [0, 4, 0] }}
-        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+        className={`pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full ${glowTone} blur-[10px]`}
+        animate={{ scale: [1, 1.03, 1], x: [0, -2, 0], y: [0, 2, 0] }}
+        transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
       />
       <motion.div
         className="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
         style={{ boxShadow: `inset 0 0 0 1px ${borderGlow}` }}
       />
       <motion.div
-        className={`inline-flex h-14 w-14 items-center justify-center rounded-[16px] border-[2px] border-black/80 ${iconTone} shadow-[4px_4px_0_0_rgba(0,0,0,0.9)]`}
-        whileHover={{ y: -2 }}
-        transition={{ duration: 0.25 }}
+        className={`inline-flex h-12 w-12 items-center justify-center rounded-[14px] border-[2px] border-black/80 ${iconTone} shadow-[3px_3px_0_0_rgba(0,0,0,0.85)]`}
+        whileHover={{ y: -1 }}
+        transition={{ duration: 0.2 }}
       >
         <motion.span animate={{ y: [0, -1.5, 0] }} transition={{ duration: 3.6, repeat: Infinity, ease: 'easeInOut' }} className="inline-flex">
           {icon}
         </motion.span>
       </motion.div>
-      <div className="mt-6 text-[11px] font-black uppercase tracking-[0.16em] text-black/48">{eyebrow}</div>
-      <h3 className="mt-2 min-h-[2.1em] text-[28px] font-black leading-[1] tracking-[-0.045em] text-black">{title}</h3>
-      <p className="mt-4 text-[16px] leading-7 text-black/58">{body}</p>
+      <div className="mt-5 text-[10px] font-black uppercase tracking-[0.14em] text-black/45">{eyebrow}</div>
+      <h3 className="mt-1.5 min-h-[2em] text-[23px] font-black leading-[1.02] tracking-[-0.04em] text-black">{title}</h3>
+      <p className="mt-3 text-[14px] leading-6 text-black/56">{body}</p>
       <FeaturePreview preview={preview} accent={accent} />
-      <div className="mt-5 flex flex-wrap gap-2">
+      <div className="mt-4 flex flex-wrap gap-1.5">
         {tags.map((tag) => (
           <span
             key={tag}
-            className="rounded-full border-[2px] border-black/65 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-black"
+            className="rounded-full border-[2px] border-black/60 bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-black"
           >
             {tag}
           </span>
@@ -506,13 +506,13 @@ function FeaturePreview({
 
   if (preview === 'studio') {
     return (
-      <div className="relative mt-6 h-[118px] overflow-hidden rounded-[18px] border-[2px] border-black bg-[linear-gradient(180deg,#111827_0%,#1f2937_100%)]">
-        <div className="absolute inset-x-0 bottom-0 h-8 bg-[linear-gradient(180deg,rgba(190,120,255,0)_0%,rgba(190,120,255,0.35)_100%)]" />
+      <div className="relative mt-5 h-[72px] overflow-hidden rounded-[14px] border-[2px] border-black bg-[linear-gradient(180deg,#111827_0%,#1f2937_100%)]">
+        <div className="absolute inset-x-0 bottom-0 h-5 bg-[linear-gradient(180deg,rgba(190,120,255,0)_0%,rgba(190,120,255,0.28)_100%)]" />
         <motion.div
-          className="absolute bottom-0 left-1/2 h-[84px] w-[34px] -translate-x-1/2 rounded-t-[18px] bg-[linear-gradient(180deg,#92f3ff_0%,#ff92c9_48%,#ffe36f_100%)]"
-          animate={{ y: [0, -3, 0] }}
-          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-          style={{ boxShadow: `0 0 24px ${glow}` }}
+          className="absolute bottom-0 left-1/2 h-[52px] w-[24px] -translate-x-1/2 rounded-t-[16px] bg-[linear-gradient(180deg,#92f3ff_0%,#ff92c9_48%,#ffe36f_100%)]"
+          animate={{ y: [0, -2, 0] }}
+          transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+          style={{ boxShadow: `0 0 18px ${glow}` }}
         />
         <div className="absolute bottom-0 left-[22%] right-[22%] h-px bg-[linear-gradient(90deg,transparent,#d17eff,transparent)]" />
       </div>
@@ -521,7 +521,7 @@ function FeaturePreview({
 
   if (preview === 'workflow') {
     return (
-      <div className="relative mt-6 h-[118px] overflow-hidden rounded-[18px] border-[2px] border-black bg-[linear-gradient(180deg,#101722_0%,#182235_100%)]">
+      <div className="relative mt-5 h-[72px] overflow-hidden rounded-[14px] border-[2px] border-black bg-[linear-gradient(180deg,#101722_0%,#182235_100%)]">
         {[
           { top: '20%', left: '12%' },
           { top: '26%', left: '42%' },
@@ -531,10 +531,10 @@ function FeaturePreview({
         ].map((node, index) => (
           <motion.span
             key={`${node.top}-${node.left}`}
-            className="absolute h-3 w-3 rounded-full bg-[#d676ff]"
-            style={{ top: node.top, left: node.left, boxShadow: `0 0 14px ${glow}` }}
-            animate={{ scale: [1, 1.18, 1], opacity: [0.7, 1, 0.7] }}
-            transition={{ duration: 2.6, repeat: Infinity, delay: index * 0.2, ease: 'easeInOut' }}
+            className="absolute h-2.5 w-2.5 rounded-full bg-[#d676ff]"
+            style={{ top: node.top, left: node.left, boxShadow: `0 0 10px ${glow}` }}
+            animate={{ scale: [1, 1.12, 1], opacity: [0.7, 1, 0.7] }}
+            transition={{ duration: 3.2, repeat: Infinity, delay: index * 0.2, ease: 'easeInOut' }}
           />
         ))}
         <svg className="absolute inset-0 h-full w-full" viewBox="0 0 300 118" preserveAspectRatio="none">
@@ -546,16 +546,16 @@ function FeaturePreview({
   }
 
   return (
-    <div className="relative mt-6 h-[118px] overflow-hidden rounded-[18px] border-[2px] border-black bg-[radial-gradient(circle_at_50%_50%,#1f2445_0%,#141729_52%,#0d101d_100%)]">
+    <div className="relative mt-5 h-[72px] overflow-hidden rounded-[14px] border-[2px] border-black bg-[radial-gradient(circle_at_50%_50%,#1f2445_0%,#141729_52%,#0d101d_100%)]">
       <motion.div
-        className="absolute left-1/2 top-1/2 h-[68px] w-[68px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#a47cff]"
-        animate={{ scale: [1, 1.08, 1] }}
-        transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
-        style={{ boxShadow: `0 0 24px ${glow}` }}
+        className="absolute left-1/2 top-1/2 h-[44px] w-[44px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#a47cff]"
+        animate={{ scale: [1, 1.05, 1] }}
+        transition={{ duration: 5.4, repeat: Infinity, ease: 'easeInOut' }}
+        style={{ boxShadow: `0 0 16px ${glow}` }}
       />
-      <div className="absolute left-[18%] top-[26%] h-4 w-4 rounded-full bg-[#8fdcff]" style={{ boxShadow: `0 0 12px ${glow}` }} />
-      <div className="absolute right-[16%] top-[56%] h-3 w-3 rounded-full bg-[#d676ff]" style={{ boxShadow: `0 0 12px ${glow}` }} />
-      <div className="absolute left-[26%] bottom-[18%] h-2.5 w-2.5 rounded-full bg-[#ff84cb]" style={{ boxShadow: `0 0 10px ${glow}` }} />
+      <div className="absolute left-[18%] top-[26%] h-3 w-3 rounded-full bg-[#8fdcff]" style={{ boxShadow: `0 0 8px ${glow}` }} />
+      <div className="absolute right-[16%] top-[56%] h-2.5 w-2.5 rounded-full bg-[#d676ff]" style={{ boxShadow: `0 0 8px ${glow}` }} />
+      <div className="absolute left-[26%] bottom-[18%] h-2 w-2 rounded-full bg-[#ff84cb]" style={{ boxShadow: `0 0 7px ${glow}` }} />
     </div>
   )
 }
@@ -575,16 +575,16 @@ function InsightPill({
 
   return (
     <motion.div
-      className={`flex items-start gap-4 rounded-[22px] border-[3px] border-black ${toneClass} p-4 shadow-[5px_5px_0_0_rgba(0,0,0,1)]`}
-      whileHover={{ x: 4, y: -2 }}
-      transition={{ type: 'spring', stiffness: 240, damping: 18 }}
+      className={`flex items-start gap-3 rounded-[18px] border-[3px] border-black ${toneClass} p-3.5 shadow-[4px_4px_0_0_rgba(0,0,0,1)]`}
+      whileHover={{ x: 2 }}
+      transition={{ duration: 0.2 }}
     >
-      <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-[2px] border-black bg-white text-black">
+      <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-[2px] border-black bg-white text-black">
         {icon}
       </span>
       <div>
-        <div className="text-[22px] font-bold leading-tight text-black">{title}</div>
-        <div className="mt-1 text-[16px] leading-6 text-black/65">{description}</div>
+        <div className="text-[18px] font-bold leading-tight text-black">{title}</div>
+        <div className="mt-1 text-[14px] leading-5 text-black/65">{description}</div>
       </div>
     </motion.div>
   )
@@ -592,7 +592,7 @@ function InsightPill({
 
 function VibeBoard() {
   return (
-    <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+    <div className="grid gap-8 lg:grid-cols-[0.74fr_1.26fr] lg:items-center">
       <motion.div
         className="relative flex justify-center"
         initial={{ opacity: 0, x: -18 }}
@@ -600,7 +600,7 @@ function VibeBoard() {
         viewport={{ once: true, amount: 0.3 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       >
-        <div className="pointer-events-none absolute -left-2 top-6 z-10 rotate-[-5deg] rounded-[4px] border-[3px] border-black bg-[#efefef] px-4 py-3 text-center text-[11px] font-black uppercase tracking-[0.08em] text-black shadow-[5px_5px_0_0_rgba(0,0,0,1)] sm:-left-4 sm:px-5 sm:py-4">
+        <div className="pointer-events-none absolute left-0 top-4 z-10 rotate-[-4deg] rounded-[4px] border-[3px] border-black bg-[#efefef] px-3 py-2.5 text-center text-[10px] font-black uppercase tracking-[0.08em] text-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] sm:left-2">
           Live
           <br />
           Signal
@@ -609,25 +609,25 @@ function VibeBoard() {
       </motion.div>
 
       <motion.div
-        className="relative"
+        className="relative max-w-[620px]"
         initial={{ opacity: 0, x: 18 }}
         whileInView={{ opacity: 1, x: 0 }}
         viewport={{ once: true, amount: 0.3 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.06 }}
       >
-        <div className="inline-flex rounded-[4px] border-[3px] border-black bg-[#20d8f3] px-5 py-3 text-[14px] font-black uppercase tracking-[0.08em] text-black shadow-[5px_5px_0_0_rgba(0,0,0,1)]">
+        <div className="inline-flex rounded-[4px] border-[3px] border-black bg-[#20d8f3] px-4 py-2.5 text-[12px] font-black uppercase tracking-[0.08em] text-black shadow-[4px_4px_0_0_rgba(0,0,0,1)]">
           Intelligence
         </div>
-        <h3 className="mt-8 text-[clamp(3rem,7vw,6rem)] font-black uppercase leading-[0.88] tracking-[-0.08em] text-black">
+        <h3 className="mt-6 text-[clamp(2.4rem,5.8vw,4.8rem)] font-black uppercase leading-[0.9] tracking-[-0.07em] text-black">
           Real-Time
           <br />
           Analytics
         </h3>
-        <div className="mt-8 max-w-[640px] border-l-[5px] border-black pl-6 text-[20px] leading-[1.65] text-black/62">
+        <div className="mt-6 max-w-[560px] border-l-[4px] border-black pl-5 text-[17px] leading-[1.75] text-black/58">
           Stop guessing. Start knowing. Our analytics engine gives creators and brands the structural insights they need in milliseconds.
         </div>
 
-        <div className="mt-10 space-y-5">
+        <div className="mt-7 space-y-4">
           <EditorialFeatureRow
             icon={<Zap className="h-5 w-5" strokeWidth={2.6} />}
             title="Sub-Second Latency"
@@ -654,19 +654,19 @@ function AnalyticsGlowCard() {
   ]
 
   return (
-    <div className="group relative flex w-full max-w-[360px] flex-col rounded-xl bg-slate-950 p-4 shadow-2xl transition-all duration-300 hover:scale-[1.02] hover:shadow-indigo-500/20">
+    <div className="group relative flex w-full max-w-[300px] flex-col rounded-xl bg-slate-950 p-3.5 shadow-[0_16px_40px_rgba(15,23,42,0.22)] transition-all duration-300 hover:translate-y-[-2px] hover:shadow-indigo-500/10">
       <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-20 blur-sm transition-opacity duration-300 group-hover:opacity-30" />
       <div className="absolute inset-px rounded-[11px] bg-slate-950" />
 
       <div className="relative">
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500">
               <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
               </svg>
             </div>
-            <h3 className="text-sm font-semibold text-white">Performance Analytics</h3>
+            <h3 className="text-[13px] font-semibold text-white">Performance Analytics</h3>
           </div>
 
           <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-500">
@@ -675,30 +675,30 @@ function AnalyticsGlowCard() {
           </span>
         </div>
 
-        <div className="mb-4 grid grid-cols-2 gap-4">
-          <div className="rounded-lg bg-slate-900/50 p-3">
+        <div className="mb-3 grid grid-cols-2 gap-3">
+          <div className="rounded-lg bg-slate-900/50 p-2.5">
             <p className="text-xs font-medium text-slate-400">Total Views</p>
-            <p className="text-lg font-semibold text-white">24.5K</p>
+            <p className="text-base font-semibold text-white">24.5K</p>
             <span className="text-xs font-medium text-emerald-500">+12.3%</span>
           </div>
 
-          <div className="rounded-lg bg-slate-900/50 p-3">
+          <div className="rounded-lg bg-slate-900/50 p-2.5">
             <p className="text-xs font-medium text-slate-400">Conversions</p>
-            <p className="text-lg font-semibold text-white">1.2K</p>
+            <p className="text-base font-semibold text-white">1.2K</p>
             <span className="text-xs font-medium text-emerald-500">+8.1%</span>
           </div>
         </div>
 
-        <div className="mb-4 h-24 w-full overflow-hidden rounded-lg bg-slate-900/50 p-3">
+        <div className="mb-3 h-20 w-full overflow-hidden rounded-lg bg-slate-900/50 p-2.5">
           <div className="flex h-full w-full items-end justify-between gap-1">
             {bars.map((bar, index) => (
-              <div key={`${bar.shell}-${index}`} className={`${bar.shell} w-3 rounded-sm bg-indigo-500/30`}>
+              <div key={`${bar.shell}-${index}`} className={`${bar.shell} w-2.5 rounded-sm bg-indigo-500/30`}>
                 <motion.div
                   className={`${bar.fill} w-full rounded-sm bg-indigo-500`}
                   initial={{ scaleY: 0.6, transformOrigin: 'bottom' }}
                   whileInView={{ scaleY: 1, transformOrigin: 'bottom' }}
                   viewport={{ once: true, amount: 0.8 }}
-                  transition={{ duration: 0.45, delay: index * 0.05, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{ duration: 0.38, delay: index * 0.04, ease: [0.22, 1, 0.36, 1] }}
                 />
               </div>
             ))}
@@ -715,7 +715,7 @@ function AnalyticsGlowCard() {
 
           <button
             type="button"
-            className="flex items-center gap-1 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 px-3 py-1 text-xs font-medium text-white transition-all duration-300 hover:from-indigo-600 hover:to-purple-600"
+            className="flex items-center gap-1 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 px-2.5 py-1 text-[11px] font-medium text-white transition-all duration-300 hover:from-indigo-600 hover:to-purple-600"
           >
             View Details
             <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -737,14 +737,14 @@ function EditorialFeatureRow({
 }) {
   return (
     <motion.div
-      className="flex items-center gap-4 rounded-[4px] border-[3px] border-black bg-[#f4f4f4] px-6 py-5 shadow-[5px_5px_0_0_rgba(0,0,0,1)]"
-      whileHover={{ x: 4 }}
-      transition={{ duration: 0.22 }}
+      className="flex items-center gap-3 rounded-[4px] border-[3px] border-black bg-[#f4f4f4] px-5 py-4 shadow-[4px_4px_0_0_rgba(0,0,0,1)]"
+      whileHover={{ x: 2 }}
+      transition={{ duration: 0.2 }}
     >
       <span className="inline-flex text-[#667400]">
         {icon}
       </span>
-      <span className="text-[clamp(1.15rem,2vw,1.65rem)] font-black uppercase tracking-[0.03em] text-black">
+      <span className="text-[clamp(1rem,1.6vw,1.35rem)] font-black uppercase tracking-[0.02em] text-black">
         {title}
       </span>
     </motion.div>
