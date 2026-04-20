@@ -709,6 +709,18 @@ async function handlePresetlessTryOnRequest(params: {
     orderedPhotos.map((photo) => fetchReferencePhotoAsBase64(photo.image_url).then((base64) => normalizeBase64(base64)))
   )
 
+  // ── PRE-EXTRACT FACE CROPS IN PARALLEL (heuristic, no Gemini call) ──────
+  // Uses Sharp center-top crop — fast, zero Gemini API cost, all parallel
+  const preExtractedFaceCrops = await Promise.all(
+    orderedReferenceBase64s.map(async (refBase64) => {
+      try {
+        const result = await extractFaceCrop(refBase64, null)
+        return result.success && result.faceCropBase64 ? result.faceCropBase64 : undefined
+      } catch {
+        return undefined
+      }
+    })
+  )
 
     // ── CREATE GENERATION JOB ─────────────────────────────────────────────
   const { data: job, error: jobError } = await service
@@ -890,6 +902,7 @@ async function handlePresetlessTryOnRequest(params: {
             generatedImage = await generateTryOnDirect({
               personImageBase64: referenceImageBase64,
               garmentImageBase64: processedGarment,
+              faceCropBase64: preExtractedFaceCrops?.[candidateIndex],
               prompt: smartPrompt,
               aspectRatio: payload.aspectRatio || '4:5',
               model: directRenderModel,
@@ -903,6 +916,8 @@ async function handlePresetlessTryOnRequest(params: {
             if (lastGenerationError.includes('rate limit') || lastGenerationError.includes('429')) {
               break
             }
+            // Always log generation errors (not just in dev) so silent failures are visible
+            console.error(`[tryon] generation attempt ${genAttempt + 1} failed: ${lastGenerationError}`)
           }
         }
 

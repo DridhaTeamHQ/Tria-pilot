@@ -439,21 +439,63 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
   const isDev = process.env.NODE_ENV !== 'production'
   if (isDev) console.log(`🍌 DIRECT TRANSPORT: ${requestedModel} | prompt: ${prompt.length} chars`)
 
-  // Simple content: person photo → garment photo → short instruction
+  // Image order: person → garment → face crop (if available) → prompt
   const contents: ContentListUnion = [
     { inlineData: { data: cleanPerson, mimeType: 'image/jpeg' } } as any,
+    'Image 1: the person.',
     { inlineData: { data: cleanGarment, mimeType: 'image/jpeg' } } as any,
-    prompt,
+    'Image 2: the target clothing item. Replace the person\'s clothing with ONLY this garment.',
   ]
+
+  // Add face crop if provided (Image 3 — definitive identity reference)
+  const { faceCropBase64 } = options
+  if (faceCropBase64) {
+    const cleanFaceCrop = faceCropBase64.replace(/^data:image\/[a-z+]+;base64,/, '')
+    if (cleanFaceCrop.length > 100) {
+      contents.push(
+        { inlineData: { data: cleanFaceCrop, mimeType: 'image/jpeg' } } as any,
+        'Image 3: close-up face crop of the same person from Image 1. Use this as the definitive face reference — the output face MUST match this exactly.'
+      )
+      if (isDev) console.log('\ud83d\udc64 Added face crop as Image 3')
+    }
+  }
+
+  contents.push(prompt)
 
   const config: GenerateContentConfig = {
     responseModalities: ['IMAGE'],
-    systemInstruction: 'You are a virtual try-on tool. You receive two images: first is a person, second is a clothing item. REMOVE all the person\'s current clothing and REPLACE it with the clothing from the second image. The output must show the exact same person (same face, hair, body, pose, background) but wearing ONLY the new clothing. If the second image shows a model wearing the clothes, ignore that model completely — only copy the garment itself. Output one photorealistic image.',
+    systemInstruction: `You are a photorealistic virtual try-on editor. Output ONLY an edited image — no text.
+
+TASK: Edit the clothing on the person from Image 1 so the final visible garment matches Image 2 exactly.
+
+IDENTITY (NON-NEGOTIABLE):
+- The output MUST show the EXACT SAME PERSON from Image 1
+- Copy their face pixel-for-pixel — preserve every facial feature, skin tone, hair, and body proportion
+- If Image 3 is a face close-up, use it as the DEFINITIVE identity anchor — output face must match Image 3 exactly
+- Do NOT generate a different person or alter any facial features
+
+GARMENT REPLACEMENT (STRIP-AND-REPLACE):
+- FIRST: Mentally STRIP all existing clothing from the affected body area
+- THEN: Apply ONLY the garment from Image 2 onto the bare area
+- The output must show ONLY the garment from Image 2 — NO traces of the original clothing
+- Do NOT blend, layer, or mix original clothing with the new garment
+- PIXEL-PERFECT match: same color, pattern, texture, collar, sleeves, hem, fit, silhouette, and fabric as Image 2
+- If Image 2 shows a model, IGNORE their face/body — copy ONLY the garment
+
+FORBIDDEN HALLUCINATIONS:
+- Do NOT invent extra layers (cardigans, jackets, vests) not present in Image 2
+- Do NOT keep sleeves, collars, or hems from the original clothing in Image 1
+- Do NOT create hybrid garments mixing features from Image 1 and Image 2
+
+REALISM: Photorealistic output. Natural skin, realistic fabric drape. No AI smoothing or CGI look.`,
     imageConfig: {
       aspectRatio,
       personGeneration: 'allow_adult',
       imageSize: resolution,
     } as ImageConfig,
+    temperature: 0.1,
+    topP: 0.8,
+    topK: 12,
   }
 
   const startTime = Date.now()
