@@ -852,7 +852,7 @@ async function handlePresetlessTryOnRequest(params: {
     // ── SEQUENTIAL GENERATION (with deadline guard + AI backup candidates) ─
     const successfulOutputs: PresetlessPersistedOutput[] = []
     const failedAttempts: Array<{ referenceImageId: string; error: string }> = []
-    const targetOutputCount = 3
+    const targetOutputCount = 1 // Flash model takes ~150s; only 1 output fits in 300s Vercel limit
 
     for (let candidateIndex = 0; candidateIndex < orderedPhotos.length; candidateIndex += 1) {
       if (successfulOutputs.length >= targetOutputCount) break
@@ -931,8 +931,8 @@ async function handlePresetlessTryOnRequest(params: {
 
         // Skip heavy QA validation if we're running low on time
         const remainingMs = deadlineMs - (Date.now() - pipelineStartTime)
-        const shouldSkipQa = TRYON_OUTPUT_QA_MODE === 'off' || remainingMs < 45_000
-        if (shouldSkipQa && isDev) console.log(`⏩ Skipping QA validation (mode=${TRYON_OUTPUT_QA_MODE}, remaining=${Math.round(remainingMs / 1000)}s)`)
+        const shouldSkipQa = TRYON_OUTPUT_QA_MODE === 'off' || remainingMs < 100_000
+        if (shouldSkipQa) console.warn(`⏩ Skipping QA (mode=${TRYON_OUTPUT_QA_MODE}, remaining=${Math.round(remainingMs / 1000)}s)`)
 
         const validation = shouldSkipQa
           ? { qualityAssessment: null, garmentValidation: null, warnings: ['qa_skipped_deadline'] as string[] }

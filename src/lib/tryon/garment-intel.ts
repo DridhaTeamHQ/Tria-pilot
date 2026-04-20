@@ -144,7 +144,8 @@ export async function analyzeGarment(garmentImageBase64: string): Promise<Garmen
   }
 
   // Retry up to 2 times on 503/overload before using fallback
-  const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash']
+  // gemini-2.0-flash is no longer available to new users (deprecated March 2026)
+  const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite']
   const MAX_ATTEMPTS = 2
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
