@@ -374,9 +374,8 @@ function GlassFeatureStack() {
       description: 'Virtual looks in a softer, faster studio flow.',
       accent: 'from-[#89a6ff] to-[#d8b7ff]',
       icon: <Camera className="h-5 w-5" strokeWidth={2.2} />,
-      rotation: -14,
-      baseDesktop: 'lg:left-1/2 lg:top-8 lg:-translate-x-[290px] lg:rotate-[-16deg]',
-      hoverDesktop: 'lg:group-hover:-translate-x-[390px] lg:group-hover:-translate-y-4 lg:group-hover:rotate-[-22deg]',
+      baseDesktop: 'lg:left-1/2 lg:top-12 lg:-translate-x-[270px] lg:rotate-[-12deg]',
+      hoverDesktop: 'lg:group-hover:-translate-x-[395px] lg:group-hover:-translate-y-6 lg:group-hover:rotate-[-18deg]',
     },
     {
       label: 'Launch',
@@ -384,9 +383,8 @@ function GlassFeatureStack() {
       description: 'Approvals, assets, and launches in one line of motion.',
       accent: 'from-[#ffb7d6] to-[#ffd6f0]',
       icon: <Rocket className="h-5 w-5" strokeWidth={2.2} />,
-      rotation: 5,
-      baseDesktop: 'lg:left-1/2 lg:top-3 lg:-translate-x-1/2 lg:rotate-[4deg]',
-      hoverDesktop: 'lg:group-hover:-translate-y-8 lg:group-hover:rotate-[1deg]',
+      baseDesktop: 'lg:left-1/2 lg:top-4 lg:-translate-x-1/2 lg:rotate-[3deg]',
+      hoverDesktop: 'lg:group-hover:-translate-y-8 lg:group-hover:rotate-0',
     },
     {
       label: 'Earn',
@@ -394,23 +392,21 @@ function GlassFeatureStack() {
       description: 'Track performance and turn creator energy into growth.',
       accent: 'from-[#e4ff9d] to-[#cbff2e]',
       icon: <BadgeDollarSign className="h-5 w-5" strokeWidth={2.2} />,
-      rotation: -24,
-      baseDesktop: 'lg:left-1/2 lg:top-8 lg:translate-x-[110px] lg:rotate-[18deg]',
-      hoverDesktop: 'lg:group-hover:translate-x-[250px] lg:group-hover:translate-y-1 lg:group-hover:rotate-[24deg]',
+      baseDesktop: 'lg:left-1/2 lg:top-12 lg:translate-x-[110px] lg:rotate-[11deg]',
+      hoverDesktop: 'lg:group-hover:translate-x-[255px] lg:group-hover:-translate-y-2 lg:group-hover:rotate-[17deg]',
     },
   ] as const
 
   return (
-    <div className="group relative mx-auto flex w-full max-w-[1180px] flex-col items-center gap-5 lg:h-[440px] lg:block">
-      <div className="pointer-events-none absolute inset-x-0 top-[8%] hidden h-[280px] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.72)_0%,rgba(255,255,255,0.18)_52%,transparent_78%)] blur-2xl lg:block" />
+    <div className="group relative mx-auto flex w-full max-w-[1160px] flex-col items-center gap-5 lg:h-[430px] lg:block">
+      <div className="pointer-events-none absolute inset-x-0 top-[10%] hidden h-[260px] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.72)_0%,rgba(255,255,255,0.18)_52%,transparent_78%)] blur-2xl lg:block" />
       {cards.map((card, index) => (
         <motion.div
           key={card.title}
-          className={`relative h-[280px] w-full max-w-[320px] overflow-hidden rounded-[30px] border border-white/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.68),rgba(255,255,255,0.36))] p-6 shadow-[0_30px_65px_rgba(0,0,0,0.12)] backdrop-blur-[18px] transition-[transform,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] lg:absolute lg:h-[340px] lg:w-[360px] lg:max-w-none ${card.baseDesktop} ${card.hoverDesktop}`}
-          initial={{ opacity: 0, y: 20, rotate: card.rotation }}
-          whileInView={{ opacity: 1, y: 0, rotate: card.rotation }}
+          className={`relative origin-bottom h-[280px] w-full max-w-[320px] overflow-hidden rounded-[30px] border border-white/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.68),rgba(255,255,255,0.38))] p-6 shadow-[0_30px_65px_rgba(0,0,0,0.12)] backdrop-blur-[18px] will-change-transform transition-[transform,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] lg:absolute lg:h-[310px] lg:w-[332px] lg:max-w-none ${card.baseDesktop} ${card.hoverDesktop}`}
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.3 }}
-          whileHover={{ y: -8 }}
           transition={{ duration: 0.45, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
           style={{ zIndex: cards.length - index }}
         >
@@ -422,11 +418,11 @@ function GlassFeatureStack() {
                 {card.icon}
               </div>
               <div className="mt-6 text-[12px] font-black uppercase tracking-[0.14em] text-black/42">{card.label}</div>
-              <div className="mt-2 text-[30px] font-black leading-[0.94] tracking-[-0.06em] lg:text-[38px]">{card.title}</div>
+              <div className="mt-2 text-[30px] font-black leading-[0.94] tracking-[-0.06em] lg:text-[34px]">{card.title}</div>
             </div>
 
             <div>
-              <div className="max-w-[240px] text-[14px] leading-7 text-black/55 lg:max-w-[285px] lg:text-[15px]">{card.description}</div>
+              <div className="max-w-[240px] text-[14px] leading-7 text-black/55 lg:max-w-[250px] lg:text-[15px]">{card.description}</div>
               <div className="mt-5 h-px bg-black/10" />
               <div className="mt-4 flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase tracking-[0.14em] text-black/36">
