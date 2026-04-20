@@ -10,6 +10,7 @@ import {
   Camera,
   ChartColumn,
   CircleDot,
+  Eye,
   Facebook,
   Instagram,
   Linkedin,
@@ -591,106 +592,142 @@ function InsightPill({
 
 function VibeBoard() {
   return (
-    <div className="relative overflow-hidden rounded-[30px] border-[3px] border-black bg-[#f7f8ff] p-5 text-black shadow-[8px_8px_0_0_rgba(0,0,0,1)] lg:p-6">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(255,90,169,0.12),transparent_24%),radial-gradient(circle_at_86%_18%,rgba(137,166,255,0.14),transparent_22%),radial-gradient(circle_at_64%_84%,rgba(203,255,46,0.12),transparent_24%)]" />
-      <div className="relative flex items-center justify-between gap-4">
-        <div>
-          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-black/48">Live product preview</div>
-          <div className="mt-2 text-[32px] font-black leading-[0.94] tracking-[-0.05em] text-black">
-            Smooth insights,
-            <br />
-            lighter vibe.
-          </div>
+    <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+      <motion.div
+        className="relative rounded-[6px] border-[3px] border-black bg-[#232323] p-6 text-white shadow-[6px_6px_0_0_rgba(0,0,0,1)] sm:p-8"
+        initial={{ opacity: 0, x: -18 }}
+        whileInView={{ opacity: 1, x: 0 }}
+        viewport={{ once: true, amount: 0.3 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <div className="absolute -left-3 top-10 rotate-[-5deg] rounded-[4px] border-[3px] border-black bg-[#efefef] px-5 py-4 text-center text-[12px] font-black uppercase tracking-[0.08em] text-black shadow-[5px_5px_0_0_rgba(0,0,0,1)] sm:-left-8 sm:px-8 sm:py-6">
+          Data Is
+          <br />
+          Structural
         </div>
-        <div className="rounded-[18px] border-[2px] border-black bg-white px-4 py-3 text-right shadow-[4px_4px_0_0_rgba(0,0,0,0.92)]">
-          <div className="text-[22px] font-black leading-none text-[#8b63ff]">LIVE</div>
-          <div className="mt-1 text-[10px] font-black uppercase tracking-[0.14em] text-black/45">Synced stack</div>
-        </div>
-      </div>
 
-      <div className="relative mt-7 overflow-hidden rounded-[24px] border-[2px] border-black bg-white p-4 sm:p-5">
-        <motion.div
-          className="flex w-max gap-3"
-          animate={{ x: [0, -18, 0] }}
-          transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
-        >
-          {[
-            { label: 'Moodboard', tone: 'bg-[#ffe1f1]', icon: <Sparkles className="h-5 w-5" strokeWidth={2.2} /> },
-            { label: 'Looks', tone: 'bg-[#e5ecff]', icon: <Camera className="h-5 w-5" strokeWidth={2.2} /> },
-            { label: 'Campaign', tone: 'bg-[#e9e3ff]', icon: <Rocket className="h-5 w-5" strokeWidth={2.2} /> },
-            { label: 'Sales', tone: 'bg-[#f2ffc9]', icon: <BadgeDollarSign className="h-5 w-5" strokeWidth={2.2} /> },
-          ].map((item) => (
-            <div
-              key={item.label}
-              className={`flex min-w-[140px] items-center gap-3 rounded-[20px] border-[2px] border-black px-4 py-4 font-black uppercase tracking-[0.1em] text-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] ${item.tone}`}
-            >
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border-[2px] border-black bg-white">
-                {item.icon}
-              </span>
-              <span className="text-[11px]">{item.label}</span>
+        <div className="pl-6 sm:pl-10">
+          <div className="text-center">
+            <div className="text-[clamp(2rem,4vw,3rem)] font-black uppercase tracking-[-0.04em] text-white">Analytics</div>
+            <div className="mt-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white/55">BORO, SAFE WORK</div>
+          </div>
+
+          <div className="relative mt-8 h-[270px] rounded-[4px] border border-white/8 bg-[#262626] p-4">
+            <div className="absolute inset-x-4 inset-y-5">
+              {Array.from({ length: 8 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="absolute left-0 right-0 border-t border-white/10"
+                  style={{ top: `${index * 13}%` }}
+                />
+              ))}
+              {Array.from({ length: 9 }).map((_, index) => (
+                <div
+                  key={`v-${index}`}
+                  className="absolute top-0 bottom-0 border-l border-white/6"
+                  style={{ left: `${index * 12}%` }}
+                />
+              ))}
             </div>
-          ))}
-        </motion.div>
-      </div>
 
-      <div className="relative mt-5 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-[24px] border-[2px] border-black bg-white p-4">
-          <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.14em] text-black/48">
-            <span>Signal flow</span>
-            <span>Always moving</span>
+            <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between gap-3">
+              {[18, 12, 28, 46, 40, 68, 60, 70, 82].map((height, index) => (
+                <motion.div
+                  key={height}
+                  className="w-full bg-white/55"
+                  initial={{ height: 0 }}
+                  whileInView={{ height: `${height}%` }}
+                  viewport={{ once: true, amount: 0.8 }}
+                  transition={{ duration: 0.55, delay: index * 0.05, ease: [0.22, 1, 0.36, 1] }}
+                />
+              ))}
+            </div>
+
+            <svg className="absolute inset-6 h-[calc(100%-3rem)] w-[calc(100%-3rem)]" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <motion.polyline
+                fill="none"
+                stroke="#8f8f8f"
+                strokeWidth="1.1"
+                points="0,65 12,48 24,60 37,74 48,73 62,42 78,18 90,28 100,12"
+                initial={{ pathLength: 0 }}
+                whileInView={{ pathLength: 1 }}
+                viewport={{ once: true, amount: 0.7 }}
+                transition={{ duration: 1.1, ease: 'easeInOut' }}
+              />
+            </svg>
           </div>
-          <div className="mt-5 space-y-4">
-            {[
-              { label: 'Looks generated', value: '92%', tone: '#ff5aa9' },
-              { label: 'Campaign approval speed', value: '74%', tone: '#89a6ff' },
-              { label: 'Affiliate conversion pulse', value: '61%', tone: '#cbff2e' },
-            ].map((bar) => (
-              <div key={bar.label}>
-                <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-[0.1em] text-black/60">
-                  <span>{bar.label}</span>
-                  <span>{bar.value}</span>
-                </div>
-                <div className="mt-2 h-3 overflow-hidden rounded-full border border-black/10 bg-black/5">
-                  <motion.div
-                    className="h-full rounded-full"
-                    style={{ backgroundColor: bar.tone }}
-                    initial={{ width: 0 }}
-                    whileInView={{ width: bar.value }}
-                    viewport={{ once: true, amount: 0.7 }}
-                    transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-                  />
-                </div>
-              </div>
-            ))}
+
+          <div className="mt-5 grid gap-3 text-[10px] font-bold uppercase tracking-[0.12em] text-white/48 sm:grid-cols-2">
+            <div className="space-y-2">
+              <div>Sales</div>
+              <div>Gate Work</div>
+              <div>Creator Work</div>
+              <div>Marketplace</div>
+            </div>
+            <div className="space-y-2 sm:text-right">
+              <div>Q1</div>
+              <div>Q2</div>
+              <div>Q3</div>
+              <div>Q4</div>
+            </div>
           </div>
         </div>
+      </motion.div>
 
-        <div className="grid gap-3">
-          {[
-            { title: 'Creator mode', body: 'Make the visual, share the drop, track the energy.', icon: <Camera className="h-4 w-4" strokeWidth={2.2} />, tone: 'bg-[#ffd4ea] text-black' },
-            { title: 'Brand mode', body: 'Build cleaner launches with briefs, assets, and proof.', icon: <Rocket className="h-4 w-4" strokeWidth={2.2} />, tone: 'bg-[#d9e3ff] text-black' },
-            { title: 'Revenue mode', body: 'See what converts and double down without guessing.', icon: <BadgeDollarSign className="h-4 w-4" strokeWidth={2.2} />, tone: 'bg-[#efffc0] text-black' },
-          ].map((item, index) => (
-            <motion.div
-              key={item.title}
-              className={`rounded-[22px] border-[2px] border-black p-4 shadow-[4px_4px_0_0_rgba(0,0,0,1)] ${item.tone}`}
-              initial={{ x: 24, opacity: 0 }}
-              whileInView={{ x: 0, opacity: 1 }}
-              viewport={{ once: true, amount: 0.4 }}
-              transition={{ duration: 0.45, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <div className="flex items-center gap-3">
-                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border-[2px] border-black bg-white">
-                  {item.icon}
-                </span>
-                <div className="text-[18px] font-black leading-tight">{item.title}</div>
-              </div>
-              <div className="mt-2 text-[14px] leading-6 text-black/70">{item.body}</div>
-            </motion.div>
-          ))}
+      <motion.div
+        className="relative"
+        initial={{ opacity: 0, x: 18 }}
+        whileInView={{ opacity: 1, x: 0 }}
+        viewport={{ once: true, amount: 0.3 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.06 }}
+      >
+        <div className="inline-flex rounded-[4px] border-[3px] border-black bg-[#20d8f3] px-5 py-3 text-[14px] font-black uppercase tracking-[0.08em] text-black shadow-[5px_5px_0_0_rgba(0,0,0,1)]">
+          Intelligence
         </div>
-      </div>
+        <h3 className="mt-8 text-[clamp(3rem,7vw,6rem)] font-black uppercase leading-[0.88] tracking-[-0.08em] text-black">
+          Real-Time
+          <br />
+          Analytics
+        </h3>
+        <div className="mt-8 max-w-[640px] border-l-[5px] border-black pl-6 text-[20px] leading-[1.65] text-black/62">
+          Stop guessing. Start knowing. Our analytics engine gives creators and brands the structural insights they need in milliseconds.
+        </div>
+
+        <div className="mt-10 space-y-5">
+          <EditorialFeatureRow
+            icon={<Zap className="h-5 w-5" strokeWidth={2.6} />}
+            title="Sub-Second Latency"
+          />
+          <EditorialFeatureRow
+            icon={<Eye className="h-5 w-5" strokeWidth={2.6} />}
+            title="Total Transparency"
+          />
+        </div>
+      </motion.div>
     </div>
+  )
+}
+
+function EditorialFeatureRow({
+  icon,
+  title,
+}: {
+  icon: ReactNode
+  title: string
+}) {
+  return (
+    <motion.div
+      className="flex items-center gap-4 rounded-[4px] border-[3px] border-black bg-[#f4f4f4] px-6 py-5 shadow-[5px_5px_0_0_rgba(0,0,0,1)]"
+      whileHover={{ x: 4 }}
+      transition={{ duration: 0.22 }}
+    >
+      <span className="inline-flex text-[#667400]">
+        {icon}
+      </span>
+      <span className="text-[clamp(1.15rem,2vw,1.65rem)] font-black uppercase tracking-[0.03em] text-black">
+        {title}
+      </span>
+    </motion.div>
   )
 }
 
