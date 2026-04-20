@@ -186,37 +186,8 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="mt-10 grid gap-5 lg:grid-cols-3">
-              <GenZFeatureCard
-                icon={<Camera className="h-6 w-6" strokeWidth={2.2} />}
-                accent="blue"
-                eyebrow="Create"
-                title="AI Try-On Studio"
-                body="Instant vibe checks for outfits and product visuals without a long shoot-production loop."
-                tags={['Virtual looks', 'Faster previews']}
-                preview="studio"
-                delay={0}
-              />
-              <GenZFeatureCard
-                icon={<Rocket className="h-6 w-6" strokeWidth={2.2} />}
-                accent="pink"
-                eyebrow="Launch"
-                title="Campaign Workflows"
-                body="Bring creators, assets, and approvals into one smoother campaign flow that moves faster."
-                tags={['Creator-ready', 'Simple approvals']}
-                preview="workflow"
-                delay={0.08}
-              />
-              <GenZFeatureCard
-                icon={<BadgeDollarSign className="h-6 w-6" strokeWidth={2.2} />}
-                accent="violet"
-                eyebrow="Earn"
-                title="Affiliate Engine"
-                body="Track action, connect products to posts, and turn creator energy into clearer revenue signals."
-                tags={['Revenue loop', 'Live tracking']}
-                preview="network"
-                delay={0.16}
-              />
+            <div className="mt-12 flex justify-center lg:justify-end">
+              <GlassFeatureStack />
             </div>
           </motion.div>
 
@@ -395,179 +366,68 @@ function MetricChip({
   )
 }
 
-function GenZFeatureCard({
-  icon,
-  accent,
-  eyebrow,
-  title,
-  body,
-  tags,
-  preview,
-  delay = 0,
-}: {
-  icon: ReactNode
-  accent: 'blue' | 'pink' | 'violet'
-  eyebrow: string
-  title: string
-  body: string
-  tags: string[]
-  preview: 'studio' | 'workflow' | 'network'
-  delay?: number
-}) {
-  const cardTone =
-    accent === 'blue'
-      ? 'bg-[#f7f9ff]'
-      : accent === 'pink'
-        ? 'bg-[#fff7fc]'
-        : 'bg-[#faf7ff]'
-  const glowTone =
-    accent === 'blue'
-      ? 'bg-[#89a6ff]/18'
-      : accent === 'pink'
-        ? 'bg-[#ff73bb]/16'
-        : 'bg-[#b280ff]/18'
-  const iconTone =
-    accent === 'blue'
-      ? 'bg-[#e5ecff] text-[#5f7eff]'
-      : accent === 'pink'
-        ? 'bg-[#ffe0f0] text-[#e24ea0]'
-        : 'bg-[#eee3ff] text-[#8855ff]'
-  const borderGlow =
-    accent === 'blue'
-      ? 'rgba(137,166,255,0.34)'
-      : accent === 'pink'
-        ? 'rgba(255,115,187,0.32)'
-        : 'rgba(178,128,255,0.3)'
+function GlassFeatureStack() {
+  const cards = [
+    {
+      label: 'Create',
+      title: 'AI Try-On',
+      description: 'Virtual looks in a softer, faster studio flow.',
+      accent: 'from-[#89a6ff] to-[#d8b7ff]',
+      icon: <Camera className="h-5 w-5" strokeWidth={2.2} />,
+      rotation: -14,
+    },
+    {
+      label: 'Code',
+      title: 'Campaign Flow',
+      description: 'Approvals, assets, and launches in one line of motion.',
+      accent: 'from-[#ffb7d6] to-[#ffd6f0]',
+      icon: <Rocket className="h-5 w-5" strokeWidth={2.2} />,
+      rotation: 4,
+    },
+    {
+      label: 'Earn',
+      title: 'Revenue Loop',
+      description: 'Track performance and turn creator energy into growth.',
+      accent: 'from-[#e4ff9d] to-[#cbff2e]',
+      icon: <BadgeDollarSign className="h-5 w-5" strokeWidth={2.2} />,
+      rotation: -24,
+    },
+  ] as const
 
   return (
-    <motion.div
-      className={`group relative flex min-h-[312px] flex-col overflow-hidden rounded-[24px] border-[3px] border-black ${cardTone} p-4 shadow-[5px_5px_0_0_rgba(0,0,0,1)] sm:p-5`}
-      initial={{ opacity: 0, y: 26 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.25 }}
-      transition={{ duration: 0.42, delay, ease: [0.22, 1, 0.36, 1] }}
-      whileHover={{ y: -3 }}
-      whileTap={{ scale: 0.995 }}
-      style={{ transformOrigin: 'center bottom' }}
-    >
-      <motion.div
-        className={`pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full ${glowTone} blur-[10px]`}
-        animate={{ scale: [1, 1.03, 1], x: [0, -2, 0], y: [0, 2, 0] }}
-        transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      <motion.div
-        className="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-        style={{ boxShadow: `inset 0 0 0 1px ${borderGlow}` }}
-      />
-      <motion.div
-        className={`inline-flex h-12 w-12 items-center justify-center rounded-[14px] border-[2px] border-black/80 ${iconTone} shadow-[3px_3px_0_0_rgba(0,0,0,0.85)]`}
-        whileHover={{ y: -1 }}
-        transition={{ duration: 0.2 }}
-      >
-        <motion.span animate={{ y: [0, -1.5, 0] }} transition={{ duration: 3.6, repeat: Infinity, ease: 'easeInOut' }} className="inline-flex">
-          {icon}
-        </motion.span>
-      </motion.div>
-      <div className="mt-5 text-[10px] font-black uppercase tracking-[0.14em] text-black/45">{eyebrow}</div>
-      <h3 className="mt-1.5 min-h-[2em] text-[23px] font-black leading-[1.02] tracking-[-0.04em] text-black">{title}</h3>
-      <p className="mt-3 text-[14px] leading-6 text-black/56">{body}</p>
-      <FeaturePreview preview={preview} accent={accent} />
-      <div className="mt-4 flex flex-wrap gap-1.5">
-        {tags.map((tag) => (
-          <span
-            key={tag}
-            className="rounded-full border-[2px] border-black/60 bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-black"
-          >
-            {tag}
-          </span>
-        ))}
-      </div>
-    </motion.div>
-  )
-}
-
-function FeaturePreview({
-  preview,
-  accent,
-}: {
-  preview: 'studio' | 'workflow' | 'network'
-  accent: 'blue' | 'pink' | 'violet'
-}) {
-  if (preview === 'studio') {
-    return (
-      <div className="relative mt-5 h-[104px] overflow-hidden rounded-[16px] border-[2px] border-black bg-[linear-gradient(180deg,#fef8ff_0%,#eef4ff_100%)]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_82%,rgba(255,140,120,0.24),transparent_24%),radial-gradient(circle_at_80%_20%,rgba(137,166,255,0.22),transparent_22%)]" />
-        <div className="absolute bottom-0 left-0 right-0 h-8 bg-[linear-gradient(180deg,rgba(255,255,255,0),rgba(137,166,255,0.18))]" />
+    <div className="group relative flex flex-col items-center gap-4 sm:flex-row sm:gap-0">
+      {cards.map((card, index) => (
         <motion.div
-          className="absolute left-8 top-4 h-16 w-12 rounded-[20px_20px_14px_14px] border-[2px] border-black/70 bg-[linear-gradient(180deg,#89a6ff_0%,#ffd2ea_100%)]"
-          animate={{ y: [0, -2, 0] }}
-          transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        <motion.div
-          className="absolute left-[42%] top-6 h-12 w-12 rounded-full border-[2px] border-black/60 bg-[#cbff2e]/45"
-          animate={{ scale: [1, 1.05, 1] }}
-          transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        <motion.div
-          className="absolute right-8 bottom-0 h-[74px] w-[54px] rounded-t-[26px] border-[2px] border-black/70 bg-[linear-gradient(180deg,#ffb59e_0%,#fff1b8_100%)]"
-          animate={{ y: [0, -3, 0] }}
-          transition={{ duration: 4.8, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
-        />
-        <div className="absolute inset-x-5 bottom-3 h-px bg-[linear-gradient(90deg,transparent,rgba(0,0,0,0.35),transparent)]" />
-      </div>
-    )
-  }
+          key={card.title}
+          className="relative h-[220px] w-[220px] overflow-hidden rounded-[24px] border border-white/40 bg-white/18 p-4 shadow-[0_24px_50px_rgba(0,0,0,0.12)] backdrop-blur-[16px] transition-all duration-500 sm:-mx-8"
+          initial={{ opacity: 0, y: 20, rotate: card.rotation }}
+          whileInView={{ opacity: 1, y: 0, rotate: card.rotation }}
+          viewport={{ once: true, amount: 0.3 }}
+          whileHover={{ y: -6, rotate: 0 }}
+          transition={{ duration: 0.45, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
+          style={{ zIndex: cards.length - index }}
+        >
+          <div className={`absolute inset-0 bg-gradient-to-br ${card.accent} opacity-18`} />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,rgba(255,255,255,0.65),transparent_28%),radial-gradient(circle_at_80%_78%,rgba(255,255,255,0.3),transparent_26%)]" />
+          <div className="relative flex h-full flex-col justify-between text-black">
+            <div>
+              <div className={`inline-flex h-11 w-11 items-center justify-center rounded-[14px] bg-gradient-to-br ${card.accent} shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]`}>
+                {card.icon}
+              </div>
+              <div className="mt-5 text-[12px] font-black uppercase tracking-[0.14em] text-black/45">{card.label}</div>
+              <div className="mt-2 text-[28px] font-black leading-[0.95] tracking-[-0.05em]">{card.title}</div>
+            </div>
 
-  if (preview === 'workflow') {
-    return (
-      <div className="relative mt-5 h-[104px] overflow-hidden rounded-[16px] border-[2px] border-black bg-[linear-gradient(180deg,#fff8fb_0%,#f3f5ff_100%)]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_22%,rgba(255,115,187,0.2),transparent_24%),radial-gradient(circle_at_18%_78%,rgba(137,166,255,0.16),transparent_24%)]" />
-        {[
-          { left: '14%', top: '26%', label: 'Brief' },
-          { left: '42%', top: '18%', label: 'Assets' },
-          { left: '68%', top: '28%', label: 'Launch' },
-          { left: '36%', top: '62%', label: 'Review' },
-          { left: '72%', top: '68%', label: 'Live' },
-        ].map((node, index) => (
-          <motion.div
-            key={node.label}
-            className="absolute flex h-8 w-16 items-center justify-center rounded-full border-[2px] border-black/65 bg-white/88 text-[9px] font-black uppercase tracking-[0.08em] text-black"
-            style={{ left: node.left, top: node.top }}
-            animate={{ y: [0, index % 2 === 0 ? -2 : 2, 0] }}
-            transition={{ duration: 4 + index * 0.3, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            {node.label}
-          </motion.div>
-        ))}
-        <svg className="absolute inset-0 h-full w-full" viewBox="0 0 300 104" preserveAspectRatio="none">
-          <path d="M58 32 C 110 22, 122 22, 168 34 S 218 58, 240 72" fill="none" stroke="#89a6ff" strokeWidth="2" strokeOpacity="0.9" />
-          <path d="M90 73 C 122 66, 162 66, 214 44" fill="none" stroke="#ff8c78" strokeWidth="1.8" strokeOpacity="0.75" />
-        </svg>
-      </div>
-    )
-  }
-
-  return (
-    <div className="relative mt-5 h-[104px] overflow-hidden rounded-[16px] border-[2px] border-black bg-[linear-gradient(180deg,#fff9f2_0%,#f2f7ff_100%)]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_30%,rgba(255,140,120,0.22),transparent_24%),radial-gradient(circle_at_80%_24%,rgba(137,166,255,0.18),transparent_24%),radial-gradient(circle_at_58%_72%,rgba(203,255,46,0.2),transparent_26%)]" />
-      <motion.div
-        className="absolute left-7 top-6 h-10 w-10 rounded-full border-[2px] border-black/55 bg-[#89a6ff]/35"
-        animate={{ x: [0, 4, 0], y: [0, -2, 0] }}
-        transition={{ duration: 4.8, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      <motion.div
-        className="absolute left-[42%] top-[22px] h-14 w-14 rounded-full border-[2px] border-black/60 bg-white/70"
-        animate={{ scale: [1, 1.06, 1] }}
-        transition={{ duration: 5.6, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      <motion.div
-        className="absolute right-8 bottom-5 h-7 w-24 rounded-full border-[2px] border-black/55 bg-[#cbff2e]/45"
-        animate={{ x: [0, -3, 0] }}
-        transition={{ duration: 5.2, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      <div className="absolute left-3 top-3 rounded-full border border-black/15 bg-white/85 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-black/60">
-        Creator revenue
-      </div>
+            <div>
+              <div className="text-[14px] leading-6 text-black/62">{card.description}</div>
+              <div className="mt-5 h-px bg-black/12" />
+              <div className="mt-3 text-[10px] font-black uppercase tracking-[0.14em] text-black/42">
+                Kiwikoo feature system
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      ))}
     </div>
   )
 }
