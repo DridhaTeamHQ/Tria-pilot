@@ -178,19 +178,19 @@ export default function LandingPage() {
                   <br />
                   can do for you
                 </h2>
-                <p className="mt-4 max-w-[640px] text-[17px] leading-7 text-black/58">
-                  A cleaner, lighter product section with smooth motion, cooler copy, and feature cards that feel modern without fighting the rest of your website.
+                <p className="mt-4 max-w-[620px] text-[17px] leading-7 text-black/58">
+                  Smooth, clear, and easy to scan. Kiwikoo brings creative tools, campaign flow, and live performance into one polished system.
                 </p>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-3 lg:max-w-[390px]">
+              <div className="grid gap-3 sm:grid-cols-3 lg:max-w-[380px] lg:self-center">
                 <MetricChip value="Fast" label="smooth visual creation" tone="pink" />
                 <MetricChip value="Smart" label="campaign-ready flow" tone="blue" />
                 <MetricChip value="Live" label="analytics + marketplace" tone="lime" />
               </div>
             </div>
 
-            <div className="mt-9 grid gap-4 lg:grid-cols-3">
+            <div className="mt-10 grid gap-5 lg:grid-cols-3">
               <GenZFeatureCard
                 icon={<Camera className="h-6 w-6" strokeWidth={2.2} />}
                 accent="blue"
@@ -225,26 +225,26 @@ export default function LandingPage() {
           </motion.div>
 
           <motion.div
-            className="relative z-10 mt-8 grid gap-6 lg:grid-cols-[0.84fr_1.16fr] lg:items-start"
+            className="relative z-10 mt-10 grid gap-8 lg:grid-cols-[0.88fr_1.12fr] lg:items-center"
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: 0.08 }}
           >
-            <div className="rounded-[28px] border-[3px] border-black bg-[#fffdf7] p-5 shadow-[6px_6px_0_0_rgba(0,0,0,1)] lg:p-6">
+            <div className="rounded-[28px] border-[3px] border-black bg-[#fffdf7] p-6 shadow-[6px_6px_0_0_rgba(0,0,0,1)]">
               <MiniPill label="For creators + brands" />
-              <div className="mt-5">
-                <div className="text-[clamp(1.9rem,3.4vw,2.8rem)] font-black leading-[0.94] tracking-[-0.05em] text-black">
+              <div className="mt-6">
+                <div className="text-[clamp(2rem,3.6vw,3rem)] font-black leading-[0.94] tracking-[-0.05em] text-black">
                   Keep it clean,
                   <br />
                   fast, and easy to get.
                 </div>
-                <p className="mt-3 max-w-[460px] text-[15px] leading-7 text-black/60">
-                  The section still feels premium, but now the motion is softer and the layout stays bright so it matches the rest of your landing page.
+                <p className="mt-4 max-w-[470px] text-[15px] leading-7 text-black/60">
+                  Everything sits in one balanced flow, so the section feels sharper, lighter, and more intentional instead of crowded.
                 </p>
               </div>
 
-              <div className="mt-6 space-y-3">
+              <div className="mt-7 space-y-4">
                 <InsightPill
                   icon={<ChartColumn className="h-5 w-5" strokeWidth={2.2} />}
                   title="Real-Time Analytics"
@@ -499,43 +499,75 @@ function FeaturePreview({
 }) {
   if (preview === 'studio') {
     return (
-      <div className="relative mt-5 h-[88px] overflow-hidden rounded-[14px] border-[2px] border-black bg-[linear-gradient(180deg,#fff5ef_0%,#ffe7f3_100%)]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_24%,rgba(137,166,255,0.2),transparent_28%),radial-gradient(circle_at_24%_76%,rgba(255,140,120,0.24),transparent_30%)]" />
-        <Image
-          src="/landing/hero-influencer-transparent.png"
-          alt="AI Try-On Studio preview"
-          fill
-          sizes="(min-width: 1024px) 320px, 100vw"
-          className="object-contain object-center scale-[1.16] translate-y-[10%]"
+      <div className="relative mt-5 h-[104px] overflow-hidden rounded-[16px] border-[2px] border-black bg-[linear-gradient(180deg,#fef8ff_0%,#eef4ff_100%)]">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_82%,rgba(255,140,120,0.24),transparent_24%),radial-gradient(circle_at_80%_20%,rgba(137,166,255,0.22),transparent_22%)]" />
+        <div className="absolute bottom-0 left-0 right-0 h-8 bg-[linear-gradient(180deg,rgba(255,255,255,0),rgba(137,166,255,0.18))]" />
+        <motion.div
+          className="absolute left-8 top-4 h-16 w-12 rounded-[20px_20px_14px_14px] border-[2px] border-black/70 bg-[linear-gradient(180deg,#89a6ff_0%,#ffd2ea_100%)]"
+          animate={{ y: [0, -2, 0] }}
+          transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
         />
+        <motion.div
+          className="absolute left-[42%] top-6 h-12 w-12 rounded-full border-[2px] border-black/60 bg-[#cbff2e]/45"
+          animate={{ scale: [1, 1.05, 1] }}
+          transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          className="absolute right-8 bottom-0 h-[74px] w-[54px] rounded-t-[26px] border-[2px] border-black/70 bg-[linear-gradient(180deg,#ffb59e_0%,#fff1b8_100%)]"
+          animate={{ y: [0, -3, 0] }}
+          transition={{ duration: 4.8, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
+        />
+        <div className="absolute inset-x-5 bottom-3 h-px bg-[linear-gradient(90deg,transparent,rgba(0,0,0,0.35),transparent)]" />
       </div>
     )
   }
 
   if (preview === 'workflow') {
     return (
-      <div className="relative mt-5 h-[88px] overflow-hidden rounded-[14px] border-[2px] border-black bg-[linear-gradient(180deg,#eef4ff_0%,#fff1f8_100%)]">
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(137,166,255,0.22),transparent_42%,rgba(255,140,120,0.22))]" />
-        <Image
-          src="/landing/hero-brand.png"
-          alt="Campaign workflow preview"
-          fill
-          sizes="(min-width: 1024px) 320px, 100vw"
-          className="object-cover object-center opacity-90"
-        />
+      <div className="relative mt-5 h-[104px] overflow-hidden rounded-[16px] border-[2px] border-black bg-[linear-gradient(180deg,#fff8fb_0%,#f3f5ff_100%)]">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_22%,rgba(255,115,187,0.2),transparent_24%),radial-gradient(circle_at_18%_78%,rgba(137,166,255,0.16),transparent_24%)]" />
+        {[
+          { left: '14%', top: '26%', label: 'Brief' },
+          { left: '42%', top: '18%', label: 'Assets' },
+          { left: '68%', top: '28%', label: 'Launch' },
+          { left: '36%', top: '62%', label: 'Review' },
+          { left: '72%', top: '68%', label: 'Live' },
+        ].map((node, index) => (
+          <motion.div
+            key={node.label}
+            className="absolute flex h-8 w-16 items-center justify-center rounded-full border-[2px] border-black/65 bg-white/88 text-[9px] font-black uppercase tracking-[0.08em] text-black"
+            style={{ left: node.left, top: node.top }}
+            animate={{ y: [0, index % 2 === 0 ? -2 : 2, 0] }}
+            transition={{ duration: 4 + index * 0.3, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            {node.label}
+          </motion.div>
+        ))}
+        <svg className="absolute inset-0 h-full w-full" viewBox="0 0 300 104" preserveAspectRatio="none">
+          <path d="M58 32 C 110 22, 122 22, 168 34 S 218 58, 240 72" fill="none" stroke="#89a6ff" strokeWidth="2" strokeOpacity="0.9" />
+          <path d="M90 73 C 122 66, 162 66, 214 44" fill="none" stroke="#ff8c78" strokeWidth="1.8" strokeOpacity="0.75" />
+        </svg>
       </div>
     )
   }
 
   return (
-    <div className="relative mt-5 h-[88px] overflow-hidden rounded-[14px] border-[2px] border-black bg-[linear-gradient(180deg,#fff7ef_0%,#f0f7ff_100%)]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_30%,rgba(255,140,120,0.28),transparent_26%),radial-gradient(circle_at_80%_26%,rgba(137,166,255,0.22),transparent_24%),radial-gradient(circle_at_62%_72%,rgba(203,255,46,0.2),transparent_28%)]" />
-      <Image
-        src="/landing/hero-influencer-transparent.png"
-        alt="Affiliate engine preview"
-        fill
-        sizes="(min-width: 1024px) 320px, 100vw"
-        className="object-contain object-right-bottom scale-[1.05] translate-x-[8%] translate-y-[14%] opacity-95"
+    <div className="relative mt-5 h-[104px] overflow-hidden rounded-[16px] border-[2px] border-black bg-[linear-gradient(180deg,#fff9f2_0%,#f2f7ff_100%)]">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_30%,rgba(255,140,120,0.22),transparent_24%),radial-gradient(circle_at_80%_24%,rgba(137,166,255,0.18),transparent_24%),radial-gradient(circle_at_58%_72%,rgba(203,255,46,0.2),transparent_26%)]" />
+      <motion.div
+        className="absolute left-7 top-6 h-10 w-10 rounded-full border-[2px] border-black/55 bg-[#89a6ff]/35"
+        animate={{ x: [0, 4, 0], y: [0, -2, 0] }}
+        transition={{ duration: 4.8, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.div
+        className="absolute left-[42%] top-[22px] h-14 w-14 rounded-full border-[2px] border-black/60 bg-white/70"
+        animate={{ scale: [1, 1.06, 1] }}
+        transition={{ duration: 5.6, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.div
+        className="absolute right-8 bottom-5 h-7 w-24 rounded-full border-[2px] border-black/55 bg-[#cbff2e]/45"
+        animate={{ x: [0, -3, 0] }}
+        transition={{ duration: 5.2, repeat: Infinity, ease: 'easeInOut' }}
       />
       <div className="absolute left-3 top-3 rounded-full border border-black/15 bg-white/85 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-black/60">
         Creator revenue
@@ -576,9 +608,9 @@ function InsightPill({
 
 function VibeBoard() {
   return (
-    <div className="grid gap-8 lg:grid-cols-[0.74fr_1.26fr] lg:items-center">
+    <div className="grid gap-10 lg:grid-cols-[0.72fr_1.28fr] lg:items-center">
       <motion.div
-        className="relative flex justify-center"
+        className="relative flex justify-center lg:justify-start"
         initial={{ opacity: 0, x: -18 }}
         whileInView={{ opacity: 1, x: 0 }}
         viewport={{ once: true, amount: 0.3 }}
@@ -588,22 +620,22 @@ function VibeBoard() {
       </motion.div>
 
       <motion.div
-        className="relative max-w-[620px]"
+        className="relative max-w-[660px]"
         initial={{ opacity: 0, x: 18 }}
         whileInView={{ opacity: 1, x: 0 }}
         viewport={{ once: true, amount: 0.3 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.06 }}
       >
-        <h3 className="text-[clamp(2.4rem,5.8vw,4.8rem)] font-black uppercase leading-[0.9] tracking-[-0.07em] text-black">
+        <h3 className="text-[clamp(2.5rem,5.8vw,5rem)] font-black uppercase leading-[0.9] tracking-[-0.07em] text-black">
           Real-Time
           <br />
           Analytics
         </h3>
-        <div className="mt-6 max-w-[560px] border-l-[4px] border-black pl-5 text-[17px] leading-[1.75] text-black/58">
+        <div className="mt-7 max-w-[560px] border-l-[4px] border-black pl-5 text-[17px] leading-[1.8] text-black/58">
           Stop guessing. Start knowing. Our analytics engine gives creators and brands the structural insights they need in milliseconds.
         </div>
 
-        <div className="mt-7 space-y-4">
+        <div className="mt-8 max-w-[540px] space-y-4">
           <EditorialFeatureRow
             icon={<Zap className="h-5 w-5" strokeWidth={2.6} />}
             title="Sub-Second Latency"
