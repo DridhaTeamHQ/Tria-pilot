@@ -852,17 +852,24 @@ async function handlePresetlessTryOnRequest(params: {
     // ── SEQUENTIAL GENERATION (with deadline guard + AI backup candidates) ─
     const successfulOutputs: PresetlessPersistedOutput[] = []
     const failedAttempts: Array<{ referenceImageId: string; error: string }> = []
-    const targetOutputCount = 1 // Flash model takes ~150s; only 1 output fits in 300s Vercel limit
+    const targetOutputCount = 3 // Target 3 outputs
 
     for (let candidateIndex = 0; candidateIndex < orderedPhotos.length; candidateIndex += 1) {
       if (successfulOutputs.length >= targetOutputCount) break
 
-      // ── DEADLINE GUARD: stop generating if near timeout ──────────────
+      // ── DEADLINE GUARD: stop before starting a new generation if near timeout ──
       const elapsedMs = Date.now() - pipelineStartTime
-      if (elapsedMs > deadlineMs && successfulOutputs.length > 0) {
-        console.warn(`⏰ DEADLINE GUARD: ${Math.round(elapsedMs / 1000)}s elapsed, returning ${successfulOutputs.length} outputs (deadline: ${Math.round(deadlineMs / 1000)}s)`)
+      const remainingForGuard = deadlineMs - elapsedMs
+      // Pro image model takes ~60-110s; need 120s budget to safely attempt another generation
+      if (successfulOutputs.length > 0 && remainingForGuard < 120_000) {
+        console.warn(`⏰ DEADLINE GUARD: only ${Math.round(remainingForGuard / 1000)}s left — skipping generation ${candidateIndex + 1}, returning ${successfulOutputs.length} output(s)`)
         break
       }
+      if (elapsedMs > deadlineMs && successfulOutputs.length > 0) {
+        console.warn(`⏰ DEADLINE GUARD: ${Math.round(elapsedMs / 1000)}s elapsed, stopping at ${successfulOutputs.length} output(s)`)
+        break
+      }
+
 
       const photo = orderedPhotos[candidateIndex]
 
