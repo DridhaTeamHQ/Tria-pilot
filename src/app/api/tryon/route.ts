@@ -849,125 +849,26 @@ async function handlePresetlessTryOnRequest(params: {
       console.log(`   Garment preprocessing: extracted=${garmentPreprocess.wasExtracted} bodyDetected=${garmentPreprocess.bodyDetected} method=${garmentPreprocess.extractionMethod}`)
     }
 
-    // ── SEQUENTIAL GENERATION (with deadline guard + AI backup candidates) ─
-    const successfulOutputs: PresetlessPersistedOutput[] = []
-    const failedAttempts: Array<{ referenceImageId: string; error: string }> = []
-    const targetOutputCount = 3 // Target 3 outputs
+    // ── PARALLEL GENERATION — fire all 3 at once ─────────────────────────
+    const TARGET_PHOTOS = orderedPhotos.slice(0, 3)
+    const smartPrompt = composeSmartPrompt(garmentIntel, {
+      aspectRatio: payload.aspectRatio || '4:5',
+      polishNotes: payload.polishNotes?.trim() || undefined,
+    })
+    if (isDev) console.log(`\n🚀 Starting ${TARGET_PHOTOS.length} generations in PARALLEL | prompt: ${smartPrompt.length} chars`)
 
-    for (let candidateIndex = 0; candidateIndex < orderedPhotos.length; candidateIndex += 1) {
-      if (successfulOutputs.length >= targetOutputCount) break
+    const generationResults = await Promise.allSettled(
+      TARGET_PHOTOS.map(async (photo, idx) => {
+        const referenceImageBase64 = orderedReferenceBase64s[idx]
+        if (isDev) console.log(`🎯 Gen ${idx + 1}/${TARGET_PHOTOS.length} → photo: ${photo.id}`)
 
-      // ── DEADLINE GUARD: stop before starting a new generation if near timeout ──
-      const elapsedMs = Date.now() - pipelineStartTime
-      const remainingForGuard = deadlineMs - elapsedMs
-      // Pro image model takes ~60-110s; need 120s budget to safely attempt another generation
-      if (successfulOutputs.length > 0 && remainingForGuard < 120_000) {
-        console.warn(`⏰ DEADLINE GUARD: only ${Math.round(remainingForGuard / 1000)}s left — skipping generation ${candidateIndex + 1}, returning ${successfulOutputs.length} output(s)`)
-        break
-      }
-      if (elapsedMs > deadlineMs && successfulOutputs.length > 0) {
-        console.warn(`⏰ DEADLINE GUARD: ${Math.round(elapsedMs / 1000)}s elapsed, stopping at ${successfulOutputs.length} output(s)`)
-        break
-      }
-
-
-      const photo = orderedPhotos[candidateIndex]
-
-      // Add delay between generations to respect Gemini rate limits
-      if (candidateIndex > 0) {
-        if (isDev) console.log(`⏳ Waiting ${INTER_GENERATION_DELAY_MS}ms before generation attempt ${candidateIndex + 1}...`)
-        await sleep(INTER_GENERATION_DELAY_MS)
-      }
-
-      const outputSlot = successfulOutputs.length + 1
-
-      try {
-        const referenceImageBase64 = orderedReferenceBase64s[candidateIndex]
-
-        // Build an intelligent prompt using garment analysis
-        const smartPrompt = composeSmartPrompt(garmentIntel, {
+        const generatedImage = await generateTryOnDirect({
+          personImageBase64: referenceImageBase64,
+          garmentImageBase64: processedGarment,
+          prompt: smartPrompt,
           aspectRatio: payload.aspectRatio || '4:5',
-          polishNotes: payload.polishNotes?.trim() || undefined,
+          model: directRenderModel,
         })
-
-        if (isDev) {
-          console.log(`\n🎯 Intelligent Generation Attempt ${candidateIndex + 1}/${orderedPhotos.length}`)
-          console.log(`   Target output slot: ${outputSlot}/${targetOutputCount}`)
-          console.log(`   Reference photo: ${photo.id}`)
-          console.log(`   Garment: ${garmentIntel.garmentType} (${garmentIntel.coverage})`)
-          console.log(`   Prompt: ${smartPrompt.length} chars`)
-        }
-
-        // Image generation — single attempt in production to stay within deadline
-        let generatedImage: string | null = null
-        let lastGenerationError: string = ''
-        const MAX_GENERATION_RETRIES = isDev ? 2 : 1
-
-        for (let genAttempt = 0; genAttempt < MAX_GENERATION_RETRIES; genAttempt++) {
-          try {
-            if (genAttempt > 0) {
-              if (isDev) console.log(`🔄 Retrying generation (attempt ${genAttempt + 1}/${MAX_GENERATION_RETRIES}) after 2s cooldown...`)
-              await sleep(2000)
-            }
-
-            generatedImage = await generateTryOnDirect({
-              personImageBase64: referenceImageBase64,
-              garmentImageBase64: processedGarment,
-              faceCropBase64: preExtractedFaceCrops?.[candidateIndex],
-              prompt: smartPrompt,
-              aspectRatio: payload.aspectRatio || '4:5',
-              model: directRenderModel,
-            })
-            break // success
-          } catch (genError) {
-            lastGenerationError = genError instanceof Error ? genError.message : 'Generation failed'
-            if (isDev) console.warn(`⚠️ Generation attempt ${genAttempt + 1} failed: ${lastGenerationError}`)
-
-            // Don't retry on rate limits — the executor already handles retries for 429
-            if (lastGenerationError.includes('rate limit') || lastGenerationError.includes('429')) {
-              break
-            }
-            // Always log generation errors (not just in dev) so silent failures are visible
-            console.error(`[tryon] generation attempt ${genAttempt + 1} failed: ${lastGenerationError}`)
-          }
-        }
-
-        if (!generatedImage) {
-          throw new Error(lastGenerationError || 'All generation attempts failed')
-        }
-
-        // Skip heavy QA validation if we're running low on time
-        const remainingMs = deadlineMs - (Date.now() - pipelineStartTime)
-        const shouldSkipQa = TRYON_OUTPUT_QA_MODE === 'off' || remainingMs < 100_000
-        if (shouldSkipQa) console.warn(`⏩ Skipping QA (mode=${TRYON_OUTPUT_QA_MODE}, remaining=${Math.round(remainingMs / 1000)}s)`)
-
-        const validation = shouldSkipQa
-          ? { qualityAssessment: null, garmentValidation: null, warnings: ['qa_skipped_deadline'] as string[] }
-          : await validateGeneratedOutputStrict({
-              qaMode: TRYON_OUTPUT_QA_MODE,
-              referenceImageBase64,
-              generatedImageBase64: generatedImage,
-              garmentImageBase64: processedGarment,
-              garmentClassification,
-            })
-
-        if (isDev) {
-          if (validation.qualityAssessment) {
-            console.log(
-              `🛡️ Output accepted by QA: ${formatQualityGateScores(validation.qualityAssessment.scores)}`
-            )
-          } else {
-            console.log('🛡️ Output accepted by fallback QA path (primary quality assessment unavailable)')
-          }
-          if (validation.garmentValidation && garmentClassificationSummary) {
-            console.log(
-              `   Garment guardrail: expected ${garmentClassificationSummary.category}/${garmentClassificationSummary.hemline}, actual ${validation.garmentValidation.details.actual_type}/${validation.garmentValidation.details.actual_hemline}`
-            )
-          }
-          if (validation.warnings.length > 0) {
-            console.log(`   Validator warnings: ${validation.warnings.join(' | ')}`)
-          }
-        }
 
         // Save to storage
         let outputImagePath = generatedImage
@@ -975,56 +876,37 @@ async function handlePresetlessTryOnRequest(params: {
           const cleanBase64 = generatedImage.replace(/^data:image\/[a-z+]+;base64,/, '')
           const storedUrl = await saveUpload(
             cleanBase64,
-            `tryon/${userId}/${job.id}/${outputSlot}-${photo.id}.png`,
+            `tryon/${userId}/${job.id}/${idx + 1}-${photo.id}.png`,
             'try-ons'
           )
-          if (storedUrl) {
-            outputImagePath = storedUrl
-          }
+          if (storedUrl) outputImagePath = storedUrl
         } catch (storageError) {
-          console.error('[tryon] failed to store output, keeping base64 fallback:', storageError)
+          console.error(`[tryon] storage failed for slot ${idx + 1}, using base64 fallback:`, storageError)
         }
 
-        if (isDev) console.log(`✅ Generation filled slot ${outputSlot}`)
+        if (isDev) console.log(`✅ Gen ${idx + 1} complete → slot ${idx + 1}`)
+        return { photo, outputImagePath, slot: idx + 1 }
+      })
+    )
 
+    // Collect results
+    for (const result of generationResults) {
+      if (result.status === 'fulfilled') {
+        const { photo, outputImagePath, slot } = result.value
         successfulOutputs.push({
           referenceImageId: photo.id,
           status: 'completed',
           outputImagePath,
-          label: `Source ${outputSlot}`,
-          validation: {
-            qualityScores: validation.qualityAssessment?.scores,
-            warnings: validation.warnings,
-            garmentGuardrail: validation.garmentValidation
-              && garmentClassificationSummary
-              ? {
-                  isValid: validation.garmentValidation.is_valid,
-                  recommendation: validation.garmentValidation.recommendation,
-                  issues: validation.garmentValidation.issues,
-                  expectedType: garmentClassificationSummary.category,
-                  actualType: validation.garmentValidation.details.actual_type,
-                  expectedHemline: garmentClassificationSummary.hemline,
-                  actualHemline: validation.garmentValidation.details.actual_hemline,
-                }
-              : undefined,
-          },
+          label: `Source ${slot}`,
+          validation: { qualityScores: undefined, warnings: ['qa_skipped_parallel'], garmentGuardrail: undefined },
         })
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Generation failed'
-        failedAttempts.push({
-          referenceImageId: photo.id,
-          error: message,
-        })
-        if (isDev) console.error(`❌ Generation attempt ${candidateIndex + 1} failed:`, message)
-
-        // If rate-limited, add an extra cooldown before the next attempt
-        if (error instanceof GeminiRateLimitError) {
-          const extraCooldown = Math.min(error.retryAfterMs || 5_000, 5_000)
-          if (isDev) console.log(`⏳ Rate limit cooldown: waiting ${(extraCooldown / 1000).toFixed(1)}s before next candidate...`)
-          await sleep(extraCooldown)
-        }
+      } else {
+        const message = result.reason instanceof Error ? result.reason.message : 'Generation failed'
+        console.error(`[tryon] parallel generation failed:`, message)
+        failedAttempts.push({ referenceImageId: 'unknown', error: message })
       }
     }
+
 
     const outputs: PresetlessPersistedOutput[] = [...successfulOutputs]
 
