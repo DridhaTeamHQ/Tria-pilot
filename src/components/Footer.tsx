@@ -2,9 +2,9 @@ import Link from "next/link";
 
 export default function Footer() {
     return (
-        <footer className="bg-[var(--brutal-cream)] py-16">
-            <div className="mx-auto max-w-7xl px-6 md:px-8">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-10 md:gap-12">
+        <footer className="bg-[var(--brutal-cream)] py-12 sm:py-16">
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
+                <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-4 md:gap-12">
                     <div className="space-y-4">
                         <h3 className="kiwikoo-wordmark text-xl font-black text-black">Kiwikoo</h3>
                         <p className="text-sm text-black/70 font-bold leading-relaxed max-w-xs">
@@ -97,7 +97,7 @@ export default function Footer() {
                     </div>
                 </div>
 
-                <div className="mt-16 pt-8 border-t-[4px] border-black flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-bold text-black/60">
+                <div className="mt-10 flex flex-col items-start justify-between gap-3 border-t-[4px] border-black pt-6 text-xs font-bold text-black/60 sm:mt-16 sm:items-center sm:gap-4 md:flex-row">
                     <p>&copy; 2026 Kiwikoo. All rights reserved.</p>
                     <div className="flex gap-4">
                         <span>English (US)</span>

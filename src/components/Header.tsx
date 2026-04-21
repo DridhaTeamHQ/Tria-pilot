@@ -166,13 +166,13 @@ export default function Header() {
         <header
             className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${headerStyle}`}
         >
-            <div className="container mx-auto px-6">
-                <div className="flex items-center justify-between h-20">
+            <div className="mx-auto w-full max-w-7xl px-3 sm:px-5 lg:px-6">
+                <div className="flex h-16 items-center justify-between sm:h-18 lg:h-20">
                     {/* Logo */}
                     <Link
                         href="/"
                         prefetch={true}
-                        className={`kiwikoo-wordmark text-2xl transition-colors ${logoColor}`}
+                        className={`kiwikoo-wordmark text-[1.65rem] transition-colors sm:text-2xl ${logoColor}`}
                         data-cursor="Home"
                     >
                         Kiwikoo
@@ -262,7 +262,7 @@ export default function Header() {
 
                         {/* Mobile Menu Toggle */}
                         <button type="button"
-                            className={`lg:hidden p-2 rounded-lg transition-colors ${isHomePage && !scrolled ? 'hover:bg-white/10 text-white' : 'hover:bg-charcoal/5 text-charcoal'}`}
+                            className={`lg:hidden rounded-xl border-2 border-black bg-white p-2.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-colors ${isHomePage && !scrolled ? 'text-charcoal hover:bg-white/90' : 'text-charcoal hover:bg-charcoal/5'}`}
                             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                         >
                             {mobileMenuOpen ? (
@@ -285,14 +285,14 @@ export default function Header() {
                         transition={{ duration: 0.2 }}
                         className="lg:hidden bg-cream/95 backdrop-blur-md border-t border-subtle"
                     >
-                        <div className="container mx-auto px-6 py-6 space-y-3">
+                        <div className="mx-auto w-full max-w-7xl px-4 py-4 space-y-3 sm:px-5">
                             {authResolving ? null : isLoggedIn ? (
                                 <>
                                     {/* User Info */}
                                     <Link
                                         href={profileHref}
                                         onClick={() => setMobileMenuOpen(false)}
-                                        className="flex items-center gap-3 pb-4 border-b border-subtle"
+                                        className="flex items-center gap-3 border-b border-subtle pb-4"
                                     >
                                         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-peach to-orange-300 flex items-center justify-center text-charcoal font-semibold text-lg">
                                             {userInitial}
@@ -312,9 +312,9 @@ export default function Header() {
                                                 href={link.href}
                                                 prefetch={true}
                                                 onClick={() => setMobileMenuOpen(false)}
-                                                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isActive(link.href)
+                                                className={`flex items-center gap-3 rounded-xl border-2 border-black/10 px-4 py-3 transition-colors ${isActive(link.href)
                                                     ? 'bg-charcoal text-cream'
-                                                    : 'text-charcoal/70 hover:bg-charcoal/5'
+                                                    : 'bg-white/70 text-charcoal/70 hover:bg-charcoal/5'
                                                     }`}
                                             >
                                                 <Icon className="w-5 h-5" />
@@ -351,7 +351,7 @@ export default function Header() {
                                             href="/login"
                                             prefetch={true}
                                             onClick={() => setMobileMenuOpen(false)}
-                                            className="block w-full py-3 text-center text-charcoal font-medium rounded-full border border-subtle hover:bg-charcoal/5 transition-colors"
+                                            className="block w-full rounded-full border-2 border-black bg-white py-3 text-center font-medium text-charcoal shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-colors hover:bg-charcoal/5"
                                         >
                                             Log In
                                         </Link>
@@ -359,7 +359,7 @@ export default function Header() {
                                             href="/register"
                                             prefetch={true}
                                             onClick={() => setMobileMenuOpen(false)}
-                                            className="block w-full py-3 text-center bg-charcoal text-cream font-medium rounded-full hover:bg-charcoal/90 transition-colors"
+                                            className="block w-full rounded-full border-2 border-black bg-charcoal py-3 text-center font-medium text-cream shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-colors hover:bg-charcoal/90"
                                         >
                                             Get Started
                                         </Link>
