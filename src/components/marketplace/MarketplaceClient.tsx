@@ -115,12 +115,12 @@ export default function MarketplaceClient({ products, categories, activeCategory
     }, [])
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-cream via-cream to-white pt-24 pb-16">
+        <div className="min-h-screen bg-gradient-to-b from-cream via-cream to-white pb-16 pt-20 sm:pt-24">
             <div className="container mx-auto px-4 sm:px-6">
                 {/* Header */}
-                <div className="mb-10 animate-fade-in">
+                <div className="mb-8 animate-fade-in sm:mb-10">
                     <div className="mb-8 grid grid-cols-1 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] items-stretch gap-3 sm:gap-4 xl:gap-5">
-                        <div className="relative h-full overflow-hidden rounded-[28px] border-[3px] border-black bg-white p-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:p-6">
+                        <div className="relative h-full overflow-hidden rounded-[24px] border-[3px] border-black bg-white p-4 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] sm:rounded-[28px] sm:p-6 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
                             <div className="relative z-10">
                                 <div className="mb-3 flex items-center gap-2 sm:mb-4 sm:gap-3">
                                     <div className="flex h-8 w-8 items-center justify-center border-[2px] border-black bg-[#FFD93D] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:h-10 sm:w-10">
@@ -138,7 +138,7 @@ export default function MarketplaceClient({ products, categories, activeCategory
                             <div className="absolute right-0 top-0 z-0 h-32 w-32 rounded-bl-full border-b-[3px] border-l-[3px] border-black bg-gray-100 opacity-50 -mr-[3px] -mt-[3px]" />
                         </div>
 
-                        <div className="min-h-[212px] overflow-hidden rounded-[26px] border-[3px] border-black bg-white p-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:min-h-[260px] sm:p-5 xl:h-full">
+                        <div className="min-h-[212px] overflow-hidden rounded-[22px] border-[3px] border-black bg-white p-4 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] sm:min-h-[260px] sm:rounded-[26px] sm:p-5 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] xl:h-full">
                             <div className="h-full">
                                 <div className={`relative flex h-full flex-col justify-between overflow-hidden rounded-[24px] border-[3px] border-black bg-gradient-to-br ${DUMMY_CAMPAIGNS[activeCampaign].surface} p-3.5 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] sm:p-4`}>
                                     <div className={`absolute -right-10 -top-10 h-36 w-36 rounded-full blur-2xl ${DUMMY_CAMPAIGNS[activeCampaign].glow}`} />
@@ -179,7 +179,7 @@ export default function MarketplaceClient({ products, categories, activeCategory
                         <span className="text-sm text-charcoal/40">Filter by category</span>
                     </div>
 
-                    <div className="flex flex-wrap gap-2.5">
+                    <div className="flex flex-wrap gap-2">
                         {categories.map((category) => {
                             const categoryValue = category === 'All Products' ? 'all' : category.toLowerCase()
                             const isActive = activeCategory === categoryValue
@@ -191,7 +191,7 @@ export default function MarketplaceClient({ products, categories, activeCategory
                                     data-cursor={isActive ? '' : 'Select'}
                                 >
                                     <span
-                                        className={`inline-block rounded-full border-[3px] px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${isActive
+                                        className={`inline-block rounded-full border-[3px] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.08em] transition-all duration-200 cursor-pointer sm:px-4 sm:text-xs sm:tracking-wider ${isActive
                                             ? 'bg-[#FFD93D] text-black border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -translate-y-1'
                                             : 'bg-white border-black text-charcoal hover:bg-gray-50 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1'
                                             }`}
@@ -231,7 +231,7 @@ export default function MarketplaceClient({ products, categories, activeCategory
                         <button
                             type="button"
                             onClick={applySearch}
-                            className="inline-flex items-center justify-center gap-2 rounded-xl border-[3px] border-black bg-[#FFD93D] px-5 py-3 text-sm font-black uppercase tracking-[0.08em] text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border-[3px] border-black bg-[#FFD93D] px-5 py-3 text-sm font-black uppercase tracking-[0.08em] text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] lg:w-auto"
                         >
                             <Search className="h-4 w-4" />
                             Search

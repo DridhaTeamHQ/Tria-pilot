@@ -28,9 +28,9 @@ const PF = 'var(--font-plus-jakarta-sans), sans-serif'
 
 export default function LandingPage() {
   return (
-    <div className="bg-[#f7eee4] px-3 pb-8 pt-[88px] text-[#111111] sm:px-4 lg:px-6 lg:pt-[104px] overflow-x-hidden" style={{ fontFamily: PF }}>
-      <div className="mx-auto max-w-[1320px] overflow-hidden rounded-[34px] border-[3px] border-black bg-[#fbfaf6] shadow-[10px_10px_0_0_rgba(0,0,0,1)]">
-        <section className="relative overflow-hidden px-5 py-6 sm:px-8 lg:px-10 lg:py-10">
+    <div className="overflow-x-clip bg-[#f7eee4] px-2 pb-6 pt-[84px] text-[#111111] sm:px-4 sm:pb-8 lg:px-6 lg:pt-[104px]" style={{ fontFamily: PF }}>
+      <div className="mx-auto w-full max-w-[1320px] overflow-hidden rounded-[24px] border-[3px] border-black bg-[#fbfaf6] shadow-[6px_6px_0_0_rgba(0,0,0,1)] sm:rounded-[30px] sm:shadow-[8px_8px_0_0_rgba(0,0,0,1)] lg:rounded-[34px] lg:shadow-[10px_10px_0_0_rgba(0,0,0,1)]">
+        <section className="relative overflow-hidden px-4 py-5 sm:px-8 sm:py-6 lg:px-10 lg:py-10">
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(17,17,17,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(17,17,17,0.06)_1px,transparent_1px)] bg-[size:42px_42px]" />
           <div className="pointer-events-none absolute inset-y-0 left-0 w-[28%] bg-[radial-gradient(circle_at_22%_62%,rgba(255,140,120,0.18),transparent_52%)]" />
           <div className="pointer-events-none absolute inset-y-0 right-0 w-[34%] bg-[radial-gradient(circle_at_35%_40%,rgba(203,255,46,0.16),transparent_46%)]" />
@@ -40,17 +40,17 @@ export default function LandingPage() {
             KIWIKOO
           </div>
 
-          <div className="relative z-10 grid gap-10 lg:grid-cols-[1.02fr_0.98fr] lg:items-center">
+          <div className="relative z-10 grid gap-8 lg:grid-cols-[1.02fr_0.98fr] lg:items-center">
             <div className="max-w-[620px] pt-1 text-center lg:pt-3 lg:text-left">
-              <h1 className="mt-3 text-[clamp(3.3rem,7vw,6.2rem)] font-black uppercase leading-[0.9] tracking-[-0.07em] text-black">
+              <h1 className="mt-2 text-[clamp(2.7rem,12vw,6.2rem)] font-black uppercase leading-[0.9] tracking-[-0.07em] text-black sm:mt-3">
                 Where Fashion
                 <br />
                 Meets <span className="text-[#ff8c78]">AI.</span>
               </h1>
-              <p className="mt-6 max-w-[560px] text-[18px] leading-8 text-black/68 max-lg:mx-auto">
+              <p className="mt-4 max-w-[560px] text-[16px] leading-7 text-black/68 max-lg:mx-auto sm:mt-6 sm:text-[18px] sm:leading-8">
                 The easiest way for creators and brands to create, launch, and convert with AI-powered fashion tools.
               </p>
-              <div className="mt-8 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-3 sm:mt-8 lg:justify-start">
                 <Link
                   href="/signup/influencer"
                   className="group relative inline-flex h-auto min-h-[56px] sm:min-h-[72px] w-full sm:w-auto sm:min-w-[210px] items-center justify-center overflow-hidden rounded-[16px] border-[3px] border-black bg-[#FF8C69] px-5 py-3 text-[16px] font-black text-black shadow-[5px_5px_0_0_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
@@ -82,7 +82,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="group relative mx-auto w-full max-w-[520px]">
+            <div className="group relative mx-auto w-full max-w-[420px] sm:max-w-[520px]">
               <div className="absolute -left-2 top-12 z-20 rounded-[22px] border-[3px] border-black bg-[#FFD93D] px-4 py-4 shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition-transform duration-300 group-hover:-translate-y-2 group-hover:rotate-[-8deg] sm:-left-5 hidden sm:block">
                 <Zap className="h-8 w-8 text-black" strokeWidth={2.4} />
               </div>
@@ -93,16 +93,16 @@ export default function LandingPage() {
                 <Star className="h-7 w-7 text-black" strokeWidth={2.4} />
               </div>
 
-              <div className="relative min-h-[320px] sm:min-h-[500px]">
+              <div className="relative min-h-[280px] sm:min-h-[500px]">
                 <div className="absolute inset-x-[16%] inset-y-[12%] rounded-[30px] border-[3px] border-black bg-[linear-gradient(180deg,#fff7ec_0%,#f6ffd9_100%)] shadow-[7px_7px_0_0_rgba(0,0,0,1)] transition-transform duration-500 group-hover:scale-[1.01]" />
                 <div className="pointer-events-none absolute inset-x-[20%] inset-y-[18%] rounded-[26px] bg-[radial-gradient(circle_at_25%_30%,rgba(255,140,120,0.2),transparent_38%),radial-gradient(circle_at_78%_28%,rgba(203,255,46,0.18),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.75),rgba(255,247,232,0.45))]" />
-                <div className="absolute bottom-5 right-0 z-10 w-[220px] rotate-[7deg] rounded-[26px] border-[3px] border-black bg-white p-3 shadow-[7px_7px_0_0_rgba(0,0,0,1)] transition-transform duration-300 group-hover:translate-y-1 group-hover:rotate-[10deg] sm:w-[250px]">
-                  <div className="relative h-[170px] overflow-hidden rounded-[18px] bg-[#fff6f2] sm:h-[190px]">
+                <div className="absolute bottom-4 right-1 z-10 w-[170px] rotate-[5deg] rounded-[22px] border-[3px] border-black bg-white p-2.5 shadow-[5px_5px_0_0_rgba(0,0,0,1)] transition-transform duration-300 group-hover:translate-y-1 group-hover:rotate-[8deg] sm:bottom-5 sm:right-0 sm:w-[250px] sm:rotate-[7deg] sm:rounded-[26px] sm:p-3 sm:shadow-[7px_7px_0_0_rgba(0,0,0,1)]">
+                  <div className="relative h-[132px] overflow-hidden rounded-[16px] bg-[#fff6f2] sm:h-[190px] sm:rounded-[18px]">
                     <Image
                       src="/landing/hero-brand.png"
                       alt="Brand setup"
                       fill
-                      sizes="(min-width: 1024px) 250px, 220px"
+                      sizes="(min-width: 1024px) 250px, 170px"
                       className="object-contain object-center"
                       priority
                     />
@@ -114,13 +114,13 @@ export default function LandingPage() {
                       src="/landing/hero-influencer.png"
                       alt="Creator"
                       fill
-                      sizes="(min-width: 1024px) 420px, 70vw"
+                      sizes="(min-width: 1024px) 420px, 78vw"
                       className="object-contain object-bottom drop-shadow-[0_18px_28px_rgba(0,0,0,0.18)] transition-transform duration-500 group-hover:scale-[1.03]"
                       priority
                     />
                   </div>
                 </div>
-                <div className="absolute bottom-4 left-1/2 z-10 flex w-max -translate-x-1/2 items-center gap-2 rounded-full border-[3px] border-black bg-white px-5 py-2 text-[12px] font-black uppercase tracking-[0.08em] text-black shadow-[5px_5px_0_0_rgba(0,0,0,1)] transition-transform duration-300 group-hover:-translate-y-1 sm:bottom-5">
+                <div className="absolute bottom-3 left-1/2 z-10 flex max-w-[calc(100%-1rem)] -translate-x-1/2 items-center gap-2 rounded-full border-[3px] border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.08em] text-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition-transform duration-300 group-hover:-translate-y-1 sm:bottom-5 sm:w-max sm:px-5 sm:text-[12px] sm:shadow-[5px_5px_0_0_rgba(0,0,0,1)]">
                   <span className="h-2.5 w-2.5 rounded-full bg-[#cbff2e]" />
                   Fashion AI studio
                 </div>
@@ -129,7 +129,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="creator-brand-paths" className="border-t-[3px] border-black bg-white px-5 py-12 sm:px-8 lg:px-10 lg:py-14">
+        <section id="creator-brand-paths" className="border-t-[3px] border-black bg-white px-4 py-10 sm:px-8 sm:py-12 lg:px-10 lg:py-14">
           <div className="text-center">
             <h2 className="text-[clamp(2.35rem,5vw,3.8rem)] font-black leading-[0.95] tracking-[-0.05em] text-black">
               Built for Creators and Brands
@@ -156,7 +156,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="what-you-get" className="relative overflow-hidden border-t-[3px] border-black bg-[linear-gradient(180deg,#fffaf6_0%,#fff7fb_45%,#f9fff4_100%)] px-5 py-12 sm:px-8 lg:px-10 lg:py-14">
+        <section id="what-you-get" className="relative overflow-hidden border-t-[3px] border-black bg-[linear-gradient(180deg,#fffaf6_0%,#fff7fb_45%,#f9fff4_100%)] px-4 py-10 sm:px-8 sm:py-12 lg:px-10 lg:py-14">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_18%,rgba(255,90,169,0.12),transparent_22%),radial-gradient(circle_at_86%_22%,rgba(137,166,255,0.12),transparent_24%),radial-gradient(circle_at_50%_82%,rgba(203,255,46,0.1),transparent_26%)]" />
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(17,17,17,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(17,17,17,0.04)_1px,transparent_1px)] bg-[size:42px_42px] opacity-35" />
 
@@ -198,7 +198,7 @@ export default function LandingPage() {
             viewport={{ once: true, amount: 0.2 }}
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: 0.08 }}
           >
-            <div className="rounded-[28px] border-[3px] border-black bg-[#fffdf7] p-6 shadow-[6px_6px_0_0_rgba(0,0,0,1)]">
+            <div className="rounded-[24px] border-[3px] border-black bg-[#fffdf7] p-5 shadow-[5px_5px_0_0_rgba(0,0,0,1)] sm:rounded-[28px] sm:p-6 sm:shadow-[6px_6px_0_0_rgba(0,0,0,1)]">
               <MiniPill label="For creators + brands" />
               <div className="mt-6">
                 <div className="text-[clamp(2rem,3.6vw,3rem)] font-black leading-[0.94] tracking-[-0.05em] text-black">
@@ -231,7 +231,7 @@ export default function LandingPage() {
           </motion.div>
         </section>
 
-        <section id="why-kiwikoo" className="border-t-[3px] border-black bg-[#fbfaf6] px-5 py-12 sm:px-8 lg:px-10 lg:py-14">
+        <section id="why-kiwikoo" className="border-t-[3px] border-black bg-[#fbfaf6] px-4 py-10 sm:px-8 sm:py-12 lg:px-10 lg:py-14">
           <div className="text-center">
             <h2 className="text-[clamp(2.35rem,5vw,3.8rem)] font-black leading-[0.95] tracking-[-0.05em] text-black">
               Why Kiwikoo
@@ -263,7 +263,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="relative overflow-hidden border-t-[3px] border-black bg-[#ff8c78] px-5 py-6 sm:px-8 lg:px-10">
+        <section className="relative overflow-hidden border-t-[3px] border-black bg-[#ff8c78] px-4 py-5 sm:px-8 sm:py-6 lg:px-10">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_50%,rgba(255,255,255,0.22),transparent_16%),radial-gradient(circle_at_90%_50%,rgba(255,255,255,0.18),transparent_18%)]" />
           <div className="relative flex flex-wrap items-center justify-center gap-3 text-center text-black sm:gap-5">
             <BandWord label="Create" />
@@ -274,7 +274,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <footer className="border-t-[3px] border-black bg-[#fbfaf6] px-5 py-10 sm:px-8 lg:px-10">
+        <footer className="border-t-[3px] border-black bg-[#fbfaf6] px-4 py-8 sm:px-8 sm:py-10 lg:px-10">
           <div className="flex flex-col gap-8">
             <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
               <div className="flex items-center gap-3">
@@ -356,11 +356,11 @@ function MetricChip({
 
   return (
     <motion.div
-      className={`rounded-[18px] border-[3px] border-black ${toneStyles} p-3.5 shadow-[4px_4px_0_0_rgba(0,0,0,1)]`}
+      className={`rounded-[16px] border-[3px] border-black ${toneStyles} p-3 shadow-[3px_3px_0_0_rgba(0,0,0,1)] sm:rounded-[18px] sm:p-3.5 sm:shadow-[4px_4px_0_0_rgba(0,0,0,1)]`}
       whileHover={{ y: -2 }}
       transition={{ duration: 0.2 }}
     >
-      <div className="text-[24px] font-black leading-none tracking-[-0.05em] text-black">{value}</div>
+      <div className="text-[22px] font-black leading-none tracking-[-0.05em] text-black sm:text-[24px]">{value}</div>
       <div className="mt-1.5 text-[10px] font-black uppercase leading-4 tracking-[0.12em] text-black/65">{label}</div>
     </motion.div>
   )
@@ -396,12 +396,12 @@ function GlassFeatureStack() {
 
   return (
     <div className="mx-auto w-full max-w-[1100px]">
-      <div className="group relative flex flex-col items-center gap-5 lg:min-h-[320px] lg:flex-row lg:justify-center lg:pt-2">
+      <div className="group relative flex flex-col items-center gap-4 sm:gap-5 lg:min-h-[320px] lg:flex-row lg:justify-center lg:pt-2">
         <div className="pointer-events-none absolute inset-x-0 top-4 hidden h-[200px] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.72)_0%,rgba(255,255,255,0.12)_58%,transparent_78%)] blur-2xl lg:block" />
       {cards.map((card, index) => (
         <motion.div
           key={card.title}
-          className={`relative z-10 h-[270px] w-full max-w-[310px] overflow-hidden rounded-[28px] border border-white/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.68),rgba(255,255,255,0.34))] p-6 shadow-[0_26px_50px_rgba(0,0,0,0.14)] backdrop-blur-[14px] transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] lg:h-[290px] lg:w-[260px] lg:max-w-none lg:mx-[-42px] lg:group-hover:mx-[14px] lg:group-hover:rotate-0 ${card.rotateClass}`}
+          className={`relative z-10 h-[250px] w-full max-w-[310px] overflow-hidden rounded-[24px] border border-white/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.68),rgba(255,255,255,0.34))] p-5 shadow-[0_18px_34px_rgba(0,0,0,0.12)] backdrop-blur-[14px] transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] sm:h-[270px] sm:rounded-[28px] sm:p-6 sm:shadow-[0_26px_50px_rgba(0,0,0,0.14)] lg:h-[290px] lg:w-[260px] lg:max-w-none lg:mx-[-42px] lg:group-hover:mx-[14px] lg:group-hover:rotate-0 ${card.rotateClass}`}
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.3 }}
@@ -415,12 +415,12 @@ function GlassFeatureStack() {
               <div className={`inline-flex h-11 w-11 items-center justify-center rounded-[14px] bg-gradient-to-br ${card.accent} shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]`}>
                 {card.icon}
               </div>
-              <div className="mt-6 text-[12px] font-black uppercase tracking-[0.14em] text-black/42">{card.label}</div>
-              <div className="mt-2 text-[30px] font-black leading-[0.94] tracking-[-0.06em] lg:text-[31px]">{card.title}</div>
+              <div className="mt-5 text-[11px] font-black uppercase tracking-[0.14em] text-black/42 sm:mt-6 sm:text-[12px]">{card.label}</div>
+              <div className="mt-2 text-[26px] font-black leading-[0.94] tracking-[-0.06em] sm:text-[30px] lg:text-[31px]">{card.title}</div>
             </div>
 
             <div>
-              <div className="max-w-[240px] text-[14px] leading-7 text-black/55 lg:max-w-[210px] lg:text-[14px]">{card.description}</div>
+              <div className="max-w-[240px] text-[13px] leading-6 text-black/55 sm:text-[14px] sm:leading-7 lg:max-w-[210px] lg:text-[14px]">{card.description}</div>
               <div className="mt-5 flex justify-end border-t border-black/10 pt-4">
                 <div className="relative h-8 w-[96px] overflow-hidden rounded-full border border-black/10 bg-white/35">
                   <span className={`absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-gradient-to-br ${card.accent} opacity-90`} />
@@ -452,7 +452,7 @@ function InsightPill({
 
   return (
     <motion.div
-      className={`flex items-start gap-3 rounded-[18px] border-[3px] border-black ${toneClass} p-3.5 shadow-[4px_4px_0_0_rgba(0,0,0,1)]`}
+      className={`flex items-start gap-3 rounded-[16px] border-[3px] border-black ${toneClass} p-3 shadow-[3px_3px_0_0_rgba(0,0,0,1)] sm:rounded-[18px] sm:p-3.5 sm:shadow-[4px_4px_0_0_rgba(0,0,0,1)]`}
       whileHover={{ x: 2 }}
       transition={{ duration: 0.2 }}
     >
@@ -469,7 +469,7 @@ function InsightPill({
 
 function VibeBoard() {
   return (
-    <div className="grid gap-10 lg:grid-cols-[0.72fr_1.28fr] lg:items-center">
+    <div className="grid gap-8 sm:gap-10 lg:grid-cols-[0.72fr_1.28fr] lg:items-center">
       <motion.div
         className="relative flex justify-center lg:justify-start"
         initial={{ opacity: 0, x: -18 }}
@@ -492,7 +492,7 @@ function VibeBoard() {
           <br />
           Analytics
         </h3>
-        <div className="mt-7 max-w-[560px] border-l-[4px] border-black pl-5 text-[17px] leading-[1.8] text-black/58">
+        <div className="mt-5 max-w-[560px] border-l-[4px] border-black pl-4 text-[15px] leading-7 text-black/58 sm:mt-7 sm:pl-5 sm:text-[17px] sm:leading-[1.8]">
           Stop guessing. Start knowing. Our analytics engine gives creators and brands the structural insights they need in milliseconds.
         </div>
 
@@ -606,7 +606,7 @@ function EditorialFeatureRow({
 }) {
   return (
     <motion.div
-      className="flex items-center gap-3 rounded-[4px] border-[3px] border-black bg-[#f4f4f4] px-5 py-4 shadow-[4px_4px_0_0_rgba(0,0,0,1)]"
+      className="flex items-center gap-3 rounded-[4px] border-[3px] border-black bg-[#f4f4f4] px-4 py-3.5 shadow-[3px_3px_0_0_rgba(0,0,0,1)] sm:px-5 sm:py-4 sm:shadow-[4px_4px_0_0_rgba(0,0,0,1)]"
       whileHover={{ x: 2 }}
       transition={{ duration: 0.2 }}
     >
@@ -644,13 +644,13 @@ function PathPanel({
       style={{ perspective: '900px' }}
     >
       <div
-        className="relative flex h-full flex-col overflow-hidden border-[3px] border-black p-7 transition-transform duration-500 ease-out sm:p-8 group-hover:[transform:rotateY(-2deg)_rotateX(2deg)_scale(1.02)]"
+        className="relative flex h-full flex-col overflow-hidden border-[3px] border-black p-5 transition-transform duration-500 ease-out sm:p-8 group-hover:[transform:rotateY(-2deg)_rotateX(2deg)_scale(1.02)]"
         style={{
           borderRadius: '48px 48px 12px 48px',
           background: isCoral
             ? 'linear-gradient(145deg, #ff8c78 0%, #ffb89e 40%, #ffe8de 100%)'
             : 'linear-gradient(145deg, #cbff2e 0%, #e2ff80 40%, #f4ffe0 100%)',
-          boxShadow: `8px 8px 0 0 rgba(0,0,0,1), inset 0 -60px 80px -40px rgba(0,0,0,0.08)`,
+          boxShadow: `5px 5px 0 0 rgba(0,0,0,1), inset 0 -60px 80px -40px rgba(0,0,0,0.08)`,
           transformStyle: 'preserve-3d',
         }}
       >
@@ -670,17 +670,17 @@ function PathPanel({
           {label}
         </div>
 
-        <div className="mt-7 flex flex-1 flex-col">
-          <h3 className="min-h-[3.15em] whitespace-pre-line text-[clamp(2rem,3vw,3rem)] font-black leading-[1.03] tracking-[-0.05em] text-black">
+        <div className="mt-6 flex flex-1 flex-col sm:mt-7">
+          <h3 className="min-h-[3.15em] whitespace-pre-line text-[clamp(1.75rem,8vw,3rem)] font-black leading-[1.03] tracking-[-0.05em] text-black">
             {title}
           </h3>
-          <p className="mt-4 max-w-[520px] text-[17px] leading-8 text-black/60">{body}</p>
+          <p className="mt-4 max-w-[520px] text-[15px] leading-7 text-black/60 sm:text-[17px] sm:leading-8">{body}</p>
         </div>
 
         {/* CTA */}
         <Link
           href={href}
-          className="mt-8 inline-flex items-center justify-center gap-2.5 self-start rounded-full border-[3px] border-black bg-black px-7 py-3.5 text-[14px] font-black uppercase tracking-[0.06em] text-white shadow-[4px_4px_0_0_rgba(0,0,0,0.3)] transition-all duration-300 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+          className="mt-7 inline-flex items-center justify-center gap-2.5 self-start rounded-full border-[3px] border-black bg-black px-6 py-3 text-[13px] font-black uppercase tracking-[0.06em] text-white shadow-[3px_3px_0_0_rgba(0,0,0,0.3)] transition-all duration-300 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none sm:mt-8 sm:px-7 sm:py-3.5 sm:text-[14px] sm:shadow-[4px_4px_0_0_rgba(0,0,0,0.3)]"
         >
           {cta}
           <ArrowRight className="h-4 w-4" strokeWidth={2.7} />
@@ -709,14 +709,14 @@ function WhyCard({
   body: string
 }) {
   return (
-    <div className="group rounded-[24px] border-[3px] border-black bg-white p-6 shadow-[8px_8px_0_0_rgba(0,0,0,1)] transition-transform duration-300 hover:-translate-y-1">
-      <div className="flex items-start gap-5">
-        <div className={`inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px] border-[3px] border-black ${tone === 'coral' ? 'bg-[#ff8c78]' : 'bg-[#cbff2e]'} shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition-transform duration-300 group-hover:rotate-[-8deg]`}>
+    <div className="group rounded-[20px] border-[3px] border-black bg-white p-5 shadow-[5px_5px_0_0_rgba(0,0,0,1)] transition-transform duration-300 hover:-translate-y-1 sm:rounded-[24px] sm:p-6 sm:shadow-[8px_8px_0_0_rgba(0,0,0,1)]">
+      <div className="flex items-start gap-4 sm:gap-5">
+        <div className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] border-[3px] border-black ${tone === 'coral' ? 'bg-[#ff8c78]' : 'bg-[#cbff2e]'} shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition-transform duration-300 group-hover:rotate-[-8deg] sm:h-14 sm:w-14 sm:rounded-[16px] sm:shadow-[4px_4px_0_0_rgba(0,0,0,1)]`}>
           {icon}
         </div>
         <div className="flex-1">
-          <div className="text-[24px] font-black leading-[1.02] tracking-[-0.04em] text-black">{title}</div>
-          <p className="mt-3 text-[17px] leading-8 text-black/60">{body}</p>
+          <div className="text-[22px] font-black leading-[1.02] tracking-[-0.04em] text-black sm:text-[24px]">{title}</div>
+          <p className="mt-3 text-[15px] leading-7 text-black/60 sm:text-[17px] sm:leading-8">{body}</p>
         </div>
       </div>
     </div>

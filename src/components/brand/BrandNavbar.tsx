@@ -78,11 +78,11 @@ export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: B
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#F9F8F4] border-b-[3px] border-black">
-      <div className="w-full max-w-[2000px] mx-auto px-3 sm:px-5 lg:px-6 xl:px-8">
-        <div className="grid h-14 grid-cols-[auto_1fr_auto] items-center gap-2 lg:h-16 lg:gap-4">
+      <div className="mx-auto w-full max-w-[2000px] px-3 sm:px-5 lg:px-6 xl:px-8">
+        <div className="grid h-14 grid-cols-[auto_1fr_auto] items-center gap-2 sm:h-15 lg:h-16 lg:gap-4">
           <Link
             href="/brand/dashboard"
-            className="kiwikoo-wordmark text-[2rem] md:text-[1.9rem] lg:text-[2.1rem] font-black text-black hover:text-[#B4F056] transition-colors shrink-0 leading-none"
+            className="kiwikoo-wordmark shrink-0 text-[1.6rem] font-black leading-none text-black transition-colors hover:text-[#B4F056] sm:text-[1.85rem] lg:text-[2.1rem]"
           >
             Kiwikoo
           </Link>
@@ -135,7 +135,7 @@ export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: B
 
           <button
             type="button"
-            className="lg:hidden p-2 rounded-xl border-2 border-black bg-white hover:bg-gray-50 transition-colors"
+            className="lg:hidden rounded-xl border-2 border-black bg-white p-2.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-colors hover:bg-gray-50"
             onClick={() => setMobileOpen((v) => !v)}
             aria-label="Toggle menu"
           >
@@ -146,7 +146,7 @@ export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: B
 
       {mobileOpen && (
         <div className="lg:hidden bg-white border-t-2 border-black">
-          <div className="container mx-auto px-4 py-3 space-y-2 max-h-[calc(100dvh-3.5rem)] overflow-y-auto">
+          <div className="mx-auto w-full max-w-[2000px] px-3 py-3 space-y-2 max-h-[calc(100dvh-3.5rem)] overflow-y-auto sm:px-5">
             <Link
               href="/brand/profile"
               onClick={() => setMobileOpen(false)}

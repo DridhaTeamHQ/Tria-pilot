@@ -142,13 +142,13 @@ export default function BrutalNavbar() {
 
     return (
         <header className="fixed top-0 left-0 right-0 z-40 bg-[#F9F8F4] border-b-[3px] border-black">
-            <div className="w-full max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
-                <div className="flex items-center justify-between h-16 md:h-20">
+            <div className="mx-auto w-full max-w-[2000px] px-3 sm:px-5 lg:px-8 xl:px-12">
+                <div className="flex h-15 items-center justify-between sm:h-16 md:h-20">
                     {/* Logo */}
                     <Link
                         href="/"
                         prefetch={true}
-                        className="kiwikoo-wordmark text-2xl md:text-3xl font-black text-black hover:text-[#FF8C69] transition-colors shrink-0"
+                        className="kiwikoo-wordmark shrink-0 text-[1.65rem] font-black text-black transition-colors hover:text-[#FF8C69] sm:text-2xl md:text-3xl"
                     >
                         Kiwikoo
                     </Link>
@@ -262,7 +262,7 @@ export default function BrutalNavbar() {
 
                         {/* Mobile Menu Toggle */}
                         <button type="button"
-                            className="lg:hidden p-2 rounded-xl border-2 border-black bg-white hover:bg-[#F9F8F4] transition-colors"
+                            className="lg:hidden rounded-xl border-2 border-black bg-white p-2.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-colors hover:bg-[#F9F8F4]"
                             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                             aria-label="Toggle menu"
                         >
@@ -286,7 +286,7 @@ export default function BrutalNavbar() {
                         transition={{ duration: 0.2 }}
                         className="lg:hidden bg-[#F9F8F4] border-t-2 border-black"
                     >
-                        <div className="container mx-auto px-4 sm:px-6 py-4 space-y-3 max-h-[calc(100dvh-4rem)] overflow-y-auto">
+                        <div className="mx-auto w-full max-w-[2000px] px-3 py-4 space-y-3 max-h-[calc(100dvh-4rem)] overflow-y-auto sm:px-5">
                             {authResolving ? null : isLoggedIn ? (
                                 <>
                                     {/* User Info */}
@@ -325,7 +325,7 @@ export default function BrutalNavbar() {
                                                 href={link.href}
                                                 prefetch={true}
                                                 onClick={() => setMobileMenuOpen(false)}
-                                                className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-black transition-all ${isActive(link.href)
+                                                className={`flex items-center gap-3 rounded-xl border-2 border-black px-4 py-3 text-sm sm:text-base transition-all ${isActive(link.href)
                                                     ? "bg-[#FF8C69] text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
                                                     : "bg-white text-black hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
                                                     }`}
@@ -362,7 +362,7 @@ export default function BrutalNavbar() {
                                             href="/login"
                                             prefetch={true}
                                             onClick={() => setMobileMenuOpen(false)}
-                                            className="block w-full py-3 text-center text-black font-bold rounded-xl border-2 border-black bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] transition-all"
+                                            className="block w-full rounded-xl border-2 border-black bg-white py-3 text-center font-bold text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-0.5 hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]"
                                         >
                                             Log In
                                         </Link>
@@ -370,7 +370,7 @@ export default function BrutalNavbar() {
                                             href="/register"
                                             prefetch={true}
                                             onClick={() => setMobileMenuOpen(false)}
-                                            className="block w-full py-3 text-center bg-[#FF8C69] text-black font-bold rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] transition-all"
+                                            className="block w-full rounded-xl border-2 border-black bg-[#FF8C69] py-3 text-center font-bold text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-0.5 hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]"
                                         >
                                             Get Started
                                         </Link>
