@@ -131,6 +131,7 @@ async function processTryOnJob(queueJob: Job<TryOnQueueJobData>): Promise<void> 
   const garmentIntel = await analyzeGarment(processedGarment)
   const successfulOutputs: WorkerPersistedOutput[] = []
   const failedAttempts: Array<{ referenceImageId: string; error: string }> = []
+  const targetOutputCount = 3
 
   const smartPrompt = composeSmartPrompt(garmentIntel, {
     aspectRatio,
