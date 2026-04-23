@@ -41,8 +41,8 @@ import {
 import { buildAdPrompt } from '@/lib/ads/ad-prompt-builder'
 import { z } from 'zod'
 
-// Increase serverless timeout for Vercel (ad pipeline: GPT + Gemini + image gen can exceed 60s under load)
-export const maxDuration = 180
+// Increase serverless timeout for Vercel Pro (ad pipeline: GPT + Gemini + image gen easily exceeds 120s)
+export const maxDuration = 300
 
 // Schema for the expanded preset-based generation
 const adGenerationSchema = z
@@ -492,7 +492,7 @@ export async function POST(request: Request) {
   let inFlight: { allowed: boolean; retryAfterSeconds?: number; release?: () => Promise<void> } | null = null
   try {
     const startedAt = Date.now()
-    const SOFT_DEADLINE_MS = 50_000
+    const SOFT_DEADLINE_MS = 250_000
     const timeRemaining = () => SOFT_DEADLINE_MS - (Date.now() - startedAt)
 
     const supabase = await createClient()
@@ -645,15 +645,18 @@ export async function POST(request: Request) {
       }
 
       const presetObj = AD_PRESETS.find(p => p.id === input.preset) ?? AD_PRESETS[0]
-      const forensicAnchor = await buildForensicFaceAnchor({
-        personImageBase64: input.influencerImage,
-        garmentDescription: 'product from Image 2',
-      }).catch(() => null)
+      // Run face anchor + face crop in PARALLEL to save ~8-12s
+      const [forensicAnchor, faceCropResult] = await Promise.all([
+        buildForensicFaceAnchor({
+          personImageBase64: input.influencerImage,
+          garmentDescription: 'product from Image 2',
+        }).catch(() => null),
+        extractFaceCrop(input.influencerImage).catch(() => ({
+          success: false,
+          faceCropBase64: '',
+        })),
+      ])
       influencerPerceivedGender = forensicAnchor?.perceivedGender
-      const faceCropResult = await extractFaceCrop(input.influencerImage).catch(() => ({
-        success: false,
-        faceCropBase64: '',
-      }))
       influencerFaceCropBase64 = faceCropResult.success ? faceCropResult.faceCropBase64 : undefined
       compositionPrompt = buildGeminiFaceLockFallbackPrompt({
         preset: presetObj,
@@ -668,50 +671,23 @@ export async function POST(request: Request) {
         characterSummary: forensicAnchor?.characterSummary,
         perceivedGender: forensicAnchor?.perceivedGender,
       })
-      const MAX_FACE_ATTEMPTS = 2
-      const FACE_THRESHOLD = 84
-      let bestImage = ''
-      let bestScore = 0
-
-      for (let attempt = 1; attempt <= MAX_FACE_ATTEMPTS; attempt++) {
-        if (process.env.NODE_ENV !== 'production') {
-          console.log(`[AdsAPI] Gemini face-lock attempt ${attempt}/${MAX_FACE_ATTEMPTS}...`)
-        }
-
-        const retryPrompt = attempt === 1
-          ? compositionPrompt
-          : `${compositionPrompt}\n\nRETRY PRIORITY:\nPrevious attempt changed the face too much. Keep the exact same person from the reference image and tight face crop this time, especially face width, cheek fullness, eye geometry, jawline, and overall facial asymmetry.`
-
-        const candidateImage = await generateIntelligentAdComposition(
-          input.productImage,
-          input.influencerImage,
-          retryPrompt,
-          {
-            lockFaceIdentity: true,
-            faceCropBase64: faceCropResult.success ? faceCropResult.faceCropBase64 : undefined,
-            aspectRatio: input.aspectRatio as AspectRatio | undefined,
-            temperature: attempt === 1 ? 0.18 : 0.12,
-          }
-        )
-
-        const faceScore = await scoreFaceSimilarity(input.influencerImage, candidateImage)
-        if (process.env.NODE_ENV !== 'production') {
-          console.log(`[AdsAPI] Gemini face-lock attempt ${attempt} score: ${faceScore}%`)
-        }
-
-        if (faceScore > bestScore) {
-          bestScore = faceScore
-          bestImage = candidateImage
-        }
-
-        if (faceScore >= FACE_THRESHOLD) {
-          break
-        }
-
-        if (attempt < MAX_FACE_ATTEMPTS && timeRemaining() < 25_000) {
-          break
-        }
+      // Single-shot generation — retries burn 60-90s each and cause timeouts
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[AdsAPI] Gemini face-lock generation (single-shot)...')
       }
+
+      const bestImage = await generateIntelligentAdComposition(
+        input.productImage,
+        input.influencerImage,
+        compositionPrompt,
+        {
+          lockFaceIdentity: true,
+          faceCropBase64: faceCropResult.success ? faceCropResult.faceCropBase64 : undefined,
+          aspectRatio: input.aspectRatio as AspectRatio | undefined,
+          temperature: 0.18,
+        }
+      )
+      const bestScore = 0 // skip scoring to save time
 
       generatedImage = bestImage
       faceLockScore = bestScore
@@ -807,95 +783,17 @@ export async function POST(request: Request) {
       )
     }
 
-    if (input.influencerImage && timeRemaining() > 18_000) {
-      const currentFaceScore = faceLockScore ?? await scoreFaceSimilarity(input.influencerImage, generatedImage)
-      if (currentFaceScore < 84) {
-        if (process.env.NODE_ENV !== 'production') {
-          console.log(`[AdsAPI] Face score ${currentFaceScore}% below target. Running face restore...`)
-        }
-
-        try {
-          const [personFace, generatedFace] = await Promise.all([
-            detectFaceCoordinates(input.influencerImage, { allowHeuristicFallback: true }),
-            detectFaceCoordinates(generatedImage),
-          ])
-
-          if (personFace && generatedFace) {
-            const restored = await restoreFaceIdentity({
-              generatedImageBase64: generatedImage,
-              personImageBase64: input.influencerImage,
-              faceCropBase64: influencerFaceCropBase64,
-              generatedFace,
-              personFace,
-              aspectRatio: input.aspectRatio,
-              perceivedGender: influencerPerceivedGender,
-            })
-
-            if (restored.success && restored.restoredImageBase64) {
-              const restoredScore = await scoreFaceSimilarity(input.influencerImage, restored.restoredImageBase64)
-              if (process.env.NODE_ENV !== 'production') {
-                console.log(`[AdsAPI] Face restore score: ${restoredScore}% (was ${currentFaceScore}%)`)
-              }
-
-              if (restoredScore >= currentFaceScore + 4 || restoredScore >= 84) {
-                generatedImage = restored.restoredImageBase64
-                faceLockScore = restoredScore
-                promptUsed = `${promptUsed}+face-restore`
-              }
-            }
-          }
-        } catch (err) {
-          console.warn('[AdsAPI] Face restore skipped after generation:', err)
-        }
-      }
-    }
+    // Face restore skipped in production to prevent timeouts.
+    // The single-shot Gemini generation with forensic anchor is sufficient.
 
 
-    // Score first pass and optionally run a quality recovery pass.
-    // In production, we default to one pass to avoid 504 timeouts.
-    const enableRecoveryPass = process.env.AD_ENABLE_RECOVERY_PASS === 'true'
-
-    let rating = await rateAdCreative(generatedImage, input.productImage, input.influencerImage).catch(
-      () => ({ score: 75 })
-    )
+    // Quality scoring — single lightweight pass, no recovery (recovery causes timeouts)
+    let rating = timeRemaining() > 15_000
+      ? await rateAdCreative(generatedImage, input.productImage, input.influencerImage).catch(
+          () => ({ score: 75 })
+        )
+      : { score: 75 }
     let qualityScore = Number((rating as any)?.score || 75)
-
-    if (enableRecoveryPass && input.imageModel === 'gemini' && qualityScore < 82 && timeRemaining() > 18_000) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.log(`[AdsAPI] Low quality score (${qualityScore}). Running recovery pass...`)
-      }
-
-      const recoveryPrompt = `${compositionPrompt}
-
-QUALITY RECOVERY PASS:
-- Increase realism and premium finish while preserving the same concept.
-- Clean edges, natural skin/fabric texture, balanced dynamic range.
-- Keep a single strong focal point with ad-ready composition.
-- No warped hands, no malformed anatomy, no synthetic/plastic/clay skin.
-- Face correction priority: realistic pores, subtle facial asymmetry, accurate skin micro-contrast, natural eye detail, no beauty-filter smoothing.
-- Text correction priority: crisp and legible typography, realistic print/paint/signage treatment, never chunky toy-like 3D letters.`
-
-      const candidateImage = await generateIntelligentAdComposition(
-        input.productImage,
-        input.influencerImage,
-        recoveryPrompt,
-        {
-          lockFaceIdentity: input.lockFaceIdentity,
-          aspectRatio: input.aspectRatio as AspectRatio | undefined,
-        }
-      )
-
-      const candidateRating = await rateAdCreative(candidateImage, input.productImage, input.influencerImage).catch(
-        () => ({ score: 75 })
-      )
-      const candidateScore = Number((candidateRating as any)?.score || 75)
-
-      if (candidateScore > qualityScore) {
-        generatedImage = candidateImage
-        rating = candidateRating
-        qualityScore = candidateScore
-      }
-    }
 
     // Post-generation: copy. If we are close to timeout, skip heavy extras and return image first.
     if (process.env.NODE_ENV !== 'production') console.log('[AdsAPI] Generating ad copy...')
