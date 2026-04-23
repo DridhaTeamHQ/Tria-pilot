@@ -55,14 +55,19 @@ export default function LoginPage() {
     })
   }, [])
 
-  const getSafeRedirectTarget = () => {
+  const getRoleDefaultRedirect = (roleHint?: 'influencer' | 'brand') => {
+    return roleHint === 'brand' ? '/brand/dashboard' : '/marketplace'
+  }
+
+  const getSafeRedirectTarget = (roleHint?: 'influencer' | 'brand') => {
     const redirectTarget = queryState.redirect
-    if (!redirectTarget) return '/marketplace'
+    const defaultTarget = getRoleDefaultRedirect(roleHint)
+    if (!redirectTarget) return defaultTarget
 
     const value = redirectTarget.trim()
-    if (!value.startsWith('/') || value.startsWith('//')) return '/marketplace'
-    if (value.includes('\r') || value.includes('\n')) return '/marketplace'
-    if (value.startsWith('/admin')) return '/marketplace'
+    if (!value.startsWith('/') || value.startsWith('//')) return defaultTarget
+    if (value.includes('\r') || value.includes('\n')) return defaultTarget
+    if (value.startsWith('/admin')) return defaultTarget
 
     return value
   }
@@ -81,6 +86,9 @@ export default function LoginPage() {
 
     if (role === 'BRAND') {
       if (!onboardingCompleted) return '/onboarding/brand'
+      if (fallbackTarget === '/marketplace' || fallbackTarget === '/dashboard' || fallbackTarget === '/') {
+        return '/brand/dashboard'
+      }
       return fallbackTarget
     }
 
@@ -235,7 +243,7 @@ export default function LoginPage() {
       }
 
       const sessionUser = data?.user ?? null
-      const redirectTarget = getSafeRedirectTarget()
+      const redirectTarget = getSafeRedirectTarget(userType)
       let resolvedUser = sessionUser
       const normalizedRecoveryEmail = recoveryEmail.trim().toLowerCase()
 
@@ -289,7 +297,7 @@ export default function LoginPage() {
     try {
       const supabase = createClient()
       const siteUrl = getPublicSiteUrlClient()
-      const redirectTarget = getSafeRedirectTarget()
+      const redirectTarget = getSafeRedirectTarget(userType)
       const callbackUrl = new URL('/auth/callback', siteUrl)
       callbackUrl.searchParams.set('next', redirectTarget)
       callbackUrl.searchParams.set('role', userType)

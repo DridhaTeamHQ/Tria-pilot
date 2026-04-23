@@ -10,17 +10,17 @@ function normalizeRole(value: unknown): SupportedRole | null {
   return null
 }
 
-function sanitizeNextPath(next: string | null): string {
-  if (!next) return '/marketplace'
+function sanitizeNextPath(next: string | null, fallback: string): string {
+  if (!next) return fallback
   const value = next.trim()
 
   // Allow only app-internal absolute paths.
   if (!value.startsWith('/') || value.startsWith('//')) {
-    return '/marketplace'
+    return fallback
   }
 
   if (value.includes('\r') || value.includes('\n')) {
-    return '/marketplace'
+    return fallback
   }
 
   return value
@@ -29,7 +29,6 @@ function sanitizeNextPath(next: string | null): string {
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = sanitizeNextPath(searchParams.get('next'))
   const roleFromQuery = normalizeRole(searchParams.get('role'))
 
   if (!code) {
@@ -126,6 +125,9 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  const resolvedRole: SupportedRole = existingRole || roleHint
+  const defaultNext = resolvedRole === 'brand' ? '/brand/dashboard' : '/marketplace'
+  const next = sanitizeNextPath(searchParams.get('next'), defaultNext)
   const redirectUrl = new URL(next, request.nextUrl)
   return NextResponse.redirect(redirectUrl)
 }
