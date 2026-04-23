@@ -12,10 +12,6 @@ import { getFirstSuccessfulOutput, getJobOutputsFromRecord } from '@/lib/tryon/j
 import { analyzeGarment, composeSmartPrompt } from '@/lib/tryon/garment-intel'
 import { generateTryOnDirect, type DirectTryOnOptions } from '@/lib/nanobanana'
 
-const INTER_GENERATION_DELAY_MS = Math.max(
-  0,
-  Number.parseInt(process.env.TRYON_INTER_GENERATION_DELAY_MS || '3000', 10) || 3000
-)
 
 interface WorkerGenerationJobRow {
   id: string
@@ -48,9 +44,6 @@ interface WorkerPersistedOutput {
   label: string
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
 
 function ensureArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.length > 0) : []
@@ -138,24 +131,17 @@ async function processTryOnJob(queueJob: Job<TryOnQueueJobData>): Promise<void> 
   const garmentIntel = await analyzeGarment(processedGarment)
   const successfulOutputs: WorkerPersistedOutput[] = []
   const failedAttempts: Array<{ referenceImageId: string; error: string }> = []
-  const targetOutputCount = 3
 
-  for (let candidateIndex = 0; candidateIndex < orderedPhotos.length; candidateIndex += 1) {
-    if (successfulOutputs.length >= targetOutputCount) break
+  const smartPrompt = composeSmartPrompt(garmentIntel, {
+    aspectRatio,
+    polishNotes: settings.polishNotes?.trim() || undefined,
+  })
 
-    const photo = orderedPhotos[candidateIndex]
-    const referenceImageBase64 = orderedReferenceBase64s[candidateIndex]
-    const outputSlot = successfulOutputs.length + 1
+  console.log(`🚀 Worker: starting ${orderedPhotos.slice(0, 3).length} generations in PARALLEL for job ${jobId}`)
 
-    if (candidateIndex > 0) {
-      await sleep(INTER_GENERATION_DELAY_MS)
-    }
-
-    try {
-      const smartPrompt = composeSmartPrompt(garmentIntel, {
-        aspectRatio,
-        polishNotes: settings.polishNotes?.trim() || undefined,
-      })
+  const generationResults = await Promise.allSettled(
+    orderedPhotos.slice(0, 3).map(async (photo, idx) => {
+      const referenceImageBase64 = orderedReferenceBase64s[idx]
 
       const generatedImage = await generateTryOnDirect({
         personImageBase64: referenceImageBase64,
@@ -170,30 +156,33 @@ async function processTryOnJob(queueJob: Job<TryOnQueueJobData>): Promise<void> 
         const cleanBase64 = generatedImage.replace(/^data:image\/[a-z+]+;base64,/, '')
         const storedUrl = await saveUpload(
           cleanBase64,
-          `tryon/${userId}/${jobId}/${outputSlot}-${photo.id}.png`,
+          `tryon/${userId}/${jobId}/${idx + 1}-${photo.id}.png`,
           'try-ons'
         )
-        if (storedUrl) {
-          outputImagePath = storedUrl
-        }
+        if (storedUrl) outputImagePath = storedUrl
       } catch (saveError) {
-        console.warn(`Try-on worker storage save failed for ${jobId}:`, saveError)
+        console.warn(`Try-on worker storage save failed for ${jobId} slot ${idx + 1}:`, saveError)
       }
 
+      return { photo, outputImagePath, slot: idx + 1 }
+    })
+  )
+
+  for (const result of generationResults) {
+    if (result.status === 'fulfilled') {
+      const { photo, outputImagePath, slot } = result.value
       successfulOutputs.push({
         referenceImageId: photo.id,
         status: 'completed',
         outputImagePath,
-        label: `Source ${outputSlot}`,
+        label: `Source ${slot}`,
       })
-    } catch (error) {
-      if (error instanceof GeminiRateLimitError) {
-        throw error
-      }
-
+    } else {
+      const err = result.reason
+      if (err instanceof GeminiRateLimitError) throw err // re-throw for BullMQ retry
       failedAttempts.push({
-        referenceImageId: photo.id,
-        error: error instanceof Error ? error.message : 'Generation failed',
+        referenceImageId: 'unknown',
+        error: err instanceof Error ? err.message : 'Generation failed',
       })
     }
   }
