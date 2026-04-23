@@ -850,7 +850,10 @@ async function handlePresetlessTryOnRequest(params: {
     }
 
     // ── PARALLEL GENERATION — fire all 3 at once ─────────────────────────
-    const TARGET_PHOTOS = orderedPhotos.slice(0, 3)
+    const successfulOutputs: PresetlessPersistedOutput[] = []
+    const failedAttempts: Array<{ referenceImageId: string; error: string }> = []
+    const targetOutputCount = 3
+    const TARGET_PHOTOS = orderedPhotos.slice(0, targetOutputCount)
     const smartPrompt = composeSmartPrompt(garmentIntel, {
       aspectRatio: payload.aspectRatio || '4:5',
       polishNotes: payload.polishNotes?.trim() || undefined,
