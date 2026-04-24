@@ -32,6 +32,17 @@ export default function BrutalNavbar() {
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [avatarFailed, setAvatarFailed] = useState(false);
 
+    useEffect(() => {
+        setMobileMenuOpen(false);
+    }, [pathname]);
+
+    useEffect(() => {
+        document.body.style.overflow = mobileMenuOpen ? "hidden" : "";
+        return () => {
+            document.body.style.overflow = "";
+        };
+    }, [mobileMenuOpen]);
+
     // Hide on auth/utility pages, admin routes, onboarding, pending approval, and brand pages (BrandNavbar handles those)
     const isAuthPage =
         pathname?.startsWith("/login") ||
@@ -312,7 +323,7 @@ export default function BrutalNavbar() {
                                             <p className="font-bold text-black">
                                                 {user?.name || user?.email}
                                             </p>
-                                            <p className="text-sm text-black/60">{user?.role} • Profile</p>
+                                            <p className="text-sm text-black/60">{user?.role} - Profile</p>
                                         </div>
                                     </Link>
 

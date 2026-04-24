@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import { AppImage } from '@/components/ui/AppImage'
 import { usePathname, useRouter } from 'next/navigation'
@@ -23,7 +23,7 @@ const navItems = [
   { href: '/brand/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/brand/campaigns', label: 'Campaigns', icon: Target },
   { href: '/brand/influencers', label: 'Creators', icon: Users },
-  { href: '/brand/ads/creatives', label: 'Ad Creatives', icon: Sparkles },
+  { href: '/brand/ads', label: 'Ad Creatives', icon: Sparkles },
   { href: '/brand/products', label: 'Products', icon: Package },
   { href: '/brand/inbox', label: 'Inbox', icon: Inbox },
 ]
@@ -48,6 +48,17 @@ export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: B
       .sort((a, b) => b.href.length - a.href.length)[0]?.href || null
 
   const isActive = (href: string) => activeHref === href
+
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [pathname])
+
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? 'hidden' : ''
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [mobileOpen])
 
   const handleLogout = useCallback(async () => {
     if (isLoggingOut) return
@@ -79,7 +90,7 @@ export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: B
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#F9F8F4] border-b-[3px] border-black">
       <div className="mx-auto w-full max-w-[2000px] px-3 sm:px-5 lg:px-6 xl:px-8">
-        <div className="grid h-14 grid-cols-[auto_1fr_auto] items-center gap-2 sm:h-15 lg:h-16 lg:gap-4">
+        <div className="grid h-14 grid-cols-[auto_1fr_auto] items-center gap-2 sm:h-16 lg:h-16 lg:gap-4">
           <Link
             href="/brand/dashboard"
             className="kiwikoo-wordmark shrink-0 text-[1.6rem] font-black leading-none text-black transition-colors hover:text-[#B4F056] sm:text-[1.85rem] lg:text-[2.1rem]"
@@ -167,7 +178,7 @@ export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: B
               </div>
               <div className="min-w-0">
                 <p className="truncate font-bold text-black">{brandName || 'Brand'}</p>
-                <p className="text-sm text-black/60">Brand account • Profile</p>
+                <p className="text-sm text-black/60">Brand account - Profile</p>
               </div>
             </Link>
 
