@@ -13,6 +13,12 @@ const HIDE_FOOTER_PREFIXES = [
     '/complete-profile',
     '/onboarding',
     '/admin',
+    '/brand',
+    '/influencer',
+    '/dashboard',
+    '/inbox',
+    '/profile',
+    '/settings',
 ]
 
 export default function FooterSwitcher() {
