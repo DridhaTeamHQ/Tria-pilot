@@ -57,6 +57,17 @@ interface AdminDashboardClientProps {
   dataSource?: 'full' | 'supabase-only'
 }
 
+function createMetricsDraft(app: InfluencerApplication): MetricsDraft {
+  return {
+    followers: app.onboarding?.followers != null ? String(app.onboarding.followers) : '',
+    engagementRatePercent:
+      app.onboarding?.engagementRate != null ? String((Number(app.onboarding.engagementRate) * 100).toFixed(2)) : '',
+    audienceRate: app.onboarding?.audienceRate != null ? String(app.onboarding.audienceRate) : '',
+    retentionRate: app.onboarding?.retentionRate != null ? String(app.onboarding.retentionRate) : '',
+    badgeTier: ((app.onboarding?.badgeTier || '') as MetricsDraft['badgeTier']),
+  }
+}
+
 function getSocialVerifyUrl(platform: string, username: string) {
   if (!username) return undefined
   const cleanUsername = username.replace(/^@/, '')
@@ -86,41 +97,40 @@ export default function AdminDashboardClient({ initialApplications, dataSource =
   })
 
   useEffect(() => {
-    setMetricsDrafts((prev) => {
-      const next: Record<string, MetricsDraft> = { ...prev }
-      for (const app of applications) {
-        if (!next[app.user_id]) {
-          next[app.user_id] = {
-            followers: app.onboarding?.followers != null ? String(app.onboarding.followers) : '',
-            engagementRatePercent:
-              app.onboarding?.engagementRate != null ? String((Number(app.onboarding.engagementRate) * 100).toFixed(2)) : '',
-            audienceRate: app.onboarding?.audienceRate != null ? String(app.onboarding.audienceRate) : '',
-            retentionRate: app.onboarding?.retentionRate != null ? String(app.onboarding.retentionRate) : '',
-            badgeTier: ((app.onboarding?.badgeTier || '') as MetricsDraft['badgeTier']),
-          }
-        }
-      }
-      return next
-    })
+    setMetricsDrafts(
+      Object.fromEntries(applications.map((app) => [app.user_id, createMetricsDraft(app)]))
+    )
   }, [applications])
 
-  // Realtime: refetch when profiles change. Enable in Supabase: Database → Replication → add table "profiles".
+  // Realtime: refetch when profile or influencer metrics change.
   useEffect(() => {
     const supabase = createClient()
-    const channel = supabase
+    const handleRealtimeUpdate = () => {
+      refreshRef.current()
+      toast.info('Applications updated')
+    }
+
+    const profilesChannel = supabase
       .channel('admin-profiles-changes')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'profiles' },
-        () => {
-          refreshRef.current()
-          toast.info('Applications updated')
-        }
+        handleRealtimeUpdate
+      )
+      .subscribe()
+
+    const influencerProfilesChannel = supabase
+      .channel('admin-influencer-profiles-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'influencer_profiles' },
+        handleRealtimeUpdate
       )
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      supabase.removeChannel(profilesChannel)
+      supabase.removeChannel(influencerProfilesChannel)
     }
   }, [])
 
@@ -196,7 +206,6 @@ export default function AdminDashboardClient({ initialApplications, dataSource =
   const refresh = async () => {
     try {
       const params = new URLSearchParams()
-      if (activeFilter !== 'all') params.set('status', activeFilter)
       params.set('sortBy', sortBy)
       params.set('order', sortOrder)
 
