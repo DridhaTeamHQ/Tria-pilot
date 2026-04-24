@@ -57,6 +57,17 @@ export default function Header() {
         return () => window.removeEventListener('scroll', handleScroll)
     }, [])
 
+    useEffect(() => {
+        setMobileMenuOpen(false)
+    }, [pathname])
+
+    useEffect(() => {
+        document.body.style.overflow = mobileMenuOpen ? 'hidden' : ''
+        return () => {
+            document.body.style.overflow = ''
+        }
+    }, [mobileMenuOpen])
+
     const handleLogout = useCallback(async () => {
         if (isLoggingOut) return
         setIsLoggingOut(true)
@@ -299,7 +310,7 @@ export default function Header() {
                                         </div>
                                         <div>
                                             <p className="font-medium text-charcoal">{user?.name || user?.email}</p>
-                                            <p className="text-sm text-charcoal/60">{user?.role} • Profile</p>
+                                            <p className="text-sm text-charcoal/60">{user?.role} - Profile</p>
                                         </div>
                                     </Link>
 
