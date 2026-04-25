@@ -36,8 +36,6 @@ export default function LoginPage() {
   })
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
-  const [recoveryEmail, setRecoveryEmail] = useState('')
-  const [showRecoveryEmailInput, setShowRecoveryEmailInput] = useState(false)
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [userType, setUserType] = useState<'influencer' | 'brand'>('influencer')
@@ -55,19 +53,14 @@ export default function LoginPage() {
     })
   }, [])
 
-  const getRoleDefaultRedirect = (roleHint?: 'influencer' | 'brand') => {
-    return roleHint === 'brand' ? '/brand/dashboard' : '/marketplace'
-  }
-
-  const getSafeRedirectTarget = (roleHint?: 'influencer' | 'brand') => {
+  const getSafeRedirectTarget = () => {
     const redirectTarget = queryState.redirect
-    const defaultTarget = getRoleDefaultRedirect(roleHint)
-    if (!redirectTarget) return defaultTarget
+    if (!redirectTarget) return '/marketplace'
 
     const value = redirectTarget.trim()
-    if (!value.startsWith('/') || value.startsWith('//')) return defaultTarget
-    if (value.includes('\r') || value.includes('\n')) return defaultTarget
-    if (value.startsWith('/admin')) return defaultTarget
+    if (!value.startsWith('/') || value.startsWith('//')) return '/marketplace'
+    if (value.includes('\r') || value.includes('\n')) return '/marketplace'
+    if (value.startsWith('/admin')) return '/marketplace'
 
     return value
   }
@@ -86,9 +79,6 @@ export default function LoginPage() {
 
     if (role === 'BRAND') {
       if (!onboardingCompleted) return '/onboarding/brand'
-      if (fallbackTarget === '/marketplace' || fallbackTarget === '/dashboard' || fallbackTarget === '/') {
-        return '/brand/dashboard'
-      }
       return fallbackTarget
     }
 
@@ -140,23 +130,22 @@ export default function LoginPage() {
     : 'bg-[#B4F056] hover:bg-[#c3f570]'
   const panelCopy = userType === 'influencer'
     ? {
-        title: 'Welcome,',
-        subtitle: 'sign in to continue',
-    sideTitle: 'Comeback to the studio',
-        sideAccent: 'creator mode',
-        sideBody: 'Access try-ons, campaign requests, and your creator dashboard without losing the playful Kiwikoo energy.',
-      }
+      title: 'Welcome,',
+      subtitle: 'sign in to continue',
+      sideTitle: 'Comeback to the studio',
+      sideAccent: 'creator mode',
+      sideBody: 'Access try-ons, campaign requests, and your creator dashboard without losing the playful Kiwikoo energy.',
+    }
     : {
-        title: 'Welcome,',
-        subtitle: 'sign in to continue',
-        sideTitle: 'Step back into the brand suite',
-        sideAccent: 'campaign mode',
-        sideBody: 'Launch products, manage collaborations, and review generated assets from one bold control room.',
-      }
+      title: 'Welcome,',
+      subtitle: 'sign in to continue',
+      sideTitle: 'Step back into the brand suite',
+      sideAccent: 'campaign mode',
+      sideBody: 'Launch products, manage collaborations, and review generated assets from one bold control room.',
+    }
   const floatingLabel = userType === 'influencer' ? 'Creator Login' : 'Brand Login'
 
   const isLayoutFlipped = userType === 'brand'
-  const isUsernameEntry = Boolean(identifier.trim()) && !identifier.includes('@')
 
   const fetchAuthoritativeUser = async () => {
     const meRes = await fetch('/api/auth/me', {
@@ -243,9 +232,8 @@ export default function LoginPage() {
       }
 
       const sessionUser = data?.user ?? null
-      const redirectTarget = getSafeRedirectTarget(userType)
+      const redirectTarget = getSafeRedirectTarget()
       let resolvedUser = sessionUser
-      const normalizedRecoveryEmail = recoveryEmail.trim().toLowerCase()
 
       if (sessionUser) {
         queryClient.removeQueries({ queryKey: ['user'] })
@@ -254,24 +242,7 @@ export default function LoginPage() {
       }
 
       const nextTarget = getPostLoginDestination(resolvedUser, redirectTarget)
-
-      if (resolvedUser && isSyntheticEmail(resolvedUser.email) && normalizedRecoveryEmail) {
-        const recoveryRes = await fetch('/api/auth/change-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ newEmail: normalizedRecoveryEmail, password }),
-        })
-
-        const recoveryData = await recoveryRes.json().catch(() => ({}))
-        if (recoveryRes.ok) {
-          setAuthToast('logged_in')
-          showSuccessToast('Recovery email started', 'Check both inboxes to confirm your recovery email.')
-        } else {
-          showErrorToast('Recovery email failed', recoveryData?.error || 'Signed in, but we could not start recovery email setup.')
-        }
-      } else {
-        setAuthToast('logged_in')
-      }
+      setAuthToast('logged_in')
 
       if (nextTarget === '/onboarding/brand') {
         showInfoToast('Finish brand setup', 'Complete onboarding to unlock your workspace.')
@@ -297,7 +268,7 @@ export default function LoginPage() {
     try {
       const supabase = createClient()
       const siteUrl = getPublicSiteUrlClient()
-      const redirectTarget = getSafeRedirectTarget(userType)
+      const redirectTarget = getSafeRedirectTarget()
       const callbackUrl = new URL('/auth/callback', siteUrl)
       callbackUrl.searchParams.set('next', redirectTarget)
       callbackUrl.searchParams.set('role', userType)
@@ -322,7 +293,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative min-h-[100dvh] w-full bg-[#F4F4F0]">
+    <div className="relative min-h-[100dvh] lg:h-screen w-full bg-[#F4F4F0] overflow-y-auto lg:overflow-hidden">
       {/* Clip decoration only — page-level overflow-hidden breaks visibility of fixed UI (e.g. toasts) inside some roots */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(0,0,0,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.2)_1px,transparent_1px)] [background-size:40px_40px]" />
@@ -346,11 +317,6 @@ export default function LoginPage() {
               onTogglePassword={() => setShowPassword((prev) => !prev)}
               loading={loading}
               handleSubmit={handleSubmit}
-              isUsernameEntry={isUsernameEntry}
-              showRecoveryEmailInput={showRecoveryEmailInput}
-              onToggleRecoveryEmail={() => setShowRecoveryEmailInput((prev) => !prev)}
-              recoveryEmail={recoveryEmail}
-              onRecoveryEmailChange={setRecoveryEmail}
               handleGoogleLogin={handleGoogleLogin}
               accentButtonClass={accentButtonClass}
               floatingLabel={floatingLabel}
@@ -363,7 +329,7 @@ export default function LoginPage() {
       <LayoutGroup>
         <motion.div
           layout
-          className={`relative z-10 hidden w-full lg:flex lg:min-h-[100dvh] lg:p-6 xl:p-8 ${isLayoutFlipped ? 'flex-row-reverse' : 'flex-row'}`}
+          className={`relative z-10 hidden w-full lg:flex lg:h-full lg:p-4 xl:p-6 overflow-hidden ${isLayoutFlipped ? 'flex-row-reverse' : 'flex-row'}`}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
           {/* Left Panel - Branding/Info */}
@@ -380,7 +346,7 @@ export default function LoginPage() {
             >
               <div className="absolute inset-0 m-auto h-8 w-8 rounded-full border-[3px] border-black" style={{ backgroundColor: accentColor }} />
             </motion.div>
-            
+
             <motion.div
               className="absolute bottom-8 right-12 h-24 w-24 rotate-12 rounded-2xl border-[4px] border-black bg-[#FFD93D] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] xl:bottom-12 xl:right-24 xl:h-32 xl:w-32"
               animate={{ rotate: [12, 20, 12] }}
@@ -400,11 +366,11 @@ export default function LoginPage() {
                   {userType === 'influencer' ? 'Creator Mode' : 'Brand Mode'}
                 </span>
               </div>
-              
+
               <h1 className="text-[clamp(3rem,5vw,5rem)] font-black uppercase leading-[0.9] text-black">
                 {panelCopy.sideTitle}
               </h1>
-              
+
               <div className="mt-8 rounded-2xl border-[4px] border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
                 <p className="text-xl font-bold leading-relaxed text-black/80">
                   {panelCopy.sideBody}
@@ -438,11 +404,6 @@ export default function LoginPage() {
                 onTogglePassword={() => setShowPassword((prev) => !prev)}
                 loading={loading}
                 handleSubmit={handleSubmit}
-                isUsernameEntry={isUsernameEntry}
-                showRecoveryEmailInput={showRecoveryEmailInput}
-                onToggleRecoveryEmail={() => setShowRecoveryEmailInput((prev) => !prev)}
-                recoveryEmail={recoveryEmail}
-                onRecoveryEmailChange={setRecoveryEmail}
                 handleGoogleLogin={handleGoogleLogin}
                 accentButtonClass={accentButtonClass}
                 floatingLabel={floatingLabel}
@@ -469,11 +430,6 @@ type AuthCardProps = {
   onTogglePassword: () => void
   loading: boolean
   handleSubmit: (e: React.FormEvent) => void
-  isUsernameEntry: boolean
-  showRecoveryEmailInput: boolean
-  onToggleRecoveryEmail: () => void
-  recoveryEmail: string
-  onRecoveryEmailChange: (value: string) => void
   handleGoogleLogin: () => void
   accentButtonClass: string
   floatingLabel: string
@@ -493,19 +449,14 @@ function AuthCard({
   onTogglePassword,
   loading,
   handleSubmit,
-  isUsernameEntry,
-  showRecoveryEmailInput,
-  onToggleRecoveryEmail,
-  recoveryEmail,
-  onRecoveryEmailChange,
   handleGoogleLogin,
   accentButtonClass,
   floatingLabel,
   accentColor,
 }: AuthCardProps) {
   return (
-    <div className="relative z-20 rounded-[30px] border-[4px] border-black bg-white p-6 pt-8 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] sm:p-8">
-      <div className="absolute -top-5 left-8 inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-[#FFD93D] px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+    <div className="relative z-20 rounded-[20px] border-[3px] sm:border-[4px] border-black bg-white p-5 pt-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:p-6">
+      <div className="absolute -top-5 left-8 inline-flex items-center gap-2 rounded-full border-[2px] sm:border-[3px] border-black bg-[#FFD93D] px-4 py-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
         <div className="h-2.5 w-2.5 rounded-full border-[2px] border-black" style={{ backgroundColor: accentColor }} />
         <span className="text-xs font-black uppercase tracking-[0.15em] text-black">{floatingLabel}</span>
       </div>
@@ -514,18 +465,18 @@ function AuthCard({
         <h2 className="text-[2.2rem] font-black leading-none text-black sm:text-[2.5rem]">{title}</h2>
         <p className="mt-2 text-base font-bold text-black/60">{subtitle}</p>
       </div>
-      <div className="mb-6 flex rounded-2xl border-[3px] border-black bg-[#F4F4F0] p-1.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+      <div className="mb-6 flex rounded-xl border-[2px] sm:border-[3px] border-black bg-[#F4F4F0] p-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
         <button
           type="button"
           onClick={() => onUserTypeChange('influencer')}
-          className={`flex-1 rounded-xl py-3 text-xs font-black uppercase tracking-[0.2em] transition-all ${userType === 'influencer' ? 'border-[2px] border-black bg-[#FF8C69] text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'text-black/50 hover:text-black'}`}
+          className={`flex-1 rounded-lg py-3 text-xs font-black uppercase tracking-[0.2em] transition-all ${userType === 'influencer' ? 'border-[2px] sm:border-[3px] border-black bg-[#FF8C69] text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'text-black/50 hover:text-black'}`}
         >
           Creator
         </button>
         <button
           type="button"
           onClick={() => onUserTypeChange('brand')}
-          className={`flex-1 rounded-xl py-3 text-xs font-black uppercase tracking-[0.2em] transition-all ${userType === 'brand' ? 'border-[2px] border-black bg-[#B4F056] text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'text-black/50 hover:text-black'}`}
+          className={`flex-1 rounded-lg py-3 text-xs font-black uppercase tracking-[0.2em] transition-all ${userType === 'brand' ? 'border-[2px] sm:border-[3px] border-black bg-[#B4F056] text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'text-black/50 hover:text-black'}`}
         >
           Brand
         </button>
@@ -542,45 +493,13 @@ function AuthCard({
               type="text"
               value={identifier}
               onChange={(e) => onIdentifierChange(e.target.value)}
-              className="h-13 w-full rounded-2xl border-[3px] border-black bg-white pl-16 pr-4 text-base font-semibold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none transition-all placeholder:text-black/35 focus:translate-x-[2px] focus:translate-y-[2px] focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:h-14"
+              className="h-13 w-full rounded-xl border-[2px] sm:border-[3px] border-black bg-white pl-16 pr-4 text-base font-semibold text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] outline-none transition-all placeholder:text-black/35 focus:translate-x-[1px] focus:translate-y-[1px] focus:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] sm:h-14"
               placeholder="username or email"
               required
             />
           </div>
         </div>
 
-        {isUsernameEntry && (
-          <div className="space-y-2 rounded-2xl border-[3px] border-black bg-[#FFF4CC] p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <label className="text-xs font-black uppercase tracking-[0.2em] text-black">Recovery Email</label>
-                <p className="mt-1 text-[11px] font-bold text-black/60">Optional for username-only accounts.</p>
-              </div>
-              <button
-                type="button"
-                onClick={onToggleRecoveryEmail}
-                className="rounded-xl border-[2px] border-black bg-white px-3 py-1 text-[11px] font-black uppercase tracking-wide shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
-              >
-                {showRecoveryEmailInput ? 'Hide' : 'Add'}
-              </button>
-            </div>
-
-            {showRecoveryEmailInput && (
-              <>
-                <input
-                  type="email"
-                  value={recoveryEmail}
-                  onChange={(e) => onRecoveryEmailChange(e.target.value)}
-                  className="h-13 w-full rounded-2xl border-[3px] border-black bg-white px-4 text-base font-semibold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none transition-all placeholder:text-black/35 focus:translate-x-[2px] focus:translate-y-[2px] focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:h-14"
-                  placeholder="Add email for forgot password"
-                />
-                <p className="text-[11px] font-bold text-black/60">
-                  Only needed if this username-based account still uses an internal recovery email.
-                </p>
-              </>
-            )}
-          </div>
-        )}
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -597,7 +516,7 @@ function AuthCard({
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => onPasswordChange(e.target.value)}
-              className="h-13 w-full rounded-2xl border-[3px] border-black bg-white pl-16 pr-12 text-base font-semibold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none transition-all placeholder:text-black/35 focus:translate-x-[2px] focus:translate-y-[2px] focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:h-14"
+              className="h-13 w-full rounded-xl border-[2px] sm:border-[3px] border-black bg-white pl-16 pr-12 text-base font-semibold text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] outline-none transition-all placeholder:text-black/35 focus:translate-x-[1px] focus:translate-y-[1px] focus:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] sm:h-14"
               placeholder="password"
               required
             />
@@ -614,7 +533,7 @@ function AuthCard({
         <button
           type="submit"
           disabled={loading}
-          className={`flex h-13 w-full items-center justify-center gap-2 rounded-2xl border-[3px] border-black font-black text-sm uppercase tracking-[0.18em] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:h-14 ${accentButtonClass}`}
+          className={`flex h-13 w-full items-center justify-center gap-2 rounded-xl border-[2px] sm:border-[3px] border-black font-black text-sm uppercase tracking-[0.18em] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:h-14 ${accentButtonClass}`}
         >
           {loading ? <Loader2 className="h-5 w-5 animate-spin text-black" /> : <>Let&apos;s go <ArrowRight className="h-5 w-5 text-black" strokeWidth={3} /></>}
         </button>
@@ -626,7 +545,7 @@ function AuthCard({
           <button
             type="button"
             onClick={handleGoogleLogin}
-            className="flex h-12 w-12 items-center justify-center rounded-full border-[3px] border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:h-14 sm:w-14"
+            className="flex h-12 w-12 items-center justify-center rounded-full border-[2px] sm:border-[3px] border-black bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:h-14 sm:w-14"
             aria-label="Continue with Google"
           >
             <GoogleIcon className="h-6 w-6" />
