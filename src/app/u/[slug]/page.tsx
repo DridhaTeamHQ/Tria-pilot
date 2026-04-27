@@ -124,7 +124,7 @@ export default async function PublicInfluencerProfilePage({
   const niches = Array.isArray(influencerProfile?.niches) ? influencerProfile.niches : []
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] pb-20 pt-16">
+    <div className="min-h-screen bg-[#FDFBF7] pb-20 pt-28">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="mb-8">
           <Link
