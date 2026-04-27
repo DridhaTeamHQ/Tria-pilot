@@ -28,6 +28,7 @@ import {
 } from '@/lib/tryon/identity-composition-check'
 import { GeminiRateLimitError } from '@/lib/gemini/executor'
 import { checkGenerationGate, completeGeneration } from '@/lib/generation-limiter'
+import { isQStashConfigured, publishTryOnJob } from '@/lib/queue/qstash'
 import { ZodError } from 'zod'
 
 // Max jobs allowed to sit waiting in the BullMQ queue.
@@ -774,6 +775,48 @@ async function handlePresetlessTryOnRequest(params: {
     return jsonError(500, 'JOB_CREATION_FAILED', 'Failed to start generation job. Please try again.')
   }
 
+  // ── PRIORITY 1: QStash (Vercel-native HTTP queue) ───────────────────────
+  // When QStash is configured, publish the job to it. QStash will then POST
+  // the job to /api/tryon/process for actual generation. This is the
+  // preferred path on Vercel because it doesn't need a separate worker process.
+  if (isQStashConfigured()) {
+    try {
+      // Resolve the public origin so QStash knows where to call back.
+      // On Vercel, VERCEL_URL is auto-set per deployment; NEXT_PUBLIC_SITE_URL
+      // overrides it for stable production callbacks.
+      const baseUrl =
+        process.env.NEXT_PUBLIC_SITE_URL ||
+        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
+
+      if (!baseUrl) {
+        throw new Error(
+          'QStash callback URL unresolved — set NEXT_PUBLIC_SITE_URL or VERCEL_URL'
+        )
+      }
+
+      const messageId = await publishTryOnJob(job.id, userId, baseUrl)
+      console.log(`📤 [tryon] published job ${job.id} to QStash (msgId=${messageId})`)
+
+      return NextResponse.json(
+        {
+          success: true,
+          queued: true,
+          jobId: job.id,
+          status: 'pending',
+          selectionMethod,
+          selectedPhotoIds,
+          queueProvider: 'qstash',
+          messageId,
+        },
+        { status: 202, headers: { 'Cache-Control': 'no-store' } }
+      )
+    } catch (qstashErr) {
+      console.error('[tryon] QStash publish failed, falling back:', qstashErr)
+      // Fall through to BullMQ / inline path below.
+    }
+  }
+
+  // ── PRIORITY 2: BullMQ + dedicated worker (non-Vercel deployments) ──────
   const workerOnline = isQueueAvailable() ? await isTryOnWorkerOnline() : false
   if (workerOnline) {
     // ── Queue depth cap ─────────────────────────────────────────────────────

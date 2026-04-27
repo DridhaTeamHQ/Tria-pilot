@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
 import { isQueueAvailable, getRedisConnection } from '@/lib/queue/redis'
 import { isTryOnWorkerOnline } from '@/lib/queue/tryon-worker-health'
+import { isQStashConfigured } from '@/lib/queue/qstash'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,10 +23,13 @@ export async function GET() {
     }
 
     const service = createServiceClient()
+    const qstashOnline = isQStashConfigured()
     const workerOnline =
-      isQueueAvailable()
-        ? await isTryOnWorkerOnline()
-        : false
+      qstashOnline
+        ? true   // QStash is always available — Vercel handles the function calls
+        : isQueueAvailable()
+          ? await isTryOnWorkerOnline()
+          : false
     const staleThresholdMinutes = workerOnline
       ? STALE_JOB_THRESHOLD_MINUTES
       : STALE_JOB_THRESHOLD_MINUTES_WHEN_WORKER_OFFLINE

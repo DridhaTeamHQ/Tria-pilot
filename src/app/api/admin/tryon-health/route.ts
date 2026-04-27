@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
 import { isQueueAvailable, isRedisConfigured, getRedisConnection } from '@/lib/queue/redis'
 import { isTryOnWorkerOnline } from '@/lib/queue/tryon-worker-health'
+import { isQStashConfigured } from '@/lib/queue/qstash'
 import { getKeyPoolStats } from '@/lib/gemini/executor'
 import { getCostMonitorData } from '@/lib/generation-limiter'
 
@@ -108,10 +109,17 @@ export async function GET() {
         estimatedFlashRPM: keyPool.totalKeys * 10,
       },
       queue: {
-        configured: isRedisConfigured(),
-        available: isQueueAvailable(),
-        workerOnline,
-        stats: queueStats,
+        // Active queue provider in priority order: qstash > bullmq > inline
+        provider: isQStashConfigured()
+          ? 'qstash'
+          : isQueueAvailable() && workerOnline
+            ? 'bullmq'
+            : 'inline',
+        qstashConfigured: isQStashConfigured(),
+        bullmqConfigured: isRedisConfigured(),
+        bullmqAvailable: isQueueAvailable(),
+        bullmqWorkerOnline: workerOnline,
+        bullmqStats: queueStats,
       },
       database: {
         pendingJobs: pendingDbCount ?? null,
