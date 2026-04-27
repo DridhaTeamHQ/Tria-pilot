@@ -359,19 +359,70 @@ export interface GenerationGateResult {
 export function checkGenerationGate(userId: string, ip: string): GenerationGateResult {
     const requestId = `req-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // RATE LIMITING DISABLED - Users can generate unlimited images
-    // ═══════════════════════════════════════════════════════════════════════════════
-    console.log(`✅ GENERATION GATE: Always allowed (rate limiting disabled)`)
-    console.log(`   User: ${userId}`)
-    console.log(`   Request: ${requestId}`)
+    // ── Kill switch (daily spend ceiling) ──────────────────────────────────────
+    const killSwitch = checkKillSwitch()
+    if (killSwitch.active) {
+        console.warn(`🚨 KILL SWITCH ACTIVE — blocking generation for user ${userId}`)
+        return {
+            allowed: false,
+            requestId,
+            blockReason: 'Platform generation limit reached for today. Try again tomorrow.',
+            killSwitchActive: true,
+            disableOptionalFeatures: true,
+            remainingToday: 0,
+        }
+    }
 
+    // ── Layer 1: per-user daily cap + cooldown ─────────────────────────────────
+    const userCheck = checkUserLimits(userId)
+    if (!userCheck.allowed) {
+        console.log(`🚫 USER LIMIT: ${userId} — ${userCheck.reason}`)
+        return {
+            allowed: false,
+            requestId,
+            blockReason: userCheck.reason,
+            killSwitchActive: false,
+            disableOptionalFeatures: killSwitch.optionalFeaturesDisabled,
+            remainingToday: userCheck.remainingToday,
+        }
+    }
+
+    // ── Layer 2: one active generation per user at a time ─────────────────────
+    const sessionCheck = acquireSessionLock(userId, requestId)
+    if (!sessionCheck.acquired) {
+        console.log(`🔒 SESSION LOCK: ${userId} already generating`)
+        return {
+            allowed: false,
+            requestId,
+            blockReason: 'You already have a generation in progress. Please wait for it to finish.',
+            killSwitchActive: false,
+            disableOptionalFeatures: killSwitch.optionalFeaturesDisabled,
+            remainingToday: userCheck.remainingToday,
+        }
+    }
+
+    // ── Layer 3: IP-level backstop ─────────────────────────────────────────────
+    const ipCheck = checkIpLimits(ip)
+    if (!ipCheck.allowed) {
+        releaseSessionLock(userId, requestId) // release the lock we just acquired
+        console.log(`🚫 IP LIMIT: ${ip} — ${ipCheck.reason}`)
+        return {
+            allowed: false,
+            requestId,
+            blockReason: 'Too many requests from your network. Please try again in an hour.',
+            killSwitchActive: false,
+            disableOptionalFeatures: killSwitch.optionalFeaturesDisabled,
+            remainingToday: userCheck.remainingToday,
+        }
+    }
+
+    console.log(`✅ GENERATION GATE: allowed — user=${userId} remaining=${userCheck.remainingToday} request=${requestId}`)
     return {
         allowed: true,
         requestId,
         killSwitchActive: false,
-        disableOptionalFeatures: false,
-        remainingToday: 999999
+        disableOptionalFeatures: killSwitch.optionalFeaturesDisabled,
+        remainingToday: userCheck.remainingToday,
     }
 }
 

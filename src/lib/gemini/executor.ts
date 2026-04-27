@@ -4,22 +4,35 @@ import { GoogleGenAI, type GenerateContentParameters } from '@google/genai'
 import { getGeminiKey } from '@/lib/config/api-keys'
 
 const GEMINI_MAX_RETRIES = 3
+const GEMINI_MAX_RETRIES_IMAGE = 5        // Image models get more attempts — they're flakier
 const BASE_BACKOFF_MS = 1500
 const BASE_BACKOFF_IMAGE_MS = 3000
-const RETRYABLE_STATUS_CODES = new Set([429, 503, 529])
+const BASE_BACKOFF_504_MS = 8000          // 504s need longer wait — server was genuinely overloaded
+const RETRYABLE_STATUS_CODES = new Set([429, 503, 504, 529])  // 504 = DEADLINE_EXCEEDED — always retry
 const SINGLE_KEY_429_WAIT_MS = 8_000 // Wait 8s on single-key 429 before retrying
 
 // Rate limit cooldown per key (ms) — if a key hits 429, skip it for this duration
 const KEY_COOLDOWN_MS = 60_000
 
+// Bottleneck limits — tune via env vars based on number of API keys in pool.
+//
+// Pro image model: ~2 RPM PER KEY (free tier). With N keys, total = N×2 RPM.
+//   1 key   → maxConcurrent=1, minTime=5000ms (12 RPM ceiling, hits 429s if real limit is 2 RPM)
+//   3 keys  → maxConcurrent=2, minTime=2500ms (~24 RPM total)
+//   5 keys  → maxConcurrent=3, minTime=1500ms (~40 RPM total)
+//   10 keys → maxConcurrent=5, minTime=800ms (~75 RPM total)
+//
+// Flash image model: ~10 RPM PER KEY. With N keys, total = N×10 RPM.
+//
+// Defaults are conservative (single-key safe). Override in production.
 const proImageLimiter = new Bottleneck({
-  maxConcurrent: 1,
-  minTime: 5000, // Pro image model has strict RPM limits (~2 RPM free tier)
+  maxConcurrent: parseInt(process.env.GEMINI_PRO_MAX_CONCURRENT || '1', 10) || 1,
+  minTime: parseInt(process.env.GEMINI_PRO_MIN_TIME_MS || '5000', 10) || 5000,
 })
 
 const flashLimiter = new Bottleneck({
-  maxConcurrent: 2,
-  minTime: 500,
+  maxConcurrent: parseInt(process.env.GEMINI_FLASH_MAX_CONCURRENT || '2', 10) || 2,
+  minTime: parseInt(process.env.GEMINI_FLASH_MIN_TIME_MS || '500', 10) || 500,
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -191,15 +204,32 @@ export class GeminiRateLimitError extends Error {
   }
 }
 
+/**
+ * Detect 504 / DEADLINE_EXCEEDED from error message string.
+ * The SDK sometimes surfaces these as message-only errors without a numeric status.
+ */
+function is504Error(error: unknown): boolean {
+  if (!error) return false
+  const msg = error instanceof Error ? error.message : String(error)
+  return (
+    msg.includes('504') ||
+    msg.toLowerCase().includes('deadline exceeded') ||
+    msg.toLowerCase().includes('deadline_exceeded') ||
+    msg.toLowerCase().includes('deadline expired')
+  )
+}
+
 async function generateWithBackoff(params: GenerateContentParameters) {
   const pool = initKeyPool()
   const hasMultipleKeys = pool.length > 1
   const isImageModel = params.model.includes('image') || params.model.includes('pro-image')
   const baseBackoff = isImageModel ? BASE_BACKOFF_IMAGE_MS : BASE_BACKOFF_MS
+  const maxRetries = isImageModel ? GEMINI_MAX_RETRIES_IMAGE : GEMINI_MAX_RETRIES
+  const isDev = process.env.NODE_ENV !== 'production'
   let attempt = 0
   let lastError: unknown = null
 
-  while (attempt < GEMINI_MAX_RETRIES) {
+  while (attempt < maxRetries) {
     // Pick client (round-robin with cooldown awareness)
     const client = getNextClient()
 
@@ -208,6 +238,9 @@ async function generateWithBackoff(params: GenerateContentParameters) {
     } catch (error) {
       lastError = error
       const status = getStatusCode(error)
+
+      // Treat message-level 504/DEADLINE_EXCEEDED as status 504
+      const effective504 = status === 504 || is504Error(error)
 
       // On 429, mark this key as rate-limited and try the next key
       if (status === 429 && hasMultipleKeys) {
@@ -228,18 +261,35 @@ async function generateWithBackoff(params: GenerateContentParameters) {
       if (status === 429 && !hasMultipleKeys) {
         const serverRetryMs = parseRetryAfterMs(error)
         const singleKeyWait = serverRetryMs ?? SINGLE_KEY_429_WAIT_MS
-        const isDev = process.env.NODE_ENV !== 'production'
         if (isDev) {
-          console.log(`⏳ Single-key 429: waiting ${(singleKeyWait / 1000).toFixed(1)}s before retry (attempt ${attempt + 1}/${GEMINI_MAX_RETRIES})`)
+          console.log(`⏳ Single-key 429: waiting ${(singleKeyWait / 1000).toFixed(1)}s before retry (attempt ${attempt + 1}/${maxRetries})`)
         }
         attempt += 1
-        if (attempt >= GEMINI_MAX_RETRIES) {
+        if (attempt >= maxRetries) {
           throw new GeminiRateLimitError(
-            `Gemini rate limit persisted after ${GEMINI_MAX_RETRIES} attempts`,
+            `Gemini rate limit persisted after ${maxRetries} attempts`,
             singleKeyWait
           )
         }
         await sleep(singleKeyWait)
+        continue
+      }
+
+      // 504 / DEADLINE_EXCEEDED — server timed out processing the request.
+      // Use a longer initial backoff since the server was genuinely overloaded.
+      if (effective504) {
+        attempt += 1
+        if (attempt >= maxRetries) {
+          throw lastError instanceof Error
+            ? lastError
+            : new Error(`Gemini 504 DEADLINE_EXCEEDED persisted after ${maxRetries} attempts`)
+        }
+        // Longer backoff for timeouts: 8s, 16s, 32s, 64s ...
+        const backoff504 = BASE_BACKOFF_504_MS * Math.pow(2, attempt - 1) + randomJitterMs(500)
+        if (isDev) {
+          console.warn(`⏳ 504 DEADLINE_EXCEEDED (${params.model}): waiting ${(backoff504 / 1000).toFixed(1)}s before retry (attempt ${attempt}/${maxRetries})`)
+        }
+        await sleep(backoff504)
         continue
       }
 
@@ -250,14 +300,14 @@ async function generateWithBackoff(params: GenerateContentParameters) {
         baseBackoff * Math.pow(2, attempt) + randomJitterMs()
 
       attempt += 1
-      if (attempt >= GEMINI_MAX_RETRIES) {
+      if (attempt >= maxRetries) {
         if (status === 429) {
           throw new GeminiRateLimitError(
-            `Gemini rate limit persisted after ${GEMINI_MAX_RETRIES} attempts${hasMultipleKeys ? ` (all ${pool.length} keys exhausted)` : ''}`,
+            `Gemini rate limit persisted after ${maxRetries} attempts${hasMultipleKeys ? ` (all ${pool.length} keys exhausted)` : ''}`,
             backoffMs
           )
         }
-        throw lastError instanceof Error ? lastError : new Error(`Gemini ${status} persisted after ${GEMINI_MAX_RETRIES} attempts`)
+        throw lastError instanceof Error ? lastError : new Error(`Gemini ${status} persisted after ${maxRetries} attempts`)
       }
 
       await sleep(backoffMs)
