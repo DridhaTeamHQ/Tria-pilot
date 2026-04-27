@@ -342,8 +342,8 @@ export default function LandingPage() {
 
             {/* Bottom Section */}
             <div className="flex flex-col items-center justify-between gap-4 border-t pt-6 text-[12px] font-bold uppercase tracking-[0.08em] text-black/60 sm:flex-row">
+              <div>Made with in India</div>
               <div>(C) 2026 DRIDHATECHNOLOGIES</div>
-              <div>Made with ❤️ in India</div>
               <div>ENGLISH (US)</div>
             </div>
 
