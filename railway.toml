@@ -1,0 +1,35 @@
+# Railway deployment configuration for the Try-On BullMQ worker.
+#
+# This file tells Railway:
+#   1. How to build the project (Nixpacks auto-detects Node.js)
+#   2. What command to run on the service (the worker, NOT the Next.js app)
+#   3. How to handle restarts when the worker crashes
+#
+# IMPORTANT: This config only affects the Railway deployment. Vercel ignores
+# this file completely and continues to deploy the Next.js web app as usual.
+#
+# Architecture:
+#   Vercel  → hosts Next.js (frontend + API routes) → enqueues to Redis
+#   Railway → runs this worker → consumes jobs from Redis → calls Gemini
+#   Upstash Redis → shared queue between the two
+#   Supabase → shared database (job state, outputs, users)
+
+[build]
+# Nixpacks auto-detects Node.js + npm based on package.json. No customization needed.
+builder = "NIXPACKS"
+
+[deploy]
+# Run the worker process (long-lived, consumes from BullMQ).
+# This is the start command Railway will execute. It maps to
+# `tsx src/workers/tryon-worker.ts` in package.json.
+startCommand = "npm run worker:tryon"
+
+# If the worker crashes (Gemini fatal error, OOM, etc.), restart it.
+# Railway uses exponential backoff between retries.
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+# Disable healthcheck — the worker doesn't expose an HTTP server.
+# Its "alive" signal is the heartbeat it writes to Redis every 10s,
+# which the Vercel API checks via isTryOnWorkerOnline().
+healthcheckPath = ""
