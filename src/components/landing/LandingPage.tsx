@@ -274,50 +274,81 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <footer className="border-t-[3px] border-black bg-[#fbfaf6] px-4 py-8 sm:px-8 sm:py-10 lg:px-10">
-          <div className="flex flex-col gap-8">
-            <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
-              <div className="flex items-center gap-3">
-                {[
-                  { icon: <Facebook className="h-4 w-4" strokeWidth={2.2} />, label: 'Facebook' },
-                  { icon: <Instagram className="h-4 w-4" strokeWidth={2.2} />, label: 'Instagram' },
-                  { icon: <Youtube className="h-4 w-4" strokeWidth={2.2} />, label: 'YouTube' },
-                  { icon: <Linkedin className="h-4 w-4" strokeWidth={2.2} />, label: 'LinkedIn' },
-                ].map((item) => (
-                  <span
-                    key={item.label}
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-full border-[2px] border-black bg-white shadow-[3px_3px_0_0_rgba(0,0,0,1)]"
-                    aria-label={item.label}
-                  >
-                    {item.icon}
-                  </span>
-                ))}
+        <footer className="border-t-[3px] border-black bg-[#fbfaf6] px-5 py-12 sm:px-8 lg:px-10">
+          <div className="flex flex-col gap-10">
+
+            {/* Top Section */}
+            <div className="grid gap-10 md:grid-cols-3 md:items-start">
+
+              {/* Brand + Description */}
+              <div>
+                <h2 className="text-2xl font-black tracking-tight">KIWIKOO</h2>
+                <p className="mt-3 text-[14px] leading-6 text-black/60 max-w-[260px]">
+                  AI-powered fashion platform helping creators and brands create, launch and earn faster.
+                </p>
+
+                {/* Social Icons */}
+                <div className="mt-5 flex gap-3">
+                  {[Facebook, Instagram, Youtube, Linkedin].map((Icon, i) => (
+                    <span
+                      key={i}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border-[2px] border-black bg-white shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+                    >
+                      <Icon className="h-4 w-4" strokeWidth={2.2} />
+                    </span>
+                  ))}
+                </div>
               </div>
 
-              <div className="grid gap-6 text-[12px] font-bold uppercase tracking-[0.08em] text-black/65 sm:grid-cols-3 sm:gap-10">
+              {/* Links */}
+              <div className="grid grid-cols-2 gap-8 text-[13px] font-bold uppercase tracking-[0.08em]">
+
                 <div>
-                  <div className="mb-2 text-black/35">Company</div>
+                  <div className="mb-3 text-black/40">Company</div>
                   <div className="space-y-2 text-black">
-                    <Link href="/about" className="block hover:underline">About Us</Link>
-                    <Link href="/signup/influencer" className="block hover:underline">Join Us</Link>
-                    <Link href="/marketplace" className="block hover:underline">Discovery</Link>
+                    <Link href="/about" className="block hover:underline">About</Link>
+                    <Link href="/signup/influencer" className="block hover:underline">Creators</Link>
+                    <Link href="/signup/brand" className="block hover:underline">Brands</Link>
+                    <Link href="/marketplace" className="block hover:underline">Marketplace</Link>
                   </div>
                 </div>
+
                 <div>
-                  <div className="mb-2 text-black/35">Legal</div>
+                  <div className="mb-3 text-black/40">Legal</div>
                   <div className="space-y-2 text-black">
-                    <Link href="/privacy" className="block hover:underline">Privacy Policy</Link>
-                    <Link href="/terms" className="block hover:underline">Terms of Use</Link>
+                    <Link href="/privacy" className="block hover:underline">Privacy</Link>
+                    <Link href="/terms" className="block hover:underline">Terms</Link>
                   </div>
                 </div>
-                <div className="space-y-2 text-right max-sm:text-left">
-                  <div>(C) 2026 DRIDHATECHNOLOGIES. ALL RIGHTS RESERVED.</div>
-                  <div>ENGLISH (US)</div>
-                </div>
+              </div>
+
+              {/* CTA Section */}
+              <div className="rounded-[20px] border-[3px] border-black bg-[#ff8c78] p-5 shadow-[6px_6px_0_0_rgba(0,0,0,1)]">
+                <h3 className="text-[18px] font-black leading-tight text-black">
+                  Start your journey today 🚀
+                </h3>
+                <p className="mt-2 text-[13px] text-black/70">
+                  Join creators & brands using AI fashion tools.
+                </p>
+
+                <Link
+                  href="/signup/influencer"
+                  className="mt-4 inline-flex w-full items-center justify-center rounded-full border-[2px] border-black bg-black px-4 py-2 text-[12px] font-bold uppercase text-white transition hover:translate-y-[2px] hover:shadow-none shadow-[3px_3px_0_0_rgba(0,0,0,1)]"
+                >
+                  Get Started
+                </Link>
               </div>
             </div>
 
-            <div className="kiwikoo-wordmark text-[clamp(4.8rem,18vw,10rem)] leading-none text-black/[0.05] overflow-hidden">
+            {/* Bottom Section */}
+            <div className="flex flex-col items-center justify-between gap-4 border-t pt-6 text-[12px] font-bold uppercase tracking-[0.08em] text-black/60 sm:flex-row">
+              <div>(C) 2026 DRIDHATECHNOLOGIES</div>
+              <div>Made with ❤️ in India</div>
+              <div>ENGLISH (US)</div>
+            </div>
+
+            {/* Background Wordmark */}
+            <div className="kiwikoo-wordmark text-[clamp(5rem,18vw,11rem)] leading-none text-black/[0.04] text-center">
               KIWIKOO
             </div>
           </div>
@@ -398,40 +429,40 @@ function GlassFeatureStack() {
     <div className="mx-auto w-full max-w-[1100px]">
       <div className="group relative flex flex-col items-center gap-4 sm:gap-5 lg:min-h-[320px] lg:flex-row lg:justify-center lg:pt-2">
         <div className="pointer-events-none absolute inset-x-0 top-4 hidden h-[200px] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.72)_0%,rgba(255,255,255,0.12)_58%,transparent_78%)] blur-2xl lg:block" />
-      {cards.map((card, index) => (
-        <motion.div
-          key={card.title}
-          className={`relative z-10 h-[250px] w-full max-w-[310px] overflow-hidden rounded-[24px] border border-white/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.68),rgba(255,255,255,0.34))] p-5 shadow-[0_18px_34px_rgba(0,0,0,0.12)] backdrop-blur-[14px] transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] sm:h-[270px] sm:rounded-[28px] sm:p-6 sm:shadow-[0_26px_50px_rgba(0,0,0,0.14)] lg:h-[290px] lg:w-[260px] lg:max-w-none lg:mx-[-42px] lg:group-hover:mx-[14px] lg:group-hover:rotate-0 ${card.rotateClass}`}
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.45, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
-          style={{ zIndex: cards.length - index }}
-        >
-          <div className={`absolute inset-0 bg-gradient-to-br ${card.accent} opacity-[0.16]`} />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_16%,rgba(255,255,255,0.78),transparent_30%),radial-gradient(circle_at_84%_30%,rgba(255,255,255,0.38),transparent_24%),radial-gradient(circle_at_52%_92%,rgba(255,255,255,0.28),transparent_26%)]" />
-          <div className="relative flex h-full flex-col justify-between text-black">
-            <div>
-              <div className={`inline-flex h-11 w-11 items-center justify-center rounded-[14px] bg-gradient-to-br ${card.accent} shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]`}>
-                {card.icon}
+        {cards.map((card, index) => (
+          <motion.div
+            key={card.title}
+            className={`relative z-10 h-[250px] w-full max-w-[310px] overflow-hidden rounded-[24px] border border-white/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.68),rgba(255,255,255,0.34))] p-5 shadow-[0_18px_34px_rgba(0,0,0,0.12)] backdrop-blur-[14px] transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] sm:h-[270px] sm:rounded-[28px] sm:p-6 sm:shadow-[0_26px_50px_rgba(0,0,0,0.14)] lg:h-[290px] lg:w-[260px] lg:max-w-none lg:mx-[-42px] lg:group-hover:mx-[14px] lg:group-hover:rotate-0 ${card.rotateClass}`}
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.45, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
+            style={{ zIndex: cards.length - index }}
+          >
+            <div className={`absolute inset-0 bg-gradient-to-br ${card.accent} opacity-[0.16]`} />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_16%,rgba(255,255,255,0.78),transparent_30%),radial-gradient(circle_at_84%_30%,rgba(255,255,255,0.38),transparent_24%),radial-gradient(circle_at_52%_92%,rgba(255,255,255,0.28),transparent_26%)]" />
+            <div className="relative flex h-full flex-col justify-between text-black">
+              <div>
+                <div className={`inline-flex h-11 w-11 items-center justify-center rounded-[14px] bg-gradient-to-br ${card.accent} shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]`}>
+                  {card.icon}
+                </div>
+                <div className="mt-5 text-[11px] font-black uppercase tracking-[0.14em] text-black/42 sm:mt-6 sm:text-[12px]">{card.label}</div>
+                <div className="mt-2 text-[26px] font-black leading-[0.94] tracking-[-0.06em] sm:text-[30px] lg:text-[31px]">{card.title}</div>
               </div>
-              <div className="mt-5 text-[11px] font-black uppercase tracking-[0.14em] text-black/42 sm:mt-6 sm:text-[12px]">{card.label}</div>
-              <div className="mt-2 text-[26px] font-black leading-[0.94] tracking-[-0.06em] sm:text-[30px] lg:text-[31px]">{card.title}</div>
-            </div>
 
-            <div>
-              <div className="max-w-[240px] text-[13px] leading-6 text-black/55 sm:text-[14px] sm:leading-7 lg:max-w-[210px] lg:text-[14px]">{card.description}</div>
-              <div className="mt-5 flex justify-end border-t border-black/10 pt-4">
-                <div className="relative h-8 w-[96px] overflow-hidden rounded-full border border-black/10 bg-white/35">
-                  <span className={`absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-gradient-to-br ${card.accent} opacity-90`} />
-                  <span className="absolute left-[36px] top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border border-black/16 bg-white/72" />
-                  <span className="absolute right-2 top-1/2 h-[14px] w-[34px] -translate-y-1/2 rounded-full bg-black/8" />
+              <div>
+                <div className="max-w-[240px] text-[13px] leading-6 text-black/55 sm:text-[14px] sm:leading-7 lg:max-w-[210px] lg:text-[14px]">{card.description}</div>
+                <div className="mt-5 flex justify-end border-t border-black/10 pt-4">
+                  <div className="relative h-8 w-[96px] overflow-hidden rounded-full border border-black/10 bg-white/35">
+                    <span className={`absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-gradient-to-br ${card.accent} opacity-90`} />
+                    <span className="absolute left-[36px] top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border border-black/16 bg-white/72" />
+                    <span className="absolute right-2 top-1/2 h-[14px] w-[34px] -translate-y-1/2 rounded-full bg-black/8" />
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </motion.div>
-      ))}
+          </motion.div>
+        ))}
       </div>
     </div>
   )
