@@ -263,9 +263,17 @@ const worker = new Worker<TryOnQueueJobData>(
   },
   {
     connection: getRedisConnection(),
-    concurrency: 4,
+    // Concurrency tuned to total Gemini key capacity.
+    // Each job fires ~3 parallel Gemini calls. With N keys at 2 RPM (Pro):
+    //   1 key  → concurrency 2
+    //   3 keys → concurrency 4   (current default)
+    //   5 keys → concurrency 6
+    //   10 keys → concurrency 10
+    // Override via TRYON_WORKER_CONCURRENCY env var.
+    concurrency: Math.max(1, parseInt(process.env.TRYON_WORKER_CONCURRENCY || '4', 10) || 4),
   }
 )
+console.log(`👷 Try-on worker started — concurrency: ${Math.max(1, parseInt(process.env.TRYON_WORKER_CONCURRENCY || '4', 10) || 4)}`)
 
 void touchTryOnWorkerHeartbeat()
 const heartbeatTimer = setInterval(() => {

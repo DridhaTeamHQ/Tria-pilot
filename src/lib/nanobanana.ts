@@ -378,8 +378,13 @@ OUTPUT: High-quality realistic photograph of the SAME PERSON from the first imag
         throw new Error('Gemini API key is invalid or missing.')
       } else if (error.message.includes('quota')) {
         throw new Error('Gemini API quota exceeded. Please try again later.')
-      } else if (error.message.includes('timeout')) {
-        throw new Error('Gemini API request timed out. Please try again.')
+      } else if (
+        error.message.includes('504') ||
+        error.message.toLowerCase().includes('deadline exceeded') ||
+        error.message.toLowerCase().includes('deadline expired') ||
+        error.message.includes('timeout')
+      ) {
+        throw new Error('Gemini API timed out (server overloaded). Please try again in a moment.')
       } else if (error.message.includes('Invalid person image')) {
         throw error
       }
@@ -551,10 +556,23 @@ REALISM: Photorealistic output. Natural skin, realistic fabric drape. No AI smoo
 
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      const is503 = msg.includes('503') || msg.includes('UNAVAILABLE') || msg.includes('high demand') || msg.includes('overloaded')
+      const msgLower = msg.toLowerCase()
 
-      if (is503 && !isFinalModel) {
-        console.warn(`\u26a0\ufe0f ${modelAttempt} 503 \u2014 switching to ${modelsToTry[mi + 1]}`)
+      // Treat 503 (capacity) and 504 (deadline exceeded) as switchable errors.
+      // Both mean the Pro model is overloaded \u2014 flash is the right fallback.
+      const isCapacityError =
+        msg.includes('503') ||
+        msg.includes('504') ||
+        msg.includes('UNAVAILABLE') ||
+        msg.includes('high demand') ||
+        msg.includes('overloaded') ||
+        msgLower.includes('deadline exceeded') ||
+        msgLower.includes('deadline_exceeded') ||
+        msgLower.includes('deadline expired')
+
+      if (isCapacityError && !isFinalModel) {
+        const errCode = msg.includes('504') || msgLower.includes('deadline') ? '504' : '503'
+        console.warn(`\u26a0\ufe0f ${modelAttempt} ${errCode} \u2014 switching to fallback ${modelsToTry[mi + 1]}`)
         continue
       }
       throw err

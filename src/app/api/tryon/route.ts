@@ -27,7 +27,13 @@ import {
   type IdentityCompositionAssessment,
 } from '@/lib/tryon/identity-composition-check'
 import { GeminiRateLimitError } from '@/lib/gemini/executor'
+import { checkGenerationGate, completeGeneration } from '@/lib/generation-limiter'
 import { ZodError } from 'zod'
+
+// Max jobs allowed to sit waiting in the BullMQ queue.
+// If exceeded, new requests are rejected immediately with a "busy" response.
+// Prevents queue from growing unboundedly during traffic spikes.
+const MAX_QUEUE_DEPTH = parseInt(process.env.TRYON_MAX_QUEUE_DEPTH || '50', 10)
 
 export const maxDuration = 300
 const TRYON_RATE_LIMIT_DISABLED =
@@ -770,6 +776,40 @@ async function handlePresetlessTryOnRequest(params: {
 
   const workerOnline = isQueueAvailable() ? await isTryOnWorkerOnline() : false
   if (workerOnline) {
+    // ── Queue depth cap ─────────────────────────────────────────────────────
+    // Count pending (waiting) jobs in the queue. If we're over the limit,
+    // reject the request immediately rather than letting the queue grow
+    // unboundedly during a traffic spike.
+    try {
+      const { Queue } = await import('bullmq')
+      const { TRYON_QUEUE_NAME } = await import('@/lib/queue/tryon-queue')
+      const redis = getRedisConnection()
+      const monitorQueue = new Queue(TRYON_QUEUE_NAME, { connection: redis })
+      const waitingCount = await monitorQueue.getWaitingCount()
+      await monitorQueue.close()
+
+      if (waitingCount >= MAX_QUEUE_DEPTH) {
+        await service
+          .from('generation_jobs')
+          .update({ status: 'failed', error_message: 'Queue full — rejected before enqueue.' })
+          .eq('id', job.id)
+        return NextResponse.json(
+          {
+            error: 'Our generation queue is full right now. Please try again in a few minutes.',
+            code: 'QUEUE_FULL',
+            queueDepth: waitingCount,
+            retryAfterSeconds: 60,
+          },
+          { status: 503, headers: { 'Retry-After': '60', 'Cache-Control': 'no-store' } }
+        )
+      }
+
+      if (isDev) console.log(`📋 Queue depth: ${waitingCount}/${MAX_QUEUE_DEPTH}`)
+    } catch (depthErr) {
+      // Non-fatal — if we can't check depth, proceed and let BullMQ handle it
+      console.warn('[tryon] could not check queue depth:', depthErr)
+    }
+
     try {
       await enqueueTryOnJob({ jobId: job.id, userId })
       return NextResponse.json(
@@ -1049,6 +1089,10 @@ async function handlePresetlessTryOnRequest(params: {
 
 export async function POST(request: Request) {
   let redisUserLockKey: string | null = null
+  // Track the generation gate requestId so we can release the lock + record cost
+  // in the finally block, regardless of how the request exits.
+  let gateRequestId: string | null = null
+  let gateUserId: string | null = null
   const configuredRenderModel = getTryOnRenderModel()
   try {
     const supabase = await createClient()
@@ -1178,6 +1222,31 @@ export async function POST(request: Request) {
     const userId = authUser.id
     if (isDev) console.log('✅ User verified, generating try-on:', { userId })
 
+    // ── Generation gate: daily cap + cooldown + kill switch ─────────────────
+    // Runs in all environments (not gated by TRYON_RATE_LIMIT_DISABLED).
+    // This is the cost-protection layer — it must always be active.
+    if (process.env.NODE_ENV === 'production' || process.env.TRYON_LIMITER_ENABLED === 'true') {
+      const ip =
+        request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+        request.headers.get('x-real-ip') ||
+        'unknown'
+      const gate = checkGenerationGate(userId, ip)
+      if (!gate.allowed) {
+        return NextResponse.json(
+          {
+            error: gate.blockReason || 'Generation limit reached. Please try again later.',
+            code: 'GENERATION_LIMIT',
+            remainingToday: gate.remainingToday,
+            killSwitchActive: gate.killSwitchActive,
+          },
+          { status: 429, headers: { 'Retry-After': '60', 'Cache-Control': 'no-store' } }
+        )
+      }
+      // Capture for cleanup in the finally block at the bottom of POST.
+      gateRequestId = gate.requestId
+      gateUserId = userId
+    }
+
     if (!TRYON_RATE_LIMIT_DISABLED) {
       const activeJob = await findRecentActiveTryOnJob(service, userId)
       if (activeJob) {
@@ -1262,6 +1331,17 @@ export async function POST(request: Request) {
         await redis.del(redisUserLockKey)
       } catch (releaseErr) {
         console.warn('[tryon] failed to release user lock:', releaseErr)
+      }
+    }
+    // ── Release generation gate session lock + record cost ──────────────────
+    // Marks the request as finished so the user's session lock is released
+    // and the daily count + cost are recorded.
+    // Estimated 3 Gemini calls per try-on (3 reference photos in parallel).
+    if (gateRequestId && gateUserId) {
+      try {
+        completeGeneration(gateUserId, gateRequestId, 'success', 3)
+      } catch (gateErr) {
+        console.warn('[tryon] failed to release generation gate:', gateErr)
       }
     }
   }

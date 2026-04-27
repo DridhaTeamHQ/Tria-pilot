@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
-import { isQueueAvailable } from '@/lib/queue/redis'
+import { isQueueAvailable, getRedisConnection } from '@/lib/queue/redis'
 import { isTryOnWorkerOnline } from '@/lib/queue/tryon-worker-health'
 
 export const dynamic = 'force-dynamic'
@@ -58,12 +58,45 @@ export async function GET() {
       return NextResponse.json({ active: false })
     }
 
+    // ── Queue position (how many jobs are ahead in BullMQ) ─────────────────
+    // Gives the frontend something meaningful to show the user while they wait.
+    let queuePosition: number | null = null
+    let queueDepth: number | null = null
+    if (workerOnline && isQueueAvailable()) {
+      try {
+        const { Queue } = await import('bullmq')
+        const { TRYON_QUEUE_NAME } = await import('@/lib/queue/tryon-queue')
+        const redis = getRedisConnection()
+        const monitorQueue = new Queue(TRYON_QUEUE_NAME, { connection: redis })
+
+        const [waitingJobs, waiting] = await Promise.all([
+          monitorQueue.getWaiting(),
+          monitorQueue.getWaitingCount(),
+        ])
+        await monitorQueue.close()
+
+        queueDepth = waiting
+        // Find this job's position in the waiting list (1-indexed)
+        const idx = waitingJobs.findIndex(j => j.data?.jobId === activeJob.id)
+        if (idx !== -1) {
+          queuePosition = idx + 1  // 1 = next to be processed
+        } else if (activeJob.status === 'processing') {
+          queuePosition = 0  // Already being processed
+        }
+      } catch {
+        // Non-fatal — position is just a UI hint
+      }
+    }
+
     return NextResponse.json({
       active: true,
       jobId: activeJob.id,
       status: activeJob.status,
       createdAt: activeJob.created_at,
       updatedAt: activeJob.updated_at,
+      // Queue context — null when worker is offline or position unknown
+      queuePosition,   // 0 = generating now, 1 = next, N = Nth in line
+      queueDepth,      // total waiting jobs (so UI can show "4 of 23")
     })
   } catch (error) {
     console.error('Try-on active job error:', error)
