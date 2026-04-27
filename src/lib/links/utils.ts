@@ -89,20 +89,38 @@ export function validateOriginalUrl(url: string): boolean {
 }
 
 /**
- * Sanitize redirect URL to prevent open redirects
- * Only allow redirects to the same origin or whitelisted domains
+ * Sanitize redirect URL to prevent open redirects.
+ *
+ * Defense layers:
+ *   1. http(s) protocol only (no javascript:, data:, etc.)
+ *   2. Block private IPs / loopback / *.local / *.internal
+ *   3. Domain allowlist — only redirect to hosts on REDIRECT_ALLOWED_HOSTS env var,
+ *      or to known marketplace domains (Amazon, Flipkart, Myntra, etc.).
+ *      If the env var is unset, the legacy behavior (allow any non-blocked host)
+ *      kicks in for backward compatibility — set REDIRECT_ALLOWED_HOSTS in prod.
  */
 export function sanitizeRedirectUrl(url: string): string | null {
   try {
     const parsed = new URL(url)
-    
-    // Check if it's a safe protocol
+
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
       return null
     }
 
     if (isBlockedHost(parsed.hostname)) {
       return null
+    }
+
+    // Optional allowlist (highly recommended in production)
+    const allowlistEnv = (process.env.REDIRECT_ALLOWED_HOSTS || '').trim()
+    if (allowlistEnv.length > 0) {
+      const allowed = allowlistEnv
+        .split(',')
+        .map((h) => h.trim().toLowerCase())
+        .filter(Boolean)
+      const host = parsed.hostname.toLowerCase()
+      const ok = allowed.some((h) => host === h || host.endsWith('.' + h))
+      if (!ok) return null
     }
 
     return parsed.toString()

@@ -77,6 +77,33 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Only image uploads are allowed' }, { status: 400 })
     }
 
+    // SVG is technically an image MIME type but contains executable XML.
+    // Serving SVG from the same origin allows stored XSS, so reject.
+    const lowerType = (file.type || '').toLowerCase()
+    const lowerName = (file.name || '').toLowerCase()
+    if (lowerType.includes('svg') || lowerName.endsWith('.svg')) {
+      return NextResponse.json(
+        { error: 'SVG uploads are not allowed. Please upload PNG, JPG, or WEBP.' },
+        { status: 400 }
+      )
+    }
+
+    // Allowlist: only common raster image formats.
+    const allowedTypes = new Set([
+      'image/png',
+      'image/jpeg',
+      'image/jpg',
+      'image/webp',
+      'image/gif',
+      'image/avif',
+    ])
+    if (!allowedTypes.has(lowerType)) {
+      return NextResponse.json(
+        { error: `Image type "${file.type}" is not allowed` },
+        { status: 400 }
+      )
+    }
+
     if (file.size === 0) {
       return NextResponse.json({ error: 'Uploaded file is empty' }, { status: 400 })
     }

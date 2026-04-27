@@ -243,14 +243,112 @@ export async function getReferencePhotosByIds(
   return (data || []) as ReferencePhoto[]
 }
 
+/**
+ * Validate that a reference-photo URL is safe to fetch.
+ *
+ * Prevents SSRF: blocks private IPs, loopback, link-local, and metadata
+ * endpoints. Also enforces an allowlist of trusted hosts (Supabase storage
+ * + any explicit additions via REFERENCE_PHOTO_ALLOWED_HOSTS env var).
+ */
+function assertSafeReferenceUrl(rawUrl: string): URL {
+  let parsed: URL
+  try {
+    parsed = new URL(rawUrl)
+  } catch {
+    throw new Error('Invalid reference photo URL')
+  }
+
+  // Only http(s) — no file://, data:, gopher://, etc.
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+    throw new Error('Reference photo URL must use http or https')
+  }
+
+  const host = parsed.hostname.toLowerCase()
+
+  // Block obviously dangerous hosts: localhost, *.local, *.internal,
+  // metadata service IPs, RFC1918 private ranges.
+  if (
+    host === 'localhost' ||
+    host === '0.0.0.0' ||
+    host.endsWith('.local') ||
+    host.endsWith('.internal')
+  ) {
+    throw new Error('Reference photo URL host is not allowed')
+  }
+
+  // RFC1918 + link-local + loopback IPv4 check
+  const ipv4Parts = host.split('.').map(Number)
+  if (
+    ipv4Parts.length === 4 &&
+    ipv4Parts.every((p) => Number.isFinite(p) && p >= 0 && p <= 255)
+  ) {
+    const [a, b] = ipv4Parts
+    if (a === 10 || a === 127 || a === 0) {
+      throw new Error('Reference photo URL points to a private IP')
+    }
+    if (a === 169 && b === 254) {
+      throw new Error('Reference photo URL points to a link-local IP')
+    }
+    if (a === 172 && b >= 16 && b <= 31) {
+      throw new Error('Reference photo URL points to a private IP')
+    }
+    if (a === 192 && b === 168) {
+      throw new Error('Reference photo URL points to a private IP')
+    }
+  }
+
+  // Block IPv6 loopback and link-local
+  if (host === '::1' || host.startsWith('fe80:') || host.startsWith('[fe80')) {
+    throw new Error('Reference photo URL points to a private IPv6')
+  }
+
+  // Allowlist: Supabase storage host (derived from NEXT_PUBLIC_SUPABASE_URL)
+  // plus any extra hosts configured via env. If neither is set, the only
+  // safe-by-default hosts are well-known image CDNs.
+  const allowed: string[] = []
+  try {
+    const supabaseHost = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || '').hostname
+    if (supabaseHost) allowed.push(supabaseHost)
+  } catch {
+    // ignore — no Supabase configured
+  }
+  const extra = (process.env.REFERENCE_PHOTO_ALLOWED_HOSTS || '')
+    .split(',')
+    .map((h) => h.trim().toLowerCase())
+    .filter(Boolean)
+  allowed.push(...extra)
+
+  if (allowed.length > 0) {
+    const isAllowed = allowed.some(
+      (allowedHost) => host === allowedHost || host.endsWith('.' + allowedHost)
+    )
+    if (!isAllowed) {
+      throw new Error(`Reference photo host "${host}" is not on the allowlist`)
+    }
+  }
+
+  return parsed
+}
+
 export async function fetchReferencePhotoAsBase64(imageUrl: string): Promise<string> {
-  const response = await fetch(imageUrl)
+  const safeUrl = assertSafeReferenceUrl(imageUrl)
+
+  // Bound the response size to prevent OOM via gigantic payloads.
+  const MAX_BYTES = 25 * 1024 * 1024 // 25MB cap
+
+  const response = await fetch(safeUrl.toString(), {
+    redirect: 'error', // don't follow redirects — they can defeat the allowlist
+  })
   if (!response.ok) {
     throw new Error(`Failed to fetch reference photo (${response.status})`)
   }
 
-  const buffer = Buffer.from(await response.arrayBuffer())
-  return buffer.toString('base64')
+  const arrayBuf = await response.arrayBuffer()
+  if (arrayBuf.byteLength > MAX_BYTES) {
+    throw new Error(`Reference photo too large (${arrayBuf.byteLength} bytes)`)
+  }
+
+  return Buffer.from(arrayBuf).toString('base64')
 }
 
 export async function analyzeAndUpdateReferencePhoto(

@@ -40,16 +40,23 @@ export async function GET() {
             throw linksError
         }
 
-        // 2. Fetch all conversion events (purchases) for these links
-        const { data: events, error: eventsError } = await service
+        // 2. Fetch all conversion events (purchases) for these links.
+        // CRITICAL: exclude rows tagged metadata.source='simulation' so the
+        // admin simulation tool cannot inflate real influencer payouts.
+        const { data: rawEvents, error: eventsError } = await service
             .from('affiliate_events')
-            .select('id, tracked_link_id, amount, event_type, created_at')
+            .select('id, tracked_link_id, amount, event_type, created_at, metadata')
             .eq('influencer_id', authUser.id)
             .eq('event_type', 'purchase')
 
         if (eventsError) {
             throw eventsError
         }
+
+        const events = (rawEvents || []).filter((row) => {
+            const source = (row as { metadata?: { source?: string } | null }).metadata?.source
+            return source !== 'simulation'
+        })
 
         // 3. Process data
         const totalClicks = links.reduce((sum, link) => sum + (link.click_count || 0), 0)
