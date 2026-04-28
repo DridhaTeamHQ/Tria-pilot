@@ -145,16 +145,32 @@ export default function MarketplaceClient({ products, categories, activeCategory
                                     <div className="absolute bottom-4 right-4 h-24 w-24 rounded-full border-[3px] border-black/15 bg-white/25" />
                                     <div className="absolute bottom-8 right-12 h-10 w-10 rounded-full border-[3px] border-black/15 bg-white/35" />
 
-                                    <div className="relative flex flex-wrap items-start justify-between gap-2 sm:gap-3">
-                                        <div className="min-w-0 flex-1">
-                                            <p className={`inline-flex rounded-full border-[2px] border-black/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-charcoal/55 sm:px-3 sm:text-[11px] sm:tracking-[0.16em] ${DUMMY_CAMPAIGNS[activeCampaign].tape}`}>
+                                    {/* Mobile layout (glitch-free) */}
+                                    <div className="relative block sm:hidden">
+                                        <div className="flex flex-wrap items-center justify-between gap-2">
+                                            <p className={`inline-flex rounded-full border-[2px] border-black/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-charcoal/55 ${DUMMY_CAMPAIGNS[activeCampaign].tape}`}>
                                                 {DUMMY_CAMPAIGNS[activeCampaign].eyebrow}
                                             </p>
-                                            <h3 className="mt-3 max-w-[11ch] text-[clamp(1.1rem,3vw,2.6rem)] font-black uppercase leading-[0.9] text-charcoal sm:mt-3.5">
+                                            <span className={`shrink-0 rounded-full border-[3px] border-black px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] ${DUMMY_CAMPAIGNS[activeCampaign].accent} ${DUMMY_CAMPAIGNS[activeCampaign].tone}`}>
+                                                {DUMMY_CAMPAIGNS[activeCampaign].stat}
+                                            </span>
+                                        </div>
+                                        <h3 className="mt-3 text-[clamp(1.1rem,3vw,2.6rem)] font-black uppercase leading-[0.9] text-charcoal">
+                                            {DUMMY_CAMPAIGNS[activeCampaign].title}
+                                        </h3>
+                                    </div>
+
+                                    {/* Desktop layout (original) */}
+                                    <div className="relative hidden sm:flex flex-wrap items-start justify-between gap-3">
+                                        <div className="min-w-0 flex-1">
+                                            <p className={`inline-flex rounded-full border-[2px] border-black/20 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-charcoal/55 ${DUMMY_CAMPAIGNS[activeCampaign].tape}`}>
+                                                {DUMMY_CAMPAIGNS[activeCampaign].eyebrow}
+                                            </p>
+                                            <h3 className="mt-3.5 max-w-[11ch] text-[clamp(1.1rem,3vw,2.6rem)] font-black uppercase leading-[0.9] text-charcoal">
                                                 {DUMMY_CAMPAIGNS[activeCampaign].title}
                                             </h3>
                                         </div>
-                                        <span className={`shrink-0 rounded-full border-[3px] border-black px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] sm:px-4 sm:py-2 sm:text-xs sm:tracking-[0.12em] ${DUMMY_CAMPAIGNS[activeCampaign].accent} ${DUMMY_CAMPAIGNS[activeCampaign].tone}`}>
+                                        <span className={`shrink-0 rounded-full border-[3px] border-black px-4 py-2 text-xs font-black uppercase tracking-[0.12em] ${DUMMY_CAMPAIGNS[activeCampaign].accent} ${DUMMY_CAMPAIGNS[activeCampaign].tone}`}>
                                             {DUMMY_CAMPAIGNS[activeCampaign].stat}
                                         </span>
                                     </div>
