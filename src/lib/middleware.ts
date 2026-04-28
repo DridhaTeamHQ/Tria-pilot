@@ -132,6 +132,7 @@ function applySecurityHeaders(response: NextResponse) {
 
 export async function updateSession(request: NextRequest) {
     const pathname = request.nextUrl.pathname
+    console.log(`[Middleware] Path: ${pathname}, Public: ${isPublicPath(pathname)}, Auth: ${!!request.cookies.get('sb-access-token')}`)
     const requestHeaders = new Headers(request.headers)
     requestHeaders.set('x-pathname', pathname)
 

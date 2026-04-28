@@ -110,9 +110,11 @@ export async function POST(request: Request) {
       data: { publicUrl },
     } = service.storage.from(STORAGE_BUCKET).getPublicUrl(uploadData.path)
 
+    const photoId = crypto.randomUUID()
     const { data: insertedPhoto, error: insertError } = await service
       .from('reference_photos')
       .insert({
+        id: photoId,
         user_id: user.id,
         image_url: publicUrl,
         image_path: uploadData.path,

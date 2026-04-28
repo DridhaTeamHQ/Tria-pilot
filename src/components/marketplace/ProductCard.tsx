@@ -172,8 +172,8 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                         <span className="truncate font-medium">{brandName}</span>
                         {priceDisplay && (
                             <>
-                                <span className="text-charcoal/30">|</span>
-                                <span className="font-medium text-charcoal/80">{priceDisplay}</span>
+                                <span className="text-charcoal/30 shrink-0">|</span>
+                                <span className="font-medium text-charcoal/80 whitespace-nowrap shrink-0">{priceDisplay}</span>
                             </>
                         )}
                     </div>
@@ -189,7 +189,7 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                                 e.stopPropagation()
                                 router.push(`/influencer/try-on?productId=${product.id}`)
                             }}
-                            className="inline-flex shrink-0 items-center gap-0.5 rounded-full border-[2px] border-black bg-[#FFD93D] px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none sm:gap-1 sm:px-3 sm:py-1.5 sm:text-[11px]"
+                            className=" inline-flex shrink-0 items-center gap-0.5 rounded-full border-[1.5px] border-black bg-[#FFD93D] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1.5px] hover:translate-y-[1.5px] hover:shadow-none sm:border-[2px] sm:gap-1 sm:px-3 sm:py-1.5 sm:text-[11px] sm:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:hover:translate-x-[2px] sm:hover:translate-y-[2px]"
                         >
                             Try-On
                             <ArrowRight className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
