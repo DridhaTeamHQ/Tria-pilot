@@ -340,6 +340,20 @@ body.landing-transparent-bg {
   animation: slideUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
+/* Bottom Sheet Slide-Up Animation */
+@keyframes slideUpSheet {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up-sheet {
+  animation: slideUpSheet 0.38s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
 /* Scale Fade Animation */
 @keyframes scaleFade {
   from {
