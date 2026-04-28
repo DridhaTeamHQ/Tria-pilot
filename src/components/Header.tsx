@@ -72,11 +72,6 @@ export default function Header() {
         if (isLoggingOut) return
         setIsLoggingOut(true)
         try {
-            queryClient.setQueryData(['user'], null)
-            queryClient.invalidateQueries({ queryKey: ['user'] })
-            queryClient.removeQueries({ queryKey: ['user'] })
-            queryClient.clear()
-
             await fetch('/api/auth/logout', {
                 method: 'POST',
                 credentials: 'include'
@@ -93,18 +88,16 @@ export default function Header() {
             }
 
             setMobileMenuOpen(false)
-            router.replace('/')
-            router.refresh()
+            window.location.href = '/'
             return
         } catch (error) {
             console.error('Logout error:', error)
-            toast.error('Failed to logout cleanly')
-            setMobileMenuOpen(false)
-            router.replace('/')
-            router.refresh()
+            if (typeof window !== 'undefined') {
+                window.location.href = '/'
+            }
             return
         }
-    }, [isLoggingOut, queryClient, router])
+    }, [isLoggingOut])
 
     const isHomePage = pathname === '/'
 

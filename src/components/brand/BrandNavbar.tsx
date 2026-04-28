@@ -64,10 +64,6 @@ export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: B
     if (isLoggingOut) return
     setIsLoggingOut(true)
     try {
-      queryClient.setQueryData(['user'], null)
-      queryClient.invalidateQueries({ queryKey: ['user'] })
-      queryClient.removeQueries({ queryKey: ['user'] })
-
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
       if (typeof window !== 'undefined') {
         Object.keys(localStorage).forEach((key) => {
@@ -79,13 +75,16 @@ export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: B
         setAuthToast('logged_out')
       }
       setMobileOpen(false)
-      router.replace('/')
-      router.refresh()
+      window.location.href = '/'
       return
-    } finally {
-      setIsLoggingOut(false)
+    } catch (error) {
+      console.error('Logout error:', error)
+      if (typeof window !== 'undefined') {
+        window.location.href = '/'
+      }
+      return
     }
-  }, [isLoggingOut, queryClient, router])
+  }, [isLoggingOut])
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#F9F8F4] border-b-[3px] border-black">
@@ -107,8 +106,8 @@ export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: B
                   key={item.href}
                   href={item.href}
                   className={`px-2.5 lg:px-3 py-1.5 rounded-xl text-sm lg:text-[15px] font-bold transition-all duration-150 flex items-center justify-center gap-1.5 border-2 border-black whitespace-nowrap ${active
-                      ? 'bg-[#B4F056] text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
-                      : 'bg-white text-black hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                    ? 'bg-[#B4F056] text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                    : 'bg-white text-black hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
                     }`}
                 >
                   <Icon className="w-3.5 h-3.5 lg:w-4 lg:h-4 shrink-0" />
@@ -191,8 +190,8 @@ export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: B
                   href={item.href}
                   onClick={() => setMobileOpen(false)}
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-black text-base font-bold transition-all ${active
-                      ? 'bg-[#B4F056] text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
-                      : 'bg-white text-black hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                    ? 'bg-[#B4F056] text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                    : 'bg-white text-black hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
                     }`}
                 >
                   <Icon className="w-5 h-5" />
