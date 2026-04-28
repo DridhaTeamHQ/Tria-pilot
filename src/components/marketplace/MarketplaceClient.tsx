@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { ShoppingBag, Filter, Sparkles, Search, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -76,6 +77,10 @@ export default function MarketplaceClient({ products, categories, activeCategory
     const [searchInput, setSearchInput] = useState('')
     const [searchQuery, setSearchQuery] = useState('')
     const [activeCampaign, setActiveCampaign] = useState(0)
+    const [showFilters, setShowFilters] = useState(false)
+    const [mounted, setMounted] = useState(false)
+
+    useEffect(() => { setMounted(true) }, [])
 
     // Memoize filtered products
     const filteredProducts = useMemo(() => {
@@ -189,13 +194,89 @@ export default function MarketplaceClient({ products, categories, activeCategory
                         </div>
                     </div>
 
-                    {/* Category Filter */}
-                    <div className="flex items-center gap-3 mb-2">
+                    {/* Category Filter — mobile: button + popup | desktop: always-visible inline pills */}
+
+                    {/* Mobile: Filter button (hidden on sm+) */}
+                    <button
+                        type="button"
+                        onClick={() => setShowFilters(true)}
+                        className="mb-4 inline-flex sm:hidden items-center gap-2 rounded-xl border-[3px] border-black bg-white px-4 py-2 text-sm font-bold uppercase tracking-[0.08em] text-charcoal shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+                    >
+                        <Filter className="h-4 w-4" />
+                        <span>Filter Categories</span>
+                    </button>
+
+                    {/* Mobile: bottom sheet — rendered via portal at document.body to escape stacking contexts */}
+                    {mounted && showFilters && createPortal(
+                        <div
+                            className="fixed inset-0 z-[9999] flex flex-col justify-end sm:hidden"
+                            style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+                            onClick={() => setShowFilters(false)}
+                        >
+                            <div
+                                className="animate-slide-up-sheet w-full rounded-t-[28px] border-t-[3px] border-l-[3px] border-r-[3px] border-black bg-white px-5 pb-8 pt-4"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                {/* Handle bar */}
+                                <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-black/20" />
+
+                                {/* Header */}
+                                <div className="mb-5 flex items-center justify-between">
+                                    <h2 className="flex items-center gap-2 text-lg font-black uppercase text-charcoal">
+                                        <Filter className="h-5 w-5" />
+                                        Choose Category
+                                    </h2>
+                                    <button
+                                        onClick={() => setShowFilters(false)}
+                                        className="rounded-full border-[2px] border-transparent p-1.5 transition-colors hover:border-black hover:bg-gray-100"
+                                    >
+                                        <X className="h-5 w-5" />
+                                    </button>
+                                </div>
+
+                                {/* Category pills */}
+                                <div className="flex flex-wrap gap-2">
+                                    {categories.map((category) => {
+                                        const categoryValue = category === 'All Products' ? 'all' : category.toLowerCase()
+                                        const isActive = activeCategory === categoryValue
+                                        return (
+                                            <Link
+                                                key={category}
+                                                href={`/marketplace?category=${categoryValue}`}
+                                                onClick={() => setShowFilters(false)}
+                                                prefetch={true}
+                                                data-cursor={isActive ? '' : 'Select'}
+                                            >
+                                                <span
+                                                    className={`inline-block rounded-full border-[3px] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.08em] transition-all duration-200 cursor-pointer ${isActive
+                                                        ? 'bg-[#FFD93D] text-black border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -translate-y-1'
+                                                        : 'bg-white border-black text-charcoal hover:bg-gray-50 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1'
+                                                        }`}
+                                                >
+                                                    {category}
+                                                </span>
+                                            </Link>
+                                        )
+                                    })}
+                                </div>
+
+                                <button
+                                    onClick={() => setShowFilters(false)}
+                                    className="mt-6 w-full rounded-xl border-[3px] border-black bg-charcoal py-3 font-bold uppercase tracking-[0.08em] text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                                >
+                                    Done
+                                </button>
+                            </div>
+                        </div>,
+                        document.body
+                    )}
+
+                    {/* Desktop: always-visible inline category pills (hidden on mobile) */}
+                    <div className="hidden sm:flex items-center gap-3 mb-2">
                         <Filter className="w-4 h-4 text-charcoal/40" />
                         <span className="text-sm text-charcoal/40">Filter by category</span>
                     </div>
-
-                    <div className="flex flex-wrap gap-2">
+                    <div className="hidden sm:flex flex-wrap gap-2 mb-2">
                         {categories.map((category) => {
                             const categoryValue = category === 'All Products' ? 'all' : category.toLowerCase()
                             const isActive = activeCategory === categoryValue
@@ -207,7 +288,7 @@ export default function MarketplaceClient({ products, categories, activeCategory
                                     data-cursor={isActive ? '' : 'Select'}
                                 >
                                     <span
-                                        className={`inline-block rounded-full border-[3px] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.08em] transition-all duration-200 cursor-pointer sm:px-4 sm:text-xs sm:tracking-wider ${isActive
+                                        className={`inline-block rounded-full border-[3px] px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${isActive
                                             ? 'bg-[#FFD93D] text-black border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -translate-y-1'
                                             : 'bg-white border-black text-charcoal hover:bg-gray-50 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1'
                                             }`}
