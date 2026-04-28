@@ -178,8 +178,8 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                         )}
                     </div>
 
-                    <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between min-w-0">
-                        <span className="w-max rounded-full border-2 border-black/15 bg-[#F6F2E8] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-charcoal/70 sm:max-w-[45%] sm:truncate sm:text-[11px]">
+                    <div className="flex items-center justify-between gap-1 min-w-0">
+                        <span className="max-w-[48%] truncate rounded-full border-2 border-black/15 bg-[#F6F2E8] px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-charcoal/70 sm:max-w-none sm:px-2.5 sm:text-[11px]">
                             {product.category || 'Product'}
                         </span>
 
@@ -189,10 +189,10 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                                 e.stopPropagation()
                                 router.push(`/influencer/try-on?productId=${product.id}`)
                             }}
-                            className="inline-flex w-full items-center justify-center gap-1 rounded-full border-[2px] border-black bg-[#FFD93D] px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none sm:w-auto sm:shrink-0 sm:py-1.5 sm:text-[11px]"
+                            className="inline-flex shrink-0 items-center gap-0.5 rounded-full border-[2px] border-black bg-[#FFD93D] px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none sm:gap-1 sm:px-3 sm:py-1.5 sm:text-[11px]"
                         >
                             Try-On
-                            <ArrowRight className="w-2.5 h-2.5" />
+                            <ArrowRight className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
                         </button>
                     </div>
                 </div>
