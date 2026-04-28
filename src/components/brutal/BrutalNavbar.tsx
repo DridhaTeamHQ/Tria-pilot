@@ -61,11 +61,6 @@ export default function BrutalNavbar() {
         if (isLoggingOut) return;
         setIsLoggingOut(true);
         try {
-            queryClient.setQueryData(["user"], null);
-            queryClient.invalidateQueries({ queryKey: ["user"] });
-            queryClient.removeQueries({ queryKey: ["user"] });
-            queryClient.clear();
-
             await fetch("/api/auth/logout", {
                 method: "POST",
                 credentials: "include",
@@ -83,17 +78,16 @@ export default function BrutalNavbar() {
             }
 
             setMobileMenuOpen(false);
-            router.replace("/");
-            router.refresh();
+            window.location.href = "/";
             return;
         } catch (error) {
             console.error("Logout error:", error);
-            setMobileMenuOpen(false);
-            router.replace("/");
-            router.refresh();
+            if (typeof window !== "undefined") {
+                window.location.href = "/";
+            }
             return;
         }
-    }, [isLoggingOut, queryClient, router]);
+    }, [isLoggingOut]);
 
     const isActive = (path: string) =>
         pathname === path || pathname?.startsWith(path + "/");
@@ -215,8 +209,8 @@ export default function BrutalNavbar() {
                                                 key={link.href}
                                                 href={link.href}
                                                 className={`p-2.5 rounded-xl border-2 border-black transition-all hover:-translate-y-0.5 ${active
-                                                        ? "bg-[#B4F056] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                                                        : "bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black/70 hover:text-black"
+                                                    ? "bg-[#B4F056] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                                                    : "bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black/70 hover:text-black"
                                                     }`}
                                                 title={link.label}
                                             >
