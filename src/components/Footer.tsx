@@ -1,6 +1,12 @@
+'use client'
+
 import Link from "next/link";
+import { useUser } from "@/lib/react-query/hooks";
 
 export default function Footer() {
+    const { data: user, isLoading } = useUser();
+    const isLoggedIn = !!user && !isLoading;
+
     return (
         <footer className="border-t-[3px] border-black bg-[var(--brutal-cream)] py-10 sm:py-14">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
@@ -22,21 +28,25 @@ export default function Footer() {
                                     About Us
                                 </Link>
                             </li>
-                            <li>
-                                <Link href="/register" className="hover:text-black hover:underline">
-                                    Join Us
-                                </Link>
-                            </li>
+                            {!isLoggedIn && (
+                                <li>
+                                    <Link href="/register" className="hover:text-black hover:underline">
+                                        Join Us
+                                    </Link>
+                                </li>
+                            )}
                             <li>
                                 <Link href="/marketplace" className="hover:text-black hover:underline">
                                     Discovery
                                 </Link>
                             </li>
-                            <li>
-                                <Link href="/login" className="hover:text-black hover:underline">
-                                    Sign In
-                                </Link>
-                            </li>
+                            {!isLoggedIn && (
+                                <li>
+                                    <Link href="/login" className="hover:text-black hover:underline">
+                                        Sign In
+                                    </Link>
+                                </li>
+                            )}
                             <li>
                                 <Link href="/help" className="hover:text-black hover:underline">
                                     Help & Support
