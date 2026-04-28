@@ -157,7 +157,7 @@ function RoleCard({
       <div className="relative z-10 flex h-full flex-col">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
           <div className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border-[3px] border-black ${content.iconBg}`}>
-          <Icon className="h-8 w-8 text-black" strokeWidth={2.5} />
+            <Icon className="h-8 w-8 text-black" strokeWidth={2.5} />
           </div>
 
           <div className="min-w-0 flex-1">

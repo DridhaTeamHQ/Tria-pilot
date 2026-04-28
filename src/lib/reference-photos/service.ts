@@ -158,6 +158,7 @@ export async function syncLegacyReferencePhotos(
       ]
 
       inserts.push({
+        id: crypto.randomUUID(),
         user_id: userId,
         image_url: imageUrl,
         image_path: (row as any).image_path || null,

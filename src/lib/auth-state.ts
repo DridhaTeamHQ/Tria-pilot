@@ -40,7 +40,7 @@ async function fetchProfile(supabase: Awaited<ReturnType<typeof createClient>>, 
     .from('profiles')
     .select('id, email, role, onboarding_completed, approval_status')
     .eq('id', userId)
-    .single()
+    .maybeSingle()
 
   if (error || !data) {
     console.error('fetchProfile error:', error?.message || 'No profile found')

@@ -147,15 +147,15 @@ export default function MarketplaceClient({ products, categories, activeCategory
 
                                     {/* Mobile layout (glitch-free) */}
                                     <div className="relative block sm:hidden">
-                                        <div className="flex flex-wrap items-center justify-between gap-2">
-                                            <p className={`inline-flex rounded-full border-[2px] border-black/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-charcoal/55 ${DUMMY_CAMPAIGNS[activeCampaign].tape}`}>
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                            <p className={`inline-flex rounded-full border-[2px] border-black/20 px-2 py-0.5 text-[8px] font-black uppercase tracking-widest text-charcoal/60 ${DUMMY_CAMPAIGNS[activeCampaign].tape}`}>
                                                 {DUMMY_CAMPAIGNS[activeCampaign].eyebrow}
                                             </p>
-                                            <span className={`shrink-0 rounded-full border-[3px] border-black px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] ${DUMMY_CAMPAIGNS[activeCampaign].accent} ${DUMMY_CAMPAIGNS[activeCampaign].tone}`}>
+                                            <span className={`shrink-0 rounded-full border-[2px] border-black px-2 py-0.5 text-[8px] font-black uppercase tracking-widest ${DUMMY_CAMPAIGNS[activeCampaign].accent} ${DUMMY_CAMPAIGNS[activeCampaign].tone}`}>
                                                 {DUMMY_CAMPAIGNS[activeCampaign].stat}
                                             </span>
                                         </div>
-                                        <h3 className="mt-3 text-[clamp(1.1rem,3vw,2.6rem)] font-black uppercase leading-[0.9] text-charcoal">
+                                        <h3 className="mt-2.5 text-[clamp(1.1rem,3vw,2.6rem)] font-black uppercase leading-[0.95] text-charcoal">
                                             {DUMMY_CAMPAIGNS[activeCampaign].title}
                                         </h3>
                                     </div>
@@ -219,7 +219,7 @@ export default function MarketplaceClient({ products, categories, activeCategory
                         })}
                     </div>
 
-                    <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center">
+                    <div className="mt-4 flex flex-row gap-2 sm:gap-3 items-stretch">
                         <div className="relative flex-1">
                             <input
                                 type="text"
@@ -232,7 +232,7 @@ export default function MarketplaceClient({ products, categories, activeCategory
                                         applySearch()
                                     }
                                 }}
-                                className="w-full rounded-xl border-[3px] border-black bg-white px-4 py-3 pr-11 text-sm font-medium text-charcoal transition-all focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                                className="w-full h-full rounded-xl border-[3px] border-black bg-white px-4 py-3 pr-11 text-sm font-medium text-charcoal transition-all focus:outline-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-none sm:focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
                             />
                             {searchInput && (
                                 <button
@@ -247,10 +247,10 @@ export default function MarketplaceClient({ products, categories, activeCategory
                         <button
                             type="button"
                             onClick={applySearch}
-                            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border-[3px] border-black bg-[#FFD93D] px-5 py-3 text-sm font-black uppercase tracking-[0.08em] text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] lg:w-auto"
+                            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border-[3px] border-black bg-[#FFD93D] px-4 sm:px-5 py-3 text-sm font-black uppercase tracking-[0.08em] text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
                         >
                             <Search className="h-4 w-4" />
-                            Search
+                            <span>Search</span>
                         </button>
                     </div>
                 </div>

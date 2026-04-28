@@ -117,29 +117,29 @@ export default function SignupPage() {
 
   const copy = isInfluencer
     ? {
-        eyebrow: 'Creator Sign Up',
-        title: 'Welcome,',
-        subtitle: 'sign up to continue',
-        sideTitle: 'Build your creator front row',
-        sideAccent: 'try-on access',
-        sideBody: 'Create a profile that feels premium from the first click, then move straight into products, try-ons, and collaborations.',
-        sideNote: 'Sharper creator setup. Less friction. Faster runway.',
-      }
+      eyebrow: 'Creator Sign Up',
+      title: 'Welcome,',
+      subtitle: 'sign up to continue',
+      sideTitle: 'Build your creator front row',
+      sideAccent: 'try-on access',
+      sideBody: 'Create a profile that feels premium from the first click, then move straight into products, try-ons, and collaborations.',
+      sideNote: 'Sharper creator setup. Less friction. Faster runway.',
+    }
     : {
-        eyebrow: 'Brand Sign Up',
-        title: 'Welcome,',
-        subtitle: 'sign up to continue',
-        sideTitle: 'Open your campaign command center',
-        sideAccent: 'brand access',
-        sideBody: 'Set up products, discover creators, and keep every launch in one place with a bold Kiwikoo workflow.',
-        sideNote: 'Products, creators, campaigns, and assets in one clean flow.',
-      }
+      eyebrow: 'Brand Sign Up',
+      title: 'Welcome,',
+      subtitle: 'sign up to continue',
+      sideTitle: 'Open your campaign command center',
+      sideAccent: 'brand access',
+      sideBody: 'Set up products, discover creators, and keep every launch in one place with a bold Kiwikoo workflow.',
+      sideNote: 'Products, creators, campaigns, and assets in one clean flow.',
+    }
 
   return (
     <div className="relative min-h-[100dvh] w-full overflow-hidden bg-[#F4F4F0]">
       {/* Background Grid */}
       <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(0,0,0,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.2)_1px,transparent_1px)] [background-size:40px_40px]" />
-      
+
       {/* Background decorative shapes */}
       <div className="absolute -left-14 top-14 h-36 w-36 rounded-full border-[4px] border-black bg-[#FF8C69] opacity-15 sm:h-48 sm:w-48 md:h-56 md:w-56 lg:-left-20 lg:top-20 lg:h-64 lg:w-64 lg:opacity-20" />
       <div className="absolute -right-12 bottom-12 h-44 w-44 rotate-12 rounded-[32px] border-[4px] border-black bg-[#B4F056] opacity-15 sm:h-60 sm:w-60 md:h-72 md:w-72 lg:-right-20 lg:bottom-20 lg:h-80 lg:w-80 lg:rounded-[40px] lg:opacity-20" />
@@ -184,7 +184,7 @@ export default function SignupPage() {
             >
               <div className="absolute inset-0 m-auto h-8 w-8 rounded-full border-[3px] border-black" style={{ backgroundColor: accentColor }} />
             </motion.div>
-            
+
             <motion.div
               className="absolute bottom-8 right-12 h-24 w-24 rotate-12 rounded-2xl border-[4px] border-black bg-[#FFD93D] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] xl:bottom-12 xl:right-24 xl:h-32 xl:w-32"
               animate={{ rotate: [12, 20, 12] }}
@@ -204,11 +204,11 @@ export default function SignupPage() {
                   {copy.sideAccent}
                 </span>
               </div>
-              
+
               <h1 className="text-[clamp(3rem,5vw,5rem)] font-black uppercase leading-[0.9] text-black">
                 {copy.sideTitle}
               </h1>
-              
+
               <div className="mt-8 rounded-2xl border-[4px] border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
                 <p className="text-xl font-bold leading-relaxed text-black/80">
                   {copy.sideBody}

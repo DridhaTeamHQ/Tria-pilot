@@ -91,15 +91,39 @@ export async function POST(request: Request) {
     const service = createServiceClient()
 
     // Get profile from profiles table
-    const { data: profile, error: profileError } = await service
+    let { data: profile, error: profileError } = await service
       .from('profiles')
       .select('id, email, role, onboarding_completed, approval_status, full_name')
       .eq('id', authUser.id)
-      .single()
+      .maybeSingle()
 
-    if (profileError || !profile) {
+    if (profileError && profileError.code !== 'PGRST116') {
       console.error('Profile fetch error:', profileError)
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    }
+
+    // Auto-create profile row if missing (e.g. after schema migration)
+    if (!profile) {
+      const meta = authUser.user_metadata || {} as Record<string, unknown>
+      const role = String(meta.role || 'influencer').toLowerCase()
+      const { data: created, error: createErr } = await service
+        .from('profiles')
+        .upsert({
+          id: authUser.id,
+          email: authUser.email || '',
+          role,
+          full_name: meta.name || meta.username || '',
+          onboarding_completed: false,
+          approval_status: role === 'brand' ? 'approved' : 'pending',
+        }, { onConflict: 'id' })
+        .select('id, email, role, onboarding_completed, approval_status, full_name')
+        .single()
+
+      if (createErr || !created) {
+        console.error('Profile auto-create error:', createErr)
+        return NextResponse.json({ error: 'Failed to initialize profile' }, { status: 500 })
+      }
+      profile = created
     }
 
     if ((profile.role || '').toLowerCase() !== 'influencer') {
@@ -291,7 +315,7 @@ export async function GET() {
       .from('profiles')
       .select('onboarding_completed, approval_status, email, full_name')
       .eq('id', authUser.id)
-      .single()
+      .maybeSingle()
 
     if (!profile) {
       return NextResponse.json({ onboardingCompleted: false })
@@ -302,7 +326,7 @@ export async function GET() {
       .from('influencer_profiles')
       .select('*')
       .eq('user_id', authUser.id)
-      .single()
+      .maybeSingle()
 
     const { data: authLookup } = await service.auth.admin.getUserById(authUser.id)
     const metadata = (authLookup.user?.user_metadata || authUser.user_metadata || {}) as Record<string, unknown>
