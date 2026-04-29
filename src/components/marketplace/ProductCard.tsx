@@ -123,6 +123,11 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                         </div>
                     )}
 
+                    {/* Mobile-only Low-Opacity Category Tag */}
+                    {/* <span className="absolute top-3 left-3 z-20 inline-flex sm:hidden items-center rounded-full border border-black/10 bg-white/40 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-charcoal/70 backdrop-blur-xs">
+                        {product.category || 'Product'}
+                    </span> */}
+
                     {uniqueImages.map((imgSrc, idx) => (
                         <div
                             key={imgSrc}
@@ -178,7 +183,7 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                         )}
                     </div>
 
-                    <div className="flex items-center justify-between gap-1 min-w-0">
+                    <div className="hidden sm:flex items-center justify-between gap-1 min-w-0">
                         <span className="max-w-[48%] truncate rounded-full border-2 border-black/15 bg-[#F6F2E8] px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-charcoal/70 sm:max-w-none sm:px-2.5 sm:text-[11px]">
                             {product.category || 'Product'}
                         </span>
@@ -196,6 +201,19 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                         </button>
                     </div>
                 </div>
+
+                {/* Mobile-only Try-On Button at the very bottom */}
+                <button
+                    type="button"
+                    onClick={(e) => {
+                        e.stopPropagation()
+                        router.push(`/influencer/try-on?productId=${product.id}`)
+                    }}
+                    className="w-full py-2 bg-[#FFD93D] text-black font-bold uppercase tracking-wide border-t-[3px] border-black flex items-center justify-center gap-2 sm:hidden text-xs"
+                >
+                    Try-On
+                    <ArrowRight className="w-3.5 h-3.5" />
+                </button>
             </div>
         </motion.div>
     )

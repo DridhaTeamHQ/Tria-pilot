@@ -49,7 +49,7 @@ export default function LandingNav() {
           <div className="flex items-center justify-between gap-4">
             <Link
               href="/"
-              className="kiwikoo-wordmark text-[21px] font-black leading-none text-black transition-transform duration-300 hover:scale-[1.03] sm:text-[24px]"
+              className="kiwikoo-wordmark flex h-11 items-center translate-y-[1.5px] text-[21px] font-black leading-none text-black transition-transform duration-300 hover:scale-[1.03] sm:text-[24px] sm:h-auto sm:translate-y-0"
               onClick={() => setOpen(false)}
             >
               Kiwikoo

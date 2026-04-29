@@ -640,7 +640,7 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-[#FDFBF7] pt-28 pb-20">
       <div className="container mx-auto px-4 sm:px-6 max-w-7xl">
 
-        <div className="mb-16">
+        <div className="mb-8">
           <h1 className="text-4xl sm:text-5xl md:text-7xl font-black text-black uppercase mb-4 tracking-tight leading-none">
             Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-black to-gray-500">Profile</span>
           </h1>
@@ -648,7 +648,7 @@ export default function ProfilePage() {
             Manage your digital persona, track your growth, and showcase your influence.
           </p>
 
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="mt-6 flex flex-wrap gap-3 justify-end">
             <button type="button"
               onClick={() => setEditing(true)}
               className="w-full sm:w-auto px-5 py-2 bg-black text-white border-[3px] border-black font-bold uppercase tracking-wide shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
@@ -673,7 +673,7 @@ export default function ProfilePage() {
 
         <div className="grid lg:grid-cols-12 gap-10">
           <div className="lg:col-span-8 space-y-10">
-            <BrutalCard className="pt-32 sm:pt-36 md:pt-10 mt-16 md:mt-12" >
+            <BrutalCard className="pt-32 sm:pt-36 md:pt-10 mt-16 md:mt-2" >
               <div className="absolute -top-16 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-8 z-10 w-[160px] h-[180px] md:w-[180px] md:h-[200px]">
                 <div className="relative w-full h-full border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-[#FFD93D] overflow-hidden">
                   {profileImageUrl ? (
@@ -1086,7 +1086,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="lg:col-span-4 space-y-8 lg:sticky lg:top-28 self-start">
-            <BrutalCard className="text-center">
+            <BrutalCard className="text-center mt-16 md:mt-2">
               <h3 className="text-sm font-bold uppercase tracking-widest mb-2">Current Level</h3>
               <div className="text-6xl font-black mb-2">{Math.round(Number(profile?.badgeScore || 0))}</div>
               <div className={`inline-block px-4 py-1 border-[2px] border-black text-xs font-bold uppercase tracking-widest ${level.bg} mb-6`}>

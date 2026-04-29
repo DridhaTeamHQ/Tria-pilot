@@ -109,15 +109,15 @@ function normalizeResult(raw: any) {
   if (!raw) return { outputs: [] }
   const outputs = Array.isArray(raw.outputs)
     ? raw.outputs
-        .map((output: any, index: number) => ({
-          referenceImageId: String(output?.referenceImageId ?? output?.reference_image_id ?? ''),
-          status: String(output?.status ?? 'completed'),
-          imageUrl: String(output?.imageUrl ?? output?.image_url ?? ''),
-          base64Image: output?.base64Image ?? output?.base64_image ?? '',
-          error: output?.error ? String(output.error) : '',
-          label: String(output?.label ?? `Variant ${index + 1}`),
-        }))
-        .filter((output: any) => output.imageUrl || output.base64Image || output.error)
+      .map((output: any, index: number) => ({
+        referenceImageId: String(output?.referenceImageId ?? output?.reference_image_id ?? ''),
+        status: String(output?.status ?? 'completed'),
+        imageUrl: String(output?.imageUrl ?? output?.image_url ?? ''),
+        base64Image: output?.base64Image ?? output?.base64_image ?? '',
+        error: output?.error ? String(output.error) : '',
+        label: String(output?.label ?? `Variant ${index + 1}`),
+      }))
+      .filter((output: any) => output.imageUrl || output.base64Image || output.error)
     : []
   return {
     jobId: raw.jobId ?? raw.job_id ?? '',
@@ -346,16 +346,16 @@ function TryOnPageContent() {
         const approvedRankablePhotos = getApprovedPhotos(nextPhotos)
         const rankedCandidatePhotos = Array.isArray(data.recommendations)
           ? dedupeById(
-              data.recommendations
-                .map((recommendation: any) => nextPhotoMap.get(String(recommendation?.id ?? '')))
-                .filter(Boolean)
-            )
+            data.recommendations
+              .map((recommendation: any) => nextPhotoMap.get(String(recommendation?.id ?? '')))
+              .filter(Boolean)
+          )
           : []
         const rankedPhotos = rankedCandidatePhotos.length
           ? rankedCandidatePhotos
           : approvedRankablePhotos
-              .slice()
-              .sort((left, right) => (right.selectionScore ?? right.qualityScore ?? 0) - (left.selectionScore ?? left.qualityScore ?? 0))
+            .slice()
+            .sort((left, right) => (right.selectionScore ?? right.qualityScore ?? 0) - (left.selectionScore ?? left.qualityScore ?? 0))
 
         setRecommendations({
           selected: rankedPhotos.slice(0, 3),
@@ -648,7 +648,7 @@ function TryOnPageContent() {
                     {outputs.map((output: any, index: number) => (
                       <button key={index} type="button" onClick={() => setSelectedOutputIndex(index)} className={`relative aspect-[4/5] overflow-hidden rounded-2xl border-[3px] shadow-[4px_4px_0_0_#000] ${selectedOutputIndex === index ? 'border-[#FF8C69]' : 'border-black'}`}>
                         {output.imageUrl || output.base64Image ? <Image src={output.imageUrl ? resolveStoredImageUrl(output.imageUrl) : toImageSrc(output.base64Image)} alt={`Variant ${index}`} fill unoptimized className="object-cover" /> : <div className="flex h-full items-center justify-center bg-gray-100"><AlertTriangle className="h-5 w-5 text-black/30" /></div>}
-                        <div className="absolute bottom-0 inset-x-0 bg-black/60 px-2 py-1 text-[10px] font-bold text-white truncate">{output.label || `Photo ${index+1}`}</div>
+                        <div className="absolute bottom-0 inset-x-0 bg-black/60 px-2 py-1 text-[10px] font-bold text-white truncate">{output.label || `Photo ${index + 1}`}</div>
                       </button>
                     ))}
                   </div>
@@ -708,7 +708,7 @@ function TryOnPageContent() {
                       if (selectedReferenceIds.filter(Boolean).length >= 3) {
                         const next = [...selectedReferenceIds]; next[2] = photo.id; setSelectedReferenceIds(next);
                       } else {
-                        setSelectedReferenceIds(prev => { const next = [...prev]; const empty = next.findIndex(p => !p); if(empty>=0) next[empty]=photo.id; else next.push(photo.id); return next; });
+                        setSelectedReferenceIds(prev => { const next = [...prev]; const empty = next.findIndex(p => !p); if (empty >= 0) next[empty] = photo.id; else next.push(photo.id); return next; });
                       }
                     }
                   };
@@ -733,4 +733,5 @@ function TryOnPageContent() {
     </div>
   )
 }
+
 

@@ -92,7 +92,7 @@ export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: B
         <div className="grid h-14 grid-cols-[auto_1fr_auto] items-center gap-2 sm:h-16 lg:h-16 lg:gap-4">
           <Link
             href="/brand/dashboard"
-            className="kiwikoo-wordmark shrink-0 text-[1.6rem] font-black leading-none text-black transition-colors hover:text-[#B4F056] sm:text-[1.85rem] lg:text-[2.1rem]"
+            className="kiwikoo-wordmark flex h-11 items-center translate-y-[1.5px] shrink-0 text-[1.6rem] font-black leading-none text-black transition-colors hover:text-[#B4F056] sm:text-[1.85rem] sm:h-auto sm:translate-y-0 lg:text-[2.1rem]"
           >
             Kiwikoo
           </Link>

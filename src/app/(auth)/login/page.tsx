@@ -500,11 +500,10 @@ function AuthCard({
           </div>
         </div>
 
-
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
+          <div className="flex items-baseline justify-between">
             <label className="text-xs font-black uppercase tracking-[0.2em] text-black">Password</label>
-            <Link href="/forgot-password" className="text-xs font-bold underline decoration-2 hover:text-[#FF8C69]">
+            <Link href="/forgot-password" className="hidden sm:block text-xs font-bold underline decoration-2 hover:text-[#FF8C69]">
               Forgot?
             </Link>
           </div>
@@ -537,6 +536,12 @@ function AuthCard({
         >
           {loading ? <Loader2 className="h-5 w-5 animate-spin text-black" /> : <>Let&apos;s go <ArrowRight className="h-5 w-5 text-black" strokeWidth={3} /></>}
         </button>
+
+        <div className="text-center mt-2 sm:hidden">
+          <Link href="/forgot-password" className="text-xs font-bold underline decoration-2 hover:text-[#FF8C69]">
+            Forgot Password?
+          </Link>
+        </div>
       </form>
 
       <div className="mt-4">
