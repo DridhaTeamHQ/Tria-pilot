@@ -31,6 +31,29 @@ export const STRATEGIST_PHASES: PhaseInfo[] = [
     { id: 'complete', label: 'Campaign Ready', emoji: '🚀', description: 'Strategy complete — launch your campaign' },
 ]
 
+/** Catalog product picked from the brand's existing Kiwikoo catalog */
+export interface PickedProduct {
+    id: string
+    name: string
+    description?: string | null
+    category?: string | null
+    price?: number | null
+    coverImage?: string | null
+}
+
+/** A creator suggestion shown inline as a card */
+export interface CreatorSuggestion {
+    creatorId: string
+    name: string | null
+    bio: string | null
+    niches: string[]
+    followers: number | null
+    matchScore: number
+    pricePerPost: number | null
+    badgeTier: string | null
+    reason: string
+}
+
 /** A single message in the strategist conversation */
 export interface StrategistMessage {
     role: 'user' | 'assistant'
@@ -42,6 +65,10 @@ export interface StrategistMessage {
     images?: string[]
     /** AI-generated campaign visual images */
     generatedImages?: GeneratedCampaignImage[]
+    /** Products the user picked from their catalog (rendered as cards) */
+    pickedProducts?: PickedProduct[]
+    /** Creator suggestions surfaced after product selection */
+    creatorSuggestions?: CreatorSuggestion[]
     timestamp?: string
 }
 

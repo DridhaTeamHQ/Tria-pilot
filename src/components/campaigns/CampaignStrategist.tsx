@@ -19,6 +19,7 @@ import {
     Download,
     Wand2,
     RefreshCw,
+    RotateCcw,
 } from 'lucide-react'
 import { toast } from '@/lib/simple-sonner'
 import type {
@@ -26,6 +27,8 @@ import type {
     StrategistMessage,
     CampaignStrategyOutput,
     GeneratedCampaignImage,
+    PickedProduct,
+    CreatorSuggestion,
 } from '@/lib/campaigns/campaign-strategist-types'
 import { STRATEGIST_PHASES } from '@/lib/campaigns/campaign-strategist-types'
 
@@ -305,10 +308,10 @@ function TypingIndicator({ phase, isGeneratingImage }: { phase: StrategistPhase;
 
 const PHASE_SUGGESTIONS: Partial<Record<StrategistPhase, string[]>> = {
     intake: [
-        'We sell fashion accessories for Gen Z',
-        'Our budget is ₹50,000/month',
-        'We want to grow on Instagram & TikTok',
-        'Show me what a campaign visual would look like',
+        'Launching a new product',
+        'Want more sales',
+        'Need awareness for our brand',
+        'Budget around ₹50K/month',
     ],
     ideator: [
         '✅ Looks great — write the scripts now',
@@ -496,35 +499,321 @@ function formatInlineMarkdown(text: string): React.ReactNode {
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   PRODUCT PICKER MODAL
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+interface CatalogProduct {
+    id: string
+    name: string
+    description?: string | null
+    category?: string | null
+    price?: number | string | null
+    cover_image?: string | null
+    images?: string[] | null
+}
+
+function ProductPickerModal({
+    open,
+    onClose,
+    onPick,
+}: {
+    open: boolean
+    onClose: () => void
+    onPick: (products: PickedProduct[]) => void
+}) {
+    const [products, setProducts] = useState<CatalogProduct[]>([])
+    const [loading, setLoading] = useState(false)
+    const [selected, setSelected] = useState<Set<string>>(new Set())
+
+    useEffect(() => {
+        if (!open) return
+        setLoading(true)
+        fetch('/api/brand/products', { credentials: 'include' })
+            .then((r) => r.json())
+            .then((d) => setProducts(d.products || []))
+            .catch(() => toast.error('Failed to load your products'))
+            .finally(() => setLoading(false))
+    }, [open])
+
+    if (!open) return null
+
+    const toggle = (id: string) => {
+        setSelected((prev) => {
+            const next = new Set(prev)
+            if (next.has(id)) next.delete(id)
+            else next.add(id)
+            return next
+        })
+    }
+
+    const confirm = () => {
+        const picked: PickedProduct[] = products
+            .filter((p) => selected.has(p.id))
+            .map((p) => ({
+                id: p.id,
+                name: p.name,
+                description: p.description,
+                category: p.category,
+                price: p.price ? Number(p.price) : null,
+                coverImage: p.cover_image || p.images?.[0] || null,
+            }))
+        if (picked.length === 0) {
+            toast.error('Pick at least one product')
+            return
+        }
+        onPick(picked)
+        setSelected(new Set())
+    }
+
+    return (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden border border-black/10">
+                <div className="px-5 py-4 border-b border-black/8 flex items-center justify-between">
+                    <div>
+                        <h3 className="text-sm font-black uppercase tracking-wider">Use my products</h3>
+                        <p className="text-[11px] text-black/50 mt-0.5">Pick from your Kiwikoo catalog</p>
+                    </div>
+                    <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-black/5 flex items-center justify-center">
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-4">
+                    {loading ? (
+                        <div className="flex items-center justify-center py-20">
+                            <Loader2 className="w-6 h-6 animate-spin text-black/30" />
+                        </div>
+                    ) : products.length === 0 ? (
+                        <div className="text-center py-16">
+                            <p className="text-sm font-semibold text-black/60 mb-2">No products in your catalog yet</p>
+                            <Link href="/brand/products" className="text-[12px] text-[#A78BFA] hover:underline font-bold">
+                                Add products →
+                            </Link>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            {products.map((p) => {
+                                const img = p.cover_image || p.images?.[0]
+                                const isSelected = selected.has(p.id)
+                                return (
+                                    <button
+                                        key={p.id}
+                                        type="button"
+                                        onClick={() => toggle(p.id)}
+                                        className={`text-left relative rounded-xl overflow-hidden border-2 transition-all ${isSelected ? 'border-[#B4F056] shadow-md' : 'border-black/10 hover:border-black/30'}`}
+                                    >
+                                        <div className="aspect-square bg-black/[0.04] relative">
+                                            {img ? (
+                                                <AppImage src={img} alt={p.name} fill className="object-cover" sizes="160px" />
+                                            ) : (
+                                                <div className="absolute inset-0 flex items-center justify-center text-black/20">
+                                                    <ImagePlus className="w-8 h-8" />
+                                                </div>
+                                            )}
+                                            {isSelected && (
+                                                <div className="absolute top-2 right-2 w-6 h-6 bg-[#B4F056] rounded-full flex items-center justify-center shadow">
+                                                    <CheckCircle2 className="w-4 h-4" strokeWidth={3} />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="px-2 py-2">
+                                            <p className="text-[11px] font-bold line-clamp-1">{p.name}</p>
+                                            {p.price ? (
+                                                <p className="text-[10px] text-black/50 mt-0.5">₹{Number(p.price).toLocaleString('en-IN')}</p>
+                                            ) : null}
+                                        </div>
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    )}
+                </div>
+
+                <div className="px-5 py-3 border-t border-black/8 flex items-center justify-between gap-3 bg-black/[0.02]">
+                    <p className="text-[12px] font-semibold text-black/50">
+                        {selected.size > 0 ? `${selected.size} selected` : 'Select up to 10 products'}
+                    </p>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={onClose}
+                            className="px-4 py-2 text-[12px] font-bold text-black/60 hover:bg-black/5 rounded-lg transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={confirm}
+                            disabled={selected.size === 0}
+                            className="px-5 py-2 text-[12px] font-black bg-[#B4F056] border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:translate-y-0 disabled:shadow-none"
+                        >
+                            Use selected
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   PICKED PRODUCT CHIPS (shown inside user message)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+function PickedProductChips({ products }: { products: PickedProduct[] }) {
+    if (!products.length) return null
+    return (
+        <div className="flex flex-wrap gap-2 mb-3">
+            {products.map((p) => (
+                <div key={p.id} className="flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-full pl-1 pr-3 py-1 border border-white/20">
+                    {p.coverImage ? (
+                        <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0">
+                            <AppImage src={p.coverImage} alt={p.name} width={24} height={24} className="object-cover w-full h-full" sizes="24px" />
+                        </div>
+                    ) : (
+                        <div className="w-6 h-6 rounded-full bg-white/20" />
+                    )}
+                    <span className="text-[11px] font-bold whitespace-nowrap">{p.name}</span>
+                    {p.price ? <span className="text-[10px] opacity-70">₹{p.price.toLocaleString('en-IN')}</span> : null}
+                </div>
+            ))}
+        </div>
+    )
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   CREATOR SUGGESTION CARDS
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+function CreatorSuggestionCards({ creators }: { creators: CreatorSuggestion[] }) {
+    if (!creators.length) return null
+
+    return (
+        <div className="mt-4 bg-gradient-to-br from-[#A78BFA]/10 to-[#B4F056]/10 rounded-xl p-4 border border-black/8">
+            <div className="flex items-center gap-2 mb-3">
+                <Sparkles className="w-3.5 h-3.5 text-[#A78BFA]" strokeWidth={2.5} />
+                <p className="text-[11px] font-black uppercase tracking-wider text-black/70">
+                    Creators on Kiwikoo who fit
+                </p>
+                <span className="ml-auto text-[10px] font-bold text-black/40">{creators.length} matches</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {creators.slice(0, 6).map((c) => (
+                    <div key={c.creatorId} className="bg-white rounded-lg p-3 border border-black/6 hover:border-black/15 transition-colors">
+                        <div className="flex items-start gap-2">
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <p className="text-[12px] font-black truncate">{c.name || 'Creator'}</p>
+                                    <span className="text-[10px] font-black bg-[#B4F056]/30 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                                        {c.matchScore}% fit
+                                    </span>
+                                </div>
+                                <p className="text-[10px] text-black/45 line-clamp-2 mb-1.5">{c.reason || c.bio || 'Strong audience match'}</p>
+                                <div className="flex items-center gap-2 text-[10px] text-black/50">
+                                    {c.followers != null && (
+                                        <span className="font-bold">{formatFollowers(c.followers)} followers</span>
+                                    )}
+                                    {c.pricePerPost != null && (
+                                        <span>· ₹{c.pricePerPost.toLocaleString('en-IN')}/post</span>
+                                    )}
+                                </div>
+                                {c.niches.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-1.5">
+                                        {c.niches.slice(0, 3).map((n) => (
+                                            <span key={n} className="text-[9px] bg-black/5 text-black/55 px-1.5 py-0.5 rounded-full">
+                                                {n}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {creators.length > 6 && (
+                <p className="text-[11px] text-black/40 mt-3 text-center font-semibold">
+                    +{creators.length - 6} more — refine the brief and I&apos;ll narrow it down
+                </p>
+            )}
+        </div>
+    )
+}
+
+function formatFollowers(n: number): string {
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
+    return String(n)
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    MAIN COMPONENT
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 const INITIAL_MESSAGE: StrategistMessage = {
     role: 'assistant',
-    content: `# 🎯 Welcome to your AI Campaign Strategist
+    content: `Hey 👋 I'm your campaign strategist. Let's build something that actually performs — quick chat, no fluff.
 
-I'm your **elite growth partner** — a full agency team in one conversation.
+You can pick products from your Kiwikoo catalog with the **Use my products** button, or just tell me what you're promoting. I'll pull in matching creators and generate sample ad visuals as we go.
 
-Here's how I work:
+So — what are we launching?`,
 
-1. **Strategy Intake** — I ask strategic questions to understand your brand
-2. **🧠 Research** — Competitor analysis, audience psychology, market gaps
-3. **💡 Content Ideas** — High-converting angles and hook banks
-4. **✍️ Scripts & Copy** — Ad scripts, organic content, UGC briefs
-5. **📊 Optimization** — A/B variants, conversion improvements
-
-### 🖼️ Visual Intelligence (NEW!)
-- **Upload images** — I can analyze your product photos, competitor creatives, mood boards, and more using AI Vision
-- **Generate visuals** — I'll create stunning campaign visuals during our conversation to preview your ad concepts
-
-I'll flow through each phase **automatically** — no need to prompt me. At the end, your campaign will be **auto-generated** and ready to launch.
-
-**Tell me about your brand and what you're looking to achieve with this campaign.** You can also upload a product image to get started!`,
     phase: 'intake',
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   CHAT PERSISTENCE
+   Saves conversation state to localStorage so a half-finished
+   chat survives page reloads / navigation. Strips heavy base64
+   images before persisting to stay under storage quota.
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+const STORAGE_KEY = 'kiwikoo:campaign-strategist:v1'
+const STORAGE_TTL_MS = 24 * 60 * 60 * 1000 // 24h
+
+interface PersistedState {
+    savedAt: number
+    messages: StrategistMessage[]
+    phase: StrategistPhase
+    campaignPayload: CampaignStrategyOutput | null
+    createdCampaignId: string | null
+    phaseTransitions: number[]
+}
+
+function stripHeavyContent(messages: StrategistMessage[]): StrategistMessage[] {
+    return messages.map((m) => {
+        const out: StrategistMessage = { ...m }
+        // Drop base64 image payloads — they'd blow up localStorage quota
+        if (out.images?.length) out.images = undefined
+        if (out.generatedImages?.length) {
+            out.generatedImages = out.generatedImages.map((g) => ({ ...g, imageBase64: '' }))
+        }
+        return out
+    })
+}
+
+function loadPersistedState(): PersistedState | null {
+    if (typeof window === 'undefined') return null
+    try {
+        const raw = window.localStorage.getItem(STORAGE_KEY)
+        if (!raw) return null
+        const parsed = JSON.parse(raw) as PersistedState
+        if (!parsed?.savedAt || Date.now() - parsed.savedAt > STORAGE_TTL_MS) {
+            window.localStorage.removeItem(STORAGE_KEY)
+            return null
+        }
+        if (!Array.isArray(parsed.messages) || parsed.messages.length === 0) return null
+        return parsed
+    } catch {
+        return null
+    }
 }
 
 export default function CampaignStrategist() {
     const router = useRouter()
+
+    // Initial state matches server render. We hydrate from localStorage AFTER
+    // mount in an effect to avoid hydration mismatches.
     const [messages, setMessages] = useState<StrategistMessage[]>([INITIAL_MESSAGE])
     const [input, setInput] = useState('')
     const [loading, setLoading] = useState(false)
@@ -533,9 +822,12 @@ export default function CampaignStrategist() {
     const [createdCampaignId, setCreatedCampaignId] = useState<string | null>(null)
     const [isCreatingCampaign, setIsCreatingCampaign] = useState(false)
     const [phaseTransitions, setPhaseTransitions] = useState<Set<number>>(new Set())
+    const [hasHydrated, setHasHydrated] = useState(false)
     const [pendingImages, setPendingImages] = useState<string[]>([])
     const [storedProductImages, setStoredProductImages] = useState<string[]>([])
     const [isGeneratingImage, setIsGeneratingImage] = useState(false)
+    const [productPickerOpen, setProductPickerOpen] = useState(false)
+    const [pickedProductsForNext, setPickedProductsForNext] = useState<PickedProduct[]>([])
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
@@ -552,6 +844,81 @@ export default function CampaignStrategist() {
     useEffect(() => {
         if (!loading) textareaRef.current?.focus()
     }, [loading])
+
+    // Hydrate from localStorage AFTER mount (avoids SSR mismatch)
+    useEffect(() => {
+        const persisted = loadPersistedState()
+        if (persisted) {
+            if (persisted.messages.length) setMessages(persisted.messages)
+            setPhase(persisted.phase)
+            setCampaignPayload(persisted.campaignPayload)
+            setCreatedCampaignId(persisted.createdCampaignId)
+            setPhaseTransitions(new Set(persisted.phaseTransitions))
+        }
+        setHasHydrated(true)
+    }, [])
+
+    // Persist chat state to localStorage whenever it changes
+    useEffect(() => {
+        if (typeof window === 'undefined') return
+        // Don't write before hydration finishes — would clobber the saved chat
+        if (!hasHydrated) return
+        // Don't persist a fresh empty chat
+        if (messages.length <= 1 && phase === 'intake' && !campaignPayload) {
+            return
+        }
+        try {
+            const payload: PersistedState = {
+                savedAt: Date.now(),
+                messages: stripHeavyContent(messages),
+                phase,
+                campaignPayload,
+                createdCampaignId,
+                phaseTransitions: Array.from(phaseTransitions),
+            }
+            window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
+        } catch (err) {
+            // Quota exceeded — drop the heaviest fields and retry once
+            try {
+                const minimal: PersistedState = {
+                    savedAt: Date.now(),
+                    messages: messages.map((m) => ({
+                        role: m.role,
+                        content: m.content,
+                        phase: m.phase,
+                        pickedProducts: m.pickedProducts,
+                        creatorSuggestions: m.creatorSuggestions,
+                        campaignPayload: m.campaignPayload,
+                    })),
+                    phase,
+                    campaignPayload,
+                    createdCampaignId,
+                    phaseTransitions: Array.from(phaseTransitions),
+                }
+                window.localStorage.setItem(STORAGE_KEY, JSON.stringify(minimal))
+            } catch {
+                console.warn('Could not persist chat state', err)
+            }
+        }
+    }, [messages, phase, campaignPayload, createdCampaignId, phaseTransitions, hasHydrated])
+
+    const handleStartOver = useCallback(() => {
+        if (!confirm('Start a new campaign chat? Your current conversation will be cleared.')) return
+        try {
+            window.localStorage.removeItem(STORAGE_KEY)
+        } catch {
+            // ignore
+        }
+        setMessages([INITIAL_MESSAGE])
+        setPhase('intake')
+        setCampaignPayload(null)
+        setCreatedCampaignId(null)
+        setPhaseTransitions(new Set())
+        setPickedProductsForNext([])
+        setPendingImages([])
+        setStoredProductImages([])
+        setInput('')
+    }, [])
 
     // Auto-resize textarea
     const autoResize = useCallback(() => {
@@ -600,6 +967,64 @@ export default function CampaignStrategist() {
     }, [])
 
     /**
+     * Fetch creator suggestions for the picked products and inject them
+     * as an assistant attachment in the latest assistant message.
+     */
+    const fetchCreatorSuggestions = useCallback(async (productIds: string[]) => {
+        try {
+            const res = await fetch('/api/campaigns/recommend-creators', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ productIds, limit: 6, skipLLM: true }),
+            })
+            if (!res.ok) return
+            const data = await res.json()
+            const suggestions: CreatorSuggestion[] = (data.creators || []).map((c: any) => ({
+                creatorId: c.creatorId,
+                name: c.profile?.name ?? null,
+                bio: c.profile?.bio ?? null,
+                niches: c.profile?.niches ?? [],
+                followers: c.profile?.followers ?? null,
+                matchScore: c.matchScore ?? 0,
+                pricePerPost: c.profile?.pricePerPost ?? null,
+                badgeTier: c.profile?.badgeTier ?? null,
+                reason: c.reason ?? '',
+            }))
+
+            if (suggestions.length === 0) return
+
+            // Append as a side-attachment on the most recent assistant message
+            setMessages((prev) => {
+                if (prev.length === 0) return prev
+                const last = prev[prev.length - 1]
+                if (last.role !== 'assistant') return prev
+                return [
+                    ...prev.slice(0, -1),
+                    { ...last, creatorSuggestions: suggestions },
+                ]
+            })
+        } catch (err) {
+            console.error('Creator suggestion fetch failed:', err)
+        }
+    }, [])
+
+    /**
+     * Handle product picker confirmation — drop the picked products into
+     * the user's next message and pre-populate input with a friendly prompt.
+     */
+    const handleProductPick = useCallback((picked: PickedProduct[]) => {
+        setPickedProductsForNext(picked)
+        setProductPickerOpen(false)
+
+        const list = picked
+            .map((p) => `${p.name}${p.price ? ` (₹${p.price})` : ''}${p.category ? ` — ${p.category}` : ''}`)
+            .join(', ')
+        setInput((prev) => prev || `I want to run a campaign for: ${list}. Help me build it.`)
+        toast.success(`${picked.length} product${picked.length > 1 ? 's' : ''} added to the brief`)
+    }, [])
+
+    /**
      * Core send function — handles both user messages and auto-continuation
      */
     const sendMessage = useCallback(async (
@@ -613,6 +1038,7 @@ export default function CampaignStrategist() {
 
         // Capture pending images for this message
         const messageImages = isAutoContinue ? [] : [...pendingImages]
+        const messagePickedProducts = isAutoContinue ? [] : pickedProductsForNext
 
         if (!isAutoContinue) {
             setInput('')
@@ -624,6 +1050,7 @@ export default function CampaignStrategist() {
                 })
             }
             setPendingImages([])
+            setPickedProductsForNext([])
         }
 
         // Only add visible user messages (not auto-continue triggers)
@@ -635,8 +1062,14 @@ export default function CampaignStrategist() {
                     content: userMessage,
                     phase: targetPhase,
                     images: messageImages.length > 0 ? messageImages : undefined,
+                    pickedProducts: messagePickedProducts.length > 0 ? messagePickedProducts : undefined,
                 },
             ])
+        }
+
+        // Kick off creator suggestion fetch in parallel (non-blocking)
+        if (messagePickedProducts.length > 0) {
+            fetchCreatorSuggestions(messagePickedProducts.map((p) => p.id))
         }
 
         setLoading(true)
@@ -730,7 +1163,7 @@ export default function CampaignStrategist() {
             setLoading(false)
             setIsGeneratingImage(false)
         }
-    }, [input, loading, messages, phase, pendingImages, storedProductImages])
+    }, [input, loading, messages, phase, pendingImages, storedProductImages, pickedProductsForNext, fetchCreatorSuggestions])
 
     // Effect for auto-progression
     useEffect(() => {
@@ -835,6 +1268,17 @@ export default function CampaignStrategist() {
                             </div>
                             <PhaseProgressBar currentPhase={phase} />
                         </div>
+                        {hasHydrated && messages.length > 1 && (
+                            <button
+                                type="button"
+                                onClick={handleStartOver}
+                                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-black/12 hover:bg-black/5 transition-colors text-[11px] font-bold text-black/60"
+                                title="Clear this conversation and start over"
+                            >
+                                <RotateCcw className="w-3 h-3" strokeWidth={2.5} />
+                                Start over
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -866,6 +1310,11 @@ export default function CampaignStrategist() {
                                         : 'bg-white border border-black/8 shadow-sm text-black rounded-2xl rounded-bl-md'
                                         }`}
                                 >
+                                    {/* Picked products from catalog */}
+                                    {msg.pickedProducts && msg.pickedProducts.length > 0 && (
+                                        <PickedProductChips products={msg.pickedProducts} />
+                                    )}
+
                                     {/* User-uploaded images in message */}
                                     {msg.images && msg.images.length > 0 && (
                                         <div className={`flex gap-2 mb-3 ${msg.images.length > 1 ? 'flex-wrap' : ''}`}>
@@ -900,6 +1349,11 @@ export default function CampaignStrategist() {
                                             onRegenerate={(desc) => sendMessage(`Regenerate this campaign visual with a different creative approach: ${desc}`)}
                                         />
                                     )}
+
+                                    {/* Creator suggestions (only on assistant messages) */}
+                                    {msg.role === 'assistant' && msg.creatorSuggestions && msg.creatorSuggestions.length > 0 && (
+                                        <CreatorSuggestionCards creators={msg.creatorSuggestions} />
+                                    )}
                                 </div>
                                 {msg.role === 'user' && (
                                     <div className="w-8 h-8 rounded-full bg-black/8 flex items-center justify-center flex-shrink-0 mb-0.5">
@@ -929,8 +1383,37 @@ export default function CampaignStrategist() {
             {/* ── STICKY INPUT AREA ────────────────────────────── */}
             <div className="flex-shrink-0 bg-white/90 backdrop-blur-md border-t border-black/8 z-10">
                 <div className="mx-auto max-w-3xl px-4 py-3 space-y-3">
-                    {/* Suggestion chips */}
-                    <SuggestionChips phase={phase} onSelect={(t) => sendMessage(t)} disabled={loading} />
+                    {/* Suggestion chips + Use my products button */}
+                    <div className="flex flex-wrap items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setProductPickerOpen(true)}
+                            disabled={loading}
+                            className="text-[12px] font-black uppercase tracking-wider border-2 border-black px-4 py-2 bg-[#B4F056] hover:bg-[#a3e63a] transition-all disabled:opacity-30 disabled:cursor-not-allowed rounded-full text-black flex items-center gap-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5"
+                            title="Pick products from your Kiwikoo catalog"
+                        >
+                            <Sparkles className="w-3.5 h-3.5" strokeWidth={3} />
+                            Use my products
+                        </button>
+                        <SuggestionChips phase={phase} onSelect={(t) => sendMessage(t)} disabled={loading} />
+                    </div>
+
+                    {/* Picked products preview (before sending) */}
+                    {pickedProductsForNext.length > 0 && (
+                        <div className="flex items-center gap-2 px-3 py-2 bg-[#B4F056]/15 border border-[#B4F056]/40 rounded-lg">
+                            <Sparkles className="w-3.5 h-3.5 text-black/60 flex-shrink-0" />
+                            <p className="text-[11px] font-bold text-black/70 flex-1 truncate">
+                                {pickedProductsForNext.length} product{pickedProductsForNext.length > 1 ? 's' : ''} ready: {pickedProductsForNext.map((p) => p.name).join(', ')}
+                            </p>
+                            <button
+                                type="button"
+                                onClick={() => setPickedProductsForNext([])}
+                                className="text-[10px] font-bold text-black/40 hover:text-black"
+                            >
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
+                    )}
 
                     {/* Image upload previews */}
                     <ImageUploadPreview images={pendingImages} onRemove={removeImage} />
@@ -1013,6 +1496,13 @@ export default function CampaignStrategist() {
                     )}
                 </div>
             </div>
+
+            {/* Product picker modal */}
+            <ProductPickerModal
+                open={productPickerOpen}
+                onClose={() => setProductPickerOpen(false)}
+                onPick={handleProductPick}
+            />
 
             {/* Animations & scrollbar hide */}
             <style jsx global>{`

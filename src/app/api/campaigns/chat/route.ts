@@ -190,14 +190,20 @@ Return ONLY the prompt text, nothing else.`
       parts.push({ text: `Generate a high-quality, cinematic campaign visual image. ${imagePrompt}` })
     }
 
-    // Use gemini-3.1-flash-image-preview — confirmed working for image generation
-    const response = await client.models.generateContent({
+    // Hard timeout — Gemini image gen sometimes hangs and would otherwise
+    // stall the entire chat response for minutes.
+    const IMAGE_GEN_TIMEOUT_MS = 35_000
+    const generatePromise = client.models.generateContent({
       model: 'gemini-3.1-flash-image-preview',
       contents: [{ role: 'user', parts }],
       config: {
         responseModalities: ['TEXT', 'IMAGE'] as unknown as undefined,
       }
     })
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Gemini image generation timed out')), IMAGE_GEN_TIMEOUT_MS),
+    )
+    const response = await Promise.race([generatePromise, timeoutPromise])
 
     // Extract image from response
     const responseParts = response.candidates?.[0]?.content?.parts
@@ -592,6 +598,24 @@ export async function POST(request: Request) {
     })
   } catch (error) {
     console.error('Campaign strategist error:', error)
+
+    // OpenAI billing / quota errors — surface a clear message instead of leaking raw error
+    const isQuotaError =
+      error instanceof Error &&
+      (error.message.includes('insufficient_quota') ||
+        error.message.includes('exceeded your current quota') ||
+        (error as any)?.code === 'insufficient_quota')
+
+    if (isQuotaError) {
+      return NextResponse.json(
+        {
+          error:
+            'AI campaign assistant is temporarily unavailable — OpenAI quota exceeded. Please add credits at platform.openai.com or contact the platform admin.',
+        },
+        { status: 503 },
+      )
+    }
+
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 },
