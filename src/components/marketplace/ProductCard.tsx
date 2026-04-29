@@ -168,7 +168,7 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                     )}
                 </div>
 
-                <div className="space-y-3 p-3.5 sm:p-4">
+                <div className="space-y-1.5 p-2.5 pb-1 sm:space-y-3 sm:p-4">
                     <h3 className="min-h-[34px] text-[13px] font-semibold leading-tight text-charcoal line-clamp-2 sm:min-h-[38px] sm:text-[15px]">
                         {product.name}
                     </h3>
