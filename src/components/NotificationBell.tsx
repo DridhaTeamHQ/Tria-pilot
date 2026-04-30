@@ -95,11 +95,38 @@ export default function NotificationBell({
     }
   }, [])
 
-  // Initial + 60s polling fallback
+  // Initial + 10s polling fallback (only while the tab is visible).
+  // Realtime is the primary source — this just guarantees delivery if the
+  // Supabase Realtime publication isn't enabled on the notifications table.
   useEffect(() => {
     fetchNotifications()
-    const id = setInterval(fetchNotifications, 60_000)
-    return () => clearInterval(id)
+    let id: ReturnType<typeof setInterval> | null = null
+    const start = () => {
+      if (id) return
+      id = setInterval(() => {
+        if (!document.hidden) fetchNotifications()
+      }, 10_000)
+    }
+    const stop = () => {
+      if (id) {
+        clearInterval(id)
+        id = null
+      }
+    }
+    start()
+    const onVis = () => {
+      if (document.hidden) {
+        stop()
+      } else {
+        fetchNotifications()
+        start()
+      }
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => {
+      stop()
+      document.removeEventListener('visibilitychange', onVis)
+    }
   }, [fetchNotifications])
 
   // Live updates via Supabase Realtime — refresh the moment a notification

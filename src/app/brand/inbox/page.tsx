@@ -294,6 +294,60 @@ export default function BrandInboxPage() {
         onMessage: handleRealtimeMessage,
     })
 
+    // ── Aggressive polling fallback ─────────────────────────────────────
+    // Guarantees delivery even if Supabase Realtime publication isn't set up.
+    useEffect(() => {
+        if (!currentUserId) return
+
+        const poll = async () => {
+            if (document.hidden) return
+            if (!selectedConversation) {
+                try {
+                    const res = await fetch('/api/conversations', { credentials: 'include' })
+                    if (!res.ok) return
+                    const data = await res.json()
+                    setConversations(data.conversations || [])
+                } catch { /* ignore */ }
+                return
+            }
+            try {
+                const res = await fetch(`/api/conversations/${selectedConversation.id}/messages`, {
+                    credentials: 'include',
+                })
+                if (!res.ok) return
+                const data = await res.json()
+                const incoming: Message[] = data.messages || []
+                setMessages((prev) => {
+                    const seen = new Set(incoming.map((m) => m.id))
+                    const optimisticOnly = prev.filter((m) => m.id.startsWith('temp-') && !seen.has(m.id))
+                    return [...incoming, ...optimisticOnly]
+                })
+            } catch { /* ignore */ }
+            try {
+                const res = await fetch('/api/conversations', { credentials: 'include' })
+                if (!res.ok) return
+                const data = await res.json()
+                setConversations((prev) => {
+                    const next: Conversation[] = data.conversations || []
+                    if (selectedConversation) {
+                        return next.map((c) =>
+                            c.id === selectedConversation.id ? { ...c, unread_count: 0 } : c,
+                        )
+                    }
+                    return next
+                })
+            } catch { /* ignore */ }
+        }
+
+        const id = setInterval(poll, 3_000)
+        const onVis = () => { if (!document.hidden) poll() }
+        document.addEventListener('visibilitychange', onVis)
+        return () => {
+            clearInterval(id)
+            document.removeEventListener('visibilitychange', onVis)
+        }
+    }, [currentUserId, selectedConversation])
+
     const formatTime = (dateString: string) => {
         const date = new Date(dateString)
         const now = new Date()

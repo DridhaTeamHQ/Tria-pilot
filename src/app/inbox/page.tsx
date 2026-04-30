@@ -236,6 +236,76 @@ function InboxInner() {
     onMessage: handleRealtimeMessage,
   })
 
+  // ── Aggressive polling fallback ─────────────────────────────────────────
+  // Realtime needs the tables to be in the supabase_realtime publication.
+  // If a Supabase project hasn't enabled that yet (or the channel drops),
+  // fall back to polling every 3s while the tab is visible. This guarantees
+  // delivery even when Realtime is misconfigured.
+  useEffect(() => {
+    if (!currentUserId) return
+
+    const pollActiveThread = async () => {
+      if (document.hidden) return
+      if (!selectedConversation) {
+        // Just refresh the conversation list
+        try {
+          const res = await fetch('/api/conversations', { credentials: 'include' })
+          if (!res.ok) return
+          const data = await res.json()
+          setConversations(data.conversations || [])
+        } catch {
+          /* ignore */
+        }
+        return
+      }
+      try {
+        const res = await fetch(`/api/conversations/${selectedConversation.id}/messages`, {
+          credentials: 'include',
+        })
+        if (!res.ok) return
+        const data = await res.json()
+        const incoming: Message[] = data.messages || []
+        setMessages((prev) => {
+          // Merge: keep optimistic temp-* messages, dedupe by id
+          const seen = new Set(incoming.map((m) => m.id))
+          const optimisticOnly = prev.filter((m) => m.id.startsWith('temp-') && !seen.has(m.id))
+          return [...incoming, ...optimisticOnly]
+        })
+      } catch {
+        /* ignore */
+      }
+      // Refresh the conversation list too so previews + ordering stay current
+      try {
+        const res = await fetch('/api/conversations', { credentials: 'include' })
+        if (!res.ok) return
+        const data = await res.json()
+        setConversations((prev) => {
+          const next: Conversation[] = data.conversations || []
+          // Preserve optimistic unread reset when active thread is open
+          if (selectedConversation) {
+            return next.map((c) =>
+              c.id === selectedConversation.id ? { ...c, unread_count: 0 } : c,
+            )
+          }
+          return next
+        })
+      } catch {
+        /* ignore */
+      }
+    }
+
+    const id = setInterval(pollActiveThread, 3_000)
+    // Also poll immediately when tab becomes visible after being hidden
+    const onVisibility = () => {
+      if (!document.hidden) pollActiveThread()
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      clearInterval(id)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [currentUserId, selectedConversation])
+
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newMessage.trim() || !selectedConversation || sending) return
