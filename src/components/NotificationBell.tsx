@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Bell, Check, Inbox, Loader2 } from 'lucide-react'
+import { createClient } from '@/lib/auth-client'
 
 interface NotificationItem {
   id: string
@@ -94,11 +95,53 @@ export default function NotificationBell({
     }
   }, [])
 
-  // Initial + 60s polling
+  // Initial + 60s polling fallback
   useEffect(() => {
     fetchNotifications()
     const id = setInterval(fetchNotifications, 60_000)
     return () => clearInterval(id)
+  }, [fetchNotifications])
+
+  // Live updates via Supabase Realtime — refresh the moment a notification
+  // row gets inserted for the current user. Falls back gracefully if we
+  // can't determine the user id.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    let cancelled = false
+    let channel: ReturnType<ReturnType<typeof createClient>['channel']> | null = null
+    const supabase = createClient()
+
+    const subscribe = async () => {
+      try {
+        const { data } = await supabase.auth.getUser()
+        const uid = data?.user?.id
+        if (!uid || cancelled) return
+
+        channel = supabase
+          .channel(`notif-bell-${uid}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'notifications',
+              filter: `user_id=eq.${uid}`,
+            },
+            () => {
+              if (!cancelled) fetchNotifications()
+            },
+          )
+          .subscribe()
+      } catch {
+        // Silent — bell still polls every 60s
+      }
+    }
+
+    subscribe()
+    return () => {
+      cancelled = true
+      if (channel) supabase.removeChannel(channel)
+    }
   }, [fetchNotifications])
 
   // Refetch when dropdown opens to avoid stale reads
