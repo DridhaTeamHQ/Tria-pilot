@@ -148,6 +148,70 @@ export async function POST(request: Request, { params }: Params) {
             .update(updateData)
             .eq('id', conversationId)
 
+        // Create a notification for the recipient (best-effort, never blocks send)
+        try {
+            const recipientId = isBrand ? conversation.influencer_id : conversation.brand_id
+
+            // Look up the sender name to put in the notification body
+            const { data: senderProfile } = await service
+                .from('profiles')
+                .select('full_name, brand_data')
+                .eq('id', user.id)
+                .maybeSingle()
+
+            const brandData = (senderProfile?.brand_data as Record<string, unknown> | null) || null
+            const senderName =
+                (brandData && typeof brandData.companyName === 'string' && brandData.companyName) ||
+                senderProfile?.full_name ||
+                (isBrand ? 'A brand' : 'A creator')
+
+            const preview = content.trim().slice(0, 80)
+
+            // De-dupe rapid messages: if the most recent unread "message" notification
+            // for this thread already exists, just refresh its timestamp instead of
+            // spamming the recipient.
+            const { data: existing } = await service
+                .from('notifications')
+                .select('id, created_at')
+                .eq('user_id', recipientId)
+                .eq('type', 'message')
+                .eq('read', false)
+                .contains('metadata', { conversationId })
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle()
+
+            const FIVE_MIN = 5 * 60 * 1000
+            const recent =
+                existing?.created_at &&
+                Date.now() - new Date(existing.created_at).getTime() < FIVE_MIN
+
+            if (existing && recent) {
+                await service
+                    .from('notifications')
+                    .update({
+                        content: `${senderName}: ${preview}`,
+                        created_at: new Date().toISOString(),
+                    })
+                    .eq('id', existing.id)
+            } else {
+                await service.from('notifications').insert({
+                    user_id: recipientId,
+                    type: 'message',
+                    content: `${senderName}: ${preview}`,
+                    read: false,
+                    metadata: {
+                        conversationId,
+                        threadId: conversationId,
+                        senderId: user.id,
+                        senderRole: isBrand ? 'brand' : 'influencer',
+                    },
+                })
+            }
+        } catch (notifyErr) {
+            console.warn('[messages] notification insert failed:', notifyErr)
+        }
+
         return NextResponse.json({ message }, { status: 201 })
     } catch (error) {
         console.error('Messages API error:', error)
