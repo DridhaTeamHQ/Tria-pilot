@@ -60,6 +60,18 @@ export default function BrandInboxPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchParams, currentUserId])
 
+    // Deep-link: ?thread=<conversationId> from NotificationBell
+    useEffect(() => {
+        const threadId = searchParams.get('thread')
+        if (!threadId || conversations.length === 0) return
+        if (selectedConversation?.id === threadId) return
+        const match = conversations.find((c) => c.id === threadId)
+        if (match) {
+            void selectConversation(match)
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchParams, conversations])
+
     useEffect(() => {
         scrollToBottom()
     }, [messages])
