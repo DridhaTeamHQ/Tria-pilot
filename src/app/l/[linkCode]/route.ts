@@ -29,7 +29,7 @@ export async function GET(
 
     const clickMetadata = await extractClickMetadata(request)
 
-    const recordPromise = service.from('link_clicks').insert({
+    const { error: recordError } = await service.from('link_clicks').insert({
       tracked_link_id: trackedLink.id,
       ip_address: clickMetadata.ipAddress,
       user_agent: clickMetadata.userAgent,
@@ -38,23 +38,33 @@ export async function GET(
       country: clickMetadata.country,
     })
 
-    const countPromise = (async () => {
-      try {
-        const { error: rpcError } = await service.rpc('increment_click_count', { link_id: trackedLink.id })
-        return rpcError || null
-      } catch (rpcError) {
-        return rpcError
-      }
-    })()
-
-    const [{ error: recordError }, countError] = await Promise.all([recordPromise, countPromise])
-
     if (recordError) {
       console.warn('Failed to persist link click metadata:', recordError)
     }
 
+    let countError: unknown = null
+    if (!recordError) {
+      const { count, error: countQueryError } = await service
+        .from('link_clicks')
+        .select('id', { count: 'exact', head: true })
+        .eq('tracked_link_id', trackedLink.id)
+
+      if (countQueryError) {
+        countError = countQueryError
+      } else {
+        const { error: syncError } = await service
+          .from('tracked_links')
+          .update({
+            click_count: count ?? 0,
+          })
+          .eq('id', trackedLink.id)
+
+        countError = syncError || null
+      }
+    }
+
     if (countError) {
-      console.warn('increment_click_count RPC failed:', countError)
+      console.warn('Failed to sync tracked link click count:', countError)
     }
 
     const redirectUrl = sanitizeRedirectUrl(trackedLink.original_url)
@@ -79,4 +89,3 @@ export async function GET(
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 }
-

@@ -51,16 +51,19 @@ export async function GET(
     const originalUrl =
       typeof product.link === 'string' && product.link.trim().length > 0 ? product.link.trim() : fallbackProductUrl
 
-    const { data: existingLink, error: existingLinkError } = await service
+    const { data: existingLinks, error: existingLinkError } = await service
       .from('tracked_links')
       .select('id, original_url, masked_url, link_code')
       .eq('influencer_id', authUser.id)
       .eq('product_id', productId)
-      .maybeSingle()
+      .order('created_at', { ascending: true })
+      .limit(2)
 
     if (existingLinkError) {
       throw existingLinkError
     }
+
+    const existingLink = existingLinks?.[0] ?? null
 
     if (existingLink) {
       const linkCode = existingLink.link_code
@@ -107,6 +110,31 @@ export async function GET(
     })
 
     if (insertError) {
+      if ((insertError as { code?: string }).code === '23505') {
+        const { data: conflictLinks, error: conflictError } = await service
+          .from('tracked_links')
+          .select('id, original_url, masked_url, link_code')
+          .eq('influencer_id', authUser.id)
+          .eq('product_id', productId)
+          .order('created_at', { ascending: true })
+          .limit(1)
+
+        if (conflictError) {
+          throw conflictError
+        }
+
+        const conflictLink = conflictLinks?.[0]
+        if (conflictLink) {
+          return NextResponse.json({
+            maskedUrl: conflictLink.masked_url || getMaskedUrl(conflictLink.link_code, siteUrl),
+            linkCode: conflictLink.link_code,
+            originalUrl: conflictLink.original_url || originalUrl,
+            productId,
+            productName: product.name ?? null,
+          })
+        }
+      }
+
       throw insertError
     }
 

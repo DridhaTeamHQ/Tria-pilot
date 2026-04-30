@@ -40,6 +40,19 @@ export async function GET() {
             throw linksError
         }
 
+        const linkIds = links.map((link) => link.id).filter(Boolean)
+
+        const { data: clickRows, error: clickRowsError } = linkIds.length
+            ? await service
+                .from('link_clicks')
+                .select('tracked_link_id, created_at, ip_address')
+                .in('tracked_link_id', linkIds)
+            : { data: [], error: null as any }
+
+        if (clickRowsError) {
+            throw clickRowsError
+        }
+
         // 2. Fetch all conversion events (purchases) for these links
         const { data: events, error: eventsError } = await service
             .from('affiliate_events')
@@ -51,16 +64,41 @@ export async function GET() {
             throw eventsError
         }
 
+        const clickSummaryByLink = new Map<string, {
+            clicks: number
+            uniqueIpAddresses: Set<string>
+            lastClickedAt: string | null
+        }>()
+        for (const row of clickRows || []) {
+            const current = clickSummaryByLink.get(row.tracked_link_id) || {
+                clicks: 0,
+                lastClickedAt: null,
+                uniqueIpAddresses: new Set<string>(),
+            }
+            current.clicks += 1
+            if (row.ip_address) {
+                current.uniqueIpAddresses.add(row.ip_address)
+            }
+            if (!current.lastClickedAt || new Date(row.created_at) > new Date(current.lastClickedAt)) {
+                current.lastClickedAt = row.created_at
+            }
+            clickSummaryByLink.set(row.tracked_link_id, current)
+        }
+
         // 3. Process data
-        const totalClicks = links.reduce((sum, link) => sum + (link.click_count || 0), 0)
+        const totalClicks = links.reduce((sum, link) => {
+            const summary = clickSummaryByLink.get(link.id)
+            return sum + (summary?.clicks ?? link.click_count ?? 0)
+        }, 0)
         const totalProducts = links.length
         const totalRevenue = events.reduce((sum, event) => sum + Number(event.amount || 0), 0)
-        const totalEarnings = totalRevenue * 0.15 // 15% commission
+        const totalEarnings = totalRevenue * 0.05 // 5% commission
 
         const processedProducts = links.map((link: any) => {
             const productEvents = events.filter((e) => e.tracked_link_id === link.id)
             const revenue = productEvents.reduce((sum, e) => sum + Number(e.amount || 0), 0)
-            const earnings = revenue * 0.15 // 15% commission
+            const earnings = revenue * 0.05 // 5% commission
+            const clickSummary = clickSummaryByLink.get(link.id)
 
             return {
                 productId: link.productId,
@@ -69,11 +107,11 @@ export async function GET() {
                 maskedUrl: link.masked_url,
                 originalUrl: link.original_url,
                 linkCode: link.link_code,
-                clickCount: link.click_count || 0,
-                uniqueClicks: link.click_count || 0, // Mock unique clicks for now
+                clickCount: clickSummary?.clicks ?? link.click_count ?? 0,
+                uniqueClicks: clickSummary?.uniqueIpAddresses.size ?? link.click_count ?? 0,
                 revenue: revenue,
                 earnings: earnings,
-                lastClickedAt: null, // Could fetch from link_clicks if needed
+                lastClickedAt: clickSummary?.lastClickedAt ?? null,
                 createdAt: link.created_at,
             }
         })
