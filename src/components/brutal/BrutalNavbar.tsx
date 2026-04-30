@@ -22,6 +22,7 @@ import { setAuthToast } from "@/components/auth-toast-bridge";
 import { useUser } from "@/lib/react-query/hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import LogoutButton from "@/components/LogoutButton";
+import NotificationBell from "@/components/NotificationBell";
 
 export default function BrutalNavbar() {
     const pathname = usePathname();
@@ -220,6 +221,10 @@ export default function BrutalNavbar() {
                                     })}
                                 </div>
 
+                                <NotificationBell
+                                    role={user?.role === 'BRAND' ? 'brand' : 'influencer'}
+                                    variant="brand"
+                                />
                                 <Link
                                     href={profileHref}
                                     className="relative w-10 h-10 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black transition-transform hover:-translate-y-0.5"

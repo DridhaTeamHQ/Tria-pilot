@@ -20,6 +20,7 @@ import { safeParseResponse } from '@/lib/api-utils'
 import { showErrorToast, showInfoToast, showSuccessToast, showWarningToast } from '@/lib/kiwikoo-toast'
 import { BrutalLoader } from '@/components/ui/BrutalLoader'
 import { MonaLisaGenerationLoader } from '@/components/ui/MonaLisaGenerationLoader'
+import CaptionGenerator from '@/components/creator/CaptionGenerator'
 
 const MIN_TRYON_SOURCES = 3
 const ASPECT_RATIOS = ['1:1', '4:5', '9:16'] as const
@@ -652,8 +653,16 @@ function TryOnPageContent() {
                       </button>
                     ))}
                   </div>
-                  <div className="flex justify-center">
+                  <div className="flex flex-wrap justify-center gap-3">
                     <button type="button" onClick={downloadCurrent} className="rounded-full border-[3px] border-black bg-[#FF8C69] px-6 py-3 font-black uppercase text-white shadow-[4px_4px_0_0_#000]">Download Image</button>
+                    {selectedOutput?.imageUrl ? (
+                      <CaptionGenerator
+                        imageUrl={resolveStoredImageUrl(selectedOutput.imageUrl)}
+                        productName={productData?.name}
+                        productCategory={productData?.category}
+                        productDescription={productData?.description}
+                      />
+                    ) : null}
                   </div>
                 </div>
               ) : (

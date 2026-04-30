@@ -18,6 +18,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query'
 import { setAuthToast } from '@/components/auth-toast-bridge'
 import LogoutButton from '@/components/LogoutButton'
+import NotificationBell from '@/components/NotificationBell'
 
 const navItems = [
   { href: '/brand/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -118,6 +119,7 @@ export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: B
           </nav>
 
           <div className="hidden lg:flex items-center justify-end gap-2 shrink-0">
+            <NotificationBell role="brand" variant="brand" />
             <Link
               href="/brand/profile"
               className="relative w-9 h-9 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black text-sm transition-transform hover:-translate-y-0.5"

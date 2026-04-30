@@ -684,51 +684,117 @@ function PickedProductChips({ products }: { products: PickedProduct[] }) {
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 function CreatorSuggestionCards({ creators }: { creators: CreatorSuggestion[] }) {
+    const [invitedIds, setInvitedIds] = useState<Set<string>>(new Set())
+    const [invitingId, setInvitingId] = useState<string | null>(null)
+
     if (!creators.length) return null
+
+    const inviteCreator = async (creatorId: string) => {
+        if (invitedIds.has(creatorId) || invitingId) return
+        setInvitingId(creatorId)
+        try {
+            const res = await fetch('/api/collaborations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    influencerId: creatorId,
+                    notes: 'Auto-invitation sent via Kiwikoo Campaign Strategist',
+                }),
+            })
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}))
+                throw new Error(data.error || 'Failed to send invite')
+            }
+            setInvitedIds((prev) => new Set([...prev, creatorId]))
+            toast.success('Invite sent — creator will see it in their dashboard')
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Failed to send invite')
+        } finally {
+            setInvitingId(null)
+        }
+    }
+
+    const inviteAll = async () => {
+        const remaining = creators.slice(0, 6).filter((c) => !invitedIds.has(c.creatorId))
+        if (remaining.length === 0) return
+        toast.success(`Sending ${remaining.length} invites...`)
+        for (const c of remaining) {
+            // Sequentially to avoid hammering the API
+            // eslint-disable-next-line no-await-in-loop
+            await inviteCreator(c.creatorId)
+        }
+    }
+
+    const allInvited = creators.slice(0, 6).every((c) => invitedIds.has(c.creatorId))
 
     return (
         <div className="mt-4 bg-gradient-to-br from-[#A78BFA]/10 to-[#B4F056]/10 rounded-xl p-4 border border-black/8">
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-3 flex-wrap">
                 <Sparkles className="w-3.5 h-3.5 text-[#A78BFA]" strokeWidth={2.5} />
                 <p className="text-[11px] font-black uppercase tracking-wider text-black/70">
                     Creators on Kiwikoo who fit
                 </p>
-                <span className="ml-auto text-[10px] font-bold text-black/40">{creators.length} matches</span>
+                <span className="text-[10px] font-bold text-black/40">{creators.length} matches</span>
+                <button
+                    type="button"
+                    onClick={inviteAll}
+                    disabled={allInvited || invitingId !== null}
+                    className="ml-auto text-[10px] font-black uppercase tracking-wider px-3 py-1.5 bg-[#B4F056] border-2 border-black rounded-full shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed disabled:translate-y-0 disabled:shadow-none transition-all"
+                >
+                    {allInvited ? 'All invited ✓' : 'Invite all'}
+                </button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {creators.slice(0, 6).map((c) => (
-                    <div key={c.creatorId} className="bg-white rounded-lg p-3 border border-black/6 hover:border-black/15 transition-colors">
-                        <div className="flex items-start gap-2">
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <p className="text-[12px] font-black truncate">{c.name || 'Creator'}</p>
-                                    <span className="text-[10px] font-black bg-[#B4F056]/30 px-1.5 py-0.5 rounded-full whitespace-nowrap">
-                                        {c.matchScore}% fit
-                                    </span>
-                                </div>
-                                <p className="text-[10px] text-black/45 line-clamp-2 mb-1.5">{c.reason || c.bio || 'Strong audience match'}</p>
-                                <div className="flex items-center gap-2 text-[10px] text-black/50">
-                                    {c.followers != null && (
-                                        <span className="font-bold">{formatFollowers(c.followers)} followers</span>
-                                    )}
-                                    {c.pricePerPost != null && (
-                                        <span>· ₹{c.pricePerPost.toLocaleString('en-IN')}/post</span>
-                                    )}
-                                </div>
-                                {c.niches.length > 0 && (
-                                    <div className="flex flex-wrap gap-1 mt-1.5">
-                                        {c.niches.slice(0, 3).map((n) => (
-                                            <span key={n} className="text-[9px] bg-black/5 text-black/55 px-1.5 py-0.5 rounded-full">
-                                                {n}
-                                            </span>
-                                        ))}
+                {creators.slice(0, 6).map((c) => {
+                    const invited = invitedIds.has(c.creatorId)
+                    const inviting = invitingId === c.creatorId
+                    return (
+                        <div key={c.creatorId} className="bg-white rounded-lg p-3 border border-black/6 hover:border-black/15 transition-colors">
+                            <div className="flex items-start gap-2">
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <p className="text-[12px] font-black truncate">{c.name || 'Creator'}</p>
+                                        <span className="text-[10px] font-black bg-[#B4F056]/30 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                                            {c.matchScore}% fit
+                                        </span>
                                     </div>
-                                )}
+                                    <p className="text-[10px] text-black/45 line-clamp-2 mb-1.5">{c.reason || c.bio || 'Strong audience match'}</p>
+                                    <div className="flex items-center gap-2 text-[10px] text-black/50">
+                                        {c.followers != null && (
+                                            <span className="font-bold">{formatFollowers(c.followers)} followers</span>
+                                        )}
+                                        {c.pricePerPost != null && (
+                                            <span>· ₹{c.pricePerPost.toLocaleString('en-IN')}/post</span>
+                                        )}
+                                    </div>
+                                    {c.niches.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mt-1.5">
+                                            {c.niches.slice(0, 3).map((n) => (
+                                                <span key={n} className="text-[9px] bg-black/5 text-black/55 px-1.5 py-0.5 rounded-full">
+                                                    {n}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => inviteCreator(c.creatorId)}
+                                    disabled={invited || inviting}
+                                    className={`flex-shrink-0 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 border-2 border-black rounded-md transition-all ${
+                                        invited
+                                            ? 'bg-black/10 text-black/40 cursor-default'
+                                            : 'bg-[#A78BFA]/15 hover:bg-[#A78BFA]/30 hover:-translate-y-0.5'
+                                    }`}
+                                >
+                                    {invited ? '✓ Sent' : inviting ? '...' : 'Invite'}
+                                </button>
                             </div>
                         </div>
-                    </div>
-                ))}
+                    )
+                })}
             </div>
 
             {creators.length > 6 && (

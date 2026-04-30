@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { toast } from '@/lib/simple-sonner'
 import { useCampaign, useUpdateCampaign, useDeleteCampaign } from '@/lib/hooks/useCampaigns'
+import CampaignAnalyticsCard from '@/components/campaigns/CampaignAnalyticsCard'
 
 /* ━━━━━━━━━━━━━ TYPES ━━━━━━━━━━━━━ */
 interface ContentAngle { angle: string; score: number; example: string; format: string; funnel_stage: string; why_it_works: string }
@@ -736,6 +737,15 @@ export default function CampaignDetailPage() {
 
             {/* CONTENT */}
             <div className="max-w-4xl mx-auto px-4 pt-6 space-y-4">
+
+                {/* PERFORMANCE ANALYTICS */}
+                <div className="animate-slideUp">
+                    <div className="flex items-center gap-2 mb-3">
+                        <BarChart3 className="w-4 h-4 text-[#A78BFA]" strokeWidth={3} />
+                        <h2 className="text-xs font-black uppercase tracking-widest text-black/70">Performance</h2>
+                    </div>
+                    <CampaignAnalyticsCard campaignId={campaign.id} />
+                </div>
 
                 {/* HERO CARD */}
                 <div className="bg-white border border-black/8 rounded-2xl p-6 animate-slideUp">
