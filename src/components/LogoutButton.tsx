@@ -31,7 +31,7 @@ export default function LogoutButton({
         data-cursor={dataCursor}
         className={[
           'flex w-full items-center justify-center gap-3 rounded-xl border-2 border-black',
-          disabled ? 'bg-[#FF9B8F]/50 text-white/70 cursor-not-allowed' : 'bg-[#FF9B8F] text-white hover:bg-[#FF8A7D]',
+          disabled ? 'bg-[#FF9B8F]/50 text-white/70 cursor-not-allowed' : 'bg-[#FF8666] sm:bg-[#FF9B8F] text-white hover:bg-[#FF7043] sm:hover:bg-[#FF8A7D]',
           'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all',
           !disabled && 'hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]',
           !disabled && 'active:translate-x-[2px] active:translate-y-[2px] active:shadow-none',
@@ -54,7 +54,7 @@ export default function LogoutButton({
         data-cursor={dataCursor}
         className={[
           'inline-flex h-[45px] items-center justify-center gap-2 rounded-full border-2 border-black',
-          disabled ? 'bg-[#FF9B8F]/50 text-white/70 cursor-not-allowed' : 'bg-[#FF9B8F] text-white hover:bg-[#FF8A7D]',
+          disabled ? 'bg-[#FF9B8F]/50 text-white/70 cursor-not-allowed' : 'bg-[#FF8666] sm:bg-[#FF9B8F] text-white hover:bg-[#FF7043] sm:hover:bg-[#FF8A7D]',
           'shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all duration-200',
           !disabled && 'hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]',
           !disabled && 'active:translate-x-[2px] active:translate-y-[2px] active:shadow-none',
@@ -78,7 +78,7 @@ export default function LogoutButton({
         'group relative flex h-[45px] items-center justify-start overflow-hidden border-2 border-black',
         disabled 
           ? 'w-[125px] rounded-[999px] bg-[#FF9B8F]/50 text-white/70 cursor-not-allowed' 
-          : 'w-[45px] rounded-full bg-[#FF9B8F] text-white hover:w-[125px] hover:rounded-[999px] hover:bg-[#FF8A7D]',
+          : 'w-[45px] rounded-full bg-[#FF8666] sm:bg-[#FF9B8F] text-white hover:w-[125px] hover:rounded-[999px] hover:bg-[#FF7043] sm:hover:bg-[#FF8A7D]',
         'shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all duration-300',
         !disabled && 'active:translate-x-[2px] active:translate-y-[2px] active:shadow-none',
         className,
