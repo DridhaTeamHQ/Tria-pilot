@@ -112,11 +112,11 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                         router.push(`/marketplace/${product.id}`)
                     }
                 }}
-                className={`group relative cursor-pointer overflow-hidden rounded-[24px] border-[3px] border-black bg-white p-0 transform-gpu transition-all duration-200 ${isHovered ? 'shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -translate-y-1' : 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'}`}
+                className={`group relative cursor-pointer overflow-hidden rounded-[18px] border-2 border-black bg-white p-0 transform-gpu transition-all duration-200 sm:rounded-[24px] sm:border-[3px] ${isHovered ? 'shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -translate-y-1' : 'shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'}`}
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
             >
-                <div className="aspect-[4/5] sm:aspect-[3/4] relative overflow-hidden bg-white border-b-[3px] border-black">
+                <div className="aspect-[4/5] sm:aspect-[3/4] relative overflow-hidden bg-white border-b-2 border-black sm:border-b-[3px]">
                     {!firstImageLoaded && (
                         <div className="absolute inset-0 bg-gradient-to-br from-cream via-charcoal/5 to-cream animate-pulse">
                             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent skeleton-shimmer" />
@@ -169,11 +169,11 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                 </div>
 
                 <div className="space-y-1.5 p-2.5 pb-1 sm:space-y-3 sm:p-4">
-                    <h3 className="min-h-[34px] text-[13px] font-semibold leading-tight text-charcoal line-clamp-2 sm:min-h-[38px] sm:text-[15px]">
+                    <h3 className="min-h-[28px] text-[12px] font-semibold leading-tight text-charcoal line-clamp-2 sm:min-h-[38px] sm:text-[15px]">
                         {product.name}
                     </h3>
 
-                    <div className="flex items-center gap-1.5 text-[11px] text-charcoal/60 sm:text-sm">
+                    <div className="flex items-center gap-1 text-[10px] text-charcoal/60 sm:gap-1.5 sm:text-sm">
                         <span className="truncate font-medium">{brandName}</span>
                         {priceDisplay && (
                             <>
@@ -202,18 +202,20 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                     </div>
                 </div>
 
-                {/* Mobile-only Try-On Button at the very bottom */}
-                <button
-                    type="button"
-                    onClick={(e) => {
-                        e.stopPropagation()
-                        router.push(`/influencer/try-on?productId=${product.id}`)
-                    }}
-                    className="w-full py-2 bg-[#FFD93D] text-black font-bold uppercase tracking-wide border-t-[3px] border-black flex items-center justify-center gap-2 sm:hidden text-xs"
-                >
-                    Try-On
-                    <ArrowRight className="w-3.5 h-3.5" />
-                </button>
+                {/* Mobile-only Try-On Button */}
+                <div className="px-3.5 pb-2.5 pt-0.5 flex justify-center sm:hidden">
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            router.push(`/influencer/try-on?productId=${product.id}`)
+                        }}
+                        className="w-full py-1 bg-[#FFD93D] text-black font-black uppercase tracking-widest border-2 border-black rounded-full shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none flex items-center justify-center gap-1.5 text-xs transition-all duration-150"
+                    >
+                        Try-On
+                        <ArrowRight className="w-3 h-3" strokeWidth={3} />
+                    </button>
+                </div>
             </div>
         </motion.div>
     )
