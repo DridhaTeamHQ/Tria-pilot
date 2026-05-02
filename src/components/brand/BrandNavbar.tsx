@@ -160,7 +160,7 @@ export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: B
             <Link
               href="/brand/profile"
               onClick={() => setMobileOpen(false)}
-              className="mb-3 flex items-center gap-3 rounded-xl border-2 border-black bg-[#F9F8F4] px-4 py-3 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+              className="mb-3 flex items-center gap-3 rounded-xl border-2 border-black bg-[#F9F8F4] px-4 py-3 shadow-[3px_3px_0_0_rgba(0,0,0,1)]"
             >
               <div className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border-2 border-black bg-[#B4F056] font-black text-black">
                 {showAvatarImage ? (
@@ -190,8 +190,8 @@ export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: B
                   href={item.href}
                   onClick={() => setMobileOpen(false)}
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-black text-base font-bold transition-all ${active
-                    ? 'bg-[#B4F056] text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
-                    : 'bg-white text-black hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                    ? 'bg-[#B4F056] text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)]'
+                    : 'bg-white text-black hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)]'
                     }`}
                 >
                   <Icon className="w-5 h-5" />
@@ -209,7 +209,8 @@ export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: B
                 }}
                 disabled={isLoggingOut}
                 fullWidth
-                className="text-base"
+                title="Logout"
+                className="mt-2 border-[3px] border-black bg-[#DC2626] text-white hover:bg-[#B91C1C] shadow-[4px_4px_0_0_rgba(0,0,0,1)]"
               />
             </div>
           </div>

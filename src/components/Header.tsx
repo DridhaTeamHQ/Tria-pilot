@@ -240,7 +240,7 @@ export default function Header() {
                                     onClick={handleLogout}
                                     dataCursor="Logout"
                                     disabled={isLoggingOut}
-                                    className="border-charcoal bg-[#FF6B57] shadow-[3px_3px_0px_0px_rgba(17,17,17,1)] hover:bg-[#FF5A45]"
+                                    className="border-charcoal bg-[#FF9B8F] shadow-[3px_3px_0px_0px_rgba(17,17,17,1)] hover:bg-[#FF8A7D]"
                                 />
                             </div>
                         ) : (
@@ -335,7 +335,7 @@ export default function Header() {
                                         disabled={isLoggingOut}
                                         fullWidth
                                         dataCursor="Logout"
-                                        className="mt-2 border-[3px] border-charcoal shadow-[4px_4px_0px_0px_rgba(17,17,17,1)]"
+                                        className="mt-2 border-[3px] border-charcoal bg-[#DC2626] text-white hover:bg-[#B91C1C] shadow-[4px_4px_0px_0px_rgba(17,17,17,1)]"
                                     />
                                 </>
                             ) : (

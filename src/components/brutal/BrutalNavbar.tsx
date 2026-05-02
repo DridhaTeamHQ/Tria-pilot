@@ -348,6 +348,8 @@ export default function BrutalNavbar() {
                                         }}
                                         disabled={isLoggingOut}
                                         fullWidth
+                                        dataCursor="Logout"
+                                        className="mt-2 border-[3px] border-charcoal bg-[#DC2626] text-white hover:bg-[#B91C1C] shadow-[4px_4px_0px_0px_rgba(17,17,17,1)]"
                                     />
                                 </>
                             ) : (
