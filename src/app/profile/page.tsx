@@ -651,34 +651,26 @@ export default function ProfilePage() {
           <div className="mt-6 flex flex-wrap gap-3 justify-end">
             <button type="button"
               onClick={() => setEditing(true)}
-              className="w-10 h-10 sm:w-auto sm:px-6 sm:py-2 bg-black text-white border-[3px] border-black font-bold uppercase tracking-wide shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center justify-center gap-2"
+              className="w-9 h-9 sm:w-auto sm:px-6 sm:py-2 bg-black text-white border-[3px] border-black font-bold uppercase tracking-wide shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center justify-center gap-2"
               title="Edit Profile"
             >
-              <Edit3 className="w-4 h-4 sm:w-4 sm:h-4" />
+              <Edit3 className="w-4 h-4" />
               <span className="hidden sm:inline text-sm">Edit Profile</span>
             </button>
-            <Link
-              href={publicProfilePath}
-              className="w-10 h-10 sm:w-auto sm:px-6 sm:py-2 bg-white text-black border-[3px] border-black font-bold uppercase tracking-wide shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center justify-center gap-2"
-              title="View Public Profile"
-            >
-              <ExternalLink className="w-4 h-4 sm:w-4 sm:h-4" />
-              <span className="hidden sm:inline text-sm">View Public Profile</span>
-            </Link>
             <button type="button"
               onClick={copyProfileLink}
-              className="w-10 h-10 sm:w-auto sm:px-6 sm:py-2 bg-[#FFD93D] text-black border-[3px] border-black font-bold uppercase tracking-wide shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center justify-center gap-2"
+              className="w-9 h-9 sm:w-auto sm:px-6 sm:py-2 bg-[#FFD93D] text-black border-[3px] border-black font-bold uppercase tracking-wide shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center justify-center gap-2"
               title="Share"
             >
-              <Share2 className="w-4 h-4 sm:w-4 sm:h-4" />
+              <Share2 className="w-4 h-4" />
               <span className="hidden sm:inline text-sm">Share</span>
             </button>
             <Link
               href="/settings"
-              className="sm:hidden w-10 h-10 sm:w-auto sm:px-6 sm:py-2 bg-white text-black border-[3px] border-black font-bold uppercase tracking-wide shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center justify-center gap-2"
+              className="sm:hidden w-9 h-9 sm:w-auto sm:px-6 sm:py-2 bg-white text-black border-[3px] border-black font-bold uppercase tracking-wide shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center justify-center gap-2"
               title="Settings"
             >
-              <Settings className="w-4 h-4 sm:w-4 sm:h-4" />
+              <Settings className="w-4 h-4" />
               <span className="hidden sm:inline text-sm">Settings</span>
             </Link>
           </div>
