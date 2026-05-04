@@ -16,6 +16,7 @@ const requestSchema = collaborationSchema
     influencerId: z.string().min(1).max(100).optional(),
     brandId: z.string().min(1).max(100).optional(),
     productId: z.string().min(1).max(100).optional(),
+    campaignId: z.string().min(1).max(100).optional(),
   })
   .strict()
 
@@ -147,7 +148,7 @@ export async function POST(request: Request) {
 
     const body = await request.json().catch(() => null)
     const parsed = requestSchema.parse(body)
-    const { influencerId, brandId, productId, budget, timeline, goals, notes } = parsed
+    const { influencerId, brandId, productId, campaignId, budget, timeline, goals, notes } = parsed
 
     let targetBrandId: string
     let targetInfluencerId: string
@@ -200,6 +201,7 @@ export async function POST(request: Request) {
             goals,
             notes,
             productId,
+            campaignId: campaignId || undefined,
             initiated_by: profile.id,
             initiated_role: 'brand',
             receiver_id: targetInfluencerId,

@@ -9,6 +9,11 @@ type NormalizedInfluencerProfile = {
   followers?: number | null
   engagement_rate?: number | null
   niches?: string[] | null
+  price_per_post?: number | string | null
+  badge_tier?: string | null
+  badge_score?: number | string | null
+  gender?: string | null
+  audience_type?: string | null
 }
 
 function normalizeInfluencerProfile(value: any): NormalizedInfluencerProfile {
@@ -67,6 +72,12 @@ export async function GET(request: Request) {
     const niche = searchParams.get('niche')?.trim() || ''
     const minFollowers = parseInt(searchParams.get('minFollowers') || '0', 10)
     const maxFollowers = parseInt(searchParams.get('maxFollowers') || '999999999', 10)
+    const minEngagement = parseFloat(searchParams.get('minEngagement') || '0')
+    const minPrice = parseFloat(searchParams.get('minPrice') || '0')
+    const maxPrice = parseFloat(searchParams.get('maxPrice') || '99999999')
+    const badgeTier = searchParams.get('badgeTier')?.trim().toLowerCase() || ''
+    const gender = searchParams.get('gender')?.trim().toLowerCase() || ''
+    const audienceType = searchParams.get('audienceType')?.trim().toLowerCase() || ''
     const sortBy = searchParams.get('sortBy') || 'followers'
     const order = searchParams.get('order') || 'desc'
 
@@ -105,6 +116,11 @@ export async function GET(request: Request) {
 
         const followers = Math.max(0, Number(influencerProfile.followers ?? 0) || 0)
 
+        const priceRaw = influencerProfile.price_per_post
+        const price = priceRaw == null ? null : Number(priceRaw)
+        const badgeScoreRaw = influencerProfile.badge_score
+        const badgeScore = badgeScoreRaw == null ? null : Number(badgeScoreRaw)
+
         return {
           id: profile.id,
           email: profile.email || '',
@@ -115,6 +131,11 @@ export async function GET(request: Request) {
           niches,
           profile_image: profile.avatar_url || null,
           approved_at: profile.created_at,
+          price_per_post: price && Number.isFinite(price) ? price : null,
+          badge_tier: influencerProfile.badge_tier || null,
+          badge_score: badgeScore && Number.isFinite(badgeScore) ? badgeScore : null,
+          gender: influencerProfile.gender || null,
+          audience_type: influencerProfile.audience_type || null,
         }
       })
       .filter(Boolean) as Array<{
@@ -127,6 +148,11 @@ export async function GET(request: Request) {
         niches: string[]
         profile_image: string | null
         approved_at: string
+        price_per_post: number | null
+        badge_tier: string | null
+        badge_score: number | null
+        gender: string | null
+        audience_type: string | null
       }>
 
     let filtered = influencers
@@ -158,11 +184,45 @@ export async function GET(request: Request) {
       filtered = filtered.filter((influencer) => influencer.followers <= maxFollowers)
     }
 
+    if (minEngagement > 0) {
+      filtered = filtered.filter((i) => Number(i.engagement_rate) >= minEngagement)
+    }
+
+    if (minPrice > 0 || maxPrice < 99999999) {
+      filtered = filtered.filter((i) => {
+        // Treat unknown price as in-range (don't exclude undecided creators)
+        if (i.price_per_post == null) return minPrice === 0
+        return i.price_per_post >= minPrice && i.price_per_post <= maxPrice
+      })
+    }
+
+    if (badgeTier) {
+      filtered = filtered.filter((i) => (i.badge_tier || '').toLowerCase() === badgeTier)
+    }
+
+    if (gender) {
+      filtered = filtered.filter((i) => (i.gender || '').toLowerCase() === gender)
+    }
+
+    if (audienceType) {
+      filtered = filtered.filter((i) => (i.audience_type || '').toLowerCase() === audienceType)
+    }
+
     filtered.sort((a, b) => {
       if (sortBy === 'engagement') {
         const aRate = Number(a.engagement_rate)
         const bRate = Number(b.engagement_rate)
         return order === 'desc' ? bRate - aRate : aRate - bRate
+      }
+      if (sortBy === 'price') {
+        const aPrice = a.price_per_post ?? Number.MAX_SAFE_INTEGER
+        const bPrice = b.price_per_post ?? Number.MAX_SAFE_INTEGER
+        return order === 'desc' ? bPrice - aPrice : aPrice - bPrice
+      }
+      if (sortBy === 'badge') {
+        const aBadge = a.badge_score ?? 0
+        const bBadge = b.badge_score ?? 0
+        return order === 'desc' ? bBadge - aBadge : aBadge - bBadge
       }
 
       if (sortBy === 'followers') {

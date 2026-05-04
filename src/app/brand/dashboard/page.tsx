@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/auth'
+import OnboardingChecklist from '@/components/brand/OnboardingChecklist'
 import {
   Package,
   Users,
@@ -142,13 +143,18 @@ export default async function BrandDashboard({
   return (
     <div className="container mx-auto px-4 sm:px-6 pt-20 sm:pt-24 pb-6 sm:pb-8">
       {/* Welcome Header */}
-      <div className="mb-8 sm:mb-10">
+      <div className="mb-6 sm:mb-8">
         <h1 className="text-3xl sm:text-4xl font-black text-black mb-2">
           Welcome back, {companyName}!
         </h1>
         <p className="text-black/60 font-medium text-sm sm:text-lg">
           {brandSummary || 'Your brand command center'}
         </p>
+      </div>
+
+      {/* Onboarding checklist (auto-hides when complete or dismissed) */}
+      <div className="mb-6">
+        <OnboardingChecklist />
       </div>
 
       {needsQuickStart && (
