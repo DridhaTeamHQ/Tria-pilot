@@ -9,6 +9,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { ChevronDown, Check } from 'lucide-react'
 
 export interface FilterOption<V = string> {
@@ -126,6 +127,76 @@ export function FilterDropdown<V extends string | number>(props: Props<V>) {
     setOpen(false)
   }
 
+  // Render the popover into document.body via a portal so it escapes any
+  // parent stacking contexts created by transforms / filters / overflow.
+  const popover =
+    open && coords && typeof document !== 'undefined'
+      ? createPortal(
+          <div
+            ref={popoverRef}
+            style={{
+              position: 'fixed',
+              left: coords.left,
+              top: coords.top,
+              width: coords.width,
+              zIndex: 9999,
+            }}
+            className="filter-pop bg-white border-[3px] border-black shadow-[6px_6px_0_0_rgba(0,0,0,1)] rounded-lg overflow-hidden"
+            role="listbox"
+          >
+            <div className="px-3 py-2 border-b-2 border-black bg-[#F9F8F4] flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
+              {hasValue && (
+                <button
+                  type="button"
+                  onClick={handleClear}
+                  className="text-[10px] font-black uppercase tracking-wider text-black/50 hover:text-black"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            <ul className="max-h-72 overflow-y-auto py-1">
+              {options.map((opt) => {
+                const active = isMulti
+                  ? (selected as V[]).includes(opt.value)
+                  : selected === opt.value
+                return (
+                  <li key={String(opt.value)}>
+                    <button
+                      type="button"
+                      onClick={() => handleSelect(opt.value)}
+                      className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-xs font-bold transition-colors ${
+                        active ? 'bg-[#B4F056]/40' : 'hover:bg-[#FFD93D]/20'
+                      }`}
+                      role="option"
+                      aria-selected={active}
+                    >
+                      <span className="flex-1 min-w-0">
+                        <span className="block truncate">{opt.label}</span>
+                        {opt.hint && (
+                          <span className="block text-[10px] text-black/45 font-semibold mt-0.5 truncate">
+                            {opt.hint}
+                          </span>
+                        )}
+                      </span>
+                      <span
+                        className={`flex-shrink-0 w-5 h-5 border-2 border-black flex items-center justify-center transition-all ${
+                          active ? 'bg-[#B4F056] scale-100' : 'bg-white scale-90'
+                        } ${isMulti ? 'rounded' : 'rounded-full'}`}
+                      >
+                        {active && <Check className="w-3 h-3" strokeWidth={3.5} />}
+                      </span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>,
+          document.body,
+        )
+      : null
+
   return (
     <>
       <button
@@ -156,69 +227,7 @@ export function FilterDropdown<V extends string | number>(props: Props<V>) {
         />
       </button>
 
-      {open && coords && (
-        <div
-          ref={popoverRef}
-          style={{
-            position: 'fixed',
-            left: coords.left,
-            top: coords.top,
-            width: coords.width,
-            zIndex: 60,
-          }}
-          className="filter-pop bg-white border-[3px] border-black shadow-[6px_6px_0_0_rgba(0,0,0,1)] rounded-lg overflow-hidden"
-          role="listbox"
-        >
-          <div className="px-3 py-2 border-b-2 border-black bg-[#F9F8F4] flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
-            {hasValue && (
-              <button
-                type="button"
-                onClick={handleClear}
-                className="text-[10px] font-black uppercase tracking-wider text-black/50 hover:text-black"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-          <ul className="max-h-72 overflow-y-auto py-1">
-            {options.map((opt) => {
-              const active = isMulti
-                ? (selected as V[]).includes(opt.value)
-                : selected === opt.value
-              return (
-                <li key={String(opt.value)}>
-                  <button
-                    type="button"
-                    onClick={() => handleSelect(opt.value)}
-                    className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-xs font-bold transition-colors ${
-                      active ? 'bg-[#B4F056]/40' : 'hover:bg-[#FFD93D]/20'
-                    }`}
-                    role="option"
-                    aria-selected={active}
-                  >
-                    <span className="flex-1 min-w-0">
-                      <span className="block truncate">{opt.label}</span>
-                      {opt.hint && (
-                        <span className="block text-[10px] text-black/45 font-semibold mt-0.5 truncate">
-                          {opt.hint}
-                        </span>
-                      )}
-                    </span>
-                    <span
-                      className={`flex-shrink-0 w-5 h-5 border-2 border-black flex items-center justify-center transition-all ${
-                        active ? 'bg-[#B4F056] scale-100' : 'bg-white scale-90'
-                      } ${isMulti ? 'rounded' : 'rounded-full'}`}
-                    >
-                      {active && <Check className="w-3 h-3" strokeWidth={3.5} />}
-                    </span>
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
-        </div>
-      )}
+      {popover}
 
       <style jsx global>{`
         @keyframes filterPopIn {
