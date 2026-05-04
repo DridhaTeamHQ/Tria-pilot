@@ -28,7 +28,7 @@ const PF = 'var(--font-plus-jakarta-sans), sans-serif'
 
 export default function LandingPage() {
   return (
-    <div className="overflow-x-clip bg-[#f7eee4] px-2 pb-6 pt-[100px] text-[#111111] sm:px-4 sm:pb-8 lg:px-6 lg:pt-[112px]" style={{ fontFamily: PF }}>
+    <div className="overflow-x-clip bg-[#f7eee4] px-2 pb-6 pt-[100px] text-[#111111] sm:px-4 sm:pb-8 lg:px-6 lg:pt-[104px]" style={{ fontFamily: PF }}>
       <div className="mx-auto w-full max-w-[1320px] overflow-hidden rounded-[24px] border-[3px] border-black bg-[#fbfaf6] shadow-[6px_6px_0_0_rgba(0,0,0,1)] sm:rounded-[30px] sm:shadow-[8px_8px_0_0_rgba(0,0,0,1)] lg:rounded-[34px] lg:shadow-[10px_10px_0_0_rgba(0,0,0,1)]">
         <section className="relative overflow-hidden px-4 py-5 sm:px-8 sm:py-6 lg:px-10 lg:py-10">
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(17,17,17,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(17,17,17,0.06)_1px,transparent_1px)] bg-[size:42px_42px]" />
