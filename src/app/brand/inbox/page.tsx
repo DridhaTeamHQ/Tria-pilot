@@ -13,6 +13,8 @@ import {
     Wifi,
 } from 'lucide-react'
 import { useInboxRealtime } from '@/lib/hooks/useInboxRealtime'
+import { useTypingIndicator } from '@/lib/hooks/useTypingIndicator'
+import { TypingBubble } from '@/components/inbox/TypingBubble'
 
 interface Conversation {
     id: string
@@ -221,6 +223,7 @@ export default function BrandInboxPage() {
                     }
                     : item
             ))
+            notifyStoppedTyping()
         } catch (error) {
             console.error('Failed to send message:', error)
             toast.error('Failed to send message')
@@ -293,6 +296,16 @@ export default function BrandInboxPage() {
         userId: currentUserId,
         onMessage: handleRealtimeMessage,
     })
+
+    // Typing indicator for the active conversation
+    const { peerTyping, notifyTyping, notifyStoppedTyping } = useTypingIndicator({
+        conversationId: selectedConversation?.id,
+        userId: currentUserId,
+    })
+
+    useEffect(() => {
+        if (peerTyping) messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }, [peerTyping])
 
     // ── Aggressive polling fallback ─────────────────────────────────────
     // Guarantees delivery even if Supabase Realtime publication isn't set up.
@@ -518,6 +531,7 @@ export default function BrandInboxPage() {
                                         )
                                     })
                                 )}
+                                {peerTyping && <TypingBubble peerName={selectedConversation.other_party.name} />}
                                 <div ref={messagesEndRef} />
                             </div>
 
@@ -526,7 +540,10 @@ export default function BrandInboxPage() {
                                 <input
                                     type="text"
                                     value={newMessage}
-                                    onChange={(e) => setNewMessage(e.target.value)}
+                                    onChange={(e) => {
+                                        setNewMessage(e.target.value)
+                                        if (e.target.value.trim()) notifyTyping()
+                                    }}
                                     placeholder="Type a message..."
                                     className="flex-1 px-4 py-3 border-2 border-black font-medium bg-white rounded-xl focus:shadow-[3px_3px_0_0_rgba(0,0,0,1)] focus:-translate-y-0.5 outline-none transition-all"
                                 />

@@ -24,6 +24,8 @@ import {
   Wifi,
 } from 'lucide-react'
 import { useInboxRealtime } from '@/lib/hooks/useInboxRealtime'
+import { useTypingIndicator } from '@/lib/hooks/useTypingIndicator'
+import { TypingBubble } from '@/components/inbox/TypingBubble'
 
 interface Conversation {
   id: string
@@ -236,6 +238,17 @@ function InboxInner() {
     onMessage: handleRealtimeMessage,
   })
 
+  // Typing indicator for the active conversation
+  const { peerTyping, notifyTyping, notifyStoppedTyping } = useTypingIndicator({
+    conversationId: selectedConversation?.id,
+    userId: currentUserId,
+  })
+
+  // Auto-scroll when peer starts typing
+  useEffect(() => {
+    if (peerTyping) messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [peerTyping])
+
   // ── Aggressive polling fallback ─────────────────────────────────────────
   // Realtime needs the tables to be in the supabase_realtime publication.
   // If a Supabase project hasn't enabled that yet (or the channel drops),
@@ -339,6 +352,7 @@ function InboxInner() {
           c.id === selectedConversation.id ? { ...c, last_message: content, last_message_at: sentAt } : c,
         ),
       )
+      notifyStoppedTyping()
     } catch (err) {
       console.error(err)
       toast.error('Failed to send message')
@@ -535,6 +549,7 @@ function InboxInner() {
                     )
                   })
                 )}
+                {peerTyping && <TypingBubble peerName={selectedConversation.other_party.name} />}
                 <div ref={messagesEndRef} />
               </div>
 
@@ -545,7 +560,10 @@ function InboxInner() {
                 <input
                   type="text"
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
+                  onChange={(e) => {
+                    setNewMessage(e.target.value)
+                    if (e.target.value.trim()) notifyTyping()
+                  }}
                   placeholder="Type a message..."
                   className="flex-1 px-4 py-3 border-2 border-black font-medium bg-white rounded-xl focus:shadow-[3px_3px_0_0_rgba(0,0,0,1)] focus:-translate-y-0.5 outline-none transition-all"
                 />
