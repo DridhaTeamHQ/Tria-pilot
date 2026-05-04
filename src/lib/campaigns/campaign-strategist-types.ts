@@ -41,6 +41,26 @@ export interface PickedProduct {
     coverImage?: string | null
 }
 
+/** Vetting trust signal flag */
+export interface CreatorVettingFlag {
+    level: 'positive' | 'neutral' | 'warning'
+    label: string
+    detail?: string
+}
+
+/** Vetting payload attached to a creator suggestion */
+export interface CreatorVetting {
+    trustScore: number
+    authenticityScore: number
+    activityScore: number
+    realEngagementScore: number
+    brandSafety: 'safe' | 'review'
+    flags: CreatorVettingFlag[]
+    isVetted: boolean
+    trustLabel: string
+    trustTone: 'green' | 'yellow' | 'orange' | 'red'
+}
+
 /** A creator suggestion shown inline as a card */
 export interface CreatorSuggestion {
     creatorId: string
@@ -52,6 +72,7 @@ export interface CreatorSuggestion {
     pricePerPost: number | null
     badgeTier: string | null
     reason: string
+    vetting?: CreatorVetting | null
 }
 
 /** A single message in the strategist conversation */
@@ -69,7 +90,27 @@ export interface StrategistMessage {
     pickedProducts?: PickedProduct[]
     /** Creator suggestions surfaced after product selection */
     creatorSuggestions?: CreatorSuggestion[]
+    /** Performance brief (targets + survey + COD snippet) when a campaign is built */
+    performanceBrief?: PerformanceBrief | null
     timestamp?: string
+}
+
+/** Performance brief returned alongside a finalized campaign */
+export interface PerformanceBrief {
+    targets: {
+        targetCAC: number
+        conversionsNeeded: number
+        targetROAS: number
+        targetConversionRate: number
+        isAchievable: boolean
+        reasoning: string
+    }
+    postPurchaseSurvey: {
+        question: string
+        options: string[]
+        instruction: string
+    }
+    codCheckoutSnippet: string
 }
 
 /** An AI-generated image within the strategist chat */

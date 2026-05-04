@@ -241,26 +241,57 @@ export async function POST(request: Request) {
     // ── Rank ────────────────────────────────────────────────────────────
     const ranked = await rankCreators(candidates, brand, products, { limit, skipLLM })
 
-    // Hydrate response with public profile snippets
+    // Hydrate response with public profile snippets + vetting trust signals
     const candidateMap = new Map(candidates.map(c => [c.userId, c]))
+    const { vetCreator, trustLabel } = await import('@/lib/campaigns/vetting')
+
     const enriched = ranked.map(r => {
       const c = candidateMap.get(r.creatorId)
+      if (!c) return { ...r, profile: null, vetting: null }
+
+      const erRaw = c.engagementRate ?? 0
+      const erPct = erRaw <= 1 ? erRaw * 100 : erRaw
+
+      const vetting = vetCreator({
+        followers: c.followers,
+        engagementRate: erPct,
+        audienceRate: c.audienceRate,
+        retentionRate: c.retentionRate,
+        badgeTier: c.badgeTier,
+        badgeScore: c.badgeScore,
+        bio: c.bio,
+        niches: c.niches,
+        socials: c.socials,
+        onboardingCompleted: true,
+      })
+
+      const trust = trustLabel(vetting.trustScore)
+
       return {
         ...r,
-        profile: c
-          ? {
-              userId: c.userId,
-              name: c.name,
-              bio: c.bio,
-              niches: c.niches,
-              followers: c.followers,
-              engagementRate: c.engagementRate,
-              badgeTier: c.badgeTier,
-              gender: c.gender,
-              audienceType: c.audienceType,
-              pricePerPost: c.pricePerPost,
-            }
-          : null,
+        profile: {
+          userId: c.userId,
+          name: c.name,
+          bio: c.bio,
+          niches: c.niches,
+          followers: c.followers,
+          engagementRate: c.engagementRate,
+          badgeTier: c.badgeTier,
+          gender: c.gender,
+          audienceType: c.audienceType,
+          pricePerPost: c.pricePerPost,
+        },
+        vetting: {
+          trustScore: vetting.trustScore,
+          authenticityScore: vetting.authenticityScore,
+          activityScore: vetting.activityScore,
+          realEngagementScore: vetting.realEngagementScore,
+          brandSafety: vetting.brandSafety,
+          flags: vetting.flags,
+          isVetted: vetting.isVetted,
+          trustLabel: trust.label,
+          trustTone: trust.tone,
+        },
       }
     })
 

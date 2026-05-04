@@ -29,6 +29,7 @@ import type {
     GeneratedCampaignImage,
     PickedProduct,
     CreatorSuggestion,
+    PerformanceBrief,
 } from '@/lib/campaigns/campaign-strategist-types'
 import { STRATEGIST_PHASES } from '@/lib/campaigns/campaign-strategist-types'
 
@@ -750,15 +751,30 @@ function CreatorSuggestionCards({ creators }: { creators: CreatorSuggestion[] })
                 {creators.slice(0, 6).map((c) => {
                     const invited = invitedIds.has(c.creatorId)
                     const inviting = invitingId === c.creatorId
+                    const v = c.vetting
+                    const trustBg =
+                        v?.trustTone === 'green' ? 'bg-[#B4F056]'
+                        : v?.trustTone === 'yellow' ? 'bg-[#FFD93D]'
+                        : v?.trustTone === 'orange' ? 'bg-[#FF8C69]'
+                        : v?.trustTone === 'red' ? 'bg-red-300'
+                        : 'bg-black/10'
                     return (
                         <div key={c.creatorId} className="bg-white rounded-lg p-3 border border-black/6 hover:border-black/15 transition-colors">
                             <div className="flex items-start gap-2">
                                 <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1">
+                                    <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                                         <p className="text-[12px] font-black truncate">{c.name || 'Creator'}</p>
-                                        <span className="text-[10px] font-black bg-[#B4F056]/30 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                                        <span className="text-[10px] font-black bg-black text-white px-1.5 py-0.5 whitespace-nowrap">
                                             {c.matchScore}% fit
                                         </span>
+                                        {v && (
+                                            <span
+                                                className={`text-[9px] font-black uppercase tracking-widest ${trustBg} border border-black px-1.5 py-0.5 whitespace-nowrap`}
+                                                title={`Trust ${v.trustScore}/100 · Authenticity ${v.authenticityScore} · Activity ${v.activityScore}`}
+                                            >
+                                                ✓ {v.trustLabel}
+                                            </span>
+                                        )}
                                     </div>
                                     <p className="text-[10px] text-black/45 line-clamp-2 mb-1.5">{c.reason || c.bio || 'Strong audience match'}</p>
                                     <div className="flex items-center gap-2 text-[10px] text-black/50">
@@ -769,7 +785,26 @@ function CreatorSuggestionCards({ creators }: { creators: CreatorSuggestion[] })
                                             <span>· ₹{c.pricePerPost.toLocaleString('en-IN')}/post</span>
                                         )}
                                     </div>
-                                    {c.niches.length > 0 && (
+                                    {v?.flags && v.flags.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mt-1.5">
+                                            {v.flags.slice(0, 2).map((f, idx) => (
+                                                <span
+                                                    key={idx}
+                                                    className={`text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 border ${
+                                                        f.level === 'warning'
+                                                            ? 'bg-[#FF8C69]/20 border-[#FF8C69] text-black'
+                                                            : f.level === 'positive'
+                                                                ? 'bg-[#B4F056]/30 border-black/30 text-black'
+                                                                : 'bg-black/5 border-black/30 text-black/60'
+                                                    }`}
+                                                    title={f.detail || f.label}
+                                                >
+                                                    {f.level === 'warning' ? '⚠' : f.level === 'positive' ? '✓' : '·'} {f.label}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {(!v?.flags?.length && c.niches.length > 0) && (
                                         <div className="flex flex-wrap gap-1 mt-1.5">
                                             {c.niches.slice(0, 3).map((n) => (
                                                 <span key={n} className="text-[9px] bg-black/5 text-black/55 px-1.5 py-0.5 rounded-full">
@@ -810,6 +845,138 @@ function formatFollowers(n: number): string {
     if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
     if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
     return String(n)
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   PERFORMANCE BRIEF CARD
+   Indian D2C tracking infrastructure: targets + COD attribution.
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+function PerformanceBriefCard({ brief }: { brief: PerformanceBrief }) {
+    const [copied, setCopied] = useState(false)
+    const [showSurvey, setShowSurvey] = useState(false)
+    const [showSnippet, setShowSnippet] = useState(false)
+    const t = brief.targets
+
+    const copySnippet = async () => {
+        try {
+            await navigator.clipboard.writeText(brief.codCheckoutSnippet)
+            setCopied(true)
+            toast.success('Snippet copied to clipboard')
+            setTimeout(() => setCopied(false), 2000)
+        } catch {
+            toast.error('Could not copy')
+        }
+    }
+
+    return (
+        <div className="bg-white border-[3px] border-black shadow-[6px_6px_0_0_rgba(0,0,0,1)] overflow-hidden">
+            <div className="bg-gradient-to-r from-[#A78BFA]/30 to-[#FFD93D]/30 px-5 py-3 border-b-2 border-black">
+                <p className="text-[11px] font-black uppercase tracking-widest">📊 Performance Brief</p>
+                <p className="text-[10px] text-black/50 font-semibold mt-0.5">
+                    Tracking + targets so you can measure ROI on day one
+                </p>
+            </div>
+
+            {/* Targets */}
+            <div className="p-5">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-black/50 mb-3">Targets</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
+                    <TargetTile label="Target CAC" value={`₹${t.targetCAC.toLocaleString('en-IN')}`} tone="green" />
+                    <TargetTile label="Target ROAS" value={`${t.targetROAS}x`} tone="purple" />
+                    <TargetTile label="Conversions" value={String(t.conversionsNeeded)} tone="yellow" />
+                    <TargetTile label="Conv rate" value={`${t.targetConversionRate}%`} tone="orange" />
+                </div>
+                <div
+                    className={`text-[11px] font-bold p-3 border-2 border-black ${
+                        t.isAchievable ? 'bg-[#B4F056]/20' : 'bg-[#FF8C69]/20'
+                    }`}
+                >
+                    {t.isAchievable ? '✅ ' : '⚠️ '}{t.reasoning}
+                </div>
+            </div>
+
+            {/* Survey + COD Snippet */}
+            <div className="border-t-2 border-black/10">
+                <button
+                    type="button"
+                    onClick={() => setShowSurvey((v) => !v)}
+                    className="w-full px-5 py-3 flex items-center justify-between hover:bg-black/[0.02] transition-colors"
+                >
+                    <div className="text-left">
+                        <p className="text-[12px] font-black uppercase tracking-wider">Post-purchase survey</p>
+                        <p className="text-[10px] text-black/50 font-semibold mt-0.5">
+                            Capture COD attribution that click-tracking misses
+                        </p>
+                    </div>
+                    <span className="text-[10px] font-black uppercase">{showSurvey ? 'Hide' : 'Show'}</span>
+                </button>
+                {showSurvey && (
+                    <div className="px-5 pb-4 -mt-1">
+                        <div className="bg-[#F9F8F4] border-2 border-black p-3">
+                            <p className="text-sm font-black mb-2">{brief.postPurchaseSurvey.question}</p>
+                            <ul className="space-y-1 text-xs text-black/70 font-semibold list-disc list-inside">
+                                {brief.postPurchaseSurvey.options.map((opt, i) => (
+                                    <li key={i}>{opt}</li>
+                                ))}
+                            </ul>
+                        </div>
+                        <p className="text-[10px] text-black/50 font-semibold mt-2 leading-relaxed">
+                            {brief.postPurchaseSurvey.instruction}
+                        </p>
+                    </div>
+                )}
+            </div>
+
+            <div className="border-t-2 border-black/10">
+                <button
+                    type="button"
+                    onClick={() => setShowSnippet((v) => !v)}
+                    className="w-full px-5 py-3 flex items-center justify-between hover:bg-black/[0.02] transition-colors"
+                >
+                    <div className="text-left">
+                        <p className="text-[12px] font-black uppercase tracking-wider">COD attribution snippet</p>
+                        <p className="text-[10px] text-black/50 font-semibold mt-0.5">
+                            Drop into your checkout success page
+                        </p>
+                    </div>
+                    <span className="text-[10px] font-black uppercase">{showSnippet ? 'Hide' : 'Show'}</span>
+                </button>
+                {showSnippet && (
+                    <div className="px-5 pb-4 -mt-1">
+                        <pre className="bg-black text-[#B4F056] text-[10px] font-mono p-3 overflow-x-auto border-2 border-black whitespace-pre-wrap leading-relaxed">
+{brief.codCheckoutSnippet}
+                        </pre>
+                        <button
+                            type="button"
+                            onClick={copySnippet}
+                            className={`mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 border-2 border-black text-[10px] font-black uppercase tracking-wider transition-all ${
+                                copied
+                                    ? 'bg-[#B4F056]'
+                                    : 'bg-white hover:bg-[#FFD93D]/30 hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_rgba(0,0,0,1)]'
+                            }`}
+                        >
+                            {copied ? '✓ Copied' : 'Copy snippet'}
+                        </button>
+                    </div>
+                )}
+            </div>
+        </div>
+    )
+}
+
+function TargetTile({ label, value, tone }: { label: string; value: string; tone: 'green' | 'purple' | 'yellow' | 'orange' }) {
+    const bg =
+        tone === 'green' ? 'bg-[#B4F056]'
+        : tone === 'purple' ? 'bg-[#A78BFA]'
+        : tone === 'yellow' ? 'bg-[#FFD93D]'
+        : 'bg-[#FF8C69]'
+    return (
+        <div className={`${bg} border-2 border-black p-2.5`}>
+            <div className="text-base font-black break-words">{value}</div>
+            <div className="text-[9px] font-black uppercase tracking-widest text-black/65 mt-0.5">{label}</div>
+        </div>
+    )
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1056,6 +1223,7 @@ export default function CampaignStrategist() {
                 pricePerPost: c.profile?.pricePerPost ?? null,
                 badgeTier: c.profile?.badgeTier ?? null,
                 reason: c.reason ?? '',
+                vetting: c.vetting ?? null,
             }))
 
             if (suggestions.length === 0) return
@@ -1191,6 +1359,7 @@ export default function CampaignStrategist() {
 
             // Handle generated images
             const generatedImages: GeneratedCampaignImage[] = data.generatedImages || []
+            const performanceBrief: PerformanceBrief | null = data.performanceBrief || null
 
             setMessages((prev) => {
                 const newMessages = [
@@ -1201,6 +1370,7 @@ export default function CampaignStrategist() {
                         phase: data.campaignPayload ? 'complete' as StrategistPhase : (newPhase || targetPhase),
                         campaignPayload: data.campaignPayload || null,
                         generatedImages: generatedImages.length > 0 ? generatedImages : undefined,
+                        performanceBrief,
                     },
                 ]
 
@@ -1436,6 +1606,12 @@ export default function CampaignStrategist() {
                                         isCreating={isCreatingCampaign}
                                         onApprove={handleApprove}
                                     />
+                                </div>
+                            )}
+
+                            {msg.performanceBrief && (
+                                <div className="mt-3 ml-11">
+                                    <PerformanceBriefCard brief={msg.performanceBrief} />
                                 </div>
                             )}
                         </div>

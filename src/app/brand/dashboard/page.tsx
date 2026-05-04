@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/auth'
 import OnboardingChecklist from '@/components/brand/OnboardingChecklist'
+import SmartDiscoveryWidget from '@/components/brand/SmartDiscoveryWidget'
 import {
   Package,
   Users,
@@ -155,6 +156,11 @@ export default async function BrandDashboard({
       {/* Onboarding checklist (auto-hides when complete or dismissed) */}
       <div className="mb-6">
         <OnboardingChecklist />
+      </div>
+
+      {/* Smart discovery — AI picks creators perfect for the brand's products */}
+      <div className="mb-6">
+        <SmartDiscoveryWidget />
       </div>
 
       {needsQuickStart && (

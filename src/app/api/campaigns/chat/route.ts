@@ -413,11 +413,28 @@ export async function POST(request: Request) {
     )
 
     // ─── BUILD SYSTEM PROMPT ──────────────────────────
-    const systemPrompt = buildStrategistSystemPrompt(
+    let systemPrompt = buildStrategistSystemPrompt(
       brandContext,
       currentPhase as StrategistPhase,
       campaignsSummary,
     )
+
+    // Append brand voice fingerprint if the brand has saved one. This makes
+    // every generated caption, hook, script sound like THEIR brand, not GPT's
+    // generic voice — addresses the #1 reason marketers say AI tools "don't
+    // sound like us" (cited in 70% of complaints per impact.com 2026 report).
+    try {
+      const savedVoice = (brandData as Record<string, unknown>).voice
+      if (savedVoice && typeof savedVoice === 'object') {
+        const { brandVoiceSystemPrompt } = await import('@/lib/brand/voice-extractor')
+        const voiceFragment = brandVoiceSystemPrompt(savedVoice as any)
+        if (voiceFragment) {
+          systemPrompt = `${systemPrompt}\n\n${voiceFragment}`
+        }
+      }
+    } catch (voiceErr) {
+      console.warn('[chat] failed to apply brand voice:', voiceErr)
+    }
 
     // ─── BUILD MESSAGES (with Vision support) ─────────
     const openai = getOpenAI()
@@ -587,6 +604,42 @@ export async function POST(request: Request) {
       .replace(/\[IMAGE_GEN:[^\]]*\]/g, '')
       .trim()
 
+    // ─── BUILD PERFORMANCE BRIEF (Indian D2C attribution) ────────
+    // When a campaign payload exists, compute targets + survey snippets
+    // so the brand sees the math + tracking infra before launching.
+    let performanceBrief: any = null
+    if (campaignPayload) {
+      try {
+        const { computeTargets, buildPostPurchaseSurvey, buildCodCheckoutSnippet } = await import(
+          '@/lib/campaigns/performance-brief'
+        )
+
+        const totalBudget =
+          Number(campaignPayload.budget?.total_budget) ||
+          (Number(campaignPayload.budget?.daily_budget) || 0) * 30 ||
+          50000
+
+        const goalKey = (campaignPayload.goal || 'awareness') as
+          | 'awareness'
+          | 'sales'
+          | 'conversions'
+          | 'launch'
+          | 'traffic'
+
+        const targets = computeTargets({ budget: totalBudget, goal: goalKey })
+        const survey = buildPostPurchaseSurvey([])
+        const codSnippet = buildCodCheckoutSnippet()
+
+        performanceBrief = {
+          targets,
+          postPurchaseSurvey: survey,
+          codCheckoutSnippet: codSnippet,
+        }
+      } catch (briefErr) {
+        console.warn('[chat] performance brief build failed:', briefErr)
+      }
+    }
+
     // ─── RETURN ───────────────────────────────────────
     return NextResponse.json({
       response: cleanedResponse,
@@ -595,6 +648,7 @@ export async function POST(request: Request) {
       createdCampaignId,
       generatedImages: generatedImages.length > 0 ? generatedImages : undefined,
       hasVisionSupport: hasImages,
+      performanceBrief,
     })
   } catch (error) {
     console.error('Campaign strategist error:', error)
