@@ -506,7 +506,6 @@ export default function ProfilePage() {
     const previousName = previous?.user?.name || user?.name || ''
 
     setSaving(true)
-    setEditing(false)
 
     queryClient.setQueryData(['full-profile'], (old: any) => {
       if (!old?.user) return old
@@ -516,6 +515,7 @@ export default function ProfilePage() {
     try {
       await patchName(trimmed)
       await queryClient.invalidateQueries({ queryKey: ['full-profile'] })
+      setEditing(false)
 
       toast.success('Name updated!', {
         action: {
@@ -640,7 +640,7 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-[#FDFBF7] pt-28 pb-20">
       <div className="container mx-auto px-4 sm:px-6 max-w-7xl">
 
-        <div className="mb-8">
+        <div className="mb-0 sm:mb-8">
           <h1 className="text-4xl sm:text-5xl md:text-7xl font-black text-black uppercase mb-4 tracking-tight leading-none">
             Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-black to-gray-500">Profile</span>
           </h1>
@@ -651,30 +651,43 @@ export default function ProfilePage() {
           <div className="mt-6 flex flex-wrap gap-3 justify-end">
             <button type="button"
               onClick={() => setEditing(true)}
-              className="w-full sm:w-auto px-5 py-2 bg-black text-white border-[3px] border-black font-bold uppercase tracking-wide shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+              className="w-10 h-10 sm:w-auto sm:px-6 sm:py-2 bg-black text-white border-[3px] border-black font-bold uppercase tracking-wide shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center justify-center gap-2"
+              title="Edit Profile"
             >
-              Edit Profile
+              <Edit3 className="w-4 h-4 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline text-sm">Edit Profile</span>
             </button>
             <Link
               href={publicProfilePath}
-              className="w-full sm:w-auto text-center px-5 py-2 bg-white text-black border-[3px] border-black font-bold uppercase tracking-wide shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+              className="w-10 h-10 sm:w-auto sm:px-6 sm:py-2 bg-white text-black border-[3px] border-black font-bold uppercase tracking-wide shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center justify-center gap-2"
+              title="View Public Profile"
             >
-              View Public Profile
+              <ExternalLink className="w-4 h-4 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline text-sm">View Public Profile</span>
             </Link>
             <button type="button"
               onClick={copyProfileLink}
-              className="w-full sm:w-auto justify-center px-5 py-2 bg-[#FFD93D] text-black border-[3px] border-black font-bold uppercase tracking-wide shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all inline-flex items-center gap-2"
+              className="w-10 h-10 sm:w-auto sm:px-6 sm:py-2 bg-[#FFD93D] text-black border-[3px] border-black font-bold uppercase tracking-wide shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center justify-center gap-2"
+              title="Share"
             >
-              <Share2 className="w-4 h-4" />
-              Share
+              <Share2 className="w-4 h-4 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline text-sm">Share</span>
             </button>
+            <Link
+              href="/settings"
+              className="sm:hidden w-10 h-10 sm:w-auto sm:px-6 sm:py-2 bg-white text-black border-[3px] border-black font-bold uppercase tracking-wide shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center justify-center gap-2"
+              title="Settings"
+            >
+              <Settings className="w-4 h-4 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline text-sm">Settings</span>
+            </Link>
           </div>
         </div>
 
         <div className="grid lg:grid-cols-12 gap-10">
           <div className="lg:col-span-8 space-y-10">
-            <BrutalCard className="pt-32 sm:pt-36 md:pt-10 mt-16 md:mt-2" >
-              <div className="absolute -top-16 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-8 z-10 w-[160px] h-[180px] md:w-[180px] md:h-[200px]">
+            <BrutalCard className="pt-2 sm:pt-36 md:pt-10 mt-6 md:mt-2" >
+              <div className="absolute -top-16 left-4 sm:left-8 z-10 w-[140px] h-[160px] sm:w-[160px] sm:h-[180px] md:w-[180px] md:h-[200px]">
                 <div className="relative w-full h-full border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-[#FFD93D] overflow-hidden">
                   {profileImageUrl ? (
                     <AppImage src={profileImageUrl} alt="Profile" className="object-cover" sizes="180px" />
@@ -711,73 +724,103 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 md:pl-[220px]">
-                <div className="flex flex-col items-center md:items-start text-center md:text-left">
-                  {editing ? (
-                    <div className="flex flex-wrap justify-center md:justify-start items-center gap-2 mb-2 w-full">
-                      <input
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault()
-                            void handleSaveName()
-                          }
-                          if (e.key === 'Escape') {
-                            e.preventDefault()
-                            setName(user.name || '')
-                            setEditing(false)
-                          }
-                        }}
-                        className="text-2xl md:text-3xl font-black bg-white border-[3px] border-black px-4 py-2 w-full max-w-sm focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all text-center md:text-left"
-                        autoFocus
-                      />
-                      <div className="flex items-center gap-2">
-                        <button type="button" onClick={handleSaveName} disabled={saving} className="bg-black text-white p-2.5 border-[3px] border-black hover:bg-white hover:text-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
-                          <Check className="w-5 h-5" />
-                        </button>
-                        <button type="button"
-                          onClick={() => {
-                            setName(user.name || '')
-                            setEditing(false)
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pl-[152px] sm:pl-0 md:pl-[220px]">
+                <div className="flex flex-col items-start text-left w-full">
+                  <div className="flex flex-col items-start w-full">
+                    {editing ? (
+                      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 w-full">
+                        <input
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              void handleSaveName()
+                            }
+                            if (e.key === 'Escape') {
+                              e.preventDefault()
+                              setName(user.name || '')
+                              setEditing(false)
+                            }
                           }}
-                          className="bg-white text-black p-2.5 border-[3px] border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
-                        >
-                          <X className="w-5 h-5" />
-                        </button>
+                          className="text-xl sm:text-3xl md:text-4xl font-black bg-transparent border-b-[3px] border-black p-0 pb-1 w-full max-w-sm focus:outline-none transition-all text-left uppercase tracking-tight"
+                          autoFocus
+                        />
+                        <div className="hidden sm:flex items-center gap-2 w-full sm:w-auto">
+                          <button
+                            type="button"
+                            onClick={handleSaveName}
+                            disabled={saving}
+                            className={`flex-1 sm:flex-none flex items-center justify-center bg-black text-white px-4 py-3 sm:p-2.5 border-[3px] border-black hover:bg-white hover:text-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all ${saving ? 'opacity-50 pointer-events-none' : ''}`}
+                          >
+                            <Check className="w-5 h-5 sm:w-4 sm:h-4" />
+                            <span className="ml-2 sm:hidden font-bold uppercase text-xs">Save</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setName(user.name || '')
+                              setEditing(false)
+                            }}
+                            disabled={saving}
+                            className={`flex-1 sm:flex-none flex items-center justify-center bg-white text-black px-4 py-3 sm:p-2.5 border-[3px] border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all ${saving ? 'opacity-50 pointer-events-none' : ''}`}
+                          >
+                            <X className="w-5 h-5 sm:w-4 sm:h-4" />
+                            <span className="ml-2 sm:hidden font-bold uppercase text-xs">Cancel</span>
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-3 group justify-center md:justify-start">
-                      <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tight">{user.name || 'Set Name'}</h2>
-                      <button type="button" onClick={() => setEditing(true)} className="opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-black/5 rounded">
-                        <Edit3 className="w-5 h-5" />
-                      </button>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-2 group">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                          <h2 className="text-xl sm:text-3xl md:text-4xl font-black uppercase tracking-tight">{user.name || 'Set Name'}</h2>
+                          <button type="button" onClick={() => setEditing(true)} className="hidden sm:block opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-black/5 rounded">
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
-                  <div className="flex flex-wrap justify-center md:justify-start gap-3 mt-4">
-                    <span className="px-3 py-1 bg-black text-white text-xs font-bold uppercase tracking-widest border-[2px] border-black">
-                      {user.role}
-                    </span>
-                    <span className={`px-3 py-1 ${level.bg} text-black text-xs font-bold uppercase tracking-widest border-[2px] border-black`}>
-                      {level.label}
-                    </span>
-                    <span className="px-3 py-1 bg-white text-black text-xs font-bold uppercase tracking-widest border-[2px] border-black flex items-center gap-2">
-                      <Calendar className="w-3 h-3" />
-                      Joined {formatDate(user.createdAt)}
-                    </span>
                   </div>
+
+                  <div className="flex flex-col sm:flex-row sm:flex-wrap justify-start gap-2 sm:gap-3 mt-2 sm:mt-4">
+                    <div className="flex flex-wrap gap-2">
+                      <span className="px-2 py-0.5 sm:px-3 sm:py-1 bg-black text-white text-[9px] sm:text-xs font-bold uppercase tracking-widest border-[2px] border-black">
+                        {user.role}
+                      </span>
+                      <span className={`px-2 py-0.5 sm:px-3 sm:py-1 ${level.bg} text-black text-[9px] sm:text-xs font-bold uppercase tracking-widest border-[2px] border-black`}>
+                        {level.label}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 sm:px-3 sm:py-1 bg-white text-black text-[9px] sm:text-xs font-bold uppercase tracking-widest border-[2px] border-black flex items-center gap-1.5 sm:gap-2 w-fit">
+                        <Calendar className="w-3 h-3" />
+                        {formatDate(user.createdAt)}
+                      </span>
+                    </div>
+                  </div>
+
                 </div>
 
-                <Link href="/settings" className="w-full md:w-auto px-6 py-3 bg-white border-[3px] border-black font-bold uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center justify-center gap-2 text-sm mt-2 md:mt-0">
+                <Link href="/settings" className="hidden sm:flex w-full md:w-auto px-6 py-3 bg-white border-[3px] border-black font-bold uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all items-center justify-center gap-2 text-sm mt-2 md:mt-0">
                   <Settings className="w-4 h-4" />
                   Settings
                 </Link>
               </div>
 
-              <div className="mt-8 pt-8 border-t-[3px] border-black space-y-4">
-                <div className="flex flex-col md:flex-row items-center md:items-start gap-4 md:pl-[220px]">
+              {/* Mobile Email - Redesigned as a row */}
+              <div className="sm:hidden mt-6 pt-6 border-t-[3px] border-black w-full flex items-center gap-4">
+                <div className="w-10 h-10 border-[2px] border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] shrink-0">
+                  <Mail className="w-5 h-5" />
+                </div>
+                <div className="text-left overflow-hidden">
+                  <p className="text-[10px] font-bold uppercase text-black/50 tracking-widest">Email Address</p>
+                  <p className="text-sm font-bold break-all">{user.email}</p>
+                </div>
+              </div>
+
+              <div className="mt-8 pt-8 border-t-[3px] border-black space-y-4 hidden sm:block">
+                <div className="flex items-start gap-4 md:pl-[220px]">
                   <div className="w-10 h-10 border-[2px] border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] shrink-0">
                     <Mail className="w-5 h-5" />
                   </div>
@@ -788,6 +831,32 @@ export default function ProfilePage() {
                 </div>
               </div>
             </BrutalCard>
+
+            {editing && (
+              <div className="sm:hidden flex flex-row gap-3 -mt-4 mb-10">
+                <button
+                  type="button"
+                  onClick={handleSaveName}
+                  disabled={saving}
+                  className={`flex-1 flex items-center justify-center bg-black text-white px-3 py-2.5 border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${saving ? 'opacity-50 pointer-events-none' : ''}`}
+                >
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  <span className="ml-2 font-black uppercase text-xs tracking-widest">Save</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setName(user.name || '')
+                    setEditing(false)
+                  }}
+                  disabled={saving}
+                  className={`flex-1 flex items-center justify-center bg-white text-black px-3 py-2.5 border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${saving ? 'opacity-50 pointer-events-none' : ''}`}
+                >
+                  <X className="w-4 h-4" />
+                  <span className="ml-2 font-black uppercase text-xs tracking-widest">Cancel</span>
+                </button>
+              </div>
+            )}
 
             <BrutalCard title="About Me">
               <button type="button"
@@ -958,7 +1027,7 @@ export default function ProfilePage() {
                               <h3 className="text-sm font-black uppercase tracking-widest">Auto-picked top 3</h3>
                               <span className="text-[10px] font-black uppercase text-black/40">Best approved source photos for try-on</span>
                             </div>
-                            <div className="grid sm:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                               {suggestedReferencePhotos.map((photo) => {
                                 const statusTone = getReferenceStatusTone(photo.status)
                                 return (
@@ -985,7 +1054,7 @@ export default function ProfilePage() {
                             <h3 className="text-sm font-black uppercase tracking-widest">All photos</h3>
                             <span className="text-[10px] font-black uppercase text-black/40">{referencePhotos.length} total</span>
                           </div>
-                          <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                          <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
                             {remainingReferencePhotos.map((photo) => {
                               const statusTone = getReferenceStatusTone(photo.status)
                               return (
@@ -1085,8 +1154,8 @@ export default function ProfilePage() {
             </BrutalCard>
           </div>
 
-          <div className="lg:col-span-4 space-y-8 lg:sticky lg:top-28 self-start">
-            <BrutalCard className="text-center mt-16 md:mt-2">
+          <div className="lg:col-span-4 flex flex-col space-y-10 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-1 sm:gap-10 lg:gap-12 lg:space-y-12 lg:sticky lg:top-28 self-start">
+            <BrutalCard className="text-center sm:mt-2">
               <h3 className="text-sm font-bold uppercase tracking-widest mb-2">Current Level</h3>
               <div className="text-6xl font-black mb-2">{Math.round(Number(profile?.badgeScore || 0))}</div>
               <div className={`inline-block px-4 py-1 border-[2px] border-black text-xs font-bold uppercase tracking-widest ${level.bg} mb-6`}>
