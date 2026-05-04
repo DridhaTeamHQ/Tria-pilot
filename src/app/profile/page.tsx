@@ -775,18 +775,24 @@ export default function ProfilePage() {
 
                   </div>
 
-                  <div className="flex flex-col sm:flex-row sm:flex-wrap justify-start gap-2 sm:gap-3 mt-2 sm:mt-4">
-                    <div className="flex flex-wrap gap-2">
-                      <span className="px-2 py-0.5 sm:px-3 sm:py-1 bg-black text-white text-[9px] sm:text-xs font-bold uppercase tracking-widest border-[2px] border-black">
+                  <div className="flex flex-col justify-start gap-1.5 sm:gap-2 mt-2 sm:mt-4">
+                    {/* Row 1: Influencer + Starter (Desktop) | Influencer (Mobile) */}
+                    <div className="flex flex-row items-center gap-1.5 sm:gap-2">
+                      <span className="px-1.5 py-0.5 sm:px-3 sm:py-1 bg-black text-white text-[8px] sm:text-xs font-bold uppercase tracking-widest border-[1.5px] sm:border-[2px] border-black w-fit">
                         {user.role}
                       </span>
-                      <span className={`px-2 py-0.5 sm:px-3 sm:py-1 ${level.bg} text-black text-[9px] sm:text-xs font-bold uppercase tracking-widest border-[2px] border-black`}>
+                      <span className={`hidden sm:inline-block px-1.5 py-0.5 sm:px-3 sm:py-1 ${level.bg} text-black text-[8px] sm:text-xs font-bold uppercase tracking-widest border-[1.5px] sm:border-[2px] border-black`}>
                         {level.label}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 sm:px-3 sm:py-1 bg-white text-black text-[9px] sm:text-xs font-bold uppercase tracking-widest border-[2px] border-black flex items-center gap-1.5 sm:gap-2 w-fit">
-                        <Calendar className="w-3 h-3" />
+
+                    {/* Row 2: Join Date (Desktop) | Starter + Join Date (Mobile) */}
+                    <div className="flex flex-row items-center gap-1.5 sm:gap-2">
+                      <span className={`sm:hidden px-1.5 py-0.5 sm:px-3 sm:py-1 ${level.bg} text-black text-[8px] sm:text-xs font-bold uppercase tracking-widest border-[1.5px] sm:border-[2px] border-black`}>
+                        {level.label}
+                      </span>
+                      <span className="px-1.5 py-0.5 sm:px-3 sm:py-1 bg-white text-black text-[8px] sm:text-xs font-bold uppercase tracking-widest border-[1.5px] sm:border-[2px] border-black flex items-center gap-1 sm:gap-2 w-fit">
+                        <Calendar className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                         {formatDate(user.createdAt)}
                       </span>
                     </div>
