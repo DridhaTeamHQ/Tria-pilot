@@ -62,9 +62,18 @@ function pickBucket(pathname: string): 'auth' | 'tryon' | 'ads' | 'ai' | 'write'
   if (pathname.startsWith('/api/ads/') && (pathname.includes('generate') || pathname.includes('regenerate'))) {
     return 'ads'
   }
+  // SECURITY: any endpoint that calls OpenAI / Gemini and could burn
+  // budget needs to be in the AI bucket. Previously several were
+  // unprotected — brand voice extractor, smart discovery, caption
+  // generator, creator matchmaker, full-pipeline campaign suggester.
   if (
     pathname.startsWith('/api/ads/') ||
     pathname.startsWith('/api/campaigns/chat') ||
+    pathname.startsWith('/api/campaigns/recommend-creators') ||
+    pathname.startsWith('/api/campaigns/suggest-from-products') ||
+    pathname.startsWith('/api/brand/voice') ||
+    pathname.startsWith('/api/brand/smart-discovery') ||
+    pathname.startsWith('/api/influencer/generate-caption') ||
     pathname.startsWith('/api/fashion-buddy/')
   ) {
     return 'ai'

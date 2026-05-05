@@ -103,18 +103,22 @@ export async function POST(request: Request) {
     }
 
     // Auto-create profile row if missing (e.g. after schema migration)
+    // SECURITY: do NOT trust user_metadata.role — that field is settable by
+    // the user during signup (`options.data.role`). If we read it here we
+    // give the user a way to self-assign brand role + auto-approval. Always
+    // hardcode the role to 'influencer' since this is the influencer-only
+    // onboarding endpoint, and always start pending.
     if (!profile) {
-      const meta = authUser.user_metadata || {} as Record<string, unknown>
-      const role = String(meta.role || 'influencer').toLowerCase()
+      const meta = (authUser.user_metadata || {}) as Record<string, unknown>
       const { data: created, error: createErr } = await service
         .from('profiles')
         .upsert({
           id: authUser.id,
           email: authUser.email || '',
-          role,
+          role: 'influencer',
           full_name: meta.name || meta.username || '',
           onboarding_completed: false,
-          approval_status: role === 'brand' ? 'approved' : 'pending',
+          approval_status: 'pending',
         }, { onConflict: 'id' })
         .select('id, email, role, onboarding_completed, approval_status, full_name')
         .single()

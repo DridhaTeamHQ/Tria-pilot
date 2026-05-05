@@ -407,7 +407,16 @@ export default async function PublicInfluencerProfilePage({
       {/* JSON-LD structured data for SEO */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        // SECURITY: escape `<`, `>`, `&` so user-controlled fields (name,
+        // bio, niches) cannot break out of the <script> tag. Without this,
+        // a creator could embed `</script><script>...` in their bio to
+        // execute arbitrary JS in any brand viewing their public profile.
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd)
+            .replace(/</g, '\\u003c')
+            .replace(/>/g, '\\u003e')
+            .replace(/&/g, '\\u0026'),
+        }}
       />
     </div>
   )

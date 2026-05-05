@@ -54,8 +54,12 @@ const adGenerationSchema = z
     stylePack: z.enum(['luxury', 'high_street', 'sports']).optional(),
 
     // Image inputs
-    productImage: z.string().min(1).max(15_000_000).optional(),
-    influencerImage: z.string().min(1).max(15_000_000).optional(),
+    // SECURITY: cap each image at ~5MB base64 (≈3.5MB binary). Combined
+    // with the 300s timeout, a 30MB body was a real DoS amplifier — every
+    // request could pin a Vercel lambda for 5+ minutes. The storage
+    // upload path enforces the same 10MB raw cap.
+    productImage: z.string().min(1).max(5_000_000).optional(),
+    influencerImage: z.string().min(1).max(5_000_000).optional(),
     lockFaceIdentity: z.boolean().optional(), // Auto-derived: true when influencerImage is present
     strictRealism: z.boolean().optional().default(true),
 

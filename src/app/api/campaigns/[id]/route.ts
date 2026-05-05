@@ -120,14 +120,54 @@ export async function PUT(request: Request, { params }: RouteParams) {
     const body = await request.json().catch(() => null)
     if (!body) return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
 
+    // SECURITY: explicitly allowlist statuses a brand can set on their own
+    // campaign. Without this, a brand could push status='active' or
+    // 'approved' (or any string) to bypass payment / admin review gates.
+    const ALLOWED_BRAND_STATUSES = new Set(['draft', 'paused', 'archived'])
+    const ALLOWED_GOALS = new Set(['sales', 'awareness', 'launch', 'traffic'])
+    const ALLOWED_BUDGET_TYPES = new Set(['daily', 'lifetime', 'total'])
+
     const campaignPayload: Record<string, unknown> = {}
-    if (body.title !== undefined) campaignPayload.title = body.title
-    if (body.brief !== undefined) campaignPayload.brief = body.brief
-    if (body.status !== undefined) campaignPayload.status = body.status
-    if (body.goal !== undefined) campaignPayload.goal = body.goal
-    if (body.budget_type !== undefined) campaignPayload.budget_type = body.budget_type
-    if (body.daily_budget !== undefined) campaignPayload.daily_budget = body.daily_budget
-    if (body.total_budget !== undefined) campaignPayload.total_budget = body.total_budget
+    if (body.title !== undefined) campaignPayload.title = String(body.title).slice(0, 200)
+    if (body.brief !== undefined) campaignPayload.brief = String(body.brief).slice(0, 5000)
+    if (body.status !== undefined) {
+      const s = String(body.status).toLowerCase()
+      if (!ALLOWED_BRAND_STATUSES.has(s)) {
+        return NextResponse.json(
+          { error: `Status must be one of: ${[...ALLOWED_BRAND_STATUSES].join(', ')}` },
+          { status: 400 },
+        )
+      }
+      campaignPayload.status = s
+    }
+    if (body.goal !== undefined) {
+      const g = String(body.goal).toLowerCase()
+      if (!ALLOWED_GOALS.has(g)) {
+        return NextResponse.json({ error: 'Invalid goal' }, { status: 400 })
+      }
+      campaignPayload.goal = g
+    }
+    if (body.budget_type !== undefined) {
+      const bt = String(body.budget_type).toLowerCase()
+      if (!ALLOWED_BUDGET_TYPES.has(bt)) {
+        return NextResponse.json({ error: 'Invalid budget_type' }, { status: 400 })
+      }
+      campaignPayload.budget_type = bt
+    }
+    if (body.daily_budget !== undefined) {
+      const n = Number(body.daily_budget)
+      if (!Number.isFinite(n) || n < 0 || n > 10_000_000) {
+        return NextResponse.json({ error: 'Invalid daily_budget' }, { status: 400 })
+      }
+      campaignPayload.daily_budget = n
+    }
+    if (body.total_budget !== undefined) {
+      const n = Number(body.total_budget)
+      if (!Number.isFinite(n) || n < 0 || n > 100_000_000) {
+        return NextResponse.json({ error: 'Invalid total_budget' }, { status: 400 })
+      }
+      campaignPayload.total_budget = n
+    }
     if (body.start_date !== undefined) campaignPayload.start_date = body.start_date
     if (body.end_date !== undefined) campaignPayload.end_date = body.end_date
     campaignPayload.updated_at = new Date().toISOString()

@@ -12,6 +12,7 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
 import { getJobOutputsFromRecord } from '@/lib/tryon/job-outputs'
+import { asUuid } from '@/lib/security/sanitize'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,7 +45,15 @@ export async function GET(_request: Request, ctx: { params: Promise<{ id: string
       return NextResponse.json({ error: 'Forbidden — brand only' }, { status: 403 })
     }
 
-    const { id } = await ctx.params
+    const { id: rawId } = await ctx.params
+    // SECURITY: validate the URL param is a UUID before letting it flow
+    // into a PostgREST `.or()` expression on line ~120. Without this, an
+    // attacker could supply a value containing `,` or `)` to break out of
+    // the filter and leak conversations belonging to other users.
+    const id = asUuid(rawId)
+    if (!id) {
+      return NextResponse.json({ error: 'Invalid creator id' }, { status: 400 })
+    }
     const service = createServiceClient()
 
     // Fetch profile + influencer_profiles + influencer_socials in one go

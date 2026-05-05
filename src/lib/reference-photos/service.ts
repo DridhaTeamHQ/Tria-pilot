@@ -251,7 +251,7 @@ export async function getReferencePhotosByIds(
  * endpoints. Also enforces an allowlist of trusted hosts (Supabase storage
  * + any explicit additions via REFERENCE_PHOTO_ALLOWED_HOSTS env var).
  */
-function assertSafeReferenceUrl(rawUrl: string): URL {
+export function assertSafeReferenceUrl(rawUrl: string): URL {
   let parsed: URL
   try {
     parsed = new URL(rawUrl)

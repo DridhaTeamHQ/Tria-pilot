@@ -27,7 +27,11 @@ export async function POST(request: Request) {
         role: normalizedRole,
         full_name: username,
         onboarding_completed: false,
-        approval_status: normalizedRole === 'brand' ? 'approved' : 'pending',
+        // SECURITY: every new account starts pending. Brands AND influencers
+        // require admin approval before they can use role-gated AI endpoints.
+        // Auto-approving brands at signup was a privilege-escalation vector
+        // — anyone could register and instantly burn LLM budget.
+        approval_status: 'pending',
       }
 
       const { error: profileError } = await supabase
@@ -100,7 +104,11 @@ export async function POST(request: Request) {
             role: normalizedRole,
             full_name: username,
             onboarding_completed: false,
-            approval_status: normalizedRole === 'brand' ? 'approved' : 'pending',
+            // SECURITY: every new account starts pending. Brands AND influencers
+        // require admin approval before they can use role-gated AI endpoints.
+        // Auto-approving brands at signup was a privilege-escalation vector
+        // — anyone could register and instantly burn LLM budget.
+        approval_status: 'pending',
           },
           { onConflict: 'id' }
         )

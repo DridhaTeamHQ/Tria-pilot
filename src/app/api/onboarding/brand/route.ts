@@ -54,7 +54,7 @@ export async function POST(request: Request) {
 
     const { data: profile, error: profileError } = await profileClient
       .from('profiles')
-      .select('id, email, role, onboarding_completed, brand_data')
+      .select('id, email, role, onboarding_completed, approval_status, brand_data')
       .eq('id', authUser.id)
       .single()
 
@@ -99,7 +99,14 @@ export async function POST(request: Request) {
 
     if (isCompleted && !profile.onboarding_completed) {
       updateData.onboarding_completed = true
-      updateData.approval_status = 'approved'
+      // SECURITY: do NOT auto-approve here. Submitting onboarding marks the
+      // brand as ready for admin review. Approval must come from
+      // /api/admin/influencers (or equivalent) by an admin actor.
+      // Previously this line set approval_status='approved' which let any
+      // signup → submit → fully approved brand without any vetting.
+      if (!profile.approval_status || profile.approval_status === 'none') {
+        updateData.approval_status = 'pending'
+      }
     }
 
     const { error: updateError } = await profileClient

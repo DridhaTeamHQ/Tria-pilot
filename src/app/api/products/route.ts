@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { productSchema } from '@/lib/validation'
 import { z } from 'zod'
+import { sanitizeSearchTerm, asUuid } from '@/lib/security/sanitize'
 
 const createProductSchema = productSchema
   .extend({
@@ -221,9 +222,28 @@ export async function GET(request: Request) {
       .order('created_at', { ascending: false })
       .range(from, to)
 
-    if (search) query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`)
-    if (category) query = query.eq('category', category)
-    if (brandId && brandId !== 'current') query = query.eq('brand_id', brandId)
+    // SECURITY: sanitize free-text search before interpolating into a
+    // PostgREST `.or()` expression. Without this, `?search=,category.eq.x`
+    // breaks out of the ilike clause and lets attackers add arbitrary
+    // filters or perform regex DoS.
+    if (search) {
+      const safeSearch = sanitizeSearchTerm(search, 60)
+      if (safeSearch) {
+        query = query.or(`name.ilike.%${safeSearch}%,description.ilike.%${safeSearch}%`)
+      }
+    }
+    if (category) {
+      // category is matched with `.eq` which is parameter-safe, but
+      // cap length to avoid pathological inputs.
+      query = query.eq('category', String(category).slice(0, 80))
+    }
+    if (brandId && brandId !== 'current') {
+      // SECURITY: validate brandId is a UUID before passing it as a filter
+      // value. `.eq` is parameter-safe, but a non-UUID value can produce
+      // confusing 400s and may be used to fingerprint internals.
+      const safeBrandId = asUuid(brandId)
+      if (safeBrandId) query = query.eq('brand_id', safeBrandId)
+    }
     if (brandId === 'current' && authUser) query = query.eq('brand_id', authUser.id)
 
     const { data: products, count, error } = await query
@@ -258,9 +278,34 @@ export async function PATCH(request: Request) {
     if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await request.json().catch(() => null)
-    const { id, ...updateData } = body
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
+    }
+    const id = (body as Record<string, unknown>).id
 
-    if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
+    if (!id || typeof id !== 'string') {
+      return NextResponse.json({ error: 'ID required' }, { status: 400 })
+    }
+
+    // SECURITY: previously this route did `const { id, ...updateData } = body`
+    // and passed updateData straight to .update() — which let a brand POST
+    // `brand_id: '<other-uuid>'` to silently transfer their own product to
+    // another brand. Strictly allowlist mutable fields here.
+    const ALLOWED_FIELDS = [
+      'name', 'description', 'category', 'tags', 'audience',
+      'price', 'discount', 'stock', 'sku', 'try_on_compatible',
+      'link', 'cover_image', 'tryon_image', 'images', 'active',
+    ] as const
+    const updateData: Record<string, unknown> = {}
+    for (const field of ALLOWED_FIELDS) {
+      if (field in (body as Record<string, unknown>)) {
+        updateData[field] = (body as Record<string, unknown>)[field]
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: 'No updatable fields provided' }, { status: 400 })
+    }
 
     const { data: existing } = await supabase
       .from('products')

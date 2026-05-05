@@ -15,7 +15,7 @@
 
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/auth'
-import { getReferencePhotoLibrary } from '@/lib/reference-photos/service'
+import { getReferencePhotoLibrary, assertSafeReferenceUrl } from '@/lib/reference-photos/service'
 import { analyzeGarment, type GarmentIntelligence } from '@/lib/tryon/garment-intel'
 
 const isDev = process.env.NODE_ENV !== 'production'
@@ -50,9 +50,31 @@ export async function POST(request: NextRequest) {
     if (garmentBase64) {
       normalizedGarment = garmentBase64.replace(/^data:image\/[a-z+]+;base64,/, '')
     } else {
-      const res = await fetch(garmentImageUrl!, { signal: AbortSignal.timeout(10_000) })
+      // SECURITY: validate URL against host allowlist + private IP block
+      // before any server-side fetch (SSRF prevention).
+      let safeUrl: URL
+      try {
+        safeUrl = assertSafeReferenceUrl(garmentImageUrl!)
+      } catch (urlError) {
+        return NextResponse.json(
+          { error: urlError instanceof Error ? urlError.message : 'Invalid garment image URL' },
+          { status: 400 },
+        )
+      }
+      const res = await fetch(safeUrl.toString(), {
+        signal: AbortSignal.timeout(10_000),
+        redirect: 'error',  // Don't follow redirects (allowlist bypass risk)
+      })
       if (!res.ok) return NextResponse.json({ error: 'Failed to fetch garment image' }, { status: 400 })
+      const contentType = res.headers.get('content-type') || ''
+      if (!contentType.toLowerCase().startsWith('image/')) {
+        return NextResponse.json({ error: 'URL did not return an image' }, { status: 400 })
+      }
+      // Cap garment download at 25MB to avoid memory blow-up
       const buf = await res.arrayBuffer()
+      if (buf.byteLength > 25 * 1024 * 1024) {
+        return NextResponse.json({ error: 'Garment image too large' }, { status: 413 })
+      }
       normalizedGarment = Buffer.from(buf).toString('base64')
     }
 

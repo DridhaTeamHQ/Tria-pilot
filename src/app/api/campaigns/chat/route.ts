@@ -29,10 +29,16 @@ const chatSchema = z
   .object({
     message: z.string().trim().min(1).max(4000),
     phase: z.enum(['intake', 'researcher', 'ideator', 'scripter', 'analyst', 'complete']).default('intake'),
+    // SECURITY: never accept `role: 'system'` from the client. The system
+    // prompt is built server-side; allowing client-supplied system messages
+    // is a classic jailbreak / prompt-injection vector that could be used
+    // to alter the strategist's behavior, exfiltrate context, or trigger
+    // the auto-create campaign payload parser with attacker-controlled
+    // content.
     conversationHistory: z
       .array(
         z.object({
-          role: z.enum(['system', 'user', 'assistant']),
+          role: z.enum(['user', 'assistant']),
           content: z.string().max(12000),
         })
       )
@@ -482,10 +488,13 @@ export async function POST(request: Request) {
     }
 
     // Build messages array
+    // SECURITY: defense in depth — even if a malformed history slips past
+    // the schema, we coerce any non-assistant role to 'user' so a client
+    // can never inject a system message into the LLM context.
     const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: any }> = [
       { role: 'system', content: systemPrompt },
       ...conversationHistory.map(m => ({
-        role: m.role as 'system' | 'user' | 'assistant',
+        role: m.role === 'assistant' ? ('assistant' as const) : ('user' as const),
         content: m.content,
       })),
       { role: 'user', content: userContent },

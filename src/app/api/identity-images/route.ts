@@ -149,6 +149,37 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid image type' }, { status: 400 })
     }
 
+    // SECURITY: validate the publicUrl actually points to an object the
+    // current user uploaded. Without this check, an attacker could POST
+    // someone else's identity-image URL (or any URL) and claim it as
+    // their face — leading to identity hijacking or seeding the embedding
+    // pipeline with a victim's face. The upload route always writes to
+    // `${authUser.id}/<filename>`, so we require that path prefix.
+    try {
+      const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim()
+      const expectedHost = supabaseUrl ? new URL(supabaseUrl).hostname : null
+      const parsed = new URL(publicUrl)
+      if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+        return NextResponse.json({ error: 'Identity image must be an https URL' }, { status: 400 })
+      }
+      if (expectedHost && parsed.hostname !== expectedHost) {
+        return NextResponse.json(
+          { error: 'Identity image must come from the platform storage' },
+          { status: 400 },
+        )
+      }
+      // Path must contain the user's own ID — the upload route always uses
+      // ${authUser.id}/ as the storage path prefix.
+      if (!parsed.pathname.includes(`/${authUser.id}/`)) {
+        return NextResponse.json(
+          { error: 'Identity image must be an upload owned by this user' },
+          { status: 403 },
+        )
+      }
+    } catch {
+      return NextResponse.json({ error: 'Invalid identity image URL' }, { status: 400 })
+    }
+
     // Always update or insert by checking existing first to avoid missing composite unique constraint errors
     const { data: existingImage } = await db
       .from('identity_images')
