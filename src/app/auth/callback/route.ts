@@ -26,6 +26,21 @@ function sanitizeNextPath(next: string | null, fallback: string): string {
   return value
 }
 
+function enforceRoleSafeDestination(role: SupportedRole, nextPath: string): string {
+  const value = nextPath.trim()
+  if (role === 'brand') {
+    if (
+      value === '/' ||
+      value.startsWith('/marketplace') ||
+      value.startsWith('/influencer') ||
+      value.startsWith('/dashboard')
+    ) {
+      return '/brand/dashboard'
+    }
+  }
+  return value
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
@@ -127,7 +142,10 @@ export async function GET(request: NextRequest) {
 
   const resolvedRole: SupportedRole = existingRole || roleHint
   const defaultNext = resolvedRole === 'brand' ? '/brand/dashboard' : '/marketplace'
-  const next = sanitizeNextPath(searchParams.get('next'), defaultNext)
+  const next = enforceRoleSafeDestination(
+    resolvedRole,
+    sanitizeNextPath(searchParams.get('next'), defaultNext)
+  )
   const redirectUrl = new URL(next, request.nextUrl)
   return NextResponse.redirect(redirectUrl)
 }

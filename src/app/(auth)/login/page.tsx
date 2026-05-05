@@ -86,6 +86,10 @@ export default function LoginPage() {
     if (value.includes('\r') || value.includes('\n')) return defaultTarget
     if (value.startsWith('/admin')) return defaultTarget
 
+    if ((isBrandPortalEntry || roleHint === 'brand') && (value === '/' || value.startsWith('/marketplace') || value.startsWith('/influencer') || value.startsWith('/dashboard'))) {
+      return '/brand/dashboard'
+    }
+
     return value
   }
 
@@ -107,6 +111,10 @@ export default function LoginPage() {
         return '/brand/dashboard'
       }
       return fallbackTarget
+    }
+
+    if (isBrandPortalEntry) {
+      return '/brand/dashboard'
     }
 
     if (!onboardingCompleted) return '/onboarding/influencer'
