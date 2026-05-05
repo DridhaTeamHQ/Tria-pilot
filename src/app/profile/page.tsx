@@ -1152,7 +1152,7 @@ export default function ProfilePage() {
             </BrutalCard>
           </div>
 
-          <div className="lg:col-span-4 flex flex-col space-y-10 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-1 sm:gap-10 lg:gap-12 lg:space-y-12 lg:sticky lg:top-28 self-start">
+          <div className="lg:col-span-4 flex flex-col space-y-10 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-1 sm:gap-10 lg:gap-8 lg:space-y-6 lg:sticky lg:top-28 self-start">
             <BrutalCard className="text-center sm:mt-2">
               <h3 className="text-sm font-bold uppercase tracking-widest mb-2">Current Level</h3>
               <div className="text-6xl font-black mb-2">{Math.round(Number(profile?.badgeScore || 0))}</div>
