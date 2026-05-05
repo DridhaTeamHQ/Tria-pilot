@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { createServiceClient } from '@/lib/auth'
 import crypto from 'crypto'
 import { findAuthUserByEmail, findAuthUserById } from '@/lib/supabase/admin-users'
+import { ipRateLimit, getClientIp } from '@/lib/security/ip-rate-limit'
 
 const schema = z
   .object({
@@ -68,6 +69,19 @@ export async function POST(request: Request) {
 
     if (!isSameOriginRequest(request)) {
       return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 })
+    }
+
+    // SECURITY: brute-force guard. Even though ADMIN_SIGNUP_CODE is
+    // timing-safe-compared and ≥6 chars, an attacker who learns the route
+    // exists could still rip through 10K guesses/min. Limit to 5 attempts
+    // per IP per 10 minutes — turns a brute force into a 6-month task.
+    const ip = getClientIp(request)
+    const rl = ipRateLimit(`admin-grant:${ip}`, 5, 10 * 60_000)
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Too many attempts. Try again later.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil(rl.resetMs / 1000)) } },
+      )
     }
 
     const signupCode = process.env.ADMIN_SIGNUP_CODE

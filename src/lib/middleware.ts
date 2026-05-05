@@ -132,7 +132,14 @@ function applySecurityHeaders(response: NextResponse) {
 
 export async function updateSession(request: NextRequest) {
     const pathname = request.nextUrl.pathname
-    console.log(`[Middleware] Path: ${pathname}, Public: ${isPublicPath(pathname)}, Auth: ${!!request.cookies.get('sb-access-token')}`)
+    // SECURITY/COST: only log middleware traces in development. In
+    // production this fires for every request including static assets,
+    // which floods log aggregators (cost) and could leak path patterns
+    // useful for reconnaissance. pathname already excludes the query
+    // string, but better to just not emit at all in prod.
+    if (process.env.NODE_ENV !== 'production') {
+        console.log(`[Middleware] Path: ${pathname}, Public: ${isPublicPath(pathname)}, Auth: ${!!request.cookies.get('sb-access-token')}`)
+    }
     const requestHeaders = new Headers(request.headers)
     requestHeaders.set('x-pathname', pathname)
 

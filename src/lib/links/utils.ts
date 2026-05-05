@@ -111,9 +111,25 @@ export function sanitizeRedirectUrl(url: string): string | null {
       return null
     }
 
-    // Optional allowlist (highly recommended in production)
+    // SECURITY: in production we REQUIRE REDIRECT_ALLOWED_HOSTS to be set.
+    // Without an explicit allowlist, /l/[linkCode] is an open redirect —
+    // a phishing endpoint hanging off Kiwikoo's domain that will rewrite
+    // the URL bar to *any* attacker-chosen domain. Refusing the redirect
+    // when the allowlist is missing in production is fail-closed.
     const allowlistEnv = (process.env.REDIRECT_ALLOWED_HOSTS || '').trim()
-    if (allowlistEnv.length > 0) {
+    if (allowlistEnv.length === 0) {
+      if (process.env.NODE_ENV === 'production') {
+        // Fail closed in prod — explicit configuration required.
+        return null
+      }
+      // Dev: allow with a warning (logged once per process is good enough).
+      if (!hasWarnedAboutRedirectAllowlist) {
+        console.warn(
+          '[security] REDIRECT_ALLOWED_HOSTS is not set. Open redirects are technically possible. Set this env var before going to production.',
+        )
+        hasWarnedAboutRedirectAllowlist = true
+      }
+    } else {
       const allowed = allowlistEnv
         .split(',')
         .map((h) => h.trim().toLowerCase())
@@ -128,4 +144,6 @@ export function sanitizeRedirectUrl(url: string): string | null {
     return null
   }
 }
+
+let hasWarnedAboutRedirectAllowlist = false
 

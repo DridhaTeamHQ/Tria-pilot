@@ -21,6 +21,7 @@
 import 'server-only'
 import OpenAI from 'openai'
 import { getOpenAIKey } from '@/lib/config/api-keys'
+import { stripInjectionTokens, USER_DATA_GUARD_PROMPT } from '@/lib/security/prompt-injection'
 
 export interface CreatorCandidate {
   userId: string
@@ -211,14 +212,18 @@ async function rerankWithLLM(
   }
   const openai = new OpenAI({ apiKey })
 
+  // SECURITY: bios + product descriptions are user-controlled. Strip
+  // injection tokens (zero-width chars, [INST], "ignore previous", etc.)
+  // before they flow into the LLM prompt. The system prompt also tells
+  // the model to treat USER_DATA blocks as untrusted.
   const productSummary = products
-    .map(p => `- ${p.name}${p.category ? ` (${p.category})` : ''}: ${p.description || 'no description'}`)
+    .map(p => `- ${stripInjectionTokens(p.name).slice(0, 200)}${p.category ? ` (${stripInjectionTokens(p.category).slice(0, 80)})` : ''}: ${stripInjectionTokens(p.description || 'no description').slice(0, 500)}`)
     .join('\n')
 
   const candidatePayload = topCandidates.map(t => ({
     id: t.creator.userId,
-    name: t.creator.name || 'Creator',
-    bio: t.creator.bio || '',
+    name: stripInjectionTokens(t.creator.name || 'Creator').slice(0, 120),
+    bio: stripInjectionTokens(t.creator.bio || '').slice(0, 500),
     niches: t.creator.niches,
     followers: t.creator.followers,
     engagementPct: ((t.creator.engagementRate ?? 0) * 100).toFixed(2),
@@ -237,7 +242,9 @@ async function rerankWithLLM(
           content: `You are a creator-brand fit analyst for an Indian creator commerce platform.
 For each candidate, judge content fit against the brand's products.
 Return JSON: { "matches": [{"id", "contentRelevance" (0-100, your assessment), "finalScore" (0-100, override the deterministic score with your judgment), "reason" (one sentence), "outreachAngle" (one sentence pitch the brand can send)}] }
-Be honest — penalize obvious mismatches even if niches overlap. Reward creators whose content style aligns with the product's vibe.`,
+Be honest — penalize obvious mismatches even if niches overlap. Reward creators whose content style aligns with the product's vibe.
+
+${USER_DATA_GUARD_PROMPT}`,
         },
         {
           role: 'user',

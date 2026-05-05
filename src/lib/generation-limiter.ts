@@ -121,19 +121,37 @@ function getEndOfHour(): number {
 
 function resetDailyCountersIfNeeded(): void {
     const now = Date.now()
+
+    // SECURITY: previously this only reset USER counters when the GLOBAL
+    // counter was already past midnight — but each user's `dailyResetTime`
+    // is set to "end of day" at first use, so a user that hits the cap
+    // late on day 1 would have their counter never reset until the global
+    // reset happened on day 2 — and then ONLY if their per-user
+    // dailyResetTime had already passed (which it would, but only because
+    // both clocks happened to align). Worse: on subsequent days, since
+    // the user's `dailyResetTime` was set during the global reset block,
+    // the two would drift and each user's "day" no longer matched their
+    // actual usage day. Result: silent breakage of the daily cap.
+    //
+    // Fix: always check + reset stale per-user counters every call. The
+    // global counter still resets on its own midnight, independent of
+    // user counters.
+
     if (now >= dailySpendResetTime) {
         dailyGeminiSpend = 0
         dailySpendResetTime = getEndOfDay()
         killSwitchActive = false
-        console.log('🔄 Daily counters reset')
+        console.log('🔄 Global daily counters reset')
+    }
 
-        // Clear user daily counters
-        for (const [userId, usage] of userUsageStore) {
-            if (now >= usage.dailyResetTime) {
-                usage.generationsToday = 0
-                usage.estimatedCostToday = 0
-                usage.dailyResetTime = getEndOfDay()
-            }
+    // Always sweep per-user counters whose own reset time has passed.
+    // O(n) on userUsageStore.size — keep this in mind if the in-memory
+    // store ever grows; in serverless, lambdas typically see <100 users.
+    for (const usage of userUsageStore.values()) {
+        if (now >= usage.dailyResetTime) {
+            usage.generationsToday = 0
+            usage.estimatedCostToday = 0
+            usage.dailyResetTime = getEndOfDay()
         }
     }
 }

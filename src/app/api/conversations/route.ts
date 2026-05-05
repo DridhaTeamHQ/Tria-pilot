@@ -6,6 +6,8 @@
  */
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
+import { ipRateLimit } from '@/lib/security/ip-rate-limit'
+import { asUuid } from '@/lib/security/sanitize'
 
 export async function GET() {
     try {
@@ -108,10 +110,25 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
+        // SECURITY: rate-limit conversation creation per user. Without this,
+        // a brand could spam a creator's inbox by repeatedly creating
+        // conversation rows (or vice versa). 30 new conversations per
+        // hour per user is more than legitimate use needs.
+        const rl = ipRateLimit(`conv-create:${user.id}`, 30, 60 * 60_000)
+        if (!rl.allowed) {
+            return NextResponse.json(
+                { error: 'Too many conversation invites. Try again later.' },
+                { status: 429, headers: { 'Retry-After': String(Math.ceil(rl.resetMs / 1000)) } },
+            )
+        }
+
         const body = await request.json()
         const { recipient_id } = body
 
-        if (!recipient_id) {
+        // SECURITY: validate UUID before any DB use to avoid PostgREST
+        // grammar surprises and enumeration via crafted ids.
+        const validRecipientId = asUuid(recipient_id)
+        if (!validRecipientId) {
             return NextResponse.json({ error: 'Recipient ID required' }, { status: 400 })
         }
 
@@ -127,7 +144,7 @@ export async function POST(request: Request) {
         const { data: recipientProfile } = await service
             .from('profiles')
             .select('role')
-            .eq('id', recipient_id)
+            .eq('id', validRecipientId)
             .single()
 
         if (!userProfile || !recipientProfile) {
@@ -142,9 +159,9 @@ export async function POST(request: Request) {
 
         if (userRole === 'brand' && recipientRole === 'influencer') {
             brand_id = user.id
-            influencer_id = recipient_id
+            influencer_id = validRecipientId
         } else if (userRole === 'influencer' && recipientRole === 'brand') {
-            brand_id = recipient_id
+            brand_id = validRecipientId
             influencer_id = user.id
         } else {
             return NextResponse.json({ error: 'Invalid conversation participants' }, { status: 400 })

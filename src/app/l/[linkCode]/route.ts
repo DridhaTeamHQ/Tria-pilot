@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/auth'
 import { extractClickMetadata } from '@/lib/links/tracker'
 import { sanitizeRedirectUrl } from '@/lib/links/utils'
+import { ipRateLimit, getClientIp } from '@/lib/security/ip-rate-limit'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,6 +12,28 @@ export async function GET(
 ) {
   try {
     const { linkCode } = await params
+
+    // SECURITY: rate-limit per IP. Without this, an attacker can sweep
+    // link codes to enumerate the tracked_links table (each unknown code
+    // returns a distinguishable 404). Also blocks click-fraud bots from
+    // inflating creator click counts at machine speed. 60 redirects per
+    // IP per minute is more than enough for any legitimate user.
+    const ip = getClientIp(request)
+    const rl = ipRateLimit(`link-redirect:${ip}`, 60, 60_000)
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil(rl.resetMs / 1000)) } },
+      )
+    }
+
+    // SECURITY: validate linkCode shape. Prevents weird path traversals
+    // or PostgREST grammar surprises in the .eq() filter, and yields a
+    // fast-path 404 for obvious garbage scans.
+    if (!/^[A-Za-z0-9_-]{4,64}$/.test(linkCode)) {
+      return NextResponse.json({ error: 'Link not found' }, { status: 404 })
+    }
+
     const service = createServiceClient()
 
     const { data: trackedLink, error } = await service

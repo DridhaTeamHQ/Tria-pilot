@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
+import { validateImageFile, type DetectedImageType } from '@/lib/security/file-validation'
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024
 const DEFAULT_ALLOWED_BUCKETS = [
@@ -26,7 +27,12 @@ function getAllowedBuckets(): Set<string> {
 }
 
 function sanitizeFileName(fileName: string): string {
-  const safeName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_')
+  // SECURITY: collapse repeated dots so `..` (path traversal) and dotfiles
+  // (`.htaccess`-style) can't be reconstructed even after the user-id
+  // prefix. Strip leading dots entirely.
+  let safeName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_')
+  safeName = safeName.replace(/\.+/g, '.').replace(/^\.+/, '')
+  if (!safeName) safeName = 'file'
   return safeName.length > 160 ? safeName.slice(-160) : safeName
 }
 
@@ -121,29 +127,43 @@ export async function POST(request: Request) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer())
+
+    // SECURITY: verify the file's CONTENT matches an allowed image format,
+    // not just trust the browser-supplied MIME header. Blocks polyglot
+    // files (e.g. valid GIF that's also valid JS) from being served from
+    // our storage origin.
+    const ALLOWED_DETECTED: ReadonlySet<DetectedImageType> = new Set([
+      'image/png',
+      'image/jpeg',
+      'image/gif',
+      'image/webp',
+      'image/avif',
+      'image/heic',
+    ])
+    const validation = validateImageFile(buffer, file.type || '', ALLOWED_DETECTED)
+    if (!validation.ok) {
+      return NextResponse.json(
+        { error: validation.reason || 'Image content validation failed' },
+        { status: 400 },
+      )
+    }
+    // Use the detected MIME (not the client-supplied one) for upload —
+    // ensures the served Content-Type is always trustworthy.
+    const safeContentType = validation.detectedMime || 'image/jpeg'
+
     const fileName = `${Date.now()}-${sanitizeFileName(file.name)}`
     const storagePath = `${authUser.id}/${fileName}`
 
-    let activeBucket = requestedBucket
-    let uploadResult = await storageClient.storage.from(activeBucket).upload(storagePath, buffer, {
-      contentType: file.type || 'image/jpeg',
+    const activeBucket = requestedBucket
+    const uploadResult = await storageClient.storage.from(activeBucket).upload(storagePath, buffer, {
+      contentType: safeContentType,
       upsert: true,
     })
 
-    if (
-      uploadResult.error &&
-      activeBucket !== 'uploads' &&
-      allowedBuckets.has('uploads') &&
-      (uploadResult.error.message?.includes('Bucket not found') ||
-        uploadResult.error.message?.includes('does not exist'))
-    ) {
-      console.warn(`Bucket "${activeBucket}" not found, falling back to "uploads"`)
-      activeBucket = 'uploads'
-      uploadResult = await storageClient.storage.from(activeBucket).upload(storagePath, buffer, {
-        contentType: file.type || 'image/jpeg',
-        upsert: true,
-      })
-    }
+    // SECURITY: silent fallback to 'uploads' bucket removed. If the chosen
+    // bucket doesn't exist, the upload should fail loudly rather than
+    // silently land in a different bucket — this masked misconfiguration
+    // and could let files end up in an unexpected RLS context.
 
     if (uploadResult.error || !uploadResult.data) {
       const message = toFriendlyUploadError(uploadResult.error?.message || '', requestedBucket)

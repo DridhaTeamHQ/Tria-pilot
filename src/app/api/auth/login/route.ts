@@ -72,7 +72,37 @@ async function signInByCandidates(
   return { data: null, emailUsed: null, error: lastError }
 }
 
+/**
+ * SECURITY: constant-time floor for login responses. Reduces timing-based
+ * username enumeration — without this, a successful username lookup
+ * (which performs an extra `ilike` query against profiles) takes longer
+ * than a no-such-user lookup, letting an attacker probe whether a username
+ * exists by measuring response time.
+ *
+ * The floor is short enough not to harm UX but long enough to mask the
+ * SQL roundtrip + Supabase Auth call timing variance. Combined with the
+ * per-IP rate limit on /api/auth/, enumeration becomes impractical.
+ */
+const LOGIN_RESPONSE_FLOOR_MS = 350
+
+async function withTimingFloor<T>(work: Promise<T>): Promise<T> {
+  const start = Date.now()
+  try {
+    return await work
+  } finally {
+    const elapsed = Date.now() - start
+    const remaining = LOGIN_RESPONSE_FLOOR_MS - elapsed
+    if (remaining > 0) {
+      await new Promise((resolve) => setTimeout(resolve, remaining))
+    }
+  }
+}
+
 export async function POST(request: Request) {
+  return withTimingFloor(handleLogin(request))
+}
+
+async function handleLogin(request: Request) {
   try {
     const body = await request.json().catch(() => null)
 
