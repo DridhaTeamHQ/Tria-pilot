@@ -72,8 +72,8 @@ export default function LoginPage() {
   }, [])
 
   const getRoleDefaultRedirect = (roleHint?: 'influencer' | 'brand') => {
-    if (isBrandPortalEntry) return '/brand/dashboard'
-    return roleHint === 'brand' ? '/brand/dashboard' : '/marketplace'
+    if (isBrandPortalEntry) return '/brand/campaigns'
+    return roleHint === 'brand' ? '/brand/campaigns' : '/marketplace'
   }
 
   const getSafeRedirectTarget = (roleHint?: 'influencer' | 'brand') => {
@@ -87,7 +87,7 @@ export default function LoginPage() {
     if (value.startsWith('/admin')) return defaultTarget
 
     if ((isBrandPortalEntry || roleHint === 'brand') && (value === '/' || value.startsWith('/marketplace') || value.startsWith('/influencer') || value.startsWith('/dashboard'))) {
-      return '/brand/dashboard'
+      return '/brand/campaigns'
     }
 
     return value
@@ -108,13 +108,13 @@ export default function LoginPage() {
     if (role === 'BRAND') {
       if (!onboardingCompleted) return '/onboarding/brand'
       if (fallbackTarget === '/marketplace' || fallbackTarget === '/dashboard' || fallbackTarget === '/') {
-        return '/brand/dashboard'
+        return '/brand/campaigns'
       }
       return fallbackTarget
     }
 
     if (isBrandPortalEntry) {
-      return '/brand/dashboard'
+      return '/brand/campaigns'
     }
 
     if (!onboardingCompleted) return '/onboarding/influencer'

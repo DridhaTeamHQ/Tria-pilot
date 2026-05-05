@@ -1,5 +1,6 @@
 import { createClient, createServiceClient } from '@/lib/auth'
 import MarketplaceClient from '@/components/marketplace/MarketplaceClient'
+import { redirect } from 'next/navigation'
 
 // Define types that match MarketplaceClient expectations
 interface ProductImage {
@@ -31,6 +32,24 @@ export default async function MarketplacePage({
   searchParams: Promise<{ category?: string; search?: string }>
 }) {
   const resolvedSearchParams = await searchParams
+  const sessionClient = await createClient()
+
+  try {
+    const { data: { user } } = await sessionClient.auth.getUser()
+    if (user?.id) {
+      const { data: profile } = await sessionClient
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      if (String(profile?.role || '').toLowerCase() === 'brand') {
+        redirect('/brand/campaigns')
+      }
+    }
+  } catch (authCheckError) {
+    console.warn('Marketplace role redirect check failed:', authCheckError)
+  }
 
   // Use service client for public marketplace listing to avoid cookie/session overhead on every request.
   let supabase: any

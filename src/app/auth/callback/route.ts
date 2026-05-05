@@ -35,7 +35,7 @@ function enforceRoleSafeDestination(role: SupportedRole, nextPath: string): stri
       value.startsWith('/influencer') ||
       value.startsWith('/dashboard')
     ) {
-      return '/brand/dashboard'
+      return '/brand/campaigns'
     }
   }
   return value
@@ -141,7 +141,7 @@ export async function GET(request: NextRequest) {
   }
 
   const resolvedRole: SupportedRole = existingRole || roleHint
-  const defaultNext = resolvedRole === 'brand' ? '/brand/dashboard' : '/marketplace'
+  const defaultNext = resolvedRole === 'brand' ? '/brand/campaigns' : '/marketplace'
   const next = enforceRoleSafeDestination(
     resolvedRole,
     sanitizeNextPath(searchParams.get('next'), defaultNext)
