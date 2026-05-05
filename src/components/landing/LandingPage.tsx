@@ -3,6 +3,7 @@
 import { type ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useUser } from '@/lib/react-query/hooks'
 import { motion } from 'framer-motion'
 import {
   ArrowRight,
@@ -27,6 +28,8 @@ import {
 const PF = 'var(--font-plus-jakarta-sans), sans-serif'
 
 export default function LandingPage() {
+  const { data: user, isLoading } = useUser()
+  const isLoggedIn = !!user && !isLoading
   return (
     <div className="overflow-x-clip bg-[#f7eee4] px-2 pb-6 pt-[100px] text-[#111111] sm:px-4 sm:pb-8 lg:px-6 lg:pt-[104px]" style={{ fontFamily: PF }}>
       <div className="mx-auto w-full max-w-[1320px] overflow-hidden rounded-[24px] border-[3px] border-black bg-[#fbfaf6] shadow-[6px_6px_0_0_rgba(0,0,0,1)] sm:rounded-[30px] sm:shadow-[8px_8px_0_0_rgba(0,0,0,1)] lg:rounded-[34px] lg:shadow-[10px_10px_0_0_rgba(0,0,0,1)]">
@@ -331,12 +334,12 @@ export default function LandingPage() {
                   Join creators & brands using AI fashion tools.
                 </p>
 
-                <Link
-                  href="/signup/influencer"
-                  className="mt-4 inline-flex w-full items-center justify-center rounded-full border-[2px] border-black bg-black px-4 py-2 text-[12px] font-bold uppercase text-white transition hover:translate-y-[2px] hover:shadow-none shadow-[3px_3px_0_0_rgba(0,0,0,1)]"
-                >
-                  Get Started
-                </Link>
+                  <Link
+                    href={isLoggedIn ? "/marketplace" : "/signup/influencer"}
+                    className="mt-4 inline-flex w-full items-center justify-center rounded-full border-[2px] border-black bg-black px-4 py-2 text-[12px] font-bold uppercase text-white transition hover:translate-y-[2px] hover:shadow-none shadow-[3px_3px_0_0_rgba(0,0,0,1)]"
+                  >
+                    Get Started
+                  </Link>
               </div>
             </div>
 
