@@ -317,11 +317,49 @@ async function generateWithBackoff(params: GenerateContentParameters) {
   throw lastError instanceof Error ? lastError : new Error('Gemini generateContent failed')
 }
 
+/**
+ * Hard timeout (ms) for the entire Gemini generateContent operation
+ * — INCLUDING all retries + backoffs. If exceeded we throw a friendly
+ * error so the API route can show "try again" UX instead of the user
+ * seeing the request hang for 5+ minutes.
+ *
+ * Image models get longer (Pro Image can legitimately take 60s).
+ * Tunable via env so we can lift it on Pro tier.
+ */
+const TOTAL_TIMEOUT_TEXT_MS = parseInt(process.env.GEMINI_TOTAL_TIMEOUT_TEXT_MS || '90000', 10) || 90_000
+const TOTAL_TIMEOUT_IMAGE_MS = parseInt(process.env.GEMINI_TOTAL_TIMEOUT_IMAGE_MS || '120000', 10) || 120_000
+
+export class GeminiTimeoutError extends Error {
+  status = 504
+  constructor(model: string, ms: number) {
+    super(`Image generation timed out after ${Math.round(ms / 1000)}s. The model may be overloaded — please try again in a moment.`)
+    this.name = 'GeminiTimeoutError'
+  }
+}
+
+function withHardTimeout<T>(promise: Promise<T>, ms: number, model: string): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null
+  const timeout = new Promise<T>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new GeminiTimeoutError(model, ms)), ms)
+  })
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId)
+  }) as Promise<T>
+}
+
 export async function geminiGenerateContent(
   params: GenerateContentParameters
 ) {
   const limiter = pickLimiter(params.model)
-  return limiter.schedule(() => generateWithBackoff(params))
+  const isImageModel = params.model.includes('image') || params.model.includes('pro-image')
+  const totalTimeoutMs = isImageModel ? TOTAL_TIMEOUT_IMAGE_MS : TOTAL_TIMEOUT_TEXT_MS
+  // Wrap in hard timeout so a hung Gemini connection can never block the
+  // request indefinitely. The bottleneck limiter still serializes calls.
+  return withHardTimeout(
+    limiter.schedule(() => generateWithBackoff(params)),
+    totalTimeoutMs,
+    params.model,
+  )
 }
 
 async function embedWithBackoff(params: any) {

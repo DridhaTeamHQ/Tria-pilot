@@ -280,10 +280,11 @@ export default function AdsPage() {
         credentials: 'include',
         body: JSON.stringify(input),
       })
-      const data = await res.json().catch(() => ({ error: 'Request failed' }))
+      const data = await res.json().catch(() => ({ error: 'Request failed', code: 'parse_error' }))
       if (!res.ok) {
-        if (res.status === 429) {
-          const retry = Math.max(1, Number(data.retryAfterSeconds ?? 60))
+        const code = String(data?.code || '')
+        if (res.status === 429 || code === 'gemini_rate_limit') {
+          const retry = Math.max(1, Number(data.retryAfter ?? data.retryAfterSeconds ?? 60))
           setRetryAfterSeconds(retry)
           const isBusy = /already being generated|in progress|server busy/i.test(String(data.error || ''))
           setGenerationStatus(isBusy ? 'busy' : 'rate_limited')
@@ -293,10 +294,22 @@ export default function AdsPage() {
               : `Rate limit active. Try again in ${retry}s.`
           )
           toast.error(data.error || `Rate limit. Try again in ${retry}s.`)
-        } else if (res.status === 504) {
+        } else if (res.status === 504 || code === 'gemini_timeout') {
           setGenerationStatus('error')
-          setGenerationStatusText('Generation timed out. Please retry; this can happen under production load.')
-          toast.error('Generation timed out in production. Please retry once; we optimized the pipeline to reduce this.')
+          setGenerationStatusText('Generation timed out. The model may be overloaded — please retry in a moment.')
+          toast.error('Generation timed out. Please retry — usually works on the second attempt.')
+        } else if (code === 'gemini_safety_blocked') {
+          setGenerationStatus('error')
+          setGenerationStatusText('Prompt was blocked by safety filters. Try rephrasing without sensitive terms.')
+          toast.error('Prompt blocked — try rephrasing.')
+        } else if (code === 'gemini_unavailable') {
+          setGenerationStatus('error')
+          setGenerationStatusText('Image service temporarily unavailable. Please retry in a minute.')
+          toast.error('Image service unavailable. Retry shortly.')
+        } else if (code === 'gemini_no_image') {
+          setGenerationStatus('error')
+          setGenerationStatusText('Model returned no image. Try a more specific prompt or different reference.')
+          toast.error('No image generated — try a more specific prompt.')
         } else {
           setGenerationStatus('error')
           setGenerationStatusText(data.error || 'Generation failed.')

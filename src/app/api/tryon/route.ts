@@ -27,6 +27,7 @@ import {
   type IdentityCompositionAssessment,
 } from '@/lib/tryon/identity-composition-check'
 import { GeminiRateLimitError } from '@/lib/gemini/executor'
+import { mapGeminiError } from '@/lib/gemini/error-mapping'
 import { checkGenerationGate, completeGeneration } from '@/lib/generation-limiter'
 import { isQStashConfigured, publishTryOnJob } from '@/lib/queue/qstash'
 import { ZodError } from 'zod'
@@ -1365,8 +1366,9 @@ export async function POST(request: Request) {
         { status: 429, headers: { 'Retry-After': String(retryAfterSeconds), 'Cache-Control': 'no-store' } }
       )
     }
-    const message = error instanceof Error ? error.message : 'Internal server error'
-    return jsonError(500, 'TRYON_REQUEST_FAILED', message)
+    // Catches GeminiTimeoutError, safety blocks, quota errors, etc.
+    const mapped = mapGeminiError(error)
+    return NextResponse.json(mapped.body, { status: mapped.status })
   } finally {
     if (isRedisConfigured() && redisUserLockKey) {
       try {

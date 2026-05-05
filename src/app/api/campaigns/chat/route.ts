@@ -192,7 +192,8 @@ Return ONLY the prompt text, nothing else.`
 
     // Hard timeout — Gemini image gen sometimes hangs and would otherwise
     // stall the entire chat response for minutes.
-    const IMAGE_GEN_TIMEOUT_MS = 35_000
+    const IMAGE_GEN_TIMEOUT_MS = 45_000
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
     const generatePromise = client.models.generateContent({
       model: 'gemini-3.1-flash-image-preview',
       contents: [{ role: 'user', parts }],
@@ -200,10 +201,18 @@ Return ONLY the prompt text, nothing else.`
         responseModalities: ['TEXT', 'IMAGE'] as unknown as undefined,
       }
     })
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Gemini image generation timed out')), IMAGE_GEN_TIMEOUT_MS),
-    )
-    const response = await Promise.race([generatePromise, timeoutPromise])
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(
+        () => reject(new Error('Gemini image generation timed out')),
+        IMAGE_GEN_TIMEOUT_MS,
+      )
+    })
+    let response
+    try {
+      response = await Promise.race([generatePromise, timeoutPromise])
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId)
+    }
 
     // Extract image from response
     const responseParts = response.candidates?.[0]?.content?.parts

@@ -291,9 +291,31 @@ async function extractImageFromResponse(response: Awaited<ReturnType<typeof gemi
 }
 
 export async function editImageWithGemini(options: GeminiImageEditOptions): Promise<{ image: string; model: string; task: string; scope: string }> {
-  const baseImage = parseDataUrl(options.imageBase64)
-  const referenceImage = options.referenceImageBase64 ? parseDataUrl(options.referenceImageBase64) : null
-  const metadata = await sharp(baseImage.buffer).metadata()
+  let baseImage: ParsedImage
+  try {
+    baseImage = parseDataUrl(options.imageBase64)
+  } catch {
+    throw new Error('The source image could not be read. Please re-upload it and try again.')
+  }
+
+  let referenceImage: ParsedImage | null = null
+  if (options.referenceImageBase64) {
+    try {
+      referenceImage = parseDataUrl(options.referenceImageBase64)
+    } catch {
+      // Reference is optional — degrade gracefully
+      referenceImage = null
+    }
+  }
+
+  let metadata: { width?: number; height?: number }
+  try {
+    metadata = await sharp(baseImage.buffer).metadata()
+  } catch (err) {
+    console.error('[image-edit] sharp metadata failed:', err)
+    throw new Error('The source image format is unsupported. Please convert it to PNG or JPEG and retry.')
+  }
+
   const width = metadata.width || 1024
   const height = metadata.height || 1024
   const aspectRatio = pickAspectRatio(width, height)

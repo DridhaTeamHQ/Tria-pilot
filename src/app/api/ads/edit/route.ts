@@ -4,6 +4,9 @@ import { createClient, createServiceClient } from '@/lib/auth'
 import { generateAdCopy, rateAdCreative } from '@/lib/openai'
 import { editImageWithGemini } from '@/lib/gemini/image-edit'
 import { saveUpload } from '@/lib/storage'
+import { mapGeminiError } from '@/lib/gemini/error-mapping'
+
+export const maxDuration = 180
 
 const adEditSchema = z.object({
   imageBase64: z.string().min(1).max(30_000_000).optional(),
@@ -202,9 +205,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid edit input', details: error.errors }, { status: 400 })
     }
 
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    )
+    // Map Gemini-specific errors to actionable status codes + messages so the
+    // UI can show "rate limit — wait 30s" instead of generic 500.
+    const mapped = mapGeminiError(error)
+    return NextResponse.json(mapped.body, { status: mapped.status })
   }
 }

@@ -16,6 +16,7 @@ import OpenAI, { toFile } from 'openai'
 import { getOpenAIKey } from '@/lib/config/api-keys'
 import { generateIntelligentAdComposition } from '@/lib/gemini'
 import { GeminiRateLimitError } from '@/lib/gemini/executor'
+import { mapGeminiError } from '@/lib/gemini/error-mapping'
 import { saveUpload } from '@/lib/storage'
 import { getGeminiChat } from '@/lib/tryon/gemini-chat'
 import { buildForensicFaceAnchor } from '@/lib/tryon/face-forensics'
@@ -903,13 +904,9 @@ export async function POST(request: Request) {
       )
     }
 
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error ? error.message : 'Internal server error',
-      },
-      { status: 500 }
-    )
+    // Map Gemini-specific errors (timeout, safety, quota) to clean responses
+    const mapped = mapGeminiError(error)
+    return NextResponse.json(mapped.body, { status: mapped.status })
   } finally {
     void inFlight?.release?.()
   }
