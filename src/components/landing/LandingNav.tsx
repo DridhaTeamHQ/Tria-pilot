@@ -27,7 +27,8 @@ export default function LandingNav() {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
 
   const isLoggedIn = !!user
-  const dashboardLink = user?.role === 'BRAND' ? '/brand/dashboard' : '/influencer/dashboard'
+  const isBrandUser = String(user?.role || '').toUpperCase() === 'BRAND'
+  const dashboardLink = isBrandUser ? '/brand/dashboard' : '/influencer/dashboard'
 
   const activeIndex = pathname === '/' ? 0 : pathname === '/marketplace' ? 2 : 0
 

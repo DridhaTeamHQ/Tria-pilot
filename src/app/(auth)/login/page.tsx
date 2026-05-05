@@ -25,14 +25,29 @@ type LoginQueryState = {
 export default function LoginPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
-  const [queryState, setQueryState] = useState<LoginQueryState>({
-    redirect: null,
-    from: null,
-    confirmed: null,
-    error: null,
-    details: null,
-    requested: null,
-    actual: null,
+  const [queryState, setQueryState] = useState<LoginQueryState>(() => {
+    if (typeof window === 'undefined') {
+      return {
+        redirect: null,
+        from: null,
+        confirmed: null,
+        error: null,
+        details: null,
+        requested: null,
+        actual: null,
+      }
+    }
+
+    const params = new URLSearchParams(window.location.search)
+    return {
+      redirect: params.get('redirect'),
+      from: params.get('from'),
+      confirmed: params.get('confirmed'),
+      error: params.get('error'),
+      details: params.get('details'),
+      requested: params.get('requested'),
+      actual: params.get('actual'),
+    }
   })
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
@@ -41,6 +56,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [userType, setUserType] = useState<'influencer' | 'brand'>('influencer')
+  const isBrandPortalEntry = queryState.from === 'brand'
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -56,6 +72,7 @@ export default function LoginPage() {
   }, [])
 
   const getRoleDefaultRedirect = (roleHint?: 'influencer' | 'brand') => {
+    if (isBrandPortalEntry) return '/brand/dashboard'
     return roleHint === 'brand' ? '/brand/dashboard' : '/marketplace'
   }
 
@@ -100,11 +117,8 @@ export default function LoginPage() {
   }
 
   useEffect(() => {
-    const from = queryState.from
-    if (from === 'brand') {
-      setUserType('brand')
-    }
-  }, [queryState.from])
+    if (isBrandPortalEntry) setUserType('brand')
+  }, [isBrandPortalEntry])
 
   useEffect(() => {
     const confirmed = queryState.confirmed

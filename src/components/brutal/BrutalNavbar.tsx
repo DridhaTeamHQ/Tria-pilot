@@ -99,6 +99,8 @@ export default function BrutalNavbar() {
         pathname === path || pathname?.startsWith(path + "/");
     const isLoggedIn = user !== null && user !== undefined;
     const authResolving = isLoading || (isFetching && !isLoggedIn);
+    const normalizedRole = String(user?.role || "").toUpperCase();
+    const isBrandUser = normalizedRole === "BRAND";
 
     if (isAuthPage) {
         return null;
@@ -132,7 +134,7 @@ export default function BrutalNavbar() {
     const primaryLinkLabels = ["Discovery", "Try-On Studio", "Dashboard", "Campaigns", "Creators", "Products"];
 
     const links = isLoggedIn && user
-        ? user.role === "BRAND" ? brandLinks : influencerLinks
+        ? isBrandUser ? brandLinks : influencerLinks
         : [];
 
     const primaryLinks = links.filter(l => primaryLinkLabels.includes(l.label));
@@ -149,7 +151,7 @@ export default function BrutalNavbar() {
             ? ((user as any).avatarUrl as string | null) || ((user as any).avatar_url as string | null) || null
             : null;
     const showAvatarImage = Boolean(avatarUrl) && !avatarFailed;
-    const profileHref = isLoggedIn && user?.role === "BRAND" ? "/brand/profile" : "/profile";
+    const profileHref = isLoggedIn && isBrandUser ? "/brand/profile" : "/profile";
 
     return (
         <header className="fixed top-0 left-0 right-0 z-40 bg-[#F9F8F4] border-b-[3px] border-black">
