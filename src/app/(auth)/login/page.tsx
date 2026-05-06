@@ -39,6 +39,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [userType, setUserType] = useState<'influencer' | 'brand'>('influencer')
+  const isBrandPortalEntry = queryState.from === 'brand'
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -55,12 +56,15 @@ export default function LoginPage() {
 
   const getSafeRedirectTarget = () => {
     const redirectTarget = queryState.redirect
-    if (!redirectTarget) return '/marketplace'
+    if (!redirectTarget) return isBrandPortalEntry || userType === 'brand' ? '/brand/campaigns' : '/marketplace'
 
     const value = redirectTarget.trim()
-    if (!value.startsWith('/') || value.startsWith('//')) return '/marketplace'
-    if (value.includes('\r') || value.includes('\n')) return '/marketplace'
-    if (value.startsWith('/admin')) return '/marketplace'
+    if (!value.startsWith('/') || value.startsWith('//')) return isBrandPortalEntry || userType === 'brand' ? '/brand/campaigns' : '/marketplace'
+    if (value.includes('\r') || value.includes('\n')) return isBrandPortalEntry || userType === 'brand' ? '/brand/campaigns' : '/marketplace'
+    if (value.startsWith('/admin')) return isBrandPortalEntry || userType === 'brand' ? '/brand/campaigns' : '/marketplace'
+    if ((isBrandPortalEntry || userType === 'brand') && (value === '/' || value.startsWith('/marketplace') || value.startsWith('/influencer') || value.startsWith('/dashboard'))) {
+      return '/brand/campaigns'
+    }
 
     return value
   }
@@ -79,6 +83,9 @@ export default function LoginPage() {
 
     if (role === 'BRAND') {
       if (!onboardingCompleted) return '/onboarding/brand'
+      if (fallbackTarget === '/' || fallbackTarget.startsWith('/marketplace') || fallbackTarget.startsWith('/influencer') || fallbackTarget.startsWith('/dashboard')) {
+        return '/brand/campaigns'
+      }
       return fallbackTarget
     }
 
