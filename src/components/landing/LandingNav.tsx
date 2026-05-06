@@ -63,11 +63,15 @@ export default function LandingNav() {
                 const isActive = activeIndex === idx
                 const isHovered = hoveredIndex === idx
                 const isTarget = isHovered || (isActive && hoveredIndex === null)
+                
+                const isBrandDiscovery = link.label === 'Discovery' && user?.role === 'BRAND'
+                const label = isBrandDiscovery ? 'Campaign' : link.label
+                const href = isBrandDiscovery ? '/brand/campaigns' : link.href
 
                 return (
                   <Link
                     key={link.href}
-                    href={link.href}
+                    href={href}
                     onMouseEnter={() => setHoveredIndex(idx)}
                     className={`${desktopNavItemClass} ${isTarget ? 'text-black' : 'text-black/65 hover:text-black'}`}
                   >
@@ -79,7 +83,7 @@ export default function LandingNav() {
                         transition={{ type: 'spring', stiffness: 380, damping: 28 }}
                       />
                     )}
-                    {link.label}
+                    {label}
                   </Link>
                 )
               })}
@@ -142,11 +146,16 @@ export default function LandingNav() {
           style={{ fontFamily: 'var(--font-plus-jakarta-sans), sans-serif' }}
         >
           <div className="flex flex-col gap-3 text-center">
-            {LINKS.map((link) => (
-              <Link key={link.href} href={link.href} className={navLinkClass} onClick={() => setOpen(false)}>
-                {link.label}
-              </Link>
-            ))}
+            {LINKS.map((link) => {
+              const isBrandDiscovery = link.label === 'Discovery' && user?.role === 'BRAND'
+              const label = isBrandDiscovery ? 'Campaign' : link.label
+              const href = isBrandDiscovery ? '/brand/campaigns' : link.href
+              return (
+                <Link key={link.href} href={href} className={navLinkClass} onClick={() => setOpen(false)}>
+                  {label}
+                </Link>
+              )
+            })}
             <div className="mt-3 grid gap-3">
               {isLoggedIn ? (
                 <Link

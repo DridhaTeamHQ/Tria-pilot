@@ -36,8 +36,11 @@ export default function Footer() {
                                 </li>
                             )}
                             <li>
-                                <Link href="/marketplace" className="hover:text-black hover:underline">
-                                    Discovery
+                                <Link 
+                                    href={user?.role === 'BRAND' ? '/brand/campaigns' : '/marketplace'} 
+                                    className="hover:text-black hover:underline"
+                                >
+                                    {user?.role === 'BRAND' ? 'Campaign' : 'Discovery'}
                                 </Link>
                             </li>
                             {!isLoggedIn && (
