@@ -30,6 +30,9 @@ const POLL_INTERVAL_MS = 1500
 const DEFAULT_TIMEOUT_MS = 120_000  // 2 min — Fill is fast (5-15s) but allow headroom
 
 export type FluxModel =
+  // FLUX.2 family — newer, better at instruction following + multi-image
+  | 'flux-2-pro'
+  // FLUX.1 family
   | 'flux-pro-1.1'
   | 'flux-pro-1.1-ultra'
   | 'flux-pro-1.0-fill'
@@ -251,6 +254,72 @@ export async function fluxKontext(options: FluxKontextOptions): Promise<{
     },
     { timeoutMs: options.timeoutMs },
   )
+}
+
+// ── FLUX.2 [pro] ─────────────────────────────────────────────────────────
+
+export interface Flux2GenerateOptions {
+  /** Text prompt describing what to generate / how to edit */
+  prompt: string
+  /**
+   * Optional reference image as base64 (no data: prefix). When supplied,
+   * FLUX.2 conditions the output on this image — used for clothing swap
+   * by passing the person photo + a "swap the shirt to <X>" prompt.
+   * FLUX.2 also supports multiple reference images via `inputImages`.
+   */
+  inputImage?: string
+  /** Multiple reference images for multi-input conditioning (max 4) */
+  inputImages?: string[]
+  /** Aspect ratio (e.g. "1:1", "3:4", "9:16"). Defaults to source. */
+  aspectRatio?: string
+  /** Random seed for reproducibility */
+  seed?: number
+  /** Let BFL polish the prompt before generation. Default false. */
+  promptUpsampling?: boolean
+  /** 'png' or 'jpeg'. Default 'png'. */
+  outputFormat?: 'png' | 'jpeg'
+  /** 0 (strictest) .. 6 (most lenient). BFL default is 2. */
+  safetyTolerance?: number
+  /** Hard timeout for the entire operation (default 120s) */
+  timeoutMs?: number
+}
+
+/**
+ * FLUX.2 [pro] — high-quality generation with optional image conditioning.
+ *
+ * For clothing swap on the influencer side, pass:
+ *   - inputImage: base64 of the influencer's photo
+ *   - prompt: "Replace the person's outfit with <garment description>.
+ *              Preserve face, hair, identity, pose, and background."
+ *
+ * Endpoint: POST https://api.bfl.ai/v1/flux-2-pro
+ */
+export async function flux2Generate(options: Flux2GenerateOptions): Promise<{
+  imageUrl: string
+  seed?: number
+  jobId: string
+}> {
+  if (options.inputImages && options.inputImages.length > 4) {
+    throw new FluxError('FLUX.2 accepts at most 4 input_images')
+  }
+
+  // Build payload — FLUX.2 accepts either input_image (single) or
+  // input_images (array). Pass whichever is provided; fall back to
+  // text-only generation when neither is supplied.
+  const payload: Record<string, unknown> = {
+    prompt: options.prompt,
+    seed: options.seed,
+    prompt_upsampling: options.promptUpsampling ?? false,
+    output_format: options.outputFormat ?? 'png',
+    safety_tolerance: options.safetyTolerance ?? 2,
+  }
+  if (options.inputImage) payload.input_image = options.inputImage
+  if (options.inputImages && options.inputImages.length > 0) {
+    payload.input_images = options.inputImages
+  }
+  if (options.aspectRatio) payload.aspect_ratio = options.aspectRatio
+
+  return submitAndAwait('flux-2-pro', payload, { timeoutMs: options.timeoutMs })
 }
 
 /**

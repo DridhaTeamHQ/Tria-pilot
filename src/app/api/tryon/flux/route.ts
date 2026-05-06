@@ -34,7 +34,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient, createServiceClient } from '@/lib/auth'
-import { fluxFill, fluxKontext, downloadFluxImage, FluxError } from '@/lib/flux/client'
+import { fluxFill, fluxKontext, flux2Generate, downloadFluxImage, FluxError } from '@/lib/flux/client'
 import { assertSafeReferenceUrl } from '@/lib/reference-photos/service'
 import {
   stripInjectionTokens,
@@ -45,11 +45,26 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 180
 
 const bodySchema = z.object({
-  mode: z.enum(['fill', 'kontext']).default('fill'),
+  // 'flux2'   — FLUX.2 [pro], image-conditioned generation. Default.
+  //              No mask needed. Best instruction-following, multi-image
+  //              support (up to 4 reference photos via garmentImageUrls).
+  // 'fill'    — flux-pro-1.0-fill. Mask-based inpainting. Highest fidelity
+  //              when you have a clean garment mask.
+  // 'kontext' — flux-kontext-pro. Older image-to-image edit, kept for
+  //              compatibility.
+  mode: z.enum(['flux2', 'fill', 'kontext']).default('flux2'),
   personImageUrl: z.string().url(),
   maskUrl: z.string().url().optional(),
+  /**
+   * Optional product / reference garment images to condition FLUX.2 on
+   * (e.g. "make me wear the actual product"). FLUX.2 accepts up to 4
+   * reference images alongside the person photo. Ignored in fill/kontext
+   * modes.
+   */
+  garmentImageUrls: z.array(z.string().url()).max(3).optional(),
   garmentDescription: z.string().trim().min(3).max(2000),
   productId: z.string().uuid().optional(),
+  aspectRatio: z.string().regex(/^\d{1,2}:\d{1,2}$/).optional(),
   seed: z.number().int().min(0).max(2 ** 31 - 1).optional(),
   persist: z.boolean().default(true),
 })
@@ -118,8 +133,17 @@ export async function POST(request: Request) {
       )
     }
 
-    const { mode, personImageUrl, maskUrl, garmentDescription, productId, seed, persist } =
-      parsed.data
+    const {
+      mode,
+      personImageUrl,
+      maskUrl,
+      garmentImageUrls,
+      garmentDescription,
+      productId,
+      aspectRatio,
+      seed,
+      persist,
+    } = parsed.data
 
     if (mode === 'fill' && !maskUrl) {
       return NextResponse.json(
@@ -132,23 +156,46 @@ export async function POST(request: Request) {
     const personBase64 = await fetchAsBase64(personImageUrl)
     const maskBase64 = mode === 'fill' && maskUrl ? await fetchAsBase64(maskUrl) : null
 
+    // Garment reference images are FLUX.2-only; fetch only when mode='flux2'
+    let garmentRefBase64s: string[] = []
+    if (mode === 'flux2' && garmentImageUrls && garmentImageUrls.length > 0) {
+      garmentRefBase64s = await Promise.all(garmentImageUrls.map(fetchAsBase64))
+    }
+
     const prompt = buildClothingSwapPrompt(garmentDescription)
 
     // Generate
-    const result =
-      mode === 'fill'
-        ? await fluxFill({
-            imageBase64: personBase64,
-            maskBase64: maskBase64!,
-            prompt,
-            seed,
-            steps: 50,
-          })
-        : await fluxKontext({
-            imageBase64: personBase64,
-            prompt,
-            seed,
-          })
+    let result: { imageUrl: string; seed?: number; jobId: string }
+    if (mode === 'fill') {
+      result = await fluxFill({
+        imageBase64: personBase64,
+        maskBase64: maskBase64!,
+        prompt,
+        seed,
+        steps: 50,
+      })
+    } else if (mode === 'kontext') {
+      result = await fluxKontext({
+        imageBase64: personBase64,
+        prompt,
+        seed,
+        aspectRatio,
+      })
+    } else {
+      // Default: flux-2-pro with image conditioning
+      result = await flux2Generate({
+        prompt,
+        // Person photo as the primary input. Garment refs (if any) go
+        // in input_images alongside.
+        inputImage: personBase64,
+        inputImages:
+          garmentRefBase64s.length > 0
+            ? [personBase64, ...garmentRefBase64s].slice(0, 4)
+            : undefined,
+        aspectRatio,
+        seed,
+      })
+    }
 
     // Persist to Supabase storage so the URL doesn't expire after 10 min
     let permanentUrl: string | null = null
