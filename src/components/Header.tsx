@@ -171,12 +171,12 @@ export default function Header() {
             className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${headerStyle}`}
         >
             <div className="mx-auto w-full max-w-7xl px-3 sm:px-5 lg:px-6">
-                <div className="flex h-16 items-center justify-between sm:h-18 lg:h-20">
+                <div className="flex h-20 items-center justify-between">
                     {/* Logo */}
                     <Link
                         href="/"
                         prefetch={true}
-                        className={`kiwikoo-wordmark flex h-11 items-center translate-y-[1.5px] text-[1.65rem] transition-colors sm:text-2xl sm:h-auto sm:translate-y-0 ${logoColor}`}
+                        className={`kiwikoo-wordmark flex items-center text-[2rem] transition-colors ${logoColor}`}
                         data-cursor="Home"
                     >
                         Kiwikoo

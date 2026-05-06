@@ -89,10 +89,10 @@ export default function BrandNavbar({ brandName: initialBrandName, avatarUrl: in
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b-[3px] border-black bg-[#F9F8F4]">
       <div className="mx-auto w-full max-w-[2000px] px-3 sm:px-5 lg:px-8 xl:px-12">
-        <div className="grid h-14 grid-cols-[auto_1fr_auto] items-center gap-2 sm:h-16 lg:h-16 lg:gap-4">
+        <div className="grid h-20 grid-cols-[auto_1fr_auto] items-center gap-2 lg:gap-4">
           <Link
             href="/brand/dashboard"
-            className="kiwikoo-wordmark flex h-11 items-center translate-y-[1.5px] shrink-0 text-[1.6rem] font-black leading-none text-black transition-colors hover:text-[#B4F056] sm:text-[1.85rem] sm:h-auto sm:translate-y-0 lg:text-[2.1rem]"
+            className="kiwikoo-wordmark flex items-center shrink-0 text-[2rem] font-black leading-none text-black transition-colors hover:text-[#B4F056]"
           >
             Kiwikoo
           </Link>
@@ -105,11 +105,10 @@ export default function BrandNavbar({ brandName: initialBrandName, avatarUrl: in
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-2 rounded-xl border-2 border-black px-3 py-1.5 text-sm font-bold transition-all xl:px-4 xl:py-2 xl:text-base ${
-                    active
-                      ? 'bg-[#B4F056] text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)]'
-                      : 'bg-white text-black hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)]'
-                  }`}
+                  className={`flex items-center gap-2 rounded-xl border-2 border-black px-3 py-1.5 text-sm font-bold transition-all xl:px-4 xl:py-2 xl:text-base ${active
+                    ? 'bg-[#B4F056] text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)]'
+                    : 'bg-white text-black hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)]'
+                    }`}
                 >
                   <Icon className="h-4 w-4 shrink-0 xl:h-5 xl:w-5" />
                   <span className="whitespace-nowrap">{item.label}</span>
@@ -141,7 +140,7 @@ export default function BrandNavbar({ brandName: initialBrandName, avatarUrl: in
               onClick={() => void handleLogout()}
               disabled={isLoggingOut}
               title="Logout"
-              expandOnHover={false}
+              className="bg-[#FF9B8F] hover:bg-[#FF8A7D] shadow-[3px_3px_0_0_rgba(0,0,0,1)]"
             />
           </div>
 
@@ -212,7 +211,7 @@ export default function BrandNavbar({ brandName: initialBrandName, avatarUrl: in
                 disabled={isLoggingOut}
                 fullWidth
                 title="Logout"
-                className="mt-2 border-[3px] border-black bg-[#DC2626] text-white hover:bg-[#B91C1C] shadow-[4px_4px_0_0_rgba(0,0,0,1)]"
+                className="mt-2 h-12 !rounded-xl !bg-[#DC2626] !text-white !hover:bg-[#B91C1C] border-2 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)]"
               />
             </div>
           </div>
