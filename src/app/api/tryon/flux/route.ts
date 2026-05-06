@@ -56,15 +56,23 @@ const bodySchema = z.object({
   personImageUrl: z.string().url(),
   maskUrl: z.string().url().optional(),
   /**
-   * Optional product / reference garment images to condition FLUX.2 on
-   * (e.g. "make me wear the actual product"). FLUX.2 accepts up to 4
-   * reference images alongside the person photo. Ignored in fill/kontext
-   * modes.
+   * Optional product / reference garment images to condition FLUX.2 on.
+   * FLUX.2 accepts up to 8 images TOTAL — the person photo counts as
+   * one, so `garmentImageUrls` can hold up to 7 additional refs.
+   * Ignored in fill/kontext modes.
    */
-  garmentImageUrls: z.array(z.string().url()).max(3).optional(),
+  garmentImageUrls: z.array(z.string().url()).max(7).optional(),
   garmentDescription: z.string().trim().min(3).max(2000),
   productId: z.string().uuid().optional(),
-  aspectRatio: z.string().regex(/^\d{1,2}:\d{1,2}$/).optional(),
+  /**
+   * Output dimensions for FLUX.2 mode. Both must be >=64 if set.
+   * If unset, BFL picks defaults based on input. (FLUX.2 doesn't
+   * support aspect_ratio — only explicit width/height.)
+   */
+  width: z.number().int().min(64).max(2048).optional(),
+  height: z.number().int().min(64).max(2048).optional(),
+  /** Output format. Default jpeg per FLUX.2 spec. */
+  outputFormat: z.enum(['jpeg', 'png', 'webp']).default('jpeg'),
   seed: z.number().int().min(0).max(2 ** 31 - 1).optional(),
   persist: z.boolean().default(true),
 })
@@ -140,7 +148,9 @@ export async function POST(request: Request) {
       garmentImageUrls,
       garmentDescription,
       productId,
-      aspectRatio,
+      width,
+      height,
+      outputFormat,
       seed,
       persist,
     } = parsed.data
@@ -179,20 +189,17 @@ export async function POST(request: Request) {
         imageBase64: personBase64,
         prompt,
         seed,
-        aspectRatio,
       })
     } else {
-      // Default: flux-2-pro with image conditioning
+      // Default: flux-2-pro with image conditioning.
+      // Person photo first, then up to 7 garment refs (FLUX.2 caps at 8 total).
+      const allInputs = [personBase64, ...garmentRefBase64s].slice(0, 8)
       result = await flux2Generate({
         prompt,
-        // Person photo as the primary input. Garment refs (if any) go
-        // in input_images alongside.
-        inputImage: personBase64,
-        inputImages:
-          garmentRefBase64s.length > 0
-            ? [personBase64, ...garmentRefBase64s].slice(0, 4)
-            : undefined,
-        aspectRatio,
+        inputImages: allInputs,
+        width,
+        height,
+        outputFormat,
         seed,
       })
     }

@@ -262,62 +262,76 @@ export interface Flux2GenerateOptions {
   /** Text prompt describing what to generate / how to edit */
   prompt: string
   /**
-   * Optional reference image as base64 (no data: prefix). When supplied,
-   * FLUX.2 conditions the output on this image — used for clothing swap
-   * by passing the person photo + a "swap the shirt to <X>" prompt.
-   * FLUX.2 also supports multiple reference images via `inputImages`.
+   * Reference images (base64 strings, no data: prefix). FLUX.2 takes
+   * up to 8 images via separate fields `input_image`, `input_image_2`,
+   * ..., `input_image_8`. Pass them as a flat array; we map them to
+   * the right field names.
+   *
+   * For clothing swap, typical order:
+   *   inputImages[0] = influencer photo (the person to dress)
+   *   inputImages[1] = product photo (the garment to put on them)
    */
-  inputImage?: string
-  /** Multiple reference images for multi-input conditioning (max 4) */
   inputImages?: string[]
-  /** Aspect ratio (e.g. "1:1", "3:4", "9:16"). Defaults to source. */
-  aspectRatio?: string
+  /** Output width in pixels. Min 64. Default 0 (BFL picks a sensible size). */
+  width?: number
+  /** Output height in pixels. Min 64. Default 0. */
+  height?: number
   /** Random seed for reproducibility */
   seed?: number
-  /** Let BFL polish the prompt before generation. Default false. */
-  promptUpsampling?: boolean
-  /** 'png' or 'jpeg'. Default 'png'. */
-  outputFormat?: 'png' | 'jpeg'
-  /** 0 (strictest) .. 6 (most lenient). BFL default is 2. */
+  /** 'jpeg' (default), 'png', or 'webp'. */
+  outputFormat?: 'jpeg' | 'png' | 'webp'
+  /** 0 (strictest) .. 5 (most lenient). BFL default is 2. */
   safetyTolerance?: number
   /** Hard timeout for the entire operation (default 120s) */
   timeoutMs?: number
 }
 
+const FLUX2_MAX_INPUT_IMAGES = 8
+
 /**
  * FLUX.2 [pro] — high-quality generation with optional image conditioning.
  *
+ * Endpoint: POST https://api.bfl.ai/v1/flux-2-pro
+ *
  * For clothing swap on the influencer side, pass:
- *   - inputImage: base64 of the influencer's photo
+ *   - inputImages[0]: base64 of the influencer photo
+ *   - inputImages[1]: base64 of the product photo (optional)
  *   - prompt: "Replace the person's outfit with <garment description>.
  *              Preserve face, hair, identity, pose, and background."
  *
- * Endpoint: POST https://api.bfl.ai/v1/flux-2-pro
+ * Note: FLUX.2 has its own schema — different from FLUX.1. It uses
+ * `input_image`, `input_image_2`, ... `input_image_8` for multi-image
+ * conditioning (NOT an `input_images` array), and uses `width`/`height`
+ * instead of `aspect_ratio`. There is no `prompt_upsampling` field on
+ * FLUX.2.
  */
 export async function flux2Generate(options: Flux2GenerateOptions): Promise<{
   imageUrl: string
   seed?: number
   jobId: string
 }> {
-  if (options.inputImages && options.inputImages.length > 4) {
-    throw new FluxError('FLUX.2 accepts at most 4 input_images')
+  const images = options.inputImages || []
+  if (images.length > FLUX2_MAX_INPUT_IMAGES) {
+    throw new FluxError(`FLUX.2 accepts at most ${FLUX2_MAX_INPUT_IMAGES} input images`)
   }
 
-  // Build payload — FLUX.2 accepts either input_image (single) or
-  // input_images (array). Pass whichever is provided; fall back to
-  // text-only generation when neither is supplied.
+  // FLUX.2 spec accepts safety_tolerance in [0, 5]. Clamp to be safe.
+  const safety = Math.min(5, Math.max(0, options.safetyTolerance ?? 2))
+
   const payload: Record<string, unknown> = {
     prompt: options.prompt,
-    seed: options.seed,
-    prompt_upsampling: options.promptUpsampling ?? false,
-    output_format: options.outputFormat ?? 'png',
-    safety_tolerance: options.safetyTolerance ?? 2,
+    output_format: options.outputFormat ?? 'jpeg',
+    safety_tolerance: safety,
   }
-  if (options.inputImage) payload.input_image = options.inputImage
-  if (options.inputImages && options.inputImages.length > 0) {
-    payload.input_images = options.inputImages
+  if (typeof options.seed === 'number') payload.seed = options.seed
+  if (options.width && options.width >= 64) payload.width = options.width
+  if (options.height && options.height >= 64) payload.height = options.height
+
+  // Map inputImages[] to input_image, input_image_2, ..., input_image_8
+  for (let i = 0; i < images.length; i++) {
+    const fieldName = i === 0 ? 'input_image' : `input_image_${i + 1}`
+    payload[fieldName] = images[i]
   }
-  if (options.aspectRatio) payload.aspect_ratio = options.aspectRatio
 
   return submitAndAwait('flux-2-pro', payload, { timeoutMs: options.timeoutMs })
 }
