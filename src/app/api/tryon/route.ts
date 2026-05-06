@@ -981,6 +981,9 @@ async function handlePresetlessTryOnRequest(params: {
           prompt: smartPrompt,
           aspectRatio: payload.aspectRatio || '4:5',
           model: directRenderModel,
+          // FLUX engine uses this for grounded, garment-specific prompting.
+          // Gemini engine ignores it (still uses the smartPrompt above).
+          garmentIntel,
         })
 
         // Save to storage

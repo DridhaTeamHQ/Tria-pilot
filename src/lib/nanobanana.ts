@@ -408,6 +408,13 @@ export interface DirectTryOnOptions {
   prompt: string              // pre-built sanitized prompt — passed AS-IS
   aspectRatio?: string
   resolution?: string
+  /**
+   * Optional structured garment analysis. When supplied, the FLUX engine
+   * uses it to build a concrete, garment-specific prompt for higher
+   * fidelity (color, pattern, material, fit, neckline, sleeves). The
+   * Gemini engine ignores this field and uses `prompt` directly.
+   */
+  garmentIntel?: import('@/lib/tryon/garment-intel').GarmentIntelligence | null
 }
 
 /**
@@ -449,6 +456,7 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
       prompt: options.prompt,
       aspectRatio: options.aspectRatio,
       resolution: options.resolution,
+      garmentIntel: options.garmentIntel ?? null,
     })
   }
 
