@@ -399,7 +399,7 @@ export default function BrandInfluencersPage() {
                 label="Followers"
                 anyLabel="Any size"
                 value={followerBand}
-                onChange={setFollowerBand}
+                onChange={(value) => setFollowerBand(Array.isArray(value) ? (value[0] ?? null) : value)}
                 options={FOLLOWER_BANDS as unknown as { value: string; label: string; hint?: string }[]}
                 accentColor="#A78BFA"
               />
@@ -407,7 +407,7 @@ export default function BrandInfluencersPage() {
                 label="Price"
                 anyLabel="Any price"
                 value={priceBand}
-                onChange={setPriceBand}
+                onChange={(value) => setPriceBand(Array.isArray(value) ? (value[0] ?? null) : value)}
                 options={PRICE_BANDS as unknown as { value: string; label: string }[]}
                 accentColor="#FFD93D"
               />
@@ -415,7 +415,14 @@ export default function BrandInfluencersPage() {
                 label="Engagement"
                 anyLabel="Any"
                 value={minEngagement}
-                onChange={setMinEngagement}
+                onChange={(value) => {
+                  const raw = Array.isArray(value) ? value[0] : value
+                  if (raw == null || raw === '') {
+                    setMinEngagement(null)
+                    return
+                  }
+                  setMinEngagement(Number(raw))
+                }}
                 options={ENGAGEMENT_OPTIONS}
                 accentColor="#FF8C69"
               />
@@ -423,7 +430,7 @@ export default function BrandInfluencersPage() {
                 label="Badge"
                 anyLabel="Any tier"
                 value={badgeTier}
-                onChange={setBadgeTier}
+                onChange={(value) => setBadgeTier(Array.isArray(value) ? (value[0] ?? null) : value)}
                 options={BADGE_TIERS}
                 accentColor="#FBBF24"
               />
@@ -431,7 +438,7 @@ export default function BrandInfluencersPage() {
                 label="Gender"
                 anyLabel="Any"
                 value={gender}
-                onChange={setGender}
+                onChange={(value) => setGender(Array.isArray(value) ? (value[0] ?? null) : value)}
                 options={GENDERS}
                 accentColor="#34D399"
               />
@@ -439,7 +446,7 @@ export default function BrandInfluencersPage() {
                 label="Audience"
                 anyLabel="Any"
                 value={audienceType}
-                onChange={setAudienceType}
+                onChange={(value) => setAudienceType(Array.isArray(value) ? (value[0] ?? null) : value)}
                 options={AUDIENCE_TYPES}
                 accentColor="#F472B6"
               />
@@ -448,7 +455,10 @@ export default function BrandInfluencersPage() {
                   label="Sort by"
                   anyLabel="Followers"
                   value={sortBy}
-                  onChange={(v) => setSortBy(v || 'followers')}
+                  onChange={(value) => {
+                    const next = Array.isArray(value) ? value[0] : value
+                    setSortBy(next || 'followers')
+                  }}
                   options={SORT_OPTIONS as unknown as { value: string; label: string }[]}
                 />
               </div>
