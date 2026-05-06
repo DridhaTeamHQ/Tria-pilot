@@ -345,6 +345,7 @@ body.landing-transparent-bg {
   from {
     transform: translateY(100%);
   }
+
   to {
     transform: translateY(0);
   }

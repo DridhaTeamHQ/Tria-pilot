@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
 import { AppImage } from '@/components/ui/AppImage'
 import { toast } from '@/lib/simple-sonner'
 import {
@@ -494,21 +495,21 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
     return (
         <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 animate-fade-in">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
-                <div>
-                    <h1 className="text-2xl sm:text-3xl font-black text-black mb-1">Products</h1>
-                    <p className="text-black/60 font-medium">
-                        Manage your product catalog - {products.length} products
-                    </p>
-                </div>
-                <button type="button"
-                    onClick={() => setShowForm(true)}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 bg-[#B4F056] border-[3px] border-black font-black uppercase text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all"
-                >
-                    <Plus className="w-5 h-5" strokeWidth={2.5} />
-                    Add Product
-                </button>
+        <div className="w-full max-w-[1440px] mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-10">
+            <div className="space-y-1">
+                <h1 className="text-3xl sm:text-4xl font-black text-black tracking-tight">Products</h1>
+                <p className="text-black/60 font-bold text-sm sm:text-base">
+                    Manage your product catalog · {products.length} items
+                </p>
             </div>
+            <button type="button"
+                onClick={() => setShowForm(true)}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 bg-[#B4F056] border-[3px] border-black font-black uppercase text-sm tracking-wider shadow-[4px_4px_0px_0px_#000] hover:shadow-[6px_6px_0px_0px_#000] hover:-translate-y-0.5 active:translate-y-0 active:shadow-none transition-all"
+            >
+                <Plus className="w-5 h-5" strokeWidth={3} />
+                Add Product
+            </button>
+        </div>
 
             {/* Product Form Modal */}
             {showForm && (
@@ -890,108 +891,111 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                     </button>
                 </div>
             ) : (
-                <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                    {products.map((product) => {
+                <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="w-full max-w-[1536px] mx-auto grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 px-4"
+                >
+                    {products.map((product, idx) => {
                         const coverImageSrc = product.cover_image ?? product.images?.[0] ?? null
 
                         return (
-                        <div
-                            key={product.id}
-                            className="group overflow-hidden rounded-[28px] border-[3px] border-black bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-0.5 hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] animate-fade-in"
-                        >
-                            {/* Image */}
-                            <div className="relative aspect-[4/3] bg-[#F3F0E8]">
-                                {coverImageSrc ? (
-                                    <AppImage
-                                        src={coverImageSrc}
-                                        alt={product.name}
-                                        className="object-cover"
-                                        sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw"
-                                    />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center">
-                                        <Package className="w-12 h-12 text-black/20" />
-                                    </div>
-                                )}
-                                {!product.active && (
-                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                        <span className="rounded-full bg-red-500 px-3 py-1 font-black text-sm uppercase text-white">
-                                            Inactive
-                                        </span>
-                                    </div>
-                                )}
-                                {/* Try-On indicator */}
-                                {(product.try_on_compatible || product.tryon_image) && (
-                                    <div className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full border-2 border-black bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-black">
-                                        <Shirt className="w-3 h-3" />
-                                        Try-on ready
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Content */}
-                            <div className="space-y-4 p-4 sm:p-5">
-                                <div className="space-y-2">
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div className="min-w-0">
-                                            <h3 className="truncate text-lg font-black leading-tight">{product.name}</h3>
-                                            <p className="mt-1 text-sm font-medium text-black/55">
-                                                {product.category || 'Uncategorized'}
-                                                {product.sku ? ` · ${product.sku}` : ''}
-                                            </p>
+                            <motion.div
+                                key={product.id}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: idx * 0.05 }}
+                                className="group relative overflow-hidden rounded-[32px] border-[3px] border-black bg-white shadow-[6px_6px_0px_0px_#000] transition-all hover:-translate-y-1 hover:shadow-[10px_10px_0px_0px_#000]"
+                            >
+                                {/* Image Container */}
+                                <div className="relative aspect-[4/5] overflow-hidden border-b-[3px] border-black bg-[#F3F0E8]">
+                                    {coverImageSrc ? (
+                                        <AppImage
+                                            src={coverImageSrc}
+                                            alt={product.name}
+                                            className="object-cover transition-transform duration-700 group-hover:scale-105"
+                                            sizes="(min-width: 1536px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center">
+                                            <Package className="w-12 h-12 text-black/10" />
                                         </div>
-                                        {product.price != null && (
-                                            <div className="shrink-0 text-right">
-                                                <p className="text-lg font-black">{'\u20B9'}{product.price}</p>
-                                                {product.discount != null && product.discount > 0 && (
-                                                    <p className="text-xs font-bold uppercase text-green-700">{product.discount}% off</p>
-                                                )}
+                                    )}
+                                    
+                                    {/* Badges */}
+                                    <div className="absolute top-3 left-3 right-3 flex flex-wrap gap-2">
+                                        {(product.try_on_compatible || product.tryon_image) && (
+                                            <div className="inline-flex items-center gap-1.5 rounded-full border-2 border-black bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-black shadow-[2px_2px_0px_0px_#000]">
+                                                <Shirt className="w-3 h-3" />
+                                                Ready
                                             </div>
                                         )}
                                     </div>
-                                    {product.description && (
-                                        <p className="line-clamp-2 text-sm font-medium leading-relaxed text-black/65">
-                                            {product.description}
-                                        </p>
-                                    )}
                                 </div>
 
-                                {/* Actions */}
-                                <div className="flex flex-col gap-2 sm:flex-row">
-                                    <button type="button"
-                                        onClick={() => openEditForm(product)}
-                                        className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full border-2 border-black bg-black px-4 text-sm font-black uppercase text-white transition-transform hover:scale-[0.99]"
-                                    >
-                                        <Edit2 className="w-4 h-4" />
-                                        Edit
-                                    </button>
-                                    <div className="flex gap-2">
-                                        {product.link && (
-                                            <a
-                                                href={product.link}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full border-2 border-black px-4 text-sm font-black uppercase transition-transform hover:scale-[0.99] sm:flex-none"
-                                            >
-                                                <ExternalLink className="w-4 h-4" />
-                                                View
-                                            </a>
-                                        )}
-                                        <button type="button"
-                                            onClick={() => handleDeleteClick(product)}
-                                            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full border-2 border-black px-4 text-sm font-black uppercase text-red-600 transition-transform hover:scale-[0.99] sm:flex-none"
-                                            aria-label="Delete product"
+                                {/* Content */}
+                                <div className="p-4 sm:p-5 space-y-4">
+                                    <div className="flex justify-between items-start gap-2">
+                                        <div className="min-w-0 flex-1">
+                                            <h3 className="text-base font-black text-black leading-tight truncate">{product.name}</h3>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                {product.category && (
+                                                    <p className="text-[10px] font-bold text-black/50 uppercase tracking-tight">
+                                                        {product.category}
+                                                    </p>
+                                                )}
+                                                {product.sku && (
+                                                    <>
+                                                        {product.category && <span className="w-1 h-1 rounded-full bg-black/20 shrink-0" />}
+                                                        <p className="text-[10px] font-bold text-black/30 uppercase">
+                                                            {product.sku}
+                                                        </p>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="text-right shrink-0">
+                                            <p className="text-base font-black text-black">₹{product.price}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Action row - more compact */}
+                                    <div className="flex items-center gap-2 pt-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => openEditForm(product)}
+                                            className="flex-1 inline-flex items-center justify-center gap-2 h-10 rounded-xl border-2 border-black bg-black text-white text-[10px] font-black uppercase tracking-widest transition-all hover:bg-[#B4F056] hover:text-black active:scale-95"
                                         >
-                                            <Trash2 className="w-4 h-4" />
-                                            Delete
+                                            <Edit2 className="w-3.5 h-3.5" strokeWidth={3} />
+                                            Edit
                                         </button>
+                                        
+                                        <div className="flex gap-1.5">
+                                            {product.link && (
+                                                <a
+                                                    href={product.link}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center justify-center w-10 h-10 rounded-xl border-2 border-black bg-white text-black transition-all hover:bg-gray-50 active:scale-95 shadow-[2px_2px_0_0_#000] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5"
+                                                >
+                                                    <ExternalLink className="w-4 h-4" strokeWidth={3} />
+                                                </a>
+                                            )}
+                                            
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDeleteClick(product)}
+                                                className="inline-flex items-center justify-center w-10 h-10 rounded-xl border-2 border-black bg-white text-red-500 transition-all hover:bg-red-50 active:scale-95 shadow-[2px_2px_0_0_#000] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5"
+                                            >
+                                                <Trash2 className="w-4 h-4" strokeWidth={3} />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
+                            </motion.div>
                         )
                     })}
-                </div>
+                </motion.div>
             )}
 
             {/* Delete confirmation modal */}

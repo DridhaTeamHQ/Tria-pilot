@@ -192,7 +192,7 @@ export default function NotificationBell({
     if (!n.read) {
       setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)))
       setUnread((u) => Math.max(0, u - 1))
-      fetch(`/api/notifications/${n.id}/read`, { method: 'POST', credentials: 'include' }).catch(() => {})
+      fetch(`/api/notifications/${n.id}/read`, { method: 'POST', credentials: 'include' }).catch(() => { })
     }
     const link = deepLinkFor(n, role)
     if (link) router.push(link)
