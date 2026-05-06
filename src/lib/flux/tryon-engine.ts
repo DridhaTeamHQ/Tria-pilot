@@ -41,27 +41,35 @@ export interface FluxTryOnOptions {
   strictGarmentProfile?: StrictGarmentProfile | null
 }
 
+// Round to the nearest multiple of 64 — FLUX.2 requires width/height
+// divisible by 64 (or at least min 64). Many FLUX deployments perform best
+// when dims are multiples of 64.
+function roundTo64(n: number): number {
+  return Math.max(64, Math.round(n / 64) * 64)
+}
+
 // Aspect ratio → width/height map. FLUX.2 requires explicit dimensions.
+// Used as a fallback when we can't read the input photo's actual size.
 function aspectToWH(aspect: string | undefined, resolution: string | undefined): { width: number; height: number } {
   // Resolution scale multiplier ('1K' = 1, '2K' = 1.5)
   const scale = resolution === '2K' ? 1.5 : 1
-  const baseShort = Math.round(768 * scale)   // 768 (1K) or 1152 (2K)
-  const baseLong = Math.round(1024 * scale)   // 1024 (1K) or 1536 (2K)
+  const baseShort = roundTo64(768 * scale)   // 768 (1K) or 1152 (2K)
+  const baseLong = roundTo64(1024 * scale)   // 1024 (1K) or 1536 (2K)
 
   switch ((aspect || '4:5').toLowerCase()) {
     case '1:1':
       return { width: baseLong, height: baseLong }
     case '9:16':
-      return { width: baseShort, height: Math.round(baseShort * 16 / 9) }
+      return { width: baseShort, height: roundTo64(baseShort * 16 / 9) }
     case '16:9':
-      return { width: Math.round(baseShort * 16 / 9), height: baseShort }
+      return { width: roundTo64(baseShort * 16 / 9), height: baseShort }
     case '3:4':
-      return { width: baseShort, height: Math.round(baseShort * 4 / 3) }
+      return { width: baseShort, height: roundTo64(baseShort * 4 / 3) }
     case '4:3':
-      return { width: Math.round(baseShort * 4 / 3), height: baseShort }
+      return { width: roundTo64(baseShort * 4 / 3), height: baseShort }
     case '4:5':
     default:
-      return { width: baseShort, height: Math.round(baseShort * 5 / 4) }
+      return { width: baseShort, height: roundTo64(baseShort * 5 / 4) }
   }
 }
 
@@ -87,6 +95,12 @@ function buildFluxClothingSwapPrompt(
   strictProfile: StrictGarmentProfile | null | undefined,
   userContext: string,
 ): string {
+  // No-intel fast path — still apply anti-zoom + identity guards
+  if (!garmentIntel && !strictProfile) {
+    const ctx = userContext ? ` ${userContext}` : ''
+    return `Edit image 1 to swap clothing only. Keep the EXACT same camera framing, crop, zoom level, and composition as image 1 — do not zoom or recompose. The person stays identical: same face, hair, skin, body, pose. Replace their clothing with a 1:1 reproduction of the garment from image 2 — copy color, pattern, texture, and every detail pixel-for-pixel; do not redesign or modify it. Match the original photo's lighting and shadows. Photorealistic. No zoom, no recomposition, no different person, no extra garments.${ctx}`.slice(0, 1500)
+  }
+
   // Build the concrete garment description, prioritizing strict profile
   const parts: string[] = []
 
@@ -173,34 +187,67 @@ function buildFluxClothingSwapPrompt(
   const garmentDesc = parts.length > 0 ? parts.join(', ') : 'the garment shown in image 2'
   const userBit = userContext ? ` ${userContext}` : ''
 
-  // Caption-style prompt with negative-style guards at the end.
-  // FLUX responds well to "no X, no Y" lists at the tail.
+  // Caption-style prompt with anti-zoom guards + 1:1 garment reproduction
+  // at the head + negative-style guards at the tail.
+  //
+  // KEY: lead with the EXACT-COPY directive for both the garment AND the
+  // framing. FLUX weights early phrases more heavily, so the most
+  // important constraints (don't zoom, don't redesign the garment) go
+  // FIRST, not embedded in the middle of the prompt.
   const prompt = [
-    `Photorealistic edit: dress the person from image 1 in the exact garment shown in image 2 — a ${garmentDesc}.${features}${bottomBit}`,
-    `Replace ALL existing clothing on the affected body area with this garment only.`,
-    `Preserve the person's face, hair, skin tone, body shape, pose, and background exactly. Match natural lighting, fabric drape, and shadows.`,
-    `No layering, no extra garments, no different person, no text or watermarks, no AI artifacts.${userBit}`,
+    // 1. EDIT mode + framing lock (anti-zoom)
+    `Edit image 1 to swap clothing only. Keep the EXACT same camera framing, crop, zoom level, composition, and viewing angle as image 1. Do not zoom in or out. Do not recompose.`,
+    // 2. Person identity lock
+    `The person from image 1 stays IDENTICAL — same face, hair, skin tone, body, and pose unchanged.`,
+    // 3. Garment 1:1 reproduction with concrete specs
+    `Replace their clothing with a 1:1 reproduction of the garment from image 2 — a ${garmentDesc}.${features}${bottomBit} Match the garment's color, pattern, texture, and every design detail pixel-for-pixel — do not redesign, modify, or stylize it.`,
+    // 4. Realism + lighting consistency
+    `Match the original photo's lighting, fabric drape, and shadows. Photorealistic.`,
+    // 5. Negative-style guards (FLUX responds best to these at the tail)
+    `No zoom, no recomposition, no layering, no extra garments, no different person, no text or watermarks, no AI artifacts.${userBit}`,
   ].join(' ').slice(0, 1500)
 
   return prompt
 }
 
 /**
- * Read the actual aspect ratio of the person photo to keep FLUX dimensions
- * natural. Falls back to the requested aspect when sharp can't read it.
+ * Read the actual dimensions of the person photo and produce FLUX-ready
+ * width/height that EXACTLY MATCH the input. FLUX preserves framing far
+ * better when output dims mirror the input — anything else triggers
+ * recomposition / unwanted zooms.
+ *
+ * Constraints:
+ *   - dims rounded to multiples of 64 (FLUX requirement)
+ *   - long edge capped at 1536 (FLUX.2 [pro] sweet spot, 2K equivalent)
+ *   - short edge floored at 768 to keep details
  */
-async function detectPersonAspect(personBase64: string): Promise<string | null> {
+async function detectPersonDimensions(
+  personBase64: string,
+): Promise<{ width: number; height: number } | null> {
   try {
     const buf = Buffer.from(personBase64, 'base64')
     const meta = await sharp(buf).metadata()
     if (!meta.width || !meta.height) return null
-    const ratio = meta.width / meta.height
-    if (ratio > 1.6) return '16:9'
-    if (ratio > 1.2) return '4:3'
-    if (ratio > 0.95 && ratio < 1.05) return '1:1'
-    if (ratio > 0.7) return '4:5'
-    if (ratio > 0.6) return '3:4'
-    return '9:16'
+
+    const srcW = meta.width
+    const srcH = meta.height
+
+    // Cap long edge at 1536, scale the short edge proportionally
+    const MAX_LONG = 1536
+    const scale = Math.min(1, MAX_LONG / Math.max(srcW, srcH))
+    let outW = roundTo64(srcW * scale)
+    let outH = roundTo64(srcH * scale)
+
+    // Ensure short edge >= 768 for detail (when source is high-res enough)
+    const SHORT_FLOOR = 768
+    const shortEdge = Math.min(outW, outH)
+    if (shortEdge < SHORT_FLOOR && Math.min(srcW, srcH) >= SHORT_FLOOR) {
+      const upscale = SHORT_FLOOR / shortEdge
+      outW = roundTo64(outW * upscale)
+      outH = roundTo64(outH * upscale)
+    }
+
+    return { width: outW, height: outH }
   } catch {
     return null
   }
@@ -229,12 +276,13 @@ export async function generateTryOnFlux(options: FluxTryOnOptions): Promise<stri
     userContext,
   )
 
-  // Auto-detect the person photo's natural aspect — keeps the output's
-  // crop natural instead of forcing a 4:5 framing on a 9:16 selfie.
-  // Falls back to the requested aspectRatio when detection fails.
-  const detectedAspect = await detectPersonAspect(cleanPerson)
-  const finalAspect = detectedAspect || options.aspectRatio || '4:5'
-  const { width, height } = aspectToWH(finalAspect, options.resolution)
+  // Match output dims to the input person photo EXACTLY (rounded to
+  // multiples of 64 + capped at 1536 long edge). Mirroring input dims
+  // is the single biggest fix for unwanted zooms / framing changes —
+  // when output dims differ from input, FLUX recomposes the scene.
+  const detectedDims = await detectPersonDimensions(cleanPerson)
+  const { width, height } =
+    detectedDims || aspectToWH(options.aspectRatio || '4:5', options.resolution)
 
   // Optional face crop becomes input_image_3 (FLUX.2 supports up to 8 inputs)
   const inputImages = [cleanPerson, cleanGarment]
@@ -244,8 +292,9 @@ export async function generateTryOnFlux(options: FluxTryOnOptions): Promise<stri
   }
 
   if (isDev) {
+    const dimsSource = detectedDims ? 'matched-input' : 'fallback-aspect'
     console.log(
-      `🎨 FLUX.2 try-on → ${inputImages.length} inputs · ${width}x${height} · prompt ${fluxPrompt.length} chars`,
+      `🎨 FLUX.2 try-on → ${inputImages.length} inputs · ${width}x${height} (${dimsSource}) · prompt ${fluxPrompt.length} chars`,
     )
   }
 
