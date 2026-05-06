@@ -104,11 +104,14 @@ export async function generateTryOnFlux(options: FluxTryOnOptions): Promise<stri
     )
   }
 
-  // Single-attempt call with retry on transient errors.
-  // FLUX.2 is generally reliable but content moderation occasionally
-  // bounces a request — retry once with a slight prompt adjustment.
+  // Retry loop with exponential backoff on transient failures.
+  // - Moderation rejections fail fast (no retry, attacker can't burn budget)
+  // - 4xx auth errors fail fast (config issue, no retry helps)
+  // - 5xx / timeouts / network errors retry up to 3 times with backoff
+  const MAX_ATTEMPTS = 3
   let lastErr: unknown = null
-  for (let attempt = 0; attempt < 2; attempt++) {
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
       const result = await flux2Generate({
         prompt: fluxPrompt,
@@ -117,30 +120,77 @@ export async function generateTryOnFlux(options: FluxTryOnOptions): Promise<stri
         height,
         outputFormat: 'png',
         safetyTolerance: 2,
-        timeoutMs: 150_000, // FLUX.2 typically 8-20s; allow plenty of headroom
+        timeoutMs: 150_000, // FLUX.2 typically 8-20s; allow headroom
       })
 
-      // Download the signed URL into base64 (10-min TTL on FLUX URLs;
-      // the upstream pipeline uploads to Supabase storage immediately)
-      const downloaded = await downloadFluxImage(result.imageUrl)
+      // Download the signed URL into base64 (10-min TTL on FLUX URLs).
+      // Wrap with its own retry — sometimes the BFL CDN takes a beat to
+      // serve the result even after Ready.
+      let downloaded
+      let downloadAttempt = 0
+      while (true) {
+        try {
+          downloaded = await downloadFluxImage(result.imageUrl)
+          break
+        } catch (dlErr) {
+          downloadAttempt++
+          if (downloadAttempt >= 3) throw dlErr
+          await new Promise((r) => setTimeout(r, 800 * downloadAttempt))
+        }
+      }
 
       if (isDev) {
         console.log(
-          `✅ FLUX.2 try-on success · job ${result.jobId} · seed ${result.seed ?? 'n/a'} · ${downloaded.base64.length} bytes`,
+          `✅ FLUX.2 try-on success · attempt ${attempt} · job ${result.jobId} · seed ${result.seed ?? 'n/a'} · ${downloaded.base64.length} bytes`,
         )
       }
 
       return `data:${downloaded.mime};base64,${downloaded.base64}`
     } catch (err) {
       lastErr = err
-      // Retry on transient 5xx / timeout. Don't retry on moderation rejection.
+
+      // Categorize the failure
+      let category: 'moderation' | 'auth' | 'transient' | 'unknown' = 'unknown'
+      let message = err instanceof Error ? err.message : 'unknown error'
+
       if (err instanceof FluxError) {
-        const isModeration = err.status === 400 && err.message.toLowerCase().includes('moderat')
-        if (isModeration) throw err
-        if (attempt === 0 && isDev) {
-          console.warn('⚠️ FLUX.2 attempt 1 failed, retrying:', err.message)
+        const lower = message.toLowerCase()
+        if (lower.includes('moderat')) category = 'moderation'
+        else if (err.status === 401 || err.status === 403) category = 'auth'
+        else if (err.status === 504 || err.status === 502 || err.status === 503 || err.status === 429) category = 'transient'
+        else if (lower.includes('timed out') || lower.includes('timeout')) category = 'transient'
+        else if (err.status && err.status >= 500) category = 'transient'
+      } else if (err instanceof Error) {
+        const lower = message.toLowerCase()
+        if (lower.includes('fetch') || lower.includes('econnrefused') || lower.includes('socket') || lower.includes('timeout')) {
+          category = 'transient'
         }
       }
+
+      // Fail fast on non-transient errors
+      if (category === 'moderation') {
+        if (isDev) console.warn(`❌ FLUX.2 moderation rejection — failing fast: ${message}`)
+        throw err
+      }
+      if (category === 'auth') {
+        if (isDev) console.error(`❌ FLUX.2 auth failure — check FLUX_API_KEY: ${message}`)
+        throw err
+      }
+
+      // Last attempt — re-throw
+      if (attempt >= MAX_ATTEMPTS) {
+        if (isDev) console.error(`❌ FLUX.2 failed after ${MAX_ATTEMPTS} attempts: ${message}`)
+        throw err
+      }
+
+      // Exponential backoff: 1s, 3s, 6s
+      const backoffMs = Math.min(6000, 1000 * Math.pow(2, attempt - 1) + Math.floor(Math.random() * 500))
+      if (isDev) {
+        console.warn(
+          `⚠️ FLUX.2 attempt ${attempt}/${MAX_ATTEMPTS} failed (${category}): ${message} — retrying in ${backoffMs}ms`,
+        )
+      }
+      await new Promise((r) => setTimeout(r, backoffMs))
     }
   }
 

@@ -60,6 +60,14 @@ export interface PreprocessOptions {
     garmentAnalysis?: GarmentAnalysis
     /** Session ID for logging */
     sessionId?: string
+    /**
+     * Fast mode: only run detection + extraction. Skips the optional
+     * forensic analysis (STEP 3) and strict garment profile (STEP 3.5)
+     * which add ~10-15s of Gemini calls but aren't needed when the
+     * downstream model (FLUX, etc.) consumes the image directly.
+     * Default: false (full mode).
+     */
+    fast?: boolean
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -174,24 +182,30 @@ export async function preprocessGarmentImage(
         // ═══════════════════════════════════════════════════════════════
         let garmentAnalysis = options.garmentAnalysis
 
-        if (!garmentAnalysis) {
+        if (!garmentAnalysis && !options.fast) {
             try {
                 console.log(`   👔 Analyzing garment characteristics...`)
                 garmentAnalysis = await analyzeGarmentForensic(clothingImageBase64)
             } catch (e) {
                 console.warn(`   ⚠️ Garment analysis failed, continuing without it`)
             }
+        } else if (options.fast) {
+            console.log(`   ⚡ Fast mode — skipping forensic analysis`)
         }
 
         // ═══════════════════════════════════════════════════════════════
         // STEP 3.5: STRICT GARMENT PROFILE EXTRACTION (for pattern/color accuracy)
         // ═══════════════════════════════════════════════════════════════
         let strictGarmentProfile: StrictGarmentProfile | undefined
-        try {
-            strictGarmentProfile = await extractStrictGarmentProfile(clothingImageBase64)
-            logStrictGarmentStatus(sessionId, strictGarmentProfile)
-        } catch (e) {
-            console.warn(`   ⚠️ Strict garment profile extraction failed, continuing without it`)
+        if (!options.fast) {
+            try {
+                strictGarmentProfile = await extractStrictGarmentProfile(clothingImageBase64)
+                logStrictGarmentStatus(sessionId, strictGarmentProfile)
+            } catch (e) {
+                console.warn(`   ⚠️ Strict garment profile extraction failed, continuing without it`)
+            }
+        } else {
+            console.log(`   ⚡ Fast mode — skipping strict garment profile`)
         }
 
         // ═══════════════════════════════════════════════════════════════

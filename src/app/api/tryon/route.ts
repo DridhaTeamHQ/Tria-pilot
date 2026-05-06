@@ -641,17 +641,43 @@ async function handlePresetlessTryOnRequest(params: {
 
   const normalizedGarment = await resolvePresetlessGarmentBase64(service, payload)
 
-  // FAST PATH: Skip heavyweight garment preprocessing (saves ~15-25s)
-  // The preprocessor does 3-4 Gemini calls (body detection, forensic analysis,
-  // strict profile, extraction) which pushes us past the function timeout.
-  // Instead, use the garment image directly — the generation model handles
-  // clothing-on-model images well via the system instruction.
-  const processedGarment = normalizeBase64(normalizedGarment)
-  const garmentPreprocess = {
+  // GARMENT PREPROCESSING (FAST MODE)
+  // If the product reference contains a person/face, extract just the
+  // garment so it doesn't bleed identity into the try-on. Fast mode
+  // skips the optional forensic analysis + strict profile (saves ~10-15s)
+  // and only runs detection + extraction when needed.
+  // Total budget: ~4-8s when person detected (1 detection + 1 extraction call),
+  // ~3s when no person detected (1 detection call → passthrough).
+  const rawGarmentBase64 = normalizeBase64(normalizedGarment)
+  let processedGarment = rawGarmentBase64
+  let garmentPreprocess: {
+    wasExtracted: boolean
+    bodyDetected: boolean
+    confidence: number
+    extractionMethod: 'passthrough' | 'gemini-flash' | 'gemini-pro'
+  } = {
     wasExtracted: false,
     bodyDetected: false,
     confidence: 0,
-    extractionMethod: 'passthrough' as const,
+    extractionMethod: 'passthrough',
+  }
+
+  try {
+    const preprocessResult = await preprocessGarmentImage(rawGarmentBase64, {
+      fast: true,             // Skip forensic + strict profile (FLUX doesn't need them)
+      model: 'flash',         // Flash is fast and accurate enough for clean extraction
+      sessionId: `tryon-${Date.now()}`,
+    })
+    processedGarment = normalizeBase64(preprocessResult.processedImage)
+    garmentPreprocess = {
+      wasExtracted: preprocessResult.wasExtracted,
+      bodyDetected: preprocessResult.bodyDetected,
+      confidence: preprocessResult.confidence,
+      extractionMethod: preprocessResult.extractionMethod,
+    }
+  } catch (preprocessErr) {
+    // Never block the pipeline on preprocessing — fall back to raw garment
+    console.warn('[tryon] garment preprocessing failed, using raw garment:', preprocessErr)
   }
 
   // Garment intel is lightweight (1 Gemini Flash call, ~3-5s)
