@@ -20,7 +20,12 @@ import { useUser } from '@/lib/react-query/hooks'
 import LogoutButton from '@/components/LogoutButton'
 import NotificationBell from '@/components/NotificationBell'
 
-export default function BrandNavbar() {
+interface BrandNavbarProps {
+  brandName?: string
+  avatarUrl?: string | null
+}
+
+export default function BrandNavbar({ brandName: initialBrandName, avatarUrl: initialAvatarUrl }: BrandNavbarProps) {
   const pathname = usePathname()
   const { data: user, isLoading, isFetching } = useUser()
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -77,8 +82,8 @@ export default function BrandNavbar() {
     return null
   }
 
-  const brandName = (user as any)?.brand_name || user?.name || user?.email
-  const avatarUrl = (user as any)?.avatar_url || (user as any)?.avatarUrl || null
+  const brandName = (user as any)?.brand_name || user?.name || user?.email || initialBrandName || 'Brand'
+  const avatarUrl = (user as any)?.avatar_url || (user as any)?.avatarUrl || initialAvatarUrl || null
   const showAvatarImage = Boolean(avatarUrl) && !avatarFailed
 
   return (
