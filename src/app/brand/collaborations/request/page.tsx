@@ -19,13 +19,13 @@ function CollaborationRequestContent() {
     if (influencerId) {
       setIsOpen(true)
     } else {
-      router.push('/brand/marketplace')
+      router.push('/brand/influencers')
     }
   }, [influencerId, router])
 
   const handleClose = () => {
     setIsOpen(false)
-    router.push('/brand/marketplace')
+    router.push('/brand/influencers')
   }
 
   if (!influencerId) {
@@ -48,4 +48,3 @@ export default function CollaborationRequestPage() {
     </Suspense>
   )
 }
-

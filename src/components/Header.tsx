@@ -139,7 +139,7 @@ export default function Header() {
 
     const brandLinks = [
         { href: '/brand/campaigns', label: 'Campaigns', icon: Megaphone },
-        { href: '/brand/marketplace', label: 'Creators', icon: ShoppingBag },
+        { href: '/brand/influencers', label: 'Creators', icon: ShoppingBag },
         { href: '/brand/ads', label: 'Ads', icon: Sparkles },
         { href: '/brand/products', label: 'Products', icon: Box },
         { href: '/inbox', label: 'Inbox', icon: Mail },
