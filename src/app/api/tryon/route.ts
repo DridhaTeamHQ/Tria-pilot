@@ -650,6 +650,7 @@ async function handlePresetlessTryOnRequest(params: {
   // ~3s when no person detected (1 detection call → passthrough).
   const rawGarmentBase64 = normalizeBase64(normalizedGarment)
   let processedGarment = rawGarmentBase64
+  let strictGarmentProfile: import('@/lib/tryon/garment-strict-schema').StrictGarmentProfile | undefined
   let garmentPreprocess: {
     wasExtracted: boolean
     bodyDetected: boolean
@@ -664,11 +665,12 @@ async function handlePresetlessTryOnRequest(params: {
 
   try {
     const preprocessResult = await preprocessGarmentImage(rawGarmentBase64, {
-      fast: true,             // Skip forensic + strict profile (FLUX doesn't need them)
+      fast: true,             // Skips forensic analysis only — strict profile still runs
       model: 'flash',         // Flash is fast and accurate enough for clean extraction
       sessionId: `tryon-${Date.now()}`,
     })
     processedGarment = normalizeBase64(preprocessResult.processedImage)
+    strictGarmentProfile = preprocessResult.strictGarmentProfile
     garmentPreprocess = {
       wasExtracted: preprocessResult.wasExtracted,
       bodyDetected: preprocessResult.bodyDetected,
@@ -981,9 +983,10 @@ async function handlePresetlessTryOnRequest(params: {
           prompt: smartPrompt,
           aspectRatio: payload.aspectRatio || '4:5',
           model: directRenderModel,
-          // FLUX engine uses this for grounded, garment-specific prompting.
-          // Gemini engine ignores it (still uses the smartPrompt above).
+          // FLUX engine uses these for grounded, garment-specific prompting.
+          // Gemini engine ignores them (still uses the smartPrompt above).
           garmentIntel,
+          strictGarmentProfile,
         })
 
         // Save to storage

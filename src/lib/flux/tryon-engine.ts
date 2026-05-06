@@ -13,9 +13,11 @@
  */
 
 import 'server-only'
+import sharp from 'sharp'
 import { flux2Generate, downloadFluxImage, FluxError } from './client'
 import { stripInjectionTokens } from '@/lib/security/prompt-injection'
 import type { GarmentIntelligence } from '@/lib/tryon/garment-intel'
+import type { StrictGarmentProfile } from '@/lib/tryon/garment-strict-schema'
 
 export interface FluxTryOnOptions {
   personImageBase64: string
@@ -31,6 +33,12 @@ export interface FluxTryOnOptions {
    * the model's interpretation of the reference image alone.
    */
   garmentIntel?: GarmentIntelligence | null
+  /**
+   * Optional strict profile with hex colors, motif description, fabric
+   * specs. When supplied, locks color + pattern fidelity even harder
+   * than the basic intel.
+   */
+  strictGarmentProfile?: StrictGarmentProfile | null
 }
 
 // Aspect ratio → width/height map. FLUX.2 requires explicit dimensions.
@@ -62,59 +70,99 @@ function aspectToWH(aspect: string | undefined, resolution: string | undefined):
  *
  * FLUX.2 responds best to short, direct prompts that explicitly reference
  * image positions and describe the target garment in concrete terms.
- * The verbose "system instruction" style that works for Gemini actually
- * confuses FLUX.2 — it pattern-matches stylistic phrases instead of
- * following the swap directive.
+ *
+ * Priority of garment specs (most → least specific):
+ *   1. strictGarmentProfile (hex colors + motif description + fabric)
+ *   2. garmentIntel (color name + pattern + material + cut)
+ *   3. Image-only fallback (just "the garment in image 2")
  *
  * Strategy:
- *   1. Anchor identity to image 1: "the person from image 1"
- *   2. Describe the garment in CONCRETE specs from garmentIntel — not
- *      "the garment from image 2" (FLUX.2 generalizes those)
- *   3. End with the swap action and lighting/realism note
- *   4. Keep total length under ~600 chars
+ *   - Anchor identity: "the person from image 1"
+ *   - Describe the garment in CONCRETE specs (FLUX generalizes "the garment in image 2")
+ *   - End with negative-style guards ("no extra layers", "no different person")
+ *   - Cap at ~600 chars — FLUX.2 sweet spot
  */
 function buildFluxClothingSwapPrompt(
   garmentIntel: GarmentIntelligence | null | undefined,
+  strictProfile: StrictGarmentProfile | null | undefined,
   userContext: string,
 ): string {
-  if (!garmentIntel) {
-    // Fallback: minimal swap directive without specifics
-    const ctx = userContext ? ` ${userContext}` : ''
-    return `Photorealistic edit: dress the person from image 1 in the exact garment shown in image 2. Preserve their face, hair, skin tone, pose, and background unchanged. Match the garment's color, pattern, fit, and details precisely.${ctx}`.slice(0, 1500)
-  }
-
-  // Build a concise garment description from intel
+  // Build the concrete garment description, prioritizing strict profile
   const parts: string[] = []
-  // Color + pattern + material first — most visually distinctive
-  const colorBit = garmentIntel.secondaryColor && garmentIntel.secondaryColor !== garmentIntel.primaryColor
-    ? `${garmentIntel.primaryColor} and ${garmentIntel.secondaryColor}`
-    : garmentIntel.primaryColor
-  if (colorBit) parts.push(colorBit)
-  if (garmentIntel.pattern && garmentIntel.pattern !== 'solid') parts.push(garmentIntel.pattern)
-  if (garmentIntel.material && garmentIntel.material !== 'other') parts.push(garmentIntel.material)
-  // Garment type + cut
-  parts.push(garmentIntel.garmentType.replace(/_/g, ' '))
-  if (garmentIntel.fit && garmentIntel.fit !== 'regular') parts.push(`${garmentIntel.fit} fit`)
-  if (garmentIntel.length && !['waist', 'hip'].includes(garmentIntel.length)) {
-    parts.push(`${garmentIntel.length} length`)
-  }
-  // Neckline + sleeves for tops
-  if (garmentIntel.neckline && garmentIntel.neckline !== 'other') {
-    parts.push(`${garmentIntel.neckline} neckline`)
-  }
-  if (garmentIntel.sleeves && !['other', 'none'].includes(garmentIntel.sleeves)) {
-    parts.push(`${garmentIntel.sleeves} sleeves`)
+
+  if (strictProfile) {
+    // ── Strict profile path: most specific ──────────────────────────
+    const baseColor = strictProfile.base_color
+    if (baseColor?.name) {
+      const hex = baseColor.hex ? ` (${baseColor.hex})` : ''
+      parts.push(`${baseColor.name}${hex}`)
+    }
+    if (strictProfile.secondary_colors?.length) {
+      const secondaryNames = strictProfile.secondary_colors
+        .slice(0, 2)
+        .map((c) => `${c.name}${c.hex ? ` (${c.hex})` : ''}`)
+        .join(' and ')
+      parts.push(`with ${secondaryNames} accents`)
+    }
+    if (strictProfile.pattern?.exists && strictProfile.pattern.type !== 'solid') {
+      const motif = strictProfile.pattern.motif_description?.slice(0, 80)
+      const scaleAndDensity = `${strictProfile.pattern.motif_scale} ${strictProfile.pattern.repeat_density}`
+      parts.push(motif ? `${strictProfile.pattern.type} pattern (${motif}, ${scaleAndDensity})` : strictProfile.pattern.type)
+    }
+    if (strictProfile.fabric?.material && strictProfile.fabric.material !== 'other') {
+      const finish = strictProfile.fabric.surface_finish && strictProfile.fabric.surface_finish !== 'matte'
+        ? ` ${strictProfile.fabric.surface_finish.replace('_', ' ')}`
+        : ''
+      parts.push(`${strictProfile.fabric.material}${finish}`)
+    }
+    parts.push(strictProfile.garment_type.replace(/_/g, ' '))
+    const construction = strictProfile.construction
+    if (construction?.length && !['waist', 'hip'].includes(construction.length)) {
+      parts.push(`${construction.length.replace(/_/g, ' ')} length`)
+    }
+    if (construction?.neckline && construction.neckline !== 'other') {
+      parts.push(`${construction.neckline} neckline`)
+    }
+    if (construction?.sleeves?.length && construction.sleeves.length !== 'sleeveless') {
+      parts.push(`${construction.sleeves.length} sleeves`)
+    } else if (construction?.sleeves?.length === 'sleeveless') {
+      parts.push('sleeveless')
+    }
+  } else if (garmentIntel) {
+    // ── Basic intel path: less specific but still grounded ──────────
+    const colorBit =
+      garmentIntel.secondaryColor && garmentIntel.secondaryColor !== garmentIntel.primaryColor
+        ? `${garmentIntel.primaryColor} and ${garmentIntel.secondaryColor}`
+        : garmentIntel.primaryColor
+    if (colorBit) parts.push(colorBit)
+    if (garmentIntel.pattern && garmentIntel.pattern !== 'solid') parts.push(garmentIntel.pattern)
+    if (garmentIntel.material && garmentIntel.material !== 'other') parts.push(garmentIntel.material)
+    parts.push(garmentIntel.garmentType.replace(/_/g, ' '))
+    if (garmentIntel.fit && garmentIntel.fit !== 'regular') parts.push(`${garmentIntel.fit} fit`)
+    if (garmentIntel.length && !['waist', 'hip'].includes(garmentIntel.length)) {
+      parts.push(`${garmentIntel.length} length`)
+    }
+    if (garmentIntel.neckline && garmentIntel.neckline !== 'other') {
+      parts.push(`${garmentIntel.neckline} neckline`)
+    }
+    if (garmentIntel.sleeves && !['other', 'none'].includes(garmentIntel.sleeves)) {
+      parts.push(`${garmentIntel.sleeves} sleeves`)
+    }
   }
 
-  const garmentDesc = parts.join(', ')
-  const features =
-    garmentIntel.keyFeatures && garmentIntel.keyFeatures.length > 0
-      ? ` Details: ${garmentIntel.keyFeatures.slice(0, 4).join(', ')}.`
-      : ''
+  // Build features list — combine intel keyFeatures with strict construction details
+  const featuresList: string[] = []
+  if (garmentIntel?.keyFeatures?.length) {
+    featuresList.push(...garmentIntel.keyFeatures.slice(0, 3))
+  }
+  if (strictProfile?.construction?.waist && strictProfile.construction.waist !== 'straight') {
+    featuresList.push(`${strictProfile.construction.waist} waist`)
+  }
+  const features = featuresList.length > 0 ? ` Details: ${featuresList.slice(0, 4).join(', ')}.` : ''
 
-  // Bottom wear hint when product is a top with visible bottom in product photo
+  // Bottom wear hint
   let bottomBit = ''
-  if (garmentIntel.coverage === 'upper_only') {
+  if (garmentIntel?.coverage === 'upper_only') {
     if (garmentIntel.visibleBottomInPhoto && garmentIntel.visibleBottomInPhoto !== 'none') {
       bottomBit = ` Pair with ${garmentIntel.visibleBottomInPhoto}.`
     } else if (garmentIntel.bottomWearSuggestion && garmentIntel.bottomWearSuggestion !== 'included') {
@@ -122,16 +170,40 @@ function buildFluxClothingSwapPrompt(
     }
   }
 
+  const garmentDesc = parts.length > 0 ? parts.join(', ') : 'the garment shown in image 2'
   const userBit = userContext ? ` ${userContext}` : ''
 
-  // FLUX.2 prefers <600 char prompts. Keep this tight.
+  // Caption-style prompt with negative-style guards at the end.
+  // FLUX responds well to "no X, no Y" lists at the tail.
   const prompt = [
     `Photorealistic edit: dress the person from image 1 in the exact garment shown in image 2 — a ${garmentDesc}.${features}${bottomBit}`,
-    `Replace ALL existing clothing on the affected body area with this garment only — no layering, no mixing.`,
-    `Preserve the person's face, hair, skin tone, body shape, pose, and background exactly. Match natural lighting, fabric drape, and shadows.${userBit}`,
+    `Replace ALL existing clothing on the affected body area with this garment only.`,
+    `Preserve the person's face, hair, skin tone, body shape, pose, and background exactly. Match natural lighting, fabric drape, and shadows.`,
+    `No layering, no extra garments, no different person, no text or watermarks, no AI artifacts.${userBit}`,
   ].join(' ').slice(0, 1500)
 
   return prompt
+}
+
+/**
+ * Read the actual aspect ratio of the person photo to keep FLUX dimensions
+ * natural. Falls back to the requested aspect when sharp can't read it.
+ */
+async function detectPersonAspect(personBase64: string): Promise<string | null> {
+  try {
+    const buf = Buffer.from(personBase64, 'base64')
+    const meta = await sharp(buf).metadata()
+    if (!meta.width || !meta.height) return null
+    const ratio = meta.width / meta.height
+    if (ratio > 1.6) return '16:9'
+    if (ratio > 1.2) return '4:3'
+    if (ratio > 0.95 && ratio < 1.05) return '1:1'
+    if (ratio > 0.7) return '4:5'
+    if (ratio > 0.6) return '3:4'
+    return '9:16'
+  } catch {
+    return null
+  }
 }
 
 export async function generateTryOnFlux(options: FluxTryOnOptions): Promise<string> {
@@ -148,14 +220,21 @@ export async function generateTryOnFlux(options: FluxTryOnOptions): Promise<stri
   }
 
   // Build the FLUX prompt grounded in concrete garment specifics from
-  // garmentIntel. Sanitize the user's smart-prompt context against
-  // prompt-injection before embedding.
-  // Strip the verbose system-instruction prefix that the Gemini path
-  // builds — FLUX.2 doesn't need (and is confused by) those imperatives.
+  // strictGarmentProfile (preferred) or garmentIntel. Sanitize the user's
+  // smart-prompt context against prompt-injection before embedding.
   const userContext = stripInjectionTokens(options.prompt || '').slice(0, 400)
-  const fluxPrompt = buildFluxClothingSwapPrompt(options.garmentIntel ?? null, userContext)
+  const fluxPrompt = buildFluxClothingSwapPrompt(
+    options.garmentIntel ?? null,
+    options.strictGarmentProfile ?? null,
+    userContext,
+  )
 
-  const { width, height } = aspectToWH(options.aspectRatio, options.resolution)
+  // Auto-detect the person photo's natural aspect — keeps the output's
+  // crop natural instead of forcing a 4:5 framing on a 9:16 selfie.
+  // Falls back to the requested aspectRatio when detection fails.
+  const detectedAspect = await detectPersonAspect(cleanPerson)
+  const finalAspect = detectedAspect || options.aspectRatio || '4:5'
+  const { width, height } = aspectToWH(finalAspect, options.resolution)
 
   // Optional face crop becomes input_image_3 (FLUX.2 supports up to 8 inputs)
   const inputImages = [cleanPerson, cleanGarment]

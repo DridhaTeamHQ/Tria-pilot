@@ -415,6 +415,13 @@ export interface DirectTryOnOptions {
    * Gemini engine ignores this field and uses `prompt` directly.
    */
   garmentIntel?: import('@/lib/tryon/garment-intel').GarmentIntelligence | null
+  /**
+   * Optional strict garment profile (hex colors, motif descriptions,
+   * fabric specs). When the preprocessor extracts the garment from a
+   * person-on-product image, this profile is also computed. FLUX uses
+   * the hex color + motif description to lock pattern fidelity.
+   */
+  strictGarmentProfile?: import('@/lib/tryon/garment-strict-schema').StrictGarmentProfile | null
 }
 
 /**
@@ -457,6 +464,7 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
       aspectRatio: options.aspectRatio,
       resolution: options.resolution,
       garmentIntel: options.garmentIntel ?? null,
+      strictGarmentProfile: options.strictGarmentProfile ?? null,
     })
   }
 

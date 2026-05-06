@@ -31,7 +31,9 @@ const DEFAULT_TIMEOUT_MS = 120_000  // 2 min — Fill is fast (5-15s) but allow 
 
 export type FluxModel =
   // FLUX.2 family — newer, better at instruction following + multi-image
-  | 'flux-2-pro'
+  | 'flux-2-max'           // highest quality, slower, more credits
+  | 'flux-2-pro'           // recommended default
+  | 'flux-2-flex'
   // FLUX.1 family
   | 'flux-pro-1.1'
   | 'flux-pro-1.1-ultra'
@@ -333,7 +335,13 @@ export async function flux2Generate(options: Flux2GenerateOptions): Promise<{
     payload[fieldName] = images[i]
   }
 
-  return submitAndAwait('flux-2-pro', payload, { timeoutMs: options.timeoutMs })
+  // Pick the model from FLUX_TRYON_MODEL — defaults to flux-2-pro,
+  // can be set to flux-2-max for highest quality (more credits, slower)
+  const configuredModel = (process.env.FLUX_TRYON_MODEL || '').trim() as FluxModel
+  const FLUX2_MODELS: Set<FluxModel> = new Set(['flux-2-max', 'flux-2-pro', 'flux-2-flex'])
+  const model: FluxModel = FLUX2_MODELS.has(configuredModel) ? configuredModel : 'flux-2-pro'
+
+  return submitAndAwait(model, payload, { timeoutMs: options.timeoutMs })
 }
 
 /**

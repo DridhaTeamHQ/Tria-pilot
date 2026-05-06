@@ -196,16 +196,16 @@ export async function preprocessGarmentImage(
         // ═══════════════════════════════════════════════════════════════
         // STEP 3.5: STRICT GARMENT PROFILE EXTRACTION (for pattern/color accuracy)
         // ═══════════════════════════════════════════════════════════════
+        // Always run when extraction is happening — gives FLUX exact
+        // hex colors, motif descriptions, fabric specs that dramatically
+        // improve fidelity. Only adds ~3-4s on top of an already-extracting
+        // pipeline.
         let strictGarmentProfile: StrictGarmentProfile | undefined
-        if (!options.fast) {
-            try {
-                strictGarmentProfile = await extractStrictGarmentProfile(clothingImageBase64)
-                logStrictGarmentStatus(sessionId, strictGarmentProfile)
-            } catch (e) {
-                console.warn(`   ⚠️ Strict garment profile extraction failed, continuing without it`)
-            }
-        } else {
-            console.log(`   ⚡ Fast mode — skipping strict garment profile`)
+        try {
+            strictGarmentProfile = await extractStrictGarmentProfile(clothingImageBase64)
+            logStrictGarmentStatus(sessionId, strictGarmentProfile)
+        } catch (e) {
+            console.warn(`   ⚠️ Strict garment profile extraction failed, continuing without it`)
         }
 
         // ═══════════════════════════════════════════════════════════════
