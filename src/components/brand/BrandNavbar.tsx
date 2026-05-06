@@ -72,8 +72,9 @@ export default function BrandNavbar({ brandName: initialBrandName, avatarUrl: in
     { href: '/brand/influencers', label: 'Creators', icon: ShoppingBag },
     { href: '/brand/ads', label: 'Ad Creatives', icon: Sparkles },
     { href: '/brand/products', label: 'Products', icon: Box },
-    { href: '/inbox', label: 'Inbox', icon: Mail },
   ]
+  const inboxItem = { href: '/inbox', label: 'Inbox', icon: Mail }
+  const mobileNavItems = [...navItems, inboxItem]
 
   const isLoggedIn = user !== null && user !== undefined
   const authResolving = isLoading || (isFetching && !isLoggedIn)
@@ -118,6 +119,16 @@ export default function BrandNavbar({ brandName: initialBrandName, avatarUrl: in
           </nav>
 
           <div className="hidden items-center justify-end gap-2 shrink-0 lg:flex lg:gap-3">
+            <Link
+              href={inboxItem.href}
+              className={`relative flex h-9 w-9 items-center justify-center rounded-xl border-2 border-black text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition-transform hover:-translate-y-0.5 ${
+                isActive(inboxItem.href) ? 'bg-[#B4F056]' : 'bg-white'
+              }`}
+              title={inboxItem.label}
+              aria-label={inboxItem.label}
+            >
+              <Mail className="h-4 w-4" />
+            </Link>
             <NotificationBell role="brand" variant="brand" />
             <Link
               href="/brand/profile"
@@ -182,7 +193,7 @@ export default function BrandNavbar({ brandName: initialBrandName, avatarUrl: in
               </div>
             </Link>
 
-            {navItems.map((item) => {
+            {mobileNavItems.map((item) => {
               const Icon = item.icon
               const active = isActive(item.href)
               return (
