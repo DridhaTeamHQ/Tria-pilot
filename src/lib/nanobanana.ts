@@ -412,13 +412,47 @@ export interface DirectTryOnOptions {
 
 /**
  * Thin transport layer for the Nano Banana Pro pipeline.
- * 
- * CRITICAL: This function does NOT build any prompt internally.
- * The prompt argument is passed DIRECTLY to Gemini.
+ *
+ * Engine routing:
+ *   When TRYON_ENGINE=flux (or unset and FLUX_API_KEY is configured),
+ *   delegates to FLUX.2 [pro]. Otherwise falls through to the Gemini
+ *   pipeline below.
+ *
+ * Both engines accept the same shape and return a base64 data-URL
+ * string. The caller (api/tryon/route.ts) doesn't need to know which
+ * engine ran.
+ *
+ * CRITICAL: This function does NOT build any prompt internally for the
+ * Gemini path — the prompt argument is passed DIRECTLY to Gemini.
  * Content order: [person_image, garment_image, face_crop, character_refs, prompt_text]
- * Model: caller-selected Gemini image model, defaulting to Pro for fidelity.
  */
 export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<string> {
+  // Engine selection. Defaults to 'flux' when FLUX_API_KEY is set,
+  // 'gemini' otherwise. Override with TRYON_ENGINE=gemini|flux.
+  const explicitEngine = (process.env.TRYON_ENGINE || '').trim().toLowerCase()
+  const fluxKeyConfigured = Boolean((process.env.FLUX_API_KEY || '').trim())
+  const engine =
+    explicitEngine === 'gemini'
+      ? 'gemini'
+      : explicitEngine === 'flux'
+        ? 'flux'
+        : fluxKeyConfigured
+          ? 'flux'
+          : 'gemini'
+
+  if (engine === 'flux') {
+    const { generateTryOnFlux } = await import('@/lib/flux/tryon-engine')
+    return generateTryOnFlux({
+      personImageBase64: options.personImageBase64,
+      garmentImageBase64: options.garmentImageBase64,
+      faceCropBase64: options.faceCropBase64,
+      prompt: options.prompt,
+      aspectRatio: options.aspectRatio,
+      resolution: options.resolution,
+    })
+  }
+
+  // ── Gemini path ───────────────────────────────────────────────────
   const {
     personImageBase64,
     garmentImageBase64,
