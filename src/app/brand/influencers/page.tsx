@@ -417,7 +417,7 @@ export default function BrandInfluencersPage() {
                 value={minEngagement}
                 onChange={(value) => {
                   const raw = Array.isArray(value) ? value[0] : value
-                  if (raw == null || raw === '') {
+                  if (raw == null) {
                     setMinEngagement(null)
                     return
                   }
