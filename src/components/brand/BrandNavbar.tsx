@@ -1,95 +1,89 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { AppImage } from '@/components/ui/AppImage'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import {
-  LayoutDashboard,
-  Sparkles,
-  Users,
-  Target,
-  Package,
-  Inbox,
   Menu,
   X,
+  LayoutDashboard,
+  Megaphone,
+  ShoppingBag,
+  Sparkles,
+  Box,
+  Mail,
   ChevronRight,
 } from 'lucide-react'
-import { useQueryClient } from '@tanstack/react-query'
 import { setAuthToast } from '@/components/auth-toast-bridge'
+import { useUser } from '@/lib/react-query/hooks'
 import LogoutButton from '@/components/LogoutButton'
 import NotificationBell from '@/components/NotificationBell'
 
-const navItems = [
-  { href: '/brand/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/brand/campaigns', label: 'Campaigns', icon: Target },
-  { href: '/brand/influencers', label: 'Creators', icon: Users },
-  { href: '/brand/ads', label: 'Ad Creatives', icon: Sparkles },
-  { href: '/brand/products', label: 'Products', icon: Package },
-  { href: '/brand/inbox', label: 'Inbox', icon: Inbox },
-]
-
-interface BrandNavbarProps {
-  brandName?: string
-  avatarUrl?: string | null
-}
-
-export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: BrandNavbarProps) {
+export default function BrandNavbar() {
   const pathname = usePathname()
-  const router = useRouter()
-  const queryClient = useQueryClient()
+  const { data: user, isLoading, isFetching } = useUser()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [avatarFailed, setAvatarFailed] = useState(false)
-  const showAvatarImage = Boolean(avatarUrl) && !avatarFailed
-
-  const activeHref =
-    navItems
-      .filter((item) => pathname === item.href || pathname?.startsWith(`${item.href}/`))
-      .sort((a, b) => b.href.length - a.href.length)[0]?.href || null
-
-  const isActive = (href: string) => activeHref === href
 
   useEffect(() => {
     setMobileOpen(false)
   }, [pathname])
 
-  useEffect(() => {
-    document.body.style.overflow = mobileOpen ? 'hidden' : ''
-    return () => {
-      document.body.style.overflow = ''
-    }
-  }, [mobileOpen])
-
   const handleLogout = useCallback(async () => {
     if (isLoggingOut) return
     setIsLoggingOut(true)
     try {
-      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      })
+
       if (typeof window !== 'undefined') {
         Object.keys(localStorage).forEach((key) => {
           if (key.startsWith('sb-') || key.startsWith('supabase')) {
-            localStorage.removeItem(key);
+            localStorage.removeItem(key)
           }
-        });
+        })
         sessionStorage.clear()
         setAuthToast('logged_out')
+        window.location.href = '/'
       }
-      setMobileOpen(false)
-      window.location.href = '/'
-      return
     } catch (error) {
       console.error('Logout error:', error)
       if (typeof window !== 'undefined') {
         window.location.href = '/'
       }
-      return
     }
   }, [isLoggingOut])
 
+  const isActive = (path: string) =>
+    pathname === path || pathname?.startsWith(path + '/')
+
+  const navItems = [
+    { href: '/brand/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/brand/campaigns', label: 'Campaigns', icon: Megaphone },
+    { href: '/brand/influencers', label: 'Creators', icon: ShoppingBag },
+    { href: '/brand/ads', label: 'Ad Creatives', icon: Sparkles },
+    { href: '/brand/products', label: 'Products', icon: Box },
+    { href: '/inbox', label: 'Inbox', icon: Mail },
+  ]
+
+  const isLoggedIn = user !== null && user !== undefined
+  const authResolving = isLoading || (isFetching && !isLoggedIn)
+
+  if (authResolving || !isLoggedIn || user?.role !== 'BRAND') {
+    return null
+  }
+
+  const brandName = (user as any)?.brand_name || user?.name || user?.email
+  const avatarUrl = (user as any)?.avatar_url || (user as any)?.avatarUrl || null
+  const showAvatarImage = Boolean(avatarUrl) && !avatarFailed
+
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-[#F9F8F4] border-b-[3px] border-black">
-      <div className="mx-auto w-full max-w-[2000px] px-3 sm:px-5 lg:px-6 xl:px-8">
+    <header className="fixed top-0 left-0 right-0 z-50 border-b-[3px] border-black bg-[#F9F8F4]">
+      <div className="mx-auto w-full max-w-[2000px] px-3 sm:px-5 lg:px-8 xl:px-12">
         <div className="grid h-14 grid-cols-[auto_1fr_auto] items-center gap-2 sm:h-16 lg:h-16 lg:gap-4">
           <Link
             href="/brand/dashboard"
@@ -98,7 +92,7 @@ export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: B
             Kiwikoo
           </Link>
 
-          <nav className="hidden lg:flex min-w-0 items-center justify-center gap-1 lg:gap-1.5 px-2">
+          <nav className="hidden items-center justify-center gap-1.5 lg:flex xl:gap-2">
             {navItems.map((item) => {
               const Icon = item.icon
               const active = isActive(item.href)
@@ -106,23 +100,24 @@ export default function BrandNavbar({ brandName = 'Brand', avatarUrl = null }: B
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`px-2.5 lg:px-3 py-1.5 rounded-xl text-sm lg:text-[15px] font-bold transition-all duration-150 flex items-center justify-center gap-1.5 border-2 border-black whitespace-nowrap ${active
-                    ? 'bg-[#B4F056] text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
-                    : 'bg-white text-black hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
-                    }`}
+                  className={`flex items-center gap-2 rounded-xl border-2 border-black px-3 py-1.5 text-sm font-bold transition-all xl:px-4 xl:py-2 xl:text-base ${
+                    active
+                      ? 'bg-[#B4F056] text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)]'
+                      : 'bg-white text-black hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)]'
+                  }`}
                 >
-                  <Icon className="w-3.5 h-3.5 lg:w-4 lg:h-4 shrink-0" />
+                  <Icon className="h-4 w-4 shrink-0 xl:h-5 xl:w-5" />
                   <span className="whitespace-nowrap">{item.label}</span>
                 </Link>
               )
             })}
           </nav>
 
-          <div className="hidden lg:flex items-center justify-end gap-2 shrink-0">
+          <div className="hidden items-center justify-end gap-2 shrink-0 lg:flex lg:gap-3">
             <NotificationBell role="brand" variant="brand" />
             <Link
               href="/brand/profile"
-              className="relative w-9 h-9 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black text-sm transition-transform hover:-translate-y-0.5"
+              className="relative w-9 h-9 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] flex items-center justify-center text-black font-black text-sm transition-transform hover:-translate-y-0.5"
               title="Profile"
             >
               {showAvatarImage ? (
