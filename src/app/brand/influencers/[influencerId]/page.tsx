@@ -632,7 +632,7 @@ export default function InfluencerDetailPage({
         {activeTab === 'overview' && (
           <div className="space-y-5 page-fade">
             {/* Audience snapshot */}
-            <div className="bg-white border-[3px] border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] p-5">
+            <div className="bg-white border-[3px] border-black rounded-xl shadow-[4px_4px_0_0_rgba(0,0,0,1)] p-5">
               <h2 className="text-xs font-black uppercase tracking-widest text-black/60 mb-4">
                 Audience Snapshot
               </h2>
@@ -666,7 +666,7 @@ export default function InfluencerDetailPage({
 
             {/* Preferred categories */}
             {profile.preferredCategories.length > 0 && (
-              <div className="bg-white border-[3px] border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] p-5">
+              <div className="bg-white border-[3px] border-black rounded-xl shadow-[4px_4px_0_0_rgba(0,0,0,1)] p-5">
                 <h2 className="text-xs font-black uppercase tracking-widest text-black/60 mb-3">
                   Prefers Working With
                 </h2>
@@ -674,7 +674,7 @@ export default function InfluencerDetailPage({
                   {profile.preferredCategories.map((c) => (
                     <span
                       key={c}
-                      className="inline-block px-3 py-1.5 bg-[#A78BFA]/15 border-2 border-black text-xs font-bold"
+                      className="inline-block px-3 py-1.5 bg-[#A78BFA]/15 border-2 border-black rounded-md text-xs font-bold"
                     >
                       {c}
                     </span>
@@ -685,7 +685,7 @@ export default function InfluencerDetailPage({
 
             {/* Quick collab summary with this brand */}
             {collaboration.total > 0 && (
-              <div className="bg-white border-[3px] border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] p-5">
+              <div className="bg-white border-[3px] border-black rounded-xl shadow-[4px_4px_0_0_rgba(0,0,0,1)] p-5">
                 <h2 className="text-xs font-black uppercase tracking-widest text-black/60 mb-4 flex items-center gap-2">
                   <Zap className="w-3.5 h-3.5" strokeWidth={3} />
                   History with you
@@ -715,7 +715,7 @@ export default function InfluencerDetailPage({
 
             {/* Try-on preview */}
             {tryOns.length > 0 && (
-              <div className="bg-white border-[3px] border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] p-5">
+              <div className="bg-white border-[3px] border-black rounded-xl shadow-[4px_4px_0_0_rgba(0,0,0,1)] p-5">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xs font-black uppercase tracking-widest text-black/60 flex items-center gap-2">
                     <Sparkles className="w-3.5 h-3.5 text-[#A78BFA]" strokeWidth={3} />
@@ -735,7 +735,7 @@ export default function InfluencerDetailPage({
                       key={`${item.jobId}-${item.outputIndex}`}
                       type="button"
                       onClick={() => setPreviewIndex(idx)}
-                      className="relative aspect-[3/4] border-2 border-black bg-black/5 overflow-hidden shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all group"
+                      className="relative aspect-[3/4] border-2 border-black rounded-lg bg-black/5 overflow-hidden shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all group"
                     >
                       <AppImage
                         src={item.imageUrl}
@@ -770,7 +770,7 @@ export default function InfluencerDetailPage({
                     key={`${item.jobId}-${item.outputIndex}`}
                     type="button"
                     onClick={() => setPreviewIndex(idx)}
-                    className="group relative aspect-[3/4] border-[3px] border-black bg-black/5 overflow-hidden shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition-all"
+                    className="group relative aspect-[3/4] border-[3px] border-black rounded-lg bg-black/5 overflow-hidden shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition-all"
                   >
                     <AppImage
                       src={item.imageUrl}
@@ -799,7 +799,7 @@ export default function InfluencerDetailPage({
           <div className="space-y-4 page-fade">
             {profile.pricingBreakdown ? (
               <>
-                <div className="bg-white border-[3px] border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] p-5">
+                <div className="bg-white border-[3px] border-black rounded-xl shadow-[4px_4px_0_0_rgba(0,0,0,1)] p-5">
                   <h2 className="text-xs font-black uppercase tracking-widest text-black/60 mb-1">
                     Estimated Rate Card
                   </h2>
@@ -814,7 +814,7 @@ export default function InfluencerDetailPage({
                     <PriceTile label="UGC video" amount={profile.pricingBreakdown.ugc} accent="#F472B6" />
                   </div>
                 </div>
-                <div className="bg-[#A78BFA]/10 border-[3px] border-black p-4 flex items-start gap-3">
+                <div className="bg-[#A78BFA]/10 border-[3px] border-black rounded-lg p-4 flex items-start gap-3">
                   <Sparkles className="w-4 h-4 text-[#A78BFA] flex-shrink-0 mt-0.5" strokeWidth={3} />
                   <p className="text-xs text-black/70 font-semibold">
                     Bundle deals (3+ posts in a campaign) typically save 10-20% off these rates. Send a brief through the message button to negotiate.
@@ -849,7 +849,7 @@ export default function InfluencerDetailPage({
                 <button
                   type="button"
                   onClick={() => setInviteOpen((v) => !v)}
-                  className="inline-flex items-center gap-2 px-5 py-3 bg-[#A78BFA] border-2 border-black font-black text-sm uppercase shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all"
+                  className="inline-flex items-center gap-2 px-5 py-3 bg-[#A78BFA] border-2 border-black rounded-lg font-black text-sm uppercase shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all"
                 >
                   <Send className="w-4 h-4" strokeWidth={3} />
                   Send invite
@@ -864,7 +864,7 @@ export default function InfluencerDetailPage({
                   <CountTile label="Declined" value={collaboration.declined} tone="orange" />
                 </div>
                 {collaboration.recentInteraction && (
-                  <div className="bg-white border-[3px] border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] p-5 flex items-start gap-3">
+                  <div className="bg-white border-[3px] border-black rounded-xl shadow-[4px_4px_0_0_rgba(0,0,0,1)] p-5 flex items-start gap-3">
                     <CheckCircle2 className="w-5 h-5 mt-0.5" strokeWidth={3} />
                     <div>
                       <p className="text-xs font-black uppercase tracking-wider mb-0.5">
@@ -933,7 +933,7 @@ function SocialLink({
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 border-2 border-black bg-white hover:bg-black/5 hover:-translate-y-0.5 transition-all text-xs font-bold"
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 border-2 border-black rounded-md bg-white hover:bg-black/5 hover:-translate-y-0.5 transition-all text-xs font-bold"
     >
       <Icon className="w-3.5 h-3.5" strokeWidth={2.5} />
       <span className="truncate max-w-[160px]">{label}</span>
@@ -963,9 +963,9 @@ function Stat({
             ? 'bg-[#FF8C69]'
             : 'bg-[#F472B6]'
   return (
-    <div className="bg-white border-[3px] border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] p-4">
+    <div className="bg-white border-[3px] border-black rounded-xl shadow-[4px_4px_0_0_rgba(0,0,0,1)] p-4">
       <div
-        className={`inline-flex w-9 h-9 items-center justify-center border-2 border-black ${bg} mb-2 shadow-[2px_2px_0_0_rgba(0,0,0,1)]`}
+        className={`inline-flex w-9 h-9 items-center justify-center border-2 border-black rounded-md ${bg} mb-2 shadow-[2px_2px_0_0_rgba(0,0,0,1)]`}
       >
         <Icon className="w-4 h-4" strokeWidth={3} />
       </div>
@@ -979,7 +979,7 @@ function Stat({
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-black/[0.03] border-2 border-black p-3 text-center">
+    <div className="bg-black/[0.03] border-2 border-black rounded-lg p-3 text-center">
       <div className="text-base font-black break-words">{value}</div>
       <div className="text-[9px] font-black uppercase tracking-widest text-black/45 mt-0.5">
         {label}
@@ -990,7 +990,7 @@ function MiniStat({ label, value }: { label: string; value: string }) {
 
 function PriceTile({ label, amount, accent }: { label: string; amount: number; accent: string }) {
   return (
-    <div className="bg-white border-2 border-black p-4 relative overflow-hidden">
+    <div className="bg-white border-2 border-black rounded-lg p-4 relative overflow-hidden">
       <div className="absolute inset-x-0 top-0 h-1.5" style={{ background: accent }} />
       <div className="text-xl font-black mt-1.5">₹{amount.toLocaleString('en-IN')}</div>
       <div className="text-[10px] font-black uppercase tracking-widest text-black/55 mt-0.5">
@@ -1012,7 +1012,7 @@ function CountTile({
   const bg =
     tone === 'green' ? 'bg-[#B4F056]' : tone === 'yellow' ? 'bg-[#FFD93D]' : tone === 'orange' ? 'bg-[#FF8C69]' : 'bg-white'
   return (
-    <div className={`${bg} border-[3px] border-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] p-4 text-center`}>
+    <div className={`${bg} border-[3px] border-black rounded-lg shadow-[3px_3px_0_0_rgba(0,0,0,1)] p-4 text-center`}>
       <div className="text-2xl font-black">{value}</div>
       <div className="text-[10px] font-black uppercase tracking-widest mt-0.5">{label}</div>
     </div>
@@ -1076,11 +1076,11 @@ function Lightbox({
       >
         <button
           onClick={onClose}
-          className="absolute -top-12 right-0 px-4 py-2 bg-white border-[3px] border-black shadow-[3px_3px_0_0_rgba(255,255,255,1)] text-xs font-black uppercase tracking-wider hover:bg-gray-50"
+          className="absolute -top-12 right-0 px-4 py-2 bg-white border-[3px] border-black rounded-md shadow-[3px_3px_0_0_rgba(255,255,255,1)] text-xs font-black uppercase tracking-wider hover:bg-gray-50"
         >
           Close ✕
         </button>
-        <div className="w-full bg-white border-[3px] border-black shadow-[6px_6px_0_0_rgba(255,255,255,0.5)] overflow-hidden">
+        <div className="w-full bg-white border-[3px] border-black rounded-xl shadow-[6px_6px_0_0_rgba(255,255,255,0.5)] overflow-hidden">
           <div className="relative w-full aspect-[3/4] bg-black/5">
             <AppImage
               src={item.imageUrl}
@@ -1095,7 +1095,7 @@ function Lightbox({
           <button
             onClick={() => index > 0 && onIndexChange(index - 1)}
             disabled={index === 0}
-            className="px-4 py-2 bg-white text-black border-[3px] border-black font-black uppercase text-xs disabled:opacity-30"
+            className="px-4 py-2 bg-white text-black border-[3px] border-black rounded-md font-black uppercase text-xs disabled:opacity-30"
           >
             ← Prev
           </button>
@@ -1105,7 +1105,7 @@ function Lightbox({
           <button
             onClick={() => index < items.length - 1 && onIndexChange(index + 1)}
             disabled={index === items.length - 1}
-            className="px-4 py-2 bg-white text-black border-[3px] border-black font-black uppercase text-xs disabled:opacity-30"
+            className="px-4 py-2 bg-white text-black border-[3px] border-black rounded-md font-black uppercase text-xs disabled:opacity-30"
           >
             Next →
           </button>
