@@ -371,7 +371,7 @@ export default function AdsPage() {
       variants={pageVariants}
       initial="initial"
       animate="animate"
-      className="relative min-h-screen overflow-hidden bg-[#FFF8E6] pt-20 pb-14 md:pt-24 md:pb-16"
+      className="relative min-h-screen overflow-hidden bg-[#FFF8E6] pt-4 pb-14 md:pt-6 md:pb-16"
     >
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-24 -left-20 h-72 w-72 rounded-full bg-[#FFD93D]/35 blur-3xl" />

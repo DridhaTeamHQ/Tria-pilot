@@ -142,7 +142,7 @@ export default async function BrandDashboard({
 
   // Render UI directly (Server Side Rendered)
   return (
-    <div className="container mx-auto px-4 sm:px-6 pt-20 sm:pt-24 pb-6 sm:pb-8">
+    <div className="container mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-6 sm:pb-8">
       {/* Welcome Header */}
       <div className="mb-6 sm:mb-8">
         <h1 className="text-3xl sm:text-4xl font-black text-black mb-2">

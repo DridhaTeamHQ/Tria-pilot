@@ -391,7 +391,7 @@ export default function BrandInfluencersPage() {
                 label="Niche"
                 anyLabel="All niches"
                 value={niche}
-                onChange={setNiche}
+                onChange={(value) => setNiche(Array.isArray(value) ? (value[0] ?? null) : value)}
                 options={NICHE_OPTIONS}
                 accentColor="#B4F056"
               />
