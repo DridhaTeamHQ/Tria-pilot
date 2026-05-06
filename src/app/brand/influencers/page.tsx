@@ -304,26 +304,30 @@ export default function BrandInfluencersPage() {
   return (
     <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 animate-fade-in">
       {/* Header */}
-      <div className="mb-10 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
+      {/* Header section with Title and Quick Actions */}
+      <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 bg-[#B4F056] rounded-xl flex items-center justify-center shadow-sm">
-              <Users className="w-6 h-6 text-black" />
+            <div className="w-12 h-12 bg-[#B4F056] rounded-[20px] flex items-center justify-center border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+              <Users className="w-6 h-6 text-black" strokeWidth={2.5} />
             </div>
-            <h1 className="text-3xl font-bold text-black tracking-tight">
-              Discover Creators
-            </h1>
+            <div>
+              <h1 className="text-3xl sm:text-4xl font-black text-black tracking-tight leading-none mb-1">
+                Discover Creators
+              </h1>
+              <p className="text-black/50 font-bold text-sm">Find the perfect faces for your brand</p>
+            </div>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 sm:ml-[52px]">
+        <div className="flex items-center gap-2">
           {shortlist.size > 0 && (
             <button
               type="button"
               onClick={() => setShowShortlistOnly((v) => !v)}
-              className={`px-4 py-2 text-xs font-black uppercase tracking-wider rounded-xl transition-all flex items-center gap-2 border-2 ${showShortlistOnly
-                  ? 'bg-black border-black text-white shadow-lg shadow-black/20'
-                  : 'bg-white border-gray-200 text-black/80 hover:border-black hover:text-black shadow-sm'
+              className={`h-11 px-5 text-xs font-black uppercase tracking-wider rounded-xl transition-all flex items-center gap-2 border-2 ${showShortlistOnly
+                  ? 'bg-black border-black text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]'
+                  : 'bg-white border-black text-black hover:bg-[#FFD93D] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px]'
                 }`}
             >
               <BookmarkCheck className="w-4 h-4" />
@@ -334,135 +338,105 @@ export default function BrandInfluencersPage() {
             <button
               type="button"
               onClick={resetFilters}
-              className="px-4 py-2 text-xs font-black uppercase tracking-wider rounded-xl bg-gray-100 text-black/80 hover:bg-black hover:text-white transition-all flex items-center gap-2 border-2 border-transparent"
+              className="h-11 px-5 text-xs font-black uppercase tracking-wider rounded-xl bg-white border-2 border-black text-black hover:bg-[#FF9B8F] transition-all flex items-center gap-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px]"
             >
               <RotateCcw className="w-4 h-4" />
-              Reset filters
+              Reset
             </button>
           )}
         </div>
       </div>
 
       {/* Unified Search & Filters Container (Logic from Main, Design matches the Modern UI) */}
-      <div className="relative mb-8 group">
-        <div className="absolute -inset-0.5 bg-gradient-to-r from-[#B4F056] to-[#FFD93D] rounded-[2rem] blur opacity-5 group-hover:opacity-10 transition duration-700"></div>
-
-        <div className="relative bg-white/95 backdrop-blur-md rounded-[1.75rem] border border-gray-200 shadow-xl shadow-black/5 p-4 sm:p-6 transition-all duration-500 z-30">
-          {/* Search Bar Row */}
-          <form
-            onSubmit={handleSubmitSearch}
-            className="flex flex-col sm:flex-row items-center gap-3 mb-2"
-          >
-            <div className="flex-1 w-full relative group/input">
-              <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-black/60 transition-all duration-300 group-focus-within/input:text-[#B4F056]" />
-              <input
-                type="text"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Search creators by name, niche, or bio..."
-                className="w-full pl-12 pr-10 py-3 bg-gray-50 rounded-xl font-bold text-black placeholder:text-black/50 focus:ring-2 focus:ring-[#B4F056]/40 focus:bg-white outline-none transition-all duration-300 text-sm"
-              />
-              {searchInput && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchInput('')
-                    setSearch('')
-                  }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-black/60 hover:text-black transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-            <button
-              type="submit"
-              className="w-full sm:w-auto px-10 py-3 bg-black text-white rounded-xl font-black text-xs uppercase tracking-wider hover:bg-gray-800 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-black/20"
-            >
-              <Search className="w-3.5 h-3.5" />
-              Find Creators
-            </button>
-          </form>
+      <div className="mb-10">
+        <div className="bg-white border-[3px] border-black rounded-[32px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          {/* Search bar integration */}
+          <div className="p-4 sm:p-6 border-b-2 border-black bg-[#F9F8F4]/50 rounded-t-[29px]">
+            <form onSubmit={handleSubmitSearch} className="flex flex-col sm:flex-row items-center gap-4">
+              <div className="flex-1 w-full relative group">
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-black/40 group-focus-within:text-black transition-colors" />
+                <input
+                  type="text"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  placeholder="Search by name, niche, or bio..."
+                  className="w-full pl-14 pr-12 py-4 bg-white border-2 border-black rounded-2xl text-sm font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:shadow-none focus:translate-x-[1px] focus:translate-y-[1px] outline-none transition-all placeholder:text-black/30"
+                />
+                {searchInput && (
+                  <button
+                    type="button"
+                    onClick={() => { setSearchInput(''); setSearch('') }}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-black/40 hover:text-black"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              <button
+                type="submit"
+                className="w-full sm:w-auto px-8 py-4 bg-black text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-gray-900 active:translate-y-0.5 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)]"
+              >
+                Find Creators
+              </button>
+            </form>
+          </div>
 
           {/* Filters Row */}
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap gap-2">
+          <div className="p-4 sm:p-6 flex flex-wrap items-center gap-3">
+            <FilterDropdown
+              label="Niche"
+              anyLabel="All niches"
+              value={niche}
+              onChange={(value) => setNiche(Array.isArray(value) ? (value[0] ?? null) : value)}
+              options={NICHE_OPTIONS}
+              accentColor="#B4F056"
+            />
+            <FilterDropdown
+              label="Size"
+              anyLabel="Any size"
+              value={followerBand}
+              onChange={(value) => setFollowerBand(Array.isArray(value) ? (value[0] ?? null) : value)}
+              options={FOLLOWER_BANDS as unknown as { value: string; label: string; hint?: string }[]}
+              accentColor="#A78BFA"
+            />
+            <FilterDropdown
+              label="Budget"
+              anyLabel="Any"
+              value={priceBand}
+              onChange={(value) => setPriceBand(Array.isArray(value) ? (value[0] ?? null) : value)}
+              options={PRICE_BANDS as unknown as { value: string; label: string }[]}
+              accentColor="#FFD93D"
+            />
+            <FilterDropdown
+              label="Reach"
+              anyLabel="Any"
+              value={minEngagement}
+              onChange={(value) => {
+                const raw = Array.isArray(value) ? value[0] : value
+                setMinEngagement(raw != null ? Number(raw) : null)
+              }}
+              options={ENGAGEMENT_OPTIONS}
+              accentColor="#FF8C69"
+            />
+            <FilterDropdown
+              label="Badge"
+              anyLabel="Any"
+              value={badgeTier}
+              onChange={(value) => setBadgeTier(Array.isArray(value) ? (value[0] ?? null) : value)}
+              options={BADGE_TIERS}
+              accentColor="#FBBF24"
+            />
+            <div className="sm:ml-auto flex items-center gap-3">
               <FilterDropdown
-                label="Niche"
-                anyLabel="All niches"
-                value={niche}
-                onChange={(value) => setNiche(Array.isArray(value) ? (value[0] ?? null) : value)}
-                options={NICHE_OPTIONS}
-                accentColor="#B4F056"
+                label="Sort"
+                anyLabel="Followers"
+                value={sortBy}
+                onChange={(value) => setSortBy(Array.isArray(value) ? value[0] || 'followers' : value || 'followers')}
+                options={SORT_OPTIONS as unknown as { value: string; label: string }[]}
+                className="min-w-[140px]"
               />
-              <FilterDropdown
-                label="Followers"
-                anyLabel="Any size"
-                value={followerBand}
-                onChange={(value) => setFollowerBand(Array.isArray(value) ? (value[0] ?? null) : value)}
-                options={FOLLOWER_BANDS as unknown as { value: string; label: string; hint?: string }[]}
-                accentColor="#A78BFA"
-              />
-              <FilterDropdown
-                label="Price"
-                anyLabel="Any price"
-                value={priceBand}
-                onChange={(value) => setPriceBand(Array.isArray(value) ? (value[0] ?? null) : value)}
-                options={PRICE_BANDS as unknown as { value: string; label: string }[]}
-                accentColor="#FFD93D"
-              />
-              <FilterDropdown
-                label="Engagement"
-                anyLabel="Any"
-                value={minEngagement}
-                onChange={(value) => {
-                  const raw = Array.isArray(value) ? value[0] : value
-                  if (raw == null) {
-                    setMinEngagement(null)
-                    return
-                  }
-                  setMinEngagement(Number(raw))
-                }}
-                options={ENGAGEMENT_OPTIONS}
-                accentColor="#FF8C69"
-              />
-              <FilterDropdown
-                label="Badge"
-                anyLabel="Any tier"
-                value={badgeTier}
-                onChange={(value) => setBadgeTier(Array.isArray(value) ? (value[0] ?? null) : value)}
-                options={BADGE_TIERS}
-                accentColor="#FBBF24"
-              />
-              <FilterDropdown
-                label="Gender"
-                anyLabel="Any"
-                value={gender}
-                onChange={(value) => setGender(Array.isArray(value) ? (value[0] ?? null) : value)}
-                options={GENDERS}
-                accentColor="#34D399"
-              />
-              <FilterDropdown
-                label="Audience"
-                anyLabel="Any"
-                value={audienceType}
-                onChange={(value) => setAudienceType(Array.isArray(value) ? (value[0] ?? null) : value)}
-                options={AUDIENCE_TYPES}
-                accentColor="#F472B6"
-              />
-              <div className="sm:ml-auto">
-                <FilterDropdown
-                  label="Sort by"
-                  anyLabel="Followers"
-                  value={sortBy}
-                  onChange={(value) => {
-                    const next = Array.isArray(value) ? value[0] : value
-                    setSortBy(next || 'followers')
-                  }}
-                  options={SORT_OPTIONS as unknown as { value: string; label: string }[]}
-                />
-              </div>
             </div>
+          </div>
 
             {/* Active chips bar */}
             {activeChips.length > 0 && (
@@ -486,13 +460,12 @@ export default function BrandInfluencersPage() {
                 ))}
               </div>
             )}
-          </div>
         </div>
       </div>
 
       {/* Results */}
       {loading ? (
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <SkeletonCard key={i} delay={i * 60} />
           ))}
@@ -521,128 +494,84 @@ export default function BrandInfluencersPage() {
           )}
         </div>
       ) : (
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {visibleInfluencers.map((influencer, idx) => {
             const isShortlisted = shortlist.has(influencer.id)
             return (
               <div
                 key={influencer.id}
-                className="group flex flex-col h-full bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-black/5 hover:-translate-y-2 transition-all duration-500 overflow-hidden"
+                className="group flex flex-col h-full bg-white rounded-[32px] border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 overflow-hidden"
                 style={{ animationDelay: `${Math.min(idx, 12) * 40}ms` }}
               >
-                <div className="flex-1">
+                <div className="flex-1 p-6">
                   {/* Profile Header */}
-                  <div className="p-6 pb-4">
-                  <div className="flex items-start gap-4">
-                    {/* Avatar Wrapper */}
-                    <div className="relative w-20 h-20 shrink-0">
-                      <div className="w-full h-full rounded-2xl overflow-hidden shadow-inner p-0.5 bg-gradient-to-br from-[#B4F056] via-[#FFD93D] to-[#B4F056] bg-[length:200%_200%] animate-shimmer">
-                        <div className="w-full h-full bg-white rounded-[calc(1rem-2px)] flex items-center justify-center overflow-hidden">
-                          {influencer.profile_image ? (
-                            <AppImage
-                              src={influencer.profile_image}
-                              alt={influencer.name}
-                              className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110"
-                              sizes="80px"
-                            />
-                          ) : (
-                            <span className="text-3xl font-black bg-gradient-to-br from-black to-black/60 bg-clip-text text-transparent">
-                              {influencer.name.charAt(0).toUpperCase()}
-                            </span>
-                          )}
-                        </div>
+                  <div className="flex items-start gap-5 mb-6">
+                    <div className="relative w-24 h-24 shrink-0">
+                      <div className="w-full h-full rounded-[24px] border-[3px] border-black overflow-hidden shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white relative z-10">
+                        {influencer.profile_image ? (
+                          <AppImage src={influencer.profile_image} alt={influencer.name} className="object-cover w-full h-full" sizes="96px" />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-[#B4F056] to-[#FFD93D] flex items-center justify-center font-black text-3xl">
+                            {influencer.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
                       </div>
-
-                      {/* Badge */}
+                      {/* Badge Floating */}
                       {influencer.badge_tier && (
-                        <div
-                          className={`absolute -top-2 -left-2 w-7 h-7 ${badgeColor(
-                            influencer.badge_tier,
-                          )} border-2 border-white flex items-center justify-center rounded-full shadow-xl z-20 transition-transform duration-300 group-hover:scale-110`}
-                          title={`${influencer.badge_tier} tier`}
-                        >
-                          <Award className="w-3.5 h-3.5 text-black" strokeWidth={3.5} />
+                        <div className={`absolute -top-3 -right-3 w-10 h-10 rounded-full border-[3px] border-black flex items-center justify-center z-20 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${badgeColor(influencer.badge_tier)}`}>
+                          <Award className="w-5 h-5 text-black" strokeWidth={3} />
                         </div>
                       )}
                     </div>
 
-                    {/* Info */}
                     <div className="flex-1 min-w-0 pt-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <h3 className="font-black text-xl text-black truncate transition-colors duration-300">
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <h3 className="font-black text-2xl text-black truncate leading-tight">
                           {influencer.name}
                         </h3>
                         <button
                           type="button"
                           onClick={() => toggleShortlist(influencer.id)}
-                          className={`p-2 rounded-xl border-2 transition-all duration-300 ${isShortlisted
-                              ? 'bg-[#FFD93D] border-[#FFD93D] text-black shadow-lg shadow-[#FFD93D]/20 scale-110'
-                              : 'bg-gray-100 border-transparent text-black/30 hover:text-black hover:bg-white hover:border-gray-200 hover:scale-110'
-                            }`}
+                          className={`shrink-0 p-2 rounded-xl border-2 border-black transition-all ${isShortlisted ? 'bg-[#FFD93D] shadow-none translate-x-[1.5px] translate-y-[1.5px]' : 'bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1.5px] hover:translate-y-[1.5px]'}`}
                         >
-                          {isShortlisted ? (
-                            <BookmarkCheck className="w-4 h-4" strokeWidth={3} />
-                          ) : (
-                            <Bookmark className="w-4 h-4" strokeWidth={2.5} />
-                          )}
+                          <Bookmark className={`w-5 h-5 ${isShortlisted ? 'fill-black' : ''}`} strokeWidth={2.5} />
                         </button>
                       </div>
-                      <p className="text-sm text-black/40 font-bold truncate mb-3">
+                      <p className="text-sm font-bold text-black/40 truncate mb-3">
                         {influencer.bio || 'Content Creator'}
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {influencer.niches?.slice(0, 2).map(niche => (
-                          <span
-                            key={niche}
-                            className="px-3 py-1 text-[10px] font-black uppercase tracking-wider bg-gray-100 text-black/70 rounded-full border border-gray-200 group-hover:bg-[#B4F056] group-hover:border-[#B4F056] group-hover:text-black transition-colors"
-                          >
+                          <span key={niche} className="px-3 py-1 text-[10px] font-black uppercase tracking-widest bg-[#B4F056]/20 text-black border-2 border-black/10 rounded-lg">
                             {niche}
                           </span>
                         ))}
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Stats */}
-                <div className="mx-6 p-4 bg-gray-100 rounded-2xl flex items-center justify-around mb-6 border border-gray-200 group-hover:bg-white group-hover:border-[#B4F056]/40 transition-all duration-500">
-                  <div className="text-center">
-                    <div className="flex items-center justify-center gap-1.5 text-black/40 text-[10px] font-black uppercase tracking-widest mb-1">
-                      <Instagram className="w-3 h-3" strokeWidth={3} />
-                      Followers
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-3 gap-3 bg-gray-50 rounded-2xl border-2 border-black/5 p-4 group-hover:bg-white group-hover:border-black/20 transition-colors">
+                    <div className="text-center">
+                      <p className="text-[10px] font-black uppercase tracking-tighter text-black/40 mb-1">Followers</p>
+                      <p className="text-base font-black text-black">{formatFollowers(influencer.followers)}</p>
                     </div>
-                    <div className="text-lg font-black text-black tracking-tight">
-                      {formatFollowers(influencer.followers)}
+                    <div className="text-center border-x-2 border-black/5">
+                      <p className="text-[10px] font-black uppercase tracking-tighter text-black/40 mb-1">Eng.</p>
+                      <p className="text-base font-black text-black">{influencer.engagement_rate}%</p>
                     </div>
-                  </div>
-                  <div className="w-px h-8 bg-gray-200 group-hover:bg-[#B4F056]/40 transition-colors" />
-                  <div className="text-center">
-                    <div className="flex items-center justify-center gap-1.5 text-black/40 text-[10px] font-black uppercase tracking-widest mb-1">
-                      <TrendingUp className="w-3 h-3" strokeWidth={3} />
-                      Engagement
-                    </div>
-                    <div className="text-lg font-black text-black tracking-tight">
-                      {influencer.engagement_rate}%
+                    <div className="text-center">
+                      <p className="text-[10px] font-black uppercase tracking-tighter text-black/40 mb-1">Price</p>
+                      <p className="text-base font-black text-black">{influencer.price_per_post ? `₹${formatFollowers(influencer.price_per_post)}` : '—'}</p>
                     </div>
                   </div>
-                  <div className="w-px h-8 bg-gray-200 group-hover:bg-[#B4F056]/40 transition-colors" />
-                  <div className="text-center">
-                    <div className="flex items-center justify-center gap-1.5 text-black/40 text-[10px] font-black uppercase tracking-widest mb-1">
-                      <IndianRupee className="w-3 h-3" strokeWidth={3} />
-                      Per Post
-                    </div>
-                    <div className="text-lg font-black text-black tracking-tight">
-                      {influencer.price_per_post ? `₹${formatFollowers(influencer.price_per_post)}` : '—'}
-                    </div>
-                  </div>
-                </div>
                 </div>
                 {/* Actions */}
-                <div className="px-6 pb-6 pt-0 flex gap-3">
+                <div className="px-6 pb-6 pt-0 flex gap-4">
                   <button
                     type="button"
                     onClick={() => handleViewProfile(influencer.id)}
-                    className="flex-1 py-3 bg-black text-white rounded-xl font-black text-xs uppercase tracking-wider hover:bg-gray-800 active:scale-95 transition-all flex items-center justify-center gap-2"
+                    className="flex-1 py-4 bg-white text-black border-2 border-black rounded-2xl font-black text-xs uppercase tracking-widest shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center justify-center gap-2"
                   >
                     <ExternalLink className="w-4 h-4" strokeWidth={3} />
                     Profile
@@ -650,7 +579,7 @@ export default function BrandInfluencersPage() {
                   <button
                     type="button"
                     onClick={() => handleMessage(influencer.id)}
-                    className="flex-1 py-3 bg-[#B4F056] text-black rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-[#B4F056]/20 hover:shadow-[#B4F056]/40 active:scale-95 transition-all flex items-center justify-center gap-2"
+                    className="flex-1 py-4 bg-[#B4F056] text-black border-2 border-black rounded-2xl font-black text-xs uppercase tracking-widest shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center justify-center gap-2"
                   >
                     <MessageCircle className="w-4 h-4" strokeWidth={3} />
                     Message
@@ -707,26 +636,26 @@ export default function BrandInfluencersPage() {
 function SkeletonCard({ delay = 0 }: { delay?: number }) {
   return (
     <div
-      className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden animate-fade-in"
+      className="bg-white rounded-[32px] border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden animate-fade-in"
       style={{ animationDelay: `${delay}ms` }}
     >
-      <div className="p-6 pb-4">
-        <div className="flex items-start gap-4">
-          <div className="w-20 h-20 rounded-2xl bg-gray-100 animate-pulse shrink-0" />
-          <div className="flex-1 space-y-3 pt-1">
-            <div className="h-6 bg-gray-100 rounded-lg w-3/4 animate-pulse" />
+      <div className="p-6">
+        <div className="flex items-start gap-5 mb-6">
+          <div className="w-24 h-24 rounded-[24px] bg-gray-100 animate-pulse shrink-0 border-2 border-black/5" />
+          <div className="flex-1 space-y-3 pt-2">
+            <div className="h-7 bg-gray-100 rounded-lg w-3/4 animate-pulse" />
             <div className="h-4 bg-gray-50 rounded-lg w-1/2 animate-pulse" />
-            <div className="flex gap-2">
-              <div className="h-6 bg-gray-50 rounded-full w-16 animate-pulse" />
-              <div className="h-6 bg-gray-50 rounded-full w-20 animate-pulse" />
+            <div className="flex gap-2 mt-3">
+              <div className="h-6 bg-gray-50 rounded-md w-16 animate-pulse" />
+              <div className="h-6 bg-gray-50 rounded-md w-16 animate-pulse" />
             </div>
           </div>
         </div>
-      </div>
-      <div className="mx-6 h-16 bg-gray-50 rounded-2xl mb-6 animate-pulse" />
-      <div className="px-6 pb-6 flex gap-3">
-        <div className="flex-1 h-12 bg-gray-100 rounded-xl animate-pulse" />
-        <div className="flex-1 h-12 bg-gray-100 rounded-xl animate-pulse" />
+        <div className="h-16 bg-gray-50 rounded-2xl mb-6 animate-pulse border-2 border-black/5" />
+        <div className="flex gap-4">
+          <div className="flex-1 h-12 bg-gray-100 rounded-xl animate-pulse" />
+          <div className="flex-1 h-12 bg-gray-100 rounded-xl animate-pulse" />
+        </div>
       </div>
     </div>
   )

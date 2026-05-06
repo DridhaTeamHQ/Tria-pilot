@@ -362,11 +362,10 @@ export default function InfluencerDetailPage({
             <button
               type="button"
               onClick={handleToggleShortlist}
-              className={`inline-flex items-center gap-1.5 px-3 py-2 border-2 border-black text-[11px] font-black uppercase tracking-wider transition-all ${
-                isShortlisted
-                  ? 'bg-[#FFD93D] shadow-[2px_2px_0_0_rgba(0,0,0,1)]'
-                  : 'bg-white hover:bg-[#FFD93D]/30 hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)]'
-              }`}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 border-2 border-black text-[11px] font-black uppercase tracking-wider transition-all ${isShortlisted
+                ? 'bg-[#FFD93D] shadow-[2px_2px_0_0_rgba(0,0,0,1)]'
+                : 'bg-white hover:bg-[#FFD93D]/30 hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)]'
+                }`}
             >
               {isShortlisted ? (
                 <>
@@ -487,9 +486,8 @@ export default function InfluencerDetailPage({
                 )}
                 {/* Online dot */}
                 <div
-                  className={`absolute top-2 right-2 w-4 h-4 rounded-full border-2 border-white shadow ${
-                    isOnline ? 'bg-[#16a34a] animate-pulse' : 'bg-black/20'
-                  }`}
+                  className={`absolute top-2 right-2 w-4 h-4 rounded-full border-2 border-white shadow ${isOnline ? 'bg-[#16a34a] animate-pulse' : 'bg-black/20'
+                    }`}
                   title={isOnline ? 'Online now' : 'Offline'}
                 />
               </div>
@@ -500,14 +498,12 @@ export default function InfluencerDetailPage({
               <div className="flex flex-wrap items-center gap-2 mb-2">
                 <h1 className="text-3xl sm:text-4xl font-black break-words">{profile.name}</h1>
                 <span
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 border-2 border-black text-[10px] font-black uppercase tracking-wider ${
-                    isOnline ? 'bg-[#16a34a]/15 text-black' : 'bg-black/5 text-black/55'
-                  }`}
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 border-2 border-black text-[10px] font-black uppercase tracking-wider ${isOnline ? 'bg-[#16a34a]/15 text-black' : 'bg-black/5 text-black/55'
+                    }`}
                 >
                   <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      isOnline ? 'bg-[#16a34a] animate-pulse' : 'bg-black/30'
-                    }`}
+                    className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-[#16a34a] animate-pulse' : 'bg-black/30'
+                      }`}
                   />
                   {lastActiveLabel(activity.lastActiveAt, isOnline)}
                 </span>
@@ -1032,9 +1028,8 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`relative px-4 py-2.5 text-xs font-black uppercase tracking-wider whitespace-nowrap transition-colors ${
-        active ? 'text-black' : 'text-black/40 hover:text-black/70'
-      }`}
+      className={`relative px-4 py-2.5 text-xs font-black uppercase tracking-wider whitespace-nowrap transition-colors ${active ? 'text-black' : 'text-black/40 hover:text-black/70'
+        }`}
     >
       {children}
       {active && <span className="absolute inset-x-0 -bottom-[2px] h-1 bg-black" />}

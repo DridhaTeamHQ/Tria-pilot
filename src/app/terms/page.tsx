@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 export default function TermsPage() {
   return (
-    <main className="min-h-screen bg-[#f8f5ef] text-black">
+    <main className="min-h-screen bg-[#f8f5ef] text-black pt-24">
       <div className="mx-auto max-w-5xl px-6 py-14 sm:px-8 lg:px-10">
         <Link href="/" className="kiwikoo-wordmark text-3xl text-black">
           Kiwikoo

@@ -1,19 +1,9 @@
-/**
- * INBOX (influencer + general) — full messaging UI
- *
- * Mirrors /brand/inbox but shared for influencers and any non-brand user.
- * Supports deep-linking via ?thread=<conversationId> (used by the
- * NotificationBell when a new chat message arrives) and ?to=<userId> to
- * start a new conversation.
- *
- * The notifications panel is intentionally NOT here — that lives in the
- * NotificationBell dropdown so this screen stays focused on conversations.
- */
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from '@/lib/simple-sonner'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Inbox as InboxIcon,
   Search,
@@ -22,14 +12,21 @@ import {
   MessageCircle,
   ChevronLeft,
   Wifi,
+  Check,
+  CheckCheck,
+  MoreVertical,
+  Phone,
+  Video,
 } from 'lucide-react'
 import { useInboxRealtime } from '@/lib/hooks/useInboxRealtime'
 import { useTypingIndicator } from '@/lib/hooks/useTypingIndicator'
 import { TypingBubble } from '@/components/inbox/TypingBubble'
+import { AppImage } from '@/components/ui/AppImage'
+import { cn } from '@/lib/utils'
 
 interface Conversation {
   id: string
-  other_party: { id: string; name: string; email: string }
+  other_party: { id: string; name: string; email: string; avatar_url?: string | null }
   last_message?: string
   last_message_at?: string
   unread_count: number
@@ -78,9 +75,7 @@ function InboxInner() {
         const meRes = await fetch('/api/auth/me', { credentials: 'include' })
         const meData = await meRes.json().catch(() => ({}))
         if (!cancelled && meRes.ok && meData.user) setCurrentUserId(meData.user.id)
-      } catch {
-        // ignore
-      }
+      } catch { /* ignore */ }
       try {
         const res = await fetch('/api/conversations', { credentials: 'include' })
         const data = await res.json()
@@ -94,51 +89,8 @@ function InboxInner() {
       }
     }
     init()
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [])
-
-  const refreshConversations = async (): Promise<Conversation[]> => {
-    try {
-      const res = await fetch('/api/conversations', { credentials: 'include' })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data?.error || 'failed')
-      const list: Conversation[] = data.conversations || []
-      setConversations(list)
-      return list
-    } catch {
-      return []
-    }
-  }
-
-  const startConversation = async (recipientId: string) => {
-    try {
-      const res = await fetch('/api/conversations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ recipient_id: recipientId }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data?.error)
-
-      const next = await refreshConversations()
-      const conv =
-        next.find((c) => c.other_party.id === recipientId) ||
-        ({
-          id: data.conversation.id,
-          other_party: { id: recipientId, name: 'User', email: '' },
-          unread_count: 0,
-        } as Conversation)
-
-      void selectConversation(conv)
-      router.replace('/inbox')
-    } catch (err) {
-      console.error(err)
-      toast.error('Failed to start conversation')
-    }
-  }
 
   const selectConversation = async (conversation: Conversation) => {
     setSelectedConversation(conversation)
@@ -159,53 +111,29 @@ function InboxInner() {
     }
   }
 
-  // Handle ?thread=<id> deep-link from NotificationBell
+  // Deep-linking
   useEffect(() => {
     const threadId = searchParams.get('thread')
     if (!threadId || conversations.length === 0) return
     if (selectedConversation?.id === threadId) return
     const match = conversations.find((c) => c.id === threadId)
-    if (match) {
-      void selectConversation(match)
-    }
-  }, [searchParams, conversations]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Handle ?to=<userId> to start a new conversation
-  useEffect(() => {
-    const toId = searchParams.get('to')
-    if (!toId || !currentUserId) return
-    void startConversation(toId)
-  }, [searchParams, currentUserId]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (match) void selectConversation(match)
+  }, [searchParams, conversations])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // ── Live updates via Supabase Realtime ─────────────────────────────────
+  // Realtime
   const handleRealtimeMessage = useCallback(
     (row: { id: string; conversation_id: string; sender_id: string; content: string; created_at: string; read?: boolean }) => {
-      // Only care if this conversation belongs to this user
-      const isMine = conversations.some((c) => c.id === row.conversation_id)
-      if (!isMine) return
-
-      // If it's the active thread, append (de-dupe by id, ignore our own optimistic echo)
+      if (!conversations.some((c) => c.id === row.conversation_id)) return
       if (selectedConversation?.id === row.conversation_id && row.sender_id !== currentUserId) {
         setMessages((prev) => {
           if (prev.some((m) => m.id === row.id)) return prev
-          return [
-            ...prev,
-            {
-              id: row.id,
-              sender_id: row.sender_id,
-              content: row.content,
-              created_at: row.created_at,
-              read: Boolean(row.read),
-            },
-          ]
+          return [...prev, { ...row, read: Boolean(row.read) }]
         })
       }
-
-      // Bump the conversation in the list with a fresh preview + unread badge
       setConversations((prev) => {
         const next = prev.map((c) =>
           c.id === row.conversation_id
@@ -213,111 +141,22 @@ function InboxInner() {
                 ...c,
                 last_message: row.content.slice(0, 100),
                 last_message_at: row.created_at,
-                unread_count:
-                  // Only increment unread if the message isn't from me AND
-                  // we don't currently have that thread open.
-                  row.sender_id === currentUserId || selectedConversation?.id === row.conversation_id
-                    ? c.unread_count
-                    : (c.unread_count || 0) + 1,
+                unread_count: row.sender_id === currentUserId || selectedConversation?.id === row.conversation_id ? c.unread_count : (c.unread_count || 0) + 1,
               }
             : c,
         )
-        // Re-sort so the freshest conversation surfaces to the top
-        return [...next].sort((a, b) => {
-          const ta = a.last_message_at ? new Date(a.last_message_at).getTime() : 0
-          const tb = b.last_message_at ? new Date(b.last_message_at).getTime() : 0
-          return tb - ta
-        })
+        return [...next].sort((a, b) => (new Date(b.last_message_at || 0).getTime() - new Date(a.last_message_at || 0).getTime()))
       })
     },
     [conversations, selectedConversation, currentUserId],
   )
 
-  useInboxRealtime({
-    userId: currentUserId,
-    onMessage: handleRealtimeMessage,
-  })
+  useInboxRealtime({ userId: currentUserId, onMessage: handleRealtimeMessage })
 
-  // Typing indicator for the active conversation
   const { peerTyping, notifyTyping, notifyStoppedTyping } = useTypingIndicator({
     conversationId: selectedConversation?.id,
     userId: currentUserId,
   })
-
-  // Auto-scroll when peer starts typing
-  useEffect(() => {
-    if (peerTyping) messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [peerTyping])
-
-  // ── Aggressive polling fallback ─────────────────────────────────────────
-  // Realtime needs the tables to be in the supabase_realtime publication.
-  // If a Supabase project hasn't enabled that yet (or the channel drops),
-  // fall back to polling every 3s while the tab is visible. This guarantees
-  // delivery even when Realtime is misconfigured.
-  useEffect(() => {
-    if (!currentUserId) return
-
-    const pollActiveThread = async () => {
-      if (document.hidden) return
-      if (!selectedConversation) {
-        // Just refresh the conversation list
-        try {
-          const res = await fetch('/api/conversations', { credentials: 'include' })
-          if (!res.ok) return
-          const data = await res.json()
-          setConversations(data.conversations || [])
-        } catch {
-          /* ignore */
-        }
-        return
-      }
-      try {
-        const res = await fetch(`/api/conversations/${selectedConversation.id}/messages`, {
-          credentials: 'include',
-        })
-        if (!res.ok) return
-        const data = await res.json()
-        const incoming: Message[] = data.messages || []
-        setMessages((prev) => {
-          // Merge: keep optimistic temp-* messages, dedupe by id
-          const seen = new Set(incoming.map((m) => m.id))
-          const optimisticOnly = prev.filter((m) => m.id.startsWith('temp-') && !seen.has(m.id))
-          return [...incoming, ...optimisticOnly]
-        })
-      } catch {
-        /* ignore */
-      }
-      // Refresh the conversation list too so previews + ordering stay current
-      try {
-        const res = await fetch('/api/conversations', { credentials: 'include' })
-        if (!res.ok) return
-        const data = await res.json()
-        setConversations((prev) => {
-          const next: Conversation[] = data.conversations || []
-          // Preserve optimistic unread reset when active thread is open
-          if (selectedConversation) {
-            return next.map((c) =>
-              c.id === selectedConversation.id ? { ...c, unread_count: 0 } : c,
-            )
-          }
-          return next
-        })
-      } catch {
-        /* ignore */
-      }
-    }
-
-    const id = setInterval(pollActiveThread, 3_000)
-    // Also poll immediately when tab becomes visible after being hidden
-    const onVisibility = () => {
-      if (!document.hidden) pollActiveThread()
-    }
-    document.addEventListener('visibilitychange', onVisibility)
-    return () => {
-      clearInterval(id)
-      document.removeEventListener('visibilitychange', onVisibility)
-    }
-  }, [currentUserId, selectedConversation])
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -346,12 +185,6 @@ function InboxInner() {
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error)
       setMessages((prev) => prev.map((m) => (m.id === optimistic.id ? data.message : m)))
-      const sentAt = data.message?.created_at || optimistic.created_at
-      setConversations((prev) =>
-        prev.map((c) =>
-          c.id === selectedConversation.id ? { ...c, last_message: content, last_message_at: sentAt } : c,
-        ),
-      )
       notifyStoppedTyping()
     } catch (err) {
       console.error(err)
@@ -366,246 +199,301 @@ function InboxInner() {
   const filteredConversations = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
     if (!q) return conversations
-    return conversations.filter(
-      (c) =>
-        c.other_party.name.toLowerCase().includes(q) ||
-        c.other_party.email.toLowerCase().includes(q) ||
-        (c.last_message || '').toLowerCase().includes(q),
+    return conversations.filter((c) =>
+      c.other_party.name.toLowerCase().includes(q) ||
+      c.other_party.email.toLowerCase().includes(q) ||
+      (c.last_message || '').toLowerCase().includes(q)
     )
   }, [conversations, searchQuery])
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-black" />
+      <div className="min-h-screen flex items-center justify-center bg-[#F9F8F4]">
+        <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
+          <Loader2 className="w-10 h-10 text-black" />
+        </motion.div>
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
-      <div className="mb-6 flex items-center gap-3">
-        <h1 className="text-2xl sm:text-3xl font-black text-black flex items-center">
-          <InboxIcon className="inline-block w-8 h-8 mr-2 -mt-1" />
-          Inbox
-        </h1>
-        <div className="hidden sm:inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-[#B4F056]/30 border border-black text-[10px] font-black uppercase tracking-wider">
-          <Wifi className="w-3 h-3" strokeWidth={3} />
-          <span>Live</span>
-          <span className="w-1.5 h-1.5 rounded-full bg-[#16a34a] animate-pulse" />
-        </div>
-      </div>
-
-      <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex min-h-[68dvh] lg:h-[calc(100dvh-220px)] overflow-hidden">
-        {/* Conversations list */}
-        <div
-          className={`w-full md:w-80 border-r-[3px] border-black flex flex-col ${
-            selectedConversation ? 'hidden md:flex' : 'flex'
-          }`}
-        >
-          <div className="p-4 border-b-2 border-black">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-black/40" />
+    <div className="pt-20 sm:pt-[88px] lg:pt-24 min-h-screen bg-[#F9F8F4] flex flex-col items-center px-4 sm:px-6 lg:px-8 pb-8">
+      {/* Premium Inbox Container */}
+      <div className="w-full max-w-[1440px] h-[calc(100vh-100px)] sm:h-[calc(100vh-120px)] lg:h-[calc(100vh-140px)] bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-[32px] overflow-hidden flex flex-col md:flex-row relative">
+        
+        {/* Left Sidebar - Conversation List */}
+        <div className={cn(
+          "w-full md:w-[380px] border-r-[3px] border-black flex flex-col bg-[#F9F8F4]/30 backdrop-blur-sm transition-all duration-300",
+          selectedConversation ? "hidden md:flex" : "flex"
+        )}>
+          {/* Sidebar Header */}
+          <div className="p-6 border-b-[3px] border-black">
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-2xl font-black text-black tracking-tight flex items-center gap-2">
+                <InboxIcon className="w-7 h-7" />
+                Messages
+              </h1>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#B4F056] border-2 border-black text-[10px] font-black uppercase tracking-wider shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                <Wifi className="w-3 h-3" strokeWidth={3} />
+                <span>Live</span>
+              </div>
+            </div>
+            
+            <div className="relative group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-black/40 group-focus-within:text-black transition-colors" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search conversations..."
-                className="w-full pl-9 pr-4 py-2 border-2 border-black text-sm font-medium focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] outline-none"
+                placeholder="Search chats..."
+                className="w-full pl-11 pr-4 py-3 bg-white border-[2.5px] border-black rounded-2xl text-sm font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:translate-x-[2px] focus:translate-y-[2px] outline-none transition-all placeholder:text-black/30"
               />
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
-            {filteredConversations.length === 0 ? (
-              <div className="p-6 text-center">
-                <MessageCircle className="w-12 h-12 mx-auto mb-3 text-black/20" />
-                <p className="text-black/60 font-medium text-sm">
-                  {searchQuery.trim() ? 'No matching conversations' : 'No conversations yet'}
-                </p>
-                <p className="text-black/40 text-xs mt-1">
-                  {searchQuery.trim()
-                    ? 'Try a different name or email'
-                    : 'A brand will reach out via the inbox'}
-                </p>
-              </div>
-            ) : (
-              filteredConversations.map((conv) => {
-                const active = selectedConversation?.id === conv.id
-                return (
-                  <button
-                    type="button"
-                    key={conv.id}
-                    onClick={() => selectConversation(conv)}
-                    className={`group relative w-full p-4 text-left border-b border-black/10 transition-all duration-200 ${
-                      active
-                        ? 'bg-[#B4F056]/25'
-                        : 'hover:bg-[#FFD93D]/15'
-                    }`}
-                  >
-                    {active && (
-                      <span className="absolute left-0 top-0 bottom-0 w-1 bg-black" />
-                    )}
-                    <div className="flex items-start gap-3">
-                      <div className={`relative w-11 h-11 bg-gradient-to-br from-[#B4F056] to-[#FFD93D] border-2 border-black flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${active ? 'shadow-[2px_2px_0_0_rgba(0,0,0,1)]' : ''}`}>
-                        <span className="font-black">
-                          {conv.other_party.name.charAt(0).toUpperCase()}
-                        </span>
-                        {conv.unread_count > 0 && (
-                          <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 bg-[#FF8C69] border-2 border-black text-[10px] font-black flex items-center justify-center rounded-full animate-bounce-subtle">
-                            {conv.unread_count > 9 ? '9+' : conv.unread_count}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <h3 className={`truncate ${conv.unread_count > 0 ? 'font-black' : 'font-bold'}`}>
-                            {conv.other_party.name}
-                          </h3>
-                          {conv.last_message_at && (
-                            <span className="text-[10px] text-black/40 shrink-0 font-bold uppercase tracking-wider">
-                              {formatTime(conv.last_message_at)}
-                            </span>
+          {/* List Content */}
+          <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
+            <AnimatePresence mode="popLayout">
+              {filteredConversations.length === 0 ? (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex flex-col items-center justify-center h-full text-center p-8 opacity-40"
+                >
+                  <MessageCircle className="w-16 h-16 mb-4" />
+                  <p className="font-black text-lg">No conversations</p>
+                  <p className="text-sm font-bold">Start exploring to connect</p>
+                </motion.div>
+              ) : (
+                filteredConversations.map((conv) => {
+                  const active = selectedConversation?.id === conv.id
+                  return (
+                    <motion.button
+                      layout
+                      key={conv.id}
+                      onClick={() => selectConversation(conv)}
+                      className={cn(
+                        "group relative w-full p-4 rounded-2xl border-2 transition-all duration-200 flex gap-4 text-left",
+                        active 
+                          ? "bg-[#B4F056] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] translate-x-[-2px] translate-y-[-2px]" 
+                          : "bg-white border-transparent hover:bg-gray-50 hover:border-black/10"
+                      )}
+                    >
+                      <div className="relative shrink-0">
+                        <div className="w-14 h-14 rounded-2xl border-2 border-black overflow-hidden shadow-[3px_3px_0px_0px_rgba(0,0,0,0.2)] group-hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all bg-white">
+                          {conv.other_party.avatar_url ? (
+                            <AppImage src={conv.other_party.avatar_url} alt={conv.other_party.name} className="object-cover" sizes="56px" />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-[#FFD93D] to-[#FF8C69] flex items-center justify-center font-black text-xl">
+                              {conv.other_party.name.charAt(0).toUpperCase()}
+                            </div>
                           )}
                         </div>
-                        <p
-                          className={`text-sm truncate mt-0.5 ${
-                            conv.unread_count > 0 ? 'text-black font-semibold' : 'text-black/60'
-                          }`}
-                        >
-                          {conv.last_message || 'No messages yet'}
+                        {conv.unread_count > 0 && (
+                          <div className="absolute -top-2 -right-2 bg-[#FF3D00] text-white border-2 border-black w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                            {conv.unread_count}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0 py-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <h3 className={cn("truncate font-black text-base", active ? "text-black" : "text-black/80")}>
+                            {conv.other_party.name}
+                          </h3>
+                          <span className="text-[10px] font-black opacity-40 whitespace-nowrap uppercase">
+                            {formatTime(conv.last_message_at || '')}
+                          </span>
+                        </div>
+                        <p className={cn(
+                          "text-sm truncate font-bold",
+                          conv.unread_count > 0 ? "text-black" : "text-black/40"
+                        )}>
+                          {conv.last_message || 'Start a conversation...'}
                         </p>
                       </div>
-                    </div>
-                  </button>
-                )
-              })
-            )}
+                    </motion.button>
+                  )
+                })
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
-        {/* Messages area */}
-        <div
-          className={`flex-1 flex flex-col ${
-            selectedConversation ? 'flex' : 'hidden md:flex'
-          }`}
-        >
+        {/* Right Section - Chat Window */}
+        <div className={cn(
+          "flex-1 flex flex-col bg-white relative",
+          selectedConversation ? "flex" : "hidden md:flex"
+        )}>
           {selectedConversation ? (
             <>
-              <div className="p-4 border-b-2 border-black flex items-center gap-3 bg-[#F9F8F4]">
-                <button
-                  type="button"
-                  onClick={() => setSelectedConversation(null)}
-                  className="md:hidden p-2 hover:bg-black/5 rounded-lg transition-colors"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <div className="relative w-10 h-10 bg-gradient-to-br from-[#B4F056] to-[#FFD93D] border-2 border-black flex items-center justify-center shadow-[2px_2px_0_0_rgba(0,0,0,1)]">
-                  <span className="font-black">
-                    {selectedConversation.other_party.name.charAt(0).toUpperCase()}
-                  </span>
-                  <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[#16a34a] border-2 border-white rounded-full" />
+              {/* Chat Header */}
+              <div className="px-6 py-4 border-b-[3px] border-black bg-[#F9F8F4]/50 backdrop-blur-md flex items-center justify-between sticky top-0 z-20">
+                <div className="flex items-center gap-4 min-w-0">
+                  <button onClick={() => setSelectedConversation(null)} className="md:hidden p-2 rounded-xl border-2 border-black bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]">
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <div className="w-12 h-12 rounded-2xl border-2 border-black overflow-hidden shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] bg-white shrink-0">
+                    {selectedConversation.other_party.avatar_url ? (
+                      <AppImage src={selectedConversation.other_party.avatar_url} alt={selectedConversation.other_party.name} className="object-cover" sizes="48px" />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-[#B4F056] to-[#FFD93D] flex items-center justify-center font-black text-lg">
+                        {selectedConversation.other_party.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="font-black text-lg truncate">{selectedConversation.other_party.name}</h2>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-[#16a34a] animate-pulse" />
+                      <span className="text-[10px] font-black uppercase opacity-40">Active Now</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <h2 className="font-black truncate">{selectedConversation.other_party.name}</h2>
-                  <p className="text-[11px] text-black/60 truncate font-semibold">
-                    {selectedConversation.other_party.email}
-                  </p>
+
+                <div className="flex items-center gap-2">
+                  <button className="p-3 rounded-2xl border-2 border-black bg-white hover:bg-gray-50 transition-colors hidden sm:block">
+                    <Phone className="w-4 h-4" />
+                  </button>
+                  <button className="p-3 rounded-2xl border-2 border-black bg-white hover:bg-gray-50 transition-colors hidden sm:block">
+                    <Video className="w-4 h-4" />
+                  </button>
+                  <button className="p-3 rounded-2xl border-2 border-black bg-white hover:bg-gray-50 transition-colors">
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.length === 0 ? (
-                  <div className="h-full flex items-center justify-center">
-                    <div className="text-center">
-                      <MessageCircle className="w-12 h-12 mx-auto mb-3 text-black/20" />
-                      <p className="text-black/60 font-medium">No messages yet</p>
-                      <p className="text-black/40 text-sm">Say hi 👋</p>
+              {/* Messages Area */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-opacity-5">
+                <AnimatePresence initial={false}>
+                  {messages.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-center space-y-4 opacity-30">
+                      <MessageCircle className="w-12 h-12" />
+                      <p className="font-black">Say hello to start the conversation!</p>
                     </div>
-                  </div>
-                ) : (
-                  messages.map((message, idx) => {
-                    const isMine = message.sender_id === currentUserId
-                    const prevSenderSame =
-                      idx > 0 && messages[idx - 1].sender_id === message.sender_id
-                    return (
-                      <div
-                        key={message.id}
-                        className={`flex msg-enter ${isMine ? 'justify-end' : 'justify-start'} ${prevSenderSame ? 'mt-1' : 'mt-3'}`}
-                      >
-                        <div
-                          className={`relative max-w-[85%] sm:max-w-[70%] px-4 py-2.5 border-2 border-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition-transform ${
-                            isMine
-                              ? 'bg-[#B4F056] rounded-2xl rounded-br-sm'
-                              : 'bg-white rounded-2xl rounded-bl-sm'
-                          }`}
+                  ) : (
+                    messages.map((message, idx) => {
+                      const isMine = message.sender_id === currentUserId
+                      const prevSenderSame = idx > 0 && messages[idx - 1].sender_id === message.sender_id
+                      
+                      return (
+                        <motion.div
+                          key={message.id}
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          className={cn(
+                            "flex flex-col",
+                            isMine ? "items-end" : "items-start",
+                            prevSenderSame ? "mt-1" : "mt-6"
+                          )}
                         >
-                          <p className="font-medium whitespace-pre-wrap break-words leading-relaxed">{message.content}</p>
-                          <p className="text-[10px] text-black/50 mt-1 text-right font-bold uppercase tracking-wider">
-                            {formatTime(message.created_at)}
-                          </p>
-                        </div>
-                      </div>
-                    )
-                  })
+                          <div className={cn(
+                            "group relative max-w-[85%] sm:max-w-[70%] px-5 py-3 border-[2.5px] border-black transition-all",
+                            isMine 
+                              ? "bg-[#B4F056] rounded-[24px] rounded-br-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-0.5 hover:-translate-y-0.5" 
+                              : "bg-white rounded-[24px] rounded-bl-none shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:scale-[1.01]"
+                          )}>
+                            <p className="text-[15px] font-bold leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
+                            
+                            <div className="flex items-center justify-end gap-1.5 mt-1.5">
+                              <span className="text-[9px] font-black opacity-30">
+                                {formatTime(message.created_at)}
+                              </span>
+                              {isMine && (
+                                message.read ? (
+                                  <CheckCheck className="w-3.5 h-3.5 text-[#3b82f6]" strokeWidth={3} />
+                                ) : (
+                                  <Check className="w-3.5 h-3.5 opacity-30" strokeWidth={3} />
+                                )
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
+                      )
+                    })
+                  )}
+                </AnimatePresence>
+                {peerTyping && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                    <TypingBubble peerName={selectedConversation.other_party.name} />
+                  </motion.div>
                 )}
-                {peerTyping && <TypingBubble peerName={selectedConversation.other_party.name} />}
                 <div ref={messagesEndRef} />
               </div>
 
-              <form
-                onSubmit={sendMessage}
-                className="p-4 border-t-2 border-black flex items-end gap-2 bg-[#F9F8F4]"
-              >
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => {
-                    setNewMessage(e.target.value)
-                    if (e.target.value.trim()) notifyTyping()
-                  }}
-                  placeholder="Type a message..."
-                  className="flex-1 px-4 py-3 border-2 border-black font-medium bg-white rounded-xl focus:shadow-[3px_3px_0_0_rgba(0,0,0,1)] focus:-translate-y-0.5 outline-none transition-all"
-                />
-                <button
-                  type="submit"
-                  disabled={!newMessage.trim() || sending}
-                  className="h-[50px] w-[50px] flex items-center justify-center bg-[#B4F056] border-2 border-black rounded-xl shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:shadow-[5px_5px_0_0_rgba(0,0,0,1)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-[1px_1px_0_0_rgba(0,0,0,1)] disabled:opacity-30 disabled:cursor-not-allowed disabled:translate-y-0 disabled:shadow-none transition-all"
-                >
-                  {sending ? (
-                    <Loader2 className="w-5 h-5 animate-spin" strokeWidth={3} />
-                  ) : (
-                    <Send className="w-5 h-5" strokeWidth={3} />
-                  )}
-                </button>
-              </form>
+              {/* Input Area */}
+              <div className="p-6 bg-white border-t-[3px] border-black">
+                <form onSubmit={sendMessage} className="relative flex items-center gap-3">
+                  <div className="flex-1 relative group">
+                    <input
+                      type="text"
+                      value={newMessage}
+                      onChange={(e) => {
+                        setNewMessage(e.target.value)
+                        if (e.target.value.trim()) notifyTyping()
+                      }}
+                      placeholder="Type your message here..."
+                      className="w-full pl-6 pr-14 py-4 bg-[#F9F8F4] border-[3px] border-black rounded-[22px] font-bold text-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:translate-x-[2px] focus:translate-y-[2px] outline-none transition-all placeholder:text-black/20"
+                    />
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 flex gap-2">
+                      {/* Can add attachment icon here */}
+                    </div>
+                  </div>
+                  
+                  <button
+                    type="submit"
+                    disabled={!newMessage.trim() || sending}
+                    className="h-14 w-14 rounded-[22px] bg-[#B4F056] border-[3px] border-black flex items-center justify-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:shadow-none active:translate-x-[6px] active:translate-y-[6px] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none disabled:translate-x-0 disabled:translate-y-0"
+                  >
+                    {sending ? (
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                    ) : (
+                      <Send className="w-6 h-6" strokeWidth={3} />
+                    )}
+                  </button>
+                </form>
+              </div>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <InboxIcon className="w-16 h-16 mx-auto mb-4 text-black/20" />
-                <h3 className="text-xl font-black text-black/60 mb-2">Select a Conversation</h3>
-                <p className="text-black/40 font-medium">
-                  Pick a thread on the left, or open one from a notification.
-                </p>
+            <div className="flex-1 flex flex-col items-center justify-center p-12 text-center bg-[#F9F8F4]/20">
+              <div className="w-32 h-32 rounded-3xl border-[3px] border-black bg-white flex items-center justify-center shadow-[10px_10px_0px_0px_rgba(180,240,86,1)] mb-8 animate-bounce-slow">
+                <InboxIcon className="w-16 h-16" />
               </div>
+              <h2 className="text-3xl font-black text-black mb-4">Your Messages</h2>
+              <p className="text-black/50 font-bold max-w-sm mb-8">
+                Connect with influencers and brands seamlessly. Choose a conversation to start chatting!
+              </p>
+              <button className="px-8 py-3 bg-black text-[#B4F056] rounded-2xl font-black shadow-[6px_6px_0px_0px_rgba(180,240,86,1)] hover:shadow-none hover:translate-x-1.5 hover:translate-y-1.5 transition-all uppercase tracking-widest text-xs">
+                New Conversation
+              </button>
             </div>
           )}
         </div>
       </div>
 
       <style jsx global>{`
-        @keyframes msgIn {
-          from { opacity: 0; transform: translateY(8px) scale(0.97); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
         }
-        .msg-enter { animation: msgIn 0.22s ease-out both; }
-
-        @keyframes bounceSubtle {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-2px); }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
         }
-        .animate-bounce-subtle { animation: bounceSubtle 1.2s ease-in-out infinite; }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(0, 0, 0, 0.1);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(0, 0, 0, 0.2);
+        }
+        
+        @keyframes bounce-slow {
+          0%, 100% { transform: translateY(0) rotate(-3deg); }
+          50% { transform: translateY(-10px) rotate(3deg); }
+        }
+        .animate-bounce-slow {
+          animation: bounce-slow 4s ease-in-out infinite;
+        }
       `}</style>
     </div>
   )
@@ -613,13 +501,11 @@ function InboxInner() {
 
 export default function InboxPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-black" />
-        </div>
-      }
-    >
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#F9F8F4]">
+        <Loader2 className="w-10 h-10 animate-spin text-black" />
+      </div>
+    }>
       <InboxInner />
     </Suspense>
   )

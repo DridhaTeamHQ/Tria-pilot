@@ -149,12 +149,12 @@ export default function BrutalNavbar() {
     return (
         <header className="fixed top-0 left-0 right-0 z-40 bg-[#F9F8F4] border-b-[3px] border-black">
             <div className="mx-auto w-full max-w-[2000px] px-3 sm:px-5 lg:px-8 xl:px-12">
-                <div className="flex h-15 items-center justify-between sm:h-16 md:h-20">
+                <div className="flex h-20 items-center justify-between">
                     {/* Logo */}
                     <Link
                         href="/"
                         prefetch={true}
-                        className="kiwikoo-wordmark flex h-11 items-center translate-y-[1.5px] shrink-0 text-[1.65rem] font-black text-black transition-colors hover:text-[#FF8C69] sm:text-2xl sm:h-auto sm:translate-y-0 md:text-3xl"
+                        className="kiwikoo-wordmark flex items-center shrink-0 text-[2rem] font-black text-black transition-colors hover:text-[#FF8C69]"
                     >
                         Kiwikoo
                     </Link>

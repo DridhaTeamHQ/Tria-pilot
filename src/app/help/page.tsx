@@ -51,7 +51,7 @@ export default function HelpPage() {
   }, [query])
 
   return (
-    <main className="min-h-screen bg-cream pt-11">
+    <main className="min-h-screen bg-cream pt-24">
       <div className="container mx-auto px-6 py-16 max-w-4xl">
         <Link href="/" className="kiwikoo-wordmark text-3xl text-charcoal">
           Kiwikoo
