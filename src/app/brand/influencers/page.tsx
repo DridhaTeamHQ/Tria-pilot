@@ -26,6 +26,8 @@ import {
   Sparkles,
   SlidersHorizontal,
   type LucideIcon,
+  ChevronDown,
+  Instagram,
 } from 'lucide-react'
 import { FilterDropdown } from '@/components/brand/FilterDropdown'
 
@@ -113,7 +115,7 @@ function badgeColor(tier: string | null | undefined): string {
   if (t === 'gold') return 'bg-gradient-to-br from-[#FFD700] to-[#DAA520]'
   if (t === 'silver') return 'bg-gradient-to-br from-[#C0C0C0] to-[#808080]'
   if (t === 'bronze') return 'bg-gradient-to-br from-[#CD7F32] to-[#8B4513]'
-  return ''
+  return 'bg-gray-100'
 }
 
 export default function BrandInfluencersPage() {
@@ -242,17 +244,23 @@ export default function BrandInfluencersPage() {
   }
 
   const toggleShortlist = (id: string) => {
+    const isAdding = !shortlist.has(id)
+    
     setShortlist((prev) => {
       const next = new Set(prev)
       if (next.has(id)) {
         next.delete(id)
-        toast.success('Removed from shortlist')
       } else {
         next.add(id)
-        toast.success('Added to shortlist')
       }
       return next
     })
+
+    if (isAdding) {
+      toast.success('Added to shortlist')
+    } else {
+      toast.success('Removed from shortlist')
+    }
   }
 
   const handleSubmitSearch = (e: React.FormEvent) => {
@@ -294,33 +302,31 @@ export default function BrandInfluencersPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
+    <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 animate-fade-in">
       {/* Header */}
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 page-fade-in">
+      <div className="mb-10 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-black text-black mb-1 flex items-center">
-            <Users className="inline-block w-9 h-9 mr-2 -mt-1" strokeWidth={2.75} />
-            Discover Creators
-          </h1>
-          <p className="text-black/55 font-semibold text-sm">
-            {loading ? 'Loading…' : `${visibleInfluencers.length} creator${visibleInfluencers.length === 1 ? '' : 's'}`}
-            {activeFilterCount > 0 && !loading && ` · ${activeFilterCount} filter${activeFilterCount === 1 ? '' : 's'} applied`}
-            {shortlist.size > 0 && ` · ${shortlist.size} shortlisted`}
-          </p>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 bg-[#B4F056] rounded-xl flex items-center justify-center shadow-sm">
+              <Users className="w-6 h-6 text-black" />
+            </div>
+            <h1 className="text-3xl font-bold text-black tracking-tight">
+              Discover Creators
+            </h1>
+          </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 sm:ml-[52px]">
           {shortlist.size > 0 && (
             <button
               type="button"
               onClick={() => setShowShortlistOnly((v) => !v)}
-              className={`px-3 py-2 text-xs font-black uppercase tracking-wider border-2 border-black rounded-lg transition-all flex items-center gap-1.5 ${
-                showShortlistOnly
-                  ? 'bg-[#FFD93D] shadow-[3px_3px_0_0_rgba(0,0,0,1)]'
-                  : 'bg-white hover:bg-[#FFD93D]/30 hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)]'
-              }`}
+              className={`px-4 py-2 text-xs font-black uppercase tracking-wider rounded-xl transition-all flex items-center gap-2 border-2 ${showShortlistOnly
+                  ? 'bg-black border-black text-white shadow-lg shadow-black/20'
+                  : 'bg-white border-gray-200 text-black/80 hover:border-black hover:text-black shadow-sm'
+                }`}
             >
-              <BookmarkCheck className="w-3.5 h-3.5" strokeWidth={3} />
+              <BookmarkCheck className="w-4 h-4" />
               Shortlist · {shortlist.size}
             </button>
           )}
@@ -328,172 +334,167 @@ export default function BrandInfluencersPage() {
             <button
               type="button"
               onClick={resetFilters}
-              className="px-3 py-2 text-xs font-black uppercase tracking-wider border-2 border-black rounded-lg bg-white hover:bg-[#FF8C69]/20 hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition-all flex items-center gap-1.5"
+              className="px-4 py-2 text-xs font-black uppercase tracking-wider rounded-xl bg-gray-100 text-black/80 hover:bg-black hover:text-white transition-all flex items-center gap-2 border-2 border-transparent"
             >
-              <RotateCcw className="w-3.5 h-3.5" strokeWidth={3} />
-              Reset all
+              <RotateCcw className="w-4 h-4" />
+              Reset filters
             </button>
           )}
         </div>
       </div>
 
-      {/* Search bar */}
-      <form
-        onSubmit={handleSubmitSearch}
-        className="mb-4 flex gap-2 bg-white border-[3px] border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] p-2 page-fade-in"
-        style={{ animationDelay: '40ms' }}
-      >
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-black/40" />
-          <input
-            type="text"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search by name, niche, or bio..."
-            className="w-full pl-10 pr-9 py-2.5 text-sm font-medium outline-none placeholder:text-black/30"
-          />
-          {searchInput && (
+      {/* Unified Search & Filters Container (Logic from Main, Design matches the Modern UI) */}
+      <div className="relative mb-8 group">
+        <div className="absolute -inset-0.5 bg-gradient-to-r from-[#B4F056] to-[#FFD93D] rounded-[2rem] blur opacity-5 group-hover:opacity-10 transition duration-700"></div>
+
+        <div className="relative bg-white/95 backdrop-blur-md rounded-[1.75rem] border border-gray-200 shadow-xl shadow-black/5 p-4 sm:p-6 transition-all duration-500 z-30">
+          {/* Search Bar Row */}
+          <form
+            onSubmit={handleSubmitSearch}
+            className="flex flex-col sm:flex-row items-center gap-3 mb-2"
+          >
+            <div className="flex-1 w-full relative group/input">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-black/60 transition-all duration-300 group-focus-within/input:text-[#B4F056]" />
+              <input
+                type="text"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Search creators by name, niche, or bio..."
+                className="w-full pl-12 pr-10 py-3 bg-gray-50 rounded-xl font-bold text-black placeholder:text-black/50 focus:ring-2 focus:ring-[#B4F056]/40 focus:bg-white outline-none transition-all duration-300 text-sm"
+              />
+              {searchInput && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchInput('')
+                    setSearch('')
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-black/60 hover:text-black transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
             <button
-              type="button"
-              onClick={() => {
-                setSearchInput('')
-                setSearch('')
-              }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-black/5 rounded"
+              type="submit"
+              className="w-full sm:w-auto px-10 py-3 bg-black text-white rounded-xl font-black text-xs uppercase tracking-wider hover:bg-gray-800 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-black/20"
             >
-              <X className="w-4 h-4 text-black/40" />
+              <Search className="w-3.5 h-3.5" />
+              Find Creators
             </button>
-          )}
-        </div>
-        <button
-          type="submit"
-          className="px-5 py-2.5 bg-[#B4F056] border-2 border-black font-black text-sm uppercase shadow-[2px_2px_0_0_rgba(0,0,0,1)] hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:translate-y-0 active:shadow-none transition-all"
-        >
-          Go
-        </button>
-      </form>
+          </form>
 
-      {/* Filter dropdown row */}
-      <div
-        className="mb-4 bg-white border-[3px] border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] p-3 page-fade-in"
-        style={{ animationDelay: '80ms' }}
-      >
-        <div className="flex items-center gap-2 mb-3 px-1">
-          <SlidersHorizontal className="w-3.5 h-3.5" strokeWidth={3} />
-          <span className="text-[10px] font-black uppercase tracking-widest text-black/55">
-            Refine search
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <FilterDropdown
-            label="Niche"
-            anyLabel="All niches"
-            value={niche}
-            onChange={setNiche}
-            options={NICHE_OPTIONS}
-            accentColor="#B4F056"
-          />
-          <FilterDropdown
-            label="Followers"
-            anyLabel="Any size"
-            value={followerBand}
-            onChange={setFollowerBand}
-            options={FOLLOWER_BANDS as unknown as { value: string; label: string; hint?: string }[]}
-            accentColor="#A78BFA"
-          />
-          <FilterDropdown
-            label="Price / Post"
-            anyLabel="Any price"
-            value={priceBand}
-            onChange={setPriceBand}
-            options={PRICE_BANDS as unknown as { value: string; label: string }[]}
-            accentColor="#FFD93D"
-          />
-          <FilterDropdown
-            label="Engagement"
-            anyLabel="Any"
-            value={minEngagement}
-            onChange={setMinEngagement}
-            options={ENGAGEMENT_OPTIONS}
-            accentColor="#FF8C69"
-          />
-          <FilterDropdown
-            label="Badge Tier"
-            anyLabel="Any tier"
-            value={badgeTier}
-            onChange={setBadgeTier}
-            options={BADGE_TIERS}
-            accentColor="#FBBF24"
-          />
-          <FilterDropdown
-            label="Gender"
-            anyLabel="Any"
-            value={gender}
-            onChange={setGender}
-            options={GENDERS}
-            accentColor="#34D399"
-          />
-          <FilterDropdown
-            label="Audience"
-            anyLabel="Any"
-            value={audienceType}
-            onChange={setAudienceType}
-            options={AUDIENCE_TYPES}
-            accentColor="#F472B6"
-          />
-          <div className="ml-auto">
-            <FilterDropdown
-              label="Sort by"
-              anyLabel="Most followers"
-              value={sortBy}
-              onChange={(v) => setSortBy(v || 'followers')}
-              options={SORT_OPTIONS as unknown as { value: string; label: string }[]}
-            />
-          </div>
-        </div>
-
-        {/* Active chips bar */}
-        {activeChips.length > 0 && (
-          <div className="mt-3 pt-3 border-t-2 border-dashed border-black/15 flex flex-wrap items-center gap-2">
-            <span className="text-[9px] font-black uppercase tracking-widest text-black/45 mr-1">
-              Active
-            </span>
-            {activeChips.map((chip) => (
-              <button
-                key={chip.key}
-                type="button"
-                onClick={chip.remove}
-                className="active-chip group inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 text-[11px] font-black uppercase tracking-wider bg-white border-2 border-black hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_rgba(0,0,0,1)] transition-all"
-              >
-                <span
-                  className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                  style={{ background: chip.color }}
+          {/* Filters Row */}
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap gap-2">
+              <FilterDropdown
+                label="Niche"
+                anyLabel="All niches"
+                value={niche}
+                onChange={setNiche}
+                options={NICHE_OPTIONS}
+                accentColor="#B4F056"
+              />
+              <FilterDropdown
+                label="Followers"
+                anyLabel="Any size"
+                value={followerBand}
+                onChange={setFollowerBand}
+                options={FOLLOWER_BANDS as unknown as { value: string; label: string; hint?: string }[]}
+                accentColor="#A78BFA"
+              />
+              <FilterDropdown
+                label="Price"
+                anyLabel="Any price"
+                value={priceBand}
+                onChange={setPriceBand}
+                options={PRICE_BANDS as unknown as { value: string; label: string }[]}
+                accentColor="#FFD93D"
+              />
+              <FilterDropdown
+                label="Engagement"
+                anyLabel="Any"
+                value={minEngagement}
+                onChange={setMinEngagement}
+                options={ENGAGEMENT_OPTIONS}
+                accentColor="#FF8C69"
+              />
+              <FilterDropdown
+                label="Badge"
+                anyLabel="Any tier"
+                value={badgeTier}
+                onChange={setBadgeTier}
+                options={BADGE_TIERS}
+                accentColor="#FBBF24"
+              />
+              <FilterDropdown
+                label="Gender"
+                anyLabel="Any"
+                value={gender}
+                onChange={setGender}
+                options={GENDERS}
+                accentColor="#34D399"
+              />
+              <FilterDropdown
+                label="Audience"
+                anyLabel="Any"
+                value={audienceType}
+                onChange={setAudienceType}
+                options={AUDIENCE_TYPES}
+                accentColor="#F472B6"
+              />
+              <div className="sm:ml-auto">
+                <FilterDropdown
+                  label="Sort by"
+                  anyLabel="Followers"
+                  value={sortBy}
+                  onChange={(v) => setSortBy(v || 'followers')}
+                  options={SORT_OPTIONS as unknown as { value: string; label: string }[]}
                 />
-                <span className="truncate max-w-[180px]">{chip.label}</span>
-                <span className="w-4 h-4 flex items-center justify-center bg-black/5 group-hover:bg-black group-hover:text-white transition-colors rounded-full">
-                  <X className="w-2.5 h-2.5" strokeWidth={3.5} />
+              </div>
+            </div>
+
+            {/* Active chips bar */}
+            {activeChips.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 mt-2 pt-4 border-t border-gray-100">
+                <span className="text-[9px] font-black uppercase tracking-widest text-black/60 ml-1">
+                  Active Filters
                 </span>
-              </button>
-            ))}
+                {activeChips.map((chip) => (
+                  <button
+                    key={chip.key}
+                    type="button"
+                    onClick={chip.remove}
+                    className="inline-flex items-center gap-2 pl-3 pr-1.5 py-1.5 text-[10px] font-black bg-white border border-gray-200 rounded-lg shadow-sm hover:border-black/60 transition-all group"
+                  >
+                    <div className="w-2 h-2 rounded-full" style={{ background: chip.color }} />
+                    <span className="text-black/80 group-hover:text-black">{chip.label}</span>
+                    <div className="w-5 h-5 flex items-center justify-center bg-gray-50 group-hover:bg-black group-hover:text-white transition-colors rounded-md">
+                      <X className="w-3 h-3" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Results */}
       {loading ? (
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <SkeletonCard key={i} delay={i * 60} />
           ))}
         </div>
       ) : visibleInfluencers.length === 0 ? (
-        <div className="text-center py-20 border-[3px] border-dashed border-black/20 bg-white page-fade-in">
-          <Users className="w-16 h-16 mx-auto mb-4 text-black/20" />
-          <h3 className="text-xl font-black text-black/60 mb-2">No creators match</h3>
-          <p className="text-black/40 font-medium text-sm mb-5">
+        <div className="text-center py-24 bg-gray-50 rounded-[2.5rem] border-2 border-dashed border-gray-200 animate-fade-in">
+          <Users className="w-16 h-16 mx-auto mb-6 text-black/20" />
+          <h3 className="text-2xl font-black text-black/70 mb-2">No creators found</h3>
+          <p className="text-black/60 font-bold max-w-sm mx-auto mb-8">
             {showShortlistOnly
-              ? 'Your shortlist is empty for these filters'
-              : 'Try widening your filters or clearing them'}
+              ? 'Your shortlist is currently empty. Start adding creators by clicking the bookmark icon on their profiles.'
+              : 'Try widening your filters or clearing them to see more creators.'}
           </p>
           {(activeFilterCount > 0 || showShortlistOnly) && (
             <button
@@ -502,121 +503,146 @@ export default function BrandInfluencersPage() {
                 resetFilters()
                 setShowShortlistOnly(false)
               }}
-              className="inline-flex items-center gap-2 px-5 py-3 bg-[#B4F056] border-2 border-black font-black text-sm uppercase shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all"
+              className="px-8 py-3.5 bg-[#B4F056] text-black font-black rounded-2xl shadow-lg shadow-[#B4F056]/20 hover:shadow-[#B4F056]/40 hover:-translate-y-0.5 transition-all flex items-center gap-2 mx-auto"
             >
+              <RotateCcw className="w-4 h-4" strokeWidth={3} />
               Clear all filters
             </button>
           )}
         </div>
       ) : (
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {visibleInfluencers.map((influencer, idx) => {
             const isShortlisted = shortlist.has(influencer.id)
             return (
               <div
                 key={influencer.id}
-                className="card-enter group bg-white border-[3px] border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] overflow-hidden hover:shadow-[7px_7px_0_0_rgba(0,0,0,1)] hover:-translate-y-1 transition-all"
-                style={{ animationDelay: `${Math.min(idx, 12) * 35}ms` }}
+                className="group flex flex-col h-full bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-black/5 hover:-translate-y-2 transition-all duration-500 overflow-hidden"
+                style={{ animationDelay: `${Math.min(idx, 12) * 40}ms` }}
               >
-                {/* Header */}
-                <div className="p-4 border-b-2 border-black flex items-start gap-3 relative">
-                  <button
-                    type="button"
-                    onClick={() => toggleShortlist(influencer.id)}
-                    className={`absolute top-3 right-3 p-1.5 border-2 border-black rounded-full transition-all ${
-                      isShortlisted
-                        ? 'bg-[#FFD93D] shadow-[2px_2px_0_0_rgba(0,0,0,1)] scale-110'
-                        : 'bg-white hover:bg-[#FFD93D]/40 hover:scale-110'
-                    }`}
-                    title={isShortlisted ? 'Remove from shortlist' : 'Add to shortlist'}
-                  >
-                    {isShortlisted ? (
-                      <BookmarkCheck className="w-3.5 h-3.5" strokeWidth={3} />
-                    ) : (
-                      <Bookmark className="w-3.5 h-3.5" strokeWidth={2.5} />
-                    )}
-                  </button>
-
-                  <div className="relative w-14 h-14 bg-gradient-to-br from-[#B4F056] to-[#FFD93D] border-2 border-black flex items-center justify-center shrink-0 transition-transform group-hover:scale-105">
-                    {influencer.profile_image ? (
-                      <AppImage
-                        src={influencer.profile_image}
-                        alt={influencer.name}
-                        className="object-cover"
-                        sizes="56px"
-                      />
-                    ) : (
-                      <span className="text-2xl font-black">
-                        {influencer.name.charAt(0).toUpperCase()}
-                      </span>
-                    )}
-                    {influencer.badge_tier && (
-                      <div
-                        className={`absolute -bottom-1.5 -right-1.5 w-5 h-5 ${badgeColor(
-                          influencer.badge_tier,
-                        )} border-2 border-black flex items-center justify-center rounded-full`}
-                        title={`${influencer.badge_tier} tier`}
-                      >
-                        <Award className="w-2.5 h-2.5" strokeWidth={3} />
+                <div className="flex-1">
+                  {/* Profile Header */}
+                  <div className="p-6 pb-4">
+                  <div className="flex items-start gap-4">
+                    {/* Avatar Wrapper */}
+                    <div className="relative w-20 h-20 shrink-0">
+                      <div className="w-full h-full rounded-2xl overflow-hidden shadow-inner p-0.5 bg-gradient-to-br from-[#B4F056] via-[#FFD93D] to-[#B4F056] bg-[length:200%_200%] animate-shimmer">
+                        <div className="w-full h-full bg-white rounded-[calc(1rem-2px)] flex items-center justify-center overflow-hidden">
+                          {influencer.profile_image ? (
+                            <AppImage
+                              src={influencer.profile_image}
+                              alt={influencer.name}
+                              className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110"
+                              sizes="80px"
+                            />
+                          ) : (
+                            <span className="text-3xl font-black bg-gradient-to-br from-black to-black/60 bg-clip-text text-transparent">
+                              {influencer.name.charAt(0).toUpperCase()}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    )}
-                  </div>
 
-                  <div className="flex-1 min-w-0 pr-7">
-                    <h3 className="font-black text-base truncate">{influencer.name}</h3>
-                    <p className="text-xs text-black/55 font-medium truncate">
-                      {influencer.bio || 'Content Creator'}
-                    </p>
-                    {influencer.niches?.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-1.5">
-                        {influencer.niches.slice(0, 2).map((n) => (
+                      {/* Badge */}
+                      {influencer.badge_tier && (
+                        <div
+                          className={`absolute -top-2 -left-2 w-7 h-7 ${badgeColor(
+                            influencer.badge_tier,
+                          )} border-2 border-white flex items-center justify-center rounded-full shadow-xl z-20 transition-transform duration-300 group-hover:scale-110`}
+                          title={`${influencer.badge_tier} tier`}
+                        >
+                          <Award className="w-3.5 h-3.5 text-black" strokeWidth={3.5} />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0 pt-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-black text-xl text-black truncate transition-colors duration-300">
+                          {influencer.name}
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={() => toggleShortlist(influencer.id)}
+                          className={`p-2 rounded-xl border-2 transition-all duration-300 ${isShortlisted
+                              ? 'bg-[#FFD93D] border-[#FFD93D] text-black shadow-lg shadow-[#FFD93D]/20 scale-110'
+                              : 'bg-gray-100 border-transparent text-black/30 hover:text-black hover:bg-white hover:border-gray-200 hover:scale-110'
+                            }`}
+                        >
+                          {isShortlisted ? (
+                            <BookmarkCheck className="w-4 h-4" strokeWidth={3} />
+                          ) : (
+                            <Bookmark className="w-4 h-4" strokeWidth={2.5} />
+                          )}
+                        </button>
+                      </div>
+                      <p className="text-sm text-black/40 font-bold truncate mb-3">
+                        {influencer.bio || 'Content Creator'}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {influencer.niches?.slice(0, 2).map(niche => (
                           <span
-                            key={n}
-                            className="px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider bg-black/5 border border-black"
+                            key={niche}
+                            className="px-3 py-1 text-[10px] font-black uppercase tracking-wider bg-gray-100 text-black/70 rounded-full border border-gray-200 group-hover:bg-[#B4F056] group-hover:border-[#B4F056] group-hover:text-black transition-colors"
                           >
-                            {n}
+                            {niche}
                           </span>
                         ))}
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
 
                 {/* Stats */}
-                <div className="grid grid-cols-3 divide-x-2 divide-black border-b-2 border-black">
-                  <Stat label="Followers" value={formatFollowers(influencer.followers)} />
-                  <Stat
-                    icon={TrendingUp}
-                    label="Engagement"
-                    value={`${influencer.engagement_rate}%`}
-                  />
-                  <Stat
-                    icon={IndianRupee}
-                    label="Per post"
-                    value={
-                      influencer.price_per_post
-                        ? `₹${formatFollowers(influencer.price_per_post)}`
-                        : '—'
-                    }
-                  />
+                <div className="mx-6 p-4 bg-gray-100 rounded-2xl flex items-center justify-around mb-6 border border-gray-200 group-hover:bg-white group-hover:border-[#B4F056]/40 transition-all duration-500">
+                  <div className="text-center">
+                    <div className="flex items-center justify-center gap-1.5 text-black/40 text-[10px] font-black uppercase tracking-widest mb-1">
+                      <Instagram className="w-3 h-3" strokeWidth={3} />
+                      Followers
+                    </div>
+                    <div className="text-lg font-black text-black tracking-tight">
+                      {formatFollowers(influencer.followers)}
+                    </div>
+                  </div>
+                  <div className="w-px h-8 bg-gray-200 group-hover:bg-[#B4F056]/40 transition-colors" />
+                  <div className="text-center">
+                    <div className="flex items-center justify-center gap-1.5 text-black/40 text-[10px] font-black uppercase tracking-widest mb-1">
+                      <TrendingUp className="w-3 h-3" strokeWidth={3} />
+                      Engagement
+                    </div>
+                    <div className="text-lg font-black text-black tracking-tight">
+                      {influencer.engagement_rate}%
+                    </div>
+                  </div>
+                  <div className="w-px h-8 bg-gray-200 group-hover:bg-[#B4F056]/40 transition-colors" />
+                  <div className="text-center">
+                    <div className="flex items-center justify-center gap-1.5 text-black/40 text-[10px] font-black uppercase tracking-widest mb-1">
+                      <IndianRupee className="w-3 h-3" strokeWidth={3} />
+                      Per Post
+                    </div>
+                    <div className="text-lg font-black text-black tracking-tight">
+                      {influencer.price_per_post ? `₹${formatFollowers(influencer.price_per_post)}` : '—'}
+                    </div>
+                  </div>
                 </div>
-
+                </div>
                 {/* Actions */}
-                <div className="p-3 flex gap-2">
+                <div className="px-6 pb-6 pt-0 flex gap-3">
                   <button
                     type="button"
                     onClick={() => handleViewProfile(influencer.id)}
-                    className="flex-1 py-2 border-2 border-black font-black text-xs uppercase tracking-wider hover:bg-black/5 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-1"
+                    className="flex-1 py-3 bg-black text-white rounded-xl font-black text-xs uppercase tracking-wider hover:bg-gray-800 active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
-                    <ExternalLink className="w-3.5 h-3.5" strokeWidth={3} />
+                    <ExternalLink className="w-4 h-4" strokeWidth={3} />
                     Profile
                   </button>
                   <button
                     type="button"
                     onClick={() => handleMessage(influencer.id)}
-                    className="flex-1 py-2 bg-[#B4F056] border-2 border-black font-black text-xs uppercase tracking-wider shadow-[2px_2px_0_0_rgba(0,0,0,1)] hover:shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-none transition-all flex items-center justify-center gap-1"
+                    className="flex-1 py-3 bg-[#B4F056] text-black rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-[#B4F056]/20 hover:shadow-[#B4F056]/40 active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
-                    <MessageCircle className="w-3.5 h-3.5" strokeWidth={3} />
+                    <MessageCircle className="w-4 h-4" strokeWidth={3} />
                     Message
                   </button>
                 </div>
@@ -628,67 +654,42 @@ export default function BrandInfluencersPage() {
 
       {/* Pro tip */}
       {!loading && visibleInfluencers.length > 0 && shortlist.size === 0 && (
-        <div className="mt-8 bg-[#A78BFA]/10 border-[3px] border-black p-4 flex items-start gap-3 page-fade-in">
-          <Sparkles className="w-5 h-5 text-[#A78BFA] flex-shrink-0 mt-0.5" strokeWidth={3} />
+        <div className="mt-12 bg-gradient-to-r from-gray-100 to-white rounded-3xl border border-gray-200 p-6 flex items-start gap-4 animate-slide-up group hover:shadow-xl hover:shadow-black/5 transition-all duration-500">
+          <div className="w-12 h-12 bg-[#A78BFA]/20 rounded-2xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+            <Sparkles className="w-6 h-6 text-[#A78BFA]" strokeWidth={3} />
+          </div>
           <div>
-            <p className="text-sm font-black uppercase tracking-wider mb-0.5">Pro tip</p>
-            <p className="text-xs text-black/60 font-semibold">
-              Tap the bookmark icon to save creators. Build a shortlist for each campaign and invite them all at once.
+            <p className="text-xs font-black uppercase tracking-widest text-[#A78BFA] mb-1">Expert Advice</p>
+            <p className="text-base text-black/70 font-bold leading-relaxed">
+              Tap the <Bookmark className="inline w-4 h-4 -mt-1 mx-1 text-black/40" strokeWidth={3} /> icon to save creators. Build a shortlist for each campaign and invite them all at once for faster scaling.
             </p>
           </div>
         </div>
       )}
 
-      {/* Animations */}
       <style jsx global>{`
         @keyframes pageFadeIn {
-          from { opacity: 0; transform: translateY(6px); }
+          from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        .page-fade-in { animation: pageFadeIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        .animate-fade-in { animation: pageFadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
-        @keyframes cardIn {
-          from { opacity: 0; transform: translateY(12px) scale(0.97); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
         }
-        .card-enter { animation: cardIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
-
-        @keyframes chipIn {
-          from { opacity: 0; transform: scale(0.85); }
-          to { opacity: 1; transform: scale(1); }
-        }
-        .active-chip { animation: chipIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+        .animate-slide-up { animation: slideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
         @keyframes shimmer {
           0% { background-position: -200% 0; }
           100% { background-position: 200% 0; }
         }
-        .skeleton-shimmer {
-          background: linear-gradient(90deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.12) 50%, rgba(0,0,0,0.05) 100%);
+        .animate-shimmer {
+          background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
           background-size: 200% 100%;
-          animation: shimmer 1.5s ease-in-out infinite;
+          animation: shimmer 2s infinite linear;
         }
       `}</style>
-    </div>
-  )
-}
-
-function Stat({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon?: LucideIcon
-  label: string
-  value: string
-}) {
-  return (
-    <div className="p-2.5 text-center">
-      <div className="flex items-center justify-center gap-1 text-black/45 text-[9px] font-black uppercase tracking-widest mb-0.5">
-        {Icon && <Icon className="w-2.5 h-2.5" strokeWidth={3} />}
-        {label}
-      </div>
-      <div className="text-base font-black">{value}</div>
     </div>
   )
 }
@@ -696,31 +697,26 @@ function Stat({
 function SkeletonCard({ delay = 0 }: { delay?: number }) {
   return (
     <div
-      className="card-enter bg-white border-[3px] border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] overflow-hidden"
+      className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden animate-fade-in"
       style={{ animationDelay: `${delay}ms` }}
     >
-      <div className="p-4 border-b-2 border-black flex items-start gap-3">
-        <div className="w-14 h-14 border-2 border-black skeleton-shimmer shrink-0" />
-        <div className="flex-1 min-w-0 space-y-2">
-          <div className="h-4 w-3/4 skeleton-shimmer" />
-          <div className="h-3 w-1/2 skeleton-shimmer" />
-          <div className="flex gap-1">
-            <div className="h-4 w-12 skeleton-shimmer" />
-            <div className="h-4 w-16 skeleton-shimmer" />
+      <div className="p-6 pb-4">
+        <div className="flex items-start gap-4">
+          <div className="w-20 h-20 rounded-2xl bg-gray-100 animate-pulse shrink-0" />
+          <div className="flex-1 space-y-3 pt-1">
+            <div className="h-6 bg-gray-100 rounded-lg w-3/4 animate-pulse" />
+            <div className="h-4 bg-gray-50 rounded-lg w-1/2 animate-pulse" />
+            <div className="flex gap-2">
+              <div className="h-6 bg-gray-50 rounded-full w-16 animate-pulse" />
+              <div className="h-6 bg-gray-50 rounded-full w-20 animate-pulse" />
+            </div>
           </div>
         </div>
       </div>
-      <div className="grid grid-cols-3 divide-x-2 divide-black border-b-2 border-black">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="p-3 space-y-1.5">
-            <div className="h-2 w-12 mx-auto skeleton-shimmer" />
-            <div className="h-4 w-10 mx-auto skeleton-shimmer" />
-          </div>
-        ))}
-      </div>
-      <div className="p-3 flex gap-2">
-        <div className="flex-1 h-8 skeleton-shimmer border-2 border-black" />
-        <div className="flex-1 h-8 skeleton-shimmer border-2 border-black" />
+      <div className="mx-6 h-16 bg-gray-50 rounded-2xl mb-6 animate-pulse" />
+      <div className="px-6 pb-6 flex gap-3">
+        <div className="flex-1 h-12 bg-gray-100 rounded-xl animate-pulse" />
+        <div className="flex-1 h-12 bg-gray-100 rounded-xl animate-pulse" />
       </div>
     </div>
   )
