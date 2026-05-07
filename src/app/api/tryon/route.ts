@@ -1152,19 +1152,29 @@ async function handlePresetlessTryOnRequest(params: {
           /rejected by strict face consistency gate|rejected by quality gate|output rejected|garment_guardrail/i.test(output.error || '')
       )
 
+      // FIX: previously returned 200 OK with success:false — frontend's
+      // safeParseResponse only throws on non-OK, so the failure silently
+      // passed. Now return 502 (or 422 for quality rejections) so the
+      // structured error path fires and the user sees the failure modal.
+      const failureStatus = allQualityRejected ? 422 : 502
+      const userMessage = allQualityRejected
+        ? 'All three try-on drafts were rejected because face or garment fidelity was too low. Please upload stronger source photos and try again.'
+        : aggregatedError
+          ? `Try-on generation failed: ${aggregatedError.slice(0, 240)}`
+          : 'All three try-on drafts failed. Please try again.'
+
       return NextResponse.json(
         {
           success: false,
-          error: allQualityRejected
-            ? 'All three try-on drafts were rejected because face or garment fidelity was too low. Please upload stronger source photos and try again.'
-            : 'All three try-on drafts failed. Please try again.',
+          error: userMessage,
           code: allQualityRejected ? 'TRYON_OUTPUT_REJECTED' : 'TRYON_GENERATION_FAILED',
+          retryAfterSeconds: allQualityRejected ? undefined : 5,
           jobId: job.id,
           status,
           outputs: normalizedOutputs,
           selectionMethod,
         },
-        { headers: { 'Cache-Control': 'no-store' } }
+        { status: failureStatus, headers: { 'Cache-Control': 'no-store' } }
       )
     }
 

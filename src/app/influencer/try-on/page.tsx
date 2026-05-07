@@ -517,16 +517,28 @@ function TryOnPageContent() {
       // Helper: check if a job result actually succeeded
       const jobSucceeded = (job: any) => {
         if (!job) return false
+        if (job.success === false) return false
         if (job.status === 'failed' || job.status === 'error' || job.status === 'cancelled') return false
-        const hasOutput = (Array.isArray(job.outputs) && job.outputs.some((o: any) => o?.imageUrl || o?.base64Image)) || job.imageUrl || job.base64Image
+        const hasOutput =
+          (Array.isArray(job.outputs) && job.outputs.some((o: any) => (o?.imageUrl || o?.base64Image) && o?.status !== 'failed')) ||
+          Boolean(job.imageUrl) ||
+          Boolean(job.base64Image)
         return Boolean(hasOutput)
       }
 
       const handleFinalJob = (finalJob: any, fallbackMsg: string) => {
         if (!jobSucceeded(finalJob)) {
-          const errMsg = (finalJob && (finalJob.errorMessage || finalJob.error_message || finalJob.error)) || fallbackMsg
-          const e = new Error(typeof errMsg === 'string' ? errMsg : fallbackMsg)
-          ;(e as any).code = (finalJob && finalJob.code) || undefined
+          // Try every error field shape the backend might return
+          const errMsg =
+            (finalJob && (finalJob.error || finalJob.errorMessage || finalJob.error_message || finalJob.message)) ||
+            (Array.isArray(finalJob?.outputs)
+              ? finalJob.outputs.map((o: any) => o?.error).filter(Boolean).slice(0, 2).join(' | ')
+              : '') ||
+            fallbackMsg
+          const e = new Error(typeof errMsg === 'string' && errMsg.trim() ? errMsg : fallbackMsg)
+          ;(e as any).code = (finalJob && (finalJob.code || finalJob.errorCode)) || undefined
+          ;(e as any).retryAfterSeconds = finalJob?.retryAfterSeconds
+          console.error('[try-on] generation failed:', { errMsg, code: (e as any).code, finalJob })
           throw e
         }
         setResult(finalJob)
@@ -548,9 +560,13 @@ function TryOnPageContent() {
         showSuccessToast('Try-on ready', 'We generated your three try-on images.')
       }
     } catch (error) {
-      const structured = error as Error & { retryAfterSeconds?: number; code?: string }
+      // Always log the raw error so we can debug from the browser console
+      console.error('[try-on] caught error:', error)
+      const structured = error as Error & { retryAfterSeconds?: number; code?: string; status?: number }
       if (structured.retryAfterSeconds) setRetryAfterSeconds(structured.retryAfterSeconds)
-      const rawMsg = error instanceof Error ? error.message : 'Generation failed.'
+      const rawMsg = error instanceof Error
+        ? error.message
+        : (typeof error === 'string' ? error : 'Generation failed. Please try again.')
       // Map technical codes/messages to user-friendly text
       const lower = rawMsg.toLowerCase()
       let title = 'Try-on failed'
