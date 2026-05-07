@@ -143,18 +143,18 @@ export default function CampaignsPage() {
       <div className="container mx-auto px-4 max-w-6xl">
 
         {/* ── HEADER ── */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-6 mb-10">
           <div>
-            <h1 className="text-3xl font-black text-black mb-1">Campaigns</h1>
-            <p className="text-black/50 text-sm font-medium">
-              AI-powered campaign strategy, analytics & visual generation
+            <h1 className="text-4xl md:text-5xl font-black text-black mb-2 tracking-tight">Campaigns</h1>
+            <p className="text-black/60 text-base font-bold max-w-lg leading-snug">
+              AI-powered strategy, analytics & visual generation for high-impact brand growth.
             </p>
           </div>
           <Link
             href="/brand/campaigns/new"
-            className="inline-flex items-center gap-2 px-5 py-3 bg-[#B4F056] border-[3px] border-black font-black uppercase text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all shrink-0 self-start sm:self-auto"
+            className="inline-flex items-center gap-3 px-8 py-4 bg-[#B4F056] border-[3px] border-black font-black uppercase text-sm tracking-widest shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[4px] hover:translate-y-[4px] transition-all shrink-0 self-start sm:self-auto"
           >
-            <Sparkles className="w-5 h-5" strokeWidth={2.5} />
+            <Sparkles className="w-5 h-5" strokeWidth={3} />
             Launch AI Strategist
           </Link>
         </div>
@@ -167,19 +167,19 @@ export default function CampaignsPage() {
 
         {campaigns.length === 0 ? (
           /* ── EMPTY STATE ── */
-          <div className="flex flex-col items-center justify-center py-20 px-4 bg-white border border-black/8 rounded-2xl shadow-sm">
-            <div className="text-5xl mb-4">🚀</div>
-            <h3 className="text-xl font-black text-black mb-2">No campaigns yet</h3>
-            <p className="text-black/50 text-center max-w-md mb-8 font-medium">
+          <div className="flex flex-col items-center justify-center py-20 px-8 bg-white border-[3px] border-black rounded-[32px] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+            <div className="text-6xl mb-6">🚀</div>
+            <h3 className="text-2xl font-black text-black mb-3">No campaigns yet</h3>
+            <p className="text-black/60 text-center max-w-md mb-10 font-bold text-base leading-relaxed">
               Launch the AI Strategist to create your first campaign. It&apos;ll ask strategic
-              questions, research your market, generate content ideas, write scripts, and
-              auto-create your campaign.
+              questions, research your market, generate content ideas, and
+              auto-create your campaign blueprint.
             </p>
             <Link
               href="/brand/campaigns/new"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-[#B4F056] border-[3px] border-black font-black uppercase text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all"
+              className="inline-flex items-center gap-3 px-8 py-4 bg-[#B4F056] border-[3px] border-black font-black uppercase text-sm tracking-widest shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[4px] hover:translate-y-[4px] transition-all"
             >
-              <Sparkles className="w-5 h-5" strokeWidth={2.5} />
+              <Sparkles className="w-5 h-5" strokeWidth={3} />
               Launch AI Strategist
             </Link>
           </div>
@@ -193,38 +193,42 @@ export default function CampaignsPage() {
             <CampaignRecommendations campaigns={campaigns} />
 
             {/* ── FILTERS & SEARCH BAR ── */}
-            <div className="bg-white border border-black/8 rounded-2xl p-4 animate-slideUp" style={{ animationDelay: '300ms' }}>
-              <div className="flex flex-col sm:flex-row gap-3">
+            <div className="bg-white border-[3px] border-black rounded-2xl p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] animate-slideUp" style={{ animationDelay: '300ms' }}>
+              <div className="flex flex-col lg:flex-row gap-4">
                 {/* Search */}
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-black/30" strokeWidth={2} />
+                <div className="relative flex-1 group">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-black/40 group-focus-within:text-black transition-colors" strokeWidth={3} />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search campaigns..."
-                    className="w-full pl-9 pr-4 py-2.5 bg-black/[0.03] border border-black/8 rounded-xl text-sm font-medium placeholder:text-black/30 focus:border-[#B4F056] focus:ring-2 focus:ring-[#B4F056]/20 outline-none transition-all"
+                    className="w-full pl-12 pr-4 py-3.5 bg-black/[0.03] border-[3px] border-black/10 rounded-xl text-sm font-black placeholder:text-black/30 focus:border-black focus:bg-white focus:ring-0 outline-none transition-all"
                   />
                 </div>
 
                 {/* Status Filter Pills */}
-                <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar">
-                  <SlidersHorizontal className="w-4 h-4 text-black/30 shrink-0" strokeWidth={2} />
-                  {STATUS_FILTERS.map(f => (
-                    <button
-                      key={f.value}
-                      onClick={() => setStatusFilter(f.value)}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all shrink-0 ${statusFilter === f.value
-                          ? 'bg-black text-white'
-                          : 'bg-black/[0.04] text-black/50 hover:bg-black/[0.08]'
-                        }`}
-                    >
-                      {f.value !== 'all' && (
-                        <span className={`w-2 h-2 rounded-full ${f.color}`} />
-                      )}
-                      {f.label}
-                    </button>
-                  ))}
+                <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-1 lg:pb-0">
+                  <div className="w-10 h-10 rounded-xl border-[3px] border-black flex items-center justify-center bg-black/5 shrink-0">
+                    <SlidersHorizontal className="w-5 h-5 text-black" strokeWidth={3} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {STATUS_FILTERS.map(f => (
+                      <button
+                        key={f.value}
+                        onClick={() => setStatusFilter(f.value)}
+                        className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border-[3px] text-xs font-black uppercase tracking-wider transition-all shrink-0 ${statusFilter === f.value
+                            ? 'bg-black text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)] translate-x-[-2px] translate-y-[-2px]'
+                            : 'bg-white text-black/50 border-black/10 hover:border-black hover:text-black'
+                          }`}
+                      >
+                        {f.value !== 'all' && (
+                          <span className={`w-2.5 h-2.5 rounded-full border border-black/10 ${f.color}`} />
+                        )}
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Sort Dropdown */}
@@ -232,23 +236,25 @@ export default function CampaignsPage() {
                   <button
                     type="button"
                     onClick={() => setSortOpen(!sortOpen)}
-                    className="inline-flex items-center gap-1.5 px-3 py-2.5 bg-black/[0.03] border border-black/8 rounded-xl text-[11px] font-bold uppercase tracking-wider hover:bg-black/[0.06] transition-colors"
+                    className="w-full lg:w-auto inline-flex items-center justify-between lg:justify-start gap-3 px-5 py-3.5 bg-white border-[3px] border-black rounded-xl text-xs font-black uppercase tracking-wider hover:bg-black/5 transition-colors shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
                   >
-                    <ArrowUpDown className="w-3.5 h-3.5 text-black/40" strokeWidth={2} />
-                    {SORT_OPTIONS.find(o => o.value === sortOption)?.label || 'Sort'}
-                    <ChevronDown className={`w-3 h-3 text-black/30 transition-transform ${sortOpen ? 'rotate-180' : '--'}`} />
+                    <div className="flex items-center gap-2">
+                      <ArrowUpDown className="w-4 h-4 text-black" strokeWidth={3} />
+                      {SORT_OPTIONS.find(o => o.value === sortOption)?.label || 'Sort'}
+                    </div>
+                    <ChevronDown className={`w-4 h-4 text-black transition-transform ${sortOpen ? 'rotate-180' : '--'}`} strokeWidth={3} />
                   </button>
                   {sortOpen && (
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setSortOpen(false)} />
-                      <div className="absolute right-0 top-full mt-1 bg-white border border-black/10 rounded-xl shadow-lg z-20 py-1 min-w-[180px] animate-fadeIn">
+                      <div className="absolute right-0 top-full mt-3 bg-white border-[3px] border-black rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] z-20 py-2 min-w-[200px] animate-fadeIn">
                         {SORT_OPTIONS.map(opt => (
                           <button
                             key={opt.value}
                             onClick={() => { setSortOption(opt.value); setSortOpen(false) }}
-                            className={`w-full text-left px-4 py-2 text-xs font-semibold transition-colors ${sortOption === opt.value
-                                ? 'bg-[#B4F056]/15 text-black font-bold'
-                                : 'text-black/60 hover:bg-black/[0.03]'
+                            className={`w-full text-left px-5 py-3 text-xs font-black uppercase tracking-wider transition-colors ${sortOption === opt.value
+                                ? 'bg-[#B4F056] text-black'
+                                : 'text-black/60 hover:bg-black/5'
                               }`}
                           >
                             {opt.label}
@@ -294,17 +300,17 @@ export default function CampaignsPage() {
                     <Link
                       key={campaign.id}
                       href={`/brand/campaigns/${campaign.id}`}
-                      className="group bg-white border border-black/8 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 hover:border-black/15 transition-all block overflow-hidden animate-slideUp"
+                      className="group bg-white border-[3px] border-black rounded-[24px] shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-1 hover:-translate-y-1 transition-all block overflow-hidden animate-slideUp"
                       style={{ animationDelay: `${350 + idx * 40}ms` }}
                     >
                       {/* Card Header */}
-                      <div className="p-5 pb-3">
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <h3 className="text-base font-black text-black leading-tight group-hover:text-black/80 transition-colors">
+                      <div className="p-6 pb-4">
+                        <div className="flex items-start justify-between gap-4 mb-3">
+                          <h3 className="text-lg font-black text-black leading-tight group-hover:text-black/80 transition-colors">
                             {campaign.title}
                           </h3>
                           <span
-                            className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 ${STATUS_BADGE_COLORS[campaign.status] || 'bg-gray-100 text-black/50'
+                            className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg border-2 border-black shrink-0 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${STATUS_BADGE_COLORS[campaign.status] || 'bg-gray-100 text-black/50'
                               }`}
                           >
                             {campaign.status}
@@ -312,13 +318,13 @@ export default function CampaignsPage() {
                         </div>
 
                         {campaign.goal && (
-                          <p className="text-[11px] font-bold text-black/40 uppercase tracking-wider mb-2">
+                          <p className="text-[10px] font-black text-black/50 uppercase tracking-widest mb-3 bg-black/5 inline-block px-2 py-0.5 rounded-md">
                             {GOAL_LABELS[campaign.goal] || campaign.goal}
                           </p>
                         )}
 
                         {campaign.brief && (
-                          <p className="text-xs text-black/50 font-medium mb-3 line-clamp-2 leading-relaxed">
+                          <p className="text-sm text-black/70 font-bold mb-4 line-clamp-2 leading-relaxed">
                             {campaign.brief}
                           </p>
                         )}
@@ -328,18 +334,18 @@ export default function CampaignsPage() {
                           const angles = strategy?.content_angles
                           if (!angles || !Array.isArray(angles)) return null
                           return (
-                            <div className="flex flex-wrap gap-1 mb-3">
-                              {(angles as (string | { angle?: string })[]).slice(0, 3).map((angle, i) => (
+                            <div className="flex flex-wrap gap-2 mb-4">
+                              {(angles as (string | { angle?: string })[]).slice(0, 2).map((angle, i) => (
                                 <span
                                   key={i}
-                                  className="text-[9px] font-bold bg-[#FFD93D]/30 border border-[#FFD93D]/40 px-1.5 py-0.5 rounded-full"
+                                  className="text-[10px] font-black uppercase tracking-wider bg-[#FFD93D]/40 border-2 border-black px-2 py-1 rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
                                 >
                                   {typeof angle === 'string' ? angle : angle?.angle ?? ''}
                                 </span>
                               ))}
-                              {(angles as unknown[]).length > 3 && (
-                                <span className="text-[9px] font-bold text-black/30 px-1 py-0.5">
-                                  +{(angles as unknown[]).length - 3}
+                              {(angles as unknown[]).length > 2 && (
+                                <span className="text-[10px] font-black text-black/40 px-1 py-1">
+                                  +{(angles as unknown[]).length - 2} more
                                 </span>
                               )}
                             </div>
@@ -349,41 +355,44 @@ export default function CampaignsPage() {
 
                       {/* Metrics Bar */}
                       {((campaign.impressions ?? 0) > 0 || (campaign.spend ?? 0) > 0) && (
-                        <div className="px-5 pb-3">
-                          <div className="grid grid-cols-3 gap-3 py-3 border-t border-black/5">
+                        <div className="px-6 pb-4">
+                          <div className="grid grid-cols-3 gap-4 py-4 border-t-2 border-black/10">
                             <div>
-                              <p className="text-[9px] font-bold text-black/35 uppercase">Impressions</p>
-                              <p className="text-sm font-black tabular-nums">{(campaign.impressions ?? 0).toLocaleString()}</p>
-                              <div className="mt-1">
+                              <p className="text-[10px] font-black text-black/40 uppercase tracking-widest mb-1">Impact</p>
+                              <p className="text-base font-black tabular-nums">{(campaign.impressions ?? 0).toLocaleString()}</p>
+                              <div className="mt-2">
                                 <MiniMetricBar value={campaign.impressions ?? 0} max={maxImpressions} color="#A78BFA" />
                               </div>
                             </div>
                             <div>
-                              <p className="text-[9px] font-bold text-black/35 uppercase">CTR</p>
-                              <p className="text-sm font-black tabular-nums flex items-center gap-1">
-                                {ctr.toFixed(2)}%
-                                {ctr > 3 && <TrendingUp className="w-3 h-3 text-green-500" />}
+                              <p className="text-[10px] font-black text-black/40 uppercase tracking-widest mb-1">Efficiency</p>
+                              <p className="text-base font-black tabular-nums flex items-center gap-1.5">
+                                {ctr.toFixed(1)}%
+                                {ctr > 3 && <TrendingUp className="w-4 h-4 text-green-600" strokeWidth={3} />}
                               </p>
                             </div>
                             <div>
-                              <p className="text-[9px] font-bold text-black/35 uppercase">Spend</p>
-                              <p className="text-sm font-black tabular-nums">Rs. {(campaign.spend ?? 0).toLocaleString()}</p>
+                              <p className="text-[10px] font-black text-black/40 uppercase tracking-widest mb-1">Spend</p>
+                              <p className="text-base font-black tabular-nums">₹{(campaign.spend ?? 0).toLocaleString()}</p>
                             </div>
                           </div>
                         </div>
                       )}
 
                       {/* Footer */}
-                      <div className="px-5 py-3 bg-black/[0.02] border-t border-black/5">
-                        <p className="text-[10px] text-black/30 font-bold uppercase">
+                      <div className="px-6 py-3 bg-black/5 border-t-2 border-black/10 flex items-center justify-between">
+                        <p className="text-[10px] text-black/40 font-black uppercase tracking-widest">
                           {created
-                            ? new Date(created).toLocaleDateString('en-US', {
+                            ? new Date(created).toLocaleDateString('en-IN', {
                               year: 'numeric',
-                              month: 'long',
+                              month: 'short',
                               day: 'numeric',
                             })
                             : '--'}
                         </p>
+                        <div className="w-5 h-5 rounded-full border-2 border-black flex items-center justify-center bg-white group-hover:bg-[#B4F056] transition-colors">
+                          <ChevronDown className="w-3 h-3 text-black -rotate-90" strokeWidth={4} />
+                        </div>
                       </div>
                     </Link>
                   )

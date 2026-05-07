@@ -339,15 +339,13 @@ async function downloadPdf(campaign: Record<string, unknown>) {
 
 /* ━━━━━━━━━━━━━ ANIMATIONS CSS ━━━━━━━━━━━━━ */
 const ANIMATIONS_CSS = `
-@keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes pulseHighlight { 0% { box-shadow: 0 0 0 0 rgba(180,240,86,0.5); } 70% { box-shadow: 0 0 0 8px rgba(180,240,86,0); } 100% { box-shadow: 0 0 0 0 rgba(180,240,86,0); } }
+@keyframes pulseHighlight { 0% { box-shadow: 0 0 0 0 rgba(180,240,86,0.8); } 70% { box-shadow: 0 0 0 12px rgba(180,240,86,0); } 100% { box-shadow: 0 0 0 0 rgba(180,240,86,0); } }
 @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
-@keyframes slideOutRight { from { transform: translateX(0); } to { transform: translateX(100%); } }
-.animate-slideUp { animation: slideUp 0.4s ease-out both; }
-.animate-fadeIn { animation: fadeIn 0.3s ease-out both; }
+.animate-slideUp { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-fadeIn { animation: fadeIn 0.4s ease-out both; }
 .animate-pulse-highlight { animation: pulseHighlight 1.5s ease-in-out 2; }
-.animate-slideInRight { animation: slideInRight 0.3s ease-out both; }
 `
 
 /* ━━━━━━━━━━━━━ SCORE BAR ━━━━━━━━━━━━━ */
@@ -356,10 +354,10 @@ function ScoreBar({ score, max = 10 }: { score: number; max?: number }) {
     const color = score >= 8 ? '#B4F056' : score >= 6 ? '#FFD93D' : score >= 4 ? '#FFA94D' : '#FF6B6B'
     return (
         <div className="flex items-center gap-2">
-            <div className="flex-1 h-1.5 bg-black/[0.06] rounded-full overflow-hidden">
-                <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: color }} />
+            <div className="flex-1 h-2 bg-black/[0.08] border border-black/5 rounded-full overflow-hidden">
+                <div className="h-full rounded-full transition-all duration-1000 border-r-2 border-black/20" style={{ width: `${pct}%`, background: color }} />
             </div>
-            <span className="text-[11px] font-black tabular-nums" style={{ color }}>{score}/{max}</span>
+            <span className="text-[11px] font-black tabular-nums text-black" style={{ color }}>{score}/{max}</span>
         </div>
     )
 }
@@ -367,13 +365,13 @@ function ScoreBar({ score, max = 10 }: { score: number; max?: number }) {
 /* ━━━━━━━━━━━━━ FORMAT BADGE ━━━━━━━━━━━━━ */
 function Badge({ children, variant = 'default' }: { children: React.ReactNode; variant?: 'default' | 'green' | 'yellow' | 'blue' | 'red' }) {
     const colors = {
-        default: 'bg-black/[0.05] text-black/60',
-        green: 'bg-[#B4F056]/20 text-[#5a8f10]',
-        yellow: 'bg-[#FFD93D]/25 text-[#8a6d00]',
-        blue: 'bg-blue-100 text-blue-700',
-        red: 'bg-red-100 text-red-600',
+        default: 'bg-white text-black/60 border-black/10',
+        green: 'bg-[#B4F056] text-black border-black',
+        yellow: 'bg-[#FFD93D] text-black border-black',
+        blue: 'bg-[#A78BFA] text-black border-black',
+        red: 'bg-[#FF6B6B] text-white border-black',
     }
-    return <span className={`inline-flex text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${colors[variant]}`}>{children}</span>
+    return <span className={`inline-flex text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${colors[variant]}`}>{children}</span>
 }
 
 /* ━━━━━━━━━━━━━ EDITABLE FIELD ━━━━━━━━━━━━━ */
@@ -386,29 +384,37 @@ function EditableField({ label, value, onSave, type = 'text', multiline = false 
 
     if (editing) {
         return (
-            <div className="space-y-1">
-                <p className="text-[10px] font-black uppercase tracking-wider text-black/40">{label}</p>
+            <div className="space-y-2 animate-slideUp">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-black/40">{label}</p>
                 <div className="flex items-start gap-2">
                     {multiline ? (
-                        <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={3}
-                            className="flex-1 px-3 py-2 border border-black/15 rounded-lg text-sm font-medium focus:border-[#B4F056] focus:ring-2 focus:ring-[#B4F056]/30 outline-none resize-none" autoFocus />
+                        <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={4}
+                            className="flex-1 px-4 py-3 bg-white border-[3px] border-black rounded-xl text-sm font-black focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none resize-none transition-all" autoFocus />
                     ) : (
                         <input type={type} value={draft} onChange={(e) => setDraft(e.target.value)}
-                            className="flex-1 px-3 py-2 border border-black/15 rounded-lg text-sm font-medium focus:border-[#B4F056] focus:ring-2 focus:ring-[#B4F056]/30 outline-none" autoFocus />
+                            className="flex-1 px-4 py-3 bg-white border-[3px] border-black rounded-xl text-sm font-black focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none transition-all" autoFocus />
                     )}
-                    <button type="button" onClick={handleSave} className="p-2 bg-[#B4F056] rounded-lg hover:bg-[#a3e045] transition-colors"><Save className="w-3.5 h-3.5" strokeWidth={2.5} /></button>
-                    <button type="button" onClick={() => { setDraft(value); setEditing(false) }} className="p-2 bg-black/5 rounded-lg hover:bg-black/10 transition-colors"><X className="w-3.5 h-3.5" strokeWidth={2.5} /></button>
+                    <div className="flex flex-col gap-2">
+                        <button type="button" onClick={handleSave} className="p-3 bg-[#B4F056] border-[3px] border-black rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all">
+                            <Save className="w-4 h-4 text-black" strokeWidth={3} />
+                        </button>
+                        <button type="button" onClick={() => { setDraft(value); setEditing(false) }} className="p-3 bg-white border-[3px] border-black rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all">
+                            <X className="w-4 h-4 text-black" strokeWidth={3} />
+                        </button>
+                    </div>
                 </div>
             </div>
         )
     }
 
     return (
-        <div className="group cursor-pointer" onClick={() => setEditing(true)}>
-            <p className="text-[10px] font-black uppercase tracking-wider text-black/40 mb-0.5">{label}</p>
-            <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-black/80">{value || '—'}</span>
-                <Edit3 className="w-3 h-3 text-black/20 opacity-0 group-hover:opacity-100 transition-opacity" strokeWidth={2.5} />
+        <div className="group cursor-pointer hover:bg-black/5 p-2 -m-2 rounded-xl transition-colors" onClick={() => setEditing(true)}>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-black/40 mb-1">{label}</p>
+            <div className="flex items-center justify-between gap-4">
+                <span className="text-base font-black text-black leading-tight whitespace-pre-wrap">{value || '—'}</span>
+                <div className="w-8 h-8 rounded-lg border-2 border-transparent group-hover:border-black group-hover:bg-white flex items-center justify-center transition-all">
+                    <Edit3 className="w-4 h-4 text-black/20 group-hover:text-black" strokeWidth={3} />
+                </div>
             </div>
         </div>
     )
@@ -420,14 +426,17 @@ function Section({ icon: Icon, title, children, delay = 0, highlighted = false }
 }) {
     return (
         <div
-            className={`bg-white border border-black/8 rounded-2xl overflow-hidden animate-slideUp ${highlighted ? 'animate-pulse-highlight' : ''}`}
+            className={`bg-white border-[3px] border-black rounded-[24px] overflow-hidden animate-slideUp shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] ${highlighted ? 'animate-pulse-highlight' : ''}`}
             style={{ animationDelay: `${delay}ms` }}
         >
-            <div className="px-5 py-3 border-b border-black/6 flex items-center gap-2">
-                <Icon className="w-4 h-4 text-black/40" strokeWidth={2} />
-                <h3 className="text-xs font-black uppercase tracking-wider text-black/50">{title}</h3>
+            <div className="px-6 py-4 border-b-[3px] border-black flex items-center justify-between bg-black/5">
+                <div className="flex items-center gap-2">
+                    <Icon className="w-5 h-5 text-black" strokeWidth={3} />
+                    <h3 className="text-xs font-black uppercase tracking-[0.15em] text-black">{title}</h3>
+                </div>
+                <div className="w-2 h-2 rounded-full bg-black/20" />
             </div>
-            <div className="p-5">{children}</div>
+            <div className="p-6">{children}</div>
         </div>
     )
 }
@@ -527,34 +536,42 @@ function RefineChatPanel({ campaignId, onStrategyUpdated, onClose }: {
     return (
         <>
             {/* Backdrop */}
-            <div className="fixed inset-0 bg-black/10 backdrop-blur-[2px] z-40 animate-fadeIn" onClick={onClose} />
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-[4px] z-40 animate-fadeIn" onClick={onClose} />
 
-            <div className="fixed inset-x-3 bottom-3 z-50 flex h-[min(72vh,520px)] w-auto flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-2xl animate-slideInRight sm:inset-x-auto sm:bottom-4 sm:right-4 sm:w-[320px] sm:h-[480px]">
-                <style>{`@keyframes slideInRight { from { opacity: 0; transform: translateY(16px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
-                    .animate-slideInRight { animation: slideInRight 0.25s ease-out both; }`}</style>
+            <div className="fixed inset-x-4 bottom-4 z-50 flex h-[min(80vh,600px)] w-auto flex-col overflow-hidden rounded-[32px] border-[3px] border-black bg-[#FAFAF8] shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] animate-slideInRight sm:inset-x-auto sm:right-6 sm:w-[380px]">
+                <style>{`@keyframes slideInRight { from { opacity: 0; transform: translateX(40px) scale(0.95); } to { opacity: 1; transform: translateX(0) scale(1); } }
+                    .animate-slideInRight { animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }`}</style>
 
                 {/* Header — compact */}
-                <div className="flex items-center justify-between px-4 py-2.5 border-b border-black/6 bg-[#FAFAF8]">
-                    <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#B4F056] to-[#7dd610] flex items-center justify-center">
-                            <Sparkles className="w-3 h-3 text-white" strokeWidth={2.5} />
+                <div className="flex items-center justify-between px-6 py-4 border-b-[3px] border-black bg-white">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-[#B4F056] border-[3px] border-black flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+                            <Sparkles className="w-5 h-5 text-black" strokeWidth={3} />
                         </div>
-                        <p className="text-xs font-black">AI Refine</p>
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-black/40">AI Strategist</p>
+                            <p className="text-sm font-black">Strategy Refinement</p>
+                        </div>
                     </div>
-                    <button type="button" onClick={onClose} className="p-1.5 hover:bg-black/5 rounded-lg transition-colors">
-                        <X className="w-3.5 h-3.5 text-black/40" strokeWidth={2} />
+                    <button type="button" onClick={onClose} className="p-2 hover:bg-black/5 rounded-xl border-2 border-transparent hover:border-black transition-all">
+                        <X className="w-5 h-5 text-black" strokeWidth={3} />
                     </button>
                 </div>
 
                 {/* Messages */}
-                <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+                <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
                     {messages.length === 0 && (
-                        <div className="text-center py-6">
-                            <p className="text-[11px] font-bold text-black/50 mb-3">Try asking:</p>
-                            <div className="space-y-1.5">
-                                {['Make hooks more aggressive', 'Add TOFU content angles', 'Rewrite scripts for TikTok', 'Improve funnel strategy'].map((s) => (
+                        <div className="text-center py-8">
+                            <p className="text-xs font-black text-black/40 uppercase tracking-[0.1em] mb-4">Quick Refinements</p>
+                            <div className="grid gap-2">
+                                {[
+                                    'Make hooks more aggressive',
+                                    'Add TOFU content angles',
+                                    'Rewrite scripts for TikTok',
+                                    'Improve funnel strategy'
+                                ].map((s) => (
                                     <button type="button" key={s} onClick={() => { setInput(s); inputRef.current?.focus() }}
-                                        className="block w-full text-left text-[11px] font-medium text-black/50 bg-black/[0.03] hover:bg-[#B4F056]/10 hover:text-black/70 px-3 py-1.5 rounded-lg transition-colors">
+                                        className="block w-full text-left text-xs font-black text-black bg-white border-[3px] border-black px-4 py-3 rounded-xl hover:bg-[#B4F056] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-0 active:translate-y-0 transition-all">
                                         ✨ {s}
                                     </button>
                                 ))}
@@ -562,37 +579,37 @@ function RefineChatPanel({ campaignId, onStrategyUpdated, onClose }: {
                         </div>
                     )}
                     {messages.map((msg, i) => (
-                        <div key={i} className={`animate-slideUp ${msg.role === 'user' ? 'ml-6' : 'mr-6'}`}
-                            style={{ animationDelay: `${i * 40}ms` }}>
-                            <div className={`px-3 py-2 rounded-xl text-[12px] leading-relaxed whitespace-pre-wrap ${msg.role === 'user'
-                                ? 'bg-black text-white font-medium rounded-br-sm'
-                                : 'bg-[#f5f5f3] text-black/80 font-medium rounded-bl-sm'
+                        <div key={i} className={`animate-slideUp flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                            style={{ animationDelay: `${i * 50}ms` }}>
+                            <div className={`max-w-[85%] px-4 py-3 border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-sm leading-relaxed whitespace-pre-wrap ${msg.role === 'user'
+                                ? 'bg-black text-white rounded-2xl rounded-tr-sm'
+                                : 'bg-white text-black font-bold rounded-2xl rounded-tl-sm'
                                 }`}>{msg.content}</div>
                         </div>
                     ))}
                     {loading && (
-                        <div className="mr-6 animate-fadeIn">
-                            <div className="bg-[#f5f5f3] rounded-xl px-3 py-2 inline-flex items-center gap-1">
-                                <div className="w-1 h-1 rounded-full bg-black/30 animate-bounce" style={{ animationDelay: '0ms' }} />
-                                <div className="w-1 h-1 rounded-full bg-black/30 animate-bounce" style={{ animationDelay: '150ms' }} />
-                                <div className="w-1 h-1 rounded-full bg-black/30 animate-bounce" style={{ animationDelay: '300ms' }} />
+                        <div className="flex justify-start animate-fadeIn">
+                            <div className="bg-white border-[3px] border-black rounded-2xl px-4 py-3 flex items-center gap-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                                <div className="w-2 h-2 rounded-full bg-[#B4F056] animate-bounce" style={{ animationDelay: '0ms' }} />
+                                <div className="w-2 h-2 rounded-full bg-[#FFD93D] animate-bounce" style={{ animationDelay: '150ms' }} />
+                                <div className="w-2 h-2 rounded-full bg-[#A78BFA] animate-bounce" style={{ animationDelay: '300ms' }} />
                             </div>
                         </div>
                     )}
                 </div>
 
                 {/* Input — compact */}
-                <div className="border-t border-black/6 px-3 py-2.5 bg-[#FAFAF8]">
-                    <div className="flex items-center gap-1.5 bg-white border border-black/10 rounded-xl px-3 py-1.5">
+                <div className="border-t-[3px] border-black px-6 py-5 bg-white">
+                    <div className="flex items-center gap-2 bg-[#FAFAF8] border-[3px] border-black rounded-2xl px-4 py-1.5 focus-within:bg-white transition-colors">
                         <input ref={inputRef} type="text" value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
-                            placeholder="Ask to improve..."
-                            className="flex-1 bg-transparent text-[12px] font-medium outline-none placeholder:text-black/30"
+                            placeholder="Type a command..."
+                            className="flex-1 bg-transparent text-sm font-black outline-none placeholder:text-black/30 py-2.5"
                             disabled={loading} />
                         <button type="button" onClick={handleSend} disabled={!input.trim() || loading}
-                            className="p-1.5 bg-black rounded-lg text-white disabled:opacity-20 hover:bg-black/80 transition-colors">
-                            {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" strokeWidth={2.5} />}
+                            className="w-10 h-10 bg-black rounded-xl text-white flex items-center justify-center disabled:opacity-20 hover:bg-[#B4F056] hover:text-black transition-all border-2 border-black">
+                            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" strokeWidth={3} />}
                         </button>
                     </div>
                 </div>
@@ -694,41 +711,44 @@ export default function CampaignDetailPage() {
             <style>{ANIMATIONS_CSS}</style>
 
             {/* HEADER */}
-            <div className="bg-white/90 backdrop-blur-md border-b border-black/8 sticky top-[56px] md:top-[64px] z-10">
-                <div className="max-w-4xl mx-auto px-4 sm:px-5 py-2.5">
+            <div className="bg-white/80 backdrop-blur-xl border-b-[3px] border-black sticky top-[56px] md:top-[64px] z-20 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.1)]">
+                <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3.5">
                     {/* Top row: back + title + mobile actions */}
-                    <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                            <Link href="/brand/campaigns" className="w-8 h-8 rounded-full border border-black/12 flex items-center justify-center hover:bg-black/5 transition-colors shrink-0">
-                                <ArrowLeft className="w-4 h-4 text-black/50" strokeWidth={2} />
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-4 min-w-0">
+                            <Link href="/brand/campaigns" className="w-10 h-10 rounded-xl border-[3px] border-black flex items-center justify-center hover:bg-[#B4F056] transition-all hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] shrink-0 group">
+                                <ArrowLeft className="w-5 h-5 text-black" strokeWidth={3} />
                             </Link>
                             <div className="min-w-0">
-                                <p className="text-[10px] font-black uppercase tracking-wider text-black/40">Campaign</p>
-                                <h1 className="text-sm font-black text-black leading-tight truncate">{campaign.title}</h1>
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-black/40 mb-0.5">Campaign Manager</p>
+                                <h1 className="text-lg font-black text-black leading-none truncate tracking-tight">{campaign.title}</h1>
                             </div>
                         </div>
-                        <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                        <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                             <button type="button"
                                 onClick={() => setChatOpen(true)}
-                                className="flex items-center gap-1 px-2.5 py-1.5 bg-gradient-to-r from-[#B4F056] to-[#9be03e] border border-[#8cc92f] rounded-lg text-[11px] font-bold text-black hover:shadow-md transition-all"
+                                className="flex items-center gap-2 px-4 py-2 bg-[#B4F056] border-[3px] border-black rounded-xl text-[11px] font-black uppercase tracking-widest text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
                             >
-                                <Sparkles className="w-3 h-3" strokeWidth={2.5} />
+                                <Sparkles className="w-4 h-4" strokeWidth={3} />
                                 Refine
                             </button>
                             <button type="button" onClick={() => downloadPdf(campaign as unknown as Record<string, unknown>)}
-                                className="flex items-center gap-1 px-2.5 py-1.5 bg-white border border-black/12 rounded-lg text-[11px] font-bold hover:bg-black/5 transition-colors">
-                                <Download className="w-3 h-3" strokeWidth={2} /> PDF
+                                className="flex items-center gap-2 px-4 py-2 bg-white border-[3px] border-black rounded-xl text-[11px] font-black uppercase tracking-widest shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-black/5 transition-all">
+                                <Download className="w-4 h-4" strokeWidth={3} /> PDF
                             </button>
-                            <select value={campaign.status} onChange={(e) => handleFieldSave('status', e.target.value)}
-                                className={`px-2.5 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg border border-black/12 cursor-pointer appearance-none ${statusColors[campaign.status] || 'bg-white'}`}>
-                                <option value="draft">Draft</option>
-                                <option value="active">Active</option>
-                                <option value="paused">Paused</option>
-                                <option value="completed">Completed</option>
-                            </select>
+                            <div className="relative">
+                                <select value={campaign.status} onChange={(e) => handleFieldSave('status', e.target.value)}
+                                    className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl border-[3px] border-black cursor-pointer appearance-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none pr-8 ${statusColors[campaign.status] || 'bg-white'}`}>
+                                    <option value="draft">Draft</option>
+                                    <option value="active">Active</option>
+                                    <option value="paused">Paused</option>
+                                    <option value="completed">Completed</option>
+                                </select>
+                                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" strokeWidth={3} />
+                            </div>
                             <button type="button" onClick={handleDelete} disabled={deleting}
-                                className="p-1.5 text-red-500/60 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30">
-                                {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" strokeWidth={2} />}
+                                className="p-2 text-red-500 bg-white border-[3px] border-black rounded-xl hover:bg-red-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-30">
+                                {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" strokeWidth={3} />}
                             </button>
                         </div>
                     </div>
@@ -736,47 +756,56 @@ export default function CampaignDetailPage() {
             </div>
 
             {/* CONTENT */}
-            <div className="max-w-4xl mx-auto px-4 pt-6 space-y-4">
+            {/* CONTENT */}
+            <div className="max-w-5xl mx-auto px-4 pt-8 space-y-8">
 
                 {/* PERFORMANCE ANALYTICS */}
                 <div className="animate-slideUp">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                            <BarChart3 className="w-4 h-4 text-[#A78BFA]" strokeWidth={3} />
-                            <h2 className="text-xs font-black uppercase tracking-widest text-black/70">Performance</h2>
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            <BarChart3 className="w-5 h-5 text-black" strokeWidth={3} />
+                            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-black/70">Live Performance</h2>
                         </div>
                         <Link
                             href={`/brand/campaigns/${campaign.id}/roster`}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border-2 border-black text-[11px] font-black uppercase tracking-wider hover:bg-[#FFD93D]/30 hover:-translate-y-0.5 transition-all shadow-[2px_2px_0_0_rgba(0,0,0,1)]"
+                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border-[3px] border-black rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-[#FFD93D] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-0 active:translate-y-0"
                         >
-                            <Users className="w-3 h-3" strokeWidth={3} />
-                            View roster
+                            <Users className="w-4 h-4" strokeWidth={3} />
+                            Manage Roster
                         </Link>
                     </div>
                     <CampaignAnalyticsCard campaignId={campaign.id} />
                 </div>
 
                 {/* HERO CARD */}
-                <div className="bg-white border border-black/8 rounded-2xl p-6 animate-slideUp">
-                    <EditableField label="Campaign Title" value={campaign.title} onSave={(v) => handleFieldSave('title', v)} />
-                    <div className="mt-3">
-                        <EditableField label="Brief" value={campaign.brief || ''} onSave={(v) => handleFieldSave('brief', v)} multiline />
-                    </div>
-                    {positioning && (
-                        <div className="mt-4 bg-[#B4F056]/10 border border-[#B4F056]/30 rounded-xl px-4 py-3">
-                            <p className="text-[10px] font-black uppercase tracking-wider text-black/40 mb-1">Positioning</p>
-                            <p className="text-sm font-semibold text-black/80">{positioning}</p>
+                <div className="bg-white border-[3px] border-black rounded-[32px] p-8 animate-slideUp shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-48 h-48 bg-black/[0.02] rounded-bl-[120px] pointer-events-none" />
+                    <div className="relative z-10">
+                        <EditableField label="Campaign Title" value={campaign.title} onSave={(v) => handleFieldSave('title', v)} />
+                        <div className="mt-8">
+                            <EditableField label="Strategic Campaign Brief" value={campaign.brief || ''} onSave={(v) => handleFieldSave('brief', v)} multiline />
                         </div>
-                    )}
+                        {positioning && (
+                            <div className="mt-8 bg-[#B4F056]/10 border-[3px] border-black rounded-[24px] px-8 py-6 shadow-[6px_6px_0px_0px_rgba(180,240,86,1)]">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <Target className="w-4 h-4 text-black" strokeWidth={3} />
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">Market Positioning</p>
+                                </div>
+                                <p className="text-lg font-black text-black leading-tight">{positioning}</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* DETAILS GRID */}
-                <div className="grid md:grid-cols-2 gap-4">
-                    <Section icon={Target} title="Goal & Budget" delay={50}>
-                        <div className="space-y-3">
+                <div className="grid md:grid-cols-2 gap-8">
+                    <Section icon={Target} title="Goal & Budget" delay={150}>
+                        <div className="space-y-6">
                             <div>
-                                <p className="text-[10px] font-black uppercase tracking-wider text-black/40 mb-0.5">Goal</p>
-                                <p className="text-sm font-bold capitalize">{campaign.goal || '—'}</p>
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-black/40 mb-2">Campaign Objective</p>
+                                <span className="inline-block px-4 py-2 bg-black text-white rounded-xl text-xs font-black uppercase tracking-widest border-2 border-black">
+                                    {campaign.goal || 'GENERAL'}
+                                </span>
                             </div>
                             <EditableField
                                 label={campaign.budget_type === 'daily' ? 'Daily Budget (₹)' : 'Total Budget (₹)'}
@@ -786,8 +815,8 @@ export default function CampaignDetailPage() {
                             />
                             {platforms.length > 0 && (
                                 <div>
-                                    <p className="text-[10px] font-black uppercase tracking-wider text-black/40 mb-1">Platforms</p>
-                                    <div className="flex flex-wrap gap-1.5">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-black/40 mb-3">Target Ecosystem</p>
+                                    <div className="flex flex-wrap gap-2">
                                         {platforms.map((p, i) => (<Badge key={i} variant="blue">{p}</Badge>))}
                                     </div>
                                 </div>
@@ -795,27 +824,23 @@ export default function CampaignDetailPage() {
                         </div>
                     </Section>
 
-                    <Section icon={Users} title="Target Audience" delay={100}>
-                        <div className="space-y-2">
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <p className="text-[10px] font-black uppercase tracking-wider text-black/40 mb-0.5">Age Range</p>
-                                    <p className="text-sm font-bold">{audienceAgeMin != null && audienceAgeMax != null ? `${audienceAgeMin}–${audienceAgeMax}` : '—'}</p>
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-black uppercase tracking-wider text-black/40 mb-0.5">Gender</p>
-                                    <p className="text-sm font-bold">{audienceGender || '—'}</p>
-                                </div>
+                    <Section icon={Users} title="Target Audience" delay={200}>
+                        <div className="space-y-5">
+                            <div className="grid grid-cols-2 gap-4">
+                                <EditableField label="Min Age" value={String(audienceAgeMin || '')} onSave={(v) => handleFieldSave('audience.age_min', Number(v))} type="number" />
+                                <EditableField label="Max Age" value={String(audienceAgeMax || '')} onSave={(v) => handleFieldSave('audience.age_max', Number(v))} type="number" />
                             </div>
-                            <div>
-                                <p className="text-[10px] font-black uppercase tracking-wider text-black/40 mb-0.5">Location</p>
-                                <p className="text-sm font-bold">{audienceLocation || '—'}</p>
-                            </div>
+                            <EditableField label="Gender Focus" value={audienceGender} onSave={(v) => handleFieldSave('audience.gender', v)} />
+                            <EditableField label="Primary Location" value={audienceLocation} onSave={(v) => handleFieldSave('audience.location', v)} />
                             {audienceInterests.length > 0 && (
                                 <div>
-                                    <p className="text-[10px] font-black uppercase tracking-wider text-black/40 mb-1">Interests</p>
-                                    <div className="flex flex-wrap gap-1.5">
-                                        {audienceInterests.map((int, i) => (<Badge key={i} variant="yellow">{int}</Badge>))}
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-black/40 mb-3">Audience Interests</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {audienceInterests.map((it, i) => (
+                                            <span key={i} className="text-[11px] font-black bg-white border-[3px] border-black/10 px-3 py-1.5 rounded-xl hover:border-black transition-colors cursor-default">
+                                                #{it}
+                                            </span>
+                                        ))}
                                     </div>
                                 </div>
                             )}
@@ -823,164 +848,77 @@ export default function CampaignDetailPage() {
                     </Section>
                 </div>
 
-                {/* ━━━ CONTENT ANGLES ━━━ */}
-                {angles.length > 0 ? (
-                    <Section icon={Sparkles} title={`Content Angles (${angles.length})`} delay={150} highlighted={isHighlighted}>
-                        <div className="grid gap-3 md:grid-cols-2">
+                {/* CONTENT ANGLES */}
+                <Section icon={Zap} title={`Content Angles (${angles.length})`} delay={250} highlighted={isHighlighted}>
+                    {angles.length === 0 ? (
+                        <div className="text-center py-12 bg-black/[0.02] border-[3px] border-dashed border-black/10 rounded-[24px]">
+                            <p className="text-sm font-black text-black/20 uppercase tracking-widest">No AI Angles Generated</p>
+                        </div>
+                    ) : (
+                        <div className="grid sm:grid-cols-2 gap-6">
                             {angles.map((a, i) => (
-                                <div key={i} className="bg-[#FAFAF8] border border-black/6 rounded-xl p-4 hover:border-[#B4F056]/40 transition-colors">
-                                    <div className="flex items-start justify-between gap-2 mb-2">
-                                        <p className="text-sm font-bold text-black leading-snug flex-1">{a.angle}</p>
+                                <div key={i} className="bg-white border-[3px] border-black rounded-[24px] p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-4px] hover:translate-y-[-4px] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] transition-all group">
+                                    <div className="flex items-start justify-between mb-4">
+                                        <h4 className="text-base font-black text-black leading-tight group-hover:text-[#B4F056] transition-colors">{a.angle}</h4>
                                         {a.score > 0 && (
-                                            <div className="flex items-center gap-1 shrink-0">
-                                                <Star className="w-3 h-3 text-[#FFD93D]" fill="#FFD93D" />
-                                                <span className="text-xs font-black text-black/60">{a.score}</span>
+                                            <div className="shrink-0 bg-black text-[#B4F056] text-[11px] font-black px-3 py-1 rounded-xl shadow-[3px_3px_0px_0px_rgba(180,240,86,1)]">
+                                                {a.score}/10
                                             </div>
                                         )}
                                     </div>
-                                    {a.score > 0 && <ScoreBar score={a.score} />}
-                                    {a.example && (
-                                        <p className="text-[12px] text-black/50 mt-2 leading-relaxed">
-                                            <span className="font-bold text-black/40">Example:</span> {a.example}
-                                        </p>
-                                    )}
-                                    <div className="flex flex-wrap gap-1.5 mt-2.5">
-                                        {a.format && <Badge variant="blue">{a.format}</Badge>}
-                                        {a.funnel_stage && <Badge variant={a.funnel_stage === 'TOFU' ? 'green' : a.funnel_stage === 'MOFU' ? 'yellow' : 'red'}>{a.funnel_stage}</Badge>}
-                                    </div>
-                                    {a.why_it_works && (
-                                        <p className="text-[11px] text-black/40 mt-2 italic">💡 {a.why_it_works}</p>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    </Section>
-                ) : null}
-
-                {/* ━━━ HOOK BANK ━━━ */}
-                {hooks.length > 0 ? (
-                    <Section icon={Zap} title={`Hook Bank (${hooks.length})`} delay={200} highlighted={isHighlighted}>
-                        <div className="space-y-2">
-                            {hooks.map((h, i) => (
-                                <div key={i} className="flex items-start gap-3 bg-[#FAFAF8] border border-black/6 rounded-xl px-4 py-3 hover:border-[#B4F056]/40 transition-colors">
-                                    <span className="w-6 h-6 rounded-full bg-[#B4F056]/20 flex items-center justify-center shrink-0 mt-0.5">
-                                        <span className="text-[10px] font-black text-[#5a8f10]">{i + 1}</span>
-                                    </span>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-[13px] font-semibold text-black/80">{h.text}</p>
-                                        <div className="flex items-center gap-1.5 mt-1.5">
-                                            {h.category && <Badge variant={h.category === 'urgency' ? 'red' : h.category === 'curiosity' ? 'yellow' : h.category === 'social_proof' ? 'green' : 'default'}>{h.category.replace('_', ' ')}</Badge>}
-                                            {h.platform && <Badge variant="blue">{h.platform}</Badge>}
+                                    <div className="space-y-4">
+                                        {a.example && (
+                                            <div className="bg-[#FAFAF8] rounded-xl p-4 border-l-[4px] border-black">
+                                                <p className="text-[12px] font-black text-black/60 italic leading-relaxed">"{a.example}"</p>
+                                            </div>
+                                        )}
+                                        <div className="flex flex-wrap gap-2">
+                                            {a.funnel_stage && <Badge variant={normalizeFunnelStageClass(a.funnel_stage) === 'tofu' ? 'green' : 'yellow'}>{a.funnel_stage}</Badge>}
+                                            {a.format && <Badge variant="blue">{a.format}</Badge>}
                                         </div>
                                     </div>
                                 </div>
                             ))}
                         </div>
-                    </Section>
-                ) : null}
+                    )}
+                </Section>
 
-                {/* ━━━ FUNNEL STRATEGY ━━━ */}
-                {(funnel.awareness || funnel.consideration || funnel.conversion) ? (
-                    <Section icon={Layers} title="Funnel Strategy" delay={250} highlighted={isHighlighted}>
-                        <div className="space-y-3">
-                            {funnel.awareness && (
-                                <div className="bg-[#B4F056]/10 border-l-[3px] border-[#B4F056] rounded-r-lg px-4 py-3">
-                                    <p className="text-[10px] font-black uppercase tracking-wider text-black/40 mb-1">Awareness (TOFU)</p>
-                                    <p className="text-[13px] font-medium text-black/75 leading-relaxed">{funnel.awareness}</p>
-                                </div>
-                            )}
-                            {funnel.consideration && (
-                                <div className="bg-[#FFD93D]/10 border-l-[3px] border-[#FFD93D] rounded-r-lg px-4 py-3">
-                                    <p className="text-[10px] font-black uppercase tracking-wider text-black/40 mb-1">Consideration (MOFU)</p>
-                                    <p className="text-[13px] font-medium text-black/75 leading-relaxed">{funnel.consideration}</p>
-                                </div>
-                            )}
-                            {funnel.conversion && (
-                                <div className="bg-[#FF6B6B]/10 border-l-[3px] border-[#FF6B6B] rounded-r-lg px-4 py-3">
-                                    <p className="text-[10px] font-black uppercase tracking-wider text-black/40 mb-1">Conversion (BOFU)</p>
-                                    <p className="text-[13px] font-medium text-black/75 leading-relaxed">{funnel.conversion}</p>
-                                </div>
-                            )}
-                        </div>
-                    </Section>
-                ) : null}
-
-                {/* ━━━ SCRIPTS ━━━ */}
-                {scripts.length > 0 ? (
-                    <Section icon={FileText} title={`Scripts & Copy (${scripts.length})`} delay={300} highlighted={isHighlighted}>
-                        <div className="space-y-2">
-                            {scripts.map((s, i) => (<ScriptCard key={i} script={s} index={i} />))}
-                        </div>
-                    </Section>
-                ) : null}
-
-                {/* ━━━ CREATIVE ━━━ */}
-                {(creativeHeadline || creativeDescription) ? (
-                    <Section icon={Megaphone} title="Creative" delay={350} highlighted={isHighlighted}>
-                        <div className="space-y-3">
-                            {creativeHeadline && (
-                                <div>
-                                    <p className="text-[10px] font-black uppercase tracking-wider text-black/40 mb-0.5">Headline</p>
-                                    <p className="text-base font-black text-black">{creativeHeadline}</p>
-                                </div>
-                            )}
-                            {creativeDescription && (
-                                <div>
-                                    <p className="text-[10px] font-black uppercase tracking-wider text-black/40 mb-0.5">Description</p>
-                                    <p className="text-sm font-medium text-black/70 leading-relaxed">{creativeDescription}</p>
-                                </div>
-                            )}
-                            {creativeCta && (
-                                <div className="inline-block bg-[#B4F056] border-2 border-black px-4 py-2 rounded-lg font-black text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                                    {creativeCta}
-                                </div>
-                            )}
-                        </div>
-                    </Section>
-                ) : null}
-
-                {/* ━━━ A/B VARIANTS ━━━ */}
-                {abVariants.length > 0 ? (
-                    <Section icon={BarChart3} title={`A/B Test Variants (${abVariants.length})`} delay={400} highlighted={isHighlighted}>
-                        <div className="space-y-3">
-                            {abVariants.map((v, i) => (
-                                <div key={i} className="bg-[#FAFAF8] border border-black/6 rounded-xl px-4 py-3">
-                                    <div className="flex items-center gap-2 mb-1.5">
-                                        <span className="text-xs font-black bg-black text-white w-6 h-6 rounded-full flex items-center justify-center shrink-0">
-                                            {v.label ? v.label.charAt(v.label.length - 1) : String.fromCharCode(65 + i)}
-                                        </span>
-                                        <p className="text-sm font-bold text-black">{v.label || `Variant ${String.fromCharCode(65 + i)}`}</p>
+                {/* FUNNEL STRATEGY */}
+                <Section icon={Layers} title="Full-Funnel Strategy" delay={300} highlighted={isHighlighted}>
+                    <div className="space-y-6">
+                        {[
+                            { label: 'Awareness (TOFU)', value: funnel.awareness, variant: 'green', desc: 'Top of funnel reach' },
+                            { label: 'Consideration (MOFU)', value: funnel.consideration, variant: 'yellow', desc: 'Mid funnel intent' },
+                            { label: 'Conversion (BOFU)', value: funnel.conversion, variant: 'red', desc: 'Bottom funnel sales' },
+                        ].map((f, i) => f.value && (
+                            <div key={i} className="bg-white border-[3px] border-black rounded-[24px] p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex gap-6 items-start">
+                                <div className={`w-3 self-stretch rounded-full shadow-[inset_2px_2px_4px_rgba(0,0,0,0.1)] ${f.variant === 'green' ? 'bg-[#B4F056]' : f.variant === 'yellow' ? 'bg-[#FFD93D]' : 'bg-[#FF6B6B]'}`} />
+                                <div className="flex-1">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-black/40">{f.label}</p>
+                                        <p className="text-[9px] font-black uppercase tracking-widest text-black/20">{f.desc}</p>
                                     </div>
-                                    <p className="text-[13px] font-medium text-black/70 leading-relaxed">{v.description}</p>
-                                    {v.what_it_tests && (
-                                        <p className="text-[11px] text-black/40 mt-2 italic">
-                                            🧪 <span className="font-bold">Tests:</span> {v.what_it_tests}
-                                        </p>
-                                    )}
+                                    <p className="text-base font-black text-black leading-relaxed">{f.value}</p>
                                 </div>
-                            ))}
-                        </div>
-                    </Section>
-                ) : null}
+                            </div>
+                        ))}
+                    </div>
+                </Section>
 
-                {/* ━━━ METRICS ━━━ */}
-                {(campaign.impressions > 0 || campaign.clicks > 0 || campaign.spend > 0) && (
-                    <Section icon={DollarSign} title="Performance Metrics" delay={450}>
-                        <div className="grid grid-cols-4 gap-3">
-                            {[
-                                { label: 'Impressions', value: campaign.impressions?.toLocaleString() || '0' },
-                                { label: 'Clicks', value: campaign.clicks?.toLocaleString() || '0' },
-                                { label: 'Conversions', value: campaign.conversions?.toLocaleString() || '0' },
-                                { label: 'Spend', value: `₹${campaign.spend?.toLocaleString() || '0'}` },
-                            ].map((m, i) => (
-                                <div key={i} className="text-center">
-                                    <p className="text-[10px] font-black uppercase tracking-wider text-black/40 mb-1">{m.label}</p>
-                                    <p className="text-lg font-black">{m.value}</p>
-                                </div>
+                {/* SCRIPTS */}
+                <Section icon={FileText} title={`Content Scripts (${scripts.length})`} delay={350} highlighted={isHighlighted}>
+                    {scripts.length === 0 ? (
+                        <div className="text-center py-12 bg-black/[0.02] border-[3px] border-dashed border-black/10 rounded-[24px]">
+                            <p className="text-sm font-black text-black/20 uppercase tracking-widest">No Scripts Generated</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-6">
+                            {scripts.map((s, i) => (
+                                <ScriptCard key={i} script={s} index={i} />
                             ))}
                         </div>
-                    </Section>
-                )}
+                    )}
+                </Section>
             </div>
 
             {/* AI CHAT PANEL */}
