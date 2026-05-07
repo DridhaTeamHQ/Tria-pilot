@@ -13,10 +13,6 @@ export async function POST(request: Request) {
   const genericOk = {
     message: 'If an account exists for that email, a password reset link has been sent.',
   }
-  const genericUnavailable = {
-    error: 'We could not send a reset email right now. Please try again in a moment.',
-  }
-
   try {
     const body = await request.json().catch(() => null)
     const { email } = schema.parse(body)
@@ -25,7 +21,6 @@ export async function POST(request: Request) {
     const redirectTo = `${siteUrl}/reset-password`
 
     let delivered = false
-    let fallbackFailed = false
 
     try {
       const service = createServiceClient()
@@ -37,23 +32,32 @@ export async function POST(request: Request) {
 
       if (error) {
         console.error('Forgot password generateLink error:', error)
-      } else if (data?.properties?.hashed_token && data.properties.verification_type) {
-        const resetUrl = buildVerifyOtpUrl(siteUrl, {
-          tokenHash: data.properties.hashed_token,
-          type: data.properties.verification_type,
-        })
-        const template = buildPasswordResetEmail({ resetUrl })
-        const result = await sendEmail({
-          to: email,
-          subject: template.subject,
-          html: template.html,
-          text: template.text,
-        })
+      } else {
+        const properties = data?.properties
+        const resetUrl =
+          properties?.hashed_token && properties.verification_type
+            ? buildVerifyOtpUrl(siteUrl, {
+                tokenHash: properties.hashed_token,
+                type: properties.verification_type,
+              })
+            : properties?.action_link
 
-        if (result.ok) {
-          delivered = true
+        if (!resetUrl) {
+          console.error('Forgot password generateLink returned no usable reset link')
         } else {
-          console.error('Forgot password custom email send failed:', result.error)
+          const template = buildPasswordResetEmail({ resetUrl })
+          const result = await sendEmail({
+            to: email,
+            subject: template.subject,
+            html: template.html,
+            text: template.text,
+          })
+
+          if (result.ok) {
+            delivered = true
+          } else {
+            console.error('Forgot password custom email send failed:', result.error)
+          }
         }
       }
     } catch (error) {
@@ -67,15 +71,12 @@ export async function POST(request: Request) {
       })
 
       if (error) {
-        fallbackFailed = true
         console.error('Forgot password resetPasswordForEmail error:', error)
       }
     }
 
-    if (!delivered && fallbackFailed) {
-      return NextResponse.json(genericUnavailable, { status: 503 })
-    }
-
+    // Keep this endpoint enumeration-safe and avoid surfacing provider rate limits
+    // as a broken UI. Delivery failures are logged server-side for diagnostics.
     return NextResponse.json(genericOk)
   } catch (error) {
     if (error instanceof z.ZodError) {
