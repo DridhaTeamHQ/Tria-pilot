@@ -682,9 +682,26 @@ async function handlePresetlessTryOnRequest(params: {
     console.warn('[tryon] garment preprocessing failed, using raw garment:', preprocessErr)
   }
 
+  // Fetch the product name + description when available — used as a
+  // heuristic fallback when Gemini analysis 503s, so coverage doesn't
+  // collapse to upper_only for dresses / pants / full-body items.
+  let garmentTextHint: string | undefined
+  if (payload.productId) {
+    try {
+      const { data: prod } = await service
+        .from('products')
+        .select('name, description')
+        .eq('id', payload.productId)
+        .maybeSingle()
+      if (prod) {
+        garmentTextHint = `${prod.name || ''} ${prod.description || ''}`.trim().slice(0, 300) || undefined
+      }
+    } catch { /* non-fatal */ }
+  }
+
   // Garment intel is lightweight (1 Gemini Flash call, ~3-5s)
   // Skip classification entirely to save time
-  const garmentIntel = await analyzeGarment(processedGarment)
+  const garmentIntel = await analyzeGarment(processedGarment, garmentTextHint)
   const garmentClassification: GarmentClassification | null = null
   const garmentClassificationSummary = summarizeGarmentClassification(garmentClassification)
 

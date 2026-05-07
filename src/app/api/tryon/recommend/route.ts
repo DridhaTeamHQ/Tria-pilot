@@ -40,6 +40,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const garmentImageUrl = body.garmentImageUrl as string | undefined
     const garmentBase64 = body.garmentBase64 as string | undefined
+    // Optional product name/description used as a heuristic fallback when
+    // Gemini analysis fails (503/quota). Truncated to 300 chars to keep
+    // it cheap and bounded.
+    const garmentTextHint = typeof body.garmentText === 'string'
+      ? String(body.garmentText).slice(0, 300)
+      : (typeof body.productName === 'string' ? String(body.productName).slice(0, 300) : undefined)
 
     if (!garmentImageUrl && !garmentBase64) {
       return NextResponse.json({ error: 'garmentImageUrl or garmentBase64 required' }, { status: 400 })
@@ -79,7 +85,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ── STEP 2: Analyze garment (cached) ────────────────────────────────
-    const garmentIntel = await analyzeGarment(normalizedGarment)
+    const garmentIntel = await analyzeGarment(normalizedGarment, garmentTextHint)
     if (isDev) console.log(`🧠 Recommend: garment is ${garmentIntel.garmentType} (${garmentIntel.coverage})`)
 
     // ── STEP 3: Get user's approved photos ──────────────────────────────
@@ -172,14 +178,16 @@ function scoreOnePhoto(photo: any, garmentIntel: GarmentIntelligence): RankedPho
 
   switch (coverage) {
     case 'upper_only': {
-      // Tops/shirts/jackets — need upper or full body
-      if (bodyVis === 'full') { score += 18; reasons.push('Full body — great for top + bottom pairing') }
-      else if (bodyVis === 'upper') { score += 22; reasons.push('Upper body — ideal for top swap') }
+      // Tops/shirts/jackets — STRONGLY prefer full body so the whole outfit
+      // is shown in context. Upper-only crops produce floating-jacket
+      // outputs with no styling context.
+      if (bodyVis === 'full') { score += 26; reasons.push('Full body — shows top in full outfit context') }
       else if (bodyVis === 'half') { score += 14; reasons.push('Half body — upper half visible') }
-      else if (bodyVis === 'face' || bodyVis === 'close_up') { score -= 20; reasons.push('Face only — body not visible') }
+      else if (bodyVis === 'upper') { score += 10; reasons.push('Upper body — usable but cropped') }
+      else if (bodyVis === 'face' || bodyVis === 'close_up') { score -= 25; reasons.push('Face only — body not visible') }
 
-      if (framing === 'full') { score += 8; reasons.push('Full frame') }
-      else if (framing === 'half') { score += 5 }
+      if (framing === 'full') { score += 12; reasons.push('Full frame') }
+      else if (framing === 'half') { score += 4 }
       break
     }
 
@@ -203,10 +211,13 @@ function scoreOnePhoto(photo: any, garmentIntel: GarmentIntelligence): RankedPho
     }
 
     case 'layered': {
-      // Outerwear/jackets — upper or full body
-      if (bodyVis === 'full' || bodyVis === 'upper') { score += 18; reasons.push('Body visible for layering') }
-      else if (bodyVis === 'half') { score += 10 }
-      else if (bodyVis === 'face') { score -= 10 }
+      // Outerwear/jackets — strongly prefer full body
+      if (bodyVis === 'full') { score += 24; reasons.push('Full body — layered look in context') }
+      else if (bodyVis === 'half') { score += 12; reasons.push('Half body — partial layering visible') }
+      else if (bodyVis === 'upper') { score += 8; reasons.push('Upper body — layering visible but cropped') }
+      else if (bodyVis === 'face' || bodyVis === 'close_up') { score -= 25; reasons.push('Face only — cannot show layering') }
+
+      if (framing === 'full') { score += 10 }
       break
     }
   }

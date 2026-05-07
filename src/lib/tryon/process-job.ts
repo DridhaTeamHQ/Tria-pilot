@@ -144,7 +144,22 @@ export async function processTryOnJob(jobId: string): Promise<void> {
       )
     )
 
-    const garmentIntel = await analyzeGarment(processedGarment)
+    // Heuristic text hint for fallback when Gemini analysis 503s
+    let garmentTextHint: string | undefined
+    if (inputs.productId) {
+      try {
+        const { data: prod } = await service
+          .from('products')
+          .select('name, description')
+          .eq('id', inputs.productId)
+          .maybeSingle()
+        if (prod) {
+          garmentTextHint = `${prod.name || ''} ${prod.description || ''}`.trim().slice(0, 300) || undefined
+        }
+      } catch { /* non-fatal */ }
+    }
+
+    const garmentIntel = await analyzeGarment(processedGarment, garmentTextHint)
     const successfulOutputs: ProcessPersistedOutput[] = []
     const failedAttempts: Array<{ referenceImageId: string; error: string }> = []
     const targetOutputCount = 3

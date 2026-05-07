@@ -104,6 +104,45 @@ const FALLBACK_INTEL: GarmentIntelligence = {
   promptModifiers: [],
 }
 
+// ── HEURISTIC FALLBACK ───────────────────────────────────────────────────────
+// When the Gemini analysis fails (503 / timeout), we still want a *useful*
+// intel object — defaulting everything to upper_only treats dresses,
+// pants and full-outfit products as tops, which produces wrong outputs.
+// This builds a best-effort intel from product name + description text.
+//
+// Returns null if no helpful keyword is found (caller falls back to FALLBACK_INTEL).
+export function inferIntelFromText(text: string | null | undefined): GarmentIntelligence | null {
+  if (!text) return null
+  const t = text.toLowerCase()
+
+  // Order matters: more-specific terms first (e.g. "co-ord" before "top")
+  const map: Array<{ test: RegExp; type: GarmentType; coverage: GarmentCoverage; desc: string }> = [
+    { test: /\b(saree|sari)\b/, type: 'saree', coverage: 'full_body', desc: 'A saree' },
+    { test: /\b(lehenga|ghagra)\b/, type: 'lehenga', coverage: 'full_body', desc: 'A lehenga set' },
+    { test: /\b(co.?ord|coord)\b/, type: 'co_ord_set', coverage: 'full_body', desc: 'A coordinated set' },
+    { test: /\b(jumpsuit|romper|playsuit)\b/, type: 'jumpsuit', coverage: 'full_body', desc: 'A jumpsuit' },
+    { test: /\b(dress|gown|frock|kurta|kurti|abaya)\b/, type: 'dress', coverage: 'full_body', desc: 'A dress' },
+    { test: /\b(suit)\b/, type: 'suit', coverage: 'full_body', desc: 'A suit' },
+    { test: /\b(jeans|trouser|pant|chino|jogger|legging|cargo)\b/, type: 'pants', coverage: 'lower_only', desc: 'Pants/trousers' },
+    { test: /\b(skirt|midi)\b/, type: 'skirt', coverage: 'lower_only', desc: 'A skirt' },
+    { test: /\b(short|bermuda)\b/, type: 'pants', coverage: 'lower_only', desc: 'Shorts' },
+    { test: /\b(jacket|coat|blazer|cardigan|hoodie|outerwear|trucker)\b/, type: 'outerwear', coverage: 'layered', desc: 'Outerwear' },
+    { test: /\b(shirt|t.?shirt|tee|blouse|top|tank|crop)\b/, type: 'top', coverage: 'upper_only', desc: 'A top' },
+  ]
+
+  for (const m of map) {
+    if (m.test.test(t)) {
+      return {
+        ...FALLBACK_INTEL,
+        garmentType: m.type,
+        coverage: m.coverage,
+        description: m.desc,
+      }
+    }
+  }
+  return null
+}
+
 // ── COMPACT ANALYSIS PROMPT ──────────────────────────────────────────────────
 // CRITICAL: asks about visible bottom/top wear in the product image so we can
 // replicate the COMPLETE look shown in the product photo.
@@ -133,7 +172,10 @@ function extractJson(text: string): string {
 
 // ── GARMENT ANALYSIS ─────────────────────────────────────────────────────────
 
-export async function analyzeGarment(garmentImageBase64: string): Promise<GarmentIntelligence> {
+export async function analyzeGarment(
+  garmentImageBase64: string,
+  textHint?: string,
+): Promise<GarmentIntelligence> {
   const cleanBase64 = garmentImageBase64.replace(/^data:image\/[a-z+]+;base64,/, '')
 
   const cacheKey = getCacheKey(cleanBase64)
@@ -143,10 +185,11 @@ export async function analyzeGarment(garmentImageBase64: string): Promise<Garmen
     return cached
   }
 
-  // Retry up to 2 times on 503/overload before using fallback
-  // gemini-2.0-flash is no longer available to new users (deprecated March 2026)
-  const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite']
-  const MAX_ATTEMPTS = 2
+  // Retry up to 3 times on 503/overload across 3 different models before
+  // falling back. Production sees frequent 503s on gemini-2.5-flash during
+  // peak hours — Flash Lite + Pro Image act as resilience tier.
+  const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-flash']
+  const MAX_ATTEMPTS = 3
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const model = MODELS[Math.min(attempt, MODELS.length - 1)]
@@ -236,13 +279,19 @@ export async function analyzeGarment(garmentImageBase64: string): Promise<Garmen
         continue
       }
 
-      console.warn('⚠️ Garment analysis failed, using fallback:', msg)
+      console.warn('⚠️ Garment analysis failed, using heuristic fallback:', msg)
+      // Try heuristic fallback from text first — much better than blanket 'upper_only'
+      const heuristic = inferIntelFromText(textHint)
+      if (heuristic) {
+        if (isDev) console.log(`🧠 Heuristic intel: ${heuristic.garmentType} (${heuristic.coverage}) from text hint`)
+        return heuristic
+      }
       return FALLBACK_INTEL
     }
   }
 
-  // Should not reach here, but satisfy TS
-  return FALLBACK_INTEL
+  // Should not reach here — try heuristic before generic fallback
+  return inferIntelFromText(textHint) || FALLBACK_INTEL
 }
 
 // ── SMART PROMPT COMPOSER ────────────────────────────────────────────────────

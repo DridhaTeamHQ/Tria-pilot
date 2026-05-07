@@ -561,11 +561,19 @@ function TryOnPageContent() {
             <div className="rounded-[24px] border-[3px] border-black bg-[#F9F8F4] p-5 shadow-[5px_5px_0_0_#000]">
               <div className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">Selected Target</div>
               <h3 className="mt-1 text-lg font-black uppercase">{productLoading ? 'Loading product...' : (productData?.name || 'No product selected')}</h3>
-              {garmentIntel && (
-                <div className="mt-2 inline-flex items-center gap-2 rounded-full border-2 border-black bg-[#E8F5E9] px-3 py-1 text-[10px] font-black uppercase">
-                  <Check className="h-3 w-3" /> AI optimized for {garmentIntel.coverage.replace('_', ' ')}
-                </div>
-              )}
+              {garmentIntel && (() => {
+                const cov = garmentIntel.coverage
+                const label =
+                  cov === 'full_body' ? 'Full outfit swap'
+                  : cov === 'lower_only' ? 'Bottom swap · keeps your top'
+                  : cov === 'layered' ? 'Layered look · full body'
+                  : 'Top swap · keeps your bottom'
+                return (
+                  <div className="mt-2 inline-flex items-center gap-2 rounded-full border-2 border-black bg-[#E8F5E9] px-3 py-1 text-[10px] font-black uppercase">
+                    <Check className="h-3 w-3" /> {label}
+                  </div>
+                )
+              })()}
               {productId && (productData?.images?.length > 0) && (
                 <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
                   {(productData.images).map((image: any, index: number) => {

@@ -272,6 +272,11 @@ function buildFluxClothingSwapPrompt(
       `Replace ONLY the influencer's upper garment (top/shirt/jacket) with a 1:1 reproduction of the product from image 2 — ${garmentDesc}.${features} ` +
       `Match the upper garment pixel-for-pixel — same color, pattern, neckline, sleeves, fit, and details. ` +
       `KEEP THE INFLUENCER'S EXISTING BOTTOM WEAR (pants, skirt, jeans, or shorts) exactly as it appears in image 1 — do NOT change, recolor, or redesign the bottom. ${bottomToKeep}`
+    // Even for upper-only swaps we want the FULL body visible so the
+    // garment is shown in proper styling context. Without this hint FLUX
+    // tends to crop tighter when the input is a half/full body shot.
+    framingNote =
+      `Preserve the full body if visible in image 1 — show the influencer head-to-toe (or as much as image 1 shows) so the top is seen with its bottom-wear context. Do not crop tighter than image 1.`
   }
 
   const userBit = userContext ? ` ${userContext}` : ''
