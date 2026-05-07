@@ -64,7 +64,10 @@ export async function POST(request: Request) {
       console.error('Forgot password custom email pipeline error:', error)
     }
 
-    if (!delivered) {
+    const shouldSendSupabaseBackup =
+      !delivered || process.env.AUTH_SEND_SUPABASE_RESET_BACKUP !== 'false'
+
+    if (shouldSendSupabaseBackup) {
       const supabase = await createClient()
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo,
