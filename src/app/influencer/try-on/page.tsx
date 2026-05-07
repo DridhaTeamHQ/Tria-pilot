@@ -176,6 +176,7 @@ function TryOnPageContent() {
   const [selectionMode, setSelectionMode] = useState<'auto' | 'manual'>('auto')
   const [libraryModalOpen, setLibraryModalOpen] = useState(false)
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false)
+  const [failureModal, setFailureModal] = useState<{ title: string; message: string; retryAfter?: number } | null>(null)
   const photosRef = useRef<any[]>([])
   const generateInFlightRef = useRef(false)
   const pollAttemptRef = useRef(0)
@@ -513,27 +514,68 @@ function TryOnPageContent() {
         setSelectionMode('auto')
       }
 
+      // Helper: check if a job result actually succeeded
+      const jobSucceeded = (job: any) => {
+        if (!job) return false
+        if (job.status === 'failed' || job.status === 'error' || job.status === 'cancelled') return false
+        const hasOutput = (Array.isArray(job.outputs) && job.outputs.some((o: any) => o?.imageUrl || o?.base64Image)) || job.imageUrl || job.base64Image
+        return Boolean(hasOutput)
+      }
+
+      const handleFinalJob = (finalJob: any, fallbackMsg: string) => {
+        if (!jobSucceeded(finalJob)) {
+          const errMsg = (finalJob && (finalJob.errorMessage || finalJob.error_message || finalJob.error)) || fallbackMsg
+          const e = new Error(typeof errMsg === 'string' ? errMsg : fallbackMsg)
+          ;(e as any).code = (finalJob && finalJob.code) || undefined
+          throw e
+        }
+        setResult(finalJob)
+        setSelectedOutputIndex(0)
+      }
+
       if (data.jobId && (data.status === 'pending' || data.status === 'processing')) {
         setActiveJobId(String(data.jobId))
         const finalJob = await pollTryOnJob(String(data.jobId))
-        setResult(finalJob)
-        setSelectedOutputIndex(0)
+        handleFinalJob(finalJob, 'The try-on job finished without producing any images.')
         showSuccessToast('Try-on ready', 'Your new try-on is finished.')
       } else if (data.jobId && !data.outputs?.length && !data.imageUrl && !data.base64Image) {
         setActiveJobId(String(data.jobId))
         const finalJob = await pollTryOnJob(String(data.jobId))
-        setResult(finalJob)
-        setSelectedOutputIndex(0)
+        handleFinalJob(finalJob, 'The try-on job finished without producing any images.')
         showSuccessToast('Try-on ready', 'Your new try-on is finished.')
       } else {
-        setResult(data)
-        setSelectedOutputIndex(0)
+        handleFinalJob(data, 'The try-on did not produce any images.')
         showSuccessToast('Try-on ready', 'We generated your three try-on images.')
       }
     } catch (error) {
-      const structured = error as Error & { retryAfterSeconds?: number }
+      const structured = error as Error & { retryAfterSeconds?: number; code?: string }
       if (structured.retryAfterSeconds) setRetryAfterSeconds(structured.retryAfterSeconds)
-      showErrorToast('Try-on failed', error instanceof Error ? error.message : 'Generation failed.')
+      const rawMsg = error instanceof Error ? error.message : 'Generation failed.'
+      // Map technical codes/messages to user-friendly text
+      const lower = rawMsg.toLowerCase()
+      let title = 'Try-on failed'
+      let friendly = rawMsg
+      if (structured.code === 'POOL_SATURATED' || lower.includes('saturated') || lower.includes('capacity')) {
+        title = 'AI is at full capacity'
+        friendly = 'Our AI is processing many try-ons right now. Please wait a few seconds and try again.'
+      } else if (structured.code === 'GENERATION_TIMEOUT' || lower.includes('timed out') || lower.includes('timeout')) {
+        title = 'Generation took too long'
+        friendly = 'The AI service is responding slowly. Please try again — it usually works on retry.'
+      } else if (structured.code === 'MODERATION' || lower.includes('moderat')) {
+        title = 'Image blocked'
+        friendly = 'The image or product was blocked by content moderation. Try a different photo or product.'
+      } else if (structured.code === 'GENERATION_LIMIT' || lower.includes('limit reached') || lower.includes('too many')) {
+        title = 'Daily limit reached'
+        friendly = 'You\'ve hit your generation limit for now. Try again later.'
+      } else if (lower.includes('503') || lower.includes('unavailable')) {
+        title = 'Service temporarily unavailable'
+        friendly = 'The AI service is having a hiccup. Give it a moment and try again.'
+      } else if (lower.includes('not enough approved') || lower.includes('reference photos')) {
+        title = 'Not enough reference photos'
+        friendly = 'You need at least 3 approved reference photos to generate a try-on.'
+      }
+      setFailureModal({ title, message: friendly, retryAfter: structured.retryAfterSeconds })
+      showErrorToast(title, friendly)
     } finally {
       setSubmitting(false)
       setActiveJobId('')
@@ -691,6 +733,62 @@ function TryOnPageContent() {
           <button type="button" onClick={() => setMobileSettingsOpen(true)} className="flex w-full items-center justify-center gap-2 rounded-full border-[3px] border-black bg-[#FFD93D] px-6 py-4 text-base font-black uppercase shadow-[6px_6px_0_0_#000]">
             <Sparkles className="h-5 w-5" /> Customize & Run
           </button>
+        </div>
+      )}
+      {failureModal && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          onClick={() => setFailureModal(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="tryon-failure-title"
+        >
+          <div
+            className="w-full max-w-md overflow-hidden rounded-[28px] border-[4px] border-black bg-[#F6F1E8] shadow-[12px_12px_0_0_#000]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="border-b-[4px] border-black bg-[#FF8C69] p-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full border-[3px] border-black bg-white shadow-[3px_3px_0_0_#000]">
+                  <span className="text-2xl">⚠️</span>
+                </div>
+                <div className="flex-1">
+                  <h2 id="tryon-failure-title" className="text-xl font-black uppercase leading-tight text-black">
+                    {failureModal.title}
+                  </h2>
+                </div>
+              </div>
+            </div>
+            <div className="p-6">
+              <p className="text-sm font-semibold leading-relaxed text-black/80">
+                {failureModal.message}
+              </p>
+              {failureModal.retryAfter && failureModal.retryAfter > 0 && (
+                <div className="mt-4 inline-flex items-center gap-2 rounded-full border-2 border-black bg-[#FFD93D] px-4 py-2 text-xs font-black uppercase">
+                  Try again in {failureModal.retryAfter}s
+                </div>
+              )}
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setFailureModal(null)}
+                  className="flex-1 rounded-full border-[3px] border-black bg-white px-5 py-3 text-sm font-black uppercase shadow-[4px_4px_0_0_#000] transition hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000]"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFailureModal(null)
+                    void submitTryOn()
+                  }}
+                  className="flex-1 rounded-full border-[3px] border-black bg-[#FFD93D] px-5 py-3 text-sm font-black uppercase shadow-[4px_4px_0_0_#000] transition hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000]"
+                >
+                  Try Again
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
       {libraryModalOpen && (
