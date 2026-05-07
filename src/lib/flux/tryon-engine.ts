@@ -174,38 +174,100 @@ function buildFluxClothingSwapPrompt(
   }
   const features = featuresList.length > 0 ? ` Details: ${featuresList.slice(0, 4).join(', ')}.` : ''
 
-  // Bottom wear hint
-  let bottomBit = ''
-  if (garmentIntel?.coverage === 'upper_only') {
-    if (garmentIntel.visibleBottomInPhoto && garmentIntel.visibleBottomInPhoto !== 'none') {
-      bottomBit = ` Pair with ${garmentIntel.visibleBottomInPhoto}.`
-    } else if (garmentIntel.bottomWearSuggestion && garmentIntel.bottomWearSuggestion !== 'included') {
-      bottomBit = ` Pair with ${garmentIntel.bottomWearSuggestion}.`
+  const garmentDesc = parts.length > 0 ? parts.join(', ') : 'the garment shown in image 2'
+
+  // ── Coverage-aware swap instruction ──────────────────────────────────
+  // The single most important fix for fidelity is telling FLUX EXACTLY
+  // which body region to replace and which to leave alone. Otherwise
+  // FLUX may:
+  //   - For lower_only products (jeans/pants): generate a generic
+  //     full outfit and skip showing the lower half entirely
+  //   - For upper_only products: redesign the existing pants/skirt
+  //   - For full_body / co_ord sets: copy only the top and ignore
+  //     the matching bottom (or vice versa)
+  //
+  // Solution: produce a different swap directive per coverage type.
+
+  const garmentTypeRaw = (garmentIntel?.garmentType || '').toLowerCase()
+  const coverage = garmentIntel?.coverage || (garmentIntel ? 'upper_only' : null)
+  const isFullSet =
+    coverage === 'full_body' ||
+    garmentTypeRaw === 'co_ord_set' ||
+    garmentTypeRaw === 'full_outfit' ||
+    garmentTypeRaw === 'jumpsuit' ||
+    garmentTypeRaw === 'suit' ||
+    garmentTypeRaw === 'saree' ||
+    garmentTypeRaw === 'lehenga'
+
+  let swapInstruction: string
+  let framingNote = ''
+
+  if (isFullSet) {
+    // Full outfit: top + bottom (or full-body garment) — copy BOTH pieces 1:1.
+    const topDesc = garmentIntel?.visibleTopInPhoto && garmentIntel.visibleTopInPhoto !== 'none'
+      ? garmentIntel.visibleTopInPhoto
+      : null
+    const bottomDesc = garmentIntel?.visibleBottomInPhoto && garmentIntel.visibleBottomInPhoto !== 'none'
+      ? garmentIntel.visibleBottomInPhoto
+      : null
+
+    if (topDesc && bottomDesc) {
+      // Two distinct pieces shown together — call them out individually
+      swapInstruction =
+        `Replace the influencer's ENTIRE outfit (both top AND bottom) with a 1:1 reproduction of the matching set from image 2. ` +
+        `TOP: ${topDesc}. BOTTOM: ${bottomDesc}. ` +
+        `Both pieces must match image 2 pixel-for-pixel — same colors, fabrics, cuts, and details. ` +
+        `Do not mix and match: copy BOTH pieces together as a coordinated set.`
+    } else {
+      // Full-body garment (dress, jumpsuit, saree, lehenga)
+      swapInstruction =
+        `Replace the influencer's entire outfit with a 1:1 reproduction of the full-body garment from image 2 — ${garmentDesc}.${features} ` +
+        `Match every design detail pixel-for-pixel — same color, pattern, texture, cut, length, and silhouette. Do not redesign, modify, or stylize it.`
     }
+    framingNote = `If the influencer's photo crops the lower body, expand the framing as little as possible — ideally show full body so the entire outfit is visible.`
+  } else if (coverage === 'lower_only' || /pants|jeans|skirt|trouser|short/.test(garmentTypeRaw)) {
+    // BOTTOM-ONLY: replace lower garment, KEEP the influencer's existing top.
+    const topToKeep = garmentIntel?.visibleTopInPhoto && garmentIntel.visibleTopInPhoto !== 'none'
+      ? `(image 2 shows the product paired with ${garmentIntel.visibleTopInPhoto} — IGNORE that top, the influencer's own top stays as-is)`
+      : ''
+    swapInstruction =
+      `Replace ONLY the influencer's lower garment (pants/jeans/skirt) with a 1:1 reproduction of the product from image 2 — ${garmentDesc}.${features} ` +
+      `Match the lower garment pixel-for-pixel — same color, wash, pattern, fit, length, pockets, and stitching. ` +
+      `KEEP THE INFLUENCER'S EXISTING TOP exactly as it appears in image 1 — do NOT change, recolor, or redesign the top. ${topToKeep}`
+    // Lower garments need the lower body visible
+    framingNote =
+      `IMPORTANT: the output MUST show the lower body so the swapped garment is visible. ` +
+      `If image 1 crops at the waist, expand the framing downward to show the legs. ` +
+      `Do not crop above the knee.`
+  } else {
+    // UPPER-ONLY (default): replace top, KEEP influencer's existing pants/skirt.
+    const bottomToKeep = garmentIntel?.visibleBottomInPhoto && garmentIntel.visibleBottomInPhoto !== 'none'
+      ? `(image 2 shows the product paired with ${garmentIntel.visibleBottomInPhoto} — IGNORE that bottom, the influencer's own bottom stays as-is)`
+      : ''
+    swapInstruction =
+      `Replace ONLY the influencer's upper garment (top/shirt/jacket) with a 1:1 reproduction of the product from image 2 — ${garmentDesc}.${features} ` +
+      `Match the upper garment pixel-for-pixel — same color, pattern, neckline, sleeves, fit, and details. ` +
+      `KEEP THE INFLUENCER'S EXISTING BOTTOM WEAR (pants, skirt, jeans, or shorts) exactly as it appears in image 1 — do NOT change, recolor, or redesign the bottom. ${bottomToKeep}`
   }
 
-  const garmentDesc = parts.length > 0 ? parts.join(', ') : 'the garment shown in image 2'
   const userBit = userContext ? ` ${userContext}` : ''
 
-  // Caption-style prompt with anti-zoom guards + 1:1 garment reproduction
-  // at the head + negative-style guards at the tail.
-  //
-  // KEY: lead with the EXACT-COPY directive for both the garment AND the
-  // framing. FLUX weights early phrases more heavily, so the most
-  // important constraints (don't zoom, don't redesign the garment) go
-  // FIRST, not embedded in the middle of the prompt.
+  // Caption-style prompt with anti-zoom guards + coverage-aware swap +
+  // negative-style tail. FLUX weights early phrases more heavily.
   const prompt = [
     // 1. EDIT mode + framing lock (anti-zoom)
     `Edit image 1 to swap clothing only. Keep the EXACT same camera framing, crop, zoom level, composition, and viewing angle as image 1. Do not zoom in or out. Do not recompose.`,
     // 2. Person identity lock
     `The person from image 1 stays IDENTICAL — same face, hair, skin tone, body, and pose unchanged.`,
-    // 3. Garment 1:1 reproduction with concrete specs
-    `Replace their clothing with a 1:1 reproduction of the garment from image 2 — a ${garmentDesc}.${features}${bottomBit} Match the garment's color, pattern, texture, and every design detail pixel-for-pixel — do not redesign, modify, or stylize it.`,
-    // 4. Realism + lighting consistency
-    `Match the original photo's lighting, fabric drape, and shadows. Photorealistic.`,
-    // 5. Negative-style guards (FLUX responds best to these at the tail)
-    `No zoom, no recomposition, no layering, no extra garments, no different person, no text or watermarks, no AI artifacts.${userBit}`,
-  ].join(' ').slice(0, 1500)
+    // 3. Coverage-aware swap directive
+    swapInstruction,
+    // 4. Framing exception when the lower body must be visible
+    framingNote,
+    // 5. Realism + lighting consistency
+    `Match image 1's lighting, fabric drape, and shadows. Photorealistic.`,
+    // 6. Negative-style guards (FLUX responds best to these at the tail)
+    `No recomposition, no extra garments, no different person, no random outfit changes to parts not being swapped, no text or watermarks, no AI artifacts.${userBit}`,
+  ].filter(Boolean).join(' ').slice(0, 2000)
 
   return prompt
 }
