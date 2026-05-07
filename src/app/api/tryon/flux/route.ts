@@ -269,13 +269,59 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     if (error instanceof FluxError) {
-      const statusCode = error.status === 400 ? 400 : error.status === 504 ? 504 : 502
+      const lower = (error.message || '').toLowerCase()
+
+      // Pool saturation — clear, actionable response with retry hint
+      if (error.status === 503 && lower.includes('saturated')) {
+        return NextResponse.json(
+          {
+            error: 'Our AI is at full capacity right now. Please wait a moment and try again.',
+            code: 'POOL_SATURATED',
+            retryAfterSeconds: 15,
+          },
+          { status: 503, headers: { 'Retry-After': '15' } },
+        )
+      }
+
+      // Content moderation
+      if (error.status === 400 && lower.includes('moderat')) {
+        return NextResponse.json(
+          {
+            error: 'The image or prompt was blocked by content moderation. Please try a different photo or wording.',
+            code: 'MODERATION',
+          },
+          { status: 400 },
+        )
+      }
+
+      // Generation timeout
+      if (error.status === 504) {
+        return NextResponse.json(
+          {
+            error: 'Generation took too long. The AI service may be slow — please try again.',
+            code: 'GENERATION_TIMEOUT',
+            retryAfterSeconds: 5,
+          },
+          { status: 504, headers: { 'Retry-After': '5' } },
+        )
+      }
+
+      // Auth failure (config issue, not user error)
+      if (error.status === 401 || error.status === 403) {
+        console.error('[flux/tryon] FLUX auth failure — check FLUX_API_KEYS config')
+        return NextResponse.json(
+          { error: 'AI service is temporarily unavailable. Our team has been notified.', code: 'CONFIG_ERROR' },
+          { status: 503 },
+        )
+      }
+
+      // Generic FLUX error
+      const statusCode = (error.status && error.status >= 500) ? 502 : (error.status || 500)
       return NextResponse.json(
         {
-          error:
-            error.status === 400 && error.message.includes('moderat')
-              ? 'Your prompt or images were rejected by content moderation.'
-              : 'Image generation failed. Please try again.',
+          error: 'Image generation failed. Please try again in a moment.',
+          code: 'GENERATION_FAILED',
+          retryAfterSeconds: 10,
         },
         { status: statusCode },
       )
@@ -283,7 +329,10 @@ export async function POST(request: Request) {
 
     console.error('[flux/tryon] error:', error)
     return NextResponse.json(
-      { error: process.env.NODE_ENV === 'production' ? 'Internal server error' : (error instanceof Error ? error.message : 'Internal server error') },
+      {
+        error: process.env.NODE_ENV === 'production' ? 'Internal server error' : (error instanceof Error ? error.message : 'Internal server error'),
+        code: 'INTERNAL_ERROR',
+      },
       { status: 500 },
     )
   }

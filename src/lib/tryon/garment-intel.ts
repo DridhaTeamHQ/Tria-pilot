@@ -132,11 +132,31 @@ export function inferIntelFromText(text: string | null | undefined): GarmentInte
 
   for (const m of map) {
     if (m.test.test(t)) {
+      // Extract color hints from text — common color words boost the
+      // FLUX prompt fidelity even when image analysis is down.
+      const colorWords = [
+        'black', 'white', 'red', 'blue', 'green', 'yellow', 'orange',
+        'pink', 'purple', 'brown', 'beige', 'cream', 'grey', 'gray',
+        'navy', 'maroon', 'olive', 'teal', 'denim', 'khaki', 'tan',
+      ]
+      const foundColor = colorWords.find((c) => new RegExp(`\\b${c}\\b`).test(t))
+
+      // Pattern keywords
+      const patterns = ['floral', 'striped', 'plaid', 'checkered', 'printed', 'solid', 'paisley']
+      const foundPattern = patterns.find((p) => new RegExp(`\\b${p}\\b`).test(t)) || 'solid'
+
+      // Material keywords
+      const materials = ['cotton', 'silk', 'denim', 'linen', 'wool', 'polyester', 'velvet', 'satin', 'leather']
+      const foundMaterial = materials.find((mat) => new RegExp(`\\b${mat}\\b`).test(t)) || FALLBACK_INTEL.material
+
       return {
         ...FALLBACK_INTEL,
         garmentType: m.type,
         coverage: m.coverage,
-        description: m.desc,
+        description: m.desc + (foundColor ? ` in ${foundColor}` : ''),
+        primaryColor: foundColor || FALLBACK_INTEL.primaryColor,
+        pattern: foundPattern,
+        material: foundMaterial,
       }
     }
   }
@@ -185,11 +205,18 @@ export async function analyzeGarment(
     return cached
   }
 
-  // Retry up to 3 times on 503/overload across 3 different models before
-  // falling back. Production sees frequent 503s on gemini-2.5-flash during
-  // peak hours — Flash Lite + Pro Image act as resilience tier.
-  const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-flash']
-  const MAX_ATTEMPTS = 3
+  // Retry across multiple models with different load profiles.
+  // Production sees frequent 503s on gemini-2.5-flash during peak hours;
+  // 2.5-flash-lite has separate quota; gemini-2.0-flash-exp is a fallback
+  // tier rarely hit by the same load. Backoff between attempts grows
+  // (250ms → 750ms → 2.5s).
+  const MODELS = [
+    'gemini-2.5-flash',
+    'gemini-2.5-flash-lite',
+    'gemini-2.0-flash-exp',
+    'gemini-2.5-flash-lite',
+  ]
+  const MAX_ATTEMPTS = MODELS.length
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const model = MODELS[Math.min(attempt, MODELS.length - 1)]
@@ -272,9 +299,20 @@ export async function analyzeGarment(
       const msg = error instanceof Error ? error.message : String(error)
       const is503 = msg.includes('503') || msg.includes('UNAVAILABLE') || msg.includes('high demand') || msg.includes('overloaded')
 
-      if (is503 && attempt < MAX_ATTEMPTS - 1) {
-        const backoffMs = 1500 * (attempt + 1)
-        console.warn(`⚠️ Garment analysis 503 on ${model}, retrying in ${backoffMs}ms...`)
+      // Also retry on 429 (rate limit), 504 (gateway timeout), and quota
+      // errors — these are all transient and likely to succeed on next model.
+      const isRetryable = is503 ||
+        msg.includes('429') ||
+        msg.includes('quota') ||
+        msg.includes('504') ||
+        msg.includes('timeout') ||
+        msg.includes('RESOURCE_EXHAUSTED')
+
+      if (isRetryable && attempt < MAX_ATTEMPTS - 1) {
+        // Exponential backoff: 250ms, 750ms, 2250ms — keeps total wait
+        // under 4s across 3 retries while giving Gemini room to recover.
+        const backoffMs = 250 * Math.pow(3, attempt)
+        if (isDev) console.warn(`⚠️ Garment analysis transient on ${model}, retrying in ${backoffMs}ms...`)
         await new Promise((r) => setTimeout(r, backoffMs))
         continue
       }

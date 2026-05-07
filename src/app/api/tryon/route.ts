@@ -663,12 +663,34 @@ async function handlePresetlessTryOnRequest(params: {
     extractionMethod: 'passthrough',
   }
 
-  try {
-    const preprocessResult = await preprocessGarmentImage(rawGarmentBase64, {
-      fast: true,             // Skips forensic analysis only — strict profile still runs
-      model: 'flash',         // Flash is fast and accurate enough for clean extraction
+  // ── PARALLEL FAN-OUT ─────────────────────────────────────────────
+  // These three tasks have NO dependencies on each other:
+  //   1. Garment preprocessing (extraction + strict profile, ~4-8s)
+  //   2. Product text fetch (DB read, ~50ms) — used as analysis fallback
+  //   3. (intel analysis runs after preprocessing because it needs the
+  //      cleaned-up garment image)
+  // Running #1 and #2 in parallel saves ~50-100ms on every request.
+  const t0 = Date.now()
+  const [preprocessSettled, productTextSettled] = await Promise.allSettled([
+    preprocessGarmentImage(rawGarmentBase64, {
+      fast: true,
+      model: 'flash',
       sessionId: `tryon-${Date.now()}`,
-    })
+    }),
+    payload.productId
+      ? service
+          .from('products')
+          .select('name, description')
+          .eq('id', payload.productId)
+          .maybeSingle()
+          .then(({ data }) =>
+            data ? `${data.name || ''} ${data.description || ''}`.trim().slice(0, 300) : '',
+          )
+      : Promise.resolve(''),
+  ])
+
+  if (preprocessSettled.status === 'fulfilled') {
+    const preprocessResult = preprocessSettled.value
     processedGarment = normalizeBase64(preprocessResult.processedImage)
     strictGarmentProfile = preprocessResult.strictGarmentProfile
     garmentPreprocess = {
@@ -677,31 +699,27 @@ async function handlePresetlessTryOnRequest(params: {
       confidence: preprocessResult.confidence,
       extractionMethod: preprocessResult.extractionMethod,
     }
-  } catch (preprocessErr) {
-    // Never block the pipeline on preprocessing — fall back to raw garment
-    console.warn('[tryon] garment preprocessing failed, using raw garment:', preprocessErr)
+  } else {
+    console.warn('[tryon] garment preprocessing failed, using raw garment:', preprocessSettled.reason)
   }
 
-  // Fetch the product name + description when available — used as a
-  // heuristic fallback when Gemini analysis 503s, so coverage doesn't
-  // collapse to upper_only for dresses / pants / full-body items.
-  let garmentTextHint: string | undefined
-  if (payload.productId) {
-    try {
-      const { data: prod } = await service
-        .from('products')
-        .select('name, description')
-        .eq('id', payload.productId)
-        .maybeSingle()
-      if (prod) {
-        garmentTextHint = `${prod.name || ''} ${prod.description || ''}`.trim().slice(0, 300) || undefined
-      }
-    } catch { /* non-fatal */ }
+  const garmentTextHint =
+    productTextSettled.status === 'fulfilled' && productTextSettled.value
+      ? productTextSettled.value
+      : undefined
+
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`⏱️ [tryon] preprocessing+text took ${Date.now() - t0}ms`)
   }
 
-  // Garment intel is lightweight (1 Gemini Flash call, ~3-5s)
-  // Skip classification entirely to save time
+  // Garment intel runs AFTER preprocessing — it needs the cleaned-up
+  // garment image to avoid being confused by background/body in the
+  // original product photo.
+  const intelStart = Date.now()
   const garmentIntel = await analyzeGarment(processedGarment, garmentTextHint)
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`⏱️ [tryon] intel analysis took ${Date.now() - intelStart}ms · ${garmentIntel.garmentType}/${garmentIntel.coverage}`)
+  }
   const garmentClassification: GarmentClassification | null = null
   const garmentClassificationSummary = summarizeGarmentClassification(garmentClassification)
 
