@@ -516,6 +516,84 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
 
   contents.push(prompt)
 
+  // ── BUILD GARMENT FACT SHEET ─────────────────────────────────────
+  // When garmentIntel / strictGarmentProfile are present, we append a
+  // structured fact sheet to the system instruction. This gives Gemini
+  // concrete specs (hex colors, motif description, fabric, neckline,
+  // sleeves, length) that dramatically improve texture + color fidelity
+  // versus relying on the model's interpretation of Image 2 alone.
+  const intel = options.garmentIntel
+  const strict = options.strictGarmentProfile
+  const factSheetParts: string[] = []
+
+  if (strict) {
+    const baseColor = strict.base_color
+    if (baseColor?.name) {
+      factSheetParts.push(`• Primary color: ${baseColor.name}${baseColor.hex ? ` (${baseColor.hex})` : ''}`)
+    }
+    if (strict.secondary_colors?.length) {
+      const secs = strict.secondary_colors
+        .slice(0, 3)
+        .map((c) => `${c.name}${c.hex ? ` (${c.hex})` : ''}`)
+        .join(', ')
+      factSheetParts.push(`• Secondary colors: ${secs}`)
+    }
+    if (strict.pattern?.exists && strict.pattern.type !== 'solid') {
+      const motif = strict.pattern.motif_description?.slice(0, 100) || ''
+      factSheetParts.push(`• Pattern: ${strict.pattern.type}${motif ? ` — ${motif}` : ''} (${strict.pattern.motif_scale} scale, ${strict.pattern.repeat_density} density)`)
+    }
+    if (strict.fabric?.material && strict.fabric.material !== 'other') {
+      factSheetParts.push(`• Fabric: ${strict.fabric.material}, ${strict.fabric.weight} weight, ${strict.fabric.surface_finish.replace('_', ' ')} finish, ${strict.fabric.drape} drape`)
+    }
+    const c = strict.construction
+    if (c?.neckline && c.neckline !== 'other') factSheetParts.push(`• Neckline: ${c.neckline}`)
+    if (c?.sleeves?.length) factSheetParts.push(`• Sleeves: ${c.sleeves.length}${c.sleeves.style && c.sleeves.style !== 'straight' ? `, ${c.sleeves.style}` : ''}`)
+    if (c?.length) factSheetParts.push(`• Length: ${c.length.replace(/_/g, ' ')}`)
+    if (c?.waist && c.waist !== 'straight') factSheetParts.push(`• Waist: ${c.waist}`)
+  } else if (intel) {
+    if (intel.primaryColor) factSheetParts.push(`• Primary color: ${intel.primaryColor}${intel.secondaryColor ? ` with ${intel.secondaryColor}` : ''}`)
+    if (intel.pattern && intel.pattern !== 'solid') factSheetParts.push(`• Pattern: ${intel.pattern}`)
+    if (intel.material && intel.material !== 'other') factSheetParts.push(`• Material: ${intel.material}`)
+    if (intel.neckline && intel.neckline !== 'other') factSheetParts.push(`• Neckline: ${intel.neckline}`)
+    if (intel.sleeves) factSheetParts.push(`• Sleeves: ${intel.sleeves}`)
+    if (intel.fit) factSheetParts.push(`• Fit: ${intel.fit}`)
+    if (intel.length) factSheetParts.push(`• Length: ${intel.length}`)
+    if (intel.keyFeatures?.length) factSheetParts.push(`• Key features: ${intel.keyFeatures.slice(0, 4).join(', ')}`)
+    if (intel.description) factSheetParts.push(`• Description: ${intel.description}`)
+  }
+
+  // Coverage-aware swap directive — same logic as the FLUX path.
+  // Tells Gemini exactly which body region to replace and which to keep.
+  let coverageDirective = ''
+  if (intel) {
+    const garmentType = (intel.garmentType || '').toLowerCase()
+    const isFullSet =
+      intel.coverage === 'full_body' ||
+      ['co_ord_set', 'full_outfit', 'jumpsuit', 'suit', 'saree', 'lehenga'].includes(garmentType)
+
+    if (isFullSet) {
+      const topDesc = intel.visibleTopInPhoto && intel.visibleTopInPhoto !== 'none' ? intel.visibleTopInPhoto : null
+      const bottomDesc = intel.visibleBottomInPhoto && intel.visibleBottomInPhoto !== 'none' ? intel.visibleBottomInPhoto : null
+      if (topDesc && bottomDesc) {
+        coverageDirective = `\nCOVERAGE: Replace the ENTIRE outfit (both top AND bottom). TOP = ${topDesc}. BOTTOM = ${bottomDesc}. Both must match Image 2 pixel-for-pixel.`
+      } else {
+        coverageDirective = `\nCOVERAGE: Replace the ENTIRE outfit with the full-body garment from Image 2. Show full body if visible in Image 1.`
+      }
+    } else if (intel.coverage === 'lower_only' || /pants|jeans|skirt|trouser|short/.test(garmentType)) {
+      const topToKeep = intel.visibleTopInPhoto && intel.visibleTopInPhoto !== 'none'
+        ? ` (Image 2 may show a ${intel.visibleTopInPhoto} — IGNORE that, keep the person's own top)` : ''
+      coverageDirective = `\nCOVERAGE: Replace ONLY the LOWER garment (pants/jeans/skirt). KEEP the person's existing TOP exactly as in Image 1.${topToKeep} Show the lower body — do not crop above the knee.`
+    } else {
+      const bottomToKeep = intel.visibleBottomInPhoto && intel.visibleBottomInPhoto !== 'none'
+        ? ` (Image 2 may show ${intel.visibleBottomInPhoto} — IGNORE that, keep the person's own bottom)` : ''
+      coverageDirective = `\nCOVERAGE: Replace ONLY the UPPER garment (top/shirt/jacket). KEEP the person's existing BOTTOM WEAR exactly as in Image 1.${bottomToKeep} Preserve full body framing if visible in Image 1.`
+    }
+  }
+
+  const factSheet = factSheetParts.length > 0
+    ? `\n\nGARMENT FACT SHEET (use these EXACT specs — Image 2 may have lighting/angle distortion):\n${factSheetParts.join('\n')}`
+    : ''
+
   const config: GenerateContentConfig = {
     responseModalities: ['IMAGE'],
     systemInstruction: `You are a photorealistic virtual try-on editor. Output ONLY an edited image — no text.
@@ -534,14 +612,21 @@ GARMENT REPLACEMENT (STRIP-AND-REPLACE):
 - The output must show ONLY the garment from Image 2 — NO traces of the original clothing
 - Do NOT blend, layer, or mix original clothing with the new garment
 - PIXEL-PERFECT match: same color, pattern, texture, collar, sleeves, hem, fit, silhouette, and fabric as Image 2
-- If Image 2 shows a model, IGNORE their face/body — copy ONLY the garment
+- If Image 2 shows a model, IGNORE their face/body — copy ONLY the garment${coverageDirective}
+
+TEXTURE & COLOR FIDELITY:
+- Reproduce the exact fabric texture from Image 2 — weave, sheen, drape, surface finish
+- Match colors exactly using the hex codes in the FACT SHEET below when present
+- For patterns: maintain motif scale, repeat density, and orientation as shown in Image 2
+- Do NOT smooth, simplify, or stylize the texture — keep all visible fabric detail
 
 FORBIDDEN HALLUCINATIONS:
 - Do NOT invent extra layers (cardigans, jackets, vests) not present in Image 2
 - Do NOT keep sleeves, collars, or hems from the original clothing in Image 1
 - Do NOT create hybrid garments mixing features from Image 1 and Image 2
+- Do NOT change garment color, pattern, or material from what's specified
 
-REALISM: Photorealistic output. Natural skin, realistic fabric drape. No AI smoothing or CGI look.`,
+REALISM: Photorealistic output. Natural skin, realistic fabric drape. No AI smoothing or CGI look.${factSheet}`,
     imageConfig: {
       aspectRatio,
       personGeneration: 'allow_adult',
