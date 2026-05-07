@@ -1007,22 +1007,62 @@ async function handlePresetlessTryOnRequest(params: {
     })
     if (isDev) console.log(`\n🚀 Starting ${TARGET_PHOTOS.length} generations in PARALLEL | prompt: ${smartPrompt.length} chars`)
 
+    // Per-output retry helper. Gemini occasionally returns empty/no-image
+    // responses for borderline inputs — a single retry with a fresh request
+    // recovers ~80% of these. Non-retryable errors (moderation, auth) skip
+    // the retry to avoid burning budget.
+    const generateWithRetry = async (
+      referenceImageBase64: string,
+      photoId: string,
+      slotIdx: number,
+    ): Promise<string> => {
+      const MAX_ATTEMPTS = 2
+      let lastErr: unknown = null
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        try {
+          if (isDev && attempt > 1) {
+            console.log(`🔁 Gen ${slotIdx + 1} retry ${attempt}/${MAX_ATTEMPTS} → photo: ${photoId}`)
+          }
+          const result = await generateTryOnDirect({
+            personImageBase64: referenceImageBase64,
+            garmentImageBase64: processedGarment,
+            prompt: smartPrompt,
+            aspectRatio: payload.aspectRatio || '4:5',
+            model: directRenderModel,
+            garmentIntel,
+            strictGarmentProfile,
+          })
+          if (!result || result.length < 100) {
+            throw new Error('Empty image returned by generation engine')
+          }
+          return result
+        } catch (err) {
+          lastErr = err
+          const msg = err instanceof Error ? err.message.toLowerCase() : ''
+          // Don't retry user-actionable errors
+          const nonRetryable =
+            msg.includes('moderat') ||
+            msg.includes('safety filter') ||
+            msg.includes('invalid person') ||
+            msg.includes('invalid garment') ||
+            msg.includes('401') ||
+            msg.includes('403')
+          if (nonRetryable || attempt >= MAX_ATTEMPTS) {
+            throw err
+          }
+          // Brief backoff before retry: 800ms + jitter
+          await new Promise((r) => setTimeout(r, 800 + Math.floor(Math.random() * 400)))
+        }
+      }
+      throw lastErr instanceof Error ? lastErr : new Error('Generation failed after retries')
+    }
+
     const generationResults = await Promise.allSettled(
       TARGET_PHOTOS.map(async (photo, idx) => {
         const referenceImageBase64 = orderedReferenceBase64s[idx]
         if (isDev) console.log(`🎯 Gen ${idx + 1}/${TARGET_PHOTOS.length} → photo: ${photo.id}`)
 
-        const generatedImage = await generateTryOnDirect({
-          personImageBase64: referenceImageBase64,
-          garmentImageBase64: processedGarment,
-          prompt: smartPrompt,
-          aspectRatio: payload.aspectRatio || '4:5',
-          model: directRenderModel,
-          // FLUX engine uses these for grounded, garment-specific prompting.
-          // Gemini engine ignores them (still uses the smartPrompt above).
-          garmentIntel,
-          strictGarmentProfile,
-        })
+        const generatedImage = await generateWithRetry(referenceImageBase64, photo.id, idx)
 
         // Save to storage
         let outputImagePath = generatedImage

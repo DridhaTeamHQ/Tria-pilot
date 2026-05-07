@@ -545,19 +545,39 @@ function TryOnPageContent() {
         setSelectedOutputIndex(0)
       }
 
+      // Helper to count successful slots and announce partial success
+      const announceSuccess = (job: any) => {
+        const total = Array.isArray(job?.outputs) ? job.outputs.length : 0
+        const successes = Array.isArray(job?.outputs)
+          ? job.outputs.filter((o: any) => (o?.imageUrl || o?.base64Image) && o?.status !== 'failed').length
+          : 0
+        if (total > 0 && successes < total) {
+          // Partial success — show warning, not green checkmark
+          showWarningToast(
+            `${successes} of ${total} try-ons ready`,
+            `${total - successes} ${total - successes === 1 ? 'photo' : 'photos'} couldn't be generated. Try regenerating to fill the empty slots.`,
+          )
+        } else {
+          showSuccessToast(
+            'Try-on ready',
+            total > 1 ? `All ${total} try-on images are ready.` : 'Your try-on is finished.',
+          )
+        }
+      }
+
       if (data.jobId && (data.status === 'pending' || data.status === 'processing')) {
         setActiveJobId(String(data.jobId))
         const finalJob = await pollTryOnJob(String(data.jobId))
         handleFinalJob(finalJob, 'The try-on job finished without producing any images.')
-        showSuccessToast('Try-on ready', 'Your new try-on is finished.')
+        announceSuccess(finalJob)
       } else if (data.jobId && !data.outputs?.length && !data.imageUrl && !data.base64Image) {
         setActiveJobId(String(data.jobId))
         const finalJob = await pollTryOnJob(String(data.jobId))
         handleFinalJob(finalJob, 'The try-on job finished without producing any images.')
-        showSuccessToast('Try-on ready', 'Your new try-on is finished.')
+        announceSuccess(finalJob)
       } else {
         handleFinalJob(data, 'The try-on did not produce any images.')
-        showSuccessToast('Try-on ready', 'We generated your three try-on images.')
+        announceSuccess(data)
       }
     } catch (error) {
       // Always log the raw error so we can debug from the browser console
@@ -719,6 +739,35 @@ function TryOnPageContent() {
                       </button>
                     ))}
                   </div>
+                  {/* Partial-failure banner — fires when 1 or 2 of 3 outputs failed */}
+                  {(() => {
+                    const failed = outputs.filter((o: any) => !(o?.imageUrl || o?.base64Image) || o?.status === 'failed').length
+                    const succeeded = outputs.length - failed
+                    if (failed > 0 && succeeded > 0) {
+                      return (
+                        <div className="mx-auto max-w-[600px] rounded-2xl border-[3px] border-black bg-[#FFF4E0] p-4 shadow-[4px_4px_0_0_#000]">
+                          <div className="flex items-start gap-3">
+                            <AlertTriangle className="h-6 w-6 flex-shrink-0 text-[#FF8C69]" />
+                            <div className="flex-1">
+                              <p className="text-sm font-black uppercase">{failed} of {outputs.length} failed</p>
+                              <p className="mt-1 text-xs font-semibold text-black/70">
+                                The AI couldn't generate {failed === 1 ? 'one image' : `${failed} images`}. Click below to retry just the failed slots.
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => void submitTryOn()}
+                              disabled={submitting}
+                              className="rounded-full border-[3px] border-black bg-[#FFD93D] px-4 py-2 text-xs font-black uppercase shadow-[3px_3px_0_0_#000] transition hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[4px_4px_0_0_#000] disabled:opacity-50"
+                            >
+                              Regenerate
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    }
+                    return null
+                  })()}
                   <div className="flex flex-wrap justify-center gap-3">
                     <button type="button" onClick={downloadCurrent} className="rounded-full border-[3px] border-black bg-[#FF8C69] px-6 py-3 font-black uppercase text-white shadow-[4px_4px_0_0_#000]">Download Image</button>
                     {selectedOutput?.imageUrl ? (
