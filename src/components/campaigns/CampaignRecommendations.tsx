@@ -174,26 +174,30 @@ function generateRecommendations(campaigns: Campaign[]): Recommendation[] {
    TYPE COLORS
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
-const TYPE_STYLES: Record<string, { bg: string; border: string; iconBg: string }> = {
+const TYPE_STYLES: Record<string, { bg: string; border: string; iconBg: string; accent: string }> = {
     insight: {
-        bg: 'bg-[#B4F056]/8',
-        border: 'border-[#B4F056]/30',
-        iconBg: 'bg-[#B4F056]/20',
+        bg: 'bg-white',
+        border: 'border-black',
+        iconBg: 'bg-[#B4F056]',
+        accent: '#B4F056',
     },
     warning: {
-        bg: 'bg-[#FFD93D]/10',
-        border: 'border-[#FFD93D]/40',
-        iconBg: 'bg-[#FFD93D]/25',
+        bg: 'bg-white',
+        border: 'border-black',
+        iconBg: 'bg-[#FFD93D]',
+        accent: '#FFD93D',
     },
     opportunity: {
-        bg: 'bg-[#A78BFA]/8',
-        border: 'border-[#A78BFA]/30',
-        iconBg: 'bg-[#A78BFA]/20',
+        bg: 'bg-white',
+        border: 'border-black',
+        iconBg: 'bg-[#A78BFA]',
+        accent: '#A78BFA',
     },
     success: {
-        bg: 'bg-[#34D399]/8',
-        border: 'border-[#34D399]/30',
-        iconBg: 'bg-[#34D399]/20',
+        bg: 'bg-white',
+        border: 'border-black',
+        iconBg: 'bg-[#34D399]',
+        accent: '#34D399',
     },
 }
 
@@ -235,34 +239,41 @@ export default function CampaignRecommendations({ campaigns }: { campaigns: Camp
     const IconComp = current.icon
 
     return (
-        <div className={`${style.bg} border ${style.border} rounded-2xl p-4 animate-slideUp relative overflow-hidden`}>
-            {/* Decorative gradient */}
-            <div className="absolute inset-0 pointer-events-none">
-                <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-white/30 blur-2xl" />
+        <div className={`${style.bg} border-[3px] ${style.border} rounded-[24px] p-6 animate-slideUp relative overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]`}>
+            {/* Decorative pattern */}
+            <div className="absolute inset-0 pointer-events-none opacity-[0.03]">
+                <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, black 1px, transparent 0)', backgroundSize: '12px 12px' }} />
+            </div>
+            
+            {/* Accent tag */}
+            <div className="absolute top-0 right-12 px-3 py-1 bg-black text-white text-[9px] font-black uppercase tracking-[0.2em] rounded-b-lg">
+                Intelligence
             </div>
 
             <div className="relative flex items-start gap-3">
                 {/* Icon */}
-                <div className={`${style.iconBg} w-9 h-9 rounded-xl flex items-center justify-center shrink-0`}>
-                    <IconComp className="w-4 h-4 text-black/70" strokeWidth={2.5} />
+                <div className={`${style.iconBg} w-12 h-12 rounded-xl border-[3px] border-black flex items-center justify-center shrink-0 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] group-hover:scale-110 transition-transform`}>
+                    <IconComp className="w-6 h-6 text-black" strokeWidth={3} />
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-black/40">
+                <div className="flex-1 min-w-0 pt-1">
+                    <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-black/50 bg-black/5 px-2 py-0.5 rounded-md">
                             AI Insight {currentIndex + 1}/{recs.length}
                         </span>
+                        <div className="flex-1 h-px bg-black/5" />
                     </div>
-                    <p className="text-[13px] font-medium text-black/75 leading-relaxed">
+                    <p className="text-base font-bold text-black leading-tight mb-3">
                         {current.emoji} {current.message}
                     </p>
                     {current.action && (
                         <button
                             type="button"
-                            className="mt-2 text-[11px] font-black uppercase tracking-wider text-black/50 hover:text-black transition-colors underline underline-offset-2"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg text-[10px] font-black uppercase tracking-wider hover:bg-black/80 transition-colors shadow-[3px_3px_0px_0px_rgba(0,0,0,0.2)]"
                         >
-                            {current.action} →
+                            {current.action}
+                            <ChevronRight className="w-3 h-3" strokeWidth={4} />
                         </button>
                     )}
                 </div>

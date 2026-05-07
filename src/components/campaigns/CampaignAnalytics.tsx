@@ -146,14 +146,14 @@ const STATUS_LABELS: Record<string, string> = {
 function StatusRingChart({ breakdown, total }: { breakdown: Record<string, number>; total: number }) {
     if (total === 0) {
         return (
-            <div className="flex items-center justify-center h-full">
-                <p className="text-xs font-medium text-black/30">No campaigns</p>
+            <div className="flex flex-col items-center justify-center h-[160px] bg-black/5 rounded-2xl border-[3px] border-dashed border-black/10">
+                <p className="text-xs font-black uppercase tracking-widest text-black/20">No active data</p>
             </div>
         )
     }
 
-    const size = 100
-    const strokeWidth = 10
+    const size = 120
+    const strokeWidth = 14
     const radius = (size - strokeWidth) / 2
     const circumference = 2 * Math.PI * radius
     let currentOffset = 0
@@ -174,9 +174,18 @@ function StatusRingChart({ breakdown, total }: { breakdown: Record<string, numbe
     })
 
     return (
-        <div className="flex items-center gap-4">
-            <div className="relative shrink-0">
-                <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <div className="flex flex-col sm:flex-row items-center gap-8 py-2">
+            <div className="relative shrink-0 group">
+                <div className="absolute inset-[-8px] border-[3px] border-black/5 rounded-full scale-95 group-hover:scale-100 transition-transform duration-500" />
+                <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="drop-shadow-[4px_4px_0px_rgba(0,0,0,0.1)]">
+                    <circle
+                        cx={size / 2}
+                        cy={size / 2}
+                        r={radius}
+                        fill="none"
+                        stroke="rgba(0,0,0,0.05)"
+                        strokeWidth={strokeWidth}
+                    />
                     {segments.map((seg) => (
                         <circle
                             key={seg.status}
@@ -190,28 +199,36 @@ function StatusRingChart({ breakdown, total }: { breakdown: Record<string, numbe
                             strokeDashoffset={seg.dashOffset}
                             strokeLinecap="round"
                             transform={`rotate(-90 ${size / 2} ${size / 2})`}
-                            className="transition-all duration-700"
+                            className="transition-all duration-1000 ease-out"
                         />
                     ))}
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-center">
-                        <p className="text-xl font-black leading-none">{total}</p>
-                        <p className="text-[8px] font-bold uppercase tracking-wider text-black/40">Total</p>
+                        <p className="text-3xl font-black leading-none text-black tracking-tighter">{total}</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-black/30">Total</p>
                     </div>
                 </div>
             </div>
-            <div className="flex flex-col gap-1.5">
+
+            <div className="flex-1 w-full space-y-3">
                 {segments.map((seg) => (
-                    <div key={seg.status} className="flex items-center gap-2">
-                        <span
-                            className="w-2.5 h-2.5 rounded-[3px] border border-black/10 shrink-0"
-                            style={{ backgroundColor: seg.color }}
-                        />
-                        <span className="text-[11px] font-semibold text-black/60">
-                            {STATUS_LABELS[seg.status] || seg.status}
-                        </span>
-                        <span className="text-[11px] font-black tabular-nums">{seg.count}</span>
+                    <div key={seg.status} className="flex items-center justify-between p-3 bg-white border-[3px] border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all cursor-default group">
+                        <div className="flex items-center gap-3">
+                            <div 
+                                className="w-4 h-4 rounded-full border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] group-hover:scale-110 transition-transform" 
+                                style={{ backgroundColor: seg.color }}
+                            />
+                            <span className="text-[11px] font-black uppercase tracking-widest text-black">
+                                {STATUS_LABELS[seg.status] || seg.status}
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black text-black/30">{Math.round(seg.percentage * 100)}%</span>
+                            <span className="text-sm font-black tabular-nums bg-black text-white px-2 py-0.5 rounded-lg">
+                                {seg.count}
+                            </span>
+                        </div>
                     </div>
                 ))}
             </div>
@@ -244,29 +261,31 @@ function KPICard({ icon: Icon, label, value, trend, sparkData, color, delay = 0 
 }) {
     return (
         <div
-            className="bg-white border border-black/8 rounded-2xl p-4 hover:border-black/15 transition-all animate-slideUp group"
+            className="bg-white border-[3px] border-black rounded-[24px] p-5 hover:bg-black/5 transition-all animate-slideUp group shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-1 hover:-translate-y-1"
             style={{ animationDelay: `${delay}ms` }}
         >
-            <div className="flex items-start justify-between mb-3">
+            <div className="flex items-start justify-between mb-4">
                 <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110"
-                    style={{ backgroundColor: `${color}25` }}
+                    className="w-11 h-11 rounded-xl border-[3px] border-black flex items-center justify-center transition-transform group-hover:scale-110 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                    style={{ backgroundColor: `${color}40` }}
                 >
-                    <Icon className="w-4 h-4" style={{ color }} strokeWidth={2.5} />
+                    <Icon className="w-5 h-5 text-black" strokeWidth={3} />
                 </div>
                 {sparkData && sparkData.length > 1 && (
-                    <MiniSparkline data={sparkData} color={color} />
+                    <div className="pt-2">
+                        <MiniSparkline data={sparkData} color={color} />
+                    </div>
                 )}
             </div>
-            <p className="text-xl font-black text-black tracking-tight leading-none mb-1">{value}</p>
-            <div className="flex items-center gap-1.5">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-black/40">{label}</p>
+            <p className="text-2xl font-black text-black tracking-tighter leading-none mb-2">{value}</p>
+            <div className="flex items-center gap-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-black/40">{label}</p>
                 {trend && (
-                    <span className={`flex items-center gap-0.5 text-[10px] font-black ${trend === 'up' ? 'text-green-600' : trend === 'down' ? 'text-red-500' : 'text-black/30'
+                    <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded-lg border-2 border-black text-[10px] font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${trend === 'up' ? 'bg-[#B4F056]' : trend === 'down' ? 'bg-[#FF6B6B]' : 'bg-white'
                         }`}>
-                        {trend === 'up' && <TrendingUp className="w-3 h-3" />}
-                        {trend === 'down' && <TrendingDown className="w-3 h-3" />}
-                        {trend === 'flat' && <Minus className="w-3 h-3" />}
+                        {trend === 'up' && <TrendingUp className="w-3 h-3" strokeWidth={3} />}
+                        {trend === 'down' && <TrendingDown className="w-3 h-3" strokeWidth={3} />}
+                        {trend === 'flat' && <Minus className="w-3 h-3" strokeWidth={3} />}
                     </span>
                 )}
             </div>
@@ -353,8 +372,9 @@ export default function CampaignAnalytics({ campaigns }: { campaigns: Campaign[]
             {/* Status Distribution + Top Performer */}
             <div className="grid md:grid-cols-2 gap-3">
                 {/* Status Ring */}
-                <div className="bg-white border border-black/8 rounded-2xl p-5 animate-slideUp" style={{ animationDelay: '200ms' }}>
-                    <p className="text-[10px] font-black uppercase tracking-wider text-black/40 mb-3">
+                <div className="bg-white border-[3px] border-black rounded-[32px] p-6 animate-slideUp shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]" style={{ animationDelay: '200ms' }}>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-black/40 mb-5 flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-black" />
                         Campaign Status
                     </p>
                     <StatusRingChart
@@ -364,41 +384,40 @@ export default function CampaignAnalytics({ campaigns }: { campaigns: Campaign[]
                 </div>
 
                 {/* Quick Stats */}
-                <div className="bg-white border border-black/8 rounded-2xl p-5 animate-slideUp" style={{ animationDelay: '250ms' }}>
-                    <p className="text-[10px] font-black uppercase tracking-wider text-black/40 mb-3">
+                <div className="bg-white border-[3px] border-black rounded-[32px] p-6 animate-slideUp shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]" style={{ animationDelay: '250ms' }}>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-black/40 mb-5 flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-[#B4F056]" />
                         Performance Snapshot
                     </p>
                     <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-black/60">Active Campaigns</span>
-                            <span className="text-sm font-black text-black">{analytics.activeCampaigns}</span>
-                        </div>
-                        <div className="h-px bg-black/5" />
-                        <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-black/60">Avg Cost/Click</span>
-                            <span className="text-sm font-black text-black">
-                                {analytics.avgCPC > 0 ? `₹${analytics.avgCPC.toFixed(2)}` : '—'}
-                            </span>
-                        </div>
-                        <div className="h-px bg-black/5" />
-                        <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-black/60">Total Clicks</span>
-                            <span className="text-sm font-black text-black">{analytics.totalClicks.toLocaleString()}</span>
-                        </div>
-                        <div className="h-px bg-black/5" />
+                        {[
+                            { label: 'Active Campaigns', value: analytics.activeCampaigns, color: '#B4F056' },
+                            { label: 'Avg Cost/Click', value: analytics.avgCPC > 0 ? `₹${analytics.avgCPC.toFixed(2)}` : '—', color: '#FFD93D' },
+                            { label: 'Total Clicks', value: analytics.totalClicks.toLocaleString(), color: '#A78BFA' }
+                        ].map((stat, idx) => (
+                            <div key={idx} className="flex items-center justify-between p-3 bg-[#FAFAF8] border-2 border-black rounded-2xl group/stat hover:bg-white transition-colors">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: stat.color }} />
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-black/50">{stat.label}</span>
+                                </div>
+                                <span className="text-xs font-black text-black bg-white border-2 border-black px-2 py-1 rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] group-hover:shadow-none group-hover:translate-x-[1px] group-hover:translate-y-[1px] transition-all">
+                                    {stat.value}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
                         {(() => {
                             const best = campaigns.reduce((top, c) =>
                                 (c.impressions ?? 0) > (top?.impressions ?? 0) ? c : top, campaigns[0])
                             if (!best || (best.impressions ?? 0) === 0) return null
                             return (
-                                <div className="flex items-center justify-between gap-2">
-                                    <span className="text-xs font-semibold text-black/60 shrink-0">Top Campaign</span>
-                                    <span className="text-xs font-black text-black truncate max-w-[160px]">{best.title}</span>
+                                <div className="flex items-center justify-between gap-4">
+                                    <span className="text-xs font-black uppercase tracking-wider text-black/50 shrink-0">Top Performer</span>
+                                    <span className="text-xs font-black text-black truncate bg-[#FFD93D] px-2 py-1 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">{best.title}</span>
                                 </div>
                             )
                         })()}
                     </div>
-                </div>
             </div>
         </div>
     )

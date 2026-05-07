@@ -123,10 +123,11 @@ export default function CampaignAnalyticsCard({ campaignId }: { campaignId: stri
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <MetricCard
           icon={IndianRupee}
-          label="Spend"
+          label="Budget Spent"
           value={formatINR(metrics.spend)}
-          subValue={metrics.totalBudget > 0 ? `of ${formatINR(metrics.totalBudget)} budget` : undefined}
+          subValue={metrics.totalBudget > 0 ? `of ${formatINR(metrics.totalBudget)} limit` : undefined}
           tone="orange"
+          delay={0}
         />
         <MetricCard
           icon={TrendingUp}
@@ -134,13 +135,15 @@ export default function CampaignAnalyticsCard({ campaignId }: { campaignId: stri
           value={formatNum(metrics.impressions)}
           subValue={metrics.ctr > 0 ? `${metrics.ctr}% CTR` : undefined}
           tone="purple"
+          delay={50}
         />
         <MetricCard
           icon={MousePointer}
-          label="Clicks"
+          label="Ad Clicks"
           value={formatNum(metrics.clicks)}
           subValue={metrics.cpc > 0 ? `${formatINR(metrics.cpc)} CPC` : undefined}
           tone="green"
+          delay={100}
         />
         <MetricCard
           icon={Target}
@@ -148,18 +151,24 @@ export default function CampaignAnalyticsCard({ campaignId }: { campaignId: stri
           value={formatNum(metrics.conversions)}
           subValue={metrics.cpa > 0 ? `${formatINR(metrics.cpa)} CPA` : metrics.cvr > 0 ? `${metrics.cvr}% CVR` : undefined}
           tone="yellow"
+          delay={150}
         />
       </div>
 
       {/* Click sparkline */}
-      <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-5">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="w-4 h-4" strokeWidth={3} />
-            <h3 className="text-xs font-black uppercase tracking-widest">Last 30 Days — Link Clicks</h3>
+      <div className="bg-white border-[3px] border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] p-6 rounded-[24px]">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl border-[3px] border-black bg-[#B4F056] flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+              <BarChart3 className="w-5 h-5" strokeWidth={3} />
+            </div>
+            <div>
+              <h3 className="text-xs font-black uppercase tracking-[0.15em]">Link Performance</h3>
+              <p className="text-[10px] font-black text-black/40 uppercase">30 Day Trend</p>
+            </div>
           </div>
-          <span className="text-xs font-black bg-black text-white px-2 py-1 rounded">
-            {formatNum(links.totalClicks)} total
+          <span className="text-xs font-black bg-black text-white px-3 py-1.5 rounded-lg border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+            {formatNum(links.totalClicks)} TOTAL CLICKS
           </span>
         </div>
         {links.totalClicks === 0 ? (
@@ -167,19 +176,20 @@ export default function CampaignAnalyticsCard({ campaignId }: { campaignId: stri
             No clicks tracked yet. Once creators share their tracked links, traffic will appear here.
           </p>
         ) : (
-          <div className="flex items-end gap-1 h-24">
+          <div className="flex items-end gap-1.5 h-28 pt-4">
             {links.series.map((b) => {
               const heightPct = (b.count / maxSeriesValue) * 100
               return (
                 <div
                   key={b.date}
-                  className="flex-1 bg-[#B4F056] border border-black hover:bg-[#a3e04a] transition-colors group relative"
-                  style={{ height: `${Math.max(heightPct, 2)}%` }}
+                  className="flex-1 bg-[#B4F056] border-2 border-black rounded-t-md hover:bg-black transition-all group relative cursor-pointer shadow-[2px_0px_0px_0px_rgba(0,0,0,0.1)]"
+                  style={{ height: `${Math.max(heightPct, 4)}%` }}
                   title={`${b.date}: ${b.count} click${b.count === 1 ? '' : 's'}`}
                 >
                   {b.count > 0 && (
-                    <div className="opacity-0 group-hover:opacity-100 absolute -top-7 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-bold px-2 py-0.5 rounded whitespace-nowrap pointer-events-none">
-                      {b.count}
+                    <div className="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-black px-2 py-1 rounded border border-white/20 shadow-xl whitespace-nowrap z-10 pointer-events-none transition-all">
+                      <div className="text-[8px] text-white/50 mb-0.5 uppercase">{b.date}</div>
+                      {b.count} Clicks
                     </div>
                   )}
                 </div>
@@ -192,14 +202,16 @@ export default function CampaignAnalyticsCard({ campaignId }: { campaignId: stri
       {/* Roster + Top links — 2 columns */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {/* Roster */}
-        <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4" strokeWidth={3} />
-              <h3 className="text-xs font-black uppercase tracking-widest">Creator Roster</h3>
+        <div className="bg-white border-[3px] border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] p-6 rounded-[24px]">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl border-[3px] border-black bg-[#A78BFA] flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+                <Users className="w-5 h-5" strokeWidth={3} />
+              </div>
+              <h3 className="text-xs font-black uppercase tracking-[0.15em]">Creator Roster</h3>
             </div>
-            <span className="text-xs font-black bg-black text-white px-2 py-1 rounded">
-              {roster.counts.total} invited
+            <span className="text-[10px] font-black bg-black/5 text-black/60 px-3 py-1.5 rounded-lg border-2 border-black/10">
+              {roster.counts.total} TOTAL
             </span>
           </div>
 
@@ -234,11 +246,13 @@ export default function CampaignAnalyticsCard({ campaignId }: { campaignId: stri
         </div>
 
         {/* Top links */}
-        <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <MousePointer className="w-4 h-4" strokeWidth={3} />
-              <h3 className="text-xs font-black uppercase tracking-widest">Top Tracked Links</h3>
+        <div className="bg-white border-[3px] border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] p-6 rounded-[24px]">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl border-[3px] border-black bg-[#FFD93D] flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+                <MousePointer className="w-5 h-5" strokeWidth={3} />
+              </div>
+              <h3 className="text-xs font-black uppercase tracking-[0.15em]">Tracked Items</h3>
             </div>
           </div>
           {links.top.length === 0 ? (
@@ -269,23 +283,32 @@ function MetricCard({
   value,
   subValue,
   tone,
+  delay = 0,
 }: {
   icon: LucideIcon
   label: string
   value: string
   subValue?: string
   tone: 'orange' | 'purple' | 'green' | 'yellow'
+  delay?: number
 }) {
   const bg =
     tone === 'orange' ? 'bg-[#FF8C69]' : tone === 'purple' ? 'bg-[#A78BFA]' : tone === 'green' ? 'bg-[#B4F056]' : 'bg-[#FFD93D]'
   return (
-    <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4">
-      <div className={`inline-flex w-9 h-9 items-center justify-center border-2 border-black ${bg} mb-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]`}>
-        <Icon className="w-4 h-4" strokeWidth={3} />
+    <div 
+      className="bg-white border-[3px] border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] p-5 rounded-[20px] hover:-translate-y-1 hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] transition-all animate-slideUp"
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      <div className={`inline-flex w-10 h-10 items-center justify-center border-[3px] border-black ${bg} mb-3 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] rounded-xl`}>
+        <Icon className="w-5 h-5" strokeWidth={3} />
       </div>
-      <div className="text-2xl font-black break-words">{value}</div>
-      <div className="text-[10px] font-black uppercase tracking-widest text-black/50 mt-0.5">{label}</div>
-      {subValue && <div className="text-[10px] font-bold text-black/40 mt-1">{subValue}</div>}
+      <div className="text-2xl font-black break-words leading-tight">{value}</div>
+      <div className="text-[10px] font-black uppercase tracking-[0.1em] text-black/40 mt-1">{label}</div>
+      {subValue && (
+        <div className="mt-3 pt-2 border-t-2 border-black/5">
+          <p className="text-[10px] font-black text-black/60 uppercase">{subValue}</p>
+        </div>
+      )}
     </div>
   )
 }
