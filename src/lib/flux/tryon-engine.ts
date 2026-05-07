@@ -172,7 +172,31 @@ function buildFluxClothingSwapPrompt(
   if (strictProfile?.construction?.waist && strictProfile.construction.waist !== 'straight') {
     featuresList.push(`${strictProfile.construction.waist} waist`)
   }
-  const features = featuresList.length > 0 ? ` Details: ${featuresList.slice(0, 4).join(', ')}.` : ''
+  if (strictProfile?.construction?.sleeves?.style && !['straight', 'fitted', 'other'].includes(strictProfile.construction.sleeves.style)) {
+    featuresList.push(`${strictProfile.construction.sleeves.style} sleeves`)
+  }
+  if (strictProfile?.fabric?.drape && strictProfile.fabric.drape !== 'semi-structured') {
+    featuresList.push(`${strictProfile.fabric.drape} drape`)
+  }
+  const features = featuresList.length > 0 ? ` Details: ${featuresList.slice(0, 5).join(', ')}.` : ''
+
+  // Semantic anchor: Gemini's 1-sentence description of the product. Helps
+  // FLUX disambiguate when the spec list alone is ambiguous (e.g.
+  // "blue cotton top" vs. "blue ribbed cotton crop top with tie front").
+  const semanticAnchor = garmentIntel?.description?.trim()
+    ? ` This product is: ${garmentIntel.description.trim().replace(/\s+/g, ' ').slice(0, 160)}.`
+    : ''
+
+  // Gemini-suggested styling modifiers — these are tuned per-product
+  // (e.g. "ensure the bell sleeves drape naturally", "keep the high
+  // waistband visible above the hip"). Currently extracted but never
+  // reached the prompt; wiring them in here closes the loop between
+  // the intelligence panel shown in the UI and the actual generation.
+  const styleHints = (garmentIntel?.promptModifiers || [])
+    .map((m) => stripInjectionTokens(String(m || '')).trim())
+    .filter((m) => m.length > 0 && m.length < 140)
+    .slice(0, 3)
+  const styleHintsBit = styleHints.length > 0 ? ` Styling notes: ${styleHints.join('; ')}.` : ''
 
   const garmentDesc = parts.length > 0 ? parts.join(', ') : 'the garment shown in image 2'
 
@@ -263,9 +287,11 @@ function buildFluxClothingSwapPrompt(
     swapInstruction,
     // 4. Framing exception when the lower body must be visible
     framingNote,
-    // 5. Realism + lighting consistency
+    // 5. Semantic anchor + per-product styling hints from garment intel
+    `${semanticAnchor}${styleHintsBit}`.trim(),
+    // 6. Realism + lighting consistency
     `Match image 1's lighting, fabric drape, and shadows. Photorealistic.`,
-    // 6. Negative-style guards (FLUX responds best to these at the tail)
+    // 7. Negative-style guards (FLUX responds best to these at the tail)
     `No recomposition, no extra garments, no different person, no random outfit changes to parts not being swapped, no text or watermarks, no AI artifacts.${userBit}`,
   ].filter(Boolean).join(' ').slice(0, 2000)
 

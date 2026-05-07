@@ -54,12 +54,222 @@ export class FluxError extends Error {
   }
 }
 
-export function getFluxKey(): string {
-  const key = (process.env.FLUX_API_KEY || '').trim()
-  if (!key) {
-    throw new FluxError('FLUX_API_KEY not configured')
+// ── KEY POOL ─────────────────────────────────────────────────────────────────
+// BFL keys are independent accounts with independent rate limits. Running
+// jobs on different keys lets us parallelize without hitting per-key caps.
+// We track in-flight job counts per key and pick the least-busy one.
+//
+// IMPORTANT: BFL scopes get_result by submitting key, so submit + poll for
+// a single job MUST use the same key. acquireFluxKey() returns the chosen
+// key and the caller threads it through.
+
+let cachedKeyPool: string[] | null = null
+const keyInFlight = new Map<string, number>()
+/** Wall-clock ms when each key becomes usable again (set on 429/quota errors). */
+const keyCooldownUntil = new Map<string, number>()
+
+/** Per-key concurrent-job ceiling. BFL allows ~24/key; we stay conservative. */
+const PER_KEY_MAX = Number(process.env.FLUX_PER_KEY_MAX || 3)
+/** Cooldown when a key returns 429 / over-quota. */
+const KEY_COOLDOWN_MS = Number(process.env.FLUX_KEY_COOLDOWN_MS || 60_000)
+/** Hard cap on total concurrent FLUX jobs across the whole process. */
+const GLOBAL_MAX_CONCURRENT = Number(process.env.FLUX_GLOBAL_MAX || 0) // 0 = derive from pool size
+/** Max time a job will wait for a slot before failing. */
+const ACQUIRE_TIMEOUT_MS = Number(process.env.FLUX_ACQUIRE_TIMEOUT_MS || 60_000)
+
+function loadKeyPool(): string[] {
+  if (cachedKeyPool) return cachedKeyPool
+  const fromMulti = (process.env.FLUX_API_KEYS || '')
+    .split(',')
+    .map((k) => k.trim())
+    .filter((k) => k.length > 0)
+  const single = (process.env.FLUX_API_KEY || '').trim()
+
+  // Dedup, preserve order: multi first, then single fallback if not already in it.
+  const seen = new Set<string>()
+  const pool: string[] = []
+  for (const k of fromMulti) {
+    if (!seen.has(k)) { seen.add(k); pool.push(k) }
   }
+  if (single && !seen.has(single)) pool.push(single)
+
+  cachedKeyPool = pool
+  return pool
+}
+
+function isKeyCoolingDown(key: string): boolean {
+  const until = keyCooldownUntil.get(key)
+  if (!until) return false
+  if (Date.now() >= until) {
+    keyCooldownUntil.delete(key)
+    return false
+  }
+  return true
+}
+
+/**
+ * Mark a key as rate-limited for KEY_COOLDOWN_MS. Called externally when
+ * the FLUX API returns 429 / quota errors so we stop hammering that key.
+ */
+export function markFluxKeyCooldown(key: string, durationMs?: number): void {
+  const until = Date.now() + (durationMs || KEY_COOLDOWN_MS)
+  keyCooldownUntil.set(key, until)
+}
+
+/** Total slots available across the pool, considering cooldowns. */
+function totalAvailableSlots(): number {
+  const pool = loadKeyPool()
+  let slots = 0
+  for (const k of pool) {
+    if (isKeyCoolingDown(k)) continue
+    const inFlight = keyInFlight.get(k) || 0
+    if (inFlight < PER_KEY_MAX) slots += PER_KEY_MAX - inFlight
+  }
+  return slots
+}
+
+/** Effective global concurrency cap. */
+function globalCap(): number {
+  if (GLOBAL_MAX_CONCURRENT > 0) return GLOBAL_MAX_CONCURRENT
+  return loadKeyPool().length * PER_KEY_MAX
+}
+
+/** Total in-flight jobs across all keys. */
+function totalInFlight(): number {
+  let n = 0
+  for (const v of keyInFlight.values()) n += v
+  return n
+}
+
+/**
+ * Pick the least-busy key from the pool that is NOT cooling down and has
+ * room under PER_KEY_MAX. Returns null if every key is at capacity or
+ * cooling down (caller should wait).
+ */
+function pickLeastBusyKey(): string | null {
+  const pool = loadKeyPool()
+  if (pool.length === 0) return null
+  let best: string | null = null
+  let bestCount = Infinity
+  for (const k of pool) {
+    if (isKeyCoolingDown(k)) continue
+    const count = keyInFlight.get(k) || 0
+    if (count >= PER_KEY_MAX) continue
+    if (count < bestCount) {
+      best = k
+      bestCount = count
+    }
+  }
+  return best
+}
+
+/**
+ * Acquire a key for the duration of a single job. Returns the key and a
+ * release() function the caller MUST call (in finally) to decrement the
+ * in-flight counter.
+ *
+ * If the global concurrency cap is reached (or every key is cooling
+ * down / saturated), waits up to ACQUIRE_TIMEOUT_MS for a slot before
+ * throwing FluxError. This is what protects the process from queueing
+ * 200+ jobs in memory when traffic spikes.
+ */
+export async function acquireFluxKey(): Promise<{ key: string; release: () => void }> {
+  if (loadKeyPool().length === 0) {
+    throw new FluxError('No FLUX API keys configured (set FLUX_API_KEY or FLUX_API_KEYS)')
+  }
+
+  const deadline = Date.now() + ACQUIRE_TIMEOUT_MS
+  let attempt = 0
+
+  while (true) {
+    // First check global cap, then per-key availability
+    if (totalInFlight() < globalCap()) {
+      const key = pickLeastBusyKey()
+      if (key) {
+        keyInFlight.set(key, (keyInFlight.get(key) || 0) + 1)
+        let released = false
+        return {
+          key,
+          release: () => {
+            if (released) return
+            released = true
+            const cur = keyInFlight.get(key) || 0
+            if (cur <= 1) keyInFlight.delete(key)
+            else keyInFlight.set(key, cur - 1)
+          },
+        }
+      }
+    }
+
+    if (Date.now() >= deadline) {
+      throw new FluxError(
+        `FLUX pool saturated — all keys at capacity (${totalInFlight()}/${globalCap()} in-flight, ${totalAvailableSlots()} slots available). Try again shortly.`,
+        503,
+      )
+    }
+
+    // Backoff: 200ms, 400ms, 800ms, capped at 1500ms
+    attempt++
+    const wait = Math.min(1500, 200 * Math.pow(2, Math.min(attempt - 1, 3)))
+    await new Promise((r) => setTimeout(r, wait))
+  }
+}
+
+/** Synchronous variant — fails immediately if no slot is free. */
+function tryAcquireFluxKeySync(): { key: string; release: () => void } | null {
+  if (loadKeyPool().length === 0) return null
+  if (totalInFlight() >= globalCap()) return null
+  const key = pickLeastBusyKey()
+  if (!key) return null
+  keyInFlight.set(key, (keyInFlight.get(key) || 0) + 1)
+  let released = false
+  return {
+    key,
+    release: () => {
+      if (released) return
+      released = true
+      const cur = keyInFlight.get(key) || 0
+      if (cur <= 1) keyInFlight.delete(key)
+      else keyInFlight.set(key, cur - 1)
+    },
+  }
+}
+
+/** Backwards-compat: returns ANY key (least-busy) without tracking. */
+export function getFluxKey(): string {
+  const key = pickLeastBusyKey()
+  if (!key) throw new FluxError('FLUX_API_KEY not configured')
   return key
+}
+
+/** Diagnostic: pool size + per-key in-flight counts + cooldown state. */
+export function getFluxKeyPoolStats(): {
+  size: number
+  totalInFlight: number
+  globalCap: number
+  perKeyMax: number
+  inFlight: Record<string, number>
+  cooldownMsRemaining: Record<string, number>
+} {
+  const pool = loadKeyPool()
+  const inFlight: Record<string, number> = {}
+  const cooldownMsRemaining: Record<string, number> = {}
+  const now = Date.now()
+  for (const k of pool) {
+    // mask all but last 4 chars
+    const masked = k.length > 8 ? `…${k.slice(-4)}` : '…'
+    inFlight[masked] = keyInFlight.get(k) || 0
+    const until = keyCooldownUntil.get(k)
+    if (until && until > now) cooldownMsRemaining[masked] = until - now
+  }
+  return {
+    size: pool.length,
+    totalInFlight: totalInFlight(),
+    globalCap: globalCap(),
+    perKeyMax: PER_KEY_MAX,
+    inFlight,
+    cooldownMsRemaining,
+  }
 }
 
 interface SubmitResponse {
@@ -84,14 +294,14 @@ interface PollResponse {
   error?: string | null
 }
 
-async function submitJob(model: FluxModel, payload: Record<string, unknown>): Promise<SubmitResponse> {
+async function submitJob(model: FluxModel, payload: Record<string, unknown>, apiKey: string): Promise<SubmitResponse> {
   const url = `${BFL_BASE_URL}/${model}`
   const res = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      'x-key': getFluxKey(),
+      'x-key': apiKey,
     },
     body: JSON.stringify(payload),
     // 30s budget for the SUBMIT call alone (the actual generation is async)
@@ -114,13 +324,13 @@ async function submitJob(model: FluxModel, payload: Record<string, unknown>): Pr
   return data
 }
 
-async function pollJob(id: string, pollUrl?: string): Promise<PollResponse> {
+async function pollJob(id: string, apiKey: string, pollUrl?: string): Promise<PollResponse> {
   const url = pollUrl || `${BFL_BASE_URL}/get_result?id=${encodeURIComponent(id)}`
   const res = await fetch(url, {
     method: 'GET',
     headers: {
       Accept: 'application/json',
-      'x-key': getFluxKey(),
+      'x-key': apiKey,
     },
     signal: AbortSignal.timeout(15_000),
   })
@@ -135,43 +345,81 @@ async function pollJob(id: string, pollUrl?: string): Promise<PollResponse> {
  * Submit a generation, poll until done, return the signed image URL.
  * Throws FluxError on moderation rejection, timeout, or generation error.
  */
+function isRateLimitError(err: unknown): boolean {
+  if (err instanceof FluxError) {
+    if (err.status === 429) return true
+    const msg = (err.message || '').toLowerCase()
+    if (msg.includes('rate limit') || msg.includes('quota') || msg.includes('too many requests')) return true
+  }
+  return false
+}
+
 async function submitAndAwait(
   model: FluxModel,
   payload: Record<string, unknown>,
   options?: { timeoutMs?: number },
 ): Promise<{ imageUrl: string; seed?: number; jobId: string }> {
-  const submitted = await submitJob(model, payload)
-  const deadline = Date.now() + (options?.timeoutMs || DEFAULT_TIMEOUT_MS)
+  // Up to 2 key-rotation attempts: if first key returns 429, mark it
+  // cooling-down and try a different key.
+  const MAX_KEY_ROTATIONS = 2
+  let lastErr: unknown = null
 
-  while (Date.now() < deadline) {
-    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS))
-    const result = await pollJob(submitted.id, submitted.polling_url)
+  for (let rotation = 0; rotation < MAX_KEY_ROTATIONS; rotation++) {
+    // Acquire a key for the entire job — submit + poll must use the SAME key
+    // because BFL scopes get_result by submitting account. acquireFluxKey
+    // waits for a slot if the pool is saturated (up to ACQUIRE_TIMEOUT_MS).
+    const { key, release } = await acquireFluxKey()
+    try {
+      const submitted = await submitJob(model, payload, key)
+      const deadline = Date.now() + (options?.timeoutMs || DEFAULT_TIMEOUT_MS)
 
-    if (result.status === 'Ready' && result.result?.sample) {
-      return { imageUrl: result.result.sample, seed: result.result.seed, jobId: submitted.id }
-    }
+      while (Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS))
+        const result = await pollJob(submitted.id, key, submitted.polling_url)
 
-    if (result.status === 'Pending') {
-      continue
-    }
+        if (result.status === 'Ready' && result.result?.sample) {
+          return { imageUrl: result.result.sample, seed: result.result.seed, jobId: submitted.id }
+        }
 
-    if (
-      result.status === 'Content Moderated' ||
-      result.status === 'Request Moderated'
-    ) {
-      throw new FluxError('FLUX content moderation blocked the request', 400, result)
-    }
+        if (result.status === 'Pending') {
+          continue
+        }
 
-    if (result.status === 'Error') {
-      throw new FluxError(`FLUX generation failed: ${result.error || 'unknown'}`, 500, result)
-    }
+        if (
+          result.status === 'Content Moderated' ||
+          result.status === 'Request Moderated'
+        ) {
+          throw new FluxError('FLUX content moderation blocked the request', 400, result)
+        }
 
-    if (result.status === 'Task not found') {
-      throw new FluxError('FLUX job vanished (Task not found)', 500, result)
+        if (result.status === 'Error') {
+          throw new FluxError(`FLUX generation failed: ${result.error || 'unknown'}`, 500, result)
+        }
+
+        if (result.status === 'Task not found') {
+          throw new FluxError('FLUX job vanished (Task not found)', 500, result)
+        }
+      }
+
+      throw new FluxError(`FLUX generation timed out after ${options?.timeoutMs || DEFAULT_TIMEOUT_MS}ms`, 504)
+    } catch (err) {
+      lastErr = err
+      // On rate-limit, mark this specific key cooling-down and try another
+      if (isRateLimitError(err) && rotation < MAX_KEY_ROTATIONS - 1) {
+        markFluxKeyCooldown(key)
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn(`⚠️ FLUX key …${key.slice(-4)} hit rate limit — cooling down ${KEY_COOLDOWN_MS}ms, rotating to next key`)
+        }
+        release()
+        continue
+      }
+      throw err
+    } finally {
+      release()
     }
   }
 
-  throw new FluxError(`FLUX generation timed out after ${options?.timeoutMs || DEFAULT_TIMEOUT_MS}ms`, 504)
+  throw lastErr instanceof Error ? lastErr : new Error('FLUX submitAndAwait failed')
 }
 
 // ── Public API ──────────────────────────────────────────────────────────

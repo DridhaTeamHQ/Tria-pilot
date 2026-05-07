@@ -1,0 +1,20 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "src/app/api/tryon/route.ts": {
+      "maxDuration": 300,
+      "memory": 3008
+    },
+    "src/app/api/tryon/flux/route.ts": {
+      "maxDuration": 300,
+      "memory": 3008
+    },
+    "src/app/api/tryon/process/route.ts": {
+      "maxDuration": 300,
+      "memory": 3008
+    },
+    "src/app/api/admin/flux-stats/route.ts": {
+      "maxDuration": 10
+    }
+  }
+}

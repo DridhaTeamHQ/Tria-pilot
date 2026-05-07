@@ -35,6 +35,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient, createServiceClient } from '@/lib/auth'
 import { fluxFill, fluxKontext, flux2Generate, downloadFluxImage, FluxError } from '@/lib/flux/client'
+import { reserveUserSlot, UserConcurrencyError, getUserConcurrencyCap } from '@/lib/flux/user-concurrency'
 import { assertSafeReferenceUrl } from '@/lib/reference-photos/service'
 import {
   stripInjectionTokens,
@@ -132,6 +133,26 @@ export async function POST(request: Request) {
       )
     }
 
+    // Per-user concurrency cap — prevents one user from monopolizing
+    // every key in the pool with simultaneous requests. Distinct from
+    // the hourly rate limit above (which counts total requests/hour).
+    let userSlot: { release: () => void }
+    try {
+      userSlot = reserveUserSlot(authUser.id)
+    } catch (e) {
+      if (e instanceof UserConcurrencyError) {
+        return NextResponse.json(
+          {
+            error: `You already have ${e.current} try-on${e.current === 1 ? '' : 's'} in progress. Please wait for them to finish.`,
+            cap: getUserConcurrencyCap(),
+          },
+          { status: 429, headers: { 'Retry-After': '20' } },
+        )
+      }
+      throw e
+    }
+
+    try {
     const body = await request.json().catch(() => null)
     const parsed = bodySchema.safeParse(body)
     if (!parsed.success) {
@@ -243,6 +264,9 @@ export async function POST(request: Request) {
       productId: productId || null,
       persisted: Boolean(permanentUrl),
     })
+    } finally {
+      userSlot.release()
+    }
   } catch (error) {
     if (error instanceof FluxError) {
       const statusCode = error.status === 400 ? 400 : error.status === 504 ? 504 : 502
