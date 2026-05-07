@@ -285,7 +285,7 @@ export default function CampaignsPage() {
                 </button>
               </div>
             ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {filteredCampaigns.map((campaign, idx) => {
                   const created = campaign.created_at
                   const strategy = campaign.strategy as Record<string, unknown> | null
@@ -297,11 +297,11 @@ export default function CampaignsPage() {
                     <Link
                       key={campaign.id}
                       href={`/brand/campaigns/${campaign.id}`}
-                      className="group bg-white border-[3px] border-black rounded-[24px] shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-1 hover:-translate-y-1 transition-all block overflow-hidden animate-slideUp"
+                      className="group bg-white border-[3px] border-black rounded-[24px] shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-1 hover:-translate-y-1 transition-all flex flex-col h-full overflow-hidden animate-slideUp"
                       style={{ animationDelay: `${350 + idx * 40}ms` }}
                     >
                       {/* Card Header */}
-                      <div className="p-6 pb-4">
+                      <div className="p-6 pb-4 flex-1">
                         <div className="flex items-start justify-between gap-4 mb-3">
                           <h3 className="text-lg font-black text-black leading-tight group-hover:text-black/80 transition-colors">
                             {campaign.title}
