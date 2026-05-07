@@ -371,7 +371,7 @@ export default function AdsPage() {
       variants={pageVariants}
       initial="initial"
       animate="animate"
-      className="relative min-h-screen overflow-hidden bg-[#FFF8E6] pt-4 pb-14 md:pt-6 md:pb-16"
+      className="relative min-h-screen overflow-hidden bg-[#FFF8E6] pt-4 md:pt-5 pb-14 md:pb-16"
     >
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-24 -left-20 h-72 w-72 rounded-full bg-[#FFD93D]/35 blur-3xl" />
@@ -379,7 +379,7 @@ export default function AdsPage() {
         <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-[#B4F056]/20 blur-3xl" />
       </div>
 
-      <div className="container relative z-10 mx-auto max-w-7xl space-y-6 px-3 sm:px-4 md:space-y-8">
+      <div className="relative z-10 w-full mx-auto space-y-6 px-4 lg:px-8 md:space-y-8">
         <motion.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
@@ -387,16 +387,7 @@ export default function AdsPage() {
           className="flex flex-wrap items-end justify-between gap-4"
         >
           <div>
-            <motion.p
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.05, duration: 0.35 }}
-              className="inline-flex items-center gap-2 rounded-full border-2 border-black bg-[#FFD93D] px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-            >
-              <Sparkles className="h-3 w-3" />
-              Brand Studio
-            </motion.p>
-            <h1 className="mt-3 text-3xl font-black uppercase tracking-tight text-black sm:text-4xl md:text-5xl">
+            <h1 className="text-3xl font-black uppercase tracking-tight text-black sm:text-4xl md:text-5xl">
               Build Ads Fast
             </h1>
             <p className="mt-2 max-w-xl text-sm font-semibold text-black/70 md:text-base">
