@@ -130,8 +130,8 @@ export default function CampaignsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#FAFAF8] pt-4 md:pt-6 pb-8">
-        <div className="container mx-auto px-4 max-w-6xl flex items-center justify-center py-12">
+      <div className="min-h-screen bg-[#FAFAF8] pt-2 md:pt-3 pb-8">
+        <div className="container mx-auto px-4 max-w-full flex items-center justify-center py-12">
           <Loader2 className="w-8 h-8 animate-spin text-black" />
         </div>
       </div>
@@ -139,8 +139,8 @@ export default function CampaignsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAF8] pt-4 md:pt-6 pb-10 md:pb-12">
-      <div className="container mx-auto px-4 max-w-6xl">
+    <div className="min-h-screen bg-[#FAFAF8] pt-2 md:pt-3 pb-10 md:pb-12">
+      <div className="container mx-auto px-4 max-w-full lg:px-8">
 
         {/* ── HEADER ── */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-6 mb-10">
@@ -209,9 +209,6 @@ export default function CampaignsPage() {
 
                 {/* Status Filter Pills */}
                 <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-1 lg:pb-0">
-                  <div className="w-10 h-10 rounded-xl border-[3px] border-black flex items-center justify-center bg-black/5 shrink-0">
-                    <SlidersHorizontal className="w-5 h-5 text-black" strokeWidth={3} />
-                  </div>
                   <div className="flex items-center gap-2">
                     {STATUS_FILTERS.map(f => (
                       <button
@@ -288,7 +285,7 @@ export default function CampaignsPage() {
                 </button>
               </div>
             ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                 {filteredCampaigns.map((campaign, idx) => {
                   const created = campaign.created_at
                   const strategy = campaign.strategy as Record<string, unknown> | null
