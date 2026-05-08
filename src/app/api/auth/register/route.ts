@@ -12,9 +12,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid signup data' }, { status: 400 })
     }
 
-    const { username: rawUsername, password, role } = parsed.data
+    const { username: rawUsername, email: rawEmail, password, role } = parsed.data
     const username = normalizeUsername(rawUsername)
-    const email = usernameToSyntheticEmail(username)
+    const email = rawEmail.trim().toLowerCase()
     const normalizedRole = role.toLowerCase() === 'brand' ? 'brand' : 'influencer'
     const supabase = await createClient()
 

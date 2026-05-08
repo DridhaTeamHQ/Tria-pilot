@@ -19,7 +19,6 @@ const onboardingSchema = z
     firstName: z.string().trim().max(120).optional(),
     lastName: z.string().trim().max(120).optional(),
     dateOfBirth: z.string().trim().max(40).optional(),
-    email: z.string().email().optional(),
     gender: z
       .union([z.enum(['Male', 'Female', 'Other']), z.literal(''), z.null()])
       .transform((val) => (val === '' || val === null ? undefined : val))
@@ -64,7 +63,6 @@ const onboardingSchema = z
       })
       .optional(),
   })
-  .strict()
 
 function normalizeSocials(raw: unknown): Record<string, string> {
   const input = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {}
@@ -140,9 +138,6 @@ export async function POST(request: Request) {
     const fullName = [data.firstName?.trim(), data.lastName?.trim()].filter(Boolean).join(' ').trim()
     const normalizedDateOfBirth = normalizeDateOfBirth(data.dateOfBirth)
 
-    if (data.email && profile.email && data.email.trim().toLowerCase() !== String(profile.email).toLowerCase()) {
-      return NextResponse.json({ error: 'Email confirmation does not match your account email' }, { status: 400 })
-    }
 
     const currentMetadata = (authUser.user_metadata || {}) as Record<string, unknown>
     const nextMetadata: Record<string, unknown> = {

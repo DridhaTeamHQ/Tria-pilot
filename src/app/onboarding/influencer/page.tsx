@@ -15,7 +15,7 @@ import { DecorativeShapes } from '@/components/brutal/onboarding/DecorativeShape
 import { getGenerationTagFromDob, normalizeDateOfBirth } from '@/lib/profile-demographics'
 
 const CATEGORY_OPTIONS = ['Casual', 'Formal', 'Streetwear', 'Vintage', 'Sustainable', 'Luxury', 'Athleisure']
-const TOTAL_STEPS = 6
+const TOTAL_STEPS = 5
 
 type ReferencePhotoSource = 'app_upload' | 'migrated_profile' | 'migrated_identity'
 type ReferencePhotoStatus = 'pending' | 'approved' | 'rejected'
@@ -90,7 +90,6 @@ export default function InfluencerOnboardingPage() {
     firstName: '',
     lastName: '',
     dateOfBirth: '',
-    email: '',
     gender: '',
     niches: [] as string[],
     audienceType: [] as string[],
@@ -104,7 +103,6 @@ export default function InfluencerOnboardingPage() {
     bio: '',
   })
 
-  const [emailConfirmed, setEmailConfirmed] = useState(false)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -143,7 +141,6 @@ export default function InfluencerOnboardingPage() {
             firstName,
             lastName,
             dateOfBirth: String(data?.dateOfBirth || ''),
-            email: String(data?.email || ''),
             gender: data.profile.gender || '',
             niches: (data.profile.niches as string[]) || [],
             audienceType: (data.profile.audienceType as string[]) || [],
@@ -162,7 +159,6 @@ export default function InfluencerOnboardingPage() {
             firstName,
             lastName,
             dateOfBirth: String(data?.dateOfBirth || prev.dateOfBirth || ''),
-            email: String(data?.email || prev.email || ''),
           }))
         }
 
@@ -415,14 +411,12 @@ export default function InfluencerOnboardingPage() {
           formData.gender
         )
       case 2:
-        return Boolean(formData.email.trim() && emailConfirmed)
-      case 3:
         return formData.preferredCategories.length > 0
-      case 4:
+      case 3:
         return hasAtLeastOneSocial()
-      case 5:
+      case 4:
         return true
-      case 6:
+      case 5:
         return true
       default:
         return true
@@ -499,11 +493,10 @@ export default function InfluencerOnboardingPage() {
   const getStepTitle = () => {
     switch (step) {
       case 1: return 'About Yourself'
-      case 2: return 'Confirm Email'
-      case 3: return 'Your Interests'
-      case 4: return 'Social Media'
-      case 5: return 'Bio'
-      case 6: return 'Reference Library'
+      case 2: return 'Your Interests'
+      case 3: return 'Social Media'
+      case 4: return 'Bio'
+      case 5: return 'Reference Library'
       default: return 'Profile Setup'
     }
   }
@@ -608,38 +601,6 @@ export default function InfluencerOnboardingPage() {
 
       case 2:
         return (
-          <div className="space-y-5">
-            <BrutalInput
-              label="Email Address"
-              type="email"
-              placeholder="your@email.com"
-              value={formData.email}
-              onChange={(e) => {
-                setFormData({ ...formData, email: e.target.value })
-                setEmailConfirmed(false)
-              }}
-            />
-            <div className="rounded-2xl border-[3px] border-black bg-white p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
-              <label className="flex cursor-pointer items-start gap-3">
-                <input
-                  type="checkbox"
-                  checked={emailConfirmed}
-                  onChange={(e) => setEmailConfirmed(e.target.checked)}
-                  className="mt-1 h-5 w-5 rounded border-2 border-black accent-[#FF8C69]"
-                />
-                <div>
-                  <p className="text-sm font-black uppercase tracking-[0.12em] text-black">Confirm email</p>
-                  <p className="mt-1 text-sm font-medium leading-relaxed text-black/65">
-                    We&apos;ll use this email for approvals, onboarding updates, and important account communication.
-                  </p>
-                </div>
-              </label>
-            </div>
-          </div>
-        )
-
-      case 3:
-        return (
           <div className="space-y-3">
             <p className="text-sm font-bold text-black/60">
               Pick the style lanes and product spaces you are most interested in creating around.
@@ -657,7 +618,7 @@ export default function InfluencerOnboardingPage() {
           </div>
         )
 
-      case 4:
+      case 3:
         return (
           <div className="space-y-5">
             <BrutalInput
@@ -702,7 +663,7 @@ export default function InfluencerOnboardingPage() {
           </div>
         )
 
-      case 5:
+      case 4:
         return (
           <BrutalTextarea
             label="Tell us about your style"
@@ -712,7 +673,7 @@ export default function InfluencerOnboardingPage() {
           />
         )
 
-      case 6:
+      case 5:
         return (
           <div className="space-y-5">
             <div className="bg-[#B4F056] border-[3px] border-black rounded-xl p-4 flex items-center gap-3 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">

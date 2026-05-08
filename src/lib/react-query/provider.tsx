@@ -12,9 +12,8 @@ export function ReactQueryProvider({
   initialUser?: CurrentUserQueryData
 }) {
   const [queryClient] = useState(
-    () =>
-      {
-        const client = new QueryClient({
+    () => {
+      const client = new QueryClient({
         defaultOptions: {
           queries: {
             // Stale time: data is considered fresh for 60 seconds (increased for better caching)
@@ -43,12 +42,12 @@ export function ReactQueryProvider({
         },
       })
 
-        if (typeof initialUser !== 'undefined') {
-          client.setQueryData(['user'], initialUser)
-        }
-
-        return client
+      if (typeof initialUser !== 'undefined') {
+        client.setQueryData(['user'], initialUser)
       }
+
+      return client
+    }
   )
 
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
