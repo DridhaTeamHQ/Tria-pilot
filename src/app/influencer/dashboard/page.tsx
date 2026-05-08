@@ -50,6 +50,8 @@ const cardVariants = {
   }
 }
 
+import { InfluencerDashboardSkeleton } from '@/components/dashboard/DashboardSkeleton'
+
 export default function InfluencerDashboard() {
   const router = useRouter()
   const { data: user, isLoading: userLoading } = useUser()
@@ -100,14 +102,7 @@ export default function InfluencerDashboard() {
 
   // Show loading while auth or approval state is still resolving
   if (isDashboardBootstrapping) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-cream">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-peach border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-charcoal/60">Loading your dashboard...</p>
-        </div>
-      </div>
-    )
+    return <InfluencerDashboardSkeleton />
   }
 
   const completedGenerations = generations?.filter((g: any) => g.outputImagePath) || []
