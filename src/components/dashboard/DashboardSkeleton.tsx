@@ -229,3 +229,108 @@ export function ProductDetailSkeleton() {
     </div>
   )
 }
+
+export function CampaignsSkeleton() {
+  return (
+    <div className="min-h-screen bg-[#FAFAF8] pt-2 md:pt-3 pb-10 md:pb-12">
+      <div className="container mx-auto px-4 max-w-full lg:px-8">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-6 mb-10">
+          <div className="space-y-4">
+            <Skeleton className="h-12 w-64 bg-gray-200" />
+            <Skeleton className="h-5 w-96 bg-gray-200" />
+          </div>
+          <Skeleton className="h-14 w-56 border-[3px] border-black bg-[#B4F056]/30 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]" />
+        </div>
+
+        {/* Analytics Section Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-white border-[3px] border-black p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] rounded-2xl">
+              <Skeleton className="h-4 w-24 mb-3 bg-gray-200" />
+              <Skeleton className="h-8 w-32 bg-gray-200" />
+            </div>
+          ))}
+        </div>
+
+        {/* Filters & Search */}
+        <div className="bg-white border-[3px] border-black rounded-2xl p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] mb-8">
+          <div className="flex flex-col lg:flex-row gap-4">
+            <Skeleton className="h-12 flex-1 bg-gray-200 rounded-xl" />
+            <div className="flex gap-2">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-10 w-20 bg-gray-200 rounded-xl" />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Campaign Grid */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            <div key={i} className="bg-white border-[3px] border-black rounded-[24px] shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] h-[350px] p-6 flex flex-col justify-between">
+              <div className="space-y-4">
+                <div className="flex justify-between items-start">
+                  <Skeleton className="h-6 w-3/4 bg-gray-200" />
+                  <Skeleton className="h-5 w-16 bg-gray-200 rounded-lg" />
+                </div>
+                <Skeleton className="h-4 w-20 bg-gray-200 rounded-md" />
+                <Skeleton className="h-16 w-full bg-gray-200" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-6 w-16 bg-gray-200 rounded-lg" />
+                  <Skeleton className="h-6 w-16 bg-gray-200 rounded-lg" />
+                </div>
+              </div>
+              <div className="pt-4 border-t-2 border-black/10">
+                <Skeleton className="h-12 w-full bg-gray-200" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function CollaborationsSkeleton() {
+  return (
+    <div className="min-h-screen bg-[#FDFBF7] pt-28 pb-20">
+      <div className="container mx-auto px-6 max-w-6xl">
+        {/* Header */}
+        <div className="mb-12 space-y-4">
+          <Skeleton className="h-16 w-3/4 bg-gray-200" />
+          <Skeleton className="h-6 w-1/2 bg-gray-200" />
+        </div>
+
+        {/* Tabs */}
+        <div className="flex flex-wrap gap-4 mb-10">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-10 w-32 border-2 border-black bg-gray-200 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" />
+          ))}
+        </div>
+
+        {/* Grid */}
+        <div className="grid md:grid-cols-2 gap-8">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6 h-[300px] flex flex-col justify-between">
+              <div className="space-y-4">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-8 w-1/2 bg-gray-200" />
+                    <Skeleton className="h-4 w-1/3 bg-gray-200" />
+                  </div>
+                  <Skeleton className="h-8 w-20 bg-gray-200 border-2 border-black" />
+                </div>
+                <Skeleton className="h-16 w-full bg-gray-100 border-l-2 border-black" />
+              </div>
+              <div className="flex gap-3">
+                <Skeleton className="h-12 flex-1 bg-gray-200 border-2 border-black" />
+                <Skeleton className="h-12 flex-1 bg-gray-200 border-2 border-black" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
