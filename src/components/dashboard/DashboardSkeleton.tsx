@@ -147,3 +147,85 @@ export function BrandDashboardSkeleton() {
     </div>
   )
 }
+
+export function MarketplaceSkeleton() {
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-[#FDF6EC] via-[#FDF6EC] to-white pt-24 pb-16">
+      <div className="container mx-auto px-4 sm:px-6">
+        <div className="mb-10 space-y-6">
+          <div className="max-w-2xl space-y-3 rounded-[28px] border-[3px] border-black bg-white p-5 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:p-8">
+            <Skeleton className="h-5 w-40 bg-gray-200" />
+            <Skeleton className="h-16 w-64 bg-gray-200" />
+            <Skeleton className="h-5 w-full max-w-xl bg-gray-200" />
+          </div>
+          <div className="flex flex-wrap gap-2.5">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Skeleton key={i} className="h-11 w-28 bg-gray-200 rounded-lg" />
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            <div key={i} className="overflow-hidden rounded-[24px] border-[3px] border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              <Skeleton className="aspect-[4/5] rounded-none bg-gray-200" />
+              <div className="space-y-3 p-3.5">
+                <Skeleton className="h-5 w-2/3 bg-gray-200" />
+                <Skeleton className="h-4 w-1/2 bg-gray-200" />
+                <div className="flex items-center justify-between gap-2">
+                  <Skeleton className="h-8 w-24 bg-gray-200" />
+                  <Skeleton className="h-8 w-20 bg-gray-200" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function ProductDetailSkeleton() {
+  return (
+    <div className="min-h-screen bg-[#FDF6EC] pt-20 sm:pt-24">
+      <div className="container mx-auto px-4 py-5 sm:px-6 sm:py-8">
+        <Skeleton className="h-6 w-32 mb-8 bg-gray-200" />
+
+        <div className="mb-12 grid gap-6 lg:grid-cols-2 lg:gap-10 xl:gap-12 sm:mb-16">
+          <Skeleton className="aspect-square rounded-2xl border-[3px] border-black bg-gray-200 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]" />
+
+          <div className="space-y-5 sm:space-y-6">
+            <div className="space-y-3">
+              <Skeleton className="h-6 w-24 rounded-full bg-gray-200" />
+              <Skeleton className="h-4 w-32 bg-gray-200" />
+            </div>
+
+            <div className="border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:p-8 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] space-y-4">
+              <Skeleton className="h-12 w-3/4 bg-gray-200" />
+              <Skeleton className="h-10 w-1/2 bg-gray-200" />
+            </div>
+
+            <div className="space-y-3 pt-1 sm:pt-4">
+              <Skeleton className="h-16 w-full border-[3px] border-black bg-gray-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" />
+              <Skeleton className="h-16 w-full border-[3px] border-black bg-gray-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" />
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <Skeleton className="h-14 w-full border-[3px] border-black bg-gray-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" />
+                <Skeleton className="h-14 w-full border-[3px] border-black bg-gray-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" />
+                <Skeleton className="h-14 w-full border-[3px] border-black bg-gray-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" />
+              </div>
+            </div>
+
+            <div className="border-[3px] border-black bg-white p-4 sm:p-8 space-y-4 mt-8">
+              <Skeleton className="h-6 w-32 bg-gray-200" />
+              <Skeleton className="h-20 w-full bg-gray-200" />
+              <div className="flex gap-2">
+                <Skeleton className="h-8 w-16 bg-gray-200" />
+                <Skeleton className="h-8 w-16 bg-gray-200" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

@@ -31,9 +31,11 @@ export default function BrandNavbar({ brandName: initialBrandName, avatarUrl: in
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [avatarFailed, setAvatarFailed] = useState(false)
+  const [pendingPath, setPendingPath] = useState<string | null>(null)
 
   useEffect(() => {
     setMobileOpen(false)
+    setPendingPath(null)
   }, [pathname])
 
   const handleLogout = useCallback(async () => {
@@ -106,7 +108,8 @@ export default function BrandNavbar({ brandName: initialBrandName, avatarUrl: in
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-2 rounded-xl border-2 border-black px-3 py-1.5 text-sm font-bold transition-all xl:px-4 xl:py-2 xl:text-base ${active
+                  onClick={() => setPendingPath(item.href)}
+                  className={`flex items-center gap-2 rounded-xl border-2 border-black px-3 py-1.5 text-sm font-bold transition-all xl:px-4 xl:py-2 xl:text-base ${pendingPath === item.href ? 'opacity-50 pointer-events-none' : ''} ${active
                     ? 'bg-[#B4F056] text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)]'
                     : 'bg-white text-black hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)]'
                     }`}
@@ -121,7 +124,8 @@ export default function BrandNavbar({ brandName: initialBrandName, avatarUrl: in
           <div className="hidden items-center justify-end gap-2 shrink-0 lg:flex lg:gap-3">
             <Link
               href={inboxItem.href}
-              className={`relative flex h-9 w-9 items-center justify-center rounded-xl border-2 border-black text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition-transform hover:-translate-y-0.5 ${
+              onClick={() => setPendingPath(inboxItem.href)}
+              className={`relative flex h-9 w-9 items-center justify-center rounded-xl border-2 border-black text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition-all hover:-translate-y-0.5 ${pendingPath === inboxItem.href ? 'opacity-50 pointer-events-none' : ''} ${
                 isActive(inboxItem.href) ? 'bg-[#B4F056]' : 'bg-white'
               }`}
               title={inboxItem.label}
@@ -132,7 +136,8 @@ export default function BrandNavbar({ brandName: initialBrandName, avatarUrl: in
             <NotificationBell role="brand" variant="brand" />
             <Link
               href="/brand/profile"
-              className="relative w-9 h-9 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] flex items-center justify-center text-black font-black text-sm transition-transform hover:-translate-y-0.5"
+              onClick={() => setPendingPath('/brand/profile')}
+              className={`relative w-9 h-9 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] flex items-center justify-center text-black font-black text-sm transition-all hover:-translate-y-0.5 ${pendingPath === '/brand/profile' ? 'opacity-50 pointer-events-none' : ''}`}
               title="Profile"
             >
               {showAvatarImage ? (

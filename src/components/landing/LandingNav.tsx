@@ -25,6 +25,7 @@ export default function LandingNav() {
   const pathname = usePathname()
   const { data: user } = useUser()
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+  const [pendingPath, setPendingPath] = useState<string | null>(null)
 
   const isLoggedIn = !!user
   const dashboardLink = user?.role === 'BRAND' ? '/brand/dashboard' : '/influencer/dashboard'
@@ -32,11 +33,12 @@ export default function LandingNav() {
   const activeIndex = pathname === '/' ? 0 : pathname === '/marketplace' ? 2 : 0
 
   useEffect(() => {
+    setPendingPath(null)
     document.body.style.overflow = open ? 'hidden' : 'unset'
     return () => {
       document.body.style.overflow = 'unset'
     }
-  }, [open])
+  }, [open, pathname])
 
   return (
     <>
@@ -50,7 +52,10 @@ export default function LandingNav() {
             <Link
               href="/"
               className="kiwikoo-wordmark flex h-11 items-center translate-y-[1.5px] text-[21px] font-black leading-none text-black transition-transform duration-300 hover:scale-[1.03] sm:text-[24px] sm:h-auto sm:translate-y-0"
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                setOpen(false)
+                setPendingPath('/')
+              }}
             >
               Kiwikoo
             </Link>
@@ -73,7 +78,8 @@ export default function LandingNav() {
                     key={link.href}
                     href={href}
                     onMouseEnter={() => setHoveredIndex(idx)}
-                    className={`${desktopNavItemClass} ${isTarget ? 'text-black' : 'text-black/65 hover:text-black'}`}
+                    onClick={() => setPendingPath(href)}
+                    className={`${desktopNavItemClass} ${isTarget ? 'text-black' : 'text-black/65 hover:text-black'} ${pendingPath === href ? 'opacity-50 pointer-events-none' : ''}`}
                   >
                     {isTarget && (
                       <motion.span
@@ -93,7 +99,8 @@ export default function LandingNav() {
               {isLoggedIn ? (
                 <Link
                   href={dashboardLink}
-                  className="inline-flex items-center justify-center gap-2 rounded-full border-[2px] border-black bg-[#B4F056] px-6 py-2.5 text-[14px] font-black uppercase tracking-[0.05em] text-black shadow-[3px_4px_0_0_rgba(0,0,0,0.95)] transition-all duration-300 hover:-translate-y-0.5"
+                  onClick={() => setPendingPath(dashboardLink)}
+                  className={`inline-flex items-center justify-center gap-2 rounded-full border-[2px] border-black bg-[#B4F056] px-6 py-2.5 text-[14px] font-black uppercase tracking-[0.05em] text-black shadow-[3px_4px_0_0_rgba(0,0,0,0.95)] transition-all duration-300 hover:-translate-y-0.5 ${pendingPath === dashboardLink ? 'opacity-50 pointer-events-none' : ''}`}
                 >
                   <LayoutDashboard className="h-4 w-4" />
                   Dashboard
@@ -102,13 +109,15 @@ export default function LandingNav() {
                 <div className="flex items-center gap-1.5 rounded-full border-[2px] border-black bg-white/88 p-1 shadow-[3px_4px_0_0_rgba(0,0,0,0.95)] backdrop-blur-sm">
                   <Link
                     href="/login"
-                    className="inline-flex items-center justify-center rounded-full px-5 py-2.5 text-[13px] font-black uppercase tracking-[0.08em] text-black/85 transition-colors duration-300 hover:text-black"
+                    onClick={() => setPendingPath('/login')}
+                    className={`inline-flex items-center justify-center rounded-full px-5 py-2.5 text-[13px] font-black uppercase tracking-[0.08em] text-black/85 transition-colors duration-300 hover:text-black ${pendingPath === '/login' ? 'opacity-50 pointer-events-none' : ''}`}
                   >
                     Login
                   </Link>
                   <Link
                     href="/register"
-                    className="inline-flex items-center justify-center rounded-full border-[1.5px] border-black bg-[#ff8c78] px-5 py-2.5 text-[13px] font-black uppercase tracking-[0.08em] text-black transition-transform duration-300 hover:-translate-y-0.5"
+                    onClick={() => setPendingPath('/register')}
+                    className={`inline-flex items-center justify-center rounded-full border-[1.5px] border-black bg-[#ff8c78] px-5 py-2.5 text-[13px] font-black uppercase tracking-[0.08em] text-black transition-transform duration-300 hover:-translate-y-0.5 ${pendingPath === '/register' ? 'opacity-50 pointer-events-none' : ''}`}
                   >
                     Sign Up
                   </Link>
