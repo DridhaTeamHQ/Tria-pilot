@@ -13,7 +13,7 @@ import {
 import { ArrowRight, CheckCircle2, MessageSquare, XCircle } from 'lucide-react'
 import Link from 'next/link'
 import { useCollaborations, useUpdateCollaborationStatus } from '@/lib/react-query/collaborations'
-import { BrutalLoader } from '@/components/ui/BrutalLoader'
+import { CollaborationsSkeleton } from '@/components/dashboard/DashboardSkeleton'
 
 function BrutalCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
@@ -111,6 +111,10 @@ export default function InfluencerCollaborationsPage() {
     return collab.status === filter
   })
 
+  if (loading) {
+    return <CollaborationsSkeleton />
+  }
+
   return (
     <div className="min-h-screen bg-[#FDFBF7] pt-28 pb-20">
       <div className="container mx-auto px-6 max-w-6xl">
@@ -141,11 +145,7 @@ export default function InfluencerCollaborationsPage() {
           ))}
         </div>
 
-        {loading ? (
-          <div className="flex justify-center py-20">
-            <BrutalLoader size="lg" tone="influencer" label="Loading collaborations" />
-          </div>
-        ) : filteredCollaborations.length === 0 ? (
+        {filteredCollaborations.length === 0 ? (
           <div className="bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-16 text-center">
             <div className="w-20 h-20 bg-[#FDFBF7] border-[3px] border-black flex items-center justify-center mx-auto mb-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-3">
               <MessageSquare className="w-10 h-10 text-black" />

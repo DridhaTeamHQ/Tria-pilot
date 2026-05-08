@@ -8,6 +8,7 @@ import {
   ChevronDown, TrendingUp,
 } from 'lucide-react'
 import { BrutalLoader } from '@/components/ui/BrutalLoader'
+import { CampaignsSkeleton } from '@/components/dashboard/DashboardSkeleton'
 import CampaignAnalytics from '@/components/campaigns/CampaignAnalytics'
 import CampaignRecommendations from '@/components/campaigns/CampaignRecommendations'
 
@@ -129,13 +130,7 @@ export default function CampaignsPage() {
   }, [campaigns, statusFilter, sortOption, searchQuery])
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#FAFAF8] pt-2 md:pt-3 pb-8">
-        <div className="container mx-auto px-4 max-w-full flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-black" />
-        </div>
-      </div>
-    )
+    return <CampaignsSkeleton />
   }
 
   return (
