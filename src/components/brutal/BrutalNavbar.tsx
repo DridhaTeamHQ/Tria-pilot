@@ -32,9 +32,11 @@ export default function BrutalNavbar() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [avatarFailed, setAvatarFailed] = useState(false);
+    const [pendingPath, setPendingPath] = useState<string | null>(null);
 
     useEffect(() => {
         setMobileMenuOpen(false);
+        setPendingPath(null);
     }, [pathname]);
 
     useEffect(() => {
@@ -170,7 +172,8 @@ export default function BrutalNavbar() {
                                         key={link.href}
                                         href={link.href}
                                         prefetch={true}
-                                        className={`px-3 xl:px-4 py-2 rounded-xl text-sm font-bold transition-all duration-150 flex items-center justify-center whitespace-nowrap gap-2 border-2 border-black ${active
+                                        onClick={() => setPendingPath(link.href)}
+                                        className={`px-3 xl:px-4 py-2 rounded-xl text-sm font-bold transition-all duration-150 flex items-center justify-center whitespace-nowrap gap-2 border-2 border-black ${pendingPath === link.href ? "opacity-50 pointer-events-none" : ""} ${active
                                             ? "bg-[#FF8C69] text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
                                             : "bg-white text-black hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
                                             }`}
@@ -187,7 +190,8 @@ export default function BrutalNavbar() {
                                 <Link
                                     key={link.href}
                                     href={link.href}
-                                    className="hover:text-[#FF8C69] transition-colors inline-flex items-center whitespace-nowrap gap-1"
+                                    onClick={() => setPendingPath(link.href)}
+                                    className={`hover:text-[#FF8C69] transition-all inline-flex items-center whitespace-nowrap gap-1 ${pendingPath === link.href ? "opacity-50 pointer-events-none" : ""}`}
                                 >
                                     {link.label}
                                     <ChevronRight className="w-4 h-4" />
@@ -209,7 +213,8 @@ export default function BrutalNavbar() {
                                             <Link
                                                 key={link.href}
                                                 href={link.href}
-                                                className={`p-2.5 rounded-xl border-2 border-black transition-all hover:-translate-y-0.5 ${active
+                                                onClick={() => setPendingPath(link.href)}
+                                                className={`p-2.5 rounded-xl border-2 border-black transition-all hover:-translate-y-0.5 ${pendingPath === link.href ? "opacity-50 pointer-events-none" : ""} ${active
                                                     ? "bg-[#B4F056] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
                                                     : "bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black/70 hover:text-black"
                                                     }`}
@@ -227,7 +232,8 @@ export default function BrutalNavbar() {
                                 />
                                 <Link
                                     href={profileHref}
-                                    className="relative w-10 h-10 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black transition-transform hover:-translate-y-0.5"
+                                    onClick={() => setPendingPath(profileHref)}
+                                    className={`relative w-10 h-10 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black transition-all hover:-translate-y-0.5 ${pendingPath === profileHref ? "opacity-50 pointer-events-none" : ""}`}
                                     title="Profile"
                                 >
                                     {showAvatarImage ? (
@@ -253,7 +259,8 @@ export default function BrutalNavbar() {
                                 <Link
                                     href="/login"
                                     prefetch={true}
-                                    className="px-6 py-3 text-base font-bold text-black bg-white border-2 border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center gap-1"
+                                    onClick={() => setPendingPath("/login")}
+                                    className={`px-6 py-3 text-base font-bold text-black bg-white border-2 border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center gap-1 ${pendingPath === "/login" ? "opacity-50 pointer-events-none" : ""}`}
                                 >
                                     Log In
                                     <ChevronRight className="w-5 h-5" />
@@ -262,7 +269,8 @@ export default function BrutalNavbar() {
                                 <Link
                                     href="/register"
                                     prefetch={true}
-                                    className="px-6 py-3 text-base font-bold text-black bg-[#FF8C69] border-2 border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center gap-1"
+                                    onClick={() => setPendingPath("/register")}
+                                    className={`px-6 py-3 text-base font-bold text-black bg-[#FF8C69] border-2 border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center gap-1 ${pendingPath === "/register" ? "opacity-50 pointer-events-none" : ""}`}
                                 >
                                     Get Started
                                     <ChevronRight className="w-5 h-5" />
