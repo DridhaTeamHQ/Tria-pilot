@@ -127,7 +127,7 @@ async function handleLogin(request: Request) {
         const { data: profileMatches, error: profileMatchError } = await lookupClient
           .from('profiles')
           .select('email')
-          .ilike('email', `${identifier}@%`)
+          .or(`email.ilike.${identifier}@%,full_name.eq.${identifier}`)
           .limit(5)
 
         if (!profileMatchError && Array.isArray(profileMatches) && profileMatches.length > 0) {
