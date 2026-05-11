@@ -177,6 +177,24 @@ function TryOnPageContent() {
   const [libraryModalOpen, setLibraryModalOpen] = useState(false)
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false)
   const [failureModal, setFailureModal] = useState<{ title: string; message: string; retryAfter?: number } | null>(null)
+
+  // Clear all per-product state when the URL productId changes. Without
+  // this, switching products (e.g. paisley top → jeans) left the previous
+  // result, garment intel, and source-photo selection in the UI — making
+  // it look like the new product generated the old product's images.
+  useEffect(() => {
+    setResult(null)
+    setGarmentIntel(null)
+    setSelectedOutputIndex(0)
+    setSelectedGarmentImage('')
+    setRetryAfterSeconds(0)
+    setFailureModal(null)
+    setSelectionMode('auto')
+    // Don't clear selectedReferenceIds — those are about the influencer's
+    // own photos and should persist across product switches; the new
+    // product will re-recommend if auto mode is on.
+  }, [productId])
+
   const photosRef = useRef<any[]>([])
   const generateInFlightRef = useRef(false)
   const pollAttemptRef = useRef(0)

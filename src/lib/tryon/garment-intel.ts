@@ -13,6 +13,7 @@
  */
 
 import 'server-only'
+import { createHash } from 'node:crypto'
 import { geminiGenerateContent } from '@/lib/gemini/executor'
 import { getOpenAI } from '@/lib/openai'
 
@@ -66,9 +67,14 @@ export interface GarmentIntelligence {
 const garmentCache = new Map<string, { intel: GarmentIntelligence; timestamp: number }>()
 const CACHE_TTL_MS = 30 * 60 * 1000 // 30 minutes
 
+// SHA-256 of the FULL image content. The old key used the first 120 chars
+// of base64 which collided across products that share image format headers
+// (PNG, JPEG with similar quantization tables), causing the analyzer to
+// return stale intel for a different product. Full-content hash eliminates
+// that class of bug entirely.
 function getCacheKey(imageBase64: string): string {
   const clean = imageBase64.replace(/^data:image\/[a-z+]+;base64,/, '')
-  return clean.slice(0, 120)
+  return createHash('sha256').update(clean).digest('hex')
 }
 
 function getCached(key: string): GarmentIntelligence | null {
