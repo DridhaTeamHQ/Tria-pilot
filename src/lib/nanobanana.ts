@@ -510,11 +510,28 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
   const isDev = process.env.VERCEL_ENV ? process.env.VERCEL_ENV !== 'production' : process.env.NODE_ENV !== 'production'
 
   // Image order: person → garment → face crop (if available) → prompt
+  // Image-2 caption is coverage-aware so Gemini understands what kind
+  // of garment it's looking at WITHIN the image context, not just in
+  // the system instruction (which can drift across attention).
+  const intel2 = options.garmentIntel
+  const garmentTypeForCaption = (intel2?.garmentType || '').toLowerCase()
+  const isFullSetCaption =
+    intel2?.coverage === 'full_body' ||
+    ['co_ord_set', 'full_outfit', 'jumpsuit', 'suit', 'saree', 'lehenga'].includes(garmentTypeForCaption)
+  const isLowerCaption =
+    intel2?.coverage === 'lower_only' || /pants|jeans|skirt|trouser|short/.test(garmentTypeForCaption)
+
+  const image2Caption = isFullSetCaption
+    ? `Image 2: the target FULL-BODY garment (dress / jumpsuit / set). It covers the entire body.`
+    : isLowerCaption
+      ? `Image 2: the target LOWER GARMENT (pants / jeans / skirt). It is BOTTOM WEAR ONLY — it covers from waist to ankle. The person's existing TOP in Image 1 must stay unchanged.`
+      : `Image 2: the target UPPER GARMENT (top / shirt / blouse / jacket). It is TOP WEAR ONLY — it covers from shoulders to waist/hip. It does NOT extend into a dress. The person's existing BOTTOM WEAR (pants / skirt / jeans) in Image 1 must stay unchanged and visible.`
+
   const contents: ContentListUnion = [
     { inlineData: { data: cleanPerson, mimeType: 'image/jpeg' } } as any,
-    'Image 1: the person.',
+    'Image 1: the person. Their pose, face, body, hair, background, framing, and the clothing OUTSIDE the swap region must remain identical in the output.',
     { inlineData: { data: cleanGarment, mimeType: 'image/jpeg' } } as any,
-    'Image 2: the target clothing item. Replace the person\'s clothing with ONLY this garment.',
+    image2Caption,
   ]
 
   // Add face crop if provided (Image 3 — definitive identity reference)
@@ -580,7 +597,11 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
 
   // Coverage-aware swap directive — same logic as the FLUX path.
   // Tells Gemini exactly which body region to replace and which to keep.
+  // Anti-hallucination language is INTENTIONALLY redundant — Gemini's image
+  // priors are very strong, so the same constraint stated 3-4 different
+  // ways significantly reduces failure rate.
   let coverageDirective = ''
+  let regionLock = ''
   if (intel) {
     const garmentType = (intel.garmentType || '').toLowerCase()
     const isFullSet =
@@ -591,18 +612,35 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
       const topDesc = intel.visibleTopInPhoto && intel.visibleTopInPhoto !== 'none' ? intel.visibleTopInPhoto : null
       const bottomDesc = intel.visibleBottomInPhoto && intel.visibleBottomInPhoto !== 'none' ? intel.visibleBottomInPhoto : null
       if (topDesc && bottomDesc) {
-        coverageDirective = `\nCOVERAGE: Replace the ENTIRE outfit (both top AND bottom). TOP = ${topDesc}. BOTTOM = ${bottomDesc}. Both must match Image 2 pixel-for-pixel.`
+        coverageDirective = `\nCOVERAGE = FULL OUTFIT (top + bottom set). TOP = ${topDesc}. BOTTOM = ${bottomDesc}. Both pieces in Image 2 are worn together as a coordinated set.`
       } else {
-        coverageDirective = `\nCOVERAGE: Replace the ENTIRE outfit with the full-body garment from Image 2. Show full body if visible in Image 1.`
+        coverageDirective = `\nCOVERAGE = FULL BODY GARMENT (dress / jumpsuit / saree / lehenga). The single full-body garment from Image 2 covers from shoulders to feet.`
       }
+      regionLock = `REGION LOCK: the swap affects the entire body from shoulders down. Show full body if visible in Image 1.`
     } else if (intel.coverage === 'lower_only' || /pants|jeans|skirt|trouser|short/.test(garmentType)) {
       const topToKeep = intel.visibleTopInPhoto && intel.visibleTopInPhoto !== 'none'
-        ? ` (Image 2 may show a ${intel.visibleTopInPhoto} — IGNORE that, keep the person's own top)` : ''
-      coverageDirective = `\nCOVERAGE: Replace ONLY the LOWER garment (pants/jeans/skirt). KEEP the person's existing TOP exactly as in Image 1.${topToKeep} Show the lower body — do not crop above the knee.`
+        ? ` (Image 2 may show a ${intel.visibleTopInPhoto} as styling — IGNORE that top entirely, the person's own top from Image 1 stays unchanged)` : ''
+      coverageDirective = `\nCOVERAGE = LOWER GARMENT ONLY (pants / jeans / skirt). The garment from Image 2 is BOTTOM WEAR — it covers from waist to ankle, NOT the torso.${topToKeep}`
+      regionLock =
+        `REGION LOCK (ABSOLUTE):\n` +
+        `  ✓ CHANGE: only the area from waist to ankles. Replace existing pants/skirt with the lower garment from Image 2.\n` +
+        `  ✗ DO NOT TOUCH: everything from the waist up — the existing top, shirt, blouse, jacket, neckline, sleeves, shoulders, neck, face, hair, accessories. They stay PIXEL-IDENTICAL to Image 1.\n` +
+        `  ✗ DO NOT extend the new lower garment upward into a dress or jumpsuit.\n` +
+        `  ✗ DO NOT remove or recolor the existing top.\n` +
+        `Show the lower body — do not crop above the knee.`
     } else {
       const bottomToKeep = intel.visibleBottomInPhoto && intel.visibleBottomInPhoto !== 'none'
-        ? ` (Image 2 may show ${intel.visibleBottomInPhoto} — IGNORE that, keep the person's own bottom)` : ''
-      coverageDirective = `\nCOVERAGE: Replace ONLY the UPPER garment (top/shirt/jacket). KEEP the person's existing BOTTOM WEAR exactly as in Image 1.${bottomToKeep} Preserve full body framing if visible in Image 1.`
+        ? ` (Image 2 may show ${intel.visibleBottomInPhoto} as styling — IGNORE that bottom entirely, the person's own bottom from Image 1 stays unchanged)` : ''
+      coverageDirective = `\nCOVERAGE = UPPER GARMENT ONLY (top / shirt / blouse / jacket / kurta). The garment from Image 2 is TOP WEAR — it covers from shoulders to waist/hip, NOT the legs.${bottomToKeep}`
+      regionLock =
+        `REGION LOCK (ABSOLUTE):\n` +
+        `  ✓ CHANGE: only the area from shoulders to waist/hip. Replace existing top with the upper garment from Image 2.\n` +
+        `  ✗ DO NOT TOUCH: everything from the waist down — the existing pants, jeans, skirt, shorts, legs, feet, shoes. They stay PIXEL-IDENTICAL to Image 1. If Image 1 shows green pants, the output shows the exact same green pants. If Image 1 shows blue jeans, the output shows the exact same blue jeans.\n` +
+        `  ✗ DO NOT extend the new top downward into a dress, gown, kurta, or long flowing garment. The new top ENDS at the waist/hip, just like in Image 2.\n` +
+        `  ✗ DO NOT remove, recolor, or replace the existing bottom wear.\n` +
+        `  ✗ DO NOT bare the legs. If pants/skirt were visible in Image 1, they MUST still be visible in the output.\n` +
+        `  ✗ DO NOT turn the outfit into a one-piece or full-body garment.\n` +
+        `Preserve full body framing if visible in Image 1 — do not crop tighter than the input.`
     }
   }
 
@@ -610,11 +648,13 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
     ? `\n\nGARMENT FACT SHEET (use these EXACT specs — Image 2 may have lighting/angle distortion):\n${factSheetParts.join('\n')}`
     : ''
 
+  const regionLockBlock = regionLock ? `\n\n${regionLock}` : ''
+
   const config: GenerateContentConfig = {
     responseModalities: ['IMAGE'],
     systemInstruction: `You are a photorealistic virtual try-on editor. Output ONLY an edited image — no text.
 
-TASK: Edit the clothing on the person from Image 1 so the final visible garment matches Image 2 exactly.
+TASK: Edit the clothing on the person from Image 1 so the final visible garment matches Image 2 exactly. This is a SURGICAL clothing change — only the specified body region changes, everything else stays IDENTICAL.
 
 IDENTITY (NON-NEGOTIABLE):
 - The output MUST show the EXACT SAME PERSON from Image 1
@@ -623,12 +663,12 @@ IDENTITY (NON-NEGOTIABLE):
 - Do NOT generate a different person or alter any facial features
 
 GARMENT REPLACEMENT (STRIP-AND-REPLACE):
-- FIRST: Mentally STRIP all existing clothing from the affected body area
+- FIRST: Mentally STRIP all existing clothing from the affected body area ONLY (defined by COVERAGE below)
 - THEN: Apply ONLY the garment from Image 2 onto the bare area
-- The output must show ONLY the garment from Image 2 — NO traces of the original clothing
+- The output must show ONLY the garment from Image 2 in the swap region — NO traces of the original clothing there
 - Do NOT blend, layer, or mix original clothing with the new garment
 - PIXEL-PERFECT match: same color, pattern, texture, collar, sleeves, hem, fit, silhouette, and fabric as Image 2
-- If Image 2 shows a model, IGNORE their face/body — copy ONLY the garment${coverageDirective}
+- If Image 2 shows a model, IGNORE their face/body — copy ONLY the garment${coverageDirective}${regionLockBlock}
 
 TEXTURE & COLOR FIDELITY:
 - Reproduce the exact fabric texture from Image 2 — weave, sheen, drape, surface finish
@@ -636,11 +676,16 @@ TEXTURE & COLOR FIDELITY:
 - For patterns: maintain motif scale, repeat density, and orientation as shown in Image 2
 - Do NOT smooth, simplify, or stylize the texture — keep all visible fabric detail
 
-FORBIDDEN HALLUCINATIONS:
-- Do NOT invent extra layers (cardigans, jackets, vests) not present in Image 2
+FORBIDDEN HALLUCINATIONS (the most common failure modes — avoid them):
+- Do NOT extend a TOP into a long dress, gown, kurta, saree, or full-body garment
+- Do NOT extend a BOTTOM upward into a jumpsuit or dress
+- Do NOT remove the bottom wear when swapping a top — the legs/pants MUST stay
+- Do NOT remove the top when swapping a bottom — the shirt/torso MUST stay
+- Do NOT invent extra layers (cardigans, jackets, vests, scarves) not present in Image 2
 - Do NOT keep sleeves, collars, or hems from the original clothing in Image 1
 - Do NOT create hybrid garments mixing features from Image 1 and Image 2
 - Do NOT change garment color, pattern, or material from what's specified
+- Do NOT change the background, pose, framing, or zoom level — only the clothing in the swap region changes
 
 REALISM: Photorealistic output. Natural skin, realistic fabric drape. No AI smoothing or CGI look.${factSheet}`,
     imageConfig: {
