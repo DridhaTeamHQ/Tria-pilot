@@ -1047,15 +1047,14 @@ async function handlePresetlessTryOnRequest(params: {
     if (isDev) console.log(`\n🚀 Starting ${TARGET_PHOTOS.length} generations in PARALLEL | prompt: ${smartPrompt.length} chars`)
 
     // ── RELIABILITY CHAIN ────────────────────────────────────────────
-    // Strategy order — PRIMARY is FLUX-2 [pro] with BFL's official
-    // "Change X to Y, keep Z same" prompt pattern. Gemini Nano Banana
-    // (with its fine-tuned fact-sheet prompt) is the engine-swap
-    // fallback for the rare cases FLUX empties out or hallucinates.
+    // Strategy order — PRIMARY is Gemini Nano Banana (preserves identity
+    // and texture much better than FLUX on Indian fashion garments).
+    // FLUX is the engine-swap fallback.
     //
-    //   1. FLUX-2 [pro] + detailed prompt   ← primary, BFL-official pattern
-    //   2. FLUX-2 [pro] + simple prompt     ← shorter "Change X" if detailed empties
-    //   3. Gemini Nano Banana (fact sheet)  ← engine-swap fallback
-    //   4. Gemini Nano Banana (retry)       ← last resort, fresh request
+    //   1. Gemini Nano Banana (fact sheet prompt) ← primary
+    //   2. Gemini Nano Banana (retry, fresh seed) ← recovers empty responses
+    //   3. FLUX-2 [pro] + detailed prompt         ← engine-swap fallback
+    //   4. FLUX-2 [pro] + simple prompt           ← stripped prompt last resort, fresh request
     //
     // flux-2-max dropped — too unstable + too expensive for marginal gain.
     // Non-retryable errors (moderation, auth, invalid inputs) skip the
@@ -1097,15 +1096,21 @@ async function handlePresetlessTryOnRequest(params: {
         }
       }
 
-      // When orchestrator wrote a per-photo prompt, use it directly in
-      // the first two FLUX strategies. Falls back to template builders
-      // only in the Gemini-engine fallback strategies (which need their
-      // own fact-sheet-style prompt for the Gemini system instruction).
       const useExplicit = Boolean(orchestratedPrompt)
 
       return [
         {
-          // FLUX-2 [pro] — orchestrated prompt if available, else BFL template
+          // PRIMARY: Gemini Nano Banana with the fact-sheet system prompt
+          label: 'gemini-primary',
+          run: () => runWithEngine('gemini'),
+        },
+        {
+          // Same engine, fresh seed — recovers ~80% of empty responses
+          label: 'gemini-retry',
+          run: () => runWithEngine('gemini'),
+        },
+        {
+          // Engine-swap fallback: FLUX-2 [pro], orchestrated prompt if available
           label: useExplicit ? 'flux-2-pro/orchestrated' : 'flux-2-pro/detailed',
           run: () => runWithEngine('flux', {
             promptMode: 'detailed',
@@ -1115,23 +1120,13 @@ async function handlePresetlessTryOnRequest(params: {
           }),
         },
         {
-          // Retry with simpler prompt (templated even if first was orchestrated)
+          // Last resort: FLUX with stripped prompt
           label: 'flux-2-pro/simple',
           run: () => runWithEngine('flux', {
             promptMode: 'simple',
             modelOverride: 'flux-2-pro',
             seed: slotSeed + 1,
           }),
-        },
-        {
-          // Engine swap to Gemini with fact-sheet prompt (fine-tuned path)
-          label: 'gemini-fallback',
-          run: () => runWithEngine('gemini'),
-        },
-        {
-          // Last resort: Gemini retry with fresh request
-          label: 'gemini-retry',
-          run: () => runWithEngine('gemini'),
         },
       ]
     }
