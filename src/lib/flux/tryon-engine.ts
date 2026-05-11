@@ -124,12 +124,12 @@ function buildSimpleFluxPrompt(
   const isFull = coverage === 'full_body' || ['co_ord_set', 'full_outfit', 'jumpsuit', 'suit', 'saree', 'lehenga'].includes(garmentType)
 
   const swapDirective = isFull
-    ? 'Replace the full outfit with the garment from image 2.'
+    ? `The person is now wearing the full outfit from image 2. Their old clothing is entirely gone; the new garment is real fabric on their body with natural drape and folds.`
     : isLower
-      ? 'Replace ONLY the lower garment (pants/jeans/skirt). Keep the top from image 1 unchanged.'
-      : 'Replace ONLY the top (shirt/jacket). Keep the bottom from image 1 unchanged.'
+      ? `The person is now wearing ${desc} on their lower body — fully worn on their hips and legs with natural drape, NOT pasted over their old pants. Their existing top from image 1 stays exactly the same.`
+      : `The person is now wearing ${desc} on their upper body — fully worn on their torso with sleeves on their arms, neckline at their collar, hugging the body in 3D, NOT pasted over their old top. Their existing bottom from image 1 stays exactly the same.`
 
-  return `Edit image 1: swap the clothing only. Same person, same face, same pose, same framing as image 1. ${swapDirective} The new garment must match image 2 exactly — ${desc}. Photorealistic.${ctx}`.slice(0, 800)
+  return `Re-render image 1 with the person actually WEARING the garment from image 2 — this is a real clothing change, not an overlay or sticker. Same person, same face, same pose, same framing as image 1. ${swapDirective} Match image 2 exactly. Realistic fabric drape and shadows, photorealistic.${ctx}`.slice(0, 900)
 }
 
 function buildFluxClothingSwapPrompt(
@@ -280,67 +280,67 @@ function buildFluxClothingSwapPrompt(
     if (topDesc && bottomDesc) {
       // Two distinct pieces shown together — call them out individually
       swapInstruction =
-        `Replace the influencer's ENTIRE outfit (both top AND bottom) with a 1:1 reproduction of the matching set from image 2. ` +
-        `TOP: ${topDesc}. BOTTOM: ${bottomDesc}. ` +
-        `Both pieces must match image 2 pixel-for-pixel — same colors, fabrics, cuts, and details. ` +
-        `Do not mix and match: copy BOTH pieces together as a coordinated set.`
+        `The person is now wearing the complete matching set from image 2 — TOP: ${topDesc}, BOTTOM: ${bottomDesc}. ` +
+        `Their original clothing has been entirely removed and replaced; the new outfit is a real garment worn on their body, not pasted on top. ` +
+        `Both pieces must be re-rendered to match image 2 pixel-for-pixel — same colors, fabrics, cuts, and details — while draping naturally according to the person's pose and body.`
     } else {
       // Full-body garment (dress, jumpsuit, saree, lehenga)
       swapInstruction =
-        `Replace the influencer's entire outfit with a 1:1 reproduction of the full-body garment from image 2 — ${garmentDesc}.${features} ` +
-        `Match every design detail pixel-for-pixel — same color, pattern, texture, cut, length, and silhouette. Do not redesign, modify, or stylize it.`
+        `The person is now wearing the full-body garment from image 2 — ${garmentDesc}.${features} ` +
+        `Their original clothing has been entirely removed and replaced. The new garment is a real garment fully worn on their body — wrapping correctly around their torso, hips, and limbs, draping naturally according to their pose. ` +
+        `Match image 2 pixel-for-pixel — same color, pattern, texture, cut, length, and silhouette. Do not redesign, simplify, or stylize.`
     }
-    framingNote = `If the influencer's photo crops the lower body, expand the framing as little as possible — ideally show full body so the entire outfit is visible.`
+    framingNote = `If image 1 crops the lower body, expand the framing as little as possible — ideally show full body so the entire outfit is visible. Do not crop tighter than image 1.`
   } else if (coverage === 'lower_only' || /pants|jeans|skirt|trouser|short/.test(garmentTypeRaw)) {
     // BOTTOM-ONLY: replace lower garment, KEEP the influencer's existing top.
     const topToKeep = garmentIntel?.visibleTopInPhoto && garmentIntel.visibleTopInPhoto !== 'none'
-      ? `(image 2 shows the product paired with ${garmentIntel.visibleTopInPhoto} — IGNORE that top, the influencer's own top stays as-is)`
+      ? `(image 2 shows the product paired with ${garmentIntel.visibleTopInPhoto} — ignore that top, the person's own top stays exactly as in image 1)`
       : ''
     swapInstruction =
-      `Replace ONLY the influencer's lower garment (pants/jeans/skirt) with a 1:1 reproduction of the product from image 2 — ${garmentDesc}.${features} ` +
-      `Match the lower garment pixel-for-pixel — same color, wash, pattern, fit, length, pockets, and stitching. ` +
-      `KEEP THE INFLUENCER'S EXISTING TOP exactly as it appears in image 1 — do NOT change, recolor, or redesign the top. ${topToKeep}`
-    // Lower garments need the lower body visible
+      `The person is now wearing ${garmentDesc} on their lower body — image 2 is the exact garment they are wearing.${features} ` +
+      `Their original lower garment has been entirely removed and replaced. The new lower garment is fully worn on their hips and legs — fitting around the waist, hugging the body where it should, draping naturally according to their pose. NOT a sticker, NOT an overlay, NOT a cutout pasted on the original pants. ` +
+      `Match image 2 pixel-for-pixel — same color, wash, pattern, fit, length, pockets, and stitching. ` +
+      `The person's existing TOP (shirt/blouse/jacket) from image 1 stays exactly the same — do not change, recolor, or redesign it. ${topToKeep}`
     framingNote =
-      `IMPORTANT: the output MUST show the lower body so the swapped garment is visible. ` +
-      `If image 1 crops at the waist, expand the framing downward to show the legs. ` +
-      `Do not crop above the knee.`
+      `IMPORTANT: the output MUST show the lower body so the swapped garment is fully visible. ` +
+      `If image 1 crops at the waist, expand the framing downward to show the legs. Do not crop above the knee.`
   } else {
     // UPPER-ONLY (default): replace top, KEEP influencer's existing pants/skirt.
     const bottomToKeep = garmentIntel?.visibleBottomInPhoto && garmentIntel.visibleBottomInPhoto !== 'none'
-      ? `(image 2 shows the product paired with ${garmentIntel.visibleBottomInPhoto} — IGNORE that bottom, the influencer's own bottom stays as-is)`
+      ? `(image 2 shows the product paired with ${garmentIntel.visibleBottomInPhoto} — ignore that bottom, the person's own bottom stays exactly as in image 1)`
       : ''
     swapInstruction =
-      `Replace ONLY the influencer's upper garment (top/shirt/jacket) with a 1:1 reproduction of the product from image 2 — ${garmentDesc}.${features} ` +
-      `Match the upper garment pixel-for-pixel — same color, pattern, neckline, sleeves, fit, and details. ` +
-      `KEEP THE INFLUENCER'S EXISTING BOTTOM WEAR (pants, skirt, jeans, or shorts) exactly as it appears in image 1 — do NOT change, recolor, or redesign the bottom. ${bottomToKeep}`
-    // Even for upper-only swaps we want the FULL body visible so the
-    // garment is shown in proper styling context. Without this hint FLUX
-    // tends to crop tighter when the input is a half/full body shot.
+      `The person is now wearing ${garmentDesc} on their upper body — image 2 is the exact garment they are wearing.${features} ` +
+      `Their original upper garment has been entirely removed and replaced. The new top is fully worn on their body — wrapping around their torso and shoulders, with sleeves on their arms, neckline at their collar, hem at the correct waist position, draping naturally according to their pose. NOT a sticker, NOT an overlay, NOT a flat cutout pasted on top of the original clothes. The fabric must fold and shadow realistically following the body. ` +
+      `Match image 2 pixel-for-pixel — same color, pattern, neckline, sleeves, fit, and details. ` +
+      `The person's existing BOTTOM WEAR (pants, skirt, jeans, or shorts) from image 1 stays exactly the same — do not change, recolor, or redesign it. ${bottomToKeep}`
     framingNote =
       `Preserve the full body if visible in image 1 — show the influencer head-to-toe (or as much as image 1 shows) so the top is seen with its bottom-wear context. Do not crop tighter than image 1.`
   }
 
   const userBit = userContext ? ` ${userContext}` : ''
 
-  // Caption-style prompt with anti-zoom guards + coverage-aware swap +
-  // negative-style tail. FLUX weights early phrases more heavily.
+  // Anti-overlay language is THE MOST IMPORTANT directive here.
+  // Without it, FLUX often produces composite/sticker-style outputs
+  // where the new garment is pasted over the original clothing.
   const prompt = [
-    // 1. EDIT mode + framing lock (anti-zoom)
-    `Edit image 1 to swap clothing only. Keep the EXACT same camera framing, crop, zoom level, composition, and viewing angle as image 1. Do not zoom in or out. Do not recompose.`,
-    // 2. Person identity lock
+    // 1. ANTI-OVERLAY directive (leads — FLUX weights early phrases heavily)
+    `Re-render the person from image 1 actually WEARING the garment from image 2 — this is a complete clothing replacement, not an overlay, not a composite, not a sticker, not a paste. The new garment is a real piece of fabric on their body, with realistic 3D drape, folds, shadows, and depth following their pose and anatomy.`,
+    // 2. Framing lock (anti-zoom)
+    `Keep the EXACT same camera framing, crop, zoom level, composition, and viewing angle as image 1. Do not zoom in or out. Do not recompose. Do not change the background.`,
+    // 3. Person identity lock
     `The person from image 1 stays IDENTICAL — same face, hair, skin tone, body, and pose unchanged.`,
-    // 3. Coverage-aware swap directive
+    // 4. Coverage-aware swap directive (the meat)
     swapInstruction,
-    // 4. Framing exception when the lower body must be visible
+    // 5. Framing exception when needed
     framingNote,
-    // 5. Semantic anchor + per-product styling hints from garment intel
+    // 6. Semantic anchor + per-product styling hints from garment intel
     `${semanticAnchor}${styleHintsBit}`.trim(),
-    // 6. Realism + lighting consistency
-    `Match image 1's lighting, fabric drape, and shadows. Photorealistic.`,
-    // 7. Negative-style guards (FLUX responds best to these at the tail)
-    `No recomposition, no extra garments, no different person, no random outfit changes to parts not being swapped, no text or watermarks, no AI artifacts.${userBit}`,
-  ].filter(Boolean).join(' ').slice(0, 2000)
+    // 7. Physical realism — critical for avoiding the overlay look
+    `Realistic fabric physics: the garment wraps around the body in 3D, with proper folds where the body bends (elbows, shoulders, hips), shadows in the recesses, highlights on the surfaces facing light. Match image 1's lighting direction, color temperature, and shadow softness. Photorealistic photograph quality, not illustration.`,
+    // 8. Negative-style guards (FLUX responds best to these at the tail)
+    `Negatives: no flat overlay, no sticker effect, no pasted cutout, no double-layering of original and new clothing, no recomposition, no different person, no extra garments not in image 2, no random outfit changes to parts not being swapped, no text or watermarks, no AI artifacts, no plastic skin.${userBit}`,
+  ].filter(Boolean).join(' ').slice(0, 2200)
 
   return prompt
 }
