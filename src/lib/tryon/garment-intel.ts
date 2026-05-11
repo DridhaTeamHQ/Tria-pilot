@@ -14,6 +14,7 @@
 
 import 'server-only'
 import { geminiGenerateContent } from '@/lib/gemini/executor'
+import { getOpenAI } from '@/lib/openai'
 
 // Fix: Vercel incorrectly sets NODE_ENV='development' in some regions.
 // Use VERCEL_ENV to detect production reliably.
@@ -190,7 +191,140 @@ function extractJson(text: string): string {
   throw new Error('Could not extract valid JSON from response')
 }
 
+// ── GPT-4O ANALYZER (PRIMARY) ────────────────────────────────────────────────
+// GPT-4o has noticeably better visual reasoning for fashion garments than
+// Gemini 2.5 Flash — it distinguishes "top vs dress" and "kurta vs blouse"
+// correctly, and handles flat-lay vs on-model product shots reliably.
+// Used as the primary analyzer; falls through to Gemini on quota/auth error.
+
+const GPT4O_SYSTEM = `You are a precision fashion garment classifier for a virtual try-on system. Your job is to look at a clothing product image and identify EXACTLY what kind of garment is being sold.
+
+CRITICAL RULES:
+1. The product is the MAIN garment shown. If a model is wearing it, IGNORE other clothing on the model — those are styling, not the product.
+2. Distinguish carefully:
+   - "top" = ends at waist/hip (blouse, shirt, t-shirt, kurti that ends above knee, tunic)
+   - "dress" = single piece covering shoulders to at least mid-thigh (one-piece, gown, frock)
+   - "kurta" = long Indian tunic ending below knee — classify as 'dress' if it covers full body, 'top' if hip-length kurti
+   - "co_ord_set" = matching top + bottom shown together (2 pieces)
+   - "jumpsuit" = single piece with separate legs (NOT a dress)
+   - "saree" = Indian drape (full body, traditional)
+   - "lehenga" = Indian skirt + blouse set (full body, traditional)
+3. coverage rules:
+   - upper_only: top, blouse, shirt, jacket, kurti (hip-length)
+   - lower_only: pants, jeans, skirt, shorts, leggings
+   - full_body: dress, jumpsuit, saree, lehenga, co_ord_set, long kurta
+   - layered: outerwear meant to be worn over other clothes
+4. If you see a model wearing the product with other visible clothing, capture that in visibleTopInPhoto / visibleBottomInPhoto so the try-on system can preserve the right body parts.
+
+Return ONLY valid JSON matching this schema (no markdown, no commentary):
+{
+  "garmentType": "top|dress|jumpsuit|suit|skirt|pants|outerwear|saree|lehenga|co_ord_set|full_outfit",
+  "coverage": "upper_only|lower_only|full_body|layered",
+  "primaryColor": "specific color name (e.g. 'dusty rose', 'olive green' — not just 'pink')",
+  "secondaryColor": "specific color name, or null if solid",
+  "pattern": "solid|striped|plaid|floral|printed|checkered|abstract|paisley|other",
+  "material": "cotton|silk|denim|polyester|linen|chiffon|satin|velvet|knit|other",
+  "neckline": "round|v-neck|collar|boat|turtleneck|halter|off-shoulder|mandarin|tie-neck|other",
+  "sleeves": "sleeveless|cap|short|three-quarter|long|puff|bell|balloon|other",
+  "fit": "slim|regular|loose|oversized|bodycon|flared",
+  "length": "crop|waist|hip|knee|midi|maxi|floor",
+  "keyFeatures": ["array", "of", "visible", "details", "up to 5"],
+  "visibleBottomInPhoto": "describe bottom wear visible on the model, or 'none' if not applicable",
+  "visibleTopInPhoto": "describe top wear visible on the model when product is bottom, or 'none' if not applicable",
+  "bottomWearSuggestion": "complementary bottom suggestion, or 'included' if full-body",
+  "description": "ONE concrete sentence describing the product garment specifically",
+  "promptModifiers": ["styling instruction 1", "styling instruction 2"]
+}`
+
+async function analyzeGarmentWithGPT4o(
+  cleanBase64: string,
+  textHint?: string,
+): Promise<GarmentIntelligence | null> {
+  if (!(process.env.OPENAI_API_KEY || '').trim()) return null
+
+  try {
+    const openai = getOpenAI()
+    const userMsg = textHint
+      ? `Product context: "${textHint.slice(0, 200)}". Analyze the garment image and return JSON.`
+      : 'Analyze the garment image and return JSON.'
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: GPT4O_SYSTEM },
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: userMsg },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:image/jpeg;base64,${cleanBase64}`,
+                detail: 'high',
+              },
+            },
+          ],
+        },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.1,
+      max_tokens: 1200,
+    }, {
+      // Hard timeout — analyzer shouldn't block the pipeline if OpenAI hangs
+      timeout: 20_000,
+    })
+
+    const text = response.choices?.[0]?.message?.content?.trim() || ''
+    if (!text) throw new Error('Empty GPT-4o response')
+
+    const parsed = JSON.parse(text) as Partial<GarmentIntelligence>
+    if (!parsed.garmentType) throw new Error('Missing garmentType in GPT-4o response')
+
+    const rawBottom = (parsed.visibleBottomInPhoto ?? '').trim().toLowerCase()
+    const rawTop = (parsed.visibleTopInPhoto ?? '').trim().toLowerCase()
+    const visibleBottom = rawBottom && !['none', 'null', 'n/a', ''].includes(rawBottom)
+      ? parsed.visibleBottomInPhoto!.trim() : ''
+    const visibleTop = rawTop && !['none', 'null', 'n/a', ''].includes(rawTop)
+      ? parsed.visibleTopInPhoto!.trim() : ''
+
+    const intel: GarmentIntelligence = {
+      garmentType: parsed.garmentType || 'top',
+      coverage: parsed.coverage || 'upper_only',
+      primaryColor: parsed.primaryColor || 'neutral',
+      secondaryColor: parsed.secondaryColor || undefined,
+      pattern: parsed.pattern || 'solid',
+      material: parsed.material || 'cotton',
+      neckline: parsed.neckline || 'round',
+      sleeves: parsed.sleeves || 'short',
+      fit: parsed.fit || 'regular',
+      length: parsed.length || 'hip',
+      keyFeatures: Array.isArray(parsed.keyFeatures) ? parsed.keyFeatures : [],
+      visibleBottomInPhoto: visibleBottom,
+      visibleTopInPhoto: visibleTop,
+      bottomWearSuggestion: parsed.bottomWearSuggestion || 'dark fitted jeans',
+      description: parsed.description || `A ${parsed.garmentType || 'garment'}`,
+      promptModifiers: Array.isArray(parsed.promptModifiers) ? parsed.promptModifiers : [],
+    }
+
+    if (isDev) {
+      console.log(`🤖 GPT-4o intel: ${intel.garmentType} (${intel.coverage})`)
+      console.log(`   ${intel.description}`)
+      console.log(`   Color: ${intel.primaryColor}${intel.secondaryColor ? ` + ${intel.secondaryColor}` : ''} | Pattern: ${intel.pattern} | Material: ${intel.material}`)
+      if (intel.visibleBottomInPhoto) console.log(`   👖 Visible bottom: "${intel.visibleBottomInPhoto}"`)
+      if (intel.visibleTopInPhoto) console.log(`   👕 Visible top: "${intel.visibleTopInPhoto}"`)
+    }
+
+    return intel
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    if (isDev) console.warn(`⚠️ GPT-4o garment analysis failed, falling through to Gemini: ${msg.slice(0, 200)}`)
+    return null
+  }
+}
+
 // ── GARMENT ANALYSIS ─────────────────────────────────────────────────────────
+// Order: GPT-4o (primary, best visual reasoning) → Gemini Flash/Lite (fallback)
+// → text heuristic (last resort when both AI calls fail).
 
 export async function analyzeGarment(
   garmentImageBase64: string,
@@ -205,6 +339,16 @@ export async function analyzeGarment(
     return cached
   }
 
+  // ── PRIMARY: GPT-4o ──────────────────────────────────────────────────
+  // Best fashion garment classifier we have. Distinguishes top vs dress,
+  // kurti vs kurta, co-ord vs separate set. Returns within ~3-5s.
+  const gpt4oResult = await analyzeGarmentWithGPT4o(cleanBase64, textHint)
+  if (gpt4oResult) {
+    setCache(cacheKey, gpt4oResult)
+    return gpt4oResult
+  }
+
+  // ── FALLBACK: Gemini Flash / Flash-Lite ──────────────────────────────
   // Retry across multiple models with different load profiles.
   // Production sees frequent 503s on gemini-2.5-flash during peak hours;
   // 2.5-flash-lite has separate quota; gemini-2.0-flash-exp is a fallback
