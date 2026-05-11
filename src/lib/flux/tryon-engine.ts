@@ -53,6 +53,13 @@ export interface FluxTryOnOptions {
   modelOverride?: 'flux-2-pro' | 'flux-2-flex' | 'flux-2-max'
   /** Optional seed for reproducibility / re-roll diversity. */
   seed?: number
+  /**
+   * When true, the `prompt` field is used DIRECTLY as the FLUX prompt
+   * — no template building, no garment-intel injection. Used when an
+   * upstream orchestrator (GPT-4o) has already written a complete,
+   * BFL-pattern prompt tailored to the specific person+garment pair.
+   */
+  useExplicitPrompt?: boolean
 }
 
 // Round to the nearest multiple of 64 — FLUX.2 requires width/height
@@ -425,13 +432,20 @@ export async function generateTryOnFlux(options: FluxTryOnOptions): Promise<stri
   // smart-prompt context against prompt-injection before embedding.
   const userContext = stripInjectionTokens(options.prompt || '').slice(0, 400)
   const promptMode = options.promptMode || 'detailed'
-  const fluxPrompt = promptMode === 'simple'
-    ? buildSimpleFluxPrompt(options.garmentIntel ?? null, userContext)
-    : buildFluxClothingSwapPrompt(
-        options.garmentIntel ?? null,
-        options.strictGarmentProfile ?? null,
-        userContext,
-      )
+
+  // Explicit-prompt mode: GPT-4o orchestrator already wrote the full FLUX
+  // prompt — pass it through directly (sanitized + capped). This is the
+  // happy path now; the template builders are used only when the
+  // orchestrator didn't run.
+  const fluxPrompt = options.useExplicitPrompt && options.prompt
+    ? stripInjectionTokens(options.prompt).slice(0, 1500)
+    : promptMode === 'simple'
+      ? buildSimpleFluxPrompt(options.garmentIntel ?? null, userContext)
+      : buildFluxClothingSwapPrompt(
+          options.garmentIntel ?? null,
+          options.strictGarmentProfile ?? null,
+          userContext,
+        )
 
   // Match output dims to the input person photo EXACTLY (rounded to
   // multiples of 64 + capped at 1536 long edge). Mirroring input dims

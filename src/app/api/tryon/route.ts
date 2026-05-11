@@ -723,34 +723,73 @@ async function handlePresetlessTryOnRequest(params: {
   const garmentClassification: GarmentClassification | null = null
   const garmentClassificationSummary = summarizeGarmentClassification(garmentClassification)
 
-  // ── PHOTO SELECTION (manual or garment-aware auto-select) ─────────────
+  // ── PHOTO SELECTION (manual / GPT-4o vision orchestrator / fallback scoring) ──
   let selectedPhotoIds: string[]
   let candidatePhotoIds: string[]
-  let selectionMethod: 'manual' | 'auto_scoring' = 'manual'
+  let selectionMethod: 'manual' | 'auto_scoring' | 'gpt_orchestrated' = 'manual'
   let selectionReasoning = ''
+  // Per-photo prompts written by GPT-4o (when orchestrator runs).
+  // Falls back to undefined → engines use their template-built prompts.
+  let perPhotoPrompts: Map<string, string> | null = null
 
   if (hasManualSelection) {
     selectedPhotoIds = manualSelectedPhotoIds
     candidatePhotoIds = manualSelectedPhotoIds
     selectionMethod = 'manual'
   } else {
-    const rankedPhotos = scorePhotosForGarment(approvedLibraryPhotos, garmentIntel)
-    selectedPhotoIds = selectDiverseTop3(rankedPhotos, garmentIntel)
-    candidatePhotoIds = buildAutoCandidatePhotoIds(rankedPhotos, selectedPhotoIds)
-    selectionMethod = 'auto_scoring'
-    selectionReasoning =
-      `Selected ${selectedPhotoIds.length} primary photos and ${Math.max(0, candidatePhotoIds.length - selectedPhotoIds.length)} backups ` +
-      `using garment-aware scoring and diversity for ${garmentIntel.garmentType} (${garmentIntel.coverage}).`
-
-    if (isDev) {
-      console.log(`📸 Auto-selected photos (${selectionMethod}):`, selectedPhotoIds)
-      console.log('   Backup pool:', candidatePhotoIds)
-      rankedPhotos.slice(0, 6).forEach((photo, index) => {
-        console.log(
-          `   ${index + 1}. ${photo.id.slice(0, 8)} → ${photo.score}/100 (${photo.suitability}) | ${photo.diversityKey} | ${photo.reasoning}`
-        )
+    // Try GPT-4o vision orchestrator first — it looks at the garment AND all
+    // candidate photos to pick the best 3 + write a custom FLUX prompt per
+    // photo. Falls back to rules-based scoring if OpenAI is unavailable.
+    let orchestrated: import('@/lib/tryon/gpt-orchestrator').OrchestrateResult | null = null
+    try {
+      const { orchestrateTryOn } = await import('@/lib/tryon/gpt-orchestrator')
+      orchestrated = await orchestrateTryOn({
+        garmentBase64: processedGarment,
+        candidates: approvedLibraryPhotos.slice(0, 8).map((p: any) => ({
+          id: p.id,
+          imageUrl: p.imageUrl || p.image_url,
+          bodyVisibility: p.bodyVisibility || p.body_visibility,
+          framing: p.framing,
+          description: p.description || p.caption,
+        })),
+        productText: garmentTextHint,
+        garmentSummary: garmentIntel.description,
       })
-      if (selectionReasoning) console.log(`   Reason: ${selectionReasoning}`)
+    } catch (e) {
+      if (isDev) console.warn('[tryon] orchestrator import/exec failed:', e)
+    }
+
+    if (orchestrated && orchestrated.selections.length >= 3) {
+      selectedPhotoIds = orchestrated.selections.slice(0, 3).map((s) => s.photoId)
+      candidatePhotoIds = selectedPhotoIds
+      selectionMethod = 'gpt_orchestrated'
+      perPhotoPrompts = new Map(orchestrated.selections.map((s) => [s.photoId, s.prompt]))
+      selectionReasoning =
+        `GPT-4o vision orchestrator selected 3 photos in ${orchestrated.durationMs}ms. ` +
+        orchestrated.selections.map((s, i) => `${i + 1}. ${s.reasoning}`).join(' | ')
+      if (isDev) {
+        console.log(`🎬 GPT orchestrator picked photos:`, selectedPhotoIds.map((id) => id.slice(0, 8)))
+      }
+    } else {
+      // Fallback: existing rules-based scoring path
+      const rankedPhotos = scorePhotosForGarment(approvedLibraryPhotos, garmentIntel)
+      selectedPhotoIds = selectDiverseTop3(rankedPhotos, garmentIntel)
+      candidatePhotoIds = buildAutoCandidatePhotoIds(rankedPhotos, selectedPhotoIds)
+      selectionMethod = 'auto_scoring'
+      selectionReasoning =
+        `Selected ${selectedPhotoIds.length} primary photos and ${Math.max(0, candidatePhotoIds.length - selectedPhotoIds.length)} backups ` +
+        `using garment-aware scoring and diversity for ${garmentIntel.garmentType} (${garmentIntel.coverage}).`
+
+      if (isDev) {
+        console.log(`📸 Auto-selected photos (${selectionMethod}):`, selectedPhotoIds)
+        console.log('   Backup pool:', candidatePhotoIds)
+        rankedPhotos.slice(0, 6).forEach((photo, index) => {
+          console.log(
+            `   ${index + 1}. ${photo.id.slice(0, 8)} → ${photo.score}/100 (${photo.suitability}) | ${photo.diversityKey} | ${photo.reasoning}`
+          )
+        })
+        if (selectionReasoning) console.log(`   Reason: ${selectionReasoning}`)
+      }
     }
   }
 
@@ -1026,11 +1065,16 @@ async function handlePresetlessTryOnRequest(params: {
       run: () => Promise<string>
     }
 
-    const buildStrategies = (referenceImageBase64: string, slotIdx: number): Strategy[] => {
+    const buildStrategies = (referenceImageBase64: string, slotIdx: number, photoId?: string): Strategy[] => {
+      // When the GPT-4o orchestrator wrote a per-photo prompt, use it
+      // for the FLUX strategies (they pass `prompt` through as a context
+      // hint that gets appended to the FLUX prompt builder). The Gemini
+      // fallback continues to use its template-built fact-sheet prompt.
+      const orchestratedPrompt = (photoId && perPhotoPrompts?.get(photoId)) || null
       const base = {
         personImageBase64: referenceImageBase64,
         garmentImageBase64: processedGarment,
-        prompt: smartPrompt,
+        prompt: orchestratedPrompt || smartPrompt,
         aspectRatio: payload.aspectRatio || '4:5',
         model: directRenderModel,
         garmentIntel,
@@ -1053,18 +1097,25 @@ async function handlePresetlessTryOnRequest(params: {
         }
       }
 
+      // When orchestrator wrote a per-photo prompt, use it directly in
+      // the first two FLUX strategies. Falls back to template builders
+      // only in the Gemini-engine fallback strategies (which need their
+      // own fact-sheet-style prompt for the Gemini system instruction).
+      const useExplicit = Boolean(orchestratedPrompt)
+
       return [
         {
-          // FLUX-2 [pro] with BFL-official "Change X to Y" prompt pattern
-          label: 'flux-2-pro/detailed',
+          // FLUX-2 [pro] — orchestrated prompt if available, else BFL template
+          label: useExplicit ? 'flux-2-pro/orchestrated' : 'flux-2-pro/detailed',
           run: () => runWithEngine('flux', {
             promptMode: 'detailed',
             modelOverride: 'flux-2-pro',
             seed: slotSeed,
+            useExplicitPrompt: useExplicit,
           }),
         },
         {
-          // Same engine, shorter "Change X to Y" — recovers empty responses
+          // Retry with simpler prompt (templated even if first was orchestrated)
           label: 'flux-2-pro/simple',
           run: () => runWithEngine('flux', {
             promptMode: 'simple',
@@ -1090,7 +1141,7 @@ async function handlePresetlessTryOnRequest(params: {
       photoId: string,
       slotIdx: number,
     ): Promise<string> => {
-      const strategies = buildStrategies(referenceImageBase64, slotIdx)
+      const strategies = buildStrategies(referenceImageBase64, slotIdx, photoId)
       let lastErr: unknown = null
 
       for (let i = 0; i < strategies.length; i++) {

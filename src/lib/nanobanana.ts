@@ -435,6 +435,11 @@ export interface DirectTryOnOptions {
   modelOverride?: 'flux-2-max' | 'flux-2-pro' | 'flux-2-flex'
   /** FLUX-only: seed for reproducibility / re-roll diversity. */
   seed?: number
+  /**
+   * FLUX-only: when true, `prompt` is the COMPLETE FLUX prompt (e.g.
+   * written by an orchestrator) — skip template building.
+   */
+  useExplicitPrompt?: boolean
 }
 
 /**
@@ -481,6 +486,7 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
       promptMode: (options as any).promptMode,
       modelOverride: (options as any).modelOverride,
       seed: (options as any).seed,
+      useExplicitPrompt: (options as any).useExplicitPrompt,
     })
   }
 
