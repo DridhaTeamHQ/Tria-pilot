@@ -218,13 +218,13 @@ export default function NotificationBell({
         onClick={() => setOpen((v) => !v)}
         className={
           isBrand
-            ? 'relative w-9 h-9 rounded-xl bg-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center transition-transform hover:-translate-y-0.5'
+            ? 'relative w-10 h-10 rounded-xl bg-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center transition-all hover:-translate-y-0.5'
             : 'relative w-10 h-10 rounded-full bg-white border-2 border-black flex items-center justify-center hover:bg-gray-50'
         }
         aria-label="Notifications"
         title="Notifications"
       >
-        <Bell className="w-4 h-4 text-black" strokeWidth={2.5} />
+        <Bell className="w-4 h-4 text-black" strokeWidth={2} />
         {unread > 0 && (
           <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white">
             {unread > 99 ? '99+' : unread}

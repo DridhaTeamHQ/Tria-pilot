@@ -144,13 +144,22 @@ export default async function BrandDashboard({
   return (
     <div className="container mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-6 sm:pb-8">
       {/* Welcome Header */}
-      <div className="mb-6 sm:mb-8">
-        <h1 className="text-3xl sm:text-4xl font-black text-black mb-2">
-          Welcome back, {companyName}!
-        </h1>
-        <p className="text-black/60 font-medium text-sm sm:text-lg">
-          {brandSummary || 'Your brand command center'}
-        </p>
+      <div className="relative mb-8 p-8 sm:p-10 border-[3px] border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-[#FFD93D] -translate-y-16 translate-x-16 rotate-45 border-l-4 border-black -z-0" />
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-[#B4F056] translate-y-12 -translate-x-12 rotate-12 border-t-4 border-black -z-0 opacity-40" />
+        
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="px-3 py-1 bg-black text-white text-[10px] font-black uppercase tracking-widest rounded-full">Dashboard</span>
+            <span className="h-[2px] w-12 bg-black/20" />
+          </div>
+          <h1 className="text-4xl sm:text-5xl font-black text-black mb-3 tracking-tight">
+            Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-black to-black/60">{companyName}!</span>
+          </h1>
+          <p className="text-black/60 font-bold text-base sm:text-lg max-w-2xl leading-relaxed">
+            {brandSummary || 'Your brand command center'}
+          </p>
+        </div>
       </div>
 
       {/* Onboarding checklist (auto-hides when complete or dismissed) */}
@@ -165,13 +174,14 @@ export default async function BrandDashboard({
 
       {needsQuickStart && (
         <div className="mb-8 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="bg-[#FFF6D8] border-[3px] border-black p-5 sm:p-6 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]">
-            <p className="text-xs font-black uppercase tracking-[0.24em] text-black/55">Start Here</p>
-            <h2 className="mt-3 text-2xl sm:text-3xl font-black text-black leading-tight">
-              Your brand workspace is ready. Pick the first move that gets Kiwikoo working for you.
+          <div className="bg-[#FFD93D] border-[3px] border-black p-6 sm:p-8 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden">
+            <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/20 rounded-full blur-2xl" />
+            <p className="text-xs font-black uppercase tracking-[0.24em] text-black/55 bg-black/5 px-2 py-1 w-fit">Start Here</p>
+            <h2 className="mt-4 text-3xl sm:text-4xl font-black text-black leading-[1.1] tracking-tight">
+              Your brand workspace is ready. Pick your first move.
             </h2>
-            <p className="mt-3 text-sm sm:text-base font-semibold text-black/70 max-w-2xl">
-              Add a product if you want creators trying real items first, or launch a campaign if you already know the story you want to push.
+            <p className="mt-4 text-base sm:text-lg font-bold text-black/70 max-w-2xl leading-relaxed">
+              Add a product to unlock AI lookbooks, or launch a campaign to connect with our top creators immediately.
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
@@ -214,49 +224,60 @@ export default async function BrandDashboard({
       )}
 
       {/* Overview Cards: Total Spend, Active Campaigns, Impressions, Conversions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8 sm:mb-10">
-        <div className="bg-white border-[3px] border-black p-4 sm:p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-[#FFD93D] border-2 border-black flex items-center justify-center">
-              <DollarSign className="w-6 h-6" strokeWidth={2.5} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        {/* Total Spend */}
+        <div className="bg-[#FF9B8F] border-[3px] border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between min-h-[140px] transition-transform hover:-translate-y-1">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-10 h-10 bg-white border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+              <DollarSign className="w-5 h-5 text-black" strokeWidth={3} />
             </div>
-            <div>
-              <div className="text-xl sm:text-2xl font-black">Rs. {stats.totalSpend.toLocaleString()}</div>
-              <div className="text-xs font-bold text-black/60 uppercase">Total Spend</div>
-            </div>
+            <span className="text-[10px] font-black uppercase tracking-widest bg-black text-white px-2 py-1">Financials</span>
+          </div>
+          <div>
+            <div className="text-3xl font-black text-black leading-none">Rs. {stats.totalSpend.toLocaleString()}</div>
+            <div className="mt-2 text-xs font-black text-black/70 uppercase tracking-wider">Total Spend</div>
           </div>
         </div>
-        <div className="bg-white border-[3px] border-black p-4 sm:p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-[#A78BFA] border-2 border-black flex items-center justify-center">
-              <Target className="w-6 h-6" strokeWidth={2.5} />
+
+        {/* Active Campaigns */}
+        <div className="bg-[#A78BFA] border-[3px] border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between min-h-[140px] transition-transform hover:-translate-y-1">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-10 h-10 bg-white border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+              <Target className="w-5 h-5 text-black" strokeWidth={3} />
             </div>
-            <div>
-              <div className="text-xl sm:text-2xl font-black">{stats.activeCampaigns}</div>
-              <div className="text-xs font-bold text-black/60 uppercase">Active Campaigns</div>
-            </div>
+            <span className="text-[10px] font-black uppercase tracking-widest bg-black text-white px-2 py-1">Running</span>
+          </div>
+          <div>
+            <div className="text-4xl font-black text-black leading-none">{stats.activeCampaigns}</div>
+            <div className="mt-2 text-xs font-black text-black/70 uppercase tracking-wider">Active Campaigns</div>
           </div>
         </div>
-        <div className="bg-white border-[3px] border-black p-4 sm:p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-[#34D399] border-2 border-black flex items-center justify-center">
-              <BarChart3 className="w-6 h-6" strokeWidth={2.5} />
+
+        {/* Impressions */}
+        <div className="bg-[#7DD3FC] border-[3px] border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between min-h-[140px] transition-transform hover:-translate-y-1">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-10 h-10 bg-white border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+              <BarChart3 className="w-5 h-5 text-black" strokeWidth={3} />
             </div>
-            <div>
-              <div className="text-xl sm:text-2xl font-black">{stats.totalImpressions.toLocaleString()}</div>
-              <div className="text-xs font-bold text-black/60 uppercase">Impressions</div>
-            </div>
+            <span className="text-[10px] font-black uppercase tracking-widest bg-black text-white px-2 py-1">Visibility</span>
+          </div>
+          <div>
+            <div className="text-4xl font-black text-black leading-none">{stats.totalImpressions.toLocaleString()}</div>
+            <div className="mt-2 text-xs font-black text-black/70 uppercase tracking-wider">Total Impressions</div>
           </div>
         </div>
-        <div className="bg-white border-[3px] border-black p-4 sm:p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-[#B4F056] border-2 border-black flex items-center justify-center">
-              <MousePointer className="w-6 h-6" strokeWidth={2.5} />
+
+        {/* Conversions */}
+        <div className="bg-[#B4F056] border-[3px] border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between min-h-[140px] transition-transform hover:-translate-y-1">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-10 h-10 bg-white border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+              <MousePointer className="w-5 h-5 text-black" strokeWidth={3} />
             </div>
-            <div>
-              <div className="text-xl sm:text-2xl font-black">{stats.totalConversions.toLocaleString()}</div>
-              <div className="text-xs font-bold text-black/60 uppercase">Conversions</div>
-            </div>
+            <span className="text-[10px] font-black uppercase tracking-widest bg-black text-white px-2 py-1">Results</span>
+          </div>
+          <div>
+            <div className="text-4xl font-black text-black leading-none">{stats.totalConversions.toLocaleString()}</div>
+            <div className="mt-2 text-xs font-black text-black/70 uppercase tracking-wider">Total Conversions</div>
           </div>
         </div>
       </div>
@@ -291,43 +312,49 @@ export default async function BrandDashboard({
             View all
           </Link>
         </div>
-        <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+        <div className="bg-white border-[3px] border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
           {recentCampaigns.length === 0 ? (
-            <div className="p-8 text-center text-black/60 font-medium">
-              No campaigns yet. Create your first campaign to get started.
+            <div className="p-12 text-center">
+              <div className="w-16 h-16 bg-[#F3F4F6] border-2 border-black flex items-center justify-center mx-auto mb-4 rotate-3">
+                <Target className="w-8 h-8 text-black/20" />
+              </div>
+              <p className="text-black/60 font-black uppercase tracking-wider text-sm mb-4">No campaigns yet</p>
+              <Link href="/brand/campaigns/new" className="inline-flex items-center gap-2 px-6 py-2 bg-[#A78BFA] border-2 border-black font-black text-xs uppercase tracking-widest shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all">
+                Create First Campaign
+              </Link>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[560px] text-left">
                 <thead>
-                  <tr className="border-b-[2px] border-black bg-[#FFFDF5]">
-                    <th className="p-3 text-xs font-black uppercase">Title</th>
-                    <th className="p-3 text-xs font-black uppercase">Status</th>
-                    <th className="p-3 text-xs font-black uppercase">Created</th>
-                    <th className="p-3 text-xs font-black uppercase" />
+                  <tr className="border-b-[3px] border-black bg-black text-white">
+                    <th className="p-4 text-xs font-black uppercase tracking-widest">Title</th>
+                    <th className="p-4 text-xs font-black uppercase tracking-widest">Status</th>
+                    <th className="p-4 text-xs font-black uppercase tracking-widest">Created</th>
+                    <th className="p-4 text-xs font-black uppercase tracking-widest text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {recentCampaigns.map((c) => (
-                    <tr key={c.id} className="border-b border-black/20 hover:bg-black/5">
-                      <td className="p-3 font-bold">{c.title}</td>
-                      <td className="p-3">
+                    <tr key={c.id} className="border-b-[2px] border-black/10 hover:bg-[#F9F8F4] transition-colors group">
+                      <td className="p-4 font-black text-black group-hover:translate-x-1 transition-transform">{c.title}</td>
+                      <td className="p-4">
                         <span
-                          className={`inline-block px-2 py-0.5 text-xs font-bold border-[2px] border-black ${c.status === 'active' ? 'bg-[#B4F056]' : c.status === 'completed' ? 'bg-[#FFD93D]' : 'bg-white'
+                          className={`inline-block px-3 py-1 text-[10px] font-black uppercase tracking-widest border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${c.status === 'active' ? 'bg-[#B4F056]' : c.status === 'completed' ? 'bg-[#FFD93D]' : 'bg-white'
                             }`}
                         >
                           {c.status}
                         </span>
                       </td>
-                      <td className="p-3 text-sm text-black/70">
+                      <td className="p-4 text-xs font-bold text-black/50">
                         {new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </td>
-                      <td className="p-3">
+                      <td className="p-4 text-right">
                         <Link
                           href={`/brand/campaigns?highlight=${c.id}`}
-                          className="text-xs font-bold underline hover:no-underline"
+                          className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest bg-black text-white px-3 py-1.5 hover:bg-black/80 transition-colors"
                         >
-                          View
+                          View Details
                         </Link>
                       </td>
                     </tr>
@@ -340,31 +367,35 @@ export default async function BrandDashboard({
       </div>
 
       {/* Quick Actions Grid */}
-      <h2 className="text-xl sm:text-2xl font-black mb-4 sm:mb-6">Quick Actions</h2>
-      <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <h2 className="text-xl sm:text-2xl font-black mb-6">Quick Actions</h2>
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {quickActions.map((action) => (
           <Link
             key={action.title}
             href={action.href}
-            className="group bg-white border-[3px] border-black p-5 sm:p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all"
+            className="group relative border-[3px] border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all flex flex-col justify-between min-h-[160px]"
+            style={{ backgroundColor: action.color }}
           >
             <div className="flex items-start justify-between mb-4">
-              <div
-                className="w-14 h-14 border-2 border-black flex items-center justify-center"
-                style={{ backgroundColor: action.color }}
-              >
-                <action.icon className="w-7 h-7 text-black" strokeWidth={2.5} />
+              <div className="w-12 h-12 bg-white border-2 border-black flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] group-hover:rotate-6 transition-transform">
+                <action.icon className="w-6 h-6 text-black" strokeWidth={2.5} />
               </div>
-              <ArrowRight className="w-5 h-5 text-black/40 group-hover:text-black group-hover:translate-x-1 transition-all" />
+              <div className="w-8 h-8 bg-black flex items-center justify-center rounded-full text-white group-hover:translate-x-1 transition-transform">
+                <ArrowRight className="w-4 h-4" strokeWidth={3} />
+              </div>
             </div>
-            <h3 className="text-xl font-black text-black mb-1">{action.title}</h3>
-            <p className="text-sm text-black/60 font-medium mb-3">{action.description}</p>
-            {action.stat !== null && (
-              <div className="flex items-center gap-1 text-sm font-bold text-black/80">
-                <TrendingUp className="w-4 h-4" />
-                {action.stat} {action.statLabel}
-              </div>
-            )}
+            
+            <div>
+              <h3 className="text-xl font-black text-black mb-1">{action.title}</h3>
+              <p className="text-xs text-black/70 font-black uppercase tracking-wider mb-3 leading-tight">{action.description}</p>
+              
+              {action.stat !== null && (
+                <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-black text-white text-[10px] font-black uppercase tracking-widest">
+                  <TrendingUp className="w-3 h-3" />
+                  {action.stat} {action.statLabel}
+                </div>
+              )}
+            </div>
           </Link>
         ))}
       </div>

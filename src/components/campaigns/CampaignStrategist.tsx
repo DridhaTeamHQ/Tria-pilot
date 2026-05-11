@@ -754,10 +754,10 @@ function CreatorSuggestionCards({ creators }: { creators: CreatorSuggestion[] })
                     const v = c.vetting
                     const trustBg =
                         v?.trustTone === 'green' ? 'bg-[#B4F056]'
-                        : v?.trustTone === 'yellow' ? 'bg-[#FFD93D]'
-                        : v?.trustTone === 'orange' ? 'bg-[#FF8C69]'
-                        : v?.trustTone === 'red' ? 'bg-red-300'
-                        : 'bg-black/10'
+                            : v?.trustTone === 'yellow' ? 'bg-[#FFD93D]'
+                                : v?.trustTone === 'orange' ? 'bg-[#FF8C69]'
+                                    : v?.trustTone === 'red' ? 'bg-red-300'
+                                        : 'bg-black/10'
                     return (
                         <div key={c.creatorId} className="bg-white rounded-lg p-3 border border-black/6 hover:border-black/15 transition-colors">
                             <div className="flex items-start gap-2">
@@ -790,13 +790,12 @@ function CreatorSuggestionCards({ creators }: { creators: CreatorSuggestion[] })
                                             {v.flags.slice(0, 2).map((f, idx) => (
                                                 <span
                                                     key={idx}
-                                                    className={`text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 border ${
-                                                        f.level === 'warning'
+                                                    className={`text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 border ${f.level === 'warning'
                                                             ? 'bg-[#FF8C69]/20 border-[#FF8C69] text-black'
                                                             : f.level === 'positive'
                                                                 ? 'bg-[#B4F056]/30 border-black/30 text-black'
                                                                 : 'bg-black/5 border-black/30 text-black/60'
-                                                    }`}
+                                                        }`}
                                                     title={f.detail || f.label}
                                                 >
                                                     {f.level === 'warning' ? '⚠' : f.level === 'positive' ? '✓' : '·'} {f.label}
@@ -818,11 +817,10 @@ function CreatorSuggestionCards({ creators }: { creators: CreatorSuggestion[] })
                                     type="button"
                                     onClick={() => inviteCreator(c.creatorId)}
                                     disabled={invited || inviting}
-                                    className={`flex-shrink-0 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 border-2 border-black rounded-md transition-all ${
-                                        invited
+                                    className={`flex-shrink-0 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 border-2 border-black rounded-md transition-all ${invited
                                             ? 'bg-black/10 text-black/40 cursor-default'
                                             : 'bg-[#A78BFA]/15 hover:bg-[#A78BFA]/30 hover:-translate-y-0.5'
-                                    }`}
+                                        }`}
                                 >
                                     {invited ? '✓ Sent' : inviting ? '...' : 'Invite'}
                                 </button>
@@ -888,9 +886,8 @@ function PerformanceBriefCard({ brief }: { brief: PerformanceBrief }) {
                     <TargetTile label="Conv rate" value={`${t.targetConversionRate}%`} tone="orange" />
                 </div>
                 <div
-                    className={`text-[11px] font-bold p-3 border-2 border-black ${
-                        t.isAchievable ? 'bg-[#B4F056]/20' : 'bg-[#FF8C69]/20'
-                    }`}
+                    className={`text-[11px] font-bold p-3 border-2 border-black ${t.isAchievable ? 'bg-[#B4F056]/20' : 'bg-[#FF8C69]/20'
+                        }`}
                 >
                     {t.isAchievable ? '✅ ' : '⚠️ '}{t.reasoning}
                 </div>
@@ -945,16 +942,15 @@ function PerformanceBriefCard({ brief }: { brief: PerformanceBrief }) {
                 {showSnippet && (
                     <div className="px-5 pb-4 -mt-1">
                         <pre className="bg-black text-[#B4F056] text-[10px] font-mono p-3 overflow-x-auto border-2 border-black whitespace-pre-wrap leading-relaxed">
-{brief.codCheckoutSnippet}
+                            {brief.codCheckoutSnippet}
                         </pre>
                         <button
                             type="button"
                             onClick={copySnippet}
-                            className={`mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 border-2 border-black text-[10px] font-black uppercase tracking-wider transition-all ${
-                                copied
+                            className={`mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 border-2 border-black text-[10px] font-black uppercase tracking-wider transition-all ${copied
                                     ? 'bg-[#B4F056]'
                                     : 'bg-white hover:bg-[#FFD93D]/30 hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_rgba(0,0,0,1)]'
-                            }`}
+                                }`}
                         >
                             {copied ? '✓ Copied' : 'Copy snippet'}
                         </button>
@@ -968,9 +964,9 @@ function PerformanceBriefCard({ brief }: { brief: PerformanceBrief }) {
 function TargetTile({ label, value, tone }: { label: string; value: string; tone: 'green' | 'purple' | 'yellow' | 'orange' }) {
     const bg =
         tone === 'green' ? 'bg-[#B4F056]'
-        : tone === 'purple' ? 'bg-[#A78BFA]'
-        : tone === 'yellow' ? 'bg-[#FFD93D]'
-        : 'bg-[#FF8C69]'
+            : tone === 'purple' ? 'bg-[#A78BFA]'
+                : tone === 'yellow' ? 'bg-[#FFD93D]'
+                    : 'bg-[#FF8C69]'
     return (
         <div className={`${bg} border-2 border-black p-2.5`}>
             <div className="text-base font-black break-words">{value}</div>

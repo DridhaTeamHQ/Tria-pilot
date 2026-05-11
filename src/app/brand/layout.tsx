@@ -66,11 +66,21 @@ export default async function BrandLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#F9F8F4]">
-      <BrandNavbar brandName={brandName} avatarUrl={avatarUrl} />
-      <main className="pt-20">
-        {children}
-      </main>
+    <div className="min-h-screen bg-[#F9F8F4] relative overflow-hidden">
+      {/* Decorative Background Elements */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] bg-[#FF9B8F]/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] left-[-5%] w-[35%] h-[35%] bg-[#B4F056]/15 rounded-full blur-[100px]" />
+        <div className="absolute top-[20%] left-[-10%] w-[30%] h-[30%] bg-[#7DD3FC]/10 rounded-full blur-[110px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:32px_32px] opacity-30" />
+      </div>
+
+      <div className="relative z-10">
+        <BrandNavbar brandName={brandName} avatarUrl={avatarUrl} />
+        <main className="pt-20">
+          {children}
+        </main>
+      </div>
     </div>
   )
 }
