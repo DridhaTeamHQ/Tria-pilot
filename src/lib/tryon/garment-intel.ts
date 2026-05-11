@@ -572,14 +572,62 @@ export function composeSmartPrompt(
 
   const polishSection = polishNotes?.trim() ? `\nAdditional styling notes: ${polishNotes.trim()}` : ''
 
-  return `Replace all the clothing on the person in the first image with the clothing shown in the second image.
+  // Coverage-aware swap instruction — must match system instruction
+  const garmentType = (intel.garmentType || '').toLowerCase()
+  const isFullBody =
+    intel.coverage === 'full_body' ||
+    ['co_ord_set', 'full_outfit', 'jumpsuit', 'suit', 'saree', 'lehenga', 'dress'].includes(garmentType)
+  const isLowerOnly =
+    intel.coverage === 'lower_only' || /pants|jeans|skirt|trouser|short/.test(garmentType)
+
+  if (isLowerOnly) {
+    const topNote = intel.visibleTopInPhoto && intel.visibleTopInPhoto !== 'none'
+      ? ` The person's existing top (${intel.visibleTopInPhoto || 'current top'}) must remain completely unchanged.`
+      : ' The person\'s existing top must remain completely unchanged.'
+
+    return `Replace ONLY the bottom clothing (pants/jeans/skirt) on the person in Image 1 with the bottom garment shown in Image 2.
+
+The bottom garment to apply: ${intel.description} (${intel.primaryColor}, ${intel.pattern}, ${intel.material})
+
+CRITICAL RULES:
+1. ONLY change the area from waist to ankles — swap the existing bottom wear with the garment from Image 2.
+2.${topNote} Do NOT change, remove, or alter the top/shirt/blouse in any way.
+3. The person's face, hair, body, pose, and background must stay exactly the same.
+4. The final bottom garment must exactly match Image 2 — same color, pattern, texture, fit, and details.
+5. Output a photorealistic photo, not an AI-looking image.
+${polishSection}`
+  }
+
+  if (!isFullBody) {
+    // Upper only (default for tops, blouses, shirts, etc.)
+    const bottomNote = intel.visibleBottomInPhoto && intel.visibleBottomInPhoto !== 'none'
+      ? ` The person's existing bottom wear (${intel.visibleBottomInPhoto || 'current pants/skirt'}) must remain completely unchanged.`
+      : ' The person\'s existing bottom wear (pants/jeans/skirt) must remain completely unchanged.'
+
+    return `Replace ONLY the top clothing (shirt/top/blouse) on the person in Image 1 with the top garment shown in Image 2.
+
+The top garment to apply: ${intel.description} (${intel.primaryColor}, ${intel.pattern}, ${intel.material})
+
+CRITICAL RULES:
+1. ONLY change the area from shoulders to waist/hip — swap the existing top with the garment from Image 2.
+2.${bottomNote} Do NOT change, remove, or alter the bottom wear in any way.
+3. The person's face, hair, body, pose, and background must stay exactly the same.
+4. The final top garment must exactly match Image 2 — same color, pattern, texture, fit, and details.
+5. Do NOT extend the top into a dress or long garment — it ends at the waist/hip just like in Image 2.
+6. Output a photorealistic photo, not an AI-looking image.
+${polishSection}`
+  }
+
+  // Full body (dress, jumpsuit, suit, saree, etc.)
+  return `Replace all the clothing on the person in Image 1 with the full-body garment shown in Image 2.
 
 The clothing to apply: ${intel.description} (${intel.primaryColor}, ${intel.pattern}, ${intel.material})
 
 CRITICAL RULES:
 1. REMOVE all of the person's current clothes first, then dress them in the second image's garment.
 2. The person's face, hair, body, pose, and background must stay exactly the same — do not change the person at all.
-3. The final garment must exactly match the second image — same color, pattern, texture, fit, and details.
+3. The final garment must exactly match Image 2 — same color, pattern, texture, fit, and details.
 4. Output a photorealistic photo, not an AI-looking image.
 ${polishSection}`
 }
+
