@@ -151,23 +151,26 @@ export default function SmartDiscoveryWidget() {
 
   if (error) {
     return (
-      <div className="bg-white border-[3px] border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] p-5">
-        <div className="flex items-center gap-2 mb-2">
-          <Sparkles className="w-4 h-4 text-[#A78BFA]" strokeWidth={3} />
-          <h2 className="text-xs font-black uppercase tracking-widest">
-            Creators perfect for you
-          </h2>
+      <div className="bg-[#F9F8F4] border-[3px] border-black shadow-[6px_6px_0_0_rgba(0,0,0,1)] p-8 text-center relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-16 h-16 bg-[#A78BFA]/10 -translate-y-8 translate-x-8 rotate-45" />
+        <div className="flex flex-col items-center gap-4 relative z-10">
+          <div className="w-16 h-16 bg-white border-2 border-black flex items-center justify-center shadow-[4px_4px_0_0_rgba(0,0,0,1)] rotate-3">
+            <Sparkles className="w-8 h-8 text-[#A78BFA]" strokeWidth={3} />
+          </div>
+          <div className="max-w-md">
+            <h2 className="text-xl font-black text-black mb-2 uppercase tracking-tight">Personalized Recommendations</h2>
+            <p className="text-sm text-black/60 font-bold leading-relaxed">{error}</p>
+          </div>
+          {error.toLowerCase().includes('add products') && (
+            <Link
+              href="/brand/products"
+              className="inline-flex items-center gap-2 px-8 py-3 bg-[#B4F056] border-2 border-black text-xs font-black uppercase tracking-widest shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all"
+            >
+              Unlock Creator Matches
+              <ArrowRight className="w-4 h-4" strokeWidth={3} />
+            </Link>
+          )}
         </div>
-        <p className="text-sm text-black/60 font-semibold">{error}</p>
-        {error.toLowerCase().includes('add products') && (
-          <Link
-            href="/brand/products"
-            className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-[#B4F056] border-2 border-black text-xs font-black uppercase tracking-wider shadow-[2px_2px_0_0_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all"
-          >
-            Add products
-            <ArrowRight className="w-3.5 h-3.5" strokeWidth={3} />
-          </Link>
-        )}
       </div>
     )
   }

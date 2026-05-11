@@ -69,11 +69,11 @@ export default function BrandNavbar({ brandName: initialBrandName, avatarUrl: in
     pathname === path || pathname?.startsWith(path + '/')
 
   const navItems = [
-    { href: '/brand/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/brand/campaigns', label: 'Campaigns', icon: Megaphone },
-    { href: '/brand/influencers', label: 'Creators', icon: ShoppingBag },
-    { href: '/brand/ads', label: 'Ad Creatives', icon: Sparkles },
-    { href: '/brand/products', label: 'Products', icon: Box },
+    { href: '/brand/dashboard', label: 'Dashboard', icon: LayoutDashboard, color: '#B4F056' },
+    { href: '/brand/campaigns', label: 'Campaigns', icon: Megaphone, color: '#A78BFA' },
+    { href: '/brand/influencers', label: 'Creators', icon: ShoppingBag, color: '#7DD3FC' },
+    { href: '/brand/ads', label: 'Ad Creatives', icon: Sparkles, color: '#FF9B8F' },
+    { href: '/brand/products', label: 'Products', icon: Box, color: '#B4F056' },
   ]
   const inboxItem = { href: '/brand/inbox', label: 'Inbox', icon: Mail }
   const mobileNavItems = [...navItems, inboxItem]
@@ -90,7 +90,7 @@ export default function BrandNavbar({ brandName: initialBrandName, avatarUrl: in
   const showAvatarImage = Boolean(avatarUrl) && !avatarFailed
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b-[3px] border-black bg-[#F9F8F4]">
+    <header className="fixed top-0 left-0 right-0 z-50 border-b-[3px] border-black bg-[rgba(249,248,244,0.85)] backdrop-blur-xl">
       <div className="mx-auto w-full max-w-[2000px] px-3 sm:px-5 lg:px-8 xl:px-12">
         <div className="grid h-20 grid-cols-[auto_1fr_auto] items-center gap-2 lg:gap-4">
           <Link
@@ -110,9 +110,10 @@ export default function BrandNavbar({ brandName: initialBrandName, avatarUrl: in
                   href={item.href}
                   onClick={() => setPendingPath(item.href)}
                   className={`flex items-center gap-2 rounded-xl border-2 border-black px-3 py-1.5 text-sm font-bold transition-all xl:px-4 xl:py-2 xl:text-base ${pendingPath === item.href ? 'opacity-50 pointer-events-none' : ''} ${active
-                    ? 'bg-[#B4F056] text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)]'
+                    ? 'text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)]'
                     : 'bg-white text-black hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)]'
                     }`}
+                  style={active ? { backgroundColor: item.color } : {}}
                 >
                   <Icon className="h-4 w-4 shrink-0 xl:h-5 xl:w-5" />
                   <span className="whitespace-nowrap">{item.label}</span>
