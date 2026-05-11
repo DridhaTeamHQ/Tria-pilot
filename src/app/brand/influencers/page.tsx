@@ -28,6 +28,8 @@ import {
   type LucideIcon,
   ChevronDown,
   Instagram,
+  LayoutGrid,
+  List,
 } from 'lucide-react'
 import { FilterDropdown } from '@/components/brand/FilterDropdown'
 
@@ -137,6 +139,7 @@ export default function BrandInfluencersPage() {
   const [shortlist, setShortlist] = useState<Set<string>>(new Set())
   const [showShortlistOnly, setShowShortlistOnly] = useState(false)
   const [hydrated, setHydrated] = useState(false)
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table')
 
   // Hydrate shortlist
   useEffect(() => {
@@ -245,7 +248,7 @@ export default function BrandInfluencersPage() {
 
   const toggleShortlist = (id: string) => {
     const isAdding = !shortlist.has(id)
-    
+
     setShortlist((prev) => {
       const next = new Set(prev)
       if (next.has(id)) {
@@ -326,8 +329,8 @@ export default function BrandInfluencersPage() {
               type="button"
               onClick={() => setShowShortlistOnly((v) => !v)}
               className={`h-11 px-5 text-xs font-black uppercase tracking-wider rounded-xl transition-all flex items-center gap-2 border-2 ${showShortlistOnly
-                  ? 'bg-black border-black text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]'
-                  : 'bg-white border-black text-black hover:bg-[#FFD93D] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px]'
+                ? 'bg-black border-black text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]'
+                : 'bg-white border-black text-black hover:bg-[#FFD93D] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px]'
                 }`}
             >
               <BookmarkCheck className="w-4 h-4" />
@@ -344,6 +347,21 @@ export default function BrandInfluencersPage() {
               Reset
             </button>
           )}
+
+          <div className="flex items-center bg-white border-2 border-black rounded-xl p-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ml-2">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-[#B4F056] text-black shadow-inner' : 'text-black/40 hover:text-black'}`}
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('table')}
+              className={`p-2 rounded-lg transition-all ${viewMode === 'table' ? 'bg-[#B4F056] text-black shadow-inner' : 'text-black/40 hover:text-black'}`}
+            >
+              <List className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -438,38 +456,56 @@ export default function BrandInfluencersPage() {
             </div>
           </div>
 
-            {/* Active chips bar */}
-            {activeChips.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2 mt-2 pt-4 border-t border-gray-100">
-                <span className="text-[9px] font-black uppercase tracking-widest text-black/60 ml-1">
-                  Active Filters
-                </span>
-                {activeChips.map((chip) => (
-                  <button
-                    key={chip.key}
-                    type="button"
-                    onClick={chip.remove}
-                    className="inline-flex items-center gap-2 pl-3 pr-1.5 py-1.5 text-[10px] font-black bg-white border border-gray-200 rounded-lg shadow-sm hover:border-black/60 transition-all group"
-                  >
-                    <div className="w-2 h-2 rounded-full" style={{ background: chip.color }} />
-                    <span className="text-black/80 group-hover:text-black">{chip.label}</span>
-                    <div className="w-5 h-5 flex items-center justify-center bg-gray-50 group-hover:bg-black group-hover:text-white transition-colors rounded-md">
-                      <X className="w-3 h-3" />
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
+          {/* Active chips bar */}
+          {activeChips.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 mt-2 pt-4 border-t border-gray-100">
+              <span className="text-[9px] font-black uppercase tracking-widest text-black/60 ml-1">
+                Active Filters
+              </span>
+              {activeChips.map((chip) => (
+                <button
+                  key={chip.key}
+                  type="button"
+                  onClick={chip.remove}
+                  className="inline-flex items-center gap-2 pl-3 pr-1.5 py-1.5 text-[10px] font-black bg-white border border-gray-200 rounded-lg shadow-sm hover:border-black/60 transition-all group"
+                >
+                  <div className="w-2 h-2 rounded-full" style={{ background: chip.color }} />
+                  <span className="text-black/80 group-hover:text-black">{chip.label}</span>
+                  <div className="w-5 h-5 flex items-center justify-center bg-gray-50 group-hover:bg-black group-hover:text-white transition-colors rounded-md">
+                    <X className="w-3 h-3" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Results */}
       {loading ? (
-        <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <SkeletonCard key={i} delay={i * 60} />
-          ))}
-        </div>
+        viewMode === 'grid' ? (
+          <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <SkeletonCard key={i} delay={i * 60} />
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white border-[3px] border-black rounded-[32px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+            <div className="p-4 space-y-4">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="flex items-center gap-4 py-3 border-b border-black/5 last:border-0 animate-pulse">
+                  <div className="w-12 h-12 rounded-xl bg-gray-100 border-2 border-black/5" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-gray-100 rounded w-1/4" />
+                    <div className="h-3 bg-gray-50 rounded w-1/3" />
+                  </div>
+                  <div className="h-8 w-24 bg-gray-50 rounded-lg" />
+                  <div className="h-8 w-24 bg-gray-100 rounded-lg" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )
       ) : visibleInfluencers.length === 0 ? (
         <div className="text-center py-24 bg-gray-50 rounded-[2.5rem] border-2 border-dashed border-gray-200 animate-fade-in">
           <Users className="w-16 h-16 mx-auto mb-6 text-black/20" />
@@ -493,7 +529,7 @@ export default function BrandInfluencersPage() {
             </button>
           )}
         </div>
-      ) : (
+      ) : viewMode === 'grid' ? (
         <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {visibleInfluencers.map((influencer, idx) => {
             const isShortlisted = shortlist.has(influencer.id)
@@ -589,7 +625,99 @@ export default function BrandInfluencersPage() {
             )
           })}
         </div>
-      )}
+      ) : (
+        <div className="bg-white hover:bg-[#F9F8F4] transition-all duration-300 border-[3px] border-black rounded-[32px] shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] overflow-hidden overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-[#F9F8F4] border-b-2 border-black">
+                <th className="p-5 pl-30 text-[11px] font-black uppercase tracking-widest text-black/40 w-[25%]">Creator</th>
+                <th className="p-5 pl-15 text-[11px] font-black uppercase tracking-widest text-black/40 w-[15%]">Niches</th>
+                <th className="p-5 text-[11px] font-black uppercase tracking-widest text-black/40 text-center w-[12%]">Followers</th>
+                <th className="p-5 text-[11px] font-black uppercase tracking-widest text-black/40 text-center w-[12%]">Engagement</th>
+                <th className="p-5 text-[11px] font-black uppercase tracking-widest text-black/40 text-center w-[12%]">Price</th>
+                <th className="p-5 pr-30 text-[11px] font-black uppercase tracking-widest text-black/40 text-right w-[24%]">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleInfluencers.map((influencer) => {
+                const isShortlisted = shortlist.has(influencer.id)
+                return (
+                  <tr key={influencer.id} className="border-b-2 border-black/5 hover:bg-white transition-colors group">
+                    <td className="p-6">
+                      <div className="flex items-center gap-4">
+                        <div className="relative w-14 h-14 shrink-0">
+                          <div className="w-full h-full rounded-2xl border-2 border-black overflow-hidden bg-white relative z-10 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] group-hover:translate-x-[-1px] group-hover:translate-y-[-1px] group-hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
+                            {influencer.profile_image ? (
+                              <AppImage src={influencer.profile_image} alt={influencer.name} className="object-cover w-full h-full" sizes="56px" />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-[#B4F056] to-[#FFD93D] flex items-center justify-center font-black text-xl">
+                                {influencer.name.charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                          </div>
+                          {influencer.badge_tier && (
+                            <div className={`absolute -top-2 -right-2 w-6 h-6 rounded-full border-2 border-black flex items-center justify-center z-20 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] ${badgeColor(influencer.badge_tier)}`}>
+                              <Award className="w-3 h-3 text-black" strokeWidth={4} />
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-black text-lg text-black truncate leading-tight mb-0.5">{influencer.name}</p>
+                          <p className="text-xs font-bold text-black/30 truncate uppercase tracking-tighter">{influencer.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-6">
+                      <div className="flex flex-wrap gap-1.5">
+                        {influencer.niches?.slice(0, 2).map(niche => (
+                          <span key={niche} className="px-2.5 py-1 text-[9px] font-black uppercase bg-gray-50 border-2 border-black/5 rounded-lg text-black/60 group-hover:border-black/20 group-hover:text-black transition-all">
+                            {niche}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="p-6 text-center">
+                      <p className="font-black text-base text-black">{formatFollowers(influencer.followers)}</p>
+                    </td>
+                    <td className="p-6 text-center">
+                      <p className="font-black text-base text-black">{influencer.engagement_rate}%</p>
+                    </td>
+                    <td className="p-6 text-center">
+                      <p className="font-black text-base text-black">{influencer.price_per_post ? `₹${formatFollowers(influencer.price_per_post)}` : '—'}</p>
+                    </td>
+                    <td className="p-6">
+                      <div className="flex items-center justify-end gap-3">
+                        <button
+                          type="button"
+                          onClick={() => handleViewProfile(influencer.id)}
+                          className="px-4 py-2.5 bg-white text-black border-2 border-black rounded-xl font-black text-[10px] uppercase tracking-widest shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1.5px] hover:translate-y-[1.5px] transition-all"
+                        >
+                          Profile
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleMessage(influencer.id)}
+                          className="px-4 py-2.5 bg-[#B4F056] text-black border-2 border-black rounded-xl font-black text-[10px] uppercase tracking-widest shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1.5px] hover:translate-y-[1.5px] transition-all"
+                        >
+                          Message
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => toggleShortlist(influencer.id)}
+                          className={`p-2.5 rounded-xl border-2 border-black transition-all ${isShortlisted ? 'bg-[#FFD93D] shadow-none translate-x-[1.5px] translate-y-[1.5px]' : 'bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1.5px] hover:translate-y-[1.5px]'}`}
+                        >
+                          <Bookmark className={`w-4 h-4 ${isShortlisted ? 'fill-black' : ''}`} strokeWidth={3} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )
+      }
 
       {/* Pro tip */}
       {!loading && visibleInfluencers.length > 0 && shortlist.size === 0 && (
