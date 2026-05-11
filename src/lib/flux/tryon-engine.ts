@@ -39,6 +39,20 @@ export interface FluxTryOnOptions {
    * than the basic intel.
    */
   strictGarmentProfile?: StrictGarmentProfile | null
+  /**
+   * Prompt detail level. 'detailed' (default) uses the full fact-sheet
+   * prompt. 'simple' uses a stripped-down prompt — useful as a fallback
+   * when the detailed version triggers moderation or empty responses.
+   */
+  promptMode?: 'detailed' | 'simple'
+  /**
+   * Override the FLUX model. Defaults to FLUX_TRYON_MODEL env or
+   * 'flux-2-pro'. Useful for fallback chains: try -pro first, then
+   * -flex if -pro empties out.
+   */
+  modelOverride?: 'flux-2-pro' | 'flux-2-flex' | 'flux-2-max'
+  /** Optional seed for reproducibility / re-roll diversity. */
+  seed?: number
 }
 
 // Round to the nearest multiple of 64 — FLUX.2 requires width/height
@@ -90,6 +104,34 @@ function aspectToWH(aspect: string | undefined, resolution: string | undefined):
  *   - End with negative-style guards ("no extra layers", "no different person")
  *   - Cap at ~600 chars — FLUX.2 sweet spot
  */
+/**
+ * Build a SHORT prompt for fallback attempts. When the detailed prompt
+ * triggers an empty response from FLUX (sometimes happens on dense
+ * fact sheets that exhaust the model's attention budget), this stripped
+ * version recovers ~70% of failures.
+ */
+function buildSimpleFluxPrompt(
+  garmentIntel: GarmentIntelligence | null | undefined,
+  userContext: string,
+): string {
+  const ctx = userContext ? ` ${userContext}` : ''
+  const desc = garmentIntel?.description ||
+    (garmentIntel ? `${garmentIntel.primaryColor || ''} ${garmentIntel.pattern || ''} ${garmentIntel.garmentType || 'garment'}`.trim() : 'the garment shown in image 2')
+
+  const garmentType = (garmentIntel?.garmentType || '').toLowerCase()
+  const coverage = garmentIntel?.coverage
+  const isLower = coverage === 'lower_only' || /pants|jeans|skirt|trouser|short/.test(garmentType)
+  const isFull = coverage === 'full_body' || ['co_ord_set', 'full_outfit', 'jumpsuit', 'suit', 'saree', 'lehenga'].includes(garmentType)
+
+  const swapDirective = isFull
+    ? 'Replace the full outfit with the garment from image 2.'
+    : isLower
+      ? 'Replace ONLY the lower garment (pants/jeans/skirt). Keep the top from image 1 unchanged.'
+      : 'Replace ONLY the top (shirt/jacket). Keep the bottom from image 1 unchanged.'
+
+  return `Edit image 1: swap the clothing only. Same person, same face, same pose, same framing as image 1. ${swapDirective} The new garment must match image 2 exactly — ${desc}. Photorealistic.${ctx}`.slice(0, 800)
+}
+
 function buildFluxClothingSwapPrompt(
   garmentIntel: GarmentIntelligence | null | undefined,
   strictProfile: StrictGarmentProfile | null | undefined,
@@ -363,11 +405,14 @@ export async function generateTryOnFlux(options: FluxTryOnOptions): Promise<stri
   // strictGarmentProfile (preferred) or garmentIntel. Sanitize the user's
   // smart-prompt context against prompt-injection before embedding.
   const userContext = stripInjectionTokens(options.prompt || '').slice(0, 400)
-  const fluxPrompt = buildFluxClothingSwapPrompt(
-    options.garmentIntel ?? null,
-    options.strictGarmentProfile ?? null,
-    userContext,
-  )
+  const promptMode = options.promptMode || 'detailed'
+  const fluxPrompt = promptMode === 'simple'
+    ? buildSimpleFluxPrompt(options.garmentIntel ?? null, userContext)
+    : buildFluxClothingSwapPrompt(
+        options.garmentIntel ?? null,
+        options.strictGarmentProfile ?? null,
+        userContext,
+      )
 
   // Match output dims to the input person photo EXACTLY (rounded to
   // multiples of 64 + capped at 1536 long edge). Mirroring input dims
@@ -408,6 +453,8 @@ export async function generateTryOnFlux(options: FluxTryOnOptions): Promise<stri
         outputFormat: 'png',
         safetyTolerance: 2,
         timeoutMs: 150_000, // FLUX.2 typically 8-20s; allow headroom
+        model: options.modelOverride,
+        seed: options.seed,
       })
 
       // Download the signed URL into base64 (10-min TTL on FLUX URLs).

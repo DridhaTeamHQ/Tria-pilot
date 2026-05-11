@@ -422,6 +422,19 @@ export interface DirectTryOnOptions {
    * the hex color + motif description to lock pattern fidelity.
    */
   strictGarmentProfile?: import('@/lib/tryon/garment-strict-schema').StrictGarmentProfile | null
+  /**
+   * FLUX-only: prompt detail level. 'detailed' (default) uses the full
+   * fact-sheet prompt; 'simple' uses a stripped prompt for fallback
+   * attempts when the detailed version triggers empty responses.
+   */
+  promptMode?: 'detailed' | 'simple'
+  /**
+   * FLUX-only: override the model for this single call. Used by the
+   * reliability chain to retry on -flex after -pro fails.
+   */
+  modelOverride?: 'flux-2-max' | 'flux-2-pro' | 'flux-2-flex'
+  /** FLUX-only: seed for reproducibility / re-roll diversity. */
+  seed?: number
 }
 
 /**
@@ -465,6 +478,9 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
       resolution: options.resolution,
       garmentIntel: options.garmentIntel ?? null,
       strictGarmentProfile: options.strictGarmentProfile ?? null,
+      promptMode: (options as any).promptMode,
+      modelOverride: (options as any).modelOverride,
+      seed: (options as any).seed,
     })
   }
 

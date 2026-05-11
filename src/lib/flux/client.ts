@@ -534,6 +534,8 @@ export interface Flux2GenerateOptions {
   safetyTolerance?: number
   /** Hard timeout for the entire operation (default 120s) */
   timeoutMs?: number
+  /** Override FLUX_TRYON_MODEL env var. Useful for fallback chains. */
+  model?: 'flux-2-max' | 'flux-2-pro' | 'flux-2-flex'
 }
 
 const FLUX2_MAX_INPUT_IMAGES = 8
@@ -583,11 +585,12 @@ export async function flux2Generate(options: Flux2GenerateOptions): Promise<{
     payload[fieldName] = images[i]
   }
 
-  // Pick the model from FLUX_TRYON_MODEL — defaults to flux-2-pro,
-  // can be set to flux-2-max for highest quality (more credits, slower)
+  // Model resolution: explicit override → FLUX_TRYON_MODEL env → flux-2-pro
   const configuredModel = (process.env.FLUX_TRYON_MODEL || '').trim() as FluxModel
   const FLUX2_MODELS: Set<FluxModel> = new Set(['flux-2-max', 'flux-2-pro', 'flux-2-flex'])
-  const model: FluxModel = FLUX2_MODELS.has(configuredModel) ? configuredModel : 'flux-2-pro'
+  const model: FluxModel = options.model && FLUX2_MODELS.has(options.model)
+    ? options.model
+    : FLUX2_MODELS.has(configuredModel) ? configuredModel : 'flux-2-pro'
 
   return submitAndAwait(model, payload, { timeoutMs: options.timeoutMs })
 }

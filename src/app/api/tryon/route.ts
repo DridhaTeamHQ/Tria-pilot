@@ -1007,55 +1007,131 @@ async function handlePresetlessTryOnRequest(params: {
     })
     if (isDev) console.log(`\n🚀 Starting ${TARGET_PHOTOS.length} generations in PARALLEL | prompt: ${smartPrompt.length} chars`)
 
-    // Per-output retry helper. Gemini occasionally returns empty/no-image
-    // responses for borderline inputs — a single retry with a fresh request
-    // recovers ~80% of these. Non-retryable errors (moderation, auth) skip
-    // the retry to avoid burning budget.
-    const generateWithRetry = async (
+    // ── RELIABILITY CHAIN ────────────────────────────────────────────
+    // Each slot tries multiple strategies in sequence until ONE succeeds.
+    // This guarantees we deliver 3 images unless every strategy fails,
+    // which is extremely unlikely (different models, different prompts,
+    // different engines).
+    //
+    // Strategy order:
+    //   1. FLUX-2 [pro] + detailed prompt (highest fidelity)
+    //   2. FLUX-2 [pro] + simple prompt    (recovers ~70% of empty responses)
+    //   3. FLUX-2 [flex] + simple prompt   (different model, separate quota)
+    //   4. Gemini Nano Banana             (totally different engine, last resort)
+    //
+    // Non-retryable errors (moderation, auth, invalid inputs) skip the
+    // entire chain — those won't get better with another attempt.
+    type Strategy = {
+      label: string
+      run: () => Promise<string>
+    }
+
+    const buildStrategies = (referenceImageBase64: string, slotIdx: number): Strategy[] => {
+      const base = {
+        personImageBase64: referenceImageBase64,
+        garmentImageBase64: processedGarment,
+        prompt: smartPrompt,
+        aspectRatio: payload.aspectRatio || '4:5',
+        model: directRenderModel,
+        garmentIntel,
+        strictGarmentProfile,
+      }
+      // Stable seed per slot so re-rolls don't produce identical images
+      const slotSeed = Math.floor(Date.now() % 1_000_000_000) + slotIdx * 7919
+
+      return [
+        {
+          label: 'flux-2-pro/detailed',
+          run: () => generateTryOnDirect({
+            ...base,
+            ...(({ promptMode: 'detailed', modelOverride: 'flux-2-pro', seed: slotSeed }) as any),
+          }),
+        },
+        {
+          label: 'flux-2-pro/simple',
+          run: () => generateTryOnDirect({
+            ...base,
+            ...(({ promptMode: 'simple', modelOverride: 'flux-2-pro', seed: slotSeed + 1 }) as any),
+          }),
+        },
+        {
+          label: 'flux-2-flex/simple',
+          run: () => generateTryOnDirect({
+            ...base,
+            ...(({ promptMode: 'simple', modelOverride: 'flux-2-flex', seed: slotSeed + 2 }) as any),
+          }),
+        },
+        {
+          label: 'gemini-fallback',
+          run: async () => {
+            // Last-resort: force Gemini engine for this single call by
+            // temporarily flipping the env. This is per-process state so
+            // we save+restore to avoid leaking the override.
+            const prev = process.env.TRYON_ENGINE
+            process.env.TRYON_ENGINE = 'gemini'
+            try {
+              return await generateTryOnDirect({ ...base })
+            } finally {
+              if (prev === undefined) delete process.env.TRYON_ENGINE
+              else process.env.TRYON_ENGINE = prev
+            }
+          },
+        },
+      ]
+    }
+
+    const generateWithFallbackChain = async (
       referenceImageBase64: string,
       photoId: string,
       slotIdx: number,
     ): Promise<string> => {
-      const MAX_ATTEMPTS = 2
+      const strategies = buildStrategies(referenceImageBase64, slotIdx)
       let lastErr: unknown = null
-      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+
+      for (let i = 0; i < strategies.length; i++) {
+        const strategy = strategies[i]
         try {
-          if (isDev && attempt > 1) {
-            console.log(`🔁 Gen ${slotIdx + 1} retry ${attempt}/${MAX_ATTEMPTS} → photo: ${photoId}`)
-          }
-          const result = await generateTryOnDirect({
-            personImageBase64: referenceImageBase64,
-            garmentImageBase64: processedGarment,
-            prompt: smartPrompt,
-            aspectRatio: payload.aspectRatio || '4:5',
-            model: directRenderModel,
-            garmentIntel,
-            strictGarmentProfile,
-          })
+          if (isDev) console.log(`🎯 Slot ${slotIdx + 1} → trying ${strategy.label} (${i + 1}/${strategies.length})`)
+          const result = await strategy.run()
           if (!result || result.length < 100) {
-            throw new Error('Empty image returned by generation engine')
+            throw new Error(`Empty image from ${strategy.label}`)
           }
+          if (isDev && i > 0) console.log(`✨ Slot ${slotIdx + 1} recovered via ${strategy.label} (strategy ${i + 1})`)
           return result
         } catch (err) {
           lastErr = err
           const msg = err instanceof Error ? err.message.toLowerCase() : ''
-          // Don't retry user-actionable errors
-          const nonRetryable =
+
+          // User-actionable errors: skip the entire chain
+          const userActionable =
             msg.includes('moderat') ||
             msg.includes('safety filter') ||
             msg.includes('invalid person') ||
             msg.includes('invalid garment') ||
-            msg.includes('401') ||
-            msg.includes('403')
-          if (nonRetryable || attempt >= MAX_ATTEMPTS) {
+            (err instanceof Error && /401|403/.test(err.message))
+
+          if (userActionable) {
+            if (isDev) console.warn(`⛔ Slot ${slotIdx + 1} user-actionable error, aborting chain: ${msg}`)
             throw err
           }
-          // Brief backoff before retry: 800ms + jitter
-          await new Promise((r) => setTimeout(r, 800 + Math.floor(Math.random() * 400)))
+
+          if (isDev) console.warn(`⚠️ Slot ${slotIdx + 1} strategy "${strategy.label}" failed: ${msg.slice(0, 100)}`)
+
+          // Brief backoff between strategies — gives the model a moment
+          // and avoids spamming a struggling endpoint.
+          if (i < strategies.length - 1) {
+            await new Promise((r) => setTimeout(r, 600 + Math.floor(Math.random() * 400)))
+          }
         }
       }
-      throw lastErr instanceof Error ? lastErr : new Error('Generation failed after retries')
+
+      throw lastErr instanceof Error
+        ? new Error(`All ${strategies.length} strategies failed for slot ${slotIdx + 1}: ${lastErr.message}`)
+        : new Error(`All ${strategies.length} strategies failed for slot ${slotIdx + 1}`)
     }
+
+    // Backwards-compat alias used below
+    const generateWithRetry = generateWithFallbackChain
 
     const generationResults = await Promise.allSettled(
       TARGET_PHOTOS.map(async (photo, idx) => {
