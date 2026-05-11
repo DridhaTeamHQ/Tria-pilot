@@ -70,9 +70,9 @@ export default function BrandNavbar({ brandName: initialBrandName, avatarUrl: in
 
   const navItems = [
     { href: '/brand/dashboard', label: 'Dashboard', icon: LayoutDashboard, color: '#B4F056' },
-    { href: '/brand/campaigns', label: 'Campaigns', icon: Megaphone, color: '#A78BFA' },
-    { href: '/brand/influencers', label: 'Creators', icon: ShoppingBag, color: '#7DD3FC' },
-    { href: '/brand/ads', label: 'Ad Creatives', icon: Sparkles, color: '#FF9B8F' },
+    { href: '/brand/campaigns', label: 'Campaigns', icon: Megaphone, color: '#B4F056' },
+    { href: '/brand/influencers', label: 'Creators', icon: ShoppingBag, color: '#B4F056' },
+    { href: '/brand/ads', label: 'Ad Creatives', icon: Sparkles, color: '#B4F056' },
     { href: '/brand/products', label: 'Products', icon: Box, color: '#B4F056' },
   ]
   const inboxItem = { href: '/brand/inbox', label: 'Inbox', icon: Mail }

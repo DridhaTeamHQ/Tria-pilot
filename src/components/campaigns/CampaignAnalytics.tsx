@@ -215,8 +215,8 @@ function StatusRingChart({ breakdown, total }: { breakdown: Record<string, numbe
                 {segments.map((seg) => (
                     <div key={seg.status} className="flex items-center justify-between p-3 bg-white border-[3px] border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all cursor-default group">
                         <div className="flex items-center gap-3">
-                            <div 
-                                className="w-4 h-4 rounded-full border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] group-hover:scale-110 transition-transform" 
+                            <div
+                                className="w-4 h-4 rounded-full border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] group-hover:scale-110 transition-transform"
                                 style={{ backgroundColor: seg.color }}
                             />
                             <span className="text-[11px] font-black uppercase tracking-widest text-black">
@@ -406,18 +406,18 @@ export default function CampaignAnalytics({ campaigns }: { campaigns: Campaign[]
                             </div>
                         ))}
                     </div>
-                        {(() => {
-                            const best = campaigns.reduce((top, c) =>
-                                (c.impressions ?? 0) > (top?.impressions ?? 0) ? c : top, campaigns[0])
-                            if (!best || (best.impressions ?? 0) === 0) return null
-                            return (
-                                <div className="flex items-center justify-between gap-4">
-                                    <span className="text-xs font-black uppercase tracking-wider text-black/50 shrink-0">Top Performer</span>
-                                    <span className="text-xs font-black text-black truncate bg-[#FFD93D] px-2 py-1 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">{best.title}</span>
-                                </div>
-                            )
-                        })()}
-                    </div>
+                    {(() => {
+                        const best = campaigns.reduce((top, c) =>
+                            (c.impressions ?? 0) > (top?.impressions ?? 0) ? c : top, campaigns[0])
+                        if (!best || (best.impressions ?? 0) === 0) return null
+                        return (
+                            <div className="flex items-center justify-between gap-4">
+                                <span className="text-xs font-black uppercase tracking-wider text-black/50 shrink-0">Top Performer</span>
+                                <span className="text-xs font-black text-black truncate bg-[#FFD93D] px-2 py-1 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">{best.title}</span>
+                            </div>
+                        )
+                    })()}
+                </div>
             </div>
         </div>
     )

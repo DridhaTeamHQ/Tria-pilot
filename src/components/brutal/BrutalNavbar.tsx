@@ -149,8 +149,8 @@ export default function BrutalNavbar() {
     const profileHref = isLoggedIn && user?.role === "BRAND" ? "/brand/profile" : "/profile";
 
     // Dynamic colors based on role
-    const activeColor = user?.role === "BRAND" ? "bg-[#B4F056]" : "bg-[#FF9B8F]";
-    const hoverColor = user?.role === "BRAND" ? "hover:text-[#B4F056]" : "hover:text-[#FF9B8F]";
+    const activeColor = user?.role === "BRAND" ? "bg-[#B4F056]" : "bg-[#FF8C69]";
+    const hoverColor = user?.role === "BRAND" ? "hover:text-[#B4F056]" : "hover:text-[#FF8C69]";
 
     return (
         <header className="fixed top-0 left-0 right-0 z-40 bg-[#F9F8F4] border-b-[3px] border-black">

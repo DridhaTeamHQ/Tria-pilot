@@ -210,8 +210,8 @@ export default function CampaignsPage() {
                         key={f.value}
                         onClick={() => setStatusFilter(f.value)}
                         className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border-[3px] text-xs font-black uppercase tracking-wider transition-all shrink-0 ${statusFilter === f.value
-                            ? 'bg-black text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)] translate-x-[-2px] translate-y-[-2px]'
-                            : 'bg-white text-black/50 border-black/10 hover:border-black hover:text-black'
+                          ? 'bg-black text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)] translate-x-[-2px] translate-y-[-2px]'
+                          : 'bg-white text-black/50 border-black/10 hover:border-black hover:text-black'
                           }`}
                       >
                         {f.value !== 'all' && (
@@ -245,8 +245,8 @@ export default function CampaignsPage() {
                             key={opt.value}
                             onClick={() => { setSortOption(opt.value); setSortOpen(false) }}
                             className={`w-full text-left px-5 py-3 text-xs font-black uppercase tracking-wider transition-colors ${sortOption === opt.value
-                                ? 'bg-[#B4F056] text-black'
-                                : 'text-black/60 hover:bg-black/5'
+                              ? 'bg-[#B4F056] text-black'
+                              : 'text-black/60 hover:bg-black/5'
                               }`}
                           >
                             {opt.label}
