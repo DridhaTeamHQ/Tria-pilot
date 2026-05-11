@@ -115,7 +115,7 @@ export default function BrutalNavbar() {
         { href: "/brand/influencers", label: "Creators", icon: ShoppingBag },
         { href: "/brand/ads", label: "Ads", icon: Sparkles },
         { href: "/brand/products", label: "Products", icon: Box },
-        { href: "/inbox", label: "Inbox", icon: Mail },
+        { href: "/brand/inbox", label: "Inbox", icon: Mail },
     ];
 
     // Public links for logged-out users (matching user request)
@@ -148,6 +148,10 @@ export default function BrutalNavbar() {
     const showAvatarImage = Boolean(avatarUrl) && !avatarFailed;
     const profileHref = isLoggedIn && user?.role === "BRAND" ? "/brand/profile" : "/profile";
 
+    // Dynamic colors based on role
+    const activeColor = user?.role === "BRAND" ? "bg-[#B4F056]" : "bg-[#FF9B8F]";
+    const hoverColor = user?.role === "BRAND" ? "hover:text-[#B4F056]" : "hover:text-[#FF9B8F]";
+
     return (
         <header className="fixed top-0 left-0 right-0 z-40 bg-[#F9F8F4] border-b-[3px] border-black">
             <div className="mx-auto w-full max-w-[2000px] px-3 sm:px-5 lg:px-8 xl:px-12">
@@ -156,7 +160,7 @@ export default function BrutalNavbar() {
                     <Link
                         href="/"
                         prefetch={true}
-                        className="kiwikoo-wordmark flex items-center shrink-0 text-[2rem] font-black text-black transition-colors hover:text-[#FF8C69]"
+                        className={`kiwikoo-wordmark flex items-center shrink-0 text-[2rem] font-black text-black transition-colors ${hoverColor}`}
                     >
                         Kiwikoo
                     </Link>
@@ -174,7 +178,7 @@ export default function BrutalNavbar() {
                                         prefetch={true}
                                         onClick={() => setPendingPath(link.href)}
                                         className={`px-3 xl:px-4 py-2 rounded-xl text-sm font-bold transition-all duration-150 flex items-center justify-center whitespace-nowrap gap-2 border-2 border-black ${pendingPath === link.href ? "opacity-50 pointer-events-none" : ""} ${active
-                                            ? "bg-[#FF8C69] text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                                            ? `${activeColor} text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]`
                                             : "bg-white text-black hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
                                             }`}
                                     >
@@ -191,7 +195,7 @@ export default function BrutalNavbar() {
                                     key={link.href}
                                     href={link.href}
                                     onClick={() => setPendingPath(link.href)}
-                                    className={`hover:text-[#FF8C69] transition-all inline-flex items-center whitespace-nowrap gap-1 ${pendingPath === link.href ? "opacity-50 pointer-events-none" : ""}`}
+                                    className={`hover:text-[#FF9B8F] transition-all inline-flex items-center whitespace-nowrap gap-1 ${pendingPath === link.href ? "opacity-50 pointer-events-none" : ""}`}
                                 >
                                     {link.label}
                                     <ChevronRight className="w-4 h-4" />
@@ -214,9 +218,9 @@ export default function BrutalNavbar() {
                                                 key={link.href}
                                                 href={link.href}
                                                 onClick={() => setPendingPath(link.href)}
-                                                className={`p-2.5 rounded-xl border-2 border-black transition-all hover:-translate-y-0.5 ${pendingPath === link.href ? "opacity-50 pointer-events-none" : ""} ${active
-                                                    ? "bg-[#B4F056] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                                                    : "bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black/70 hover:text-black"
+                                                className={`w-10 h-10 flex items-center justify-center rounded-xl border-2 border-black transition-all hover:-translate-y-0.5 ${pendingPath === link.href ? "opacity-50 pointer-events-none" : ""} ${active
+                                                    ? `${activeColor} shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]`
+                                                    : "bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-black/70 hover:text-black"
                                                     }`}
                                                 title={link.label}
                                             >
@@ -233,7 +237,7 @@ export default function BrutalNavbar() {
                                 <Link
                                     href={profileHref}
                                     onClick={() => setPendingPath(profileHref)}
-                                    className={`relative w-10 h-10 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black transition-all hover:-translate-y-0.5 ${pendingPath === profileHref ? "opacity-50 pointer-events-none" : ""}`}
+                                    className={`relative w-10 h-10 overflow-hidden rounded-xl ${activeColor} border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black transition-all hover:-translate-y-0.5 ${pendingPath === profileHref ? "opacity-50 pointer-events-none" : ""}`}
                                     title="Profile"
                                 >
                                     {showAvatarImage ? (
@@ -270,7 +274,7 @@ export default function BrutalNavbar() {
                                     href="/register"
                                     prefetch={true}
                                     onClick={() => setPendingPath("/register")}
-                                    className={`px-6 py-3 text-base font-bold text-black bg-[#FF8C69] border-2 border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center gap-1 ${pendingPath === "/register" ? "opacity-50 pointer-events-none" : ""}`}
+                                    className={`px-6 py-3 text-base font-bold text-black bg-[#FF9B8F] border-2 border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center gap-1 ${pendingPath === "/register" ? "opacity-50 pointer-events-none" : ""}`}
                                 >
                                     Get Started
                                     <ChevronRight className="w-5 h-5" />
@@ -313,7 +317,7 @@ export default function BrutalNavbar() {
                                         onClick={() => setMobileMenuOpen(false)}
                                         className="flex items-center gap-3 pb-4 border-b-2 border-black"
                                     >
-                                        <div className="relative w-12 h-12 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black text-lg">
+                                        <div className={`relative w-12 h-12 overflow-hidden rounded-xl ${activeColor} border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black text-lg`}>
                                             {showAvatarImage ? (
                                                 <AppImage
                                                     src={avatarUrl!}
@@ -344,7 +348,7 @@ export default function BrutalNavbar() {
                                                 prefetch={true}
                                                 onClick={() => setMobileMenuOpen(false)}
                                                 className={`flex items-center gap-3 rounded-xl border-2 border-black px-4 py-3 text-sm sm:text-base transition-all ${isActive(link.href)
-                                                    ? "bg-[#FF8C69] text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                                                    ? `${activeColor} text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]`
                                                     : "bg-white text-black hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
                                                     }`}
                                             >

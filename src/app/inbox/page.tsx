@@ -233,7 +233,7 @@ function InboxInner() {
                 <InboxIcon className="w-7 h-7" />
                 Messages
               </h1>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#B4F056] border-2 border-black text-[10px] font-black uppercase tracking-wider shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FF9B8F] border-2 border-black text-[10px] font-black uppercase tracking-wider shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                 <Wifi className="w-3 h-3" strokeWidth={3} />
                 <span>Live</span>
               </div>
@@ -275,7 +275,7 @@ function InboxInner() {
                       className={cn(
                         "group relative w-full p-4 rounded-2xl border-2 transition-all duration-200 flex gap-4 text-left",
                         active 
-                          ? "bg-[#B4F056] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] translate-x-[-2px] translate-y-[-2px]" 
+                          ? "bg-[#FF9B8F]/20 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] translate-x-[-2px] translate-y-[-2px]" 
                           : "bg-white border-transparent hover:bg-gray-50 hover:border-black/10"
                       )}
                     >
@@ -337,7 +337,7 @@ function InboxInner() {
                     {selectedConversation.other_party.avatar_url ? (
                       <AppImage src={selectedConversation.other_party.avatar_url} alt={selectedConversation.other_party.name} className="object-cover" sizes="48px" />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-[#B4F056] to-[#FFD93D] flex items-center justify-center font-black text-lg">
+                      <div className="w-full h-full bg-gradient-to-br from-[#FF9B8F] to-[#FFD93D] flex items-center justify-center font-black text-lg">
                         {selectedConversation.other_party.name.charAt(0).toUpperCase()}
                       </div>
                     )}
@@ -391,7 +391,7 @@ function InboxInner() {
                           <div className={cn(
                             "group relative max-w-[85%] sm:max-w-[70%] px-5 py-3 border-[2.5px] border-black transition-all",
                             isMine 
-                              ? "bg-[#B4F056] rounded-[24px] rounded-br-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-0.5 hover:-translate-y-0.5" 
+                              ? "bg-[#FF9B8F] rounded-[24px] rounded-br-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-0.5 hover:-translate-y-0.5" 
                               : "bg-white rounded-[24px] rounded-bl-none shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:scale-[1.01]"
                           )}>
                             <p className="text-[15px] font-bold leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
@@ -444,7 +444,7 @@ function InboxInner() {
                   <button
                     type="submit"
                     disabled={!newMessage.trim() || sending}
-                    className="h-14 w-14 rounded-[22px] bg-[#B4F056] border-[3px] border-black flex items-center justify-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:shadow-none active:translate-x-[6px] active:translate-y-[6px] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none disabled:translate-x-0 disabled:translate-y-0"
+                    className="h-14 w-14 rounded-[22px] bg-[#FF9B8F] border-[3px] border-black flex items-center justify-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:shadow-none active:translate-x-[6px] active:translate-y-[6px] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none disabled:translate-x-0 disabled:translate-y-0"
                   >
                     {sending ? (
                       <Loader2 className="w-6 h-6 animate-spin" />
@@ -457,14 +457,14 @@ function InboxInner() {
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-12 text-center bg-[#F9F8F4]/20">
-              <div className="w-32 h-32 rounded-3xl border-[3px] border-black bg-white flex items-center justify-center shadow-[10px_10px_0px_0px_rgba(180,240,86,1)] mb-8 animate-bounce-slow">
+              <div className="w-32 h-32 rounded-3xl border-[3px] border-black bg-white flex items-center justify-center shadow-[10px_10px_0px_0px_rgba(255,155,143,1)] mb-8 animate-bounce-slow">
                 <InboxIcon className="w-16 h-16" />
               </div>
               <h2 className="text-3xl font-black text-black mb-4">Your Messages</h2>
               <p className="text-black/50 font-bold max-w-sm mb-8">
                 Connect with influencers and brands seamlessly. Choose a conversation to start chatting!
               </p>
-              <button className="px-8 py-3 bg-black text-[#B4F056] rounded-2xl font-black shadow-[6px_6px_0px_0px_rgba(180,240,86,1)] hover:shadow-none hover:translate-x-1.5 hover:translate-y-1.5 transition-all uppercase tracking-widest text-xs">
+              <button className="px-8 py-3 bg-black text-[#FF9B8F] rounded-2xl font-black shadow-[6px_6px_0px_0px_rgba(255,155,143,1)] hover:shadow-none hover:translate-x-1.5 hover:translate-y-1.5 transition-all uppercase tracking-widest text-xs">
                 New Conversation
               </button>
             </div>

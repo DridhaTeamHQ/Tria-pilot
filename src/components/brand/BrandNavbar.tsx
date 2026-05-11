@@ -75,7 +75,7 @@ export default function BrandNavbar({ brandName: initialBrandName, avatarUrl: in
     { href: '/brand/ads', label: 'Ad Creatives', icon: Sparkles },
     { href: '/brand/products', label: 'Products', icon: Box },
   ]
-  const inboxItem = { href: '/inbox', label: 'Inbox', icon: Mail }
+  const inboxItem = { href: '/brand/inbox', label: 'Inbox', icon: Mail }
   const mobileNavItems = [...navItems, inboxItem]
 
   const isLoggedIn = user !== null && user !== undefined
@@ -125,9 +125,8 @@ export default function BrandNavbar({ brandName: initialBrandName, avatarUrl: in
             <Link
               href={inboxItem.href}
               onClick={() => setPendingPath(inboxItem.href)}
-              className={`relative flex h-9 w-9 items-center justify-center rounded-xl border-2 border-black text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition-all hover:-translate-y-0.5 ${pendingPath === inboxItem.href ? 'opacity-50 pointer-events-none' : ''} ${
-                isActive(inboxItem.href) ? 'bg-[#B4F056]' : 'bg-white'
-              }`}
+              className={`relative flex h-10 w-10 items-center justify-center rounded-xl border-2 border-black text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition-all hover:-translate-y-0.5 ${pendingPath === inboxItem.href ? 'opacity-50 pointer-events-none' : ''} ${isActive(inboxItem.href) ? 'bg-[#B4F056]' : 'bg-white'
+                }`}
               title={inboxItem.label}
               aria-label={inboxItem.label}
             >
@@ -137,7 +136,7 @@ export default function BrandNavbar({ brandName: initialBrandName, avatarUrl: in
             <Link
               href="/brand/profile"
               onClick={() => setPendingPath('/brand/profile')}
-              className={`relative w-9 h-9 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] flex items-center justify-center text-black font-black text-sm transition-all hover:-translate-y-0.5 ${pendingPath === '/brand/profile' ? 'opacity-50 pointer-events-none' : ''}`}
+              className={`relative w-10 h-10 overflow-hidden rounded-xl bg-[#B4F056] border-2 border-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] flex items-center justify-center text-black font-black text-sm transition-all hover:-translate-y-0.5 ${pendingPath === '/brand/profile' ? 'opacity-50 pointer-events-none' : ''}`}
               title="Profile"
             >
               {showAvatarImage ? (

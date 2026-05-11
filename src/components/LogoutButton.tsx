@@ -56,7 +56,7 @@ export default function LogoutButton({
           'inline-flex h-[45px] items-center justify-center gap-2 rounded-full border-2 border-black',
           disabled ? 'bg-[#FF9B8F]/50 text-white/70 cursor-not-allowed' : 'bg-[#FF8666] sm:bg-[#FF9B8F] text-white hover:bg-[#FF7043] sm:hover:bg-[#FF8A7D]',
           'shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all duration-200',
-          !disabled && 'hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]',
+          !disabled && 'hover:-translate-y-0.5',
           !disabled && 'active:translate-x-[2px] active:translate-y-[2px] active:shadow-none',
           className,
         ].filter(Boolean).join(' ')}
@@ -80,6 +80,7 @@ export default function LogoutButton({
           ? 'w-[125px] rounded-[999px] bg-[#FF9B8F]/50 text-white/70 cursor-not-allowed'
           : 'w-[45px] rounded-full bg-[#FF8666] sm:bg-[#FF9B8F] text-white hover:w-[125px] hover:rounded-[999px] hover:bg-[#FF7043] sm:hover:bg-[#FF8A7D]',
         'shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all duration-300',
+        !disabled && 'hover:-translate-y-0.5',
         !disabled && 'active:translate-x-[2px] active:translate-y-[2px] active:shadow-none',
         className,
       ].filter(Boolean).join(' ')}
