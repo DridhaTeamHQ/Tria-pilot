@@ -1064,7 +1064,12 @@ async function handlePresetlessTryOnRequest(params: {
       run: () => Promise<string>
     }
 
-    const buildStrategies = (referenceImageBase64: string, slotIdx: number, photoId?: string): Strategy[] => {
+    const buildStrategies = (
+      referenceImageBase64: string,
+      slotIdx: number,
+      photoId?: string,
+      faceCropBase64?: string,
+    ): Strategy[] => {
       // When the GPT-4o orchestrator wrote a per-photo prompt, use it
       // for the FLUX strategies (they pass `prompt` through as a context
       // hint that gets appended to the FLUX prompt builder). The Gemini
@@ -1073,6 +1078,10 @@ async function handlePresetlessTryOnRequest(params: {
       const base = {
         personImageBase64: referenceImageBase64,
         garmentImageBase64: processedGarment,
+        // Face crop locks identity in BOTH Gemini (passed as image_3) and
+        // FLUX (passed as input_image_3) — was extracted upstream but
+        // never threaded into the generation calls. Major identity-drift fix.
+        faceCropBase64,
         prompt: orchestratedPrompt || smartPrompt,
         aspectRatio: payload.aspectRatio || '4:5',
         model: directRenderModel,
@@ -1135,9 +1144,15 @@ async function handlePresetlessTryOnRequest(params: {
       referenceImageBase64: string,
       photoId: string,
       slotIdx: number,
+      faceCropBase64?: string,
     ): Promise<string> => {
-      const strategies = buildStrategies(referenceImageBase64, slotIdx, photoId)
+      const strategies = buildStrategies(referenceImageBase64, slotIdx, photoId, faceCropBase64)
       let lastErr: unknown = null
+
+      // Track the best result across strategies — if NO strategy passes
+      // validation, we return the highest-scored one rather than failing.
+      // Better to ship a marginal output than block the user entirely.
+      let bestResult: { image: string; score: number; label: string } | null = null
 
       for (let i = 0; i < strategies.length; i++) {
         const strategy = strategies[i]
@@ -1147,6 +1162,41 @@ async function handlePresetlessTryOnRequest(params: {
           if (!result || result.length < 100) {
             throw new Error(`Empty image from ${strategy.label}`)
           }
+
+          // ── QUALITY VALIDATION ─────────────────────────────────────
+          // GPT-4o-mini vision check: does the output actually show the
+          // right garment on the right person with the right coverage?
+          // Skip validation on the last strategy — we'd return it anyway.
+          const isLastStrategy = i === strategies.length - 1
+          if (!isLastStrategy) {
+            try {
+              const { validateTryOnQuality } = await import('@/lib/tryon/quality-validator')
+              const outputBase64 = result.replace(/^data:image\/[a-z+]+;base64,/, '')
+              const validation = await validateTryOnQuality({
+                referencePhotoBase64: referenceImageBase64,
+                garmentBase64: processedGarment,
+                outputBase64,
+                coverage: garmentIntel.coverage,
+              })
+
+              if (validation) {
+                if (!bestResult || validation.score > bestResult.score) {
+                  bestResult = { image: result, score: validation.score, label: strategy.label }
+                }
+                if (!validation.valid && validation.score < 65) {
+                  if (isDev) console.warn(`🔁 Slot ${slotIdx + 1} ${strategy.label} failed quality (${validation.score}/100) — trying next strategy. Issues: ${validation.issues.join(', ')}`)
+                  if (i < strategies.length - 1) {
+                    await new Promise((r) => setTimeout(r, 400))
+                  }
+                  continue
+                }
+              }
+            } catch (valErr) {
+              // Validator failure is non-fatal — fall through and accept the result
+              if (isDev) console.warn(`⚠️ Slot ${slotIdx + 1} validator error, accepting result: ${valErr instanceof Error ? valErr.message : valErr}`)
+            }
+          }
+
           if (isDev && i > 0) console.log(`✨ Slot ${slotIdx + 1} recovered via ${strategy.label} (strategy ${i + 1})`)
           return result
         } catch (err) {
@@ -1176,6 +1226,13 @@ async function handlePresetlessTryOnRequest(params: {
         }
       }
 
+      // All strategies exhausted. If we have a marginal result from
+      // quality-validation tracking, return it — better than nothing.
+      if (bestResult) {
+        if (isDev) console.warn(`⚠️ Slot ${slotIdx + 1} all strategies sub-threshold; returning best (${bestResult.label} @ ${bestResult.score}/100)`)
+        return bestResult.image
+      }
+
       throw lastErr instanceof Error
         ? new Error(`All ${strategies.length} strategies failed for slot ${slotIdx + 1}: ${lastErr.message}`)
         : new Error(`All ${strategies.length} strategies failed for slot ${slotIdx + 1}`)
@@ -1187,9 +1244,12 @@ async function handlePresetlessTryOnRequest(params: {
     const generationResults = await Promise.allSettled(
       TARGET_PHOTOS.map(async (photo, idx) => {
         const referenceImageBase64 = orderedReferenceBase64s[idx]
-        if (isDev) console.log(`🎯 Gen ${idx + 1}/${TARGET_PHOTOS.length} → photo: ${photo.id}`)
+        const faceCropForSlot = preExtractedFaceCrops[idx]
+        if (isDev) {
+          console.log(`🎯 Gen ${idx + 1}/${TARGET_PHOTOS.length} → photo: ${photo.id}${faceCropForSlot ? ' · face crop ✓' : ''}`)
+        }
 
-        const generatedImage = await generateWithRetry(referenceImageBase64, photo.id, idx)
+        const generatedImage = await generateWithRetry(referenceImageBase64, photo.id, idx, faceCropForSlot)
 
         // Save to storage
         let outputImagePath = generatedImage
