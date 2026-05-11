@@ -1008,15 +1008,15 @@ async function handlePresetlessTryOnRequest(params: {
     if (isDev) console.log(`\n🚀 Starting ${TARGET_PHOTOS.length} generations in PARALLEL | prompt: ${smartPrompt.length} chars`)
 
     // ── RELIABILITY CHAIN ────────────────────────────────────────────
-    // Strategy order — PRIMARY is Gemini with all the fine-tuned prompt
-    // engineering (fact sheet from strictGarmentProfile, coverage-aware
-    // directives, texture/color fidelity block). FLUX-pro acts as
-    // fallback for the rare cases Gemini empties out.
+    // Strategy order — PRIMARY is FLUX-2 [pro] with BFL's official
+    // "Change X to Y, keep Z same" prompt pattern. Gemini Nano Banana
+    // (with its fine-tuned fact-sheet prompt) is the engine-swap
+    // fallback for the rare cases FLUX empties out or hallucinates.
     //
-    //   1. Gemini Nano Banana (fact sheet prompt)  ← primary, best fidelity
-    //   2. Gemini Nano Banana (retry, fresh request) ← recovers empty responses
-    //   3. FLUX-2 [pro] + detailed prompt           ← engine swap fallback
-    //   4. FLUX-2 [pro] + simple prompt             ← stripped prompt last resort
+    //   1. FLUX-2 [pro] + detailed prompt   ← primary, BFL-official pattern
+    //   2. FLUX-2 [pro] + simple prompt     ← shorter "Change X" if detailed empties
+    //   3. Gemini Nano Banana (fact sheet)  ← engine-swap fallback
+    //   4. Gemini Nano Banana (retry)       ← last resort, fresh request
     //
     // flux-2-max dropped — too unstable + too expensive for marginal gain.
     // Non-retryable errors (moderation, auth, invalid inputs) skip the
@@ -1055,17 +1055,7 @@ async function handlePresetlessTryOnRequest(params: {
 
       return [
         {
-          // Gemini with fact sheet + coverage directives (the fine-tuned path)
-          label: 'gemini-primary',
-          run: () => runWithEngine('gemini'),
-        },
-        {
-          // Same engine, fresh request — recovers ~80% of empty responses
-          label: 'gemini-retry',
-          run: () => runWithEngine('gemini'),
-        },
-        {
-          // Engine swap to FLUX-2 [pro] with full detailed prompt
+          // FLUX-2 [pro] with BFL-official "Change X to Y" prompt pattern
           label: 'flux-2-pro/detailed',
           run: () => runWithEngine('flux', {
             promptMode: 'detailed',
@@ -1074,13 +1064,23 @@ async function handlePresetlessTryOnRequest(params: {
           }),
         },
         {
-          // Last resort: FLUX-2 [pro] with stripped prompt
+          // Same engine, shorter "Change X to Y" — recovers empty responses
           label: 'flux-2-pro/simple',
           run: () => runWithEngine('flux', {
             promptMode: 'simple',
             modelOverride: 'flux-2-pro',
             seed: slotSeed + 1,
           }),
+        },
+        {
+          // Engine swap to Gemini with fact-sheet prompt (fine-tuned path)
+          label: 'gemini-fallback',
+          run: () => runWithEngine('gemini'),
+        },
+        {
+          // Last resort: Gemini retry with fresh request
+          label: 'gemini-retry',
+          run: () => runWithEngine('gemini'),
         },
       ]
     }
