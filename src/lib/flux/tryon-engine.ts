@@ -316,19 +316,50 @@ function buildFluxClothingSwapPrompt(
   const styleClause = styleHintsBit.trim() ? styleHintsBit.trim() : ''
   const anchorClause = semanticAnchor.trim() ? semanticAnchor.trim() : ''
 
+  // ── FIDELITY LOCK ────────────────────────────────────────────────────
+  // Explicit hex colors + motif description from the strict garment
+  // profile, surfaced as a separate clause RIGHT AFTER the change clause.
+  // This is where the model fixes color drift and motif-scale errors.
+  const fidelityBits: string[] = []
+  if (strictProfile?.base_color?.hex) {
+    const colorName = strictProfile.base_color.name || 'the base color'
+    fidelityBits.push(`base color must be ${colorName} (${strictProfile.base_color.hex})`)
+  }
+  if (strictProfile?.secondary_colors && strictProfile.secondary_colors.length > 0) {
+    const secs = strictProfile.secondary_colors
+      .slice(0, 2)
+      .filter((c) => c && c.hex)
+      .map((c) => `${c.name} (${c.hex})`)
+      .join(' and ')
+    if (secs) fidelityBits.push(`accent colors: ${secs}`)
+  }
+  if (strictProfile?.pattern?.exists && strictProfile.pattern.motif_description) {
+    const motif = strictProfile.pattern.motif_description.slice(0, 100).replace(/\s+/g, ' ')
+    const scale = strictProfile.pattern.motif_scale || 'medium'
+    const density = strictProfile.pattern.repeat_density || 'medium'
+    fidelityBits.push(`pattern is ${scale}-scale ${density}-density ${strictProfile.pattern.type} (${motif})`)
+  }
+  if (strictProfile?.fabric?.surface_finish && strictProfile.fabric.surface_finish !== 'matte') {
+    fidelityBits.push(`fabric finish is ${strictProfile.fabric.surface_finish.replace(/_/g, ' ')}`)
+  }
+  const fidelityClause = fidelityBits.length > 0
+    ? `Match image 2 with pixel-level fidelity: ${fidelityBits.join('; ')}.`
+    : ''
+
   const userBit = userContext ? ` ${userContext}` : ''
 
-  // BFL-format prompt: change → preserve → specs → realism → context
-  // Total target: 500-900 chars
+  // BFL-format prompt: change → fidelity-lock → preserve → specs → realism
+  // Total target: 600-1000 chars
   const prompt = [
     `${changeClause}.`,
+    fidelityClause,
     `${preserveClause}.`,
     specClause,
     styleClause,
     anchorClause,
-    `The new garment must drape naturally on her body with realistic fabric folds and shadows matching the existing lighting — it is being worn, not overlaid.`,
+    `The new garment must drape naturally on her body with realistic fabric folds and shadows matching the existing lighting — it is being worn, not overlaid. Reproduce the pattern at the correct scale and orientation.`,
     userBit.trim(),
-  ].filter((s) => s && s.length > 0).join(' ').slice(0, 1100)
+  ].filter((s) => s && s.length > 0).join(' ').slice(0, 1300)
 
   return prompt
 }
@@ -410,11 +441,19 @@ export async function generateTryOnFlux(options: FluxTryOnOptions): Promise<stri
   const { width, height } =
     detectedDims || aspectToWH(options.aspectRatio || '4:5', options.resolution)
 
-  // Optional face crop becomes input_image_3 (FLUX.2 supports up to 8 inputs)
+  // Pass the garment image TWICE — as image_2 and image_3 (or image_4
+  // when face crop is present). FLUX 2 attention is per-image; doubling
+  // up the garment reference noticeably boosts pattern + color fidelity
+  // with no extra cost (max 8 inputs allowed). FLUX 2 averages features
+  // across duplicate references, anchoring the swap harder.
   const inputImages = [cleanPerson, cleanGarment]
   if (options.faceCropBase64) {
     const cleanFace = options.faceCropBase64.replace(/^data:image\/[a-z+]+;base64,/, '')
     if (cleanFace.length > 100) inputImages.push(cleanFace)
+  }
+  // Double-reference for fidelity (only when not in simple-mode fallback)
+  if (promptMode !== 'simple' && inputImages.length < 8) {
+    inputImages.push(cleanGarment)
   }
 
   if (isDev) {
