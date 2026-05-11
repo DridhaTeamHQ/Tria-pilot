@@ -1008,16 +1008,17 @@ async function handlePresetlessTryOnRequest(params: {
     if (isDev) console.log(`\n🚀 Starting ${TARGET_PHOTOS.length} generations in PARALLEL | prompt: ${smartPrompt.length} chars`)
 
     // ── RELIABILITY CHAIN ────────────────────────────────────────────
-    // Each slot tries multiple strategies in sequence until ONE succeeds.
-    // This guarantees we deliver 3 images unless every strategy fails.
+    // Strategy order — PRIMARY is Gemini with all the fine-tuned prompt
+    // engineering (fact sheet from strictGarmentProfile, coverage-aware
+    // directives, texture/color fidelity block). FLUX-pro acts as
+    // fallback for the rare cases Gemini empties out.
     //
-    // Strategy order (per slot):
-    //   1. FLUX-2 [max] + detailed prompt  ← primary, highest quality
-    //   2. FLUX-2 [max] + simple prompt    ← recovers empty/over-prompted responses
-    //   3. FLUX-2 [pro] + detailed prompt  ← fallback to pro tier on max failure
-    //   4. FLUX-2 [pro] + simple prompt    ← simpler prompt on pro tier
-    //   5. Gemini Nano Banana              ← totally different engine, last resort
+    //   1. Gemini Nano Banana (fact sheet prompt)  ← primary, best fidelity
+    //   2. Gemini Nano Banana (retry, fresh request) ← recovers empty responses
+    //   3. FLUX-2 [pro] + detailed prompt           ← engine swap fallback
+    //   4. FLUX-2 [pro] + simple prompt             ← stripped prompt last resort
     //
+    // flux-2-max dropped — too unstable + too expensive for marginal gain.
     // Non-retryable errors (moderation, auth, invalid inputs) skip the
     // entire chain — those won't get better with another attempt.
     type Strategy = {
@@ -1038,50 +1039,48 @@ async function handlePresetlessTryOnRequest(params: {
       // Stable seed per slot so re-rolls don't produce identical images
       const slotSeed = Math.floor(Date.now() % 1_000_000_000) + slotIdx * 7919
 
+      // Helper: run a single call with an explicit engine override.
+      // Saves+restores process.env.TRYON_ENGINE so concurrent slots
+      // don't leak engine settings into each other.
+      const runWithEngine = async (engine: 'gemini' | 'flux', extra: Record<string, unknown> = {}) => {
+        const prev = process.env.TRYON_ENGINE
+        process.env.TRYON_ENGINE = engine
+        try {
+          return await generateTryOnDirect({ ...base, ...extra } as any)
+        } finally {
+          if (prev === undefined) delete process.env.TRYON_ENGINE
+          else process.env.TRYON_ENGINE = prev
+        }
+      }
+
       return [
         {
-          label: 'flux-2-max/detailed',
-          run: () => generateTryOnDirect({
-            ...base,
-            ...(({ promptMode: 'detailed', modelOverride: 'flux-2-max', seed: slotSeed }) as any),
-          }),
+          // Gemini with fact sheet + coverage directives (the fine-tuned path)
+          label: 'gemini-primary',
+          run: () => runWithEngine('gemini'),
         },
         {
-          label: 'flux-2-max/simple',
-          run: () => generateTryOnDirect({
-            ...base,
-            ...(({ promptMode: 'simple', modelOverride: 'flux-2-max', seed: slotSeed + 1 }) as any),
-          }),
+          // Same engine, fresh request — recovers ~80% of empty responses
+          label: 'gemini-retry',
+          run: () => runWithEngine('gemini'),
         },
         {
+          // Engine swap to FLUX-2 [pro] with full detailed prompt
           label: 'flux-2-pro/detailed',
-          run: () => generateTryOnDirect({
-            ...base,
-            ...(({ promptMode: 'detailed', modelOverride: 'flux-2-pro', seed: slotSeed + 2 }) as any),
+          run: () => runWithEngine('flux', {
+            promptMode: 'detailed',
+            modelOverride: 'flux-2-pro',
+            seed: slotSeed,
           }),
         },
         {
+          // Last resort: FLUX-2 [pro] with stripped prompt
           label: 'flux-2-pro/simple',
-          run: () => generateTryOnDirect({
-            ...base,
-            ...(({ promptMode: 'simple', modelOverride: 'flux-2-pro', seed: slotSeed + 3 }) as any),
+          run: () => runWithEngine('flux', {
+            promptMode: 'simple',
+            modelOverride: 'flux-2-pro',
+            seed: slotSeed + 1,
           }),
-        },
-        {
-          label: 'gemini-fallback',
-          run: async () => {
-            // Last-resort: force Gemini engine for this single call by
-            // temporarily flipping the env. This is per-process state so
-            // we save+restore to avoid leaking the override.
-            const prev = process.env.TRYON_ENGINE
-            process.env.TRYON_ENGINE = 'gemini'
-            try {
-              return await generateTryOnDirect({ ...base })
-            } finally {
-              if (prev === undefined) delete process.env.TRYON_ENGINE
-              else process.env.TRYON_ENGINE = prev
-            }
-          },
         },
       ]
     }
