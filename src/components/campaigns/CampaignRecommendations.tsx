@@ -239,14 +239,23 @@ export default function CampaignRecommendations({ campaigns }: { campaigns: Camp
     const IconComp = current.icon
 
     return (
-        <div className={`${style.bg} border-[3px] ${style.border} rounded-[24px] p-6 animate-slideUp relative overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]`}>
+        <div className={`bg-[#FFF9F0] border-[3px] ${style.border} rounded-[32px] p-6 animate-slideUp relative overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]`}>
+            {/* Decorative Shape: Grid Pattern */}
+            <div className="absolute top-0 right-0 w-24 h-24 opacity-10 pointer-events-none" 
+                 style={{ 
+                     backgroundImage: `radial-gradient(#FF8C69 2px, transparent 0)`,
+                     backgroundSize: '10px 10px',
+                     maskImage: 'linear-gradient(to bottom left, black 30%, transparent 70%)'
+                 }} 
+            />
+
             {/* Decorative pattern */}
             <div className="absolute inset-0 pointer-events-none opacity-[0.03]">
                 <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, black 1px, transparent 0)', backgroundSize: '12px 12px' }} />
             </div>
 
             {/* Accent tag */}
-            <div className="absolute top-0 right-12 px-3 py-1 bg-black text-white text-[9px] font-black uppercase tracking-[0.2em] rounded-b-lg">
+            <div className="absolute top-0 right-16 px-4 py-1 bg-black text-white text-[9px] font-black uppercase tracking-[0.2em] rounded-b-xl border-x-[3px] border-b-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
                 Intelligence
             </div>
 

@@ -55,11 +55,18 @@ function MiniMetricBar({ value, max, color = '#B4F056' }: { value: number; max: 
    CAMPAIGN CARD
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
+const STATUS_CARD_COLORS: Record<string, string> = {
+  active: 'bg-[#F2FDC7]',
+  draft: 'bg-[#FFF9E0]',
+  paused: 'bg-[#F1F5F9]',
+  completed: 'bg-[#F3E8FF]',
+}
+
 const STATUS_BADGE_COLORS: Record<string, string> = {
   active: 'bg-[#B4F056] text-black',
   draft: 'bg-[#FFD93D] text-black',
   paused: 'bg-gray-200 text-black/60',
-  completed: 'bg-black text-white',
+  completed: 'bg-[#A78BFA] text-black',
 }
 
 const GOAL_LABELS: Record<string, string> = {
@@ -134,8 +141,13 @@ export default function CampaignsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAF8] pt-2 md:pt-3 pb-10 md:pb-12">
-      <div className="container mx-auto px-4 max-w-full lg:px-8">
+    <div className="min-h-screen bg-[#FAFAF8] pt-2 md:pt-3 pb-10 md:pb-12 relative overflow-hidden">
+      {/* Background Design: Subtle Grid */}
+      <div className="absolute inset-0 pointer-events-none opacity-[0.05] z-0" 
+           style={{ backgroundImage: 'linear-gradient(#000 0.5px, transparent 0.5px), linear-gradient(90deg, #000 0.5px, transparent 0.5px)', backgroundSize: '40px 40px' }} 
+      />
+
+      <div className="container mx-auto px-4 max-w-full lg:px-8 relative z-10">
 
         {/* ── HEADER ── */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-6 mb-10">
@@ -209,13 +221,13 @@ export default function CampaignsPage() {
                       <button
                         key={f.value}
                         onClick={() => setStatusFilter(f.value)}
-                        className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border-[3px] text-xs font-black uppercase tracking-wider transition-all shrink-0 ${statusFilter === f.value
-                          ? 'bg-black text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)] translate-x-[-2px] translate-y-[-2px]'
-                          : 'bg-white text-black/50 border-black/10 hover:border-black hover:text-black'
+                        className={`inline-flex items-center gap-2 px-6 py-3 rounded-2xl border-[3px] text-xs font-black uppercase tracking-widest transition-all shrink-0 shadow-[4px_4px_0_0_rgba(0,0,0,1)] ${statusFilter === f.value
+                          ? 'bg-black text-white border-black -translate-y-0.5'
+                          : 'bg-white text-black border-black hover:bg-gray-50 hover:-translate-y-0.5'
                           }`}
                       >
                         {f.value !== 'all' && (
-                          <span className={`w-2.5 h-2.5 rounded-full border border-black/10 ${f.color}`} />
+                          <span className={`w-3 h-3 rounded-full border-2 border-black ${f.color}`} />
                         )}
                         {f.label}
                       </button>
@@ -292,9 +304,12 @@ export default function CampaignsPage() {
                     <Link
                       key={campaign.id}
                       href={`/brand/campaigns/${campaign.id}`}
-                      className="group bg-white border-[3px] border-black rounded-[24px] shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-1 hover:-translate-y-1 transition-all flex flex-col h-full overflow-hidden animate-slideUp"
+                      className={`group border-[3px] border-black rounded-[32px] shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-1 hover:-translate-y-1 transition-all flex flex-col h-full overflow-hidden animate-slideUp relative card-pattern ${STATUS_CARD_COLORS[campaign.status] || 'bg-white'}`}
                       style={{ animationDelay: `${350 + idx * 40}ms` }}
                     >
+                      {/* Background Decoration */}
+                      <div className="absolute top-0 right-0 w-20 h-20 bg-black/[0.03] -translate-y-10 translate-x-10 rotate-45 pointer-events-none" />
+
                       {/* Card Header */}
                       <div className="p-6 pb-4 flex-1">
                         <div className="flex items-start justify-between gap-4 mb-3">
@@ -330,13 +345,13 @@ export default function CampaignsPage() {
                               {(angles as (string | { angle?: string })[]).slice(0, 2).map((angle, i) => (
                                 <span
                                   key={i}
-                                  className="text-[10px] font-black uppercase tracking-wider bg-[#FFD93D]/40 border-2 border-black px-2 py-1 rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                                  className="text-[10px] font-black uppercase tracking-wider bg-black/5 border-2 border-black/10 px-2 py-1 rounded-lg"
                                 >
                                   {typeof angle === 'string' ? angle : angle?.angle ?? ''}
                                 </span>
                               ))}
                               {(angles as unknown[]).length > 2 && (
-                                <span className="text-[10px] font-black text-black/40 px-1 py-1">
+                                <span className="text-[10px] font-black text-black/30 px-1 py-1">
                                   +{(angles as unknown[]).length - 2} more
                                 </span>
                               )}
@@ -348,23 +363,19 @@ export default function CampaignsPage() {
                       {/* Metrics Bar */}
                       {((campaign.impressions ?? 0) > 0 || (campaign.spend ?? 0) > 0) && (
                         <div className="px-6 pb-4">
-                          <div className="grid grid-cols-3 gap-4 py-4 border-t-2 border-black/10">
+                          <div className="grid grid-cols-3 gap-4 py-4 border-t-2 border-black/10 relative z-10">
                             <div>
-                              <p className="text-[10px] font-black text-black/40 uppercase tracking-widest mb-1">Impact</p>
+                              <p className="text-[10px] font-black text-black/60 uppercase tracking-widest mb-1">Impact</p>
                               <p className="text-base font-black tabular-nums">{(campaign.impressions ?? 0).toLocaleString()}</p>
-                              <div className="mt-2">
-                                <MiniMetricBar value={campaign.impressions ?? 0} max={maxImpressions} color="#A78BFA" />
-                              </div>
                             </div>
                             <div>
-                              <p className="text-[10px] font-black text-black/40 uppercase tracking-widest mb-1">Efficiency</p>
+                              <p className="text-[10px] font-black text-black/60 uppercase tracking-widest mb-1">Efficiency</p>
                               <p className="text-base font-black tabular-nums flex items-center gap-1.5">
                                 {ctr.toFixed(1)}%
-                                {ctr > 3 && <TrendingUp className="w-4 h-4 text-green-600" strokeWidth={3} />}
                               </p>
                             </div>
                             <div>
-                              <p className="text-[10px] font-black text-black/40 uppercase tracking-widest mb-1">Spend</p>
+                              <p className="text-[10px] font-black text-black/60 uppercase tracking-widest mb-1">Spend</p>
                               <p className="text-base font-black tabular-nums">₹{(campaign.spend ?? 0).toLocaleString()}</p>
                             </div>
                           </div>
@@ -418,6 +429,10 @@ export default function CampaignsPage() {
         }
         .animate-fadeIn {
           animation: fadeIn 0.3s ease-out both;
+        }
+        .card-pattern {
+          background-image: radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.05) 1px, transparent 0);
+          background-size: 12px 12px;
         }
       `}</style>
     </div>
