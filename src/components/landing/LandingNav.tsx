@@ -100,7 +100,7 @@ export default function LandingNav() {
                 <Link
                   href={dashboardLink}
                   onClick={() => setPendingPath(dashboardLink)}
-                  className={`inline-flex items-center justify-center gap-2 rounded-full border-[2px] border-black ${user?.role === 'BRAND' ? 'bg-[#B4F056]' : 'bg-[#FF9B8F]'} px-6 py-2.5 text-[14px] font-black uppercase tracking-[0.05em] text-black shadow-[3px_4px_0_0_rgba(0,0,0,0.95)] transition-all duration-300 hover:-translate-y-0.5 ${pendingPath === dashboardLink ? 'opacity-50 pointer-events-none' : ''}`}
+                  className={`inline-flex items-center justify-center gap-2 rounded-full border-[2px] border-black ${user?.role === 'BRAND' ? 'bg-[#B4F056]' : 'bg-[#FF8C69]'} px-6 py-2.5 text-[14px] font-black uppercase tracking-[0.05em] text-black shadow-[3px_4px_0_0_rgba(0,0,0,0.95)] transition-all duration-300 hover:-translate-y-0.5 ${pendingPath === dashboardLink ? 'opacity-50 pointer-events-none' : ''}`}
                 >
                   <LayoutDashboard className="h-4 w-4" />
                   Dashboard
@@ -117,7 +117,7 @@ export default function LandingNav() {
                   <Link
                     href="/register"
                     onClick={() => setPendingPath('/register')}
-                    className={`inline-flex items-center justify-center rounded-full border-[1.5px] border-black bg-[#ff8c78] px-5 py-2.5 text-[13px] font-black uppercase tracking-[0.08em] text-black transition-transform duration-300 hover:-translate-y-0.5 ${pendingPath === '/register' ? 'opacity-50 pointer-events-none' : ''}`}
+                    className={`inline-flex items-center justify-center rounded-full border-[1.5px] border-black bg-[#FF8C69] px-5 py-2.5 text-[13px] font-black uppercase tracking-[0.08em] text-black transition-transform duration-300 hover:-translate-y-0.5 ${pendingPath === '/register' ? 'opacity-50 pointer-events-none' : ''}`}
                   >
                     Sign Up
                   </Link>

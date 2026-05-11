@@ -244,7 +244,7 @@ export default function CampaignRecommendations({ campaigns }: { campaigns: Camp
             <div className="absolute inset-0 pointer-events-none opacity-[0.03]">
                 <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, black 1px, transparent 0)', backgroundSize: '12px 12px' }} />
             </div>
-            
+
             {/* Accent tag */}
             <div className="absolute top-0 right-12 px-3 py-1 bg-black text-white text-[9px] font-black uppercase tracking-[0.2em] rounded-b-lg">
                 Intelligence
