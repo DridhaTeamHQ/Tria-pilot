@@ -1009,15 +1009,14 @@ async function handlePresetlessTryOnRequest(params: {
 
     // ── RELIABILITY CHAIN ────────────────────────────────────────────
     // Each slot tries multiple strategies in sequence until ONE succeeds.
-    // This guarantees we deliver 3 images unless every strategy fails,
-    // which is extremely unlikely (different models, different prompts,
-    // different engines).
+    // This guarantees we deliver 3 images unless every strategy fails.
     //
-    // Strategy order:
-    //   1. FLUX-2 [pro] + detailed prompt (highest fidelity)
-    //   2. FLUX-2 [pro] + simple prompt    (recovers ~70% of empty responses)
-    //   3. FLUX-2 [flex] + simple prompt   (different model, separate quota)
-    //   4. Gemini Nano Banana             (totally different engine, last resort)
+    // Strategy order (per slot):
+    //   1. FLUX-2 [max] + detailed prompt  ← primary, highest quality
+    //   2. FLUX-2 [max] + simple prompt    ← recovers empty/over-prompted responses
+    //   3. FLUX-2 [pro] + detailed prompt  ← fallback to pro tier on max failure
+    //   4. FLUX-2 [pro] + simple prompt    ← simpler prompt on pro tier
+    //   5. Gemini Nano Banana              ← totally different engine, last resort
     //
     // Non-retryable errors (moderation, auth, invalid inputs) skip the
     // entire chain — those won't get better with another attempt.
@@ -1041,24 +1040,31 @@ async function handlePresetlessTryOnRequest(params: {
 
       return [
         {
+          label: 'flux-2-max/detailed',
+          run: () => generateTryOnDirect({
+            ...base,
+            ...(({ promptMode: 'detailed', modelOverride: 'flux-2-max', seed: slotSeed }) as any),
+          }),
+        },
+        {
+          label: 'flux-2-max/simple',
+          run: () => generateTryOnDirect({
+            ...base,
+            ...(({ promptMode: 'simple', modelOverride: 'flux-2-max', seed: slotSeed + 1 }) as any),
+          }),
+        },
+        {
           label: 'flux-2-pro/detailed',
           run: () => generateTryOnDirect({
             ...base,
-            ...(({ promptMode: 'detailed', modelOverride: 'flux-2-pro', seed: slotSeed }) as any),
+            ...(({ promptMode: 'detailed', modelOverride: 'flux-2-pro', seed: slotSeed + 2 }) as any),
           }),
         },
         {
           label: 'flux-2-pro/simple',
           run: () => generateTryOnDirect({
             ...base,
-            ...(({ promptMode: 'simple', modelOverride: 'flux-2-pro', seed: slotSeed + 1 }) as any),
-          }),
-        },
-        {
-          label: 'flux-2-flex/simple',
-          run: () => generateTryOnDirect({
-            ...base,
-            ...(({ promptMode: 'simple', modelOverride: 'flux-2-flex', seed: slotSeed + 2 }) as any),
+            ...(({ promptMode: 'simple', modelOverride: 'flux-2-pro', seed: slotSeed + 3 }) as any),
           }),
         },
         {
