@@ -1244,7 +1244,7 @@ Return ONLY the extracted garment image.`
   ]
 
   const config: GenerateContentConfig = {
-    responseModalities: ['IMAGE'],
+    responseModalities: ['TEXT', 'IMAGE'],
     imageConfig: { aspectRatio: '1:1' } as any,
     temperature: 0,
   }
@@ -1352,7 +1352,7 @@ OUTPUT: Same person(from character reference) + DIFFERENT outfit(from garment re
   step1Contents.push(step1Prompt)
 
   const step1Config: GenerateContentConfig = {
-    responseModalities: ['IMAGE'],
+    responseModalities: ['TEXT', 'IMAGE'],
     imageConfig: { aspectRatio } as any,
     temperature: 0.01,
   }
@@ -1456,7 +1456,7 @@ OUTPUT: Same person(unchanged) naturally photographed in realistic scene.`
   }
 
   const step2Config: GenerateContentConfig = {
-    responseModalities: ['IMAGE'],
+    responseModalities: ['TEXT', 'IMAGE'],
     imageConfig,
     temperature: 0,
   }
@@ -1544,7 +1544,7 @@ async function renderSingleStep(
   }
 
   const config: GenerateContentConfig = {
-    responseModalities: ['IMAGE'],
+    responseModalities: ['TEXT', 'IMAGE'],
     imageConfig,
     temperature,
   }
@@ -1647,7 +1647,7 @@ Real skin with visible pores.`
   step1Contents.push(step1Prompt)
 
   const step1Config: GenerateContentConfig = {
-    responseModalities: ['IMAGE'],
+    responseModalities: ['TEXT', 'IMAGE'],
     imageConfig: { aspectRatio } as any,
     temperature: 0.01, // Ultra-low for identity precision
   }
@@ -1737,7 +1737,7 @@ Make it look like they were photographed there.`
   }
 
   const step2Config: GenerateContentConfig = {
-    responseModalities: ['IMAGE'],
+    responseModalities: ['TEXT', 'IMAGE'],
     imageConfig,
     temperature: 0, // Maximum determinism for face preservation
   }

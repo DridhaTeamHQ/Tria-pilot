@@ -185,7 +185,7 @@ export async function extractGarmentWithFidelity(params: {
   ]
 
   const config: GenerateContentConfig = {
-    responseModalities: ['IMAGE'],
+    responseModalities: ['TEXT', 'IMAGE'],
   }
 
   try {

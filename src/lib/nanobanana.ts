@@ -332,7 +332,7 @@ OUTPUT: High-quality realistic photograph of the SAME PERSON from the first imag
 
     // Build generation config
     const config: GenerateContentConfig = {
-      responseModalities: ['IMAGE'],
+      responseModalities: ['TEXT', 'IMAGE'],
       imageConfig,
     }
 
@@ -657,7 +657,7 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
   const regionLockBlock = regionLock ? `\n\n${regionLock}` : ''
 
   const config: GenerateContentConfig = {
-    responseModalities: ['IMAGE'],
+    responseModalities: ['TEXT', 'IMAGE'],
     systemInstruction: `You are a photorealistic virtual try-on editor. Output ONLY an edited image — no text.
 
 TASK: Edit the clothing on the person from Image 1 so the final visible garment matches Image 2 exactly. This is a SURGICAL clothing change — only the specified body region changes, everything else stays IDENTICAL.
