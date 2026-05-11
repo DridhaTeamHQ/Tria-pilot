@@ -658,9 +658,28 @@ REALISM: Photorealistic output. Natural skin, realistic fabric drape. No AI smoo
       const duration = ((Date.now() - startTime) / 1000).toFixed(2)
       if (modelAttempt !== requestedModel) {
         console.warn(`\u26a1 Used fallback model ${modelAttempt} (${duration}s) \u2014 primary ${requestedModel} was unavailable`)
-      } else if (isDev) {
+      } else {
         console.log(`\ud83c\udf4c DIRECT TRANSPORT: ${modelAttempt} responded in ${duration}s`)
       }
+
+      // ── DIAGNOSTIC: dump response structure to understand empty responses ──
+      const candidateCount = response.candidates?.length ?? 0
+      const hasData = Boolean(response.data)
+      const firstCandidate = response.candidates?.[0]
+      const finishReason = (firstCandidate as any)?.finishReason
+      const partTypes = firstCandidate?.content?.parts?.map((p: any) => {
+        if (p.inlineData) return `inlineData(${p.inlineData.mimeType})`
+        if (p.text) return `text(${p.text.slice(0, 80)}...)`
+        if (p.thoughtSignature) return 'thoughtSignature'
+        return Object.keys(p).join(',')
+      }) ?? []
+      console.log(`🔍 GEMINI RESPONSE DIAGNOSTIC [${modelAttempt}]:`, JSON.stringify({
+        hasData,
+        candidateCount,
+        finishReason,
+        partTypes,
+        responseKeys: Object.keys(response),
+      }))
 
       if (response.data) {
         return `data:image/png;base64,${response.data}`
@@ -668,9 +687,9 @@ REALISM: Photorealistic output. Natural skin, realistic fabric drape. No AI smoo
 
       if (response.candidates && response.candidates.length > 0) {
         const candidate = response.candidates[0]
-        const finishReason = (candidate as any).finishReason
-        if (finishReason && finishReason !== 'STOP' && finishReason !== 'MAX_TOKENS') {
-          throw new Error(`Generation blocked by safety filter (${finishReason})`)
+        const fr = (candidate as any).finishReason
+        if (fr && fr !== 'STOP' && fr !== 'MAX_TOKENS') {
+          throw new Error(`Generation blocked by safety filter (${fr})`)
         }
         if (candidate.content && candidate.content.parts) {
           for (const part of candidate.content.parts) {

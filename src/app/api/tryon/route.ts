@@ -1035,16 +1035,94 @@ async function handlePresetlessTryOnRequest(params: {
       console.log(`   Garment preprocessing: extracted=${garmentPreprocess.wasExtracted} bodyDetected=${garmentPreprocess.bodyDetected} method=${garmentPreprocess.extractionMethod}`)
     }
 
-    // ── PARALLEL GENERATION — fire all 3 at once ─────────────────────────
+    // ── CLEAN PIPELINE ────────────────────────────────────────────────
+    // 1. Extract garment (already done above as `processedGarment`)
+    // 2. GPT-4o orchestrator picks 3 photos + writes prompts
+    // 3. FLUX-2 [pro] runs 3 swaps in parallel
+    // No fallback chains, no quality validators, no multi-engine madness.
     const successfulOutputs: PresetlessPersistedOutput[] = []
     const failedAttempts: Array<{ referenceImageId: string; error: string }> = []
     const targetOutputCount = 3
+
+    const { runCleanTryOn, isCleanTryOnSlotSuccess } = await import('@/lib/tryon/clean-tryon')
+
+    if (isDev) console.log(`\n🚀 [clean-pipeline] starting clean try-on with ${orderedPhotos.length} candidate photos`)
+
+    let cleanResult: import('@/lib/tryon/clean-tryon').CleanTryOnResult
+    try {
+      cleanResult = await runCleanTryOn({
+        garmentImageBase64: processedGarment,
+        candidatePhotos: orderedPhotos.slice(0, 8).map((photo: any, idx: number) => ({
+          id: photo.id,
+          imageUrl: photo.image_url || photo.imageUrl,
+          base64: orderedReferenceBase64s[idx] || '',
+          bodyVisibility: photo.body_visibility || photo.bodyVisibility,
+          framing: photo.framing,
+          description: photo.description || photo.caption,
+        })).filter((p) => p.base64.length > 100),
+        productText: garmentTextHint,
+        aspectRatio: (payload.aspectRatio || '4:5') as any,
+      })
+    } catch (cleanErr) {
+      const msg = cleanErr instanceof Error ? cleanErr.message : 'Clean pipeline failed'
+      console.error('[tryon] clean pipeline catastrophic failure:', msg)
+      return jsonError(502, 'TRYON_GENERATION_FAILED', `Try-on pipeline failed: ${msg.slice(0, 200)}`)
+    }
+
+    if (isDev) {
+      console.log(`✅ [clean-pipeline] done in ${cleanResult.totalDurationMs}ms`)
+      cleanResult.selections.forEach((s, i) => {
+        if (isCleanTryOnSlotSuccess(s)) {
+          console.log(`   ${i + 1}. ${s.photoId.slice(0, 8)} ✓ ${s.durationMs}ms — ${s.reasoning}`)
+        } else {
+          console.log(`   ${i + 1}. ${s.photoId.slice(0, 8)} ✗ ${s.error}`)
+        }
+      })
+    }
+
+    // Process each slot: save successful images, record failures
+    await Promise.all(cleanResult.selections.map(async (sel, idx) => {
+      if (!isCleanTryOnSlotSuccess(sel)) {
+        failedAttempts.push({ referenceImageId: sel.photoId, error: sel.error })
+        return
+      }
+      let outputImagePath = sel.outputBase64
+      try {
+        const cleanBase64 = sel.outputBase64.replace(/^data:image\/[a-z+]+;base64,/, '')
+        const storedUrl = await saveUpload(
+          cleanBase64,
+          `tryon/${userId}/${job.id}/${idx + 1}-${sel.photoId}.png`,
+          'try-ons'
+        )
+        if (storedUrl) outputImagePath = storedUrl
+      } catch (storageError) {
+        console.error(`[tryon] storage failed for slot ${idx + 1}, using base64 fallback:`, storageError)
+      }
+      successfulOutputs.push({
+        referenceImageId: sel.photoId,
+        status: 'completed',
+        outputImagePath,
+        label: `Source ${idx + 1}`,
+        validation: {
+          qualityScores: undefined,
+          warnings: ['clean_pipeline'],
+          garmentGuardrail: undefined,
+        },
+      })
+    }))
+
+    // The legacy generationResults / generateWithRetry / buildStrategies
+    // path is replaced by the clean pipeline above. Guarded with a
+    // const-true flag so TypeScript can't reach the dead code below
+    // through narrowing (kept as comment for git-history reference, but
+    // unreachable at runtime).
+    const SKIP_LEGACY_GENERATION: true = true
+    if (!SKIP_LEGACY_GENERATION as boolean) {
+    // Stubs so the dead code below type-checks. These are never read at runtime.
+    const smartPrompt = ''
     const TARGET_PHOTOS = orderedPhotos.slice(0, targetOutputCount)
-    const smartPrompt = composeSmartPrompt(garmentIntel, {
-      aspectRatio: payload.aspectRatio || '4:5',
-      polishNotes: payload.polishNotes?.trim() || undefined,
-    })
-    if (isDev) console.log(`\n🚀 Starting ${TARGET_PHOTOS.length} generations in PARALLEL | prompt: ${smartPrompt.length} chars`)
+    void smartPrompt
+    void TARGET_PHOTOS
 
     // ── RELIABILITY CHAIN ────────────────────────────────────────────
     // Strategy order — PRIMARY is Gemini Nano Banana (preserves identity
@@ -1145,14 +1223,14 @@ async function handlePresetlessTryOnRequest(params: {
       photoId: string,
       slotIdx: number,
       faceCropBase64?: string,
-    ): Promise<string> => {
+    ): Promise<{ image: string; qualityScore?: number; qualityIssues?: string[]; strategyUsed?: string }> => {
       const strategies = buildStrategies(referenceImageBase64, slotIdx, photoId, faceCropBase64)
       let lastErr: unknown = null
 
       // Track the best result across strategies — if NO strategy passes
       // validation, we return the highest-scored one rather than failing.
       // Better to ship a marginal output than block the user entirely.
-      let bestResult: { image: string; score: number; label: string } | null = null
+      let bestResult: { image: string; score: number; label: string; issues?: string[] } | null = null
 
       for (let i = 0; i < strategies.length; i++) {
         const strategy = strategies[i]
@@ -1181,7 +1259,7 @@ async function handlePresetlessTryOnRequest(params: {
 
               if (validation) {
                 if (!bestResult || validation.score > bestResult.score) {
-                  bestResult = { image: result, score: validation.score, label: strategy.label }
+                  bestResult = { image: result, score: validation.score, label: strategy.label, issues: validation.issues }
                 }
                 if (!validation.valid && validation.score < 65) {
                   if (isDev) console.warn(`🔁 Slot ${slotIdx + 1} ${strategy.label} failed quality (${validation.score}/100) — trying next strategy. Issues: ${validation.issues.join(', ')}`)
@@ -1190,6 +1268,9 @@ async function handlePresetlessTryOnRequest(params: {
                   }
                   continue
                 }
+                // Passed validation — return with the score so UI can show it
+                if (isDev && i > 0) console.log(`✨ Slot ${slotIdx + 1} recovered via ${strategy.label} (strategy ${i + 1}) @ ${validation.score}/100`)
+                return { image: result, qualityScore: validation.score, qualityIssues: validation.issues, strategyUsed: strategy.label }
               }
             } catch (valErr) {
               // Validator failure is non-fatal — fall through and accept the result
@@ -1198,7 +1279,7 @@ async function handlePresetlessTryOnRequest(params: {
           }
 
           if (isDev && i > 0) console.log(`✨ Slot ${slotIdx + 1} recovered via ${strategy.label} (strategy ${i + 1})`)
-          return result
+          return { image: result, qualityScore: bestResult?.score, qualityIssues: bestResult?.issues, strategyUsed: strategy.label }
         } catch (err) {
           lastErr = err
           const msg = err instanceof Error ? err.message.toLowerCase() : ''
@@ -1230,7 +1311,12 @@ async function handlePresetlessTryOnRequest(params: {
       // quality-validation tracking, return it — better than nothing.
       if (bestResult) {
         if (isDev) console.warn(`⚠️ Slot ${slotIdx + 1} all strategies sub-threshold; returning best (${bestResult.label} @ ${bestResult.score}/100)`)
-        return bestResult.image
+        return {
+          image: bestResult.image,
+          qualityScore: bestResult.score,
+          qualityIssues: bestResult.issues,
+          strategyUsed: bestResult.label,
+        }
       }
 
       throw lastErr instanceof Error
@@ -1249,7 +1335,8 @@ async function handlePresetlessTryOnRequest(params: {
           console.log(`🎯 Gen ${idx + 1}/${TARGET_PHOTOS.length} → photo: ${photo.id}${faceCropForSlot ? ' · face crop ✓' : ''}`)
         }
 
-        const generatedImage = await generateWithRetry(referenceImageBase64, photo.id, idx, faceCropForSlot)
+        const genResult = await generateWithRetry(referenceImageBase64, photo.id, idx, faceCropForSlot)
+        const generatedImage = genResult.image
 
         // Save to storage
         let outputImagePath = generatedImage
@@ -1265,8 +1352,15 @@ async function handlePresetlessTryOnRequest(params: {
           console.error(`[tryon] storage failed for slot ${idx + 1}, using base64 fallback:`, storageError)
         }
 
-        if (isDev) console.log(`✅ Gen ${idx + 1} complete → slot ${idx + 1}`)
-        return { photo, outputImagePath, slot: idx + 1 }
+        if (isDev) console.log(`✅ Gen ${idx + 1} complete → slot ${idx + 1}${genResult.qualityScore != null ? ` · quality ${genResult.qualityScore}/100` : ''}`)
+        return {
+          photo,
+          outputImagePath,
+          slot: idx + 1,
+          qualityScore: genResult.qualityScore,
+          qualityIssues: genResult.qualityIssues,
+          strategyUsed: genResult.strategyUsed,
+        }
       })
     )
 
@@ -1287,7 +1381,7 @@ async function handlePresetlessTryOnRequest(params: {
         failedAttempts.push({ referenceImageId: 'unknown', error: message })
       }
     }
-
+    } // end if (!SKIP_LEGACY_GENERATION) — dead code
 
     const outputs: PresetlessPersistedOutput[] = [...successfulOutputs]
 
