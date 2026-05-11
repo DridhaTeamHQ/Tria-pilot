@@ -292,7 +292,7 @@ function BrandInboxInner() {
   }
 
   return (
-    <div className="w-full flex flex-col items-center pb-8 animate-fade-in">
+    <div className="w-full flex flex-col items-center pt-6 pb-8 animate-fade-in">
       {/* Premium Inbox Container */}
       <div className="w-full max-w-[1440px] h-[calc(100vh-140px)] bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-[32px] overflow-hidden flex flex-col md:flex-row relative">
         
