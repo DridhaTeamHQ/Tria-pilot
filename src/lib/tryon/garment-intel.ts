@@ -197,6 +197,59 @@ function extractJson(text: string): string {
   throw new Error('Could not extract valid JSON from response')
 }
 
+// ── TEXT-HINT OVERRIDE ───────────────────────────────────────────────────────
+// Last-resort correction: if the product text contains an unambiguous
+// keyword that contradicts the AI-derived garmentType / coverage, force
+// the correct classification. This catches the case where a model is
+// wearing multiple garments in the product image and the AI fixates on
+// the wrong one.
+function applyTextHintOverride(intel: GarmentIntelligence, textHint: string): GarmentIntelligence {
+  const t = textHint.toLowerCase()
+
+  // Strong bottom-wear keywords
+  const isBottom = /\b(jeans|trouser|pant|chino|jogger|legging|cargo|skirt|short|bermuda|palazzo|culotte|capri)\b/.test(t)
+  if (isBottom && intel.coverage !== 'lower_only') {
+    return {
+      ...intel,
+      garmentType: /skirt/.test(t) ? 'skirt' : 'pants',
+      coverage: 'lower_only',
+    }
+  }
+
+  // Strong full-body keywords
+  const isFull = /\b(saree|sari|lehenga|gown|jumpsuit|romper|playsuit)\b/.test(t)
+  if (isFull && intel.coverage !== 'full_body') {
+    const type: GarmentType = /saree|sari/.test(t) ? 'saree'
+      : /lehenga/.test(t) ? 'lehenga'
+      : /jumpsuit|romper|playsuit/.test(t) ? 'jumpsuit'
+      : 'dress'
+    return { ...intel, garmentType: type, coverage: 'full_body' }
+  }
+
+  // 'dress' or 'frock' (unambiguous full-body)
+  const isDress = /\b(dress|frock|gown)\b/.test(t) && !/jacket/.test(t)
+  if (isDress && intel.coverage !== 'full_body') {
+    return { ...intel, garmentType: 'dress', coverage: 'full_body' }
+  }
+
+  // 'co-ord set' / 'coord set'
+  if (/\b(co.?ord)\b/.test(t) && intel.coverage !== 'full_body') {
+    return { ...intel, garmentType: 'co_ord_set', coverage: 'full_body' }
+  }
+
+  // Strong upper-wear keywords (only if AI classified non-upper)
+  const isUpper = /\b(shirt|t.?shirt|tee|blouse|top|tank|crop top|cami|tunic|kurti|jacket|blazer|cardigan|hoodie)\b/.test(t)
+  if (isUpper && intel.coverage === 'lower_only') {
+    return {
+      ...intel,
+      garmentType: /jacket|blazer|cardigan|hoodie/.test(t) ? 'outerwear' : 'top',
+      coverage: /jacket|blazer|cardigan|hoodie/.test(t) ? 'layered' : 'upper_only',
+    }
+  }
+
+  return intel
+}
+
 // ── GPT-4O ANALYZER (PRIMARY) ────────────────────────────────────────────────
 // GPT-4o has noticeably better visual reasoning for fashion garments than
 // Gemini 2.5 Flash — it distinguishes "top vs dress" and "kurta vs blouse"
@@ -250,9 +303,23 @@ async function analyzeGarmentWithGPT4o(
 
   try {
     const openai = getOpenAI()
+    // The text hint is AUTHORITATIVE for product identification. When a
+    // product image shows a model wearing multiple garments (e.g. jeans
+    // with a styling top), the analyzer would otherwise fixate on whichever
+    // is more visually prominent. The product name tells us definitively
+    // which garment is the actual product.
     const userMsg = textHint
-      ? `Product context: "${textHint.slice(0, 200)}". Analyze the garment image and return JSON.`
-      : 'Analyze the garment image and return JSON.'
+      ? `The product is described as: "${textHint.slice(0, 200)}".
+
+This product name is AUTHORITATIVE — it tells you which specific garment in the image is the actual product. If the image shows a model wearing multiple items (e.g. a top AND pants), focus exclusively on the item that matches this product description. The other items on the model are styling — they are NOT the product.
+
+For example:
+- If product is "jeans" or "pants" → garmentType=pants, coverage=lower_only, even if a top is more visually prominent
+- If product is "blouse" or "top" → garmentType=top, coverage=upper_only, even if pants are prominently shown
+- If product is "dress" or "kurta" → garmentType=dress, coverage=full_body
+
+Analyze the garment image and return JSON. The product name fact above OVERRIDES any visual ambiguity.`
+      : 'Analyze the garment image and return JSON. Identify the MAIN garment being sold/showcased.'
 
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
@@ -293,7 +360,7 @@ async function analyzeGarmentWithGPT4o(
     const visibleTop = rawTop && !['none', 'null', 'n/a', ''].includes(rawTop)
       ? parsed.visibleTopInPhoto!.trim() : ''
 
-    const intel: GarmentIntelligence = {
+    let intel: GarmentIntelligence = {
       garmentType: parsed.garmentType || 'top',
       coverage: parsed.coverage || 'upper_only',
       primaryColor: parsed.primaryColor || 'neutral',
@@ -310,6 +377,19 @@ async function analyzeGarmentWithGPT4o(
       bottomWearSuggestion: parsed.bottomWearSuggestion || 'dark fitted jeans',
       description: parsed.description || `A ${parsed.garmentType || 'garment'}`,
       promptModifiers: Array.isArray(parsed.promptModifiers) ? parsed.promptModifiers : [],
+    }
+
+    // ── HARD OVERRIDE FROM TEXT HINT ─────────────────────────────────
+    // Final safety net: if the product text has an unambiguous keyword,
+    // override the classification regardless of what GPT-4o returned.
+    // This catches the rare case where the on-model image is so dominated
+    // by styling clothes that even the new prompt can't disambiguate.
+    if (textHint) {
+      const corrected = applyTextHintOverride(intel, textHint)
+      if (corrected !== intel) {
+        if (isDev) console.log(`🛡️ Text-hint override: ${intel.garmentType}/${intel.coverage} → ${corrected.garmentType}/${corrected.coverage}`)
+        intel = corrected
+      }
     }
 
     if (isDev) {

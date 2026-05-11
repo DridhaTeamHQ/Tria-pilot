@@ -336,6 +336,16 @@ function TryOnPageContent() {
         } else {
           body.garmentImageUrl = selectedProductImage
         }
+        // CRITICAL: pass product name + description so GPT-4o can disambiguate
+        // when the product image shows a model wearing multiple garments
+        // (e.g. jeans + top). Without this, the analyzer fixates on whichever
+        // garment is more visually prominent, not the actual product.
+        const productName = productData?.name || ''
+        const productDesc = productData?.description || ''
+        if (productName) body.productName = productName
+        if (productName || productDesc) {
+          body.garmentText = `${productName} ${productDesc}`.trim().slice(0, 300)
+        }
         const res = await fetch('/api/tryon/recommend', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
