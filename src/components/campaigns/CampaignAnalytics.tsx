@@ -261,33 +261,40 @@ function KPICard({ icon: Icon, label, value, trend, sparkData, color, delay = 0 
 }) {
     return (
         <div
-            className="bg-white border-[3px] border-black rounded-[24px] p-5 hover:bg-black/5 transition-all animate-slideUp group shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-1 hover:-translate-y-1"
-            style={{ animationDelay: `${delay}ms` }}
+            className="border-[3px] border-black rounded-[32px] p-6 hover:bg-black/5 transition-all animate-slideUp group shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-1 hover:-translate-y-1 relative overflow-hidden"
+            style={{
+                animationDelay: `${delay}ms`,
+                backgroundColor: color,
+            }}
         >
-            <div className="flex items-start justify-between mb-4">
+            {/* Background Decoration */}
+            <div className="absolute top-0 right-0 w-16 h-16 bg-white/20 -translate-y-8 translate-x-8 rotate-45 pointer-events-none" />
+
+            <div className="flex items-start justify-between mb-6 relative z-10">
                 <div
-                    className="w-11 h-11 rounded-xl border-[3px] border-black flex items-center justify-center transition-transform group-hover:scale-110 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
-                    style={{ backgroundColor: `${color}40` }}
+                    className="w-12 h-12 rounded-2xl border-[3px] border-black flex items-center justify-center transition-transform group-hover:rotate-6 bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
                 >
-                    <Icon className="w-5 h-5 text-black" strokeWidth={3} />
+                    <Icon className="w-6 h-6 text-black" strokeWidth={3} />
                 </div>
                 {sparkData && sparkData.length > 1 && (
                     <div className="pt-2">
-                        <MiniSparkline data={sparkData} color={color} />
+                        <MiniSparkline data={sparkData} color="#000000" />
                     </div>
                 )}
             </div>
-            <p className="text-2xl font-black text-black tracking-tighter leading-none mb-2">{value}</p>
-            <div className="flex items-center gap-2">
-                <p className="text-[10px] font-black uppercase tracking-widest text-black/40">{label}</p>
-                {trend && (
-                    <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded-lg border-2 border-black text-[10px] font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${trend === 'up' ? 'bg-[#B4F056]' : trend === 'down' ? 'bg-[#FF6B6B]' : 'bg-white'
-                        }`}>
-                        {trend === 'up' && <TrendingUp className="w-3 h-3" strokeWidth={3} />}
-                        {trend === 'down' && <TrendingDown className="w-3 h-3" strokeWidth={3} />}
-                        {trend === 'flat' && <Minus className="w-3 h-3" strokeWidth={3} />}
-                    </span>
-                )}
+
+            <div className="relative z-10">
+                <p className="text-3xl font-black text-black tracking-tighter leading-none mb-3">{value}</p>
+                <div className="flex items-center gap-2">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-black/60">{label}</p>
+                    {trend && (
+                        <span className={`flex items-center gap-1 px-2 py-0.5 rounded-lg border-2 border-black text-[10px] font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] bg-white`}>
+                            {trend === 'up' && <TrendingUp className="w-3 h-3 text-green-600" strokeWidth={3} />}
+                            {trend === 'down' && <TrendingDown className="w-3 h-3 text-red-600" strokeWidth={3} />}
+                            {trend === 'flat' && <Minus className="w-3 h-3 text-black/40" strokeWidth={3} />}
+                        </span>
+                    )}
+                </div>
             </div>
         </div>
     )
@@ -372,30 +379,43 @@ export default function CampaignAnalytics({ campaigns }: { campaigns: Campaign[]
             {/* Status Distribution + Top Performer */}
             <div className="grid md:grid-cols-2 gap-3">
                 {/* Status Ring */}
-                <div className="bg-white border-[3px] border-black rounded-[32px] p-6 animate-slideUp shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]" style={{ animationDelay: '200ms' }}>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-black/40 mb-5 flex items-center gap-2">
+                <div className="bg-[#FAFAF8] border-[3px] border-black rounded-[32px] p-6 animate-slideUp shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden" style={{ animationDelay: '200ms' }}>
+                    {/* Decorative Shape: Large Circle */}
+                    <div className="absolute -top-12 -right-12 w-32 h-32 bg-[#B4F056] rounded-full border-[3px] border-black opacity-20 pointer-events-none" />
+                    
+                    <p className="text-[10px] font-black uppercase tracking-widest text-black/40 mb-5 flex items-center gap-2 relative z-10">
                         <span className="w-2 h-2 rounded-full bg-black" />
                         Campaign Status
                     </p>
-                    <StatusRingChart
-                        breakdown={analytics.statusBreakdown}
-                        total={analytics.totalCampaigns}
-                    />
+                    <div className="relative z-10">
+                        <StatusRingChart
+                            breakdown={analytics.statusBreakdown}
+                            total={analytics.totalCampaigns}
+                        />
+                    </div>
                 </div>
 
                 {/* Quick Stats */}
-                <div className="bg-white border-[3px] border-black rounded-[32px] p-6 animate-slideUp shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]" style={{ animationDelay: '250ms' }}>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-black/40 mb-5 flex items-center gap-2">
+                <div className="bg-[#F5F5FF] border-[3px] border-black rounded-[32px] p-6 animate-slideUp shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden" style={{ animationDelay: '250ms' }}>
+                    {/* Decorative Shape: Diagonal Stripes */}
+                    <div className="absolute top-0 right-0 w-32 h-32 opacity-20 pointer-events-none" 
+                         style={{ 
+                             backgroundImage: 'repeating-linear-gradient(-45deg, #A78BFA, #A78BFA 4px, transparent 4px, transparent 12px)',
+                             maskImage: 'linear-gradient(to bottom left, black 40%, transparent 80%)'
+                         }} 
+                    />
+                    
+                    <p className="text-[10px] font-black uppercase tracking-widest text-black/40 mb-5 flex items-center gap-2 relative z-10">
                         <span className="w-2 h-2 rounded-full bg-[#B4F056]" />
                         Performance Snapshot
                     </p>
-                    <div className="space-y-3">
+                    <div className="space-y-3 relative z-10">
                         {[
                             { label: 'Active Campaigns', value: analytics.activeCampaigns, color: '#B4F056' },
                             { label: 'Avg Cost/Click', value: analytics.avgCPC > 0 ? `₹${analytics.avgCPC.toFixed(2)}` : '—', color: '#FFD93D' },
                             { label: 'Total Clicks', value: analytics.totalClicks.toLocaleString(), color: '#A78BFA' }
                         ].map((stat, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-3 bg-[#FAFAF8] border-2 border-black rounded-2xl group/stat hover:bg-white transition-colors">
+                            <div key={idx} className="flex items-center justify-between p-3 bg-white border-2 border-black rounded-2xl group/stat hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all">
                                 <div className="flex items-center gap-2">
                                     <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: stat.color }} />
                                     <span className="text-[10px] font-black uppercase tracking-wider text-black/50">{stat.label}</span>
@@ -411,7 +431,7 @@ export default function CampaignAnalytics({ campaigns }: { campaigns: Campaign[]
                             (c.impressions ?? 0) > (top?.impressions ?? 0) ? c : top, campaigns[0])
                         if (!best || (best.impressions ?? 0) === 0) return null
                         return (
-                            <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center justify-between gap-4 mt-5 relative z-10">
                                 <span className="text-xs font-black uppercase tracking-wider text-black/50 shrink-0">Top Performer</span>
                                 <span className="text-xs font-black text-black truncate bg-[#FFD93D] px-2 py-1 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">{best.title}</span>
                             </div>
