@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { AppImage } from '@/components/ui/AppImage'
 import { usePathname } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Menu,
   X,
@@ -101,23 +102,29 @@ export default function BrandNavbar({ brandName: initialBrandName, avatarUrl: in
           </Link>
 
           <nav className="hidden items-center justify-center gap-1.5 lg:flex xl:gap-2">
-            {navItems.map((item) => {
+            {navItems.map((item, idx) => {
               const Icon = item.icon
               const active = isActive(item.href)
               return (
-                <Link
+                <motion.div
                   key={item.href}
-                  href={item.href}
-                  onClick={() => setPendingPath(item.href)}
-                  className={`flex items-center gap-2 rounded-xl border-2 border-black px-3 py-1.5 text-sm font-bold transition-all xl:px-4 xl:py-2 xl:text-base ${pendingPath === item.href ? 'opacity-50 pointer-events-none' : ''} ${active
-                    ? 'text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)]'
-                    : 'bg-white text-black hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)]'
-                    }`}
-                  style={active ? { backgroundColor: item.color } : {}}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 + idx * 0.05 }}
                 >
-                  <Icon className="h-4 w-4 shrink-0 xl:h-5 xl:w-5" />
-                  <span className="whitespace-nowrap">{item.label}</span>
-                </Link>
+                  <Link
+                    href={item.href}
+                    onClick={() => setPendingPath(item.href)}
+                    className={`flex items-center gap-2 rounded-xl border-2 border-black px-3 py-1.5 text-sm font-bold transition-all xl:px-4 xl:py-2 xl:text-base ${pendingPath === item.href ? 'opacity-50 pointer-events-none' : ''} ${active
+                      ? 'text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)]'
+                      : 'bg-white text-black hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)]'
+                      }`}
+                    style={active ? { backgroundColor: item.color } : {}}
+                  >
+                    <Icon className="h-4 w-4 shrink-0 xl:h-5 xl:w-5" />
+                    <span className="whitespace-nowrap">{item.label}</span>
+                  </Link>
+                </motion.div>
               )
             })}
           </nav>
@@ -171,68 +178,75 @@ export default function BrandNavbar({ brandName: initialBrandName, avatarUrl: in
         </div>
       </div>
 
-      {mobileOpen && (
-        <div className="lg:hidden bg-white border-t-2 border-black">
-          <div className="mx-auto w-full max-w-[2000px] px-3 py-3 space-y-2 max-h-[calc(100dvh-3.5rem)] overflow-y-auto sm:px-5">
-            <Link
-              href="/brand/profile"
-              onClick={() => setMobileOpen(false)}
-              className="mb-3 flex items-center gap-3 rounded-xl border-2 border-black bg-[#F9F8F4] px-4 py-3 shadow-[3px_3px_0_0_rgba(0,0,0,1)]"
-            >
-              <div className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border-2 border-black bg-[#B4F056] font-black text-black">
-                {showAvatarImage ? (
-                  <AppImage
-                    src={avatarUrl!}
-                    alt={brandName || 'Brand'}
-                    className="object-contain bg-white p-0.5"
-                    sizes="48px"
-                    onError={() => setAvatarFailed(true)}
-                  />
-                ) : (
-                  brandName?.charAt(0)?.toUpperCase() || 'B'
-                )}
-              </div>
-              <div className="min-w-0">
-                <p className="truncate font-bold text-black">{brandName || 'Brand'}</p>
-                <p className="text-sm text-black/60">Brand account - Profile</p>
-              </div>
-            </Link>
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="lg:hidden bg-white border-t-2 border-black overflow-hidden"
+          >
+            <div className="mx-auto w-full max-w-[2000px] px-3 py-3 space-y-2 max-h-[calc(100dvh-3.5rem)] overflow-y-auto sm:px-5">
+              <Link
+                href="/brand/profile"
+                onClick={() => setMobileOpen(false)}
+                className="mb-3 flex items-center gap-3 rounded-xl border-2 border-black bg-[#F9F8F4] px-4 py-3 shadow-[3px_3px_0_0_rgba(0,0,0,1)]"
+              >
+                <div className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border-2 border-black bg-[#B4F056] font-black text-black">
+                  {showAvatarImage ? (
+                    <AppImage
+                      src={avatarUrl!}
+                      alt={brandName || 'Brand'}
+                      className="object-contain bg-white p-0.5"
+                      sizes="48px"
+                      onError={() => setAvatarFailed(true)}
+                    />
+                  ) : (
+                    brandName?.charAt(0)?.toUpperCase() || 'B'
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate font-bold text-black">{brandName || 'Brand'}</p>
+                  <p className="text-sm text-black/60">Brand account - Profile</p>
+                </div>
+              </Link>
 
-            {mobileNavItems.map((item) => {
-              const Icon = item.icon
-              const active = isActive(item.href)
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-black text-base font-bold transition-all ${active
-                    ? 'bg-[#B4F056] text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)]'
-                    : 'bg-white text-black hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)]'
-                    }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span>{item.label}</span>
-                  <ChevronRight className="w-4 h-4 ml-auto" />
-                </Link>
-              )
-            })}
+              {mobileNavItems.map((item) => {
+                const Icon = item.icon
+                const active = isActive(item.href)
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-black text-base font-bold transition-all ${active
+                      ? 'bg-[#B4F056] text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)]'
+                      : 'bg-white text-black hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)]'
+                      }`}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span>{item.label}</span>
+                    <ChevronRight className="w-4 h-4 ml-auto" />
+                  </Link>
+                )
+              })}
 
-            <div className="pt-2 border-t-2 border-black mt-2">
-              <LogoutButton
-                onClick={() => {
-                  setMobileOpen(false)
-                  void handleLogout()
-                }}
-                disabled={isLoggingOut}
-                fullWidth
-                title="Logout"
-                className="mt-2 h-12 !rounded-xl !bg-[#DC2626] !text-white !hover:bg-[#B91C1C] border-2 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)]"
-              />
+              <div className="pt-2 border-t-2 border-black mt-2">
+                <LogoutButton
+                  onClick={() => {
+                    setMobileOpen(false)
+                    void handleLogout()
+                  }}
+                  disabled={isLoggingOut}
+                  fullWidth
+                  title="Logout"
+                  className="mt-2 h-12 !rounded-xl !bg-[#DC2626] !text-white !hover:bg-[#B91C1C] border-2 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)]"
+                />
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   )
 }

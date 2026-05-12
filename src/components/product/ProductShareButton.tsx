@@ -37,7 +37,7 @@ export default function ProductShareButton({ productName }: ProductShareButtonPr
     <button
       type="button"
       onClick={handleShare}
-      className="w-full min-h-[60px] px-3 py-2.5 bg-white border-[3px] border-black text-charcoal font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-2 hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all uppercase tracking-wider text-sm"
+      className="flex min-h-[42px] w-full items-center justify-center gap-2 border-[3px] border-black bg-white px-3 py-2 text-xs font-bold uppercase tracking-wider text-charcoal shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
     >
       <Share2 className="w-4 h-4" />
       <span>Share</span>

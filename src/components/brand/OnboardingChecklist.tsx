@@ -18,6 +18,8 @@ import {
   X,
   Loader2,
 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { slideUp, fadeIn } from '@/lib/animations'
 
 interface ChecklistItem {
   id: string
@@ -117,7 +119,12 @@ export default function OnboardingChecklist() {
   const nextItem = status.items.find((i) => !i.done)
 
   return (
-    <div className="bg-white border-[3px] border-black shadow-[6px_6px_0_0_rgba(0,0,0,1)] overflow-hidden">
+    <motion.div
+      variants={slideUp}
+      initial="initial"
+      animate="animate"
+      className="bg-white border-[3px] border-black shadow-[6px_6px_0_0_rgba(0,0,0,1)] overflow-hidden"
+    >
       {/* Header */}
       <div className="bg-gradient-to-r from-[#B4F056]/40 to-[#FFD93D]/40 px-5 py-3 border-b-2 border-black flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
@@ -157,63 +164,78 @@ export default function OnboardingChecklist() {
         />
       </div>
 
-      {/* Collapsed view: only show next action */}
-      {collapsed && nextItem ? (
-        <Link
-          href={nextItem.cta.href}
-          className="block p-4 hover:bg-[#FFD93D]/10 transition-colors group"
-        >
-          <div className="flex items-center gap-3">
-            <Circle className="w-4 h-4 text-black/30 flex-shrink-0" strokeWidth={3} />
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-widest text-black/40">
-                Next step
-              </p>
-              <p className="text-sm font-black truncate">{nextItem.label}</p>
-            </div>
-            <span className="text-xs font-black uppercase tracking-wider px-3 py-1.5 bg-[#B4F056] border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] group-hover:-translate-y-0.5 transition-all">
-              {nextItem.cta.label}
-            </span>
-          </div>
-        </Link>
-      ) : (
-        <ul className="divide-y-2 divide-black/8">
-          {status.items.map((item) => (
-            <li key={item.id}>
-              {item.done ? (
-                <div className="px-5 py-3 flex items-center gap-3 bg-[#B4F056]/15">
-                  <CheckCircle2 className="w-5 h-5 text-black flex-shrink-0" strokeWidth={3} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold line-through text-black/55 truncate">
-                      {item.label}
-                    </p>
-                    <p className="text-[11px] text-black/40 font-semibold truncate">
-                      {item.description}
-                    </p>
-                  </div>
+      <AnimatePresence mode="wait">
+        {collapsed && nextItem ? (
+          <motion.div
+            key="collapsed"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+          >
+            <Link
+              href={nextItem.cta.href}
+              className="block p-4 hover:bg-[#FFD93D]/10 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <Circle className="w-4 h-4 text-black/30 flex-shrink-0" strokeWidth={3} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-black/40">
+                    Next step
+                  </p>
+                  <p className="text-sm font-black truncate">{nextItem.label}</p>
                 </div>
-              ) : (
-                <Link
-                  href={item.cta.href}
-                  className="px-5 py-3 flex items-center gap-3 hover:bg-[#FFD93D]/10 transition-colors group"
-                >
-                  <Circle className="w-5 h-5 text-black/30 flex-shrink-0 group-hover:text-black transition-colors" strokeWidth={3} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-black truncate">{item.label}</p>
-                    <p className="text-[11px] text-black/50 font-semibold truncate">
-                      {item.description}
-                    </p>
-                  </div>
-                  <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 bg-white border-2 border-black hidden sm:inline-flex items-center gap-1 group-hover:bg-[#B4F056] group-hover:-translate-y-0.5 transition-all">
-                    {item.cta.label}
-                    <ChevronRight className="w-3 h-3" strokeWidth={3} />
-                  </span>
-                </Link>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+                <span className="text-xs font-black uppercase tracking-wider px-3 py-1.5 bg-[#B4F056] border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] group-hover:-translate-y-0.5 transition-all">
+                  {nextItem.cta.label}
+                </span>
+              </div>
+            </Link>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="expanded"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+          >
+            <ul className="divide-y-2 divide-black/8">
+              {status.items.map((item) => (
+                <li key={item.id}>
+                  {item.done ? (
+                    <div className="px-5 py-3 flex items-center gap-3 bg-[#B4F056]/15">
+                      <CheckCircle2 className="w-5 h-5 text-black flex-shrink-0" strokeWidth={3} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold line-through text-black/55 truncate">
+                          {item.label}
+                        </p>
+                        <p className="text-[11px] text-black/40 font-semibold truncate">
+                          {item.description}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <Link
+                      href={item.cta.href}
+                      className="px-5 py-3 flex items-center gap-3 hover:bg-[#FFD93D]/10 transition-colors group"
+                    >
+                      <Circle className="w-5 h-5 text-black/30 flex-shrink-0 group-hover:text-black transition-colors" strokeWidth={3} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-black truncate">{item.label}</p>
+                        <p className="text-[11px] text-black/50 font-semibold truncate">
+                          {item.description}
+                        </p>
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 bg-white border-2 border-black hidden sm:inline-flex items-center gap-1 group-hover:bg-[#B4F056] group-hover:-translate-y-0.5 transition-all">
+                        {item.cta.label}
+                        <ChevronRight className="w-3 h-3" strokeWidth={3} />
+                      </span>
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   )
 }

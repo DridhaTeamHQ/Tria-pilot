@@ -48,13 +48,13 @@ export default function FavoriteButton({ productId }: FavoriteButtonProps) {
 
   return (
     <button type="button"
-      className={`w-full min-h-[60px] px-3 py-2.5 border-[3px] border-black font-bold uppercase tracking-wider text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center justify-center gap-2 ${buttonTone} ${isLoading ? 'cursor-wait' : 'hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]'}`}
+      className={`flex min-h-[42px] w-full items-center justify-center gap-2 border-[3px] border-black px-3 py-2 text-xs font-bold uppercase tracking-wider shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all ${buttonTone} ${isLoading ? 'cursor-wait' : 'hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]'}`}
       onClick={handleToggle}
       disabled={toggleMutation.isPending || isLoading}
       aria-busy={toggleMutation.isPending || isLoading}
     >
       <Heart
-        className={`h-5 w-5 ${isFavorited ? 'fill-current' : ''
+        className={`h-4 w-4 ${isFavorited ? 'fill-current' : ''
           }`}
       />
       {buttonLabel}

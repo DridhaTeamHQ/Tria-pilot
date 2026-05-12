@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface ImageCarouselProps {
   images: string[]
@@ -14,8 +14,8 @@ export default function ImageCarousel({ images }: ImageCarouselProps) {
 
   if (images.length === 0) {
     return (
-      <div className="aspect-square bg-zinc-100 dark:bg-zinc-800 rounded-lg flex items-center justify-center">
-        <span className="text-zinc-400">No images available</span>
+      <div className="flex h-full items-center justify-center bg-gray-50 rounded-2xl">
+        <span className="text-black/30 font-bold text-sm uppercase tracking-widest">No images</span>
       </div>
     )
   }
@@ -28,67 +28,92 @@ export default function ImageCarousel({ images }: ImageCarouselProps) {
     setCurrentIndex((prev) => (prev - 1 + images.length) % images.length)
   }
 
-  const goToImage = (index: number) => {
-    setCurrentIndex(index)
-  }
-
   return (
-    <div className="space-y-3 sm:space-y-4">
-      {/* Main Image */}
-      <div className="relative aspect-[4/5] bg-zinc-100 dark:bg-zinc-800 overflow-hidden sm:aspect-square sm:rounded-lg">
-        <Image
-          src={images[currentIndex]}
-          alt={`Product image ${currentIndex + 1}`}
-          fill
-          sizes="(max-width: 768px) 100vw, 50vw"
-          className="object-cover"
-          priority={currentIndex === 0}
-        />
+    <div className="h-full flex flex-col select-none bg-transparent relative">
+      {/* 3D Image Stage */}
+      <div 
+        className="relative flex-1 min-h-0 flex items-center justify-center overflow-hidden"
+        style={{ perspective: '1200px' }}
+      >
+        <div className="relative w-full h-full flex items-center justify-center" style={{ transformStyle: 'preserve-3d' }}>
+          <AnimatePresence mode="popLayout">
+            {images.map((img, idx) => {
+              const offset = idx - currentIndex
+              const absOffset = Math.abs(offset)
+              const isCenter = idx === currentIndex
+              
+              if (absOffset > 2) return null
+
+              return (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{
+                    opacity: 1 - absOffset * 0.5,
+                    scale: 1 - absOffset * 0.2,
+                    x: offset * 300, // Wide spread for the raw images
+                    z: -absOffset * 150,
+                    rotateY: offset * 40,
+                    filter: isCenter ? 'none' : 'grayscale(50%) blur(4px)',
+                  }}
+                  exit={{ opacity: 0, scale: 0.5 }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 150,
+                    damping: 20
+                  }}
+                  className={`absolute w-[95%] h-[95%] flex items-center justify-center cursor-pointer ${
+                    isCenter ? 'z-50' : 'z-40'
+                  }`}
+                  onClick={() => setCurrentIndex(idx)}
+                >
+                  <div className="relative w-full h-full">
+                    <Image
+                      src={img}
+                      alt={`Product image ${idx + 1}`}
+                      fill
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      className="object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.15)]"
+                      priority={isCenter}
+                    />
+                  </div>
+                </motion.div>
+              )
+            })}
+          </AnimatePresence>
+        </div>
+
+        {/* Navigation Arrows */}
         {images.length > 1 && (
           <>
-            <button type="button"
-              className="absolute left-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center border-[3px] border-black bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-colors hover:bg-black hover:text-white hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] sm:left-4 sm:h-12 sm:w-12 sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-              onClick={prevImage}
-              aria-label="Previous image"
+            <button
+              onClick={(e) => { e.stopPropagation(); prevImage(); }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-md border border-black/5 shadow-lg z-[60] hover:bg-black hover:text-white transition-all"
             >
-              <ChevronLeft className="h-6 w-6 stroke-[3]" />
+              <ChevronLeft className="w-7 h-7" strokeWidth={2.5} />
             </button>
-            <button type="button"
-              className="absolute right-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center border-[3px] border-black bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-colors hover:bg-black hover:text-white hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] sm:right-4 sm:h-12 sm:w-12 sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-              onClick={nextImage}
-              aria-label="Next image"
+
+            <button
+              onClick={(e) => { e.stopPropagation(); nextImage(); }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-md border border-black/5 shadow-lg z-[60] hover:bg-black hover:text-white transition-all"
             >
-              <ChevronRight className="h-6 w-6 stroke-[3]" />
+              <ChevronRight className="w-7 h-7" strokeWidth={2.5} />
             </button>
-            <div className="absolute bottom-2 right-2 rounded bg-black/55 px-2 py-1 text-xs text-white">
-              {currentIndex + 1}/{images.length}
-            </div>
           </>
         )}
       </div>
 
-      {/* Thumbnails */}
+      {/* Subtle Pagination */}
       {images.length > 1 && (
-        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:px-0">
-          {images.map((image, index) => (
-            <button type="button"
+        <div className="flex items-center justify-center gap-2 py-6">
+          {images.map((_, index) => (
+            <button
               key={index}
-              onClick={() => goToImage(index)}
-              className={`relative aspect-square min-w-[72px] overflow-hidden rounded-lg border-2 transition-colors sm:min-w-0 sm:flex-1 ${index === currentIndex
-                ? 'border-primary'
-                : 'border-transparent hover:border-zinc-300 dark:hover:border-zinc-700'
-                }`}
-              aria-label={`Show image ${index + 1}`}
-            >
-              <Image
-                src={image}
-                alt={`Thumbnail ${index + 1}`}
-                fill
-                sizes="(max-width: 640px) 72px, 20vw"
-                className="object-cover"
-                loading="lazy"
-              />
-            </button>
+              onClick={() => setCurrentIndex(index)}
+              className={`h-1.5 rounded-full transition-all duration-500 ${
+                index === currentIndex ? 'w-8 bg-black' : 'w-1.5 bg-black/10'
+              }`}
+            />
           ))}
         </div>
       )}

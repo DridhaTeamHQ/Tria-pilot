@@ -23,6 +23,8 @@ import {
   Send,
   ExternalLink,
 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { staggerContainer, staggerItem, slideUp, fadeIn } from '@/lib/animations'
 
 interface SmartPick {
   creatorId: string
@@ -178,7 +180,12 @@ export default function SmartDiscoveryWidget() {
   if (picks.length === 0) return null
 
   return (
-    <div className="bg-white border-[3px] border-black shadow-[6px_6px_0_0_rgba(0,0,0,1)] p-5 widget-enter">
+    <motion.div
+      variants={slideUp}
+      initial="initial"
+      animate="animate"
+      className="bg-white border-[3px] border-black shadow-[6px_6px_0_0_rgba(0,0,0,1)] p-5"
+    >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2 min-w-0">
           <Sparkles className="w-4 h-4 text-[#A78BFA] flex-shrink-0" strokeWidth={3} />
@@ -204,12 +211,17 @@ export default function SmartDiscoveryWidget() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {picks.map((pick, idx) => (
-          <div
+      <motion.div
+        variants={staggerContainer}
+        initial="initial"
+        animate="animate"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
+      >
+        {picks.map((pick) => (
+          <motion.div
             key={pick.creatorId}
-            className="group border-2 border-black p-3 hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all bg-white pick-enter"
-            style={{ animationDelay: `${idx * 60}ms` }}
+            variants={staggerItem}
+            className="group border-2 border-black p-3 hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all bg-white"
           >
             {/* Header */}
             <div className="flex items-start gap-2.5 mb-2.5">
@@ -283,9 +295,9 @@ export default function SmartDiscoveryWidget() {
                 )}
               </button>
             </div>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
 
       <Link
         href="/brand/influencers"
@@ -294,20 +306,6 @@ export default function SmartDiscoveryWidget() {
         Discover more creators
         <ArrowRight className="w-3.5 h-3.5" strokeWidth={3} />
       </Link>
-
-      <style jsx>{`
-        @keyframes widgetIn {
-          from { opacity: 0; transform: translateY(8px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .widget-enter { animation: widgetIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
-
-        @keyframes pickIn {
-          from { opacity: 0; transform: translateY(8px) scale(0.98); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        .pick-enter { animation: pickIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
-      `}</style>
-    </div>
+    </motion.div>
   )
 }

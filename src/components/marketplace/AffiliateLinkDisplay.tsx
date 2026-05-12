@@ -64,7 +64,7 @@ export function AffiliateLinkDisplay({ productId }: AffiliateLinkDisplayProps) {
 
     if (isLoading) {
         return (
-            <div className="flex h-[120px] w-full items-center justify-center border-[3px] border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <div className="flex h-[76px] w-full items-center justify-center border-[3px] border-black bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
                 <Loader2 className="h-6 w-6 animate-spin text-charcoal/40" />
             </div>
         )
@@ -75,18 +75,18 @@ export function AffiliateLinkDisplay({ productId }: AffiliateLinkDisplayProps) {
     }
 
     return (
-        <div className="group relative mt-4 border-[3px] border-black bg-[#BAFCA2] p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:p-6 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-            <div className="absolute -top-3 left-4 border-[2px] border-black bg-white px-2 py-0.5 text-[10px] font-black uppercase tracking-wider shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:left-6 sm:text-xs">
+        <div className="group relative mt-3 border-[3px] border-black bg-[#BAFCA2] p-3 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <div className="absolute -top-3 left-4 border-[2px] border-black bg-white px-2 py-0.5 text-[9px] font-black uppercase tracking-wider shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                 Your Affiliate Link
             </div>
 
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex-1 overflow-hidden">
-                    <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-black/60 sm:text-xs">
+                    <p className="mb-1 text-[9px] font-bold uppercase tracking-wider text-black/60 sm:text-[10px]">
                         Share this link to track conversions
                     </p>
-                    <div className="flex items-center gap-2 overflow-hidden rounded border-2 border-black/10 bg-black/5 p-2 font-mono text-xs font-bold text-black sm:text-sm">
-                        <LinkIcon className="h-3 w-3 shrink-0 sm:h-4 sm:w-4" />
+                    <div className="flex items-center gap-2 overflow-hidden rounded border-2 border-black/10 bg-black/5 p-1.5 font-mono text-[10px] font-bold text-black sm:text-xs">
+                        <LinkIcon className="h-3 w-3 shrink-0" />
                         <span className="truncate">{linkData.maskedUrl}</span>
                     </div>
                 </div>
@@ -95,26 +95,26 @@ export function AffiliateLinkDisplay({ productId }: AffiliateLinkDisplayProps) {
                     <button
                         type="button"
                         onClick={handleRecordSale}
-                        className="flex flex-1 items-center justify-center gap-2 border-[3px] border-black bg-pink-400 px-4 py-2 text-xs font-black uppercase tracking-tight shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:bg-pink-500 sm:flex-none sm:text-sm"
+                        className="flex flex-1 items-center justify-center gap-2 border-[3px] border-black bg-pink-400 px-3 py-2 text-[10px] font-black uppercase tracking-tight shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:bg-pink-500 sm:flex-none"
                         title="Simulate a purchase for testing"
                     >
-                        <Sparkles className="h-4 w-4" />
+                        <Sparkles className="h-3.5 w-3.5" />
                         Test Sale
                     </button>
 
                     <button
                         type="button"
                         onClick={handleCopy}
-                        className="flex flex-1 items-center justify-center gap-2 border-[3px] border-black bg-white px-4 py-2 text-xs font-black uppercase tracking-tight shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:bg-gray-50 sm:flex-none sm:text-sm"
+                        className="flex flex-1 items-center justify-center gap-2 border-[3px] border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-tight shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:bg-gray-50 sm:flex-none"
                     >
                         {copied ? (
                             <>
-                                <Check className="h-4 w-4" />
+                                <Check className="h-3.5 w-3.5" />
                                 Copied
                             </>
                         ) : (
                             <>
-                                <Copy className="h-4 w-4" />
+                                <Copy className="h-3.5 w-3.5" />
                                 Copy Link
                             </>
                         )}
@@ -124,7 +124,7 @@ export function AffiliateLinkDisplay({ productId }: AffiliateLinkDisplayProps) {
                         href={linkData.maskedUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center justify-center border-[3px] border-black bg-black p-2 text-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none sm:p-3"
+                        className="flex items-center justify-center border-[3px] border-black bg-black p-2 text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
                         title="Test Link"
                     >
                         <ExternalLink className="h-4 w-4" />

@@ -305,7 +305,15 @@ export default function BrandInfluencersPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 animate-fade-in">
+    <div className="relative min-h-screen overflow-hidden bg-[#FAFAF8] animate-fade-in">
+      {/* Background Aesthetic Bubbles */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-24 -left-20 h-72 w-72 rounded-full bg-[#B4F056]/20 blur-3xl" />
+        <div className="absolute top-44 -right-20 h-80 w-80 rounded-full bg-[#A78BFA]/15 blur-3xl" />
+        <div className="absolute bottom-20 left-1/3 h-72 w-72 rounded-full bg-[#FFD93D]/15 blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 h-60 w-60 rounded-full bg-[#FF8C69]/10 blur-3xl" />
+      </div>
+      <div className="relative z-10 container mx-auto px-4 sm:px-6 py-6 sm:py-8">
       {/* Header */}
       {/* Header section with Title and Quick Actions */}
       <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -626,7 +634,7 @@ export default function BrandInfluencersPage() {
           })}
         </div>
       ) : (
-        <div className="bg-white hover:bg-[#F9F8F4] transition-all duration-300 border-[3px] border-black rounded-[32px] shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] overflow-hidden overflow-x-auto">
+        <div className="bg-white border-[3px] border-black rounded-[32px] shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] overflow-hidden overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-[#F9F8F4] border-b-2 border-black">
@@ -639,10 +647,10 @@ export default function BrandInfluencersPage() {
               </tr>
             </thead>
             <tbody>
-              {visibleInfluencers.map((influencer) => {
+              {visibleInfluencers.map((influencer, idx) => {
                 const isShortlisted = shortlist.has(influencer.id)
                 return (
-                  <tr key={influencer.id} className="border-b-2 border-black/5 hover:bg-white transition-colors group">
+                  <tr key={influencer.id} className={`border-b-2 border-black/5 group ${idx % 2 === 0 ? 'bg-white' : 'bg-[#FAFAF5]'}`}>
                     <td className="p-6">
                       <div className="flex items-center gap-4">
                         <div className="relative w-14 h-14 shrink-0">
@@ -757,6 +765,7 @@ export default function BrandInfluencersPage() {
           animation: shimmer 2s infinite linear;
         }
       `}</style>
+      </div>
     </div>
   )
 }
