@@ -152,29 +152,48 @@ export function MarketplaceSkeleton() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#FDF6EC] via-[#FDF6EC] to-white pt-24 pb-16">
       <div className="container mx-auto px-4 sm:px-6">
-        <div className="mb-10 space-y-6">
-          <div className="max-w-2xl space-y-3 rounded-[28px] border-[3px] border-black bg-white p-5 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:p-8">
-            <Skeleton className="h-5 w-40 bg-gray-200" />
-            <Skeleton className="h-16 w-64 bg-gray-200" />
+        {/* Header Skeleton - Two Columns */}
+        <div className="mb-8 grid grid-cols-1 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] items-stretch gap-3 sm:gap-4 xl:gap-5">
+          {/* Left: Discovery Box */}
+          <div className="relative h-full overflow-hidden rounded-[24px] border-[3px] border-black bg-white p-5 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:p-8">
+            <Skeleton className="h-5 w-40 bg-gray-200 mb-4" />
+            <Skeleton className="h-16 w-64 bg-gray-200 mb-4" />
             <Skeleton className="h-5 w-full max-w-xl bg-gray-200" />
           </div>
-          <div className="flex flex-wrap gap-2.5">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <Skeleton key={i} className="h-11 w-28 bg-gray-200 rounded-lg" />
-            ))}
+
+          {/* Right: Campaign Box */}
+          <div className="min-h-[212px] sm:min-h-[260px] rounded-[24px] border-[3px] border-black bg-white p-5 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:p-6">
+            <div className="h-full flex flex-col justify-between">
+              <div>
+                <Skeleton className="h-6 w-32 bg-gray-200 mb-4 rounded-full" />
+                <Skeleton className="h-10 w-3/4 bg-gray-200 mb-4" />
+              </div>
+              <Skeleton className="h-20 w-full bg-gray-100 rounded-xl" />
+            </div>
           </div>
         </div>
 
+        {/* Filter Pills Skeleton */}
+        <div className="flex flex-wrap gap-2.5 mb-10">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Skeleton key={i} className="h-10 w-28 bg-gray-200 rounded-full border-[2px] border-black/5" />
+          ))}
+        </div>
+
+        {/* Product Grid Skeleton - Restored to original dimensions */}
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
           {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
             <div key={i} className="overflow-hidden rounded-[24px] border-[3px] border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-              <Skeleton className="aspect-[4/5] rounded-none bg-gray-200" />
-              <div className="space-y-3 p-3.5">
-                <Skeleton className="h-5 w-2/3 bg-gray-200" />
-                <Skeleton className="h-4 w-1/2 bg-gray-200" />
+              <Skeleton className="aspect-[4/5] sm:aspect-[3/4] rounded-none bg-gray-200" />
+              <div className="space-y-3 p-4">
+                <Skeleton className="h-5 w-3/4 bg-gray-200" />
                 <div className="flex items-center justify-between gap-2">
-                  <Skeleton className="h-8 w-24 bg-gray-200" />
-                  <Skeleton className="h-8 w-20 bg-gray-200" />
+                  <Skeleton className="h-4 w-1/3 bg-gray-100" />
+                  <Skeleton className="h-5 w-16 bg-gray-200" />
+                </div>
+                <div className="flex items-center justify-between gap-2 pt-2">
+                  <Skeleton className="h-3 w-20 bg-gray-50" />
+                  <Skeleton className="h-10 w-24 bg-[#FFD93D]/20 rounded-xl" />
                 </div>
               </div>
             </div>
