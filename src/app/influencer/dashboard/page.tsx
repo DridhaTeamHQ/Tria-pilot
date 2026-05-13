@@ -256,8 +256,16 @@ export default function InfluencerDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FDF6EC] pt-20 sm:pt-24 pb-16">
-      <div className="container mx-auto px-4 sm:px-6 z-10">
+    <div className="relative min-h-screen overflow-hidden bg-[#FAFAF8] pt-20 sm:pt-24 pb-16 animate-fade-in">
+      {/* Background "Color Design" Elements */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        {/* Large Diagonal Color Blocks */}
+        <div className="absolute top-0 right-0 w-[120%] h-[120%] bg-[#FFD93D]/5 -rotate-12 translate-x-[30%] -translate-y-[40%]" />
+        <div className="absolute bottom-0 left-0 w-[120%] h-[120%] bg-[#B4F056]/5 rotate-12 -translate-x-[30%] translate-y-[40%]" />
+        <div className="absolute top-1/2 left-0 w-full h-[50%] bg-[#A78BFA]/3 -rotate-3" />
+      </div>
+
+      <div className="container relative z-10 mx-auto px-4 sm:px-6">
         {/* Welcome Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -286,8 +294,8 @@ export default function InfluencerDashboard() {
         >
           {stats.map((stat, index) => {
             const Icon = stat.icon
-            // Neo-Brutal colors for stats
-            const bgColors = ['bg-[#FFD93D]', 'bg-[#FF8C69]', 'bg-[#B4F056]', 'bg-[#6EC1E4]']
+            // Neo-Brutal colors for stats (Ultra-light 10% opacity)
+            const bgColors = ['bg-[#FFD93D]/10', 'bg-[#FF8C69]/10', 'bg-[#B4F056]/10', 'bg-[#6EC1E4]/10']
             const bgColor = bgColors[index % bgColors.length]
 
             return (
@@ -295,9 +303,9 @@ export default function InfluencerDashboard() {
                 key={stat.label}
                 variants={cardVariants}
                 whileHover={{ y: -4 }}
-                className={`bg-white rounded-xl p-6 sm:p-8 border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 relative overflow-hidden group`}
+                className={`${bgColor} rounded-xl p-6 sm:p-8 border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 relative overflow-hidden group`}
               >
-                <div className={`w-12 h-12 rounded-lg ${bgColor} border-[2px] border-black flex items-center justify-center mb-6`}>
+                <div className={`w-12 h-12 rounded-lg bg-white/20 border-[2px] border-black flex items-center justify-center mb-6`}>
                   <Icon className="w-6 h-6 text-black" />
                 </div>
                 <p className="text-4xl sm:text-5xl font-bold text-black mb-2 tracking-tight">{stat.value}</p>
@@ -318,6 +326,9 @@ export default function InfluencerDashboard() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {quickActions.map((action, index) => {
               const Icon = action.icon
+              const actionColors = ['bg-[#B4F056]/10', 'bg-[#FFD93D]/10', 'bg-[#6EC1E4]/10', 'bg-[#FF8C69]/10']
+              const actionColor = actionColors[index % actionColors.length]
+
               return (
                 <motion.div
                   key={action.href}
@@ -326,9 +337,9 @@ export default function InfluencerDashboard() {
                 >
                   <Link
                     href={action.href}
-                    className="group relative block overflow-hidden rounded-xl p-5 sm:p-6 transition-all duration-300 h-full border-[3px] border-black bg-white text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+                    className={`group relative block overflow-hidden rounded-xl p-5 sm:p-6 transition-all duration-300 h-full border-[3px] border-black ${actionColor} text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]`}
                   >
-                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-lg bg-gray-100 border-[2px] border-black flex items-center justify-center mb-3">
+                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-lg bg-white/20 border-[2px] border-black flex items-center justify-center mb-3">
                       <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
                     <h3 className="font-bold text-sm sm:text-base mb-1">{action.title}</h3>
@@ -554,6 +565,20 @@ export default function InfluencerDashboard() {
         imageUrl={shareImageUrl || ''}
         imageBase64={shareImageBase64}
       />
+
+      <style jsx global>{`
+        @keyframes pageFadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: pageFadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+        @keyframes pulseSlow {
+          0%, 100% { opacity: 0.1; transform: scale(1); }
+          50% { opacity: 0.15; transform: scale(1.05); }
+        }
+        .animate-pulse-slow { animation: pulseSlow 8s ease-in-out infinite; }
+      `}</style>
     </div>
   )
 }
