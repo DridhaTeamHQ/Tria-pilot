@@ -14,6 +14,7 @@ import {
   Sparkles,
   Box,
   Mail,
+  BarChart3,
   ChevronRight,
 } from 'lucide-react'
 import { setAuthToast } from '@/components/auth-toast-bridge'
@@ -28,7 +29,7 @@ interface BrandNavbarProps {
 
 export default function BrandNavbar({ brandName: initialBrandName, avatarUrl: initialAvatarUrl }: BrandNavbarProps) {
   const pathname = usePathname()
-  const { data: user, isLoading, isFetching } = useUser()
+  const { data: user, isLoading } = useUser()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [avatarFailed, setAvatarFailed] = useState(false)
@@ -75,12 +76,13 @@ export default function BrandNavbar({ brandName: initialBrandName, avatarUrl: in
     { href: '/brand/influencers', label: 'Creators', icon: ShoppingBag, color: '#B4F056' },
     { href: '/brand/ads', label: 'Ad Creatives', icon: Sparkles, color: '#B4F056' },
     { href: '/brand/products', label: 'Products', icon: Box, color: '#B4F056' },
+    { href: '/brand/analytics', label: 'Analytics', icon: BarChart3, color: '#B4F056' },
   ]
   const inboxItem = { href: '/brand/inbox', label: 'Inbox', icon: Mail }
   const mobileNavItems = [...navItems, inboxItem]
 
   const isLoggedIn = user !== null && user !== undefined
-  const authResolving = isLoading || (isFetching && !isLoggedIn)
+  const authResolving = isLoading && typeof user === 'undefined'
 
   if (authResolving || !isLoggedIn || user?.role !== 'BRAND') {
     return null
