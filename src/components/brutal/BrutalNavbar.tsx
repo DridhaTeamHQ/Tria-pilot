@@ -28,7 +28,7 @@ export default function BrutalNavbar() {
     const pathname = usePathname();
     const router = useRouter();
     const queryClient = useQueryClient();
-    const { data: user, isLoading } = useUser();
+    const { data: user, isLoading, isFetching } = useUser();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [avatarFailed, setAvatarFailed] = useState(false);
@@ -57,7 +57,6 @@ export default function BrutalNavbar() {
         pathname?.startsWith("/complete-profile") ||
         pathname?.startsWith("/onboarding") ||
         pathname?.startsWith("/influencer/pending") ||
-        pathname?.startsWith("/influencer/analytics") ||
         pathname?.startsWith("/admin") ||
         pathname?.startsWith("/brand");
 
@@ -96,7 +95,7 @@ export default function BrutalNavbar() {
     const isActive = (path: string) =>
         pathname === path || pathname?.startsWith(path + "/");
     const isLoggedIn = user !== null && user !== undefined;
-    const authResolving = isLoading && typeof user === "undefined";
+    const authResolving = isLoading || (isFetching && !isLoggedIn);
 
     if (isAuthPage) {
         return null;
