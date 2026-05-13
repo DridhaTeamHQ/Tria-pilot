@@ -84,6 +84,10 @@ export default function BrandNavbar({ brandName: initialBrandName, avatarUrl: in
   const isLoggedIn = user !== null && user !== undefined
   const authResolving = isLoading && typeof user === 'undefined'
 
+  if (pathname?.startsWith('/brand/analytics')) {
+    return null
+  }
+
   if (authResolving || !isLoggedIn || user?.role !== 'BRAND') {
     return null
   }
