@@ -40,6 +40,30 @@ export async function GET() {
             throw linksError
         }
 
+        const linkIds = (links || []).map((link) => link.id)
+        const { data: linkClicks, error: clicksError } = linkIds.length > 0
+            ? await service
+                .from('link_clicks')
+                .select('tracked_link_id, clicked_at')
+                .in('tracked_link_id', linkIds)
+            : { data: [], error: null }
+
+        if (clicksError) {
+            console.warn('Analytics clicks error:', clicksError)
+        }
+
+        const clickStats = new Map<string, { count: number; lastClickedAt: string | null }>()
+        for (const click of linkClicks || []) {
+            const trackedLinkId = click.tracked_link_id
+            if (!trackedLinkId) continue
+            const current = clickStats.get(trackedLinkId) || { count: 0, lastClickedAt: null }
+            current.count += 1
+            if (!current.lastClickedAt || (click.clicked_at && click.clicked_at > current.lastClickedAt)) {
+                current.lastClickedAt = click.clicked_at || current.lastClickedAt
+            }
+            clickStats.set(trackedLinkId, current)
+        }
+
         // 2. Fetch all conversion events (purchases) for these links.
         // CRITICAL: exclude rows tagged metadata.source='simulation' so the
         // admin simulation tool cannot inflate real influencer payouts.
@@ -59,7 +83,10 @@ export async function GET() {
         })
 
         // 3. Process data
-        const totalClicks = links.reduce((sum, link) => sum + (link.click_count || 0), 0)
+        const totalClicks = links.reduce((sum, link) => {
+            const actualClicks = clickStats.get(link.id)?.count || 0
+            return sum + Math.max(actualClicks, link.click_count || 0)
+        }, 0)
         const totalProducts = links.length
         const totalRevenue = events.reduce((sum, event) => sum + Number(event.amount || 0), 0)
         const totalEarnings = totalRevenue * 0.15 // 15% commission
@@ -68,6 +95,8 @@ export async function GET() {
             const productEvents = events.filter((e) => e.tracked_link_id === link.id)
             const revenue = productEvents.reduce((sum, e) => sum + Number(e.amount || 0), 0)
             const earnings = revenue * 0.15 // 15% commission
+            const actualClicks = clickStats.get(link.id)?.count || 0
+            const clickCount = Math.max(actualClicks, link.click_count || 0)
 
             return {
                 productId: link.productId,
@@ -76,11 +105,11 @@ export async function GET() {
                 maskedUrl: link.masked_url,
                 originalUrl: link.original_url,
                 linkCode: link.link_code,
-                clickCount: link.click_count || 0,
-                uniqueClicks: link.click_count || 0, // Mock unique clicks for now
+                clickCount,
+                uniqueClicks: clickCount,
                 revenue: revenue,
                 earnings: earnings,
-                lastClickedAt: null, // Could fetch from link_clicks if needed
+                lastClickedAt: clickStats.get(link.id)?.lastClickedAt || null,
                 createdAt: link.created_at,
             }
         })

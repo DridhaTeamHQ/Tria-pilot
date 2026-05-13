@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/auth'
 import { extractClickMetadata } from '@/lib/links/tracker'
 import { sanitizeRedirectUrl } from '@/lib/links/utils'
 import { ipRateLimit, getClientIp } from '@/lib/security/ip-rate-limit'
+import { getPublicSiteUrlFromRequest, joinPublicUrl } from '@/lib/site-url'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,7 +39,7 @@ export async function GET(
 
     const { data: trackedLink, error } = await service
       .from('tracked_links')
-      .select('id, original_url, is_active')
+      .select('id, original_url, product_id, click_count, is_active')
       .eq('link_code', linkCode)
       .single()
 
@@ -64,9 +65,21 @@ export async function GET(
     const countPromise = (async () => {
       try {
         const { error: rpcError } = await service.rpc('increment_click_count', { link_id: trackedLink.id })
-        return rpcError || null
+        if (!rpcError) return null
+
+        const { error: updateError } = await service
+          .from('tracked_links')
+          .update({ click_count: (trackedLink.click_count || 0) + 1 })
+          .eq('id', trackedLink.id)
+
+        return updateError || rpcError
       } catch (rpcError) {
-        return rpcError
+        const { error: updateError } = await service
+          .from('tracked_links')
+          .update({ click_count: (trackedLink.click_count || 0) + 1 })
+          .eq('id', trackedLink.id)
+
+        return updateError || rpcError
       }
     })()
 
@@ -80,12 +93,16 @@ export async function GET(
       console.warn('increment_click_count RPC failed:', countError)
     }
 
-    const redirectUrl = sanitizeRedirectUrl(trackedLink.original_url)
+    const fallbackUrl = trackedLink.product_id
+      ? joinPublicUrl(getPublicSiteUrlFromRequest(request), `/marketplace/${trackedLink.product_id}`)
+      : null
+    const redirectUrl = sanitizeRedirectUrl(trackedLink.original_url) || fallbackUrl
     if (!redirectUrl) {
       return NextResponse.json({ error: 'Invalid URL' }, { status: 500 })
     }
 
-    const response = NextResponse.redirect(redirectUrl, { status: 301 })
+    const response = NextResponse.redirect(redirectUrl, { status: 302 })
+    response.headers.set('Cache-Control', 'no-store, max-age=0')
 
     // Set a persistent cookie (30 days) to track this click for later attribution
     response.cookies.set('tria_affiliate_code', linkCode, {
@@ -102,4 +119,3 @@ export async function GET(
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 }
-
