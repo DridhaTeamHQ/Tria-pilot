@@ -33,9 +33,8 @@
 import 'server-only'
 import { preprocessGarmentImage } from '@/lib/tryon/garment-preprocessor'
 import { orchestrateTryOn, type PhotoCandidate } from '@/lib/tryon/gpt-orchestrator'
-import { flux2Generate, downloadFluxImage } from '@/lib/flux/client'
+import { generateTryOnDirect } from '@/lib/nanobanana'
 import { analyzeGarment } from '@/lib/tryon/garment-intel'
-import sharp from 'sharp'
 
 const isDev = process.env.NODE_ENV !== 'production'
 
@@ -96,46 +95,6 @@ function strip(b64: string): string {
   return b64.replace(/^data:image\/[a-z+]+;base64,/, '')
 }
 
-// FLUX 2 requires width/height divisible by 64. Match the input photo's
-// shape to avoid recomposition / unwanted zooms.
-function roundTo64(n: number): number {
-  return Math.max(64, Math.round(n / 64) * 64)
-}
-
-async function detectDims(personBase64: string): Promise<{ width: number; height: number } | null> {
-  try {
-    const buf = Buffer.from(personBase64, 'base64')
-    const meta = await sharp(buf).metadata()
-    if (!meta.width || !meta.height) return null
-    const MAX_LONG = 1536
-    const scale = Math.min(1, MAX_LONG / Math.max(meta.width, meta.height))
-    let w = roundTo64(meta.width * scale)
-    let h = roundTo64(meta.height * scale)
-    const SHORT_FLOOR = 768
-    const shortEdge = Math.min(w, h)
-    if (shortEdge < SHORT_FLOOR && Math.min(meta.width, meta.height) >= SHORT_FLOOR) {
-      const upscale = SHORT_FLOOR / shortEdge
-      w = roundTo64(w * upscale)
-      h = roundTo64(h * upscale)
-    }
-    return { width: w, height: h }
-  } catch {
-    return null
-  }
-}
-
-function aspectFallback(aspectRatio: string | undefined): { width: number; height: number } {
-  // FLUX 2 expects explicit width/height. Cover common cases.
-  switch ((aspectRatio || '4:5').toLowerCase()) {
-    case '1:1': return { width: 1024, height: 1024 }
-    case '9:16': return { width: 768, height: 1344 }
-    case '16:9': return { width: 1344, height: 768 }
-    case '3:4': return { width: 832, height: 1088 }
-    case '4:5':
-    default: return { width: 832, height: 1024 }
-  }
-}
-
 /**
  * Run the full clean pipeline. Throws only on catastrophic failure
  * (no garment, no photos, no OpenAI key). Individual slot failures
@@ -154,15 +113,30 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
   }
 
   // ── STEP 1: EXTRACT CLEAN GARMENT ────────────────────────────────────
+  // First quick detection pass: is a human in the product image?
+  // If so, force extraction. If it's already a flat-lay, the detector
+  // says no-human and the preprocessor passthroughs.
   if (isDev) console.log('🧼 [clean] Step 1: extract garment')
   const extractStart = Date.now()
   let cleanedGarment: string
   let wasExtracted = false
   try {
+    // Quick body check first so we can FORCE extraction when needed.
+    // The downstream preprocessor honours options.forceExtraction.
+    const { detectHumanInClothingImage } = await import('@/lib/tryon/human-body-detector')
+    const detection = await detectHumanInClothingImage(garmentClean).catch(() => null)
+    const humanPresent =
+      !!(detection && (detection.containsHuman || detection.containsFace || (detection.detectedParts || []).length > 0))
+
+    if (isDev) console.log(`🧼 [clean] body check: humanPresent=${humanPresent} bodyType=${detection?.bodyType || 'unknown'}`)
+
     const preprocessed = await preprocessGarmentImage(garmentClean, {
       fast: true,
-      model: 'flash',
+      model: 'pro', // Pro model produces cleaner extraction than flash
       sessionId: `clean-${Date.now()}`,
+      // Force extraction if a human is present — flat-lay photos pass
+      // through naturally because the detector returns containsHuman=false
+      forceExtraction: humanPresent,
     })
     cleanedGarment = strip(preprocessed.processedImage)
     wasExtracted = preprocessed.wasExtracted
@@ -202,78 +176,135 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
   }
   if (isDev) console.log(`🎬 [clean] Step 2 done in ${Date.now() - orchestrateStart}ms — picked ${orchestrated.selections.length} photos`)
 
-  // ── STEP 3: FLUX SWAPS (parallel) ────────────────────────────────────
-  if (isDev) console.log('🎨 [clean] Step 3: FLUX swaps (3 parallel)')
-  const fluxStart = Date.now()
+  // ── STEP 3: GEMINI SWAPS (parallel) ──────────────────────────────────
+  if (isDev) console.log('🎨 [clean] Step 3: Gemini swaps (3 parallel) with auto-retry')
+  const swapStart = Date.now()
 
   // Build a photo lookup so we can find the base64 by photoId
   const photoLookup = new Map(input.candidatePhotos.map((p) => [p.id, p.base64]))
 
-  const slotPromises = orchestrated.selections.slice(0, 3).map(async (sel, idx): Promise<CleanTryOnSlot | CleanTryOnFailure> => {
-    const slotStart = Date.now()
-    const personBase64 = photoLookup.get(sel.photoId)
-    if (!personBase64) {
-      return {
-        photoId: sel.photoId,
-        prompt: sel.prompt,
-        reasoning: sel.reasoning,
-        error: 'Reference photo missing from pool — pipeline state mismatch',
-        durationMs: Date.now() - slotStart,
-      }
-    }
+  // Backup pool: photos that weren't picked but could substitute for a
+  // permanently failing slot. Drawn from the candidate pool minus the
+  // 3 already-selected photos.
+  const selectedIds = new Set(orchestrated.selections.slice(0, 3).map((s) => s.photoId))
+  const backupPool = input.candidatePhotos.filter((p) => !selectedIds.has(p.id) && p.base64.length > 100)
 
+  // ── Single attempt: run Gemini once for a given (person, prompt) ─────
+  const runGeminiOnce = async (personBase64: string, prompt: string): Promise<string> => {
+    const prevEngine = process.env.TRYON_ENGINE
+    process.env.TRYON_ENGINE = 'gemini'
     try {
-      // Mirror the input photo's dimensions exactly (FLUX recomposes if
-      // output dims differ from input dims). Fallback to aspect bucket
-      // only when Sharp can't read metadata.
-      const dims = (await detectDims(personBase64)) || aspectFallback(input.aspectRatio)
-
-      // Stable per-slot seed → re-rolls produce distinct outputs
-      const seed = Math.floor((Date.now() + idx * 7919) % 1_000_000_000)
-
-      const result = await flux2Generate({
-        prompt: sel.prompt,
-        // input_image = person, input_image_2 = garment (FLUX 2 convention)
-        inputImages: [personBase64, cleanedGarment],
-        width: dims.width,
-        height: dims.height,
-        outputFormat: 'png',
-        safetyTolerance: 2,
-        timeoutMs: 150_000,
-        model: 'flux-2-pro',
-        seed,
-      })
-
-      // Download the signed URL (10-min TTL on FLUX URLs)
-      const downloaded = await downloadFluxImage(result.imageUrl)
-      const outputBase64 = `data:${downloaded.mime};base64,${downloaded.base64}`
-
-      if (isDev) console.log(`✅ [clean] Slot ${idx + 1} done in ${Date.now() - slotStart}ms`)
-
-      return {
-        photoId: sel.photoId,
-        prompt: sel.prompt,
-        reasoning: sel.reasoning,
-        outputBase64,
-        jobId: result.jobId,
-        seed: result.seed,
-        durationMs: Date.now() - slotStart,
+      const out = await generateTryOnDirect({
+        personImageBase64: personBase64,
+        garmentImageBase64: cleanedGarment,
+        prompt,
+        aspectRatio: input.aspectRatio || '4:5',
+        model: 'gemini-3-pro-image-preview',
+        garmentIntel: intel,
+      } as any)
+      if (!out || out.length < 100) {
+        throw new Error('Gemini returned empty output')
       }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      if (isDev) console.warn(`❌ [clean] Slot ${idx + 1} failed: ${msg.slice(0, 200)}`)
-      return {
-        photoId: sel.photoId,
-        prompt: sel.prompt,
-        reasoning: sel.reasoning,
-        error: msg.slice(0, 400),
-        durationMs: Date.now() - slotStart,
+      return out
+    } finally {
+      if (prevEngine === undefined) delete process.env.TRYON_ENGINE
+      else process.env.TRYON_ENGINE = prevEngine
+    }
+  }
+
+  // ── Slot worker: tries primary photo with retry, then backup photos ──
+  const runSlotWithFallback = async (
+    sel: typeof orchestrated.selections[number],
+    idx: number,
+    backupQueue: typeof input.candidatePhotos,
+  ): Promise<CleanTryOnSlot | CleanTryOnFailure> => {
+    const slotStart = Date.now()
+    const swapPrompt =
+      `${sel.prompt}\n\n` +
+      `IMPORTANT: This is a clothing edit only. Preserve the subject's identity (face, hair, skin tone) exactly as shown in image 1 — output the same person, not a different one.`
+
+    // Build the attempt queue: primary photo → backup photos. Each gets
+    // up to 2 tries to handle transient Gemini empty responses.
+    const primaryPhoto = photoLookup.get(sel.photoId)
+    const photoAttempts: Array<{ id: string; base64: string }> = []
+    if (primaryPhoto) {
+      photoAttempts.push({ id: sel.photoId, base64: primaryPhoto })
+    }
+    for (const bp of backupQueue) {
+      photoAttempts.push({ id: bp.id, base64: bp.base64 })
+    }
+
+    const RETRIES_PER_PHOTO = 2
+    let lastErr = 'unknown error'
+
+    for (let photoIdx = 0; photoIdx < photoAttempts.length; photoIdx++) {
+      const attempt = photoAttempts[photoIdx]
+      for (let r = 0; r < RETRIES_PER_PHOTO; r++) {
+        try {
+          if (isDev && (photoIdx > 0 || r > 0)) {
+            console.log(`   🔁 Slot ${idx + 1} attempt: photo=${attempt.id.slice(0, 8)} retry=${r + 1}`)
+          }
+          const output = await runGeminiOnce(attempt.base64, swapPrompt)
+          if (isDev) {
+            const tag = photoIdx === 0 && r === 0 ? '✅' : '✨'
+            console.log(`${tag} [clean] Slot ${idx + 1} done in ${Date.now() - slotStart}ms${photoIdx > 0 ? ` (backup photo ${attempt.id.slice(0, 8)})` : ''}${r > 0 ? ` after ${r} retries` : ''}`)
+          }
+          return {
+            photoId: attempt.id, // report the photo we actually used
+            prompt: sel.prompt,
+            reasoning: sel.reasoning,
+            outputBase64: output,
+            jobId: `gemini-${Date.now()}-${idx}`,
+            durationMs: Date.now() - slotStart,
+          }
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err)
+          lastErr = msg
+          // Don't retry user-actionable errors (moderation, auth) on the same photo
+          const isUserActionable =
+            msg.toLowerCase().includes('moderat') ||
+            msg.toLowerCase().includes('safety filter') ||
+            /401|403/.test(msg)
+          if (isUserActionable) {
+            if (isDev) console.warn(`⛔ Slot ${idx + 1} non-retryable: ${msg.slice(0, 150)}`)
+            break // move to next photo (or fail) without further retries on this one
+          }
+          if (isDev) console.warn(`⚠️ Slot ${idx + 1} attempt failed: ${msg.slice(0, 100)}`)
+          // Short backoff before retry
+          if (r < RETRIES_PER_PHOTO - 1) {
+            await new Promise((resolve) => setTimeout(resolve, 600 + Math.floor(Math.random() * 400)))
+          }
+        }
+      }
+      // All retries on this photo exhausted, brief pause before backup
+      if (photoIdx < photoAttempts.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 500))
       }
     }
+
+    if (isDev) console.warn(`❌ [clean] Slot ${idx + 1} failed after all attempts: ${lastErr.slice(0, 150)}`)
+    return {
+      photoId: sel.photoId,
+      prompt: sel.prompt,
+      reasoning: sel.reasoning,
+      error: lastErr.slice(0, 400),
+      durationMs: Date.now() - slotStart,
+    }
+  }
+
+  // Run all 3 slots in parallel. Each slot has its own ordered backup
+  // queue — round-robin assigned so different slots try different backups
+  // if their primaries fail.
+  const slotPromises = orchestrated.selections.slice(0, 3).map((sel, idx) => {
+    // Each slot gets every backup in the pool, offset so they prefer
+    // different backups when multiple slots need them.
+    const offset = idx
+    const orderedBackups = backupPool.slice(offset).concat(backupPool.slice(0, offset))
+    return runSlotWithFallback(sel, idx, orderedBackups)
   })
 
   const slots = await Promise.all(slotPromises)
-  if (isDev) console.log(`🎨 [clean] Step 3 done in ${Date.now() - fluxStart}ms`)
+  if (isDev) console.log(`🎨 [clean] Step 3 done in ${Date.now() - swapStart}ms`)
 
   return {
     cleanedGarmentBase64: cleanedGarment,

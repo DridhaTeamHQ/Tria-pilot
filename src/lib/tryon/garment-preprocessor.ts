@@ -118,14 +118,23 @@ export async function preprocessGarmentImage(
         }
     }
 
-    // Check cache
+    // Check cache — but only return cached entries that ACTUALLY have an
+    // extracted garment when bodyDetected. Stale 'passthrough' results from
+    // previous (buggy) runs would otherwise keep serving the on-model image
+    // even after the body-detector fix lands.
     const cacheKey = generateCacheKey(clothingImageBase64)
     const cached = preprocessCache.get(cacheKey)
     if (cached && (Date.now() - cached.timestamp) < CACHE_TTL_MS) {
-        console.log(`   📦 Using CACHED result`)
-        return {
-            ...cached.result,
-            totalTimeMs: Date.now() - startTime
+        const stale = cached.result.bodyDetected && !cached.result.wasExtracted
+        if (stale) {
+            console.log(`   🗑️ Stale cache entry (body detected but passthrough) — re-running`)
+            preprocessCache.delete(cacheKey)
+        } else {
+            console.log(`   📦 Using CACHED result`)
+            return {
+                ...cached.result,
+                totalTimeMs: Date.now() - startTime
+            }
         }
     }
 
@@ -155,9 +164,25 @@ export async function preprocessGarmentImage(
         // ═══════════════════════════════════════════════════════════════
         // STEP 2: DECISION LOGIC
         // ═══════════════════════════════════════════════════════════════
+        // Force extraction whenever ANY human / face / partial body is
+        // detected at meaningful confidence. The detector's 'recommendation'
+        // field has been returning 'passthrough' on legitimate on-model
+        // product photos (98% human confidence, recommendation=passthrough,
+        // wat) — bypass that flag entirely. If there's a person in the
+        // photo, we extract; downstream FLUX is much cleaner with garment-
+        // only input.
+        const humanPresent =
+            detectionResult.containsHuman ||
+            detectionResult.containsFace ||
+            (detectionResult.detectedParts || []).length > 0
+
         const shouldExtract =
-            detectionResult.recommendation === 'extract' &&
+            (detectionResult.recommendation === 'extract' || humanPresent) &&
             detectionResult.confidence >= DETECTION_THRESHOLD
+
+        if (humanPresent && detectionResult.recommendation !== 'extract') {
+            console.log(`   ⚡ Body detected (${detectionResult.bodyType}) — overriding 'passthrough' → 'extract'`)
+        }
 
         if (!shouldExtract) {
             console.log(`   ✅ No extraction needed — PASSTHROUGH`)

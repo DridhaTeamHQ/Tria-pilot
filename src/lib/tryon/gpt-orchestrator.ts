@@ -35,8 +35,10 @@ export interface OrchestratedPhoto {
   photoId: string
   /** Custom FLUX prompt for swapping this garment onto this specific photo */
   prompt: string
-  /** Why GPT-4o picked this photo (1 short sentence) */
+  /** Why GPT-4o picked this photo (1-2 sentences including current-clothing description) */
   reasoning: string
+  /** Optional: GPT-4o's description of what she's currently wearing */
+  currentClothing?: string
 }
 
 export interface OrchestrateResult {
@@ -60,41 +62,65 @@ INPUT YOU RECEIVE:
 YOUR JOB (two outputs in a single JSON):
 
 PART 1 — SELECT 3 PHOTOS (best for this swap)
-Score each candidate by:
+
+STEP 1A — DESCRIBE THE EXISTING CLOTHING IN EACH CANDIDATE
+For EACH candidate photo (image 2, image 3, etc), first describe in 1 short sentence what the woman is currently wearing — both top AND bottom — being specific about TYPE and COLOR. Example:
+  - Candidate ABC: "white t-shirt + blue denim jeans"
+  - Candidate XYZ: "red knit sweater + black mini skirt"
+Include these descriptions in the reasoning field.
+
+STEP 1B — APPLY COMPATIBILITY RULE
+Read your descriptions. Then apply the HARD COMPATIBILITY RULE below — eliminate every candidate whose existing clothing in the same region as the product matches.
+
+Score the remaining candidates by:
 - Coverage match: if product is a TOP (upper_only), prefer photos where her existing bottom-wear is clearly visible (so it can be preserved). If product is PANTS (lower_only), prefer photos where her existing top is clearly visible AND her legs are visible (so the new pants show). If product is a DRESS (full_body), prefer full-body photos.
 - Pose / framing: prefer photos with clean, fashion-shoot-style poses over awkward selfies. Front-facing or three-quarter is ideal. Side profiles only if the garment has distinctive side details.
-- Compatibility: avoid photos where her existing clothing is ALREADY a similar style to the new garment (e.g. don't pick a photo of her in a paisley dress when swapping in a paisley top — the result will look unchanged).
+- **HARD COMPATIBILITY RULE** (most important): NEVER pick a photo where her existing clothing in the SAME REGION as the product is similar to the product itself.
+   - Product is JEANS or PANTS → DO NOT pick photos where she's already wearing jeans, denim, or blue pants. Pick photos where her existing bottom is a SKIRT, SHORTS, LEGGINGS, A DRESS, or visibly different pants (different color/style).
+   - Product is a DENIM JACKET → DO NOT pick photos where she's already wearing denim.
+   - Product is a WHITE TOP → DO NOT pick photos where she's already wearing a white top. Pick photos with red, black, printed, or other-colored tops.
+   - Product is a BLACK DRESS → DO NOT pick photos where she's already in a black dress.
+   - This is CRITICAL because FLUX produces near-identical output when the input already matches the target. If you pick a jeans-wearing photo for a jeans swap, the swap will be invisible and the user sees nothing happened. Always pick photos where the visual CHANGE will be obvious.
 - Diversity: the 3 picks should look DIFFERENT from each other (varied poses, backgrounds, angles) so the influencer gets 3 distinct try-on shots, not 3 near-duplicates.
 - Quality: prefer well-lit, sharp, properly framed photos. Skip blurry/tiny/face-only crops unless coverage demands it.
 
-PART 2 — WRITE A FLUX PROMPT FOR EACH SELECTED PHOTO
-For each of the 3 selected photos, write a prompt using this exact pattern (Black Forest Labs official style):
+PART 2 — WRITE A SWAP PROMPT FOR EACH SELECTED PHOTO
 
-  "Change the woman's <region> to <specific garment description with colors, pattern, sleeves, length>, exactly as shown in image 2. Keep her <existing-preserved-items including the specific top/bottom she's wearing, her face, hair, body, pose, framing, lighting, and background> exactly the same as image 1. The new garment must drape naturally on her body with realistic fabric folds — it is being worn, not overlaid."
+Image 2 (the product image) shows the target clothing. Treat it as the literal product to apply to the person in image 1.
 
-CRITICAL rules for the prompt:
-- Use the verb "change" (NOT "replace", "transform", or "swap" — those trigger different generation modes that produce overlay artifacts)
-- Reference the SPECIFIC existing garment in the photo by name (e.g. "her red sweater" not just "her top") — this anchors preservation
-- Reference the SPECIFIC NEW garment with concrete attributes (colors, pattern, neckline, sleeves)
-- For LOWER swaps (pants/skirt): explicitly say "show the legs so the new bottom is fully visible, do not crop above the knee"
-- For UPPER swaps: explicitly say "preserve the existing bottom-wear (pants/skirt/jeans) and keep full body framing"
-- Keep each prompt under 800 characters
+Write a simple, direct prompt for each photo using this exact structure:
+
+  "Edit image 1 by changing the clothing to match the garment shown in image 2. The garment is <1-sentence product description: type, colors, pattern, fit>. Preserve the person's identity, pose, framing, lighting, and background exactly as in image 1 — only the clothing changes. The garment should appear naturally fitted with realistic fabric drape. Photorealistic fashion photography."
+
+Rules:
+- Keep it SHORT — under 500 characters total.
+- Use NEUTRAL language: "the person", "the subject" — NOT "the woman", "her body".
+- Be specific about the new garment (use the productText / garment summary).
+- Always include identity preservation ("preserve the person's identity, pose, framing, lighting, background").
+- Do NOT mention regions, coverage, top vs bottom, or "remove the existing X". Just "change the clothing to match this garment".
+- Do NOT use anatomical language ("breasts", "chest", "thighs", "body parts"). Just "clothing" and "garment".
 
 OUTPUT — return ONLY valid JSON, no markdown:
 {
   "garmentSummary": "1-2 sentence summary of what the product is",
+  "candidateDescriptions": [
+    { "photoId": "<id>", "currentClothing": "<top + bottom description>" },
+    ... one entry per candidate received ...
+  ],
   "selections": [
     {
       "photoId": "<candidate id>",
       "prompt": "<the FLUX prompt for this photo>",
-      "reasoning": "<1 short sentence why this photo>"
+      "reasoning": "<2 sentences: (1) what she's currently wearing in this photo, (2) why this is a good swap target — explicitly state how it differs from the product>"
     },
     { ... },
     { ... }
   ]
 }
 
-You MUST return exactly 3 selections. If fewer than 3 candidates are suitable, pick the next best to fill the slots.`
+You MUST return exactly 3 selections. The reasoning MUST explicitly confirm the existing clothing differs from the product. If you cannot find 3 photos where the existing clothing differs from the product, pick the 3 most-different ones available and call this out in the reasoning.
+
+If ALL candidates wear similar clothing to the product (e.g. all 8 candidates are jeans-wearing for a jeans product), still pick 3 but in the prompt EMPHASIZE that the new garment is visually distinct: "Replace her existing dark wash slim jeans with the NEW medium-blue mom-fit ankle-length jeans — note the different wash, looser fit, and ankle hem; even though both are jeans, the new pair MUST visually replace the old one with these specific differences."`
 
 export async function orchestrateTryOn(params: {
   /** Clean garment image (base64, no data: prefix) */
@@ -135,10 +161,37 @@ export async function orchestrateTryOn(params: {
       return `Image ${idx + 2}: candidate id=${c.id}${hintStr}`
     }).join('\n')
 
+    // Build an explicit "avoid" rule from the product text — if product is
+    // jeans, tell GPT-4o NOT to pick jeans-wearing photos. This is the
+    // backstop for the compatibility rule in the system prompt.
+    const productLower = (params.productText || '').toLowerCase()
+    const avoidKeywords: string[] = []
+    if (/\b(jeans|denim|trouser|pant|chino|jogger)\b/.test(productLower)) {
+      avoidKeywords.push('photos where she is already wearing jeans, denim, or similar long pants — pick photos with skirts, shorts, leggings, or dresses instead')
+    } else if (/\b(skirt)\b/.test(productLower)) {
+      avoidKeywords.push('photos where she is already wearing a similar skirt')
+    } else if (/\b(saree|sari|lehenga)\b/.test(productLower)) {
+      avoidKeywords.push('photos where she is already wearing a saree or lehenga')
+    } else if (/\b(dress|gown|frock)\b/.test(productLower)) {
+      avoidKeywords.push('photos where she is already wearing a similar dress')
+    } else if (/\b(jacket|blazer|cardigan|hoodie)\b/.test(productLower)) {
+      avoidKeywords.push('photos where she is already wearing similar outerwear')
+    } else if (/\b(shirt|t.?shirt|tee|blouse|top|tank|kurti)\b/.test(productLower)) {
+      // Optional: extract color if mentioned
+      const colorMatch = productLower.match(/\b(white|black|red|blue|green|yellow|pink|brown|beige|cream|navy|olive)\b/)
+      if (colorMatch) {
+        avoidKeywords.push(`photos where she is already wearing a ${colorMatch[1]}-colored top — pick photos where her top is a different color so the swap is visually obvious`)
+      }
+    }
+
+    const avoidClause = avoidKeywords.length > 0
+      ? `\n\nIMPORTANT: For this specific product, AVOID picking ${avoidKeywords.join('; ')}. If you pick a photo where the existing clothing already matches the product, the swap will be visually invisible and the user sees nothing changed.\n`
+      : ''
+
     const userContent: any[] = [
       {
         type: 'text',
-        text: `${params.productText ? `Product: ${params.productText.slice(0, 200)}\n\n` : ''}${params.garmentSummary ? `Garment summary: ${params.garmentSummary.slice(0, 200)}\n\n` : ''}Candidate photos manifest:\n${manifest}\n\nLook at the garment (Image 1) and each candidate (Images 2-${candidatesForCall.length + 1}). Pick the 3 best photos for this swap and write a FLUX prompt for each. Return JSON only.`,
+        text: `${params.productText ? `Product: ${params.productText.slice(0, 200)}\n\n` : ''}${params.garmentSummary ? `Garment summary: ${params.garmentSummary.slice(0, 200)}\n\n` : ''}Candidate photos manifest:\n${manifest}${avoidClause}\n\nLook at the garment (Image 1) and each candidate (Images 2-${candidatesForCall.length + 1}). Pick the 3 best photos for this swap and write a FLUX prompt for each. Return JSON only.`,
       },
       // Image 1 = the garment
       {
@@ -176,11 +229,22 @@ export async function orchestrateTryOn(params: {
 
     const parsed = JSON.parse(text) as {
       garmentSummary?: string
-      selections?: Array<{ photoId?: string; prompt?: string; reasoning?: string }>
+      candidateDescriptions?: Array<{ photoId?: string; currentClothing?: string }>
+      selections?: Array<{ photoId?: string; prompt?: string; reasoning?: string; currentClothing?: string }>
     }
 
     if (!Array.isArray(parsed.selections) || parsed.selections.length === 0) {
       throw new Error('Orchestrator returned no selections')
+    }
+
+    // Build a lookup of currentClothing per photoId from the descriptions block
+    const clothingByPhotoId = new Map<string, string>()
+    if (Array.isArray(parsed.candidateDescriptions)) {
+      for (const d of parsed.candidateDescriptions) {
+        if (d.photoId && d.currentClothing) {
+          clothingByPhotoId.set(d.photoId, d.currentClothing.toLowerCase())
+        }
+      }
     }
 
     // Validate every selection — photoId must match one of the candidates
@@ -196,9 +260,68 @@ export async function orchestrateTryOn(params: {
       cleanSelections.push({
         photoId: sel.photoId,
         prompt: String(sel.prompt).slice(0, 1200),
-        reasoning: String(sel.reasoning || '').slice(0, 200),
+        reasoning: String(sel.reasoning || '').slice(0, 300),
+        currentClothing: clothingByPhotoId.get(sel.photoId) || sel.currentClothing,
       })
       if (cleanSelections.length >= 3) break
+    }
+
+    // ── DETERMINISTIC COMPATIBILITY CHECK ─────────────────────────────
+    // Even with the system-prompt rule, GPT-4o sometimes picks photos
+    // that fail the compatibility filter. Catch those here using the
+    // currentClothing description it generated itself.
+    const productLower2 = (params.productText || '').toLowerCase()
+    const flagsToCheck: Array<{ pattern: RegExp; productMatches: RegExp; label: string }> = [
+      { productMatches: /\b(jeans|denim|trouser|chino|jogger)\b/, pattern: /\b(jeans|denim)\b/, label: 'jeans' },
+      { productMatches: /\b(saree|sari)\b/, pattern: /\b(saree|sari)\b/, label: 'saree' },
+      { productMatches: /\b(lehenga)\b/, pattern: /\b(lehenga)\b/, label: 'lehenga' },
+    ]
+
+    for (const flag of flagsToCheck) {
+      if (!flag.productMatches.test(productLower2)) continue
+      // Product matches this category. Now check each selection.
+      const violators = cleanSelections.filter((s) =>
+        s.currentClothing && flag.pattern.test(s.currentClothing)
+      )
+      if (violators.length > 0 && isDev) {
+        console.warn(
+          `⚠️ Orchestrator picked ${violators.length} photo(s) where she's already wearing ${flag.label}: ` +
+          violators.map((v) => `${v.photoId.slice(0, 8)}="${v.currentClothing?.slice(0, 60)}"`).join(', ')
+        )
+      }
+      // For each violator, try to substitute from the non-violator candidate pool
+      if (violators.length > 0) {
+        const nonViolatorIds = new Set(
+          candidatesForCall
+            .filter((c) => {
+              const cc = clothingByPhotoId.get(c.id)
+              return cc && !flag.pattern.test(cc)
+            })
+            .map((c) => c.id)
+        )
+        const currentIds = new Set(cleanSelections.map((s) => s.photoId))
+        for (const v of violators) {
+          const substitute = candidatesForCall.find(
+            (c) => nonViolatorIds.has(c.id) && !currentIds.has(c.id)
+          )
+          if (substitute) {
+            const subClothing = clothingByPhotoId.get(substitute.id)
+            const idx = cleanSelections.findIndex((s) => s.photoId === v.photoId)
+            if (idx >= 0) {
+              if (isDev) console.log(`   ↪ Substituting ${v.photoId.slice(0, 8)} → ${substitute.id.slice(0, 8)} ("${subClothing}")`)
+              // Reuse the original prompt but swap the photoId and clothing
+              cleanSelections[idx] = {
+                ...cleanSelections[idx],
+                photoId: substitute.id,
+                currentClothing: subClothing,
+                reasoning: `Substituted by compatibility filter — original pick had matching ${flag.label}; this candidate wears: ${subClothing}`,
+              }
+              currentIds.delete(v.photoId)
+              currentIds.add(substitute.id)
+            }
+          }
+        }
+      }
     }
 
     if (cleanSelections.length === 0) {

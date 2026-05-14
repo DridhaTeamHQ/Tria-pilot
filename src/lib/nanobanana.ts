@@ -633,6 +633,16 @@ REALISM: Photorealistic output. Natural skin, realistic fabric drape. No AI smoo
     temperature: 0.1,
     topP: 0.8,
     topK: 12,
+    // Lower safety thresholds — Gemini was silently dropping clothing-swap
+    // requests with candidateCount=0 and a promptFeedback block reason.
+    // BLOCK_ONLY_HIGH allows everything except clearly dangerous content,
+    // which is the right level for legitimate fashion try-on use.
+    safetySettings: [
+      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
+      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
+    ] as any,
   }
 
   // Model fallback chain: Pro → Flash on 503/UNAVAILABLE
@@ -673,12 +683,24 @@ REALISM: Photorealistic output. Natural skin, realistic fabric drape. No AI smoo
         if (p.thoughtSignature) return 'thoughtSignature'
         return Object.keys(p).join(',')
       }) ?? []
+      // Surface promptFeedback details — when Gemini silently blocks
+      // (candidateCount=0), the actual reason lives in promptFeedback.blockReason
+      // and the per-category safetyRatings. Without this we just see empty
+      // responses and can't tell WHY.
+      const pf = (response as any).promptFeedback
       console.log(`🔍 GEMINI RESPONSE DIAGNOSTIC [${modelAttempt}]:`, JSON.stringify({
         hasData,
         candidateCount,
         finishReason,
         partTypes,
         responseKeys: Object.keys(response),
+        promptFeedback: pf ? {
+          blockReason: pf.blockReason,
+          blockReasonMessage: pf.blockReasonMessage,
+          safetyRatings: Array.isArray(pf.safetyRatings)
+            ? pf.safetyRatings.map((r: any) => `${r.category}=${r.probability}${r.blocked ? '(BLOCKED)' : ''}`).join(', ')
+            : undefined,
+        } : undefined,
       }))
 
       if (response.data) {
