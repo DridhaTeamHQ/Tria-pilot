@@ -116,7 +116,7 @@ export default function InfluencerCollaborationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] pt-28 pb-20">
+    <div className="min-h-screen bg-[#F9F8F4] pt-28 pb-20">
       <div className="container mx-auto px-6 max-w-6xl">
         <div className="mb-12">
           <h1 className="text-6xl font-black text-black uppercase leading-none mb-4">Collaborations</h1>
@@ -136,9 +136,8 @@ export default function InfluencerCollaborationsPage() {
               type="button"
               key={tab.id}
               onClick={() => setFilter(tab.id as typeof filter)}
-              className={`px-5 py-2 font-black uppercase tracking-wider border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all transform hover:-translate-y-1 ${
-                filter === tab.id ? 'bg-black text-white' : 'bg-white text-black hover:bg-gray-50'
-              }`}
+              className={`px-5 py-2 font-black uppercase tracking-wider border-[2px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all transform hover:-translate-y-1 ${filter === tab.id ? 'bg-black text-white' : 'bg-white text-black hover:bg-gray-50'
+                }`}
             >
               {tab.label} ({tab.count})
             </button>
@@ -268,9 +267,8 @@ export default function InfluencerCollaborationsPage() {
               <button
                 type="button"
                 onClick={confirmStatusChange}
-                className={`px-4 py-2 border-[2px] border-black font-bold uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:shadow-none text-black ${
-                  confirmDialog.status === 'accepted' ? 'bg-[#BAFCA2]' : 'bg-[#FFABAB]'
-                }`}
+                className={`px-4 py-2 border-[2px] border-black font-bold uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:shadow-none text-black ${confirmDialog.status === 'accepted' ? 'bg-[#BAFCA2]' : 'bg-[#FFABAB]'
+                  }`}
               >
                 {confirmDialog.status === 'accepted' ? 'Yes, Accept' : 'Yes, Decline'}
               </button>

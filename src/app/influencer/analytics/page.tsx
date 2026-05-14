@@ -1,7 +1,7 @@
-import AnalyticsBoard from '@/components/analytics/AnalyticsBoard'
+import InfluencerAnalyticsDashboard from '@/components/analytics/InfluencerAnalyticsDashboard'
 
 export const dynamic = 'force-dynamic'
 
 export default function InfluencerAnalyticsPage() {
-  return <AnalyticsBoard expectedRole="influencer" />
+  return <InfluencerAnalyticsDashboard />
 }
