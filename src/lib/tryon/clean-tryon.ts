@@ -60,6 +60,12 @@ export interface CleanTryOnInput {
   productText?: string
   /** Output aspect ratio target ('4:5', '1:1', etc) */
   aspectRatio?: '1:1' | '4:5' | '3:4' | '9:16' | '16:9'
+  /**
+   * Pre-computed garment intelligence. Pass this when the caller already
+   * ran analyzeGarment — avoids a redundant 3-5s Gemini call in the
+   * pipeline. If unset, the pipeline runs the analysis itself.
+   */
+  prebuiltIntel?: import('@/lib/tryon/garment-intel').GarmentIntelligence | null
 }
 
 export interface CleanTryOnSlot {
@@ -147,10 +153,11 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
   }
   if (isDev) console.log(`🧼 [clean] Step 1 done in ${Date.now() - extractStart}ms (extracted=${wasExtracted})`)
 
-  // Run garment analysis in parallel with orchestration so we have intel
-  // for the coverage hint in case downstream logic needs it. Cheap — runs
-  // in the background while orchestrator does its thing.
-  const intelPromise = analyzeGarment(cleanedGarment, input.productText).catch(() => null)
+  // Use pre-computed intel when caller provides it (saves a 3-5s call).
+  // Falls through to a fresh analysis when missing.
+  const intelPromise = input.prebuiltIntel
+    ? Promise.resolve(input.prebuiltIntel)
+    : analyzeGarment(cleanedGarment, input.productText).catch(() => null)
 
   // ── STEP 2: ORCHESTRATE — GPT-4o picks photos + writes prompts ──────
   if (isDev) console.log('🎬 [clean] Step 2: GPT-4o orchestrator')

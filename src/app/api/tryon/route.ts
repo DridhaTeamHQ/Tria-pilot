@@ -1062,6 +1062,9 @@ async function handlePresetlessTryOnRequest(params: {
         })).filter((p) => p.base64.length > 100),
         productText: garmentTextHint,
         aspectRatio: (payload.aspectRatio || '4:5') as any,
+        // We already ran analyzeGarment upstream — pass it through to skip
+        // the duplicate call inside the clean pipeline (saves 3-5s).
+        prebuiltIntel: garmentIntel,
       })
     } catch (cleanErr) {
       const msg = cleanErr instanceof Error ? cleanErr.message : 'Clean pipeline failed'

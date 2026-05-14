@@ -24,16 +24,34 @@ const KEY_COOLDOWN_MS = 60_000
 //
 // Flash image model: ~10 RPM PER KEY. With N keys, total = N×10 RPM.
 //
-// Defaults are conservative (single-key safe). Override in production.
+// Limiters auto-scale based on the number of keys in GEMINI_API_KEYS.
+// You can still override per-env if you need to clamp lower.
+function countKeys(): number {
+  const multi = (process.env.GEMINI_API_KEYS || '').trim()
+  if (multi) {
+    return multi.split(',').map((k) => k.trim()).filter((k) => k.length >= 10).length
+  }
+  return (process.env.GEMINI_API_KEY || '').trim() ? 1 : 0
+}
+
+const KEY_COUNT = countKeys() || 1
+
+// Pro: 1 concurrent per key (model is slow, queue more aggressively).
+// Min time per slot: 1500ms with 3+ keys, 5000ms with 1 key.
 const proImageLimiter = new Bottleneck({
-  maxConcurrent: parseInt(process.env.GEMINI_PRO_MAX_CONCURRENT || '1', 10) || 1,
-  minTime: parseInt(process.env.GEMINI_PRO_MIN_TIME_MS || '5000', 10) || 5000,
+  maxConcurrent: parseInt(process.env.GEMINI_PRO_MAX_CONCURRENT || '', 10) || Math.max(3, KEY_COUNT),
+  minTime: parseInt(process.env.GEMINI_PRO_MIN_TIME_MS || '', 10) || (KEY_COUNT >= 3 ? 1200 : 5000),
 })
 
+// Flash: 2 concurrent per key, faster minTime
 const flashLimiter = new Bottleneck({
-  maxConcurrent: parseInt(process.env.GEMINI_FLASH_MAX_CONCURRENT || '2', 10) || 2,
-  minTime: parseInt(process.env.GEMINI_FLASH_MIN_TIME_MS || '500', 10) || 500,
+  maxConcurrent: parseInt(process.env.GEMINI_FLASH_MAX_CONCURRENT || '', 10) || Math.max(4, KEY_COUNT * 2),
+  minTime: parseInt(process.env.GEMINI_FLASH_MIN_TIME_MS || '', 10) || (KEY_COUNT >= 3 ? 250 : 500),
 })
+
+if (process.env.NODE_ENV !== 'production') {
+  console.log(`⚙️  Gemini limiters auto-scaled for ${KEY_COUNT} key(s): pro maxConcurrent=${(proImageLimiter as any)._store?.storeOptions?.maxConcurrent || 'N/A'}, flash maxConcurrent=${(flashLimiter as any)._store?.storeOptions?.maxConcurrent || 'N/A'}`)
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // API KEY POOL — Supports multiple Gemini keys for production scale
