@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { toast } from '@/lib/simple-sonner'
-import { ArrowRight, Shield, Sparkles, KeyRound } from 'lucide-react'
+import { ArrowRight, Shield, Sparkles } from 'lucide-react'
 import { DecorativeShapes } from '@/components/brutal/onboarding/DecorativeShapes'
 
 export default function AdminRegisterPage() {
@@ -13,7 +13,6 @@ export default function AdminRegisterPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -30,10 +29,6 @@ export default function AdminRegisterPage() {
       toast.error('Passwords do not match')
       return
     }
-    if (!code.trim()) {
-      toast.error('Admin signup code is required')
-      return
-    }
 
     setLoading(true)
     try {
@@ -44,7 +39,6 @@ export default function AdminRegisterPage() {
         body: JSON.stringify({
           email: normalizedEmail,
           password,
-          code: code.trim(),
         }),
       })
       const out = await res.json().catch(() => ({}))
@@ -88,7 +82,7 @@ export default function AdminRegisterPage() {
             <span className="italic text-[#B4F056] text-shadow-sm">Team</span>
           </h1>
           <p className="text-xl text-black/80 font-medium border-l-4 border-black pl-6 py-2">
-            Create your admin credentials securely. Requires a valid invitation code.
+            Create your admin credentials to manage the platform.
           </p>
         </div>
       </motion.div>
@@ -139,20 +133,6 @@ export default function AdminRegisterPage() {
                 className="w-full px-4 py-3 rounded-lg border-2 border-black bg-[#FDF6EC] text-black focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:-translate-y-0.5 transition-all font-medium placeholder:text-black/30"
                 placeholder="••••••••"
               />
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-bold text-black uppercase tracking-wide">Admin signup code</label>
-              <div className="relative">
-                <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-black/40" />
-                <input
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 rounded-lg border-2 border-black bg-[#FDF6EC] text-black focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:-translate-y-0.5 transition-all font-medium placeholder:text-black/30"
-                  placeholder="Enter code"
-                />
-              </div>
-              <p className="text-xs text-black/50 font-medium">Required for security purposes.</p>
             </div>
 
             <motion.button

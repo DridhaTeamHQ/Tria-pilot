@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createServiceClient } from '@/lib/auth'
-import crypto from 'crypto'
 import { findAuthUserByEmail, findAuthUserById } from '@/lib/supabase/admin-users'
 import { ipRateLimit, getClientIp } from '@/lib/security/ip-rate-limit'
 
+// Open admin signup — no shared code required. The form is gated by:
+//   - same-origin check (CSRF protection)
+//   - per-IP rate limit (5 attempts per 10 min)
+//   - the route requires NEXT_PUBLIC_SUPABASE_URL + service-role key
 const schema = z
   .object({
-    code: z.string().min(6).max(128),
     user_id: z.string().uuid().optional(),
     email: z.string().trim().toLowerCase().email().max(320).optional(),
     password: z.string().min(8).max(128).optional(),
@@ -17,13 +19,6 @@ const schema = z
     (data) => data.user_id || (data.email && data.password),
     { message: 'Provide user_id or email + password' }
   )
-
-function safeEqual(a: string, b: string) {
-  const aBuf = Buffer.from(a)
-  const bBuf = Buffer.from(b)
-  if (aBuf.length !== bBuf.length) return false
-  return crypto.timingSafeEqual(aBuf, bBuf)
-}
 
 async function sleep(ms: number) {
   await new Promise((resolve) => setTimeout(resolve, ms))
@@ -41,13 +36,6 @@ function getProjectRefFromUrl(url: string | undefined): string | null {
   }
 }
 
-function isRouteEnabled(): boolean {
-  // Route is enabled whenever ADMIN_SIGNUP_CODE is set. The code itself
-  // is the gate — no need for additional environment flags. Set the env
-  // var to empty / unset to disable the route entirely.
-  return Boolean((process.env.ADMIN_SIGNUP_CODE || '').trim())
-}
-
 function isSameOriginRequest(request: Request): boolean {
   const requestUrl = new URL(request.url)
   const allowedOrigin = requestUrl.origin
@@ -63,32 +51,18 @@ function isSameOriginRequest(request: Request): boolean {
 
 export async function POST(request: Request) {
   try {
-    if (!isRouteEnabled()) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    }
-
     if (!isSameOriginRequest(request)) {
       return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 })
     }
 
-    // SECURITY: brute-force guard. Even though ADMIN_SIGNUP_CODE is
-    // timing-safe-compared and ≥6 chars, an attacker who learns the route
-    // exists could still rip through 10K guesses/min. Limit to 5 attempts
-    // per IP per 10 minutes — turns a brute force into a 6-month task.
+    // SECURITY: brute-force guard. 5 attempts per IP per 10 minutes —
+    // prevents an attacker from spamming admin-account creation.
     const ip = getClientIp(request)
     const rl = ipRateLimit(`admin-grant:${ip}`, 5, 10 * 60_000)
     if (!rl.allowed) {
       return NextResponse.json(
         { error: 'Too many attempts. Try again later.' },
         { status: 429, headers: { 'Retry-After': String(Math.ceil(rl.resetMs / 1000)) } },
-      )
-    }
-
-    const signupCode = (process.env.ADMIN_SIGNUP_CODE || '').trim()
-    if (!signupCode) {
-      return NextResponse.json(
-        { error: 'Admin bootstrap is not configured' },
-        { status: 500 }
       )
     }
 
@@ -101,11 +75,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json().catch(() => null)
-    const { user_id, email, password, code } = schema.parse(body)
-
-    if (!safeEqual(code, signupCode)) {
-      return NextResponse.json({ error: 'Invalid admin signup code' }, { status: 403 })
-    }
+    const { user_id, email, password } = schema.parse(body)
 
     // Verify service role key is configured
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
