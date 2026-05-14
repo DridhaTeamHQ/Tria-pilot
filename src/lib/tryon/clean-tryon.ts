@@ -66,6 +66,13 @@ export interface CleanTryOnInput {
    * pipeline. If unset, the pipeline runs the analysis itself.
    */
   prebuiltIntel?: import('@/lib/tryon/garment-intel').GarmentIntelligence | null
+  /**
+   * Set true when the caller already ran preprocessGarmentImage and is
+   * passing in the cleaned garment as garmentImageBase64. Skips body
+   * detection + extraction inside the pipeline entirely — saves
+   * 5-25 seconds depending on model.
+   */
+  garmentAlreadyPreprocessed?: boolean
 }
 
 export interface CleanTryOnSlot {
@@ -119,39 +126,44 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
   }
 
   // ── STEP 1: EXTRACT CLEAN GARMENT ────────────────────────────────────
-  // First quick detection pass: is a human in the product image?
-  // If so, force extraction. If it's already a flat-lay, the detector
-  // says no-human and the preprocessor passthroughs.
+  // Fast path: when the caller has already preprocessed the garment
+  // (the /api/tryon route does this upstream), skip Step 1 entirely.
+  // Saves 5-25 seconds (body detection + extraction) per request.
   if (isDev) console.log('🧼 [clean] Step 1: extract garment')
   const extractStart = Date.now()
-  let cleanedGarment: string
+  let cleanedGarment: string = garmentClean
   let wasExtracted = false
-  try {
-    // Quick body check first so we can FORCE extraction when needed.
-    // The downstream preprocessor honours options.forceExtraction.
-    const { detectHumanInClothingImage } = await import('@/lib/tryon/human-body-detector')
-    const detection = await detectHumanInClothingImage(garmentClean).catch(() => null)
-    const humanPresent =
-      !!(detection && (detection.containsHuman || detection.containsFace || (detection.detectedParts || []).length > 0))
 
-    if (isDev) console.log(`🧼 [clean] body check: humanPresent=${humanPresent} bodyType=${detection?.bodyType || 'unknown'}`)
+  if (input.garmentAlreadyPreprocessed) {
+    if (isDev) console.log(`🧼 [clean] Step 1 SKIPPED — caller marked garment as already preprocessed`)
+  } else {
+    try {
+      // Quick body check first so we can FORCE extraction when needed.
+      const { detectHumanInClothingImage } = await import('@/lib/tryon/human-body-detector')
+      const detection = await detectHumanInClothingImage(garmentClean).catch(() => null)
+      const humanPresent =
+        !!(detection && (detection.containsHuman || detection.containsFace || (detection.detectedParts || []).length > 0))
 
-    const preprocessed = await preprocessGarmentImage(garmentClean, {
-      fast: true,
-      model: 'pro', // Pro model produces cleaner extraction than flash
-      sessionId: `clean-${Date.now()}`,
-      // Force extraction if a human is present — flat-lay photos pass
-      // through naturally because the detector returns containsHuman=false
-      forceExtraction: humanPresent,
-    })
-    cleanedGarment = strip(preprocessed.processedImage)
-    wasExtracted = preprocessed.wasExtracted
-  } catch (e) {
-    if (isDev) console.warn(`[clean] preprocessing failed, using raw garment: ${e instanceof Error ? e.message : e}`)
-    cleanedGarment = garmentClean
-    wasExtracted = false
+      if (isDev) console.log(`🧼 [clean] body check: humanPresent=${humanPresent} bodyType=${detection?.bodyType || 'unknown'}`)
+
+      const preprocessed = await preprocessGarmentImage(garmentClean, {
+        fast: true,
+        // Flash extraction is 3-5x faster than Pro and quality is plenty
+        // for try-on. Pro was adding 15-20s to every request for marginal
+        // gain.
+        model: 'flash',
+        sessionId: `clean-${Date.now()}`,
+        forceExtraction: humanPresent,
+      })
+      cleanedGarment = strip(preprocessed.processedImage)
+      wasExtracted = preprocessed.wasExtracted
+    } catch (e) {
+      if (isDev) console.warn(`[clean] preprocessing failed, using raw garment: ${e instanceof Error ? e.message : e}`)
+      cleanedGarment = garmentClean
+      wasExtracted = false
+    }
+    if (isDev) console.log(`🧼 [clean] Step 1 done in ${Date.now() - extractStart}ms (extracted=${wasExtracted})`)
   }
-  if (isDev) console.log(`🧼 [clean] Step 1 done in ${Date.now() - extractStart}ms (extracted=${wasExtracted})`)
 
   // Use pre-computed intel when caller provides it (saves a 3-5s call).
   // Falls through to a fresh analysis when missing.

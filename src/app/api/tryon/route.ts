@@ -1065,6 +1065,10 @@ async function handlePresetlessTryOnRequest(params: {
         // We already ran analyzeGarment upstream — pass it through to skip
         // the duplicate call inside the clean pipeline (saves 3-5s).
         prebuiltIntel: garmentIntel,
+        // We already ran preprocessGarmentImage upstream and processedGarment
+        // is the cleaned result. Tell the pipeline to skip Step 1 entirely
+        // (saves 5-25s — was the biggest source of Vercel 504s).
+        garmentAlreadyPreprocessed: true,
       })
     } catch (cleanErr) {
       const msg = cleanErr instanceof Error ? cleanErr.message : 'Clean pipeline failed'
