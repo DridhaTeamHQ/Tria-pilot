@@ -16,8 +16,10 @@ import {
     Save,
     ExternalLink,
     Shirt,
-    Sparkles
+    Sparkles,
+    ChevronDown
 } from 'lucide-react'
+import { PortalModal } from '@/components/ui/PortalModal'
 
 export interface Product {
     id: string
@@ -357,10 +359,6 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
         setShowForm(false)
         toast.info(editingProduct ? 'Saving changes...' : 'Creating product...')
 
-        // Reset form state now (or after success? doing it now is riskier but feels faster)
-        // Let's reset purely UI state, but keep data fields until success just in case we need to reopen?
-        // Actually, for "instant" feel, we close the modal.
-
         try {
             const productData = { ...optimisticProduct }
             // Remove temp fields if any
@@ -402,19 +400,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
             refreshData()
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Failed to save product'
-            const isBodyParseError =
-                message.toLowerCase().includes('unterminated string') ||
-                message.toLowerCase().includes('unexpected end of json')
-            const isImageTooLarge = message.toLowerCase().includes('too large')
-
-            if (!isImageTooLarge) {
-                console.error('Failed to save product:', error)
-            }
-            toast.error(
-                isBodyParseError
-                    ? 'Upload too large. Please use fewer/smaller images and try again.'
-                    : message
-            )
+            toast.error(message)
 
             // Revert State
             setProducts(previousProducts)
@@ -490,547 +476,432 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
         )
     }
 
-    // Rendering logic for interactive form...
-    // (Truncated for brevity in thought, but full code is in call)
     return (
         <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 animate-fade-in">
             {/* Header */}
-        <div className="w-full max-w-[1440px] mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-10">
-            <div className="space-y-1">
-                <h1 className="text-3xl sm:text-4xl font-black text-black tracking-tight">Products</h1>
-                <p className="text-black/60 font-bold text-sm sm:text-base">
-                    Manage your product catalog · {products.length} items
-                </p>
+            <div className="w-full max-w-[1440px] mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-10">
+                <div className="space-y-1">
+                    <h1 className="text-3xl sm:text-4xl font-black text-black tracking-tight">Products</h1>
+                    <p className="text-black/60 font-bold text-sm sm:text-base">
+                        Manage your product catalog · {products.length} items
+                    </p>
+                </div>
+                <button type="button"
+                    onClick={() => setShowForm(true)}
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 bg-[#B4F056] border-[3px] border-black font-black uppercase text-sm tracking-wider shadow-[4px_4px_0px_0px_#000] hover:shadow-[6px_6px_0px_0px_#000] hover:-translate-y-0.5 active:translate-y-0 active:shadow-none transition-all"
+                >
+                    <Plus className="w-5 h-5" strokeWidth={3} />
+                    Add Product
+                </button>
             </div>
-            <button type="button"
-                onClick={() => setShowForm(true)}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 bg-[#B4F056] border-[3px] border-black font-black uppercase text-sm tracking-wider shadow-[4px_4px_0px_0px_#000] hover:shadow-[6px_6px_0px_0px_#000] hover:-translate-y-0.5 active:translate-y-0 active:shadow-none transition-all"
-            >
-                <Plus className="w-5 h-5" strokeWidth={3} />
-                Add Product
-            </button>
-        </div>
 
             {/* Product Form Modal */}
-            {showForm && (
-                <div
-                    className="fixed inset-0 z-[70] overflow-y-auto bg-black/55 backdrop-blur-[2px] px-4 pb-6 pt-24 md:pt-28"
-                    onClick={resetForm}
-                >
-                    <div
-                        className="mx-auto bg-[#FFFDF8] rounded-2xl border-[3px] border-black shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] w-full max-w-2xl max-h-[calc(100dvh-7rem)] md:max-h-[calc(100dvh-8rem)] overflow-y-auto animate-fade-in"
+            <PortalModal
+                isOpen={showForm}
+                onClose={resetForm}
+            >
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-[2px]">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        className="bg-white rounded-2xl border-[3px] border-black shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] w-full max-w-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain relative"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="flex items-center justify-between p-4 border-b-[3px] border-black">
-                            <h2 className="text-xl font-black">
-                                {editingProduct ? 'Edit Product' : 'Add New Product'}
-                            </h2>
-                            <button type="button" onClick={resetForm} className="p-2 hover:bg-gray-100">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-6">
-                            {/* Name */}
-                            <div>
-                                <label className="block text-xs font-black uppercase tracking-wider mb-2">
-                                    Product Name *
-                                </label>
-                                <input
-                                    type="text"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    className="w-full px-4 py-3 border-2 border-black font-bold focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
-                                    placeholder="e.g., Summer Collection T-Shirt"
-                                    required
-                                />
-                            </div>
-
-                            {/* Description */}
-                            <div>
-                                <label className="block text-xs font-black uppercase tracking-wider mb-2">
-                                    Description
-                                </label>
-                                <textarea
-                                    value={description}
-                                    onChange={(e) => setDescription(e.target.value)}
-                                    rows={3}
-                                    className="w-full px-4 py-3 border-2 border-black font-medium focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none resize-none"
-                                    placeholder="Describe your product..."
-                                />
-                            </div>
-
-                            {/* Category & Audience */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-black uppercase tracking-wider mb-2">
-                                        Category
-                                    </label>
-                                    <select
-                                        value={category}
-                                        onChange={(e) => setCategory(e.target.value)}
-                                        className="w-full px-4 py-3 border-2 border-black font-bold bg-white focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
-                                    >
-                                        <option value="">Select category</option>
-                                        {CATEGORIES.map(cat => (
-                                            <option key={cat} value={cat}>{cat}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-black uppercase tracking-wider mb-2">
-                                        Target Audience
-                                    </label>
-                                    <select
-                                        value={audience}
-                                        onChange={(e) => setAudience(e.target.value)}
-                                        className="w-full px-4 py-3 border-2 border-black font-bold bg-white focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
-                                    >
-                                        <option value="">Select audience</option>
-                                        {AUDIENCES.map(aud => (
-                                            <option key={aud} value={aud}>{aud}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-
-                            {/* Price, Discount, Stock, SKU */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-black uppercase tracking-wider mb-2">
-                                        Price (INR)
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={price}
-                                        onChange={(e) => setPrice(e.target.value)}
-                                        className="w-full px-4 py-3 border-2 border-black font-bold focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
-                                        placeholder="999"
-                                        min="0"
-                                        step="0.01"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-black uppercase tracking-wider mb-2">
-                                        Discount (%)
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={discount}
-                                        onChange={(e) => setDiscount(e.target.value)}
-                                        className="w-full px-4 py-3 border-2 border-black font-bold focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
-                                        placeholder="0"
-                                        min="0"
-                                        max="100"
-                                        step="1"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-black uppercase tracking-wider mb-2">
-                                        Stock
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={stock}
-                                        onChange={(e) => setStock(e.target.value)}
-                                        className="w-full px-4 py-3 border-2 border-black font-bold focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
-                                        placeholder="0"
-                                        min="0"
-                                        step="1"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-black uppercase tracking-wider mb-2">
-                                        SKU
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={sku}
-                                        onChange={(e) => setSku(e.target.value)}
-                                        className="w-full px-4 py-3 border-2 border-black font-medium focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
-                                        placeholder="e.g. SKU-001"
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={tryOnCompatible}
-                                        onChange={(e) => setTryOnCompatible(e.target.checked)}
-                                        className="w-4 h-4 border-2 border-black"
-                                    />
-                                    <span className="text-xs font-black uppercase">Try-on compatible</span>
-                                </label>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-black uppercase tracking-wider mb-2">
-                                    Product Link
-                                </label>
-                                <input
-                                    type="url"
-                                    value={link}
-                                    onChange={(e) => setLink(e.target.value)}
-                                    className="w-full px-4 py-3 border-2 border-black font-medium focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
-                                    placeholder="https://..."
-                                />
-                            </div>
-
-                            {/* Tags */}
-                            <div>
-                                <label className="block text-xs font-black uppercase tracking-wider mb-2">
-                                    Tags (comma separated)
-                                </label>
-                                <input
-                                    type="text"
-                                    value={tags}
-                                    onChange={(e) => setTags(e.target.value)}
-                                    className="w-full px-4 py-3 border-2 border-black font-medium focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
-                                    placeholder="summer, casual, cotton"
-                                />
-                            </div>
-
-                            {/* Images with Cover/Try-On Selection */}
-                            <div>
-                                <label className="block text-xs font-black uppercase tracking-wider mb-2">
-                                    Product Images
-                                </label>
-                                <div className="mb-4 rounded-2xl border-2 border-black bg-[#FFF6D8] p-4">
-                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                        <div className="space-y-1">
-                                            <p className="text-xs font-black uppercase tracking-wider text-black">Upload Once, Generate Neat Visuals</p>
-                                            <p className="text-sm font-medium text-black/65">
-                                                Add your base product image, then generate 3 clean storefront visuals using the ad creative engine.
-                                            </p>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={handleGenerateProductVisuals}
-                                            disabled={generatingVisuals || images.length === 0}
-                                            className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-black bg-[#FFD93D] px-4 py-2 text-xs font-black uppercase tracking-wide text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-transform hover:scale-[0.99] disabled:cursor-not-allowed disabled:bg-black/10 disabled:text-black/45 disabled:shadow-none"
-                                        >
-                                            {generatingVisuals ? (
-                                                <>
-                                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                                    Generating 3 visuals
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Sparkles className="w-4 h-4" />
-                                                    Generate 3 visuals
-                                                </>
-                                            )}
-                                        </button>
-                                    </div>
-                                </div>
-                                <p className="text-xs text-black/60 mb-3">
-                                    Click image to set as <span className="text-[#B4F056] font-bold">COVER</span> (display) or <span className="text-[#FF6B35] font-bold">TRY-ON</span> (virtual try-on)
-                                </p>
-                                <div className="flex flex-wrap gap-3 mb-3">
-                                    {images.map((img, index) => (
-                                        <div
-                                            key={index}
-                                            className={`relative w-24 h-24 border-2 ${coverIndex === index ? 'border-[#B4F056] ring-2 ring-[#B4F056]' :
-                                                tryonIndex === index ? 'border-[#FF6B35] ring-2 ring-[#FF6B35]' :
-                                                    'border-black'
-                                                }`}
-                                        >
-                                            <AppImage
-                                                src={img}
-                                                alt={`Product ${index + 1}`}
-                                                className="object-cover"
-                                                sizes="96px"
-                                            />
-
-                                            {/* Remove button */}
-                                            <button
-                                                type="button"
-                                                onClick={() => removeImage(index)}
-                                                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 border-2 border-black flex items-center justify-center z-10"
-                                            >
-                                                <X className="w-3 h-3 text-white" />
-                                            </button>
-
-                                            {/* Labels */}
-                                            <div className="absolute bottom-0 left-0 right-0 flex">
-                                                {coverIndex === index && (
-                                                    <span className="flex-1 text-[10px] font-black bg-[#B4F056] text-center py-0.5 border-t-2 border-black">
-                                                        COVER
-                                                    </span>
-                                                )}
-                                                {tryonIndex === index && (
-                                                    <span className="flex-1 text-[10px] font-black bg-[#FF6B35] text-white text-center py-0.5 border-t-2 border-black">
-                                                        TRY-ON
-                                                    </span>
-                                                )}
-                                            </div>
-
-                                            {/* Selection buttons on hover */}
-                                            <div className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 transition-opacity flex flex-col gap-1 items-center justify-center">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setCover(index)}
-                                                    className={`text-[9px] font-black px-2 py-1 ${coverIndex === index
-                                                        ? 'bg-[#B4F056] text-black'
-                                                        : 'bg-white/90 text-black hover:bg-[#B4F056]'
-                                                        }`}
-                                                >
-                                                    SET COVER
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setTryon(index)}
-                                                    className={`text-[9px] font-black px-2 py-1 ${tryonIndex === index
-                                                        ? 'bg-[#FF6B35] text-white'
-                                                        : 'bg-white/90 text-black hover:bg-[#FF6B35] hover:text-white'
-                                                        }`}
-                                                >
-                                                    {tryonIndex === index ? 'REMOVE TRY-ON' : 'SET TRY-ON'}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    <button
-                                        type="button"
-                                        onClick={() => fileInputRef.current?.click()}
-                                        className="w-24 h-24 border-2 border-dashed border-black flex flex-col items-center justify-center gap-1 hover:bg-gray-50"
-                                    >
-                                        <Camera className="w-6 h-6" />
-                                        <span className="text-[10px] font-black uppercase">Add</span>
-                                    </button>
-                                </div>
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept="image/*"
-                                    multiple
-                                    onChange={handleImageUpload}
-                                    className="hidden"
-                                />
-
-                                {/* Legend */}
-                                {images.length > 0 && (
-                                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-xs mt-2">
-                                        <div className="flex items-center gap-1">
-                                            <div className="w-3 h-3 bg-[#B4F056] border border-black" />
-                                            <span>Cover: Main display image</span>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                            <div className="w-3 h-3 bg-[#FF6B35] border border-black" />
-                                            <span>Try-On: Sent to virtual try-on</span>
-                                        </div>
-                                    </div>
-                                )}
-                                {generatedVisuals.length > 0 && (
-                                    <div className="mt-4 rounded-2xl border-2 border-black bg-white p-4">
-                                        <p className="text-xs font-black uppercase tracking-[0.18em] text-black/55">Latest generated set</p>
-                                        <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                                            {generatedVisuals.map((visual) => (
-                                                <div key={visual.id} className="overflow-hidden rounded-2xl border-2 border-black bg-[#FFFDF8]">
-                                                    <div className="relative aspect-square bg-[#F3F0E8]">
-                                                        <AppImage
-                                                            src={visual.imageUrl || visual.imageBase64}
-                                                            alt={visual.label}
-                                                            className="object-cover"
-                                                            sizes="(min-width: 640px) 33vw, 100vw"
-                                                        />
-                                                    </div>
-                                                    <div className="border-t-2 border-black px-3 py-2">
-                                                        <p className="text-[11px] font-black uppercase tracking-wide text-black">{visual.label}</p>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Actions */}
-                            <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t-2 border-black">
+                        <form
+                            onSubmit={handleSubmit}
+                            className="space-y-0"
+                        >
+                            <div className="sticky top-0 z-10 bg-white flex items-center justify-between p-4 border-b-[3px] border-black">
+                                <h2 className="text-xl font-black">
+                                    {editingProduct ? 'Edit Product' : 'Add New Product'}
+                                </h2>
                                 <button
                                     type="button"
                                     onClick={resetForm}
-                                    className="flex-1 py-3 font-black uppercase border-2 border-black hover:bg-gray-100"
+                                    className="p-2 hover:bg-black/5 transition-colors rounded-full"
                                 >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={saving}
-                                    className="flex-1 py-3 font-black uppercase bg-[#B4F056] border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 flex items-center justify-center gap-2"
-                                >
-                                    {saving ? (
-                                        <Loader2 className="w-5 h-5 animate-spin" />
-                                    ) : (
-                                        <>
-                                            <Save className="w-5 h-5" />
-                                            {editingProduct ? 'Update' : 'Create'}
-                                        </>
-                                    )}
+                                    <X className="w-6 h-6" />
                                 </button>
                             </div>
+
+                            <div className="p-6 space-y-8">
+                                {/* Basic Info */}
+                                <div className="space-y-6">
+                                    <div className="space-y-2">
+                                        <label className="block text-xs font-black uppercase tracking-wider text-black">
+                                            Product Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={name}
+                                            onChange={(e) => setName(e.target.value)}
+                                            className="w-full px-4 py-3 border-2 border-black font-bold focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
+                                            placeholder="Enter product name"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="block text-xs font-black uppercase tracking-wider text-black">
+                                            Description
+                                        </label>
+                                        <textarea
+                                            value={description}
+                                            onChange={(e) => setDescription(e.target.value)}
+                                            rows={4}
+                                            className="w-full px-4 py-3 border-2 border-black font-medium focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none resize-none"
+                                            placeholder="Tell more about your product..."
+                                        />
+                                    </div>
+
+                                    {/* Price and Discount */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="block text-xs font-black uppercase tracking-wider text-black">
+                                                Price (₹)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                required
+                                                value={price}
+                                                onChange={(e) => setPrice(e.target.value)}
+                                                className="w-full px-4 py-3 border-2 border-black font-bold focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
+                                                placeholder="0"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="block text-xs font-black uppercase tracking-wider text-black">
+                                                Discount (%)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={discount}
+                                                onChange={(e) => setDiscount(e.target.value)}
+                                                className="w-full px-4 py-3 border-2 border-black font-bold focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
+                                                placeholder="0"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="block text-xs font-black uppercase tracking-wider text-black">
+                                                Category
+                                            </label>
+                                            <div className="relative">
+                                                <select
+                                                    value={category}
+                                                    onChange={(e) => setCategory(e.target.value)}
+                                                    className="w-full px-4 py-3 border-2 border-black font-bold focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none appearance-none pr-10 bg-white"
+                                                >
+                                                    <option value="">Select Category</option>
+                                                    <option value="Clothing">Clothing</option>
+                                                    <option value="Footwear">Footwear</option>
+                                                    <option value="Accessories">Accessories</option>
+                                                    <option value="Beauty">Beauty</option>
+                                                </select>
+                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                                    <ChevronDown className="w-5 h-5 text-black" strokeWidth={3} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="block text-xs font-black uppercase tracking-wider text-black">
+                                                Target Audience
+                                            </label>
+                                            <div className="relative">
+                                                <select
+                                                    value={audience}
+                                                    onChange={(e) => setAudience(e.target.value)}
+                                                    className="w-full px-4 py-3 border-2 border-black font-bold focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none appearance-none pr-10 bg-white"
+                                                >
+                                                    <option value="">Select Audience</option>
+                                                    <option value="Men">Men</option>
+                                                    <option value="Women">Women</option>
+                                                    <option value="Unisex">Unisex</option>
+                                                    <option value="Kids">Kids</option>
+                                                </select>
+                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                                    <ChevronDown className="w-5 h-5 text-black" strokeWidth={3} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="block text-xs font-black uppercase tracking-wider text-black">
+                                                Stock
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={stock}
+                                                onChange={(e) => setStock(e.target.value)}
+                                                className="w-full px-4 py-3 border-2 border-black font-bold focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
+                                                placeholder="0"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="block text-xs font-black uppercase tracking-wider text-black">
+                                                SKU
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={sku}
+                                                onChange={(e) => setSku(e.target.value)}
+                                                className="w-full px-4 py-3 border-2 border-black font-bold focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
+                                                placeholder="e.g. SKU-001"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <label className="flex items-center gap-3 cursor-pointer group">
+                                        <div className="relative flex items-center justify-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={tryOnCompatible}
+                                                onChange={(e) => setTryOnCompatible(e.target.checked)}
+                                                className="peer appearance-none w-6 h-6 border-2 border-black rounded-md checked:bg-[#B4F056] transition-colors cursor-pointer"
+                                            />
+                                            <div className="absolute opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none">
+                                                <svg className="w-4 h-4 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <span className="text-xs font-black uppercase tracking-wider text-black select-none">
+                                            Try-On Compatible
+                                        </span>
+                                    </label>
+
+                                    <div className="space-y-2">
+                                        <label className="block text-xs font-black uppercase tracking-wider text-black">
+                                            Product Link
+                                        </label>
+                                        <input
+                                            type="url"
+                                            value={link}
+                                            onChange={(e) => setLink(e.target.value)}
+                                            className="w-full px-4 py-3 border-2 border-black font-medium focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
+                                            placeholder="https://..."
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="block text-xs font-black uppercase tracking-wider text-black">
+                                            Tags (Comma Separated)
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={tags}
+                                            onChange={(e) => setTags(e.target.value)}
+                                            className="w-full px-4 py-3 border-2 border-black font-medium focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
+                                            placeholder="summer, casual, cotton"
+                                        />
+                                    </div>
+
+                                    {/* Images */}
+                                    <div className="space-y-4">
+                                        <label className="block text-xs font-black uppercase tracking-wider text-black">
+                                            Product Images
+                                        </label>
+
+                                        {/* AI Visuals Banner */}
+                                        <div className="bg-[#FDF4D0] border-2 border-black rounded-3xl p-3 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                                            <div className="space-y-1 text-center sm:text-left">
+                                                <h3 className="text-sm font-bold uppercase tracking-tight text-black">Upload once, generate neat visuals</h3>
+                                                <p className="text-xs font-bold text-black/40 leading-tight max-w-sm">
+                                                    Add your base product image, then generate 3 clean storefront visuals using the ad creative engine.
+                                                </p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={handleGenerateProductVisuals}
+                                                disabled={generatingVisuals || images.length === 0}
+                                                className="flex items-center gap-3 px-5 py-2 bg-[#CAC4A8] border-2 border-black rounded-full font-black uppercase text-[10px] tracking-widest hover:bg-[#BDB79A] transition-all disabled:opacity-50 text-left"
+                                            >
+                                                <Sparkles className="w-4 h-4 shrink-0" />
+                                                <div className="flex flex-col leading-[1.2]">
+                                                    <span>Generate 3</span>
+                                                    <span>Visuals</span>
+                                                </div>
+                                            </button>
+                                        </div>
+
+                                        <p className="text-[10px] font-bold text-black/40">
+                                            Click image to set as <span className="text-[#B4F056]">COVER</span> (display) or <span className="text-[#FF8A00]">TRY-ON</span> (virtual try-on)
+                                        </p>
+
+                                        <div className="flex flex-wrap gap-4">
+                                            {images.length < MAX_IMAGES && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => fileInputRef.current?.click()}
+                                                    className="w-24 h-24 border-2 border-dashed border-black flex flex-col items-center justify-center gap-1 hover:bg-black/5 transition-colors"
+                                                >
+                                                    <Camera className="w-6 h-6 opacity-40" />
+                                                    <span className="text-[10px] font-black uppercase text-black/40">Add</span>
+                                                </button>
+                                            )}
+                                            {images.map((img, index) => (
+                                                <div
+                                                    key={index}
+                                                    className={`relative w-24 h-24 border-2 group transition-all ${coverIndex === index ? 'border-[#B4F056] ring-2 ring-[#B4F056]/20' : tryonIndex === index ? 'border-[#FF8A00] ring-2 ring-[#FF8A00]/20' : 'border-black'}`}
+                                                >
+                                                    <AppImage src={img} alt="Product" className="object-cover" sizes="96px" />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeImage(index)}
+                                                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 border-2 border-black text-white flex items-center justify-center rounded-full z-10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    >
+                                                        <X className="w-3.5 h-3.5" />
+                                                    </button>
+                                                    
+                                                    {/* Selection Overlays */}
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col pointer-events-auto">
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => { e.stopPropagation(); setCover(index); }}
+                                                            className="flex-1 text-[8px] font-black text-white uppercase hover:bg-[#B4F056]/40 transition-colors"
+                                                        >
+                                                            Set Cover
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => { e.stopPropagation(); setTryon(index); }}
+                                                            className="flex-1 border-t border-white/20 text-[8px] font-black text-white uppercase hover:bg-[#FF8A00]/40 transition-colors"
+                                                        >
+                                                            Set Try-On
+                                                        </button>
+                                                    </div>
+
+                                                    {/* Status Badges */}
+                                                    {coverIndex === index && (
+                                                        <div className="absolute bottom-0 left-0 right-0 bg-[#B4F056] border-t-2 border-black text-[8px] font-black uppercase text-center py-0.5 text-black">
+                                                            Cover
+                                                        </div>
+                                                    )}
+                                                    {tryonIndex === index && (
+                                                        <div className="absolute bottom-0 left-0 right-0 bg-[#FF8A00] border-t-2 border-black text-[8px] font-black uppercase text-center py-0.5 text-white">
+                                                            Try-On
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <input ref={fileInputRef} type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" />
+                                    </div>
+                                </div>
+
+                                {/* Actions */}
+                                <div className="sticky bottom-0 bg-white pt-6 pb-2 flex flex-col sm:flex-row gap-4">
+                                    <button
+                                        type="button"
+                                        onClick={resetForm}
+                                        className="flex-1 py-3 border-2 border-black font-black uppercase tracking-wider hover:bg-black/5 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={saving}
+                                        className="flex-1 py-3 bg-[#B4F056] border-2 border-black font-black uppercase tracking-wider shadow-[4px_4px_0px_0px_#000] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                    >
+                                        {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : editingProduct ? 'Update Product' : 'Create Product'}
+                                    </button>
+                                </div>
+                            </div>
                         </form>
-                    </div>
+                    </motion.div>
                 </div>
-            )}
+            </PortalModal>
 
             {/* Products Grid */}
             {products.length === 0 ? (
-                <div className="text-center py-20 border-2 border-dashed border-black/20">
-                    <Package className="w-16 h-16 mx-auto mb-4 text-black/30" />
-                    <h3 className="text-xl font-black text-black/60 mb-2">No Products Yet</h3>
-                    <p className="text-black/40 font-medium mb-6">
-                        Add your first product to get started
-                    </p>
+                <div className="text-center py-20 border-2 border-dashed border-black/20 rounded-3xl">
+                    <Package className="w-16 h-16 mx-auto mb-4 text-black/10" />
+                    <h3 className="text-xl font-black text-black/40 mb-6 uppercase">No Products Yet</h3>
                     <button type="button"
                         onClick={() => setShowForm(true)}
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-[#B4F056] border-[3px] border-black font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-[1px] transition-all"
+                        className="px-8 py-3 bg-[#B4F056] border-[3px] border-black font-black uppercase shadow-[4px_4px_0px_0px_#000] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all"
                     >
-                        <Plus className="w-5 h-5" />
-                        Add Product
+                        Add Your First Product
                     </button>
                 </div>
             ) : (
-                <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="w-full max-w-[1536px] mx-auto grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 px-4"
-                >
-                    {products.map((product, idx) => {
-                        const coverImageSrc = product.cover_image ?? product.images?.[0] ?? null
-
-                        return (
-                            <motion.div
-                                key={product.id}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: idx * 0.05 }}
-                                className="group relative overflow-hidden rounded-[32px] border-[3px] border-black bg-white shadow-[6px_6px_0px_0px_#000] transition-all hover:-translate-y-1 hover:shadow-[10px_10px_0px_0px_#000]"
-                            >
-                                {/* Image Container */}
-                                <div className="relative aspect-[4/5] overflow-hidden border-b-[3px] border-black bg-[#F3F0E8]">
-                                    {coverImageSrc ? (
-                                        <AppImage
-                                            src={coverImageSrc}
-                                            alt={product.name}
-                                            className="object-cover transition-transform duration-700 group-hover:scale-105"
-                                            sizes="(min-width: 1536px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center">
-                                            <Package className="w-12 h-12 text-black/10" />
-                                        </div>
-                                    )}
-                                    
-                                    {/* Badges */}
-                                    <div className="absolute top-3 left-3 right-3 flex flex-wrap gap-2">
-                                        {(product.try_on_compatible || product.tryon_image) && (
-                                            <div className="inline-flex items-center gap-1.5 rounded-full border-2 border-black bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-black shadow-[2px_2px_0px_0px_#000]">
-                                                <Shirt className="w-3 h-3" />
-                                                Ready
-                                            </div>
-                                        )}
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {products.map((product) => (
+                        <div
+                            key={product.id}
+                            className="group relative overflow-hidden rounded-2xl border-[3px] border-black bg-white shadow-[6px_6px_0px_0px_#000] hover:shadow-[10px_10px_0px_0px_#000] transition-all hover:-translate-y-1"
+                        >
+                            <div className="aspect-[4/5] bg-[#F3F0E8] overflow-hidden border-b-[3px] border-black">
+                                <AppImage src={product.cover_image || product.images?.[0] || ''} alt={product.name} className="object-cover transition-transform duration-700 group-hover:scale-110" />
+                            </div>
+                            <div className="p-4">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="min-w-0">
+                                        <h3 className="text-lg font-black truncate">{product.name}</h3>
+                                        <p className="text-[10px] font-bold text-black/30 uppercase tracking-widest">{product.category || 'Other'}</p>
                                     </div>
+                                    <p className="text-lg font-black">₹{product.price || 0}</p>
                                 </div>
-
-                                {/* Content */}
-                                <div className="p-4 sm:p-5 space-y-4">
-                                    <div className="flex justify-between items-start gap-2">
-                                        <div className="min-w-0 flex-1">
-                                            <h3 className="text-base font-black text-black leading-tight truncate">{product.name}</h3>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                {product.category && (
-                                                    <p className="text-[10px] font-bold text-black/50 uppercase tracking-tight">
-                                                        {product.category}
-                                                    </p>
-                                                )}
-                                                {product.sku && (
-                                                    <>
-                                                        {product.category && <span className="w-1 h-1 rounded-full bg-black/20 shrink-0" />}
-                                                        <p className="text-[10px] font-bold text-black/30 uppercase">
-                                                            {product.sku}
-                                                        </p>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="text-right shrink-0">
-                                            <p className="text-base font-black text-black">₹{product.price}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Action row - more compact */}
-                                    <div className="flex items-center gap-2 pt-1">
-                                        <button
-                                            type="button"
-                                            onClick={() => openEditForm(product)}
-                                            className="flex-1 inline-flex items-center justify-center gap-2 h-10 rounded-xl border-2 border-black bg-black text-white text-[10px] font-black uppercase tracking-widest transition-all hover:bg-[#B4F056] hover:text-black active:scale-95"
-                                        >
-                                            <Edit2 className="w-3.5 h-3.5" strokeWidth={3} />
-                                            Edit
-                                        </button>
-                                        
-                                        <div className="flex gap-1.5">
-                                            {product.link && (
-                                                <a
-                                                    href={product.link}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="inline-flex items-center justify-center w-10 h-10 rounded-xl border-2 border-black bg-white text-black transition-all hover:bg-gray-50 active:scale-95 shadow-[2px_2px_0_0_#000] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5"
-                                                >
-                                                    <ExternalLink className="w-4 h-4" strokeWidth={3} />
-                                                </a>
-                                            )}
-                                            
-                                            <button
-                                                type="button"
-                                                onClick={() => handleDeleteClick(product)}
-                                                className="inline-flex items-center justify-center w-10 h-10 rounded-xl border-2 border-black bg-white text-red-500 transition-all hover:bg-red-50 active:scale-95 shadow-[2px_2px_0_0_#000] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5"
-                                            >
-                                                <Trash2 className="w-4 h-4" strokeWidth={3} />
-                                            </button>
-                                        </div>
-                                    </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button onClick={() => openEditForm(product)} className="flex items-center justify-center gap-2 h-11 bg-black text-white border-2 border-black rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-[#B4F056] hover:text-black transition-colors">
+                                        <Edit2 className="w-4 h-4" /> Edit
+                                    </button>
+                                    <button onClick={() => handleDeleteClick(product)} className="flex items-center justify-center h-11 bg-white border-2 border-black rounded-xl text-red-500 hover:bg-red-50 transition-colors">
+                                        <Trash2 className="w-5 h-5" />
+                                    </button>
                                 </div>
-                            </motion.div>
-                        )
-                    })}
-                </motion.div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             )}
 
-            {/* Delete confirmation modal */}
-            {deleteConfirm && (
-                <div
-                    className="fixed inset-0 z-[70] overflow-y-auto bg-black/55 backdrop-blur-[2px] px-4 pb-6 pt-24 md:pt-28"
-                    onClick={() => setDeleteConfirm(null)}
-                >
-                    <div
-                        className="mx-auto bg-[#FFFDF8] rounded-2xl border-[3px] border-black shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] w-full max-w-md p-6"
+            {/* Delete Confirmation */}
+            <PortalModal
+                isOpen={!!deleteConfirm}
+                onClose={() => setDeleteConfirm(null)}
+            >
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-[2px]">
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="p-8 text-center space-y-6 bg-white border-[3px] border-black shadow-[12px_12px_0px_0px_#000] rounded-3xl max-w-md w-full"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <h3 className="text-xl font-black mb-2">Delete product?</h3>
-                        <p className="text-black/70 mb-6">
-                            &ldquo;{deleteConfirm.name}&rdquo; will be permanently removed. This cannot be undone.
-                        </p>
-                        <div className="flex gap-3 justify-end">
+                        <div className="w-20 h-20 bg-red-50 border-[3px] border-black rounded-full flex items-center justify-center mx-auto shadow-[4px_4px_0px_0px_#000]">
+                            <Trash2 className="w-10 h-10 text-red-500" />
+                        </div>
+                        <div>
+                            <h3 className="text-2xl font-black mb-2 uppercase text-black">Delete Product?</h3>
+                            <p className="text-black/60 font-medium">
+                                Are you sure you want to delete <span className="font-bold text-black">"{deleteConfirm?.name}"</span>? This action cannot be undone.
+                            </p>
+                        </div>
+                        <div className="flex gap-4">
                             <button
                                 type="button"
                                 onClick={() => setDeleteConfirm(null)}
-                                className="px-4 py-2 border-2 border-black font-bold uppercase hover:bg-gray-100"
+                                className="flex-1 py-4 border-2 border-black font-black uppercase tracking-wider hover:bg-black/5 transition-all"
                             >
                                 Cancel
                             </button>
                             <button
                                 type="button"
-                                onClick={() => handleDelete(deleteConfirm.id)}
-                                className="px-4 py-2 bg-red-500 text-white border-2 border-black font-bold uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-red-600"
+                                onClick={() => deleteConfirm && handleDelete(deleteConfirm.id)}
+                                className="flex-1 py-4 bg-red-500 text-white border-2 border-black font-black uppercase tracking-wider shadow-[4px_4px_0px_0px_#000] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all"
                             >
                                 Delete
                             </button>
                         </div>
-                    </div>
+                    </motion.div>
                 </div>
-            )}
+            </PortalModal>
         </div>
     )
 }
