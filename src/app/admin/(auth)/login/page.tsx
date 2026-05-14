@@ -237,13 +237,7 @@ function AdminLoginContent() {
                 </form>
 
                 <div className="mt-8 border-t-[3px] border-black/10 pt-6 text-center">
-                  <p className="text-sm font-bold text-black/60">
-                    Need access?{' '}
-                    <Link href="/admin/register" className="px-1 text-black underline decoration-2 transition-colors hover:bg-[#FFD93D]">
-                      Create Account
-                    </Link>
-                  </p>
-                  <Link href="/login" className="mt-3 inline-block text-xs font-bold uppercase tracking-[0.18em] text-black/45 transition-colors hover:text-black">
+                  <Link href="/login" className="inline-block text-xs font-bold uppercase tracking-[0.18em] text-black/45 transition-colors hover:text-black">
                     Back to regular sign in
                   </Link>
                 </div>
