@@ -672,9 +672,13 @@ async function handlePresetlessTryOnRequest(params: {
   // Running #1 and #2 in parallel saves ~50-100ms on every request.
   const t0 = Date.now()
   const [preprocessSettled, productTextSettled] = await Promise.allSettled([
+    // Pure passthrough: body detection + extraction were costing 15-25s on
+    // every request (and most of that was timeouts when Gemini is slow).
+    // The GPT-4o vision orchestrator already handles "ignore styling on
+    // the model, focus on the garment" via its system prompt, so we don't
+    // need server-side extraction. Net savings: 15-25s per request.
     preprocessGarmentImage(rawGarmentBase64, {
-      fast: true,
-      model: 'flash',
+      skipPreprocessing: true,
       sessionId: `tryon-${Date.now()}`,
     }),
     payload.productId

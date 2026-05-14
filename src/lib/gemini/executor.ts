@@ -348,12 +348,13 @@ async function generateWithBackoff(params: GenerateContentParameters) {
  * Image models get longer (Pro Image can legitimately take 60s).
  * Tunable via env so we can lift it on Pro tier.
  */
-// Hard ceiling per Gemini call, enforced via Promise.race in the executor.
-// Tuned for Vercel's 60s function timeout: with 3 parallel slots and ~10s
-// of upstream overhead, each slot has ~30s of total budget. Cap individual
-// calls at 25s so we have a buffer for the response + retry.
-const TOTAL_TIMEOUT_TEXT_MS = parseInt(process.env.GEMINI_TOTAL_TIMEOUT_TEXT_MS || '20000', 10) || 20_000
-const TOTAL_TIMEOUT_IMAGE_MS = parseInt(process.env.GEMINI_TOTAL_TIMEOUT_IMAGE_MS || '25000', 10) || 25_000
+// Hard ceiling per Gemini call. From production logs Gemini Flash is
+// currently taking 24-26s when it succeeds (provider overloaded). 25s
+// was killing legitimate-but-slow responses. Bumped to 40s for image
+// and 15s for text. With per-call retries reduced to 2 and parallel
+// slots, total wall time still fits in Vercel's 60s.
+const TOTAL_TIMEOUT_TEXT_MS = parseInt(process.env.GEMINI_TOTAL_TIMEOUT_TEXT_MS || '15000', 10) || 15_000
+const TOTAL_TIMEOUT_IMAGE_MS = parseInt(process.env.GEMINI_TOTAL_TIMEOUT_IMAGE_MS || '40000', 10) || 40_000
 
 export class GeminiTimeoutError extends Error {
   status = 504
