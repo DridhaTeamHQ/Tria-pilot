@@ -292,7 +292,7 @@ export default function GenerationsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#FDF6EC] pt-24 pb-16">
+        <div className="min-h-screen bg-[#F9F8F4] pt-24 pb-16">
             <div className="container mx-auto px-4 sm:px-6">
                 {/* Header */}
                 <motion.div

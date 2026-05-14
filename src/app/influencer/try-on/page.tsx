@@ -564,8 +564,8 @@ function TryOnPageContent() {
               : '') ||
             fallbackMsg
           const e = new Error(typeof errMsg === 'string' && errMsg.trim() ? errMsg : fallbackMsg)
-          ;(e as any).code = (finalJob && (finalJob.code || finalJob.errorCode)) || undefined
-          ;(e as any).retryAfterSeconds = finalJob?.retryAfterSeconds
+            ; (e as any).code = (finalJob && (finalJob.code || finalJob.errorCode)) || undefined
+            ; (e as any).retryAfterSeconds = finalJob?.retryAfterSeconds
           console.error('[try-on] generation failed:', { errMsg, code: (e as any).code, finalJob })
           throw e
         }
@@ -656,7 +656,7 @@ function TryOnPageContent() {
   }, [selectedOutput])
 
   return (
-    <div className="relative min-h-screen bg-[#F6F1E8] text-black pt-20 lg:pt-0">
+    <div className="relative min-h-screen bg-[#F9F8F4] text-black pt-20 lg:pt-0">
       <div className="flex flex-col lg:flex-row lg:h-screen lg:pt-20">
         <div className={`fixed inset-x-0 bottom-0 top-[10vh] z-50 overflow-y-auto rounded-t-[32px] border-t-[4px] border-black bg-white p-6 shadow-[0_-12px_0_0_rgba(0,0,0,0.1)] transition-transform duration-300 lg:static lg:block lg:h-full lg:w-[420px] lg:flex-shrink-0 lg:rounded-none lg:border-r-[4px] lg:border-t-0 lg:shadow-none xl:w-[460px] ${mobileSettingsOpen ? 'translate-y-0' : 'translate-y-full lg:translate-y-0'}`}>
           <div className="mb-6 flex items-center justify-between lg:hidden">
@@ -671,9 +671,9 @@ function TryOnPageContent() {
                 const cov = garmentIntel.coverage
                 const label =
                   cov === 'full_body' ? 'Full outfit swap'
-                  : cov === 'lower_only' ? 'Bottom swap · keeps your top'
-                  : cov === 'layered' ? 'Layered look · full body'
-                  : 'Top swap · keeps your bottom'
+                    : cov === 'lower_only' ? 'Bottom swap · keeps your top'
+                      : cov === 'layered' ? 'Layered look · full body'
+                        : 'Top swap · keeps your bottom'
                 return (
                   <div className="mt-2 inline-flex items-center gap-2 rounded-full border-2 border-black bg-[#E8F5E9] px-3 py-1 text-[10px] font-black uppercase">
                     <Check className="h-3 w-3" /> {label}

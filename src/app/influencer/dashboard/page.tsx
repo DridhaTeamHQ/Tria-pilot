@@ -256,14 +256,8 @@ export default function InfluencerDashboard() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#FAFAF8] pt-20 sm:pt-24 pb-16 animate-fade-in">
-      {/* Background "Color Design" Elements */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        {/* Large Diagonal Color Blocks */}
-        <div className="absolute top-0 right-0 w-[120%] h-[120%] bg-[#FFD93D]/5 -rotate-12 translate-x-[30%] -translate-y-[40%]" />
-        <div className="absolute bottom-0 left-0 w-[120%] h-[120%] bg-[#B4F056]/5 rotate-12 -translate-x-[30%] translate-y-[40%]" />
-        <div className="absolute top-1/2 left-0 w-full h-[50%] bg-[#A78BFA]/3 -rotate-3" />
-      </div>
+    <div className="relative min-h-screen overflow-hidden bg-[#F9F8F4] pt-20 sm:pt-24 pb-16 animate-fade-in">
+
 
       <div className="container relative z-10 mx-auto px-4 sm:px-6">
         {/* Welcome Section */}

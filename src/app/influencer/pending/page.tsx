@@ -200,9 +200,8 @@ export default function InfluencerPendingPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#FDF6EC] overflow-hidden">
-      {/* Background decorative shapes */}
-      <DecorativeShapes />
+    <div className="min-h-screen bg-[#F9F8F4] overflow-hidden">
+
 
       <div className="relative z-20 container mx-auto px-4 sm:px-6 py-8 lg:py-12 flex flex-col items-center min-h-screen">
         {/* Logo */}

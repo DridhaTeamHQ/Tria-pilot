@@ -153,7 +153,7 @@ export async function getAuthState() {
 
 /** @deprecated Authorization should be done at route level */
 export function getRedirectPath(state: { type: string }, currentPath: string): string | null {
-    switch (state.type) {
+  switch (state.type) {
     case 'unauthenticated':
       return '/login'
     case 'influencer_draft':

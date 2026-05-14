@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export function InfluencerDashboardSkeleton() {
   return (
-    <div className="min-h-screen bg-[#FDF6EC] pt-20 sm:pt-24 pb-16">
+    <div className="min-h-screen bg-[#F9F8F4] pt-20 sm:pt-24 pb-16">
       <div className="container mx-auto px-4 sm:px-6 z-10">
         {/* Welcome Section */}
         <div className="mb-10 sm:mb-12 border-b-[3px] border-black pb-8">
