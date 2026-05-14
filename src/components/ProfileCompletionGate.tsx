@@ -15,6 +15,7 @@ const SKIP_PREFIXES = [
   '/onboarding/brand',
   '/influencer/pending',
   '/admin/login',
+  '/admin/register',
   '/about',
   '/contact',
   '/privacy',

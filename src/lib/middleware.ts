@@ -24,6 +24,7 @@ const PUBLIC_PATHS = new Set([
     '/login',
     '/register',
     '/admin/login',
+    '/admin/register',
     '/forgot-password',
     '/reset-password',
     '/help',
