@@ -5,19 +5,26 @@ import { motion } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import {
   Activity,
+  ArrowUpRight,
+  ArrowDownRight,
   BarChart3,
   Box,
-  Crown,
-  DollarSign,
+  ChevronDown,
+  ChevronRight,
+  IndianRupee,
+  Globe,
+  Info,
   LineChart,
   MousePointerClick,
-  Package,
   RefreshCw,
   ShoppingBag,
   Sparkles,
   Target,
   TrendingUp,
   Users,
+  Package,
+  Crown,
+  DollarSign
 } from 'lucide-react'
 import { BrutalLoader } from '@/components/ui/BrutalLoader'
 
@@ -29,342 +36,510 @@ type AnalyticsData = {
   period: { days: number }
   kpis: Record<string, number | undefined>
   series: Array<{ day: string; clicks: number; orders: number; revenue: number }>
-  topProducts: Array<{ id: string; name: string; category: string; clicks: number; orders: number; revenue: number }>
+  topProducts: Array<{ id: string; name: string; category: string; clicks: number; orders: number; revenue: number; image?: string }>
   topInfluencers: Array<{ id: string; name: string; clicks: number; orders: number; revenue: number; commission: number }>
   topBrands: Array<{ id: string; name: string; products: number; orders: number; revenue: number }>
-  devices: Array<{ label: string; value: number }>
+  campaigns: Array<{ id: string; title: string; status: string; clicks: number; revenue: number; impressions?: number }>
   countries: Array<{ label: string; value: number }>
-  campaigns: Array<{ id: string; title: string; status: string; spend: number; impressions: number; clicks: number; conversions: number }>
+  devices: Array<{ label: string; value: number }>
 }
 
-const roleCopy = {
-  influencer: {
-    title: 'Creator Analytics',
-    subtitle: 'Your product-link performance, earnings, clicks, and top-performing product signals.',
-    accent: '#FF8C69',
-    soft: '#FFF1EC',
-  },
-  brand: {
-    title: 'Brand Analytics',
-    subtitle: 'Your product performance, campaign efficiency, and top influencers promoting your catalog.',
-    accent: '#B4F056',
-    soft: '#F2FFE4',
-  },
-  admin: {
-    title: 'Platform Analytics',
-    subtitle: 'Everything across brands, influencers, tracked links, revenue, campaigns, and traffic quality.',
-    accent: '#A78BFA',
-    soft: '#F3EEFF',
-  },
-} satisfies Record<Role, { title: string; subtitle: string; accent: string; soft: string }>
-
-const periods = [7, 30, 90, 365]
-
-function formatNumber(value: unknown) {
-  const n = Number(value) || 0
+function formatNumber(value: number | undefined) {
+  const n = value || 0
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
   return n.toLocaleString('en-IN')
 }
 
-function money(value: unknown) {
-  const n = Number(value) || 0
-  if (n >= 10_000_000) return `Rs. ${(n / 10_000_000).toFixed(2)}Cr`
-  if (n >= 100_000) return `Rs. ${(n / 100_000).toFixed(2)}L`
-  return `Rs. ${Math.round(n).toLocaleString('en-IN')}`
-}
-
-function metricValue(value: unknown, format: 'money' | 'number' | 'percent' | 'x' = 'number') {
-  if (format === 'money') return money(value)
-  if (format === 'percent') return `${(Number(value) || 0).toFixed(2)}%`
-  if (format === 'x') return `${(Number(value) || 0).toFixed(2)}x`
-  return formatNumber(value)
-}
-
-function pct(value: number, max: number) {
-  if (!max) return 0
-  return Math.max(4, Math.min(100, (value / max) * 100))
-}
-
-function EmptyState({ label }: { label: string }) {
-  return (
-    <div className="flex min-h-[180px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-black/15 bg-white/60 p-6 text-center">
-      <BarChart3 className="mb-3 h-8 w-8 text-black/25" />
-      <p className="text-sm font-bold text-black/45">{label}</p>
-    </div>
-  )
+function formatMoney(value: number | undefined) {
+  const n = value || 0
+  if (n >= 10_000_000) return `₹${(n / 10_000_000).toFixed(2)}Cr`
+  if (n >= 100_000) return `₹${(n / 100_000).toFixed(2)}L`
+  return `₹${Math.round(n).toLocaleString('en-IN')}`
 }
 
 function StatCard({
   label,
   value,
-  helper,
+  change,
   icon: Icon,
   color,
+  days,
 }: {
   label: string
   value: string
-  helper: string
-  icon: typeof TrendingUp
+  change: number
+  icon: any
   color: string
+  days: number
 }) {
+  const isPositive = change >= 0
   return (
     <motion.div
-      whileHover={{ y: -4, scale: 1.01 }}
-      transition={{ type: 'spring', stiffness: 380, damping: 26 }}
-      className="group rounded-2xl border-2 border-black/10 bg-white p-5 shadow-[0_12px_30px_rgba(17,17,17,0.06)] transition-shadow hover:shadow-[0_18px_45px_rgba(17,17,17,0.10)]"
+      whileHover={{ y: -4, x: -4, boxShadow: '12px 12px 0px 0px rgba(0,0,0,1)' }}
+      className="group relative overflow-hidden rounded-2xl border-[3px] border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all"
     >
-      <div className="mb-5 flex items-start justify-between gap-4">
-        <div className="rounded-2xl border-2 border-black/10 p-3" style={{ backgroundColor: color }}>
-          <Icon className="h-5 w-5 text-black" strokeWidth={2.5} />
+      <div className="flex items-center justify-between">
+        <div className={`flex h-12 w-12 items-center justify-center rounded-xl border-2 border-black transition-transform group-hover:scale-110`} style={{ backgroundColor: color }}>
+          <Icon className="h-6 w-6 text-white" />
         </div>
-        <Sparkles className="h-4 w-4 text-black/20 transition-transform group-hover:rotate-12" />
+        <div className="flex h-6 w-6 items-center justify-center">
+          <TrendingUp className="h-4 w-4 text-black/10" />
+        </div>
       </div>
-      <p className="text-2xl font-black tracking-tight text-black sm:text-3xl">{value}</p>
-      <p className="mt-1 text-sm font-black uppercase tracking-[0.16em] text-black/50">{label}</p>
-      <p className="mt-3 text-sm font-semibold leading-relaxed text-black/55">{helper}</p>
+      <div className="mt-5">
+        <p className="text-xs font-black uppercase tracking-wider text-black/40">{label}</p>
+        <h3 className="mt-1 text-3xl font-black text-black truncate" title={value}>{value}</h3>
+      </div>
+      <div className="mt-4 flex items-center gap-1.5">
+        <div className={`flex items-center gap-1 rounded-full border-2 border-black px-2 py-0.5 text-[10px] font-black ${isPositive ? 'bg-emerald-400' : 'bg-rose-400'}`}>
+          {isPositive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+          {Math.abs(change).toFixed(1)}%
+        </div>
+        <span className="text-[10px] font-bold text-black/30">vs last {days} days</span>
+      </div>
     </motion.div>
   )
 }
 
-function Panel({ title, children, icon: Icon }: { title: string; children: React.ReactNode; icon: typeof TrendingUp }) {
+function MainTrendChart({ data: inputData, height = '300px', days = 7 }: { data: AnalyticsData['series']; height?: number | string; days?: number }) {
+  const data = useMemo(() => {
+    if (inputData?.length) return inputData;
+    return Array.from({ length: days }).map((_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (days - 1 - i));
+      return { day: d.toISOString(), clicks: 0, orders: 0, revenue: 0 };
+    });
+  }, [inputData, days]);
+
+  const labelStep = useMemo(() => {
+    if (days <= 7) return 1
+    if (days <= 31) return 3
+    if (days <= 90) return 7
+    return 30
+  }, [days])
+
+  const maxClicks = Math.max(...data.map((d) => d.clicks), 50)
+  const maxRevenue = Math.max(...data.map((d) => d.revenue), 100)
+
+  const clickPoints = data.map((d, i) => ({
+    x: (i / (data.length - 1)) * 100,
+    y: 100 - (d.clicks / maxClicks) * 80 - 10,
+  }))
+
+  const revenuePoints = data.map((d, i) => ({
+    x: (i / (data.length - 1)) * 100,
+    y: 100 - (d.revenue / maxRevenue) * 80 - 10,
+  }))
+
+  const getSmoothPath = (points: { x: number; y: number }[]) => {
+    if (points.length < 2) return "";
+    let d = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 0; i < points.length - 1; i++) {
+      const p0 = points[i];
+      const p1 = points[i + 1];
+      const cp1x = p0.x + (p1.x - p0.x) / 2;
+      d += ` C ${cp1x} ${p0.y}, ${cp1x} ${p1.y}, ${p1.x} ${p1.y}`;
+    }
+    return d;
+  };
+
+  const clickPath = getSmoothPath(clickPoints);
+  const revenuePath = getSmoothPath(revenuePoints);
+
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="rounded-3xl border-2 border-black/10 bg-white p-5 shadow-[0_12px_34px_rgba(17,17,17,0.06)]"
-    >
-      <div className="mb-5 flex items-center gap-3">
-        <div className="rounded-xl bg-black p-2 text-white">
-          <Icon className="h-4 w-4" />
-        </div>
-        <h2 className="text-lg font-black text-black">{title}</h2>
+    <div className="relative w-full px-12 pt-4" style={{ height }}>
+      <div className="absolute inset-x-12 top-4 bottom-5 flex flex-col justify-between pointer-events-none">
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="w-full border-b border-black/[0.03]" />
+        ))}
       </div>
-      {children}
-    </motion.section>
-  )
-}
 
-function RankingList({
-  rows,
-  valueKey,
-  valueFormat = 'money',
-  empty,
-}: {
-  rows: Array<Record<string, any>>
-  valueKey: string
-  valueFormat?: 'money' | 'number'
-  empty: string
-}) {
-  const max = Math.max(...rows.map((row) => Number(row[valueKey]) || 0), 0)
-  if (!rows.length) return <EmptyState label={empty} />
+      <div className="absolute left-0 top-4 bottom-5 flex flex-col justify-between py-1 text-[10px] font-bold text-black/30 w-10 text-right pr-2">
+        {[maxClicks, maxClicks * 0.8, maxClicks * 0.6, maxClicks * 0.4, maxClicks * 0.2, 0].map((v, i) => (
+          <span key={i}>{Math.round(v)}</span>
+        ))}
+      </div>
+      <div className="absolute right-0 top-4 bottom-5 flex flex-col justify-between py-1 text-[10px] font-bold text-black/30 w-10 text-left pl-2">
+        {[maxRevenue, maxRevenue * 0.8, maxRevenue * 0.6, maxRevenue * 0.4, maxRevenue * 0.2, 0].map((v, i) => (
+          <span key={i}>{formatNumber(v)}</span>
+        ))}
+      </div>
 
-  return (
-    <div className="space-y-3">
-      {rows.map((row, index) => (
-        <div key={row.id || row.name || index} className="group">
-          <div className="mb-1.5 flex items-center justify-between gap-3 text-sm">
-            <div className="min-w-0">
-              <p className="truncate font-black text-black">{row.name || row.title || row.label}</p>
-              <p className="text-xs font-semibold text-black/45">
-                {formatNumber(row.clicks || row.products || row.impressions || 0)} signal
-                {(row.orders || row.conversions) ? `s - ${formatNumber(row.orders || row.conversions)} results` : 's'}
-              </p>
-            </div>
-            <span className="shrink-0 font-mono text-sm font-black text-black">
-              {valueFormat === 'money' ? money(row[valueKey]) : formatNumber(row[valueKey])}
+      <div className="absolute inset-x-12 top-4 bottom-5">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
+          <defs>
+            <linearGradient id="clickGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#FF8C69" stopOpacity="0.15" />
+              <stop offset="100%" stopColor="#FF8C69" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+
+          <motion.path
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            d={`${clickPath} L 100 100 L 0 100 Z`}
+            fill="url(#clickGradient)"
+            vectorEffect="non-scaling-stroke"
+          />
+
+          <motion.path
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 1.5, ease: "easeInOut" }}
+            d={clickPath}
+            fill="none"
+            stroke="#FF8C69"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
+          />
+
+          <motion.path
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 1.5, ease: "easeInOut", delay: 0.2 }}
+            d={revenuePath}
+            fill="none"
+            stroke="#10B981"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
+          />
+
+          {clickPoints.map((p, i) => {
+            if (i % labelStep !== 0 && i !== data.length - 1) return null;
+            return (
+              <motion.circle
+                key={`click-${i}`}
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 1 + (i / labelStep) * 0.05 }}
+                cx={p.x}
+                cy={p.y}
+                r="1.5"
+                fill="#FF8C69"
+                stroke="white"
+                strokeWidth="0.5"
+                vectorEffect="non-scaling-stroke"
+              />
+            );
+          })}
+        </svg>
+      </div>
+
+      <div className="absolute bottom-2 inset-x-12 flex justify-between">
+        {data.map((d, i) => {
+          const isLast = i === data.length - 1
+          const showLabel = i % labelStep === 0 || isLast
+          return (
+            <span key={i} className="text-[10px] font-bold text-black/30">
+              {showLabel ? new Date(d.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
             </span>
-          </div>
-          <div className="h-3 overflow-hidden rounded-full bg-black/5">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${pct(Number(row[valueKey]) || 0, max)}%` }}
-              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-              className="h-full rounded-full bg-black"
-              style={{ opacity: 0.35 + index * -0.025 }}
-            />
-          </div>
-        </div>
-      ))}
+          )
+        })}
+      </div>
     </div>
   )
 }
 
-function Trend({ rows }: { rows: AnalyticsData['series'] }) {
-  const max = Math.max(...rows.map((row) => row.revenue || row.clicks || row.orders), 0)
-  if (!rows.length) return <EmptyState label="No tracked activity yet for this period." />
+function DoughnutChart({ value, label = "CVR" }: { value: number; label?: string }) {
+  const radius = 64
+  const circumference = 2 * Math.PI * radius
+  const offset = circumference - (Math.min(value, 100) / 100) * circumference
 
   return (
-    <div className="flex h-56 items-end gap-2 overflow-hidden rounded-2xl bg-[#F9F8F4] p-4">
-      {rows.slice(-30).map((row) => (
-        <div key={row.day} className="flex min-w-4 flex-1 flex-col items-center justify-end gap-2">
-          <motion.div
-            initial={{ height: 0 }}
-            animate={{ height: `${pct(row.revenue || row.clicks || row.orders, max)}%` }}
-            transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-            className="w-full rounded-t-xl border border-black/10 bg-[#FF8C69]"
-            title={`${row.day}: ${money(row.revenue)} revenue, ${formatNumber(row.clicks)} clicks`}
-          />
-          <span className="hidden text-[10px] font-bold text-black/35 sm:block">{row.day.slice(5)}</span>
+    <div className="relative flex items-center justify-center">
+      <svg className="h-52 w-52 -rotate-90">
+        <circle cx="104" cy="104" r={radius} fill="transparent" stroke="rgba(0,0,0,0.05)" strokeWidth="16" />
+        <motion.circle
+          cx="104"
+          cy="104"
+          r={radius}
+          fill="transparent"
+          stroke="#8B5CF6"
+          strokeWidth="16"
+          strokeDasharray={circumference}
+          initial={{ strokeDashoffset: circumference }}
+          animate={{ strokeDashoffset: offset }}
+          transition={{ duration: 1.5, ease: "easeOut" }}
+          strokeLinecap="round"
+        />
+      </svg>
+      <div className="absolute flex flex-col items-center text-center">
+        <span className="text-2xl font-bold text-black">{value.toFixed(2)}%</span>
+        <span className="text-xs font-bold uppercase tracking-wider text-black/30 mt-0.5">{label}</span>
+      </div>
+    </div>
+  )
+}
+
+function RankingList({ title, items, type = 'product' }: { title: string; items: any[]; type?: 'influencer' | 'product' | 'campaign' | 'brand' }) {
+  return (
+    <div className="flex min-h-[370px] flex-col rounded-2xl border-[3px] border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+      <div className="mb-6 flex items-center justify-between">
+        <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-tight text-black">
+          {title}
+        </h3>
+        <button className="rounded-lg border-2 border-black bg-blue-400 px-3 py-1 text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none">
+          See all
+        </button>
+      </div>
+      <div className="space-y-4">
+        {items.slice(0, 5).map((item, i) => (
+          <div key={i} className="flex items-center justify-between gap-4 rounded-xl border-2 border-black/5 p-2 transition-colors hover:border-black/20">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-black text-black">{item.name || item.title}</p>
+                <p className="text-[11px] font-bold text-black/40">
+                  {formatNumber(item.clicks || item.orders)} Signals
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-sm font-black text-black">{formatMoney(item.revenue || item.commission)}</p>
+            </div>
+          </div>
+        ))}
+        {items.length === 0 && <p className="py-8 text-center text-sm text-black/30">No records found</p>}
+      </div>
+    </div>
+  )
+}
+
+function Sparkline({ data, color = "#10B981" }: { data: number[], color?: string }) {
+  const max = Math.max(...data, 1);
+  const min = Math.min(...data);
+  const range = max - min || 1;
+  const points = data.length > 1
+    ? data.map((v, i) => ({
+      x: (i / (data.length - 1)) * 100,
+      y: 100 - ((v - min) / range) * 80 - 10,
+    }))
+    : [{ x: 0, y: 50 }, { x: 100, y: 50 }];
+
+  const path = `M ${points[0].x} ${points[0].y} ` + points.slice(1).map(p => `L ${p.x} ${p.y}`).join(' ');
+
+  return (
+    <div className="relative h-12 w-24">
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full">
+        <defs>
+          <linearGradient id={`sparkGradient-${color}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.2" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d={`${path} L 100 100 L 0 100 Z`} fill={`url(#sparkGradient-${color})`} />
+        <motion.path
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ duration: 1, ease: "easeInOut" }}
+          d={path}
+          fill="none"
+          stroke={color}
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r="4" fill={color} stroke="white" strokeWidth="2" />
+      </svg>
+    </div>
+  );
+}
+
+function QuickInsightRow({ label, value, subValue, data, color, days }: { label: string, value: string, subValue: string, data: number[], color: string, days: number }) {
+  return (
+    <div className="flex items-center justify-between rounded-xl border-2 border-black p-4 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" style={{ backgroundColor: `${color}10` }}>
+      <div className="flex flex-col">
+        <span className="text-xl font-black text-black">{value}</span>
+        <span className="text-[10px] font-black uppercase tracking-wider text-black/60">{label}</span>
+        <div className="mt-1 flex items-center gap-1 text-[10px] font-bold text-black/40">
+          <span className="flex items-center gap-0.5 rounded-full border border-black/10 bg-emerald-100 px-1.5 text-emerald-600">
+            <ArrowUpRight className="h-3 w-3" />
+            {subValue}
+          </span>
+          <span>vs last {days} days</span>
         </div>
-      ))}
+      </div>
+      <Sparkline data={data} color={color} />
     </div>
   )
 }
 
 export default function AnalyticsBoard({ expectedRole }: { expectedRole: Role }) {
   const [days, setDays] = useState(30)
-  const { data, isLoading, isFetching, error, refetch } = useQuery<AnalyticsData>({
-    queryKey: ['analytics-overview', days],
+  const { data, isLoading, isFetching, refetch } = useQuery<AnalyticsData>({
+    queryKey: ['analytics-overview', expectedRole, days],
     queryFn: async () => {
       const res = await fetch(`/api/analytics/overview?days=${days}`, { credentials: 'include' })
-      const json = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(json?.error || 'Failed to load analytics')
-      return json
+      if (!res.ok) throw new Error('Failed to load analytics')
+      return res.json()
     },
-    staleTime: 30_000,
   })
 
   const role = data?.role || expectedRole
-  const copy = roleCopy[role]
+  const kpis = data?.kpis || {}
 
   const stats = useMemo(() => {
-    const kpis = data?.kpis || {}
     if (role === 'influencer') {
       return [
-        { label: 'Earnings', value: metricValue(kpis.commission, 'money'), helper: 'Estimated creator commission from real purchase events.', icon: DollarSign, color: '#B4F056' },
-        { label: 'Clicks', value: metricValue(kpis.clicks), helper: 'All tracked product-link clicks scoped to your creator ID.', icon: MousePointerClick, color: '#FFD93D' },
-        { label: 'Orders', value: metricValue(kpis.orders), helper: 'Purchases attributed to your tracked links.', icon: ShoppingBag, color: '#FF8C69' },
-        { label: 'CVR', value: metricValue(kpis.cvr, 'percent'), helper: 'Orders divided by tracked clicks.', icon: TrendingUp, color: '#A78BFA' },
+        { label: 'Earnings', value: formatMoney(kpis.commission), change: kpis.commissionChange || 0, icon: IndianRupee, color: '#10B981' },
+        { label: 'Clicks', value: formatNumber(kpis.clicks), change: kpis.clicksChange || 0, icon: MousePointerClick, color: '#F59E0B' },
+        { label: 'Orders', value: formatNumber(kpis.orders), change: kpis.ordersChange || 0, icon: ShoppingBag, color: '#EF4444' },
+        { label: 'CVR', value: `${(kpis.cvr || 0).toFixed(2)}%`, change: kpis.cvrChange || 0, icon: TrendingUp, color: '#8B5CF6' },
       ]
     }
     if (role === 'brand') {
       return [
-        { label: 'Revenue', value: metricValue(kpis.revenue, 'money'), helper: 'Sales attributed to products owned by this brand.', icon: DollarSign, color: '#B4F056' },
-        { label: 'Influencers', value: metricValue(kpis.influencers), helper: 'Creators currently promoting your products.', icon: Users, color: '#FFD93D' },
-        { label: 'ROAS', value: metricValue(kpis.roas, 'x'), helper: 'Tracked revenue divided by campaign spend.', icon: Target, color: '#A78BFA' },
-        { label: 'Products', value: metricValue(kpis.products), helper: 'Catalog items included in this brand view.', icon: Package, color: '#7DD3FC' },
+        { label: 'Revenue', value: formatMoney(kpis.revenue), change: kpis.revenueChange || 0, icon: DollarSign, color: '#B4F056' },
+        { label: 'Influencers', value: formatNumber(kpis.influencers), change: kpis.influencersChange || 0, icon: Users, color: '#7DD3FC' },
+        { label: 'Orders', value: formatNumber(kpis.orders), change: kpis.ordersChange || 0, icon: ShoppingBag, color: '#FFD93D' },
+        { label: 'ROAS', value: `${(kpis.roas || 0).toFixed(1)}x`, change: kpis.roasChange || 0, icon: Target, color: '#A78BFA' },
       ]
     }
     return [
-      { label: 'GMV', value: metricValue(kpis.revenue, 'money'), helper: 'Total real attributed revenue across the platform.', icon: DollarSign, color: '#B4F056' },
-      { label: 'Orders', value: metricValue(kpis.orders), helper: 'Platform purchase events excluding simulations.', icon: ShoppingBag, color: '#FFD93D' },
-      { label: 'Creators', value: metricValue(kpis.influencers), helper: 'Influencer accounts visible to admin.', icon: Users, color: '#FF8C69' },
-      { label: 'Brands', value: metricValue(kpis.brands), helper: 'Brand accounts visible to admin.', icon: Crown, color: '#A78BFA' },
+      { label: 'GMV', value: formatMoney(kpis.revenue), change: kpis.revenueChange || 0, icon: DollarSign, color: '#10B981' },
+      { label: 'Orders', value: formatNumber(kpis.orders), change: kpis.ordersChange || 0, icon: ShoppingBag, color: '#F59E0B' },
+      { label: 'Creators', value: formatNumber(kpis.influencers), change: kpis.influencersChange || 0, icon: Users, color: '#EF4444' },
+      { label: 'Brands', value: formatNumber(kpis.brands), change: kpis.brandsChange || 0, icon: Crown, color: '#8B5CF6' },
     ]
-  }, [data?.kpis, role])
+  }, [kpis, role])
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[70vh] items-center justify-center bg-[#F9F8F4]">
-        <BrutalLoader size="lg" tone={role === 'brand' ? 'brand' : 'influencer'} label="Loading analytics" />
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <BrutalLoader size="lg" tone={role === 'brand' ? 'brand' : 'influencer'} label="Generating insights..." />
       </div>
     )
   }
-
-  if (error || !data) {
-    return (
-      <div className="min-h-[70vh] bg-[#F9F8F4] px-4 py-28">
-        <div className="mx-auto max-w-xl rounded-3xl border-2 border-black bg-white p-8 text-center shadow-[0_18px_45px_rgba(17,17,17,0.08)]">
-          <Activity className="mx-auto mb-4 h-10 w-10 text-red-500" />
-          <h1 className="text-2xl font-black text-black">Analytics did not load</h1>
-          <p className="mt-2 text-sm font-semibold text-black/55">{error instanceof Error ? error.message : 'Please try again.'}</p>
-          <button
-            type="button"
-            onClick={() => refetch()}
-            className="mt-6 inline-flex items-center gap-2 rounded-xl border-2 border-black bg-black px-5 py-3 text-sm font-black text-white transition-transform hover:-translate-y-0.5"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Retry
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  const isMismatchedRole = data.role !== expectedRole
 
   return (
-    <div className="min-h-screen bg-[#F9F8F4] px-4 pb-16 pt-24 sm:px-6 sm:pt-28">
-      <div className="mx-auto max-w-7xl">
-        <motion.header
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8 rounded-[28px] border-2 border-black/10 bg-white p-6 shadow-[0_18px_50px_rgba(17,17,17,0.07)] sm:p-8"
-          style={{ background: `linear-gradient(135deg, #fff 0%, ${copy.soft} 100%)` }}
-        >
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-black uppercase tracking-[0.2em] text-black/55">
-                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: copy.accent }} />
-                {data.viewer.name}
-              </div>
-              <h1 className="text-4xl font-black tracking-tight text-black sm:text-5xl">{copy.title}</h1>
-              <p className="mt-3 max-w-2xl text-base font-semibold leading-relaxed text-black/60">{copy.subtitle}</p>
-              {isMismatchedRole && (
-                <p className="mt-3 text-sm font-bold text-red-600">Your account role is {data.role}; this page is scoped to your real login permissions.</p>
-              )}
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {periods.map((period) => (
-                <button
-                  key={period}
-                  type="button"
-                  onClick={() => setDays(period)}
-                  className={`rounded-xl border-2 border-black px-4 py-2 text-sm font-black transition-all ${days === period ? 'bg-black text-white' : 'bg-white text-black hover:-translate-y-0.5'}`}
-                >
-                  {period}d
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => refetch()}
-                className="inline-flex items-center gap-2 rounded-xl border-2 border-black bg-white px-4 py-2 text-sm font-black text-black transition-all hover:-translate-y-0.5"
-              >
-                <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
-                Refresh
-              </button>
-            </div>
+    <div className="min-h-screen bg-[#F9F8F4] pt-8 pb-12">
+      <div className="mx-auto max-w-full px-4 sm:px-10 lg:px-16">
+        <div className="mb-8 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-4xl font-black uppercase tracking-tighter text-black">
+              {role === 'brand' ? 'Brand' : role === 'admin' ? 'Platform' : 'Creator'} <span className="text-blue-500">Analytics</span>
+            </h1>
+            <p className="mt-2 text-sm font-black uppercase tracking-widest text-black/40">Performance Overview & Strategic Insights</p>
           </div>
-        </motion.header>
+          <div className="flex items-center gap-2 rounded-2xl border-[3px] border-black bg-white p-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            {[7, 30, 90, 365].map((d) => (
+              <button
+                key={d}
+                onClick={() => setDays(d)}
+                className={`rounded-xl px-4 py-2 text-[10px] font-black uppercase transition-all ${days === d ? 'bg-black text-white' : 'text-black/40 hover:bg-black/5'
+                  }`}
+              >
+                {d === 365 ? '365D' : `${d}D`}
+              </button>
+            ))}
+            <div className="mx-1 h-6 w-[2px] bg-black" />
+            <button
+              onClick={() => refetch()}
+              className="flex items-center gap-1.5 rounded-xl border-2 border-black bg-emerald-400 px-4 py-2 text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
+              Sync
+            </button>
+          </div>
+        </div>
 
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {stats.map((stat) => (
-            <StatCard key={stat.label} {...stat} />
+        <div className="mb-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {stats.map((stat, i) => (
+            <StatCard key={i} {...stat} days={days} />
           ))}
         </div>
 
-        <div className="grid gap-5 xl:grid-cols-[1.35fr_0.65fr]">
-          <Panel title="Revenue And Activity Trend" icon={LineChart}>
-            <Trend rows={data.series} />
-          </Panel>
-          <Panel title="Traffic Quality" icon={MousePointerClick}>
-            <RankingList rows={data.devices} valueKey="value" valueFormat="number" empty="Device data appears after tracked-link clicks." />
-          </Panel>
-        </div>
+        <div className="mb-6 grid gap-6 lg:grid-cols-3 items-start">
+          <div className="flex flex-col gap-6 lg:col-span-2">
+            <div className="rounded-2xl border-[3px] border-black bg-white p-6 pb-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col">
+              <div className="mb-8 flex items-center justify-between">
+                <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-tight text-black">
+                  <BarChart3 className="h-5 w-5" />
+                  Performance Trends
+                </h3>
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <div className="h-3 w-3 rounded-full border-2 border-black bg-[#FF8C69]" />
+                      <span className="text-[10px] font-black uppercase tracking-wider text-black/40">Signals</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-3 w-3 rounded-full border-2 border-black bg-[#10B981]" />
+                      <span className="text-[10px] font-black uppercase tracking-wider text-black/40">Revenue</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 rounded-lg border-2 border-black bg-yellow-300 px-3 py-1.5 text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    Last {days} Days
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  </div>
+                </div>
+              </div>
+              <div className="h-[280px]">
+                <MainTrendChart data={data?.series || []} days={days} height={280} />
+              </div>
+            </div>
 
-        <div className="mt-5 grid gap-5 lg:grid-cols-2">
-          <Panel title={role === 'brand' ? 'Top Influencers Promoting You' : 'Top Influencers'} icon={Users}>
-            <RankingList rows={data.topInfluencers} valueKey="revenue" empty="No influencer sales yet for this period." />
-          </Panel>
-          <Panel title="Top Products" icon={Box}>
-            <RankingList rows={data.topProducts} valueKey="revenue" empty="No product performance yet for this period." />
-          </Panel>
-        </div>
+            <div className="grid gap-6 sm:grid-cols-2">
+              <RankingList title={role === 'admin' ? 'Top Brands' : 'Top Influencers'} items={role === 'admin' ? (data?.topBrands || []) : (data?.topInfluencers || [])} type={role === 'admin' ? 'brand' : 'influencer'} />
+              <RankingList title="Top Products" items={data?.topProducts || []} type="product" />
+            </div>
 
-        <div className="mt-5 grid gap-5 lg:grid-cols-2">
-          {role === 'admin' ? (
-            <Panel title="Top Brands" icon={Crown}>
-              <RankingList rows={data.topBrands} valueKey="revenue" empty="No brand revenue yet for this period." />
-            </Panel>
-          ) : (
-            <Panel title="Campaign Pulse" icon={Target}>
-              <RankingList rows={data.campaigns} valueKey="impressions" valueFormat="number" empty="No campaign analytics yet." />
-            </Panel>
-          )}
-          <Panel title="Country Split" icon={BarChart3}>
-            <RankingList rows={data.countries} valueKey="value" valueFormat="number" empty="Country data appears after tracked-link clicks." />
-          </Panel>
+            {role !== 'brand' && (
+              <div className="rounded-2xl border-[3px] border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden">
+                <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-tight text-black">
+                  <Globe className="h-4 w-4" />
+                  Global Impact
+                </h3>
+                <div className="flex h-56 items-center justify-center">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-black/20">Analyzing regional distribution...</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-col rounded-2xl border-[3px] border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+              <h3 className="mb-4 text-sm font-black uppercase tracking-tight text-black">Traffic Integrity</h3>
+              <div className="flex flex-1 flex-col items-center justify-center py-4">
+                <DoughnutChart value={kpis.cvr || 0} />
+              </div>
+              <div className="mt-4 space-y-3">
+                <div className="flex items-center justify-between rounded-lg border-2 border-black p-3 bg-violet-50">
+                  <div className="flex items-center gap-2">
+                    <div className="h-3 w-3 rounded-full border-2 border-black bg-violet-500" />
+                    <span className="text-[11px] font-black uppercase text-black/60">Clicks</span>
+                  </div>
+                  <span className="text-xs font-black text-black">{formatNumber(kpis.clicks)}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-lg border-2 border-black p-3 bg-violet-50/50">
+                  <div className="flex items-center gap-2">
+                    <div className="h-3 w-3 rounded-full border-2 border-black bg-violet-200" />
+                    <span className="text-[11px] font-black uppercase text-black/60">Orders</span>
+                  </div>
+                  <span className="text-xs font-black text-black">{formatNumber(kpis.orders)}</span>
+                </div>
+              </div>
+              <div className="mt-6 rounded-xl border-2 border-black bg-yellow-50 p-4 flex items-start gap-3">
+                <Info className="h-4 w-4 text-black shrink-0 mt-0.5" />
+                <p className="text-[10px] font-black leading-relaxed text-black/60 uppercase tracking-tight">
+                  Real-time synchronization active. Performance data is verified via conversion tracking nodes.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col rounded-2xl border-[3px] border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] h-fit">
+              <h3 className="mb-6 text-sm font-black uppercase tracking-tight text-black">Quick Insights</h3>
+              <div className="flex flex-col gap-4">
+                <QuickInsightRow label="Total Volume" value={formatNumber(kpis.clicks || kpis.impressions)} subValue="Verified" data={[30, 45, 35, 50, 48, 65, 80]} color="#10B981" days={days} />
+                <QuickInsightRow label="Conversion" value={`${(kpis.cvr || 0).toFixed(2)}%`} subValue="Stable" data={[5, 8, 4, 10, 7, 9, 12]} color="#F59E0B" days={days} />
+                <QuickInsightRow label="Revenue Pulse" value={formatMoney(kpis.revenue || kpis.commission)} subValue="Trending" data={[20, 40, 15, 60, 30, 70, 90]} color="#8B5CF6" days={days} />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -426,17 +426,6 @@ function BrandInboxInner() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <button className="p-3 rounded-2xl border-2 border-black bg-white hover:bg-gray-50 transition-colors hidden sm:block">
-                    <Phone className="w-4 h-4" />
-                  </button>
-                  <button className="p-3 rounded-2xl border-2 border-black bg-white hover:bg-gray-50 transition-colors hidden sm:block">
-                    <Video className="w-4 h-4" />
-                  </button>
-                  <button className="p-3 rounded-2xl border-2 border-black bg-white hover:bg-gray-50 transition-colors">
-                    <MoreVertical className="w-4 h-4" />
-                  </button>
-                </div>
               </div>
 
               {/* Messages Area */}
