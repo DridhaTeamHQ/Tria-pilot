@@ -206,7 +206,11 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
         garmentImageBase64: cleanedGarment,
         prompt,
         aspectRatio: input.aspectRatio || '4:5',
-        model: 'gemini-3-pro-image-preview',
+        // Flash is ~5× faster than Pro (3-5s vs 20-25s per call) and from
+        // production logs Pro returns empty more often, falling back to
+        // Flash anyway. Skipping straight to Flash so each slot stays
+        // well inside Vercel's 60s function timeout.
+        model: 'gemini-3.1-flash-image-preview',
         garmentIntel: intel,
       } as any)
       if (!out || out.length < 100) {

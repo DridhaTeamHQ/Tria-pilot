@@ -37,7 +37,7 @@ import { ZodError } from 'zod'
 // Prevents queue from growing unboundedly during traffic spikes.
 const MAX_QUEUE_DEPTH = parseInt(process.env.TRYON_MAX_QUEUE_DEPTH || '50', 10)
 
-export const maxDuration = 300
+export const maxDuration = 60
 const TRYON_RATE_LIMIT_DISABLED =
   process.env.TRYON_RATE_LIMIT_DISABLED === 'true' ||
   process.env.NODE_ENV !== 'production'
