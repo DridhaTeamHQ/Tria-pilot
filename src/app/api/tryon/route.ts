@@ -1073,6 +1073,27 @@ async function handlePresetlessTryOnRequest(params: {
     } catch (cleanErr) {
       const msg = cleanErr instanceof Error ? cleanErr.message : 'Clean pipeline failed'
       console.error('[tryon] clean pipeline catastrophic failure:', msg)
+      // Surface upstream-Gemini outages clearly so the UI can show a
+      // useful message + retry button instead of a generic 500.
+      const lower = msg.toLowerCase()
+      const isUpstreamOverload =
+        lower.includes('503') ||
+        lower.includes('unavailable') ||
+        lower.includes('overloaded') ||
+        lower.includes('resource_exhausted') ||
+        lower.includes('deadline_exceeded') ||
+        lower.includes('timeout') ||
+        lower.includes('timed out')
+      if (isUpstreamOverload) {
+        return NextResponse.json(
+          {
+            error: 'Our AI provider is overloaded right now. Please try again in a moment.',
+            code: 'UPSTREAM_OVERLOADED',
+            retryAfterSeconds: 15,
+          },
+          { status: 503, headers: { 'Retry-After': '15', 'Cache-Control': 'no-store' } },
+        )
+      }
       return jsonError(502, 'TRYON_GENERATION_FAILED', `Try-on pipeline failed: ${msg.slice(0, 200)}`)
     }
 

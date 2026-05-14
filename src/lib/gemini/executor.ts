@@ -4,12 +4,16 @@ import { GoogleGenAI, type GenerateContentParameters } from '@google/genai'
 import { getGeminiKey } from '@/lib/config/api-keys'
 
 const GEMINI_MAX_RETRIES = 3
-const GEMINI_MAX_RETRIES_IMAGE = 5        // Image models get more attempts — they're flakier
+// Image retries dialed down to fit inside Vercel's 60s function budget.
+// With 3 parallel slots, each slot only has ~15s of total retry headroom
+// before the whole function times out. We FAIL FAST on persistent 503/429s
+// rather than burn the whole budget.
+const GEMINI_MAX_RETRIES_IMAGE = 2        // was 5 — 503 storms exhausted the budget
 const BASE_BACKOFF_MS = 1500
-const BASE_BACKOFF_IMAGE_MS = 3000
-const BASE_BACKOFF_504_MS = 8000          // 504s need longer wait — server was genuinely overloaded
+const BASE_BACKOFF_IMAGE_MS = 1000        // was 3000 — Gemini either recovers fast or not at all
+const BASE_BACKOFF_504_MS = 2000          // was 8000 — same reasoning
 const RETRYABLE_STATUS_CODES = new Set([429, 503, 504, 529])  // 504 = DEADLINE_EXCEEDED — always retry
-const SINGLE_KEY_429_WAIT_MS = 8_000 // Wait 8s on single-key 429 before retrying
+const SINGLE_KEY_429_WAIT_MS = 2_500 // was 8000 — too long for serverless
 
 // Rate limit cooldown per key (ms) — if a key hits 429, skip it for this duration
 const KEY_COOLDOWN_MS = 60_000
@@ -344,8 +348,12 @@ async function generateWithBackoff(params: GenerateContentParameters) {
  * Image models get longer (Pro Image can legitimately take 60s).
  * Tunable via env so we can lift it on Pro tier.
  */
-const TOTAL_TIMEOUT_TEXT_MS = parseInt(process.env.GEMINI_TOTAL_TIMEOUT_TEXT_MS || '90000', 10) || 90_000
-const TOTAL_TIMEOUT_IMAGE_MS = parseInt(process.env.GEMINI_TOTAL_TIMEOUT_IMAGE_MS || '120000', 10) || 120_000
+// Hard ceiling per Gemini call, enforced via Promise.race in the executor.
+// Tuned for Vercel's 60s function timeout: with 3 parallel slots and ~10s
+// of upstream overhead, each slot has ~30s of total budget. Cap individual
+// calls at 25s so we have a buffer for the response + retry.
+const TOTAL_TIMEOUT_TEXT_MS = parseInt(process.env.GEMINI_TOTAL_TIMEOUT_TEXT_MS || '20000', 10) || 20_000
+const TOTAL_TIMEOUT_IMAGE_MS = parseInt(process.env.GEMINI_TOTAL_TIMEOUT_IMAGE_MS || '25000', 10) || 25_000
 
 export class GeminiTimeoutError extends Error {
   status = 504
