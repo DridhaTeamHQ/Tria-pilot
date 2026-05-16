@@ -4,16 +4,14 @@ import { GoogleGenAI, type GenerateContentParameters } from '@google/genai'
 import { getGeminiKey } from '@/lib/config/api-keys'
 
 const GEMINI_MAX_RETRIES = 3
-// Image retries dialed down to fit inside Vercel's 60s function budget.
-// With 3 parallel slots, each slot only has ~15s of total retry headroom
-// before the whole function times out. We FAIL FAST on persistent 503/429s
-// rather than burn the whole budget.
-const GEMINI_MAX_RETRIES_IMAGE = 2        // was 5 — 503 storms exhausted the budget
+// Image retries — give the model real chances to recover. On localhost
+// these run to completion; on Vercel the 60s function cap may interrupt.
+const GEMINI_MAX_RETRIES_IMAGE = 3
 const BASE_BACKOFF_MS = 1500
-const BASE_BACKOFF_IMAGE_MS = 1000        // was 3000 — Gemini either recovers fast or not at all
-const BASE_BACKOFF_504_MS = 2000          // was 8000 — same reasoning
+const BASE_BACKOFF_IMAGE_MS = 2000
+const BASE_BACKOFF_504_MS = 4000
 const RETRYABLE_STATUS_CODES = new Set([429, 503, 504, 529])  // 504 = DEADLINE_EXCEEDED — always retry
-const SINGLE_KEY_429_WAIT_MS = 2_500 // was 8000 — too long for serverless
+const SINGLE_KEY_429_WAIT_MS = 4_000
 
 // Rate limit cooldown per key (ms) — if a key hits 429, skip it for this duration
 const KEY_COOLDOWN_MS = 60_000
@@ -348,13 +346,12 @@ async function generateWithBackoff(params: GenerateContentParameters) {
  * Image models get longer (Pro Image can legitimately take 60s).
  * Tunable via env so we can lift it on Pro tier.
  */
-// Hard ceiling per Gemini call. From production logs Gemini Flash is
-// currently taking 24-26s when it succeeds (provider overloaded). 25s
-// was killing legitimate-but-slow responses. Bumped to 40s for image
-// and 15s for text. With per-call retries reduced to 2 and parallel
-// slots, total wall time still fits in Vercel's 60s.
-const TOTAL_TIMEOUT_TEXT_MS = parseInt(process.env.GEMINI_TOTAL_TIMEOUT_TEXT_MS || '15000', 10) || 15_000
-const TOTAL_TIMEOUT_IMAGE_MS = parseInt(process.env.GEMINI_TOTAL_TIMEOUT_IMAGE_MS || '40000', 10) || 40_000
+// Hard ceiling per Gemini call. Generous defaults so slow-but-successful
+// responses aren't killed prematurely. NOTE: on Vercel the serverless
+// function itself is capped at 60s by the plan — these app-level timeouts
+// only fully apply on localhost / long-running workers. Override via env.
+const TOTAL_TIMEOUT_TEXT_MS = parseInt(process.env.GEMINI_TOTAL_TIMEOUT_TEXT_MS || '30000', 10) || 30_000
+const TOTAL_TIMEOUT_IMAGE_MS = parseInt(process.env.GEMINI_TOTAL_TIMEOUT_IMAGE_MS || '120000', 10) || 120_000
 
 export class GeminiTimeoutError extends Error {
   status = 504
