@@ -693,6 +693,18 @@ function TryOnPageContent() {
                   </div>
                 )
               })()}
+              {/* Back-print advisory — the product's main design is on the
+                  back, so it only shows on back-facing / side photos. */}
+              {garmentIntel?.graphicPlacement === 'back' && (
+                <div className="mt-2 flex items-start gap-2 rounded-2xl border-2 border-black bg-[#FFF4E0] px-3 py-2 shadow-[3px_3px_0_0_#000]">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#FF8C69]" />
+                  <p className="text-[11px] font-semibold leading-snug text-black/75">
+                    This product&apos;s design is on the <span className="font-black">back</span>.
+                    Upload a back-facing or side photo to show the print — front-facing photos
+                    will show the plain front.
+                  </p>
+                </div>
+              )}
               {productId && (productData?.images?.length > 0) && (
                 <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
                   {(productData.images).map((image: any, index: number) => {

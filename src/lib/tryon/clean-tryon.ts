@@ -189,6 +189,7 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
     candidates,
     productText: input.productText,
     garmentSummary: intel?.description,
+    graphicPlacement: intel?.graphicPlacement,
   })
 
   if (!orchestrated || orchestrated.selections.length < 3) {

@@ -131,6 +131,11 @@ export async function orchestrateTryOn(params: {
   productText?: string
   /** Optional: pre-extracted garment intel summary to seed reasoning */
   garmentSummary?: string
+  /**
+   * Where the garment's main graphic sits. When 'back', the orchestrator
+   * prefers back-facing influencer photos so the print is visible.
+   */
+  graphicPlacement?: 'front' | 'back' | 'both' | 'allover' | 'none'
 }): Promise<OrchestrateResult | null> {
   const apiKey = (process.env.OPENAI_API_KEY || '').trim()
   if (!apiKey) {
@@ -188,10 +193,26 @@ export async function orchestrateTryOn(params: {
       ? `\n\nIMPORTANT: For this specific product, AVOID picking ${avoidKeywords.join('; ')}. If you pick a photo where the existing clothing already matches the product, the swap will be visually invisible and the user sees nothing changed.\n`
       : ''
 
+    // GRAPHIC-PLACEMENT MATCHING — when the product's main design is on
+    // the BACK, the orchestrator must prefer back-facing / 3-quarter-back
+    // influencer photos so the print is actually visible in the output.
+    let graphicClause = ''
+    if (params.graphicPlacement === 'back') {
+      graphicClause =
+        `\n\nGRAPHIC PLACEMENT: This product's main graphic/print is on the BACK of the garment. ` +
+        `STRONGLY PREFER candidate photos where the influencer is facing AWAY from the camera, or in a 3/4-back / side pose where the back is visible. ` +
+        `A back graphic is invisible on a front-facing photo. ` +
+        `In the prompt for back-facing photos, explicitly say "render the back graphic clearly visible across the upper back". ` +
+        `If you are FORCED to use a front-facing photo, say in its prompt "the model faces forward so the plain front of the shirt is shown; the back graphic is not visible from this angle" — never invent the back graphic onto the front.\n`
+    } else if (params.graphicPlacement === 'front') {
+      graphicClause =
+        `\n\nGRAPHIC PLACEMENT: The product's main graphic is on the FRONT. Prefer front-facing or 3/4-front candidate photos so the print shows.\n`
+    }
+
     const userContent: any[] = [
       {
         type: 'text',
-        text: `${params.productText ? `Product: ${params.productText.slice(0, 200)}\n\n` : ''}${params.garmentSummary ? `Garment summary: ${params.garmentSummary.slice(0, 200)}\n\n` : ''}Candidate photos manifest:\n${manifest}${avoidClause}\n\nLook at the garment (Image 1) and each candidate (Images 2-${candidatesForCall.length + 1}). Pick the 3 best photos for this swap and write a FLUX prompt for each. Return JSON only.`,
+        text: `${params.productText ? `Product: ${params.productText.slice(0, 200)}\n\n` : ''}${params.garmentSummary ? `Garment summary: ${params.garmentSummary.slice(0, 200)}\n\n` : ''}Candidate photos manifest:\n${manifest}${avoidClause}${graphicClause}\n\nLook at the garment (Image 1) and each candidate (Images 2-${candidatesForCall.length + 1}). Pick the 3 best photos for this swap and write a FLUX prompt for each. Return JSON only.`,
       },
       // Image 1 = the garment
       {

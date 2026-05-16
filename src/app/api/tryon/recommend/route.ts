@@ -131,6 +131,8 @@ export async function POST(request: NextRequest) {
         visibleBottomInPhoto: garmentIntel.visibleBottomInPhoto || '',
         visibleTopInPhoto: garmentIntel.visibleTopInPhoto || '',
         bottomWearSuggestion: garmentIntel.bottomWearSuggestion,
+        graphicPlacement: garmentIntel.graphicPlacement || 'none',
+        productView: garmentIntel.productView || 'front',
       },
       top3,
     })

@@ -60,6 +60,14 @@ export interface GarmentIntelligence {
   bottomWearSuggestion: string
   description: string
   promptModifiers: string[]
+  /**
+   * Where the main graphic / print / design sits on the garment.
+   * 'back' means the key design is on the back (e.g. a back-print tee) —
+   * it is NOT visible when the wearer faces the camera.
+   */
+  graphicPlacement: 'front' | 'back' | 'both' | 'allover' | 'none'
+  /** Which side of the garment the product photo is showing. */
+  productView: 'front' | 'back' | 'side'
 }
 
 // ── IN-MEMORY CACHE ──────────────────────────────────────────────────────────
@@ -109,6 +117,8 @@ const FALLBACK_INTEL: GarmentIntelligence = {
   bottomWearSuggestion: 'dark fitted jeans',
   description: 'A casual top',
   promptModifiers: [],
+  graphicPlacement: 'none',
+  productView: 'front',
 }
 
 // ── HEURISTIC FALLBACK ───────────────────────────────────────────────────────
@@ -274,6 +284,10 @@ CRITICAL RULES:
    - full_body: dress, jumpsuit, saree, lehenga, co_ord_set, long kurta
    - layered: outerwear meant to be worn over other clothes
 4. If you see a model wearing the product with other visible clothing, capture that in visibleTopInPhoto / visibleBottomInPhoto so the try-on system can preserve the right body parts.
+5. GRAPHIC PLACEMENT — critical for try-on: determine WHERE the main print/graphic/design sits.
+   - If the big graphic is on the BACK of the garment (e.g. a back-print tee), set graphicPlacement='back'. A back graphic is NOT visible when the wearer faces the camera.
+   - If on the chest/front, 'front'. If on both sides, 'both'. If an all-over print, 'allover'. If plain/no graphic, 'none'.
+   Also report productView: which side of the garment the product photo shows ('front', 'back', or 'side').
 
 Return ONLY valid JSON matching this schema (no markdown, no commentary):
 {
@@ -292,7 +306,9 @@ Return ONLY valid JSON matching this schema (no markdown, no commentary):
   "visibleTopInPhoto": "describe top wear visible on the model when product is bottom, or 'none' if not applicable",
   "bottomWearSuggestion": "complementary bottom suggestion, or 'included' if full-body",
   "description": "ONE concrete sentence describing the product garment specifically",
-  "promptModifiers": ["styling instruction 1", "styling instruction 2"]
+  "promptModifiers": ["styling instruction 1", "styling instruction 2"],
+  "graphicPlacement": "front|back|both|allover|none",
+  "productView": "front|back|side"
 }`
 
 async function analyzeGarmentWithGPT4o(
@@ -377,6 +393,10 @@ Analyze the garment image and return JSON. The product name fact above OVERRIDES
       bottomWearSuggestion: parsed.bottomWearSuggestion || 'dark fitted jeans',
       description: parsed.description || `A ${parsed.garmentType || 'garment'}`,
       promptModifiers: Array.isArray(parsed.promptModifiers) ? parsed.promptModifiers : [],
+      graphicPlacement: (['front', 'back', 'both', 'allover', 'none'].includes(parsed.graphicPlacement as string)
+        ? parsed.graphicPlacement : 'none') as GarmentIntelligence['graphicPlacement'],
+      productView: (['front', 'back', 'side'].includes(parsed.productView as string)
+        ? parsed.productView : 'front') as GarmentIntelligence['productView'],
     }
 
     // ── HARD OVERRIDE FROM TEXT HINT ─────────────────────────────────
@@ -511,6 +531,10 @@ export async function analyzeGarment(
         bottomWearSuggestion: parsed.bottomWearSuggestion || 'dark fitted jeans',
         description: parsed.description || `A ${parsed.garmentType || 'garment'}`,
         promptModifiers: Array.isArray(parsed.promptModifiers) ? parsed.promptModifiers : [],
+        graphicPlacement: (['front', 'back', 'both', 'allover', 'none'].includes(parsed.graphicPlacement as string)
+          ? parsed.graphicPlacement : 'none') as GarmentIntelligence['graphicPlacement'],
+        productView: (['front', 'back', 'side'].includes(parsed.productView as string)
+          ? parsed.productView : 'front') as GarmentIntelligence['productView'],
       }
 
       setCache(cacheKey, intel)
