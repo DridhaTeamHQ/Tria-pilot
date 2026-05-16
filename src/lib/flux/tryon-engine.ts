@@ -492,7 +492,7 @@ export async function generateTryOnFlux(options: FluxTryOnOptions): Promise<stri
         width,
         height,
         outputFormat: 'png',
-        safetyTolerance: 2,
+        safetyTolerance: 5, // max leniency — graphic-print apparel trips strict filter
         timeoutMs: 150_000, // FLUX.2 typically 8-20s; allow headroom
         model: options.modelOverride,
         seed: options.seed,

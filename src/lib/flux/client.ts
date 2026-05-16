@@ -567,8 +567,10 @@ export async function flux2Generate(options: Flux2GenerateOptions): Promise<{
     throw new FluxError(`FLUX.2 accepts at most ${FLUX2_MAX_INPUT_IMAGES} input images`)
   }
 
-  // FLUX.2 spec accepts safety_tolerance in [0, 5]. Clamp to be safe.
-  const safety = Math.min(5, Math.max(0, options.safetyTolerance ?? 2))
+  // FLUX.2 spec accepts safety_tolerance in [0, 5]. Default to 5 (most
+  // lenient) — try-on products include graphic-print apparel (band tees,
+  // Marvel/Venom prints, skulls) that the strict filter wrongly flags.
+  const safety = Math.min(5, Math.max(0, options.safetyTolerance ?? 5))
 
   const payload: Record<string, unknown> = {
     prompt: options.prompt,

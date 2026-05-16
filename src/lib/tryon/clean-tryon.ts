@@ -277,7 +277,12 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
           width: dims.width,
           height: dims.height,
           outputFormat: 'png',
-          safetyTolerance: 2,
+          // Max leniency (FLUX range 0-5). Graphic-print apparel —
+          // band tees, Marvel/Venom prints, skull motifs — kept tripping
+          // the default strict filter as "horror imagery". This is
+          // legitimate licensed product art, so we run at the most
+          // permissive setting.
+          safetyTolerance: 5,
           timeoutMs: 120_000,
           model: 'flux-2-pro',
           seed: seed + attempt,
