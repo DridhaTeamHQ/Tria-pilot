@@ -19,8 +19,9 @@ import { normalizeBase64 } from '@/lib/image-processing'
 import { fetchReferencePhotoAsBase64, getReferencePhotosByIds } from '@/lib/reference-photos/service'
 import { saveUpload } from '@/lib/storage'
 import { getFirstSuccessfulOutput, getJobOutputsFromRecord } from '@/lib/tryon/job-outputs'
-import { analyzeGarment, composeSmartPrompt } from '@/lib/tryon/garment-intel'
-import { generateTryOnDirect, type DirectTryOnOptions } from '@/lib/nanobanana'
+import { analyzeGarment } from '@/lib/tryon/garment-intel'
+import type { DirectTryOnOptions } from '@/lib/nanobanana'
+import { runCleanTryOn, isCleanTryOnSlotSuccess } from '@/lib/tryon/clean-tryon'
 
 interface ProcessGenerationJobRow {
   id: string
@@ -159,80 +160,67 @@ export async function processTryOnJob(jobId: string): Promise<void> {
       } catch { /* non-fatal */ }
     }
 
+    // Pre-compute garment intel so the clean pipeline can skip its own
+    // analyzer call (it accepts prebuiltIntel).
     const garmentIntel = await analyzeGarment(processedGarment, garmentTextHint)
     const successfulOutputs: ProcessPersistedOutput[] = []
-    const failedAttempts: Array<{ referenceImageId: string; error: string }> = []
     const targetOutputCount = 3
 
-    const smartPrompt = composeSmartPrompt(garmentIntel, {
-      aspectRatio,
-      polishNotes: settings.polishNotes?.trim() || undefined,
+    console.log(`🚀 process-job: clean pipeline for job ${jobId}`)
+
+    // ── CLEAN PIPELINE ────────────────────────────────────────────────
+    // Same FLUX-first pipeline as the inline /api/tryon path. Keeps the
+    // async (QStash) path identical in quality to the sync path.
+    const cleanResult = await runCleanTryOn({
+      garmentImageBase64: processedGarment,
+      candidatePhotos: orderedPhotos.slice(0, 8).map((photo: any, idx: number) => ({
+        id: photo.id,
+        imageUrl: photo.image_url || photo.imageUrl,
+        base64: orderedReferenceBase64s[idx] || '',
+        bodyVisibility: photo.body_visibility || photo.bodyVisibility,
+        framing: photo.framing,
+        description: photo.description || photo.caption,
+      })).filter((p) => p.base64.length > 100),
+      productText: garmentTextHint,
+      aspectRatio: aspectRatio as any,
+      prebuiltIntel: garmentIntel,
+      garmentAlreadyPreprocessed: true,
     })
 
-    console.log(
-      `🚀 process-job: starting ${orderedPhotos.slice(0, 3).length} parallel generations for job ${jobId}`
-    )
-
-    const generationResults = await Promise.allSettled(
-      orderedPhotos.slice(0, 3).map(async (photo, idx) => {
-        const referenceImageBase64 = orderedReferenceBase64s[idx]
-
-        const generatedImage = await generateTryOnDirect({
-          personImageBase64: referenceImageBase64,
-          garmentImageBase64: processedGarment,
-          prompt: smartPrompt,
-          aspectRatio,
-          model: directRenderModel,
-        })
-
-        let outputImagePath = generatedImage
-        try {
-          const cleanBase64 = generatedImage.replace(/^data:image\/[a-z+]+;base64,/, '')
-          const storedUrl = await saveUpload(
-            cleanBase64,
-            `tryon/${userId}/${jobId}/${idx + 1}-${photo.id}.png`,
-            'try-ons'
-          )
-          if (storedUrl) outputImagePath = storedUrl
-        } catch (saveError) {
-          console.warn(`process-job: storage save failed for ${jobId} slot ${idx + 1}:`, saveError)
-        }
-
-        return { photo, outputImagePath, slot: idx + 1 }
-      })
-    )
-
-    for (const result of generationResults) {
-      if (result.status === 'fulfilled') {
-        const { photo, outputImagePath, slot } = result.value
-        successfulOutputs.push({
-          referenceImageId: photo.id,
-          status: 'completed',
-          outputImagePath,
-          label: `Source ${slot}`,
-        })
-      } else {
-        const err = result.reason
-        if (err instanceof GeminiRateLimitError) throw err // re-throw for upstream retry
-        failedAttempts.push({
-          referenceImageId: 'unknown',
-          error: err instanceof Error ? err.message : 'Generation failed',
-        })
-      }
-    }
-
-    const outputs: ProcessPersistedOutput[] = [...successfulOutputs]
-    if (outputs.length < targetOutputCount && failedAttempts.length > 0) {
-      const missingCount = targetOutputCount - outputs.length
-      failedAttempts.slice(-missingCount).forEach((failure, index) => {
+    // Persist successful slots to storage; collect failures.
+    const outputs: ProcessPersistedOutput[] = []
+    await Promise.all(cleanResult.selections.map(async (sel, idx) => {
+      if (!isCleanTryOnSlotSuccess(sel)) {
         outputs.push({
-          referenceImageId: failure.referenceImageId,
+          referenceImageId: sel.photoId,
           status: 'failed',
-          error: failure.error,
-          label: `Source ${successfulOutputs.length + index + 1}`,
+          error: sel.error,
+          label: `Source ${idx + 1}`,
         })
-      })
-    }
+        return
+      }
+      let outputImagePath = sel.outputBase64
+      try {
+        const cleanBase64 = sel.outputBase64.replace(/^data:image\/[a-z+]+;base64,/, '')
+        const storedUrl = await saveUpload(
+          cleanBase64,
+          `tryon/${userId}/${jobId}/${idx + 1}-${sel.photoId}.png`,
+          'try-ons'
+        )
+        if (storedUrl) outputImagePath = storedUrl
+      } catch (saveError) {
+        console.warn(`process-job: storage save failed for ${jobId} slot ${idx + 1}:`, saveError)
+      }
+      const persisted: ProcessPersistedOutput = {
+        referenceImageId: sel.photoId,
+        status: 'completed',
+        outputImagePath,
+        label: `Source ${idx + 1}`,
+      }
+      outputs.push(persisted)
+      successfulOutputs.push(persisted)
+    }))
+    void targetOutputCount
 
     const normalizedOutputs = getJobOutputsFromRecord({
       output_image_path: null,
