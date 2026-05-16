@@ -8,8 +8,6 @@
  * - Must be authenticated
  * - Must have role = 'brand'
  * - Must have completed onboarding
- * 
- * NOTE: Brands do NOT require admin approval (auto-approved on signup).
  */
 import { getIdentity } from '@/lib/auth-state'
 import { redirect } from 'next/navigation'
@@ -31,7 +29,7 @@ export default async function BrandLayout({
   }
 
   if (!auth.identity) {
-    redirect('/complete-profile')
+    redirect('/dashboard')
   }
 
   const { identity } = auth

@@ -10,7 +10,7 @@ export default async function InfluencerOnboardingPage() {
   }
 
   if (!auth.identity) {
-    redirect('/complete-profile')
+    redirect('/dashboard')
   }
 
   if (auth.identity.role !== 'influencer') {

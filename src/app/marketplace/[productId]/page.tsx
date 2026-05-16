@@ -55,7 +55,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   }
 
   if (!auth.identity) {
-    redirect('/complete-profile')
+    redirect('/dashboard')
   }
 
   if (auth.identity.role !== 'influencer') {

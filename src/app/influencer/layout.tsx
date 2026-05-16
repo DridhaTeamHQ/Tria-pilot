@@ -30,7 +30,7 @@ export default async function InfluencerLayout({
   }
 
   if (!auth.identity) {
-    redirect('/complete-profile')
+    redirect('/dashboard')
   }
 
   const { identity } = auth

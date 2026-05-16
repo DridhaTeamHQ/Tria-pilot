@@ -39,7 +39,7 @@ export default function BrandOnboardingPage() {
       .then((res) => res.json())
       .then((data) => {
         if (data.onboardingCompleted) {
-          router.replace('/brand/dashboard')
+          router.replace(typeof data.redirectTo === 'string' && data.redirectTo ? data.redirectTo : '/dashboard')
         } else if (data.profile) {
           setFormData({
             companyName: data.profile.companyName || '',
@@ -100,7 +100,7 @@ export default function BrandOnboardingPage() {
         toast.success('Brand profile ready! Choose your first action to get started.', {
           style: { background: '#B4F056', border: '2px solid black', color: 'black', fontWeight: 'bold' }
         })
-        router.replace('/brand/dashboard?welcome=1')
+        router.replace(typeof data.redirectTo === 'string' && data.redirectTo ? `${data.redirectTo}?welcome=1` : '/dashboard?welcome=1')
       } else {
         toast.error('Please fill all required fields')
       }
