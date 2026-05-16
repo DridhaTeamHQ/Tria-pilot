@@ -84,16 +84,16 @@ export default function BrandNavbar({ brandName: initialBrandName, avatarUrl: in
   const isLoggedIn = user !== null && user !== undefined
   const authResolving = isLoading && typeof user === 'undefined'
 
-  if (authResolving || !isLoggedIn || user?.role?.toUpperCase() !== 'BRAND') {
-    return null
-  }
+  // We don't return null here to avoid flickering, 
+  // since the layout ensures auth before this component is rendered.
+  // We'll use the initial props as fallbacks.
 
   const brandName = (user as any)?.brand_name || user?.name || user?.email || initialBrandName || 'Brand'
   const avatarUrl = (user as any)?.avatar_url || (user as any)?.avatarUrl || initialAvatarUrl || null
   const showAvatarImage = Boolean(avatarUrl) && !avatarFailed
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b-[3px] border-black bg-[rgba(249,248,244,0.85)] backdrop-blur-xl">
+    <header className="z-50 shrink-0 border-b-[3px] border-black bg-[rgba(249,248,244,0.95)] backdrop-blur-xl">
       <div className="mx-auto w-full max-w-[2000px] px-3 sm:px-5 lg:px-8 xl:px-12">
         <div className="grid h-20 grid-cols-[auto_1fr_auto] items-center gap-2 lg:gap-4">
           <Link
@@ -186,7 +186,7 @@ export default function BrandNavbar({ brandName: initialBrandName, avatarUrl: in
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden bg-white border-t-2 border-black overflow-hidden"
+            className="absolute top-full left-0 right-0 z-50 lg:hidden bg-white border-t-2 border-black overflow-hidden"
           >
             <div className="mx-auto w-full max-w-[2000px] px-3 py-3 space-y-2 max-h-[calc(100dvh-3.5rem)] overflow-y-auto sm:px-5">
               <Link
