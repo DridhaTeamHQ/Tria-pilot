@@ -31,10 +31,11 @@
  */
 
 import 'server-only'
+import sharp from 'sharp'
 import { preprocessGarmentImage } from '@/lib/tryon/garment-preprocessor'
 import { orchestrateTryOn, type PhotoCandidate } from '@/lib/tryon/gpt-orchestrator'
-import { generateTryOnDirect } from '@/lib/nanobanana'
 import { analyzeGarment } from '@/lib/tryon/garment-intel'
+import { flux2Generate, downloadFluxImage } from '@/lib/flux/client'
 
 const isDev = process.env.NODE_ENV !== 'production'
 
@@ -195,187 +196,125 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
   }
   if (isDev) console.log(`🎬 [clean] Step 2 done in ${Date.now() - orchestrateStart}ms — picked ${orchestrated.selections.length} photos`)
 
-  // ── STEP 3: GEMINI SWAPS (parallel) ──────────────────────────────────
-  if (isDev) console.log('🎨 [clean] Step 3: Gemini swaps (3 parallel) with auto-retry')
+  // ── STEP 3: FLUX-2 [pro] SWAPS (3 truly-parallel instances) ──────────
+  // FLUX-only. Each of the 3 slots runs as an independent FLUX-2 [pro]
+  // call. The BFL key pool (acquireFluxKey, least-busy) gives each
+  // parallel call its OWN account/key — so 3 simultaneous swaps don't
+  // contend on a single key and degrade each other.
+  if (isDev) console.log('🎨 [clean] Step 3: FLUX-2 [pro] swaps (3 parallel, 1 key each)')
   const swapStart = Date.now()
 
-  // Build a photo lookup so we can find the base64 by photoId
   const photoLookup = new Map(input.candidatePhotos.map((p) => [p.id, p.base64]))
 
-  // Backup pool: photos that weren't picked but could substitute for a
-  // permanently failing slot. Drawn from the candidate pool minus the
-  // 3 already-selected photos.
-  const selectedIds = new Set(orchestrated.selections.slice(0, 3).map((s) => s.photoId))
-  const backupPool = input.candidatePhotos.filter((p) => !selectedIds.has(p.id) && p.base64.length > 100)
-
-  // ── Single attempt: run Gemini once for a given (person, prompt) ─────
-  const runGeminiOnce = async (personBase64: string, prompt: string): Promise<string> => {
-    const prevEngine = process.env.TRYON_ENGINE
-    process.env.TRYON_ENGINE = 'gemini'
+  // FLUX needs explicit width/height (multiples of 64). Mirror the input
+  // photo's dimensions exactly — mismatched dims are the #1 cause of FLUX
+  // recomposition / zoom hallucinations.
+  const roundTo64 = (n: number) => Math.max(64, Math.round(n / 64) * 64)
+  const detectDims = async (personBase64: string): Promise<{ width: number; height: number }> => {
     try {
-      const out = await generateTryOnDirect({
-        personImageBase64: personBase64,
-        garmentImageBase64: cleanedGarment,
-        prompt,
-        aspectRatio: input.aspectRatio || '4:5',
-        model: 'gemini-3.1-flash-image-preview',
-        garmentIntel: intel,
-      } as any)
-      if (!out || out.length < 100) {
-        throw new Error('Gemini returned empty output')
+      const meta = await sharp(Buffer.from(personBase64, 'base64')).metadata()
+      if (meta.width && meta.height) {
+        const MAX_LONG = 1536
+        const scale = Math.min(1, MAX_LONG / Math.max(meta.width, meta.height))
+        return { width: roundTo64(meta.width * scale), height: roundTo64(meta.height * scale) }
       }
-      return out
-    } finally {
-      if (prevEngine === undefined) delete process.env.TRYON_ENGINE
-      else process.env.TRYON_ENGINE = prevEngine
+    } catch { /* fall through */ }
+    // Aspect fallback
+    switch (input.aspectRatio || '4:5') {
+      case '1:1': return { width: 1024, height: 1024 }
+      case '9:16': return { width: 768, height: 1344 }
+      case '16:9': return { width: 1344, height: 768 }
+      case '3:4': return { width: 832, height: 1088 }
+      default: return { width: 832, height: 1024 }
     }
   }
 
-  // ── FLUX fallback: runs on the BFL key pool, a totally separate
-  // provider from Gemini. When Gemini is mid-outage, FLUX keeps the
-  // pipeline alive. Only invoked after Gemini attempts are exhausted.
-  const fluxAvailable = Boolean(
-    (process.env.FLUX_API_KEYS || process.env.FLUX_API_KEY || '').trim()
-  )
-  const runFluxOnce = async (personBase64: string, prompt: string): Promise<string> => {
-    const prevEngine = process.env.TRYON_ENGINE
-    process.env.TRYON_ENGINE = 'flux'
-    try {
-      const out = await generateTryOnDirect({
-        personImageBase64: personBase64,
-        garmentImageBase64: cleanedGarment,
-        prompt,
-        aspectRatio: input.aspectRatio || '4:5',
-        garmentIntel: intel,
-        ...(({ modelOverride: 'flux-2-pro' }) as any),
-      } as any)
-      if (!out || out.length < 100) {
-        throw new Error('FLUX returned empty output')
-      }
-      return out
-    } finally {
-      if (prevEngine === undefined) delete process.env.TRYON_ENGINE
-      else process.env.TRYON_ENGINE = prevEngine
-    }
-  }
-
-  // ── Slot worker: tries primary photo with retry, then backup photos ──
-  const runSlotWithFallback = async (
+  // ── Single FLUX call for a slot ──────────────────────────────────────
+  // ANTI-HALLUCINATION measures baked in:
+  //  - input_image_1 = person, input_image_2 = garment (ONCE — passing the
+  //    garment twice was confusing FLUX into compositing it as a flat layer)
+  //  - dimensions mirror the input photo exactly (no recomposition)
+  //  - distinct per-slot seed (parallel calls don't collapse to the same
+  //    deterministic output)
+  //  - the orchestrator's BFL-pattern "change X to Y, keep Z" prompt
+  const runFluxSlot = async (
     sel: typeof orchestrated.selections[number],
     idx: number,
-    backupQueue: typeof input.candidatePhotos,
   ): Promise<CleanTryOnSlot | CleanTryOnFailure> => {
     const slotStart = Date.now()
-    const swapPrompt =
-      `${sel.prompt}\n\n` +
-      `IMPORTANT: This is a clothing edit only. Preserve the subject's identity (face, hair, skin tone) exactly as shown in image 1 — output the same person, not a different one.`
-
-    // Build the attempt queue: primary photo → backup photos. Each gets
-    // up to 2 tries to handle transient Gemini empty responses.
-    const primaryPhoto = photoLookup.get(sel.photoId)
-    const photoAttempts: Array<{ id: string; base64: string }> = []
-    if (primaryPhoto) {
-      photoAttempts.push({ id: sel.photoId, base64: primaryPhoto })
-    }
-    for (const bp of backupQueue) {
-      photoAttempts.push({ id: bp.id, base64: bp.base64 })
+    const personBase64 = photoLookup.get(sel.photoId)
+    if (!personBase64) {
+      return {
+        photoId: sel.photoId, prompt: sel.prompt, reasoning: sel.reasoning,
+        error: 'Reference photo missing from pool', durationMs: Date.now() - slotStart,
+      }
     }
 
-    const RETRIES_PER_PHOTO = 2
+    // Compact, FLUX-native prompt. The orchestrator already wrote a
+    // "change X to Y, keep Z" prompt — append a short identity guard.
+    const fluxPrompt = (
+      `${sel.prompt} ` +
+      `Keep the person's face, hair, skin tone, body and pose identical to image 1. ` +
+      `Photorealistic, natural fabric drape, no overlay or sticker effect.`
+    ).slice(0, 1400)
+
+    const dims = await detectDims(personBase64)
+    // Distinct seed per slot — prevents 3 parallel calls collapsing to
+    // similar outputs and gives genuine variation across the 3 results.
+    const seed = (Date.now() % 1_000_000_000) + idx * 9973
+
+    // 2 attempts: FLUX occasionally returns empty under load.
+    const MAX_ATTEMPTS = 2
     let lastErr = 'unknown error'
-
-    for (let photoIdx = 0; photoIdx < photoAttempts.length; photoIdx++) {
-      const attempt = photoAttempts[photoIdx]
-      for (let r = 0; r < RETRIES_PER_PHOTO; r++) {
-        try {
-          if (isDev && (photoIdx > 0 || r > 0)) {
-            console.log(`   🔁 Slot ${idx + 1} attempt: photo=${attempt.id.slice(0, 8)} retry=${r + 1}`)
-          }
-          const output = await runGeminiOnce(attempt.base64, swapPrompt)
-          if (isDev) {
-            const tag = photoIdx === 0 && r === 0 ? '✅' : '✨'
-            console.log(`${tag} [clean] Slot ${idx + 1} done in ${Date.now() - slotStart}ms${photoIdx > 0 ? ` (backup photo ${attempt.id.slice(0, 8)})` : ''}${r > 0 ? ` after ${r} retries` : ''}`)
-          }
-          return {
-            photoId: attempt.id, // report the photo we actually used
-            prompt: sel.prompt,
-            reasoning: sel.reasoning,
-            outputBase64: output,
-            jobId: `gemini-${Date.now()}-${idx}`,
-            durationMs: Date.now() - slotStart,
-          }
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err)
-          lastErr = msg
-          // Don't retry user-actionable errors (moderation, auth) on the same photo
-          const isUserActionable =
-            msg.toLowerCase().includes('moderat') ||
-            msg.toLowerCase().includes('safety filter') ||
-            /401|403/.test(msg)
-          if (isUserActionable) {
-            if (isDev) console.warn(`⛔ Slot ${idx + 1} non-retryable: ${msg.slice(0, 150)}`)
-            break // move to next photo (or fail) without further retries on this one
-          }
-          if (isDev) console.warn(`⚠️ Slot ${idx + 1} attempt failed: ${msg.slice(0, 100)}`)
-          // Short backoff before retry
-          if (r < RETRIES_PER_PHOTO - 1) {
-            await new Promise((resolve) => setTimeout(resolve, 600 + Math.floor(Math.random() * 400)))
-          }
-        }
-      }
-      // All retries on this photo exhausted, brief pause before backup
-      if (photoIdx < photoAttempts.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 500))
-      }
-    }
-
-    // ── FLUX FALLBACK ────────────────────────────────────────────────
-    // Every Gemini attempt failed for this slot. If FLUX keys are
-    // configured, try the BFL provider — it's independent of Gemini's
-    // outage. This is what keeps the pipeline alive during a Gemini
-    // 503 storm.
-    if (fluxAvailable && primaryPhoto) {
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       try {
-        if (isDev) console.log(`🟣 Slot ${idx + 1} → Gemini exhausted, trying FLUX fallback`)
-        const fluxOut = await runFluxOnce(primaryPhoto, swapPrompt)
-        if (isDev) console.log(`✨ [clean] Slot ${idx + 1} recovered via FLUX in ${Date.now() - slotStart}ms`)
+        if (isDev && attempt > 1) console.log(`   🔁 Slot ${idx + 1} FLUX retry ${attempt}`)
+        const result = await flux2Generate({
+          prompt: fluxPrompt,
+          // person FIRST, garment SECOND — and ONLY twice total. No
+          // duplicate garment reference (that caused flat-composite bugs).
+          inputImages: [personBase64, cleanedGarment],
+          width: dims.width,
+          height: dims.height,
+          outputFormat: 'png',
+          safetyTolerance: 2,
+          timeoutMs: 120_000,
+          model: 'flux-2-pro',
+          seed: seed + attempt,
+        })
+        const downloaded = await downloadFluxImage(result.imageUrl)
+        const outputBase64 = `data:${downloaded.mime};base64,${downloaded.base64}`
+        if (isDev) console.log(`✅ [clean] Slot ${idx + 1} done in ${Date.now() - slotStart}ms (FLUX job ${result.jobId.slice(0, 8)})`)
         return {
-          photoId: sel.photoId,
-          prompt: sel.prompt,
-          reasoning: sel.reasoning,
-          outputBase64: fluxOut,
-          jobId: `flux-${Date.now()}-${idx}`,
+          photoId: sel.photoId, prompt: sel.prompt, reasoning: sel.reasoning,
+          outputBase64, jobId: result.jobId, seed: result.seed,
           durationMs: Date.now() - slotStart,
         }
-      } catch (fluxErr) {
-        const fmsg = fluxErr instanceof Error ? fluxErr.message : String(fluxErr)
-        if (isDev) console.warn(`⚠️ Slot ${idx + 1} FLUX fallback also failed: ${fmsg.slice(0, 120)}`)
-        lastErr = `Gemini + FLUX both failed. Last: ${fmsg}`
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        lastErr = msg
+        const isUserActionable = /moderat|safety|401|403/i.test(msg)
+        if (isUserActionable || attempt >= MAX_ATTEMPTS) {
+          if (isDev) console.warn(`❌ [clean] Slot ${idx + 1} FLUX failed: ${msg.slice(0, 150)}`)
+          break
+        }
+        if (isDev) console.warn(`⚠️ Slot ${idx + 1} FLUX attempt ${attempt} failed: ${msg.slice(0, 100)}`)
+        await new Promise((r) => setTimeout(r, 1000 + Math.floor(Math.random() * 600)))
       }
     }
 
-    if (isDev) console.warn(`❌ [clean] Slot ${idx + 1} failed after all attempts: ${lastErr.slice(0, 150)}`)
     return {
-      photoId: sel.photoId,
-      prompt: sel.prompt,
-      reasoning: sel.reasoning,
-      error: lastErr.slice(0, 400),
-      durationMs: Date.now() - slotStart,
+      photoId: sel.photoId, prompt: sel.prompt, reasoning: sel.reasoning,
+      error: lastErr.slice(0, 400), durationMs: Date.now() - slotStart,
     }
   }
 
-  // Run all 3 slots in parallel. Each slot has its own ordered backup
-  // queue — round-robin assigned so different slots try different backups
-  // if their primaries fail.
-  const slotPromises = orchestrated.selections.slice(0, 3).map((sel, idx) => {
-    // Each slot gets every backup in the pool, offset so they prefer
-    // different backups when multiple slots need them.
-    const offset = idx
-    const orderedBackups = backupPool.slice(offset).concat(backupPool.slice(0, offset))
-    return runSlotWithFallback(sel, idx, orderedBackups)
-  })
-
-  const slots = await Promise.all(slotPromises)
+  // Fire all 3 slots truly in parallel. Each flux2Generate internally
+  // calls acquireFluxKey() which hands out the least-busy key — so the
+  // 3 simultaneous calls land on 3 different BFL accounts.
+  const slots = await Promise.all(
+    orchestrated.selections.slice(0, 3).map((sel, idx) => runFluxSlot(sel, idx))
+  )
   if (isDev) console.log(`🎨 [clean] Step 3 done in ${Date.now() - swapStart}ms`)
 
   return {
