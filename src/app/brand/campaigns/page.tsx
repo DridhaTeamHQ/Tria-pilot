@@ -150,8 +150,8 @@ export default function CampaignsPage() {
       className="min-h-screen bg-[#FAFAF8] pt-2 md:pt-3 pb-10 md:pb-12 relative overflow-hidden"
     >
       {/* Background Design: Subtle Grid */}
-      <div className="absolute inset-0 pointer-events-none opacity-[0.05] z-0" 
-           style={{ backgroundImage: 'linear-gradient(#000 0.5px, transparent 0.5px), linear-gradient(90deg, #000 0.5px, transparent 0.5px)', backgroundSize: '40px 40px' }} 
+      <div className="absolute inset-0 pointer-events-none opacity-[0.05] z-0"
+        style={{ backgroundImage: 'linear-gradient(#000 0.5px, transparent 0.5px), linear-gradient(90deg, #000 0.5px, transparent 0.5px)', backgroundSize: '40px 40px' }}
       />
 
       <div className="container mx-auto px-4 max-w-full lg:px-8 relative z-10">
