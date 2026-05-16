@@ -53,6 +53,12 @@ export interface CleanTryOnInput {
     imageUrl: string
     /** Base64 — needed to send to FLUX as input_image_1 */
     base64: string
+    /**
+     * Optional tight face crop of this person, base64. When supplied it's
+     * passed to FLUX as input_image_3 — a dedicated identity anchor that
+     * dramatically reduces face drift on full-body garment swaps.
+     */
+    faceCropBase64?: string
     /** Optional metadata hints */
     bodyVisibility?: string
     framing?: string
@@ -244,26 +250,38 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
     idx: number,
   ): Promise<CleanTryOnSlot | CleanTryOnFailure> => {
     const slotStart = Date.now()
-    const personBase64 = photoLookup.get(sel.photoId)
+    const photoRecord = input.candidatePhotos.find((p) => p.id === sel.photoId)
+    const personBase64 = photoRecord?.base64 || photoLookup.get(sel.photoId)
     if (!personBase64) {
       return {
         photoId: sel.photoId, prompt: sel.prompt, reasoning: sel.reasoning,
         error: 'Reference photo missing from pool', durationMs: Date.now() - slotStart,
       }
     }
+    const faceCropBase64 = photoRecord?.faceCropBase64
 
     // Compact, FLUX-native prompt. The orchestrator already wrote a
-    // "change X to Y, keep Z" prompt — append a short identity guard.
+    // "change X to Y, keep Z" prompt — append identity + fidelity guards.
+    const hasFace = Boolean(faceCropBase64 && faceCropBase64.length > 100)
     const fluxPrompt = (
       `${sel.prompt} ` +
       `Keep the person's face, hair, skin tone, body and pose identical to image 1. ` +
+      (hasFace ? `Image 3 is a close-up of this exact person's face — the output face MUST match image 3 precisely; do not generate a different face. ` : '') +
+      `Reproduce the garment's full pattern, embroidery, prints and texture detail from image 2 faithfully — do not simplify or wash out intricate motifs. ` +
       `Photorealistic, natural fabric drape, no overlay or sticker effect.`
-    ).slice(0, 1400)
+    ).slice(0, 1500)
 
     const dims = await detectDims(personBase64)
     // Distinct seed per slot — prevents 3 parallel calls collapsing to
     // similar outputs and gives genuine variation across the 3 results.
     const seed = (Date.now() % 1_000_000_000) + idx * 9973
+
+    // Build the FLUX input image set: person, garment, [face crop].
+    // The face crop as a 3rd reference is the strongest lever against
+    // identity drift on full-body garment swaps.
+    const fluxInputs = hasFace
+      ? [personBase64, cleanedGarment, faceCropBase64!.replace(/^data:image\/[a-z+]+;base64,/, '')]
+      : [personBase64, cleanedGarment]
 
     // 2 attempts: FLUX occasionally returns empty under load.
     const MAX_ATTEMPTS = 2
@@ -273,9 +291,8 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
         if (isDev && attempt > 1) console.log(`   🔁 Slot ${idx + 1} FLUX retry ${attempt}`)
         const result = await flux2Generate({
           prompt: fluxPrompt,
-          // person FIRST, garment SECOND — and ONLY twice total. No
-          // duplicate garment reference (that caused flat-composite bugs).
-          inputImages: [personBase64, cleanedGarment],
+          // person, garment, [face crop]. Face crop = identity anchor.
+          inputImages: fluxInputs,
           width: dims.width,
           height: dims.height,
           outputFormat: 'png',

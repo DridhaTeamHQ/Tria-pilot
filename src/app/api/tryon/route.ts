@@ -1060,6 +1060,8 @@ async function handlePresetlessTryOnRequest(params: {
           id: photo.id,
           imageUrl: photo.image_url || photo.imageUrl,
           base64: orderedReferenceBase64s[idx] || '',
+          // Pre-extracted face crop → FLUX input_image_3 identity anchor
+          faceCropBase64: preExtractedFaceCrops[idx] || undefined,
           bodyVisibility: photo.body_visibility || photo.bodyVisibility,
           framing: photo.framing,
           description: photo.description || photo.caption,
