@@ -29,6 +29,12 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   reactStrictMode: true,
+  // Disable Next.js scroll restoration — brand layout resets scroll manually
+  // to prevent the h-dvh container from shifting when window.scrollY > 0
+  experimental: {
+    scrollRestoration: false,
+    proxyClientMaxBodySize: '20mb',
+  },
   transpilePackages: [
     '@radix-ui/react-id',
     '@radix-ui/react-use-callback-ref',
@@ -46,10 +52,6 @@ const nextConfig = {
   turbopack: {
     // Portable across machines/CI; resolves to repo root at runtime
     root: process.cwd(),
-  },
-
-  experimental: {
-    proxyClientMaxBodySize: '20mb',
   },
 
   webpack: (config: any) => {

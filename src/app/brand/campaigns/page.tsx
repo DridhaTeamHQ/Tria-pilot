@@ -147,7 +147,7 @@ export default function CampaignsPage() {
       variants={pageVariants}
       initial="initial"
       animate="animate"
-      className="min-h-screen bg-[#FAFAF8] pt-2 md:pt-3 pb-10 md:pb-12 relative overflow-hidden"
+      className="min-h-[calc(100vh-80px)] bg-[#FAFAF8] pt-8 pb-10 md:pb-12 relative"
     >
       {/* Background Design: Subtle Grid */}
       <div className="absolute inset-0 pointer-events-none opacity-[0.05] z-0"

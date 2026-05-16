@@ -93,7 +93,7 @@ export default function BrandNavbar({ brandName: initialBrandName, avatarUrl: in
   const showAvatarImage = Boolean(avatarUrl) && !avatarFailed
 
   return (
-    <header className="z-50 shrink-0 border-b-[3px] border-black bg-[rgba(249,248,244,0.95)] backdrop-blur-xl">
+    <header className="fixed top-0 left-0 right-0 z-50 shrink-0 border-b-[3px] border-black bg-[rgba(249,248,244,0.97)] backdrop-blur-xl">
       <div className="mx-auto w-full max-w-[2000px] px-3 sm:px-5 lg:px-8 xl:px-12">
         <div className="grid h-20 grid-cols-[auto_1fr_auto] items-center gap-2 lg:gap-4">
           <Link

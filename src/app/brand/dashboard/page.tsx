@@ -143,7 +143,7 @@ export default async function BrandDashboard({
 
   // Render UI directly (Server Side Rendered)
   return (
-    <DashboardPageWrapper className="relative min-h-screen overflow-hidden bg-[#FAFAF8] pb-10 sm:pb-12">
+    <DashboardPageWrapper className="relative min-h-[calc(100vh-80px)] bg-[#FAFAF8] pb-10 sm:pb-12">
       {/* Background Aesthetic Bubbles (Matching Ads Page) */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-24 -left-20 h-72 w-72 rounded-full bg-[#FFD93D]/25 blur-3xl" />
@@ -151,7 +151,7 @@ export default async function BrandDashboard({
         <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-[#B4F056]/15 blur-3xl" />
       </div>
 
-      <div className="relative z-10 container mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-6 sm:pb-8">
+      <div className="relative z-10 container mx-auto px-4 sm:px-6 pt-8 pb-6 sm:pb-8">
         {/* Welcome Header */}
         <MotionDiv
           initial={{ opacity: 0, y: 20 }}

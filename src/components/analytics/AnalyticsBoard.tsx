@@ -416,7 +416,7 @@ export default function AnalyticsBoard({ expectedRole }: { expectedRole: Role })
   }
 
   return (
-    <div className="min-h-screen bg-[#F9F8F4] pt-8 pb-12">
+    <div className="min-h-[calc(100vh-80px)] bg-[#F9F8F4] pt-8 pb-12">
       <div className="mx-auto max-w-full px-4 sm:px-10 lg:px-16">
         <div className="mb-8 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div>

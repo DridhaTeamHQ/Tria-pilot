@@ -64,9 +64,7 @@ body {
   overflow-x: hidden;
 }
 
-body:has([data-brand-layout]) {
-  overflow-y: hidden;
-}
+
 
 .kiwikoo-wordmark {
   font-family: var(--font-bungee), "Arial Black", Impact, sans-serif;
@@ -241,22 +239,15 @@ body.landing-transparent-bg {
   box-sizing: border-box;
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 6px;
+.no-scrollbar,
+body:has([data-brand-layout]) {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-::-webkit-scrollbar-track {
-  background: #faf9f6;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #d1d1d1;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #111111;
+.no-scrollbar::-webkit-scrollbar,
+body:has([data-brand-layout])::-webkit-scrollbar {
+  display: none;
 }
 
 /* Respect reduced motion preference */
@@ -802,26 +793,10 @@ img {
   }
 }
 
-/* ============================================
-   CROSS-BROWSER SCROLLBAR STYLING
-   ============================================ */
-
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
+/* Reset scrollbars to native behavior */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
 }
 
 /* Firefox scrollbar */

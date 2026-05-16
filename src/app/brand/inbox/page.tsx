@@ -176,11 +176,11 @@ function BrandInboxInner() {
         const next = prev.map((c) =>
           c.id === row.conversation_id
             ? {
-                ...c,
-                last_message: row.content.slice(0, 100),
-                last_message_at: row.created_at,
-                unread_count: row.sender_id === currentUserId || selectedConversation?.id === row.conversation_id ? c.unread_count : (c.unread_count || 0) + 1,
-              }
+              ...c,
+              last_message: row.content.slice(0, 100),
+              last_message_at: row.created_at,
+              unread_count: row.sender_id === currentUserId || selectedConversation?.id === row.conversation_id ? c.unread_count : (c.unread_count || 0) + 1,
+            }
             : c,
         )
         return [...next].sort((a, b) => (new Date(b.last_message_at || 0).getTime() - new Date(a.last_message_at || 0).getTime()))
@@ -292,10 +292,10 @@ function BrandInboxInner() {
   }
 
   return (
-    <div className="w-full flex flex-col items-center pt-6 pb-8 animate-fade-in">
+    <div className="w-full flex flex-col items-center px-4 py-4 animate-fade-in" style={{ height: 'calc(100vh - 56px - 80px)' }}>
       {/* Premium Inbox Container */}
-      <div className="w-full max-w-[1440px] h-[calc(100vh-140px)] bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-[32px] overflow-hidden flex flex-col md:flex-row relative">
-        
+      <div className="w-full max-w-[1440px] flex-1 min-h-0 bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-[32px] overflow-hidden flex flex-col md:flex-row relative">
+
         {/* Left Sidebar - Conversation List */}
         <div className={cn(
           "w-full md:w-[380px] border-r-[3px] border-black flex flex-col bg-[#F9F8F4]/30 backdrop-blur-sm transition-all duration-300",
@@ -313,7 +313,7 @@ function BrandInboxInner() {
                 <span>Live</span>
               </div>
             </div>
-            
+
             <div className="relative group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-black/40 group-focus-within:text-black transition-colors" />
               <input
@@ -330,7 +330,7 @@ function BrandInboxInner() {
           <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
             <AnimatePresence mode="popLayout">
               {filteredConversations.length === 0 ? (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   className="flex flex-col items-center justify-center h-full text-center p-8 opacity-40"
@@ -349,8 +349,8 @@ function BrandInboxInner() {
                       onClick={() => selectConversation(conv)}
                       className={cn(
                         "group relative w-full p-4 rounded-2xl border-2 transition-all duration-200 flex gap-4 text-left",
-                        active 
-                          ? "bg-[#B4F056]/20 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] translate-x-[-2px] translate-y-[-2px]" 
+                        active
+                          ? "bg-[#B4F056]/20 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] translate-x-[-2px] translate-y-[-2px]"
                           : "bg-white border-transparent hover:bg-gray-50 hover:border-black/10"
                       )}
                     >
@@ -440,7 +440,7 @@ function BrandInboxInner() {
                     messages.map((message, idx) => {
                       const isMine = message.sender_id === currentUserId
                       const prevSenderSame = idx > 0 && messages[idx - 1].sender_id === message.sender_id
-                      
+
                       return (
                         <motion.div
                           key={message.id}
@@ -454,12 +454,12 @@ function BrandInboxInner() {
                         >
                           <div className={cn(
                             "group relative max-w-[85%] sm:max-w-[70%] px-5 py-3 border-[2.5px] border-black transition-all",
-                            isMine 
-                              ? "bg-[#B4F056] rounded-[24px] rounded-br-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-0.5 hover:-translate-y-0.5" 
+                            isMine
+                              ? "bg-[#B4F056] rounded-[24px] rounded-br-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-0.5 hover:-translate-y-0.5"
                               : "bg-white rounded-[24px] rounded-bl-none shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:scale-[1.01]"
                           )}>
                             <p className="text-[15px] font-bold leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
-                            
+
                             <div className="flex items-center justify-end gap-1.5 mt-1.5">
                               <span className="text-[9px] font-black opacity-30">
                                 {formatTime(message.created_at)}
@@ -501,7 +501,7 @@ function BrandInboxInner() {
                       className="w-full pl-6 pr-14 py-4 bg-[#F9F8F4] border-[3px] border-black rounded-[22px] font-bold text-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:translate-x-[2px] focus:translate-y-[2px] outline-none transition-all placeholder:text-black/20"
                     />
                   </div>
-                  
+
                   <button
                     type="submit"
                     disabled={!newMessage.trim() || sending}

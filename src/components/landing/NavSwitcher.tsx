@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation'
 import BrutalNavbar from '@/components/brutal/BrutalNavbar'
 import LandingNav from './LandingNav'
+import BrandNavbar from '@/components/brand/BrandNavbar'
 
 export default function NavSwitcher() {
   const pathname = usePathname()
@@ -11,7 +12,7 @@ export default function NavSwitcher() {
   const isBrandRoute = pathname?.startsWith('/brand')
 
   if (isBrandRoute) {
-    return null
+    return <BrandNavbar />
   }
 
   if (isContactPage || isLandingPage) {

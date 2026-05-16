@@ -711,7 +711,7 @@ export default function CampaignDetailPage() {
             <style>{ANIMATIONS_CSS}</style>
 
             {/* HEADER */}
-            <div className="bg-white/80 backdrop-blur-xl border-b-[3px] border-black sticky top-[56px] md:top-[64px] z-20 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.1)]">
+            <div className="bg-white/80 backdrop-blur-xl border-b-[3px] border-black sticky top-[80px] z-20 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.1)]">
                 <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3.5">
                     {/* Top row: back + title + mobile actions */}
                     <div className="flex items-center justify-between gap-4">
