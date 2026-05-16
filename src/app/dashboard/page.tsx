@@ -80,7 +80,8 @@ export default async function Dashboard() {
   }
 
   if (!profile) {
-    redirect('/complete-profile')
+    const fallbackRole = normalizeRole(authUser.user_metadata?.role)
+    redirect(fallbackRole === 'brand' ? '/onboarding/brand' : '/onboarding/influencer')
   }
 
   const role = normalizeRole(profile.role)

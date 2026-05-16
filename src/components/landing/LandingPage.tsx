@@ -102,7 +102,7 @@ export default function LandingPage() {
                 <div className="absolute bottom-4 right-1 z-10 w-[170px] rotate-[5deg] rounded-[22px] border-[3px] border-black bg-white p-2.5 shadow-[5px_5px_0_0_rgba(0,0,0,1)] transition-transform duration-300 group-hover:translate-y-1 group-hover:rotate-[8deg] sm:bottom-5 sm:right-0 sm:w-[250px] sm:rotate-[7deg] sm:rounded-[26px] sm:p-3 sm:shadow-[7px_7px_0_0_rgba(0,0,0,1)]">
                   <div className="relative h-[132px] overflow-hidden rounded-[16px] bg-[#fff6f2] sm:h-[190px] sm:rounded-[18px]">
                     <Image
-                      src="/landing/hero-brand.png"
+                      src="/landing/hero-brand.webp"
                       alt="Brand setup"
                       fill
                       sizes="(min-width: 1024px) 250px, 170px"

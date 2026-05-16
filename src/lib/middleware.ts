@@ -27,9 +27,11 @@ const PUBLIC_PATHS = new Set([
     '/admin/register',
     '/forgot-password',
     '/reset-password',
+    '/health',
     '/help',
     '/contact',
     '/about',
+    '/products',
     '/privacy',
     '/terms',
     '/complete-profile',
@@ -40,6 +42,7 @@ const PUBLIC_PREFIXES = [
     '/auth',
     '/api/auth',
     '/marketplace',
+    '/api/products',
     '/signup',
 ]
 
@@ -58,6 +61,12 @@ function isApiPath(pathname: string): boolean {
 
 function isWriteMethod(method: string): boolean {
     return method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS'
+}
+
+function hasSupabaseAuthCookie(request: NextRequest): boolean {
+    return request.cookies
+        .getAll()
+        .some(cookie => cookie.name.startsWith('sb-') || cookie.name.includes('auth-token'))
 }
 
 function getAllowedOrigins(request: NextRequest): Set<string> {
@@ -132,13 +141,16 @@ function applySecurityHeaders(response: NextResponse) {
 
 export async function updateSession(request: NextRequest) {
     const pathname = request.nextUrl.pathname
+    const isPublic = isPublicPath(pathname)
+    const isWrite = isWriteMethod(request.method)
+    const hasAuthCookie = hasSupabaseAuthCookie(request)
     // SECURITY/COST: only log middleware traces in development. In
     // production this fires for every request including static assets,
     // which floods log aggregators (cost) and could leak path patterns
     // useful for reconnaissance. pathname already excludes the query
     // string, but better to just not emit at all in prod.
     if (process.env.NODE_ENV !== 'production') {
-        console.log(`[Middleware] Path: ${pathname}, Public: ${isPublicPath(pathname)}, Auth: ${!!request.cookies.get('sb-access-token')}`)
+        console.log(`[Middleware] Path: ${pathname}, Public: ${isPublic}, Auth: ${hasAuthCookie}`)
     }
     const requestHeaders = new Headers(request.headers)
     requestHeaders.set('x-pathname', pathname)
@@ -151,6 +163,10 @@ export async function updateSession(request: NextRequest) {
         })
 
     let supabaseResponse = createNextResponse()
+
+    if (isPublic && !isWrite && !hasAuthCookie) {
+        return applySecurityHeaders(supabaseResponse)
+    }
 
     // Check env vars
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
@@ -220,7 +236,7 @@ export async function updateSession(request: NextRequest) {
     }
 
     // SESSION CHECK ONLY: Redirect to /login if not authenticated and accessing protected route
-    if (!user && !isPublicPath(pathname)) {
+    if (!user && !isPublic) {
         const url = request.nextUrl.clone()
         url.pathname = pathname.startsWith('/admin') ? '/admin/login' : '/login'
         url.searchParams.set('redirect', pathname)
@@ -238,4 +254,3 @@ export async function updateSession(request: NextRequest) {
     // when they open the main domain.
     return applySecurityHeaders(supabaseResponse)
 }
-

@@ -293,11 +293,11 @@ body.landing-transparent-bg {
 
 .skeleton-shimmer {
   background: linear-gradient(90deg,
-      rgba(0, 0, 0, 0.06) 25%,
-      rgba(0, 0, 0, 0.12) 50%,
-      rgba(0, 0, 0, 0.06) 75%);
+      rgba(0, 0, 0, 0.045) 25%,
+      rgba(0, 0, 0, 0.085) 50%,
+      rgba(0, 0, 0, 0.045) 75%);
   background-size: 200% 100%;
-  animation: shimmer 1.5s infinite ease-in-out;
+  animation: shimmer 2.2s infinite ease-in-out;
 }
 
 .dark .skeleton-shimmer {
@@ -452,7 +452,7 @@ button {
 
 /* Smooth page content */
 main {
-  animation: pageIn 0.3s ease-out;
+  animation: pageIn 0.22s ease-out;
 }
 
 /* Opacity only — transform on main would create a containing block and break position:fixed modals/toasts inside main */
@@ -497,6 +497,7 @@ main {
 .loading-bar {
   animation: progressBar 0.8s ease-out forwards;
 }
+
 
 /* Quick button feedback */
 button:active,

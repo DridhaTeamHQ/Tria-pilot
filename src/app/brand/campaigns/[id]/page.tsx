@@ -869,7 +869,7 @@ export default function CampaignDetailPage() {
                                     <div className="space-y-4">
                                         {a.example && (
                                             <div className="bg-[#FAFAF8] rounded-xl p-4 border-l-[4px] border-black">
-                                                <p className="text-[12px] font-black text-black/60 italic leading-relaxed">"{a.example}"</p>
+                                                <p className="text-[12px] font-black text-black/60 italic leading-relaxed">&quot;{a.example}&quot;</p>
                                             </div>
                                         )}
                                         <div className="flex flex-wrap gap-2">

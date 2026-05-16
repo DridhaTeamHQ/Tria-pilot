@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { createClient, createServiceClient } from '@/lib/auth'
+import { cookies } from 'next/headers'
 import { getGenerationTagFromDob, normalizeDateOfBirth } from '@/lib/profile-demographics'
 
 type SubscriptionSummary = {
@@ -52,6 +53,15 @@ export type CurrentUserQueryData =
   | null
 
 export async function getCurrentUserPayload(): Promise<CurrentUserPayload> {
+  const cookieStore = await cookies()
+  const hasAuthCookie = cookieStore
+    .getAll()
+    .some(cookie => cookie.name.startsWith('sb-') || cookie.name.includes('auth-token'))
+
+  if (!hasAuthCookie) {
+    return { user: null, profile: null }
+  }
+
   const supabase = await createClient()
   const {
     data: { user: authUser },

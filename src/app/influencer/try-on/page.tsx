@@ -8,19 +8,24 @@ import Image from 'next/image'
 import {
   AlertTriangle,
   Check,
+  Copy,
+  ExternalLink,
   Image as ImageIcon,
+  Link as LinkIcon,
   Loader2,
   RefreshCw,
   Sparkles,
   Trash2,
   Upload,
 } from 'lucide-react'
+import Link from 'next/link'
 import { useProduct, useUser } from '@/lib/react-query/hooks'
 import { safeParseResponse } from '@/lib/api-utils'
 import { showErrorToast, showInfoToast, showSuccessToast, showWarningToast } from '@/lib/kiwikoo-toast'
 import { BrutalLoader } from '@/components/ui/BrutalLoader'
 import { MonaLisaGenerationLoader } from '@/components/ui/MonaLisaGenerationLoader'
 import CaptionGenerator from '@/components/creator/CaptionGenerator'
+import { useProductLink } from '@/lib/hooks/useProductLink'
 
 const MIN_TRYON_SOURCES = 3
 const ASPECT_RATIOS = ['1:1', '4:5', '9:16'] as const
@@ -249,6 +254,14 @@ function TryOnPageContent() {
   const generationHint = hasManualSelection
     ? 'You are locking the three visible source slots for this run.'
     : 'AI will keep re-ranking approved photos for this garment before each run.'
+  const shouldShowProductLink = Boolean(productId && outputs.length > 0)
+  const {
+    maskedLink,
+    originalUrl,
+    loading: linkLoading,
+    copied: linkCopied,
+    copyLink,
+  } = useProductLink(productId, shouldShowProductLink)
 
   const loadLibrary = useCallback(async () => {
     setLoadingLibrary(true)
@@ -411,7 +424,7 @@ function TryOnPageContent() {
     }
     void fetchRecommendations()
     return () => { cancelled = true }
-  }, [recommendationPhotoKey, selectedProductImage])
+  }, [recommendationPhotoKey, selectedProductImage, productData?.description, productData?.name])
 
   const refreshAll = useCallback(async () => {
     await loadLibrary()
@@ -779,7 +792,7 @@ function TryOnPageContent() {
                             <div className="flex-1">
                               <p className="text-sm font-black uppercase">{failed} of {outputs.length} failed</p>
                               <p className="mt-1 text-xs font-semibold text-black/70">
-                                The AI couldn't generate {failed === 1 ? 'one image' : `${failed} images`}. Click below to retry just the failed slots.
+                                The AI could not generate {failed === 1 ? 'one image' : `${failed} images`}. Click below to retry just the failed slots.
                               </p>
                             </div>
                             <button
@@ -807,6 +820,65 @@ function TryOnPageContent() {
                       />
                     ) : null}
                   </div>
+                  {shouldShowProductLink ? (
+                    <div className="mx-auto max-w-[600px] rounded-[24px] border-[4px] border-black bg-[#FFF8DB] p-5 shadow-[6px_6px_0_0_#000]">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="space-y-2">
+                          <div className="inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-white px-3 py-1 text-xs font-black uppercase">
+                            <LinkIcon className="h-4 w-4" />
+                            Product Link
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-black uppercase">Share the masked Kiwikoo link</h3>
+                            <p className="text-sm font-semibold text-black/65">
+                              This tracked link stays under `kiwikoo.com` and redirects to the official product page.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-3 sm:justify-end">
+                          <button
+                            type="button"
+                            onClick={() => void copyLink()}
+                            disabled={!maskedLink || linkLoading}
+                            className="inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-[#FFD93D] px-4 py-2 text-xs font-black uppercase shadow-[4px_4px_0_0_#000] transition hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[5px_5px_0_0_#000] disabled:cursor-not-allowed disabled:bg-[#E5E5E5] disabled:text-black/50 disabled:shadow-none"
+                          >
+                            {linkCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                            {linkCopied ? 'Copied' : 'Copy Link'}
+                          </button>
+                          <Link
+                            href={maskedLink || originalUrl || '#'}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={`inline-flex items-center gap-2 rounded-full border-[3px] border-black px-4 py-2 text-xs font-black uppercase shadow-[4px_4px_0_0_#000] transition hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[5px_5px_0_0_#000] ${maskedLink || originalUrl ? 'bg-white' : 'pointer-events-none bg-[#E5E5E5] text-black/50 shadow-none'}`}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                            Open Link
+                          </Link>
+                        </div>
+                      </div>
+                      <div className="mt-4 rounded-[18px] border-[3px] border-black bg-white p-4">
+                        {linkLoading ? (
+                          <div className="flex items-center gap-3 text-sm font-semibold text-black/60">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Generating your tracked product link...
+                          </div>
+                        ) : maskedLink ? (
+                          <>
+                            <p className="break-all text-sm font-black text-black">{maskedLink}</p>
+                            {originalUrl ? (
+                              <p className="mt-2 text-xs font-semibold text-black/55">
+                                Redirects to: {originalUrl}
+                              </p>
+                            ) : null}
+                          </>
+                        ) : (
+                          <p className="text-sm font-semibold text-black/60">
+                            We could not generate the tracked product link yet. Try refreshing this result.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               ) : (
                 <div className="flex min-h-[40vh] items-center justify-center rounded-[24px] border-2 border-dashed border-black/20 bg-[#F9F8F4] p-6 text-center lg:min-h-[60vh]">

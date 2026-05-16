@@ -33,12 +33,12 @@ export function useUser() {
         avatarUrl: data.user.avatarUrl ?? data.profile?.avatar_url ?? null,
       }
     },
-    staleTime: 2 * 1000,
+    staleTime: 5 * 60 * 1000,
     gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
     retry: false, // Don't retry on 401 errors
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   })
 }
 

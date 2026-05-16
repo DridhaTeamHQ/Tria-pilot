@@ -1,14 +1,5 @@
-.git
-.gitignore
-.next
-node_modules
-npm-debug.log
-.env
-.env.local
-.env.*.local
 artifacts
 public/bannervideo/Video Project 6.mp4
-coverage
 tsconfig.tsbuildinfo
 eslint_results.txt
 lint_output.txt

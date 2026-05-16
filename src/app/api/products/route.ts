@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/auth'
+import { createClient, createServiceClient } from '@/lib/auth'
 import { productSchema } from '@/lib/validation'
 import { z } from 'zod'
 import { sanitizeSearchTerm, asUuid } from '@/lib/security/sanitize'
@@ -12,7 +12,10 @@ const createProductSchema = productSchema
   })
   .strict()
 
-function toPublicBrand(brand: { id?: string | null; full_name?: string | null; brand_data?: Record<string, unknown> | null } | null | undefined) {
+type ProductBrand = { id?: string | null; full_name?: string | null; brand_data?: Record<string, unknown> | null }
+
+function toPublicBrand(brandValue: ProductBrand | ProductBrand[] | null | undefined) {
+  const brand = Array.isArray(brandValue) ? brandValue[0] : brandValue
   const companyName =
     (brand?.brand_data?.companyName as string | undefined) ||
     brand?.full_name ||
@@ -94,14 +97,18 @@ export async function POST(request: Request) {
 // GET Handler - Returns LEGACY SHAPE with images array
 export async function GET(request: Request) {
   try {
-    const supabase = await createClient()
-    const { data: { user: authUser } } = await supabase.auth.getUser()
-
     const { searchParams } = new URL(request.url)
     const productId = searchParams.get('id')
 
     // Single Product
     if (productId) {
+      let supabase: Awaited<ReturnType<typeof createClient>> | ReturnType<typeof createServiceClient>
+      try {
+        supabase = createServiceClient()
+      } catch {
+        supabase = await createClient()
+      }
+
       const { data: product, error } = await supabase
         .from('products')
         .select(`
@@ -215,10 +222,39 @@ export async function GET(request: Request) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100)
     const from = (page - 1) * limit
     const to = from + limit - 1
+    let authUser: { id: string } | null = null
+    let supabase: Awaited<ReturnType<typeof createClient>> | ReturnType<typeof createServiceClient>
+
+    if (brandId === 'current') {
+      const sessionClient = await createClient()
+      const { data: { user } } = await sessionClient.auth.getUser()
+      authUser = user ? { id: user.id } : null
+      supabase = sessionClient
+    } else {
+      try {
+        supabase = createServiceClient()
+      } catch {
+        supabase = await createClient()
+      }
+    }
 
     let query = supabase
       .from('products')
-      .select(`*, brand:brand_id (id, full_name, brand_data)`, { count: 'exact' })
+      .select(`
+        id,
+        brand_id,
+        name,
+        description,
+        category,
+        price,
+        link,
+        tags,
+        audience,
+        active,
+        created_at,
+        updated_at,
+        brand:brand_id (id, full_name, brand_data)
+      `, { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(from, to)
 
@@ -244,15 +280,26 @@ export async function GET(request: Request) {
       const safeBrandId = asUuid(brandId)
       if (safeBrandId) query = query.eq('brand_id', safeBrandId)
     }
-    if (brandId === 'current' && authUser) query = query.eq('brand_id', authUser.id)
+    if (brandId === 'current') {
+      if (!authUser) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+      query = query.eq('brand_id', authUser.id)
+    }
 
     const { data: products, count, error } = await query
     if (error) throw error
 
-    const sanitizedProducts = (products || []).map((product) => ({
+    const sanitizedProducts = (products || []).map((product) => {
+      return {
       ...product,
+      cover_image: '',
+      tryon_image: '',
+      imagePath: '',
+      images: [],
       brand: toPublicBrand(product.brand),
-    }))
+    }
+    })
 
     return NextResponse.json({
       data: sanitizedProducts,
@@ -262,6 +309,8 @@ export async function GET(request: Request) {
         total: count || 0,
         totalPages: Math.ceil((count || 0) / limit),
       }
+    }, {
+      headers: { 'Cache-Control': 'public, max-age=60, stale-while-revalidate=300' }
     })
   } catch (error) {
     console.error('Product fetch error:', error)

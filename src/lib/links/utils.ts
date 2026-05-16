@@ -11,8 +11,15 @@ function ensureProtocol(url: string): string {
   return `https://${url}`
 }
 
+function hostMatches(host: string, candidate: string): boolean {
+  return host === candidate || host.endsWith(`.${candidate}`)
+}
+
 function getConfiguredPublicBaseUrl(): string | null {
   const value =
+    process.env.NEXT_PUBLIC_LINK_MASK_BASE_URL ||
+    // eslint-disable-next-line no-restricted-syntax
+    (process.env as any).LINK_MASK_BASE_URL ||
     process.env.NEXT_PUBLIC_APP_URL ||
     process.env.NEXT_PUBLIC_SITE_URL ||
     // eslint-disable-next-line no-restricted-syntax
@@ -57,8 +64,10 @@ export function getMaskedUrl(linkCode: string, requestOrigin?: string): string {
   let baseUrl = getConfiguredPublicBaseUrl()
   
   if (!baseUrl) {
-    // Try to use request origin if available (for server-side)
-    if (requestOrigin) {
+    if (process.env.NODE_ENV === 'production') {
+      baseUrl = 'https://kiwikoo.com'
+    } else if (requestOrigin) {
+      // Try to use request origin if available (for server-side)
       baseUrl = stripTrailingSlash(
         requestOrigin.startsWith('http') ? requestOrigin : `https://${requestOrigin}`
       )
@@ -102,6 +111,18 @@ export function validateOriginalUrl(url: string): boolean {
 export function sanitizeRedirectUrl(url: string): string | null {
   try {
     const parsed = new URL(url)
+    const host = parsed.hostname.toLowerCase()
+    const knownMarketplaceHosts = [
+      'amazon.com',
+      'amazon.in',
+      'amzn.to',
+      'flipkart.com',
+      'myntra.com',
+      'ajio.com',
+      'nykaa.com',
+      'meesho.com',
+    ]
+    const isKnownMarketplaceHost = knownMarketplaceHosts.some((candidate) => hostMatches(host, candidate))
 
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
       return null
@@ -118,6 +139,10 @@ export function sanitizeRedirectUrl(url: string): string | null {
     // when the allowlist is missing in production is fail-closed.
     const allowlistEnv = (process.env.REDIRECT_ALLOWED_HOSTS || '').trim()
     if (allowlistEnv.length === 0) {
+      if (isKnownMarketplaceHost) {
+        return parsed.toString()
+      }
+
       if (process.env.NODE_ENV === 'production') {
         // Fail closed in prod — explicit configuration required.
         return null
@@ -134,8 +159,7 @@ export function sanitizeRedirectUrl(url: string): string | null {
         .split(',')
         .map((h) => h.trim().toLowerCase())
         .filter(Boolean)
-      const host = parsed.hostname.toLowerCase()
-      const ok = allowed.some((h) => host === h || host.endsWith('.' + h))
+      const ok = allowed.some((candidate) => hostMatches(host, candidate)) || isKnownMarketplaceHost
       if (!ok) return null
     }
 
@@ -146,4 +170,3 @@ export function sanitizeRedirectUrl(url: string): string | null {
 }
 
 let hasWarnedAboutRedirectAllowlist = false
-

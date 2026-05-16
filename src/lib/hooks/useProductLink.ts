@@ -12,7 +12,7 @@ interface ProductLinkData {
   productName: string | null
 }
 
-export function useProductLink(productId: string | null) {
+export function useProductLink(productId: string | null, enabled: boolean = true) {
   const [copied, setCopied] = useState(false)
 
   // Fetch or create masked link
@@ -38,7 +38,7 @@ export function useProductLink(productId: string | null) {
       }
       return res.json()
     },
-    enabled: !!productId,
+    enabled: !!productId && enabled,
     staleTime: 5 * 60 * 1000, // 5 minutes - links don't change
     gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
   })
@@ -88,4 +88,3 @@ export function useProductLink(productId: string | null) {
     copyLink,
   }
 }
-

@@ -156,7 +156,7 @@ function BrandInboxInner() {
     if (selectedConversation?.id === threadId) return
     const match = conversations.find((c) => c.id === threadId)
     if (match) void selectConversation(match)
-  }, [searchParams, conversations])
+  }, [searchParams, conversations, selectedConversation?.id])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })

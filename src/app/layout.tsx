@@ -8,6 +8,7 @@ import FooterSwitcher from '@/components/landing/FooterSwitcher'
 import ProfileCompletionGate from '@/components/ProfileCompletionGate'
 import { ReactQueryProvider } from '@/lib/react-query/provider'
 import { RealtimeListener } from '@/components/providers/realtime-listener'
+import RouteProgress from '@/components/route-progress'
 import { getCurrentUserPayload, toCurrentUserQueryData } from '@/lib/current-user'
 import './globals.css'
 import { ReactLenis } from '@/lib/lenis'
@@ -58,6 +59,7 @@ export default async function RootLayout({
         <ReactQueryProvider initialUser={initialUser}>
           <Toaster />
           <AuthToastBridge />
+          <RouteProgress />
           <ReactLenis>
             <NavSwitcher />
             <RealtimeListener />

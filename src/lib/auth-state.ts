@@ -27,6 +27,13 @@ export interface UserIdentity {
   approval_status: ApprovalStatus
 }
 
+function normalizeRole(rawRole: unknown): UserRole {
+  const value = String(rawRole || '').trim().toLowerCase()
+  if (value === 'admin') return 'admin'
+  if (value === 'brand') return 'brand'
+  return 'influencer'
+}
+
 export type AuthResult =
   | { authenticated: false }
   | { authenticated: true; identity: UserIdentity | null }
@@ -100,13 +107,61 @@ export async function getIdentity(): Promise<AuthResult> {
       return { authenticated: false }
     }
 
-    const identity = await fetchProfile(supabase, user.id)
+    let identity = await fetchProfile(supabase, user.id)
 
     if (!identity) {
-      // User exists in auth but no profile -> edge case
-      // E.g. Google Sign in without ?role
-      console.warn('getIdentity: User has auth but no profile:', user.id)
-      return { authenticated: true, identity: null }
+      const fallbackRole = normalizeRole(user.user_metadata?.role)
+      const fallbackIdentity: UserIdentity = {
+        id: user.id,
+        email: user.email || '',
+        role: fallbackRole,
+        onboarding_completed: false,
+        approval_status: fallbackRole === 'brand' ? 'pending' : 'pending',
+      }
+
+      try {
+        let profileClient: Awaited<ReturnType<typeof createClient>> | ReturnType<typeof createServiceClient> = supabase
+        try {
+          profileClient = createServiceClient()
+        } catch {
+          profileClient = supabase
+        }
+
+        const { data: createdProfile, error: createError } = await profileClient
+          .from('profiles')
+          .upsert(
+            {
+              id: user.id,
+              email: user.email || '',
+              role: fallbackRole,
+              full_name:
+                (user.user_metadata?.name as string) ||
+                (user.user_metadata?.full_name as string) ||
+                null,
+              onboarding_completed: false,
+              approval_status: 'pending',
+            },
+            { onConflict: 'id' }
+          )
+          .select('id, email, role, onboarding_completed, approval_status')
+          .maybeSingle()
+
+        if (!createError && createdProfile) {
+          identity = {
+            id: createdProfile.id,
+            email: createdProfile.email || '',
+            role: normalizeRole(createdProfile.role),
+            onboarding_completed: Boolean(createdProfile.onboarding_completed),
+            approval_status: ((createdProfile.approval_status || 'none') as string).toLowerCase() as ApprovalStatus,
+          }
+        } else {
+          console.warn('getIdentity: Profile scaffold failed, using fallback identity:', createError)
+          identity = fallbackIdentity
+        }
+      } catch (profileCreateError) {
+        console.warn('getIdentity: Profile scaffold threw, using fallback identity:', profileCreateError)
+        identity = fallbackIdentity
+      }
     }
 
     return { authenticated: true, identity }
@@ -172,4 +227,3 @@ export function getRedirectPath(state: { type: string }, currentPath: string): s
 export function canAccessRoute(state: { type: string }, route: string): boolean {
   return getRedirectPath(state, route) === null
 }
-

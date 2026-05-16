@@ -1,6 +1,7 @@
 import { createClient, createServiceClient } from '@/lib/auth'
 import MarketplaceClient from '@/components/marketplace/MarketplaceClient'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,23 +35,29 @@ export default async function MarketplacePage({
   searchParams: Promise<{ category?: string; search?: string }>
 }) {
   const resolvedSearchParams = await searchParams
-  const sessionClient = await createClient()
+  const cookieStore = await cookies()
+  const hasAuthCookie = cookieStore
+    .getAll()
+    .some(cookie => cookie.name.startsWith('sb-') || cookie.name.includes('auth-token'))
 
-  try {
-    const { data: { user } } = await sessionClient.auth.getUser()
-    if (user?.id) {
-      const { data: profile } = await sessionClient
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .maybeSingle()
+  if (hasAuthCookie) {
+    try {
+      const sessionClient = await createClient()
+      const { data: { user } } = await sessionClient.auth.getUser()
+      if (user?.id) {
+        const { data: profile } = await sessionClient
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .maybeSingle()
 
-      if (String(profile?.role || '').toLowerCase() === 'brand') {
-        redirect('/brand/campaigns')
+        if (String(profile?.role || '').toLowerCase() === 'brand') {
+          redirect('/brand/campaigns')
+        }
       }
+    } catch (authCheckError) {
+      console.warn('Marketplace role redirect check failed:', authCheckError)
     }
-  } catch (authCheckError) {
-    console.warn('Marketplace role redirect check failed:', authCheckError)
   }
 
   // Use service client for public marketplace listing to avoid cookie/session overhead on every request.
@@ -63,9 +70,8 @@ export default async function MarketplacePage({
   }
 
   // Build products query - only fetch lightweight columns.
-  // IMPORTANT: Do NOT fetch `images` here. That column contains base64 data
-  // (multi-MB per product) and is only needed on the product detail page.
-  // `cover_image` is kept because most products store a short Supabase URL there.
+  // IMPORTANT: Do NOT fetch image columns here. Some rows contain inline
+  // base64 data, which can make public listings multi-MB and timeout-prone.
   let query = supabase
     .from('products')
     .select(`
@@ -74,8 +80,6 @@ export default async function MarketplacePage({
       description,
       category,
       price,
-      cover_image,
-      tryon_image,
       brand_id,
       brand:brand_id (
         id,
@@ -111,20 +115,13 @@ export default async function MarketplacePage({
     const brandData = p.brand?.brand_data as Record<string, any> || {}
     const companyName = brandData.companyName || 'Unknown Brand'
 
-    // Use cover image URL when available, but never inline base64 in listing payloads.
-    let mainImage = p.cover_image || p.tryon_image || ''
-    // Keep smaller inline images visible; skip only very large data URIs that hurt page speed.
-    if (typeof mainImage === 'string' && mainImage.startsWith('data:') && mainImage.length > 2 * 1024 * 1024) {
-      mainImage = ''
-    }
-
     return {
       id: p.id,
       name: p.name,
       description: p.description,
       category: p.category,
       price: Number(p.price || 0),
-      imagePath: mainImage,
+      imagePath: '',
       brand: {
         id: p.brand?.id || 'unknown',
         companyName: companyName,
