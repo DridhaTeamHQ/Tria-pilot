@@ -182,7 +182,26 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
   // ── STEP 2: ORCHESTRATE — GPT-4o picks photos + writes prompts ──────
   if (isDev) console.log('🎬 [clean] Step 2: GPT-4o orchestrator')
   const orchestrateStart = Date.now()
-  const candidates: PhotoCandidate[] = input.candidatePhotos.slice(0, 8).map((p) => ({
+
+  // VARIETY ROTATION — without this the orchestrator always converges on
+  // the same "best 3" photos, so every generation looks identical. We
+  // shuffle the approved pool and, when there are more than 5 photos,
+  // pass only a RANDOM WINDOW of them. Different window each run → the
+  // orchestrator literally cannot keep picking the same 3 → the user
+  // gets variety across generations.
+  const shuffledPool = [...input.candidatePhotos]
+  for (let i = shuffledPool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[shuffledPool[i], shuffledPool[j]] = [shuffledPool[j], shuffledPool[i]]
+  }
+  // Window: if the pool is large, only show a random 5 so picks rotate.
+  // 5 still gives the orchestrator real choice while forcing variety.
+  const orchestratorPool = shuffledPool.length > 5 ? shuffledPool.slice(0, 5) : shuffledPool
+  if (isDev) {
+    console.log(`🎲 [clean] variety window: ${orchestratorPool.length}/${input.candidatePhotos.length} photos → ${orchestratorPool.map((p) => p.id.slice(0, 6)).join(', ')}`)
+  }
+
+  const candidates: PhotoCandidate[] = orchestratorPool.slice(0, 8).map((p) => ({
     id: p.id,
     imageUrl: p.imageUrl,
     bodyVisibility: p.bodyVisibility,
