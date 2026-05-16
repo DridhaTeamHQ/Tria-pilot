@@ -104,12 +104,17 @@ interface PresetlessPersistedOutput {
   }
 }
 
+// A genuine in-progress generation never legitimately exceeds this.
+// Anything older is a crashed/timed-out job whose DB row was never
+// updated — we auto-expire it so the user isn't permanently locked out.
+const STALE_JOB_MS = 90_000
+
 async function findRecentActiveTryOnJob(service: ServiceClient, userId: string) {
   try {
     const activeSinceIso = new Date(Date.now() - ACTIVE_JOB_LOOKBACK_MS).toISOString()
     const { data, error } = await service
       .from('generation_jobs')
-      .select('id, status, created_at')
+      .select('id, status, created_at, updated_at')
       .eq('user_id', userId)
       .in('status', ['pending', 'processing'])
       .gte('created_at', activeSinceIso)
@@ -121,7 +126,31 @@ async function findRecentActiveTryOnJob(service: ServiceClient, userId: string) 
       return null
     }
 
-    return data?.[0] || null
+    const job = data?.[0]
+    if (!job) return null
+
+    // ── STALE-LOCK AUTO-RECOVERY ──────────────────────────────────────
+    // If the "active" job hasn't been touched in STALE_JOB_MS, it crashed
+    // (function timeout, deploy mid-run, etc.) and its row is stuck on
+    // 'processing'. Mark it failed and return null so the new request is
+    // NOT blocked. This is what fixes the "a try-on is already in
+    // progress" lock that never clears.
+    const lastTouch = new Date(job.updated_at || job.created_at).getTime()
+    const ageMs = Date.now() - lastTouch
+    if (ageMs > STALE_JOB_MS) {
+      console.warn(`[tryon] auto-expiring stale job ${job.id} (idle ${Math.round(ageMs / 1000)}s)`)
+      await service
+        .from('generation_jobs')
+        .update({
+          status: 'failed',
+          error_message: 'Job timed out — auto-expired by stale-lock recovery.',
+        })
+        .eq('id', job.id)
+        .in('status', ['pending', 'processing']) // guard against race
+      return null
+    }
+
+    return job
   } catch (error) {
     console.warn('[tryon] active job fallback check crashed:', error)
     return null
