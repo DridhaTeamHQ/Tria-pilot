@@ -75,7 +75,7 @@ export default async function BrandLayout({
 
       <div className="relative z-10 flex h-full min-h-0 flex-col">
         <BrandNavbar brandName={brandName} avatarUrl={avatarUrl} />
-        <main className="mt-20 min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+        <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
           {children}
         </main>
       </div>
