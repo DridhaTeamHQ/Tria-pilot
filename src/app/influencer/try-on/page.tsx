@@ -842,9 +842,6 @@ function TryOnPageContent() {
                           </div>
                           <div>
                             <h3 className="text-lg font-black uppercase">Share the masked Kiwikoo link</h3>
-                            <p className="text-sm font-semibold text-black/65">
-                              This tracked link stays under `kiwikoo.com` and redirects to the official product page.
-                            </p>
                           </div>
                         </div>
                         <div className="flex flex-wrap gap-3 sm:justify-end">
@@ -875,14 +872,7 @@ function TryOnPageContent() {
                             Generating your tracked product link...
                           </div>
                         ) : maskedLink ? (
-                          <>
-                            <p className="break-all text-sm font-black text-black">{maskedLink}</p>
-                            {originalUrl ? (
-                              <p className="mt-2 text-xs font-semibold text-black/55">
-                                Redirects to: {originalUrl}
-                              </p>
-                            ) : null}
-                          </>
+                          <p className="break-all text-sm font-black text-black">{maskedLink}</p>
                         ) : (
                           <p className="text-sm font-semibold text-black/60">
                             We could not generate the tracked product link yet. Try refreshing this result.
