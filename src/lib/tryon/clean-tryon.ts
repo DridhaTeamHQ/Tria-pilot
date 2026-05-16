@@ -218,15 +218,39 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
         garmentImageBase64: cleanedGarment,
         prompt,
         aspectRatio: input.aspectRatio || '4:5',
-        // Flash is ~5× faster than Pro (3-5s vs 20-25s per call) and from
-        // production logs Pro returns empty more often, falling back to
-        // Flash anyway. Skipping straight to Flash so each slot stays
-        // well inside Vercel's 60s function timeout.
         model: 'gemini-3.1-flash-image-preview',
         garmentIntel: intel,
       } as any)
       if (!out || out.length < 100) {
         throw new Error('Gemini returned empty output')
+      }
+      return out
+    } finally {
+      if (prevEngine === undefined) delete process.env.TRYON_ENGINE
+      else process.env.TRYON_ENGINE = prevEngine
+    }
+  }
+
+  // ── FLUX fallback: runs on the BFL key pool, a totally separate
+  // provider from Gemini. When Gemini is mid-outage, FLUX keeps the
+  // pipeline alive. Only invoked after Gemini attempts are exhausted.
+  const fluxAvailable = Boolean(
+    (process.env.FLUX_API_KEYS || process.env.FLUX_API_KEY || '').trim()
+  )
+  const runFluxOnce = async (personBase64: string, prompt: string): Promise<string> => {
+    const prevEngine = process.env.TRYON_ENGINE
+    process.env.TRYON_ENGINE = 'flux'
+    try {
+      const out = await generateTryOnDirect({
+        personImageBase64: personBase64,
+        garmentImageBase64: cleanedGarment,
+        prompt,
+        aspectRatio: input.aspectRatio || '4:5',
+        garmentIntel: intel,
+        ...(({ modelOverride: 'flux-2-pro' }) as any),
+      } as any)
+      if (!out || out.length < 100) {
+        throw new Error('FLUX returned empty output')
       }
       return out
     } finally {
@@ -302,6 +326,31 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
       // All retries on this photo exhausted, brief pause before backup
       if (photoIdx < photoAttempts.length - 1) {
         await new Promise((resolve) => setTimeout(resolve, 500))
+      }
+    }
+
+    // ── FLUX FALLBACK ────────────────────────────────────────────────
+    // Every Gemini attempt failed for this slot. If FLUX keys are
+    // configured, try the BFL provider — it's independent of Gemini's
+    // outage. This is what keeps the pipeline alive during a Gemini
+    // 503 storm.
+    if (fluxAvailable && primaryPhoto) {
+      try {
+        if (isDev) console.log(`🟣 Slot ${idx + 1} → Gemini exhausted, trying FLUX fallback`)
+        const fluxOut = await runFluxOnce(primaryPhoto, swapPrompt)
+        if (isDev) console.log(`✨ [clean] Slot ${idx + 1} recovered via FLUX in ${Date.now() - slotStart}ms`)
+        return {
+          photoId: sel.photoId,
+          prompt: sel.prompt,
+          reasoning: sel.reasoning,
+          outputBase64: fluxOut,
+          jobId: `flux-${Date.now()}-${idx}`,
+          durationMs: Date.now() - slotStart,
+        }
+      } catch (fluxErr) {
+        const fmsg = fluxErr instanceof Error ? fluxErr.message : String(fluxErr)
+        if (isDev) console.warn(`⚠️ Slot ${idx + 1} FLUX fallback also failed: ${fmsg.slice(0, 120)}`)
+        lastErr = `Gemini + FLUX both failed. Last: ${fmsg}`
       }
     }
 
