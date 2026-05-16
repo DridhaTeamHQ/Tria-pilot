@@ -38,9 +38,11 @@ import { ZodError } from 'zod'
 const MAX_QUEUE_DEPTH = parseInt(process.env.TRYON_MAX_QUEUE_DEPTH || '50', 10)
 
 export const maxDuration = 60
+// Limiter stack is OFF BY DEFAULT (active-job lock, global limit, Redis
+// lock, generation gate). Set TRYON_RATE_LIMIT_DISABLED=false explicitly
+// to re-enable cost protection before real public traffic.
 const TRYON_RATE_LIMIT_DISABLED =
-  process.env.TRYON_RATE_LIMIT_DISABLED === 'true' ||
-  process.env.NODE_ENV !== 'production'
+  process.env.TRYON_RATE_LIMIT_DISABLED !== 'false'
 const USER_LOCK_TTL_SECONDS = Math.max(120, maxDuration + 30)
 const GLOBAL_ACTIVE_TTL_SECONDS = USER_LOCK_TTL_SECONDS
 const ACTIVE_JOB_LOOKBACK_MS = USER_LOCK_TTL_SECONDS * 1000
