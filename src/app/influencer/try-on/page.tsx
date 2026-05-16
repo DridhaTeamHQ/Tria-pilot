@@ -841,7 +841,7 @@ function TryOnPageContent() {
                             Product Link
                           </div>
                           <div>
-                            <h3 className="text-lg font-black uppercase">Share the masked Kiwikoo link</h3>
+                            <h3 className="text-lg font-black uppercase">Affiliate Link</h3>
                           </div>
                         </div>
                         <div className="flex flex-wrap gap-3 sm:justify-end">
