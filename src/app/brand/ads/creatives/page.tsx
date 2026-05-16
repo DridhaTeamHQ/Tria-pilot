@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
     staggerContainer,
@@ -366,6 +367,12 @@ function HistoryModal({
     onInpaint: (creative: AdCreative) => void
     onDownload: (creative: AdCreative) => void
 }) {
+    const [mounted, setMounted] = useState(false)
+
+    useEffect(() => {
+        setMounted(true)
+    }, [])
+
     useEffect(() => {
         if (!open) return
         const originalOverflow = document.body.style.overflow
@@ -380,7 +387,9 @@ function HistoryModal({
         }
     }, [open, onClose])
 
-    return (
+    if (!mounted) return null
+
+    return createPortal(
         <AnimatePresence>
             {open && (
                 <motion.div
@@ -389,7 +398,7 @@ function HistoryModal({
                     initial="initial"
                     animate="animate"
                     exit="exit"
-                    className="fixed inset-0 z-50 flex items-start justify-center bg-black/55 p-3 pt-[max(0.75rem,3vh)] backdrop-blur-[2px] sm:p-4 sm:pt-[max(1rem,4vh)]"
+                    className="fixed inset-0 z-[9998] flex items-start justify-center overflow-y-auto overscroll-contain bg-black/55 p-3 pt-[max(0.75rem,3vh)] backdrop-blur-[2px] sm:p-4 sm:pt-[max(1rem,4vh)]"
                     onClick={onClose}
                 >
                     <motion.div
@@ -501,7 +510,8 @@ function HistoryModal({
                     </motion.div>
                 </motion.div>
             )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     )
 }
 
@@ -516,9 +526,14 @@ function Lightbox({
     onClose: () => void
     imageUrl: string
 }) {
+    const [mounted, setMounted] = useState(false)
     const src = imageUrl.includes('supabase.co/storage')
         ? `/api/images/proxy?url=${encodeURIComponent(imageUrl)}`
         : imageUrl
+
+    useEffect(() => {
+        setMounted(true)
+    }, [])
 
     useEffect(() => {
         if (!open) return
@@ -534,7 +549,9 @@ function Lightbox({
         }
     }, [open, onClose])
 
-    return (
+    if (!mounted) return null
+
+    return createPortal(
         <AnimatePresence>
             {open && (
                 <motion.div
@@ -543,7 +560,7 @@ function Lightbox({
                     initial="initial"
                     animate="animate"
                     exit="exit"
-                    className="fixed inset-0 z-50 flex items-start justify-center bg-black/55 p-3 pt-[max(0.75rem,3vh)] backdrop-blur-[2px] sm:p-4 sm:pt-[max(1rem,4vh)]"
+                    className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto overscroll-contain bg-black/55 p-3 pt-[max(0.75rem,3vh)] backdrop-blur-[2px] sm:p-4 sm:pt-[max(1rem,4vh)]"
                     onClick={onClose}
                 >
                     <motion.div
@@ -551,7 +568,7 @@ function Lightbox({
                         initial="initial"
                         animate="animate"
                         exit="exit"
-                        className="relative flex max-h-[min(88dvh,920px)] w-full max-w-[min(88vw,980px)] flex-col rounded-2xl border-[4px] border-black bg-[#FFFDF8] p-3 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] sm:p-4"
+                        className="relative flex max-h-[min(92dvh,920px)] w-full max-w-[min(92vw,980px)] flex-col overflow-hidden rounded-2xl border-[4px] border-black bg-[#FFFDF8] p-3 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] sm:p-4"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="mb-3 flex items-center justify-between gap-2">
@@ -574,8 +591,8 @@ function Lightbox({
                             </button>
                         </div>
 
-                        <div className="min-h-0 overflow-hidden rounded-xl border-[2px] border-black bg-white/60 p-2 sm:p-3">
-                            <div className="relative mx-auto aspect-[4/5] max-h-[calc(88dvh-8.5rem)] w-full max-w-full">
+                        <div className="min-h-0 flex-1 overflow-hidden rounded-xl border-[2px] border-black bg-white/60 p-2 sm:p-3">
+                            <div className="relative mx-auto h-[min(calc(92dvh-8.5rem),720px)] min-h-[220px] w-full">
                                 <Image
                                     src={src}
                                     alt="Creative preview"
@@ -589,7 +606,8 @@ function Lightbox({
                     </motion.div>
                 </motion.div>
             )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     )
 }
 function getRelativeDate(dateStr: string): string {
@@ -775,7 +793,7 @@ export default function CreativesPage() {
             variants={pageVariants}
             initial="initial"
             animate="animate"
-            className="min-h-screen bg-[#FFFDF5] pt-4 md:pt-6 pb-10 md:pb-16"
+            className="bg-[#FFFDF5] pt-4 md:pt-6 pb-10 md:pb-16"
         >
             <div className="container mx-auto px-4 max-w-6xl">                {/* Header */}
                 <div className="mb-8 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
