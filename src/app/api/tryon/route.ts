@@ -1728,9 +1728,13 @@ export async function POST(request: Request) {
     if (isDev) console.log('✅ User verified, generating try-on:', { userId })
 
     // ── Generation gate: daily cap + cooldown + kill switch ─────────────────
-    // Runs in all environments (not gated by TRYON_RATE_LIMIT_DISABLED).
-    // This is the cost-protection layer — it must always be active.
-    if (process.env.NODE_ENV === 'production' || process.env.TRYON_LIMITER_ENABLED === 'true') {
+    // Cost-protection layer. Honours TRYON_RATE_LIMIT_DISABLED so the whole
+    // limiter stack (locks + gate) can be turned off with ONE env var for
+    // testing / multi-device demos.
+    if (
+      !TRYON_RATE_LIMIT_DISABLED &&
+      (process.env.NODE_ENV === 'production' || process.env.TRYON_LIMITER_ENABLED === 'true')
+    ) {
       const ip =
         request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
         request.headers.get('x-real-ip') ||
