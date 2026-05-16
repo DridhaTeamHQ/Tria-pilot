@@ -136,6 +136,14 @@ export async function orchestrateTryOn(params: {
    * prefers back-facing influencer photos so the print is visible.
    */
   graphicPlacement?: 'front' | 'back' | 'both' | 'allover' | 'none'
+  /**
+   * Companion pieces visible in the product photo. When the product is
+   * worn as part of a styled look (e.g. an open shirt over a crop top
+   * with jeans), these describe the other pieces so the orchestrator can
+   * recreate the COMPLETE outfit, not just the product in isolation.
+   */
+  visibleTopInPhoto?: string
+  visibleBottomInPhoto?: string
 }): Promise<OrchestrateResult | null> {
   const apiKey = (process.env.OPENAI_API_KEY || '').trim()
   if (!apiKey) {
@@ -209,10 +217,24 @@ export async function orchestrateTryOn(params: {
         `\n\nGRAPHIC PLACEMENT: The product's main graphic is on the FRONT. Prefer front-facing or 3/4-front candidate photos so the print shows.\n`
     }
 
+    // STYLED-LOOK CLAUSE — when the product photo shows the item worn as
+    // part of a complete outfit (e.g. an open shirt over a crop top with
+    // jeans), recreate the WHOLE look, not just the product in isolation.
+    const vTop = (params.visibleTopInPhoto || '').trim()
+    const vBottom = (params.visibleBottomInPhoto || '').trim()
+    const companions: string[] = []
+    if (vTop && !/^none$/i.test(vTop)) companions.push(`inner/top layer: ${vTop}`)
+    if (vBottom && !/^none$/i.test(vBottom)) companions.push(`bottom: ${vBottom}`)
+    const styledLookClause = companions.length > 0
+      ? `\n\nSTYLED LOOK: Image 1 shows the product worn as a complete outfit. Besides the main product, the look includes — ${companions.join('; ')}. ` +
+        `In EVERY prompt, dress the influencer in the COMPLETE styled outfit: the main product PLUS these companion pieces, recreating the full look from Image 1. ` +
+        `Do not output the product in isolation — reproduce the whole styled outfit (e.g. the print shirt worn open over the ${vTop || 'inner top'}${vBottom ? `, with ${vBottom}` : ''}).\n`
+      : ''
+
     const userContent: any[] = [
       {
         type: 'text',
-        text: `${params.productText ? `Product: ${params.productText.slice(0, 200)}\n\n` : ''}${params.garmentSummary ? `Garment summary: ${params.garmentSummary.slice(0, 200)}\n\n` : ''}Candidate photos manifest:\n${manifest}${avoidClause}${graphicClause}\n\nLook at the garment (Image 1) and each candidate (Images 2-${candidatesForCall.length + 1}). Pick the 3 best photos for this swap and write a FLUX prompt for each. Return JSON only.`,
+        text: `${params.productText ? `Product: ${params.productText.slice(0, 200)}\n\n` : ''}${params.garmentSummary ? `Garment summary: ${params.garmentSummary.slice(0, 200)}\n\n` : ''}Candidate photos manifest:\n${manifest}${avoidClause}${graphicClause}${styledLookClause}\n\nLook at the garment (Image 1) and each candidate (Images 2-${candidatesForCall.length + 1}). Pick the 3 best photos for this swap and write a FLUX prompt for each. Return JSON only.`,
       },
       // Image 1 = the garment
       {
