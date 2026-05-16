@@ -3,6 +3,7 @@
 import { type ReactNode, type ChangeEvent, useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Input } from '@/components/ui/input'
 import { toast } from '@/lib/simple-sonner'
@@ -149,6 +150,7 @@ export default function AdsPage() {
   const [optionsOpen, setOptionsOpen] = useState(true)
   const [showAllPresets, setShowAllPresets] = useState(false)
   const [stylePickerOpen, setStylePickerOpen] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
 
   // UI
   const [loading, setLoading] = useState(false)
@@ -185,6 +187,10 @@ export default function AdsPage() {
   useEffect(() => {
     setShowAllPresets(false)
   }, [activeCategory])
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   useEffect(() => {
     if (!stylePickerOpen) return
@@ -918,13 +924,14 @@ export default function AdsPage() {
       </motion.div>
 
 
-      <AnimatePresence>
-        {stylePickerOpen && (
+      {isMounted && createPortal(
+        <AnimatePresence>
+          {stylePickerOpen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[120] bg-black/65 p-3 backdrop-blur-sm sm:p-6"
+            className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto overscroll-contain bg-black/65 p-3 pt-[max(0.75rem,3vh)] backdrop-blur-sm sm:p-6 sm:pt-[max(1rem,4vh)]"
             onClick={() => setStylePickerOpen(false)}
           >
             <motion.div
@@ -932,7 +939,7 @@ export default function AdsPage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.98, y: 8 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-[28px] border-[4px] border-black bg-[#FFF8E6] shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]"
+              className="mx-auto flex max-h-[min(92dvh,900px)] w-full max-w-6xl flex-col overflow-hidden rounded-[28px] border-[4px] border-black bg-[#FFF8E6] shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]"
               onClick={(event) => event.stopPropagation()}
             >
               <div className="flex items-start justify-between gap-4 border-b-[3px] border-black bg-white px-4 py-4 sm:px-6">
@@ -1092,8 +1099,10 @@ export default function AdsPage() {
               </div>
             </motion.div>
           </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </>
   )
 }
