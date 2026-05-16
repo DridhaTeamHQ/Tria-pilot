@@ -59,7 +59,7 @@ export default async function RootLayout({
         <ReactQueryProvider initialUser={initialUser}>
           <Toaster />
           <AuthToastBridge />
-          <RouteProgress />
+          {/* <RouteProgress /> */}
           <ReactLenis>
             <NavSwitcher />
             <RealtimeListener />
