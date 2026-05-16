@@ -64,6 +64,10 @@ body {
   overflow-x: hidden;
 }
 
+body:has([data-brand-layout]) {
+  overflow-y: hidden;
+}
+
 .kiwikoo-wordmark {
   font-family: var(--font-bungee), "Arial Black", Impact, sans-serif;
   letter-spacing: 0.015em;

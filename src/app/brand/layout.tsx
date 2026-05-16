@@ -64,7 +64,7 @@ export default async function BrandLayout({
   }
 
   return (
-    <div className="bg-[#F9F8F4] relative">
+    <div data-brand-layout className="relative h-dvh overflow-y-auto overflow-x-hidden bg-[#F9F8F4]">
       {/* Decorative Background Elements */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] bg-[#FF9B8F]/10 rounded-full blur-[120px]" />
