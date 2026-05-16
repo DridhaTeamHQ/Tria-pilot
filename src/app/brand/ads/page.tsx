@@ -927,178 +927,178 @@ export default function AdsPage() {
       {isMounted && createPortal(
         <AnimatePresence>
           {stylePickerOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto overscroll-contain bg-black/65 p-3 pt-[max(0.75rem,3vh)] backdrop-blur-sm sm:p-6 sm:pt-[max(1rem,4vh)]"
-            onClick={() => setStylePickerOpen(false)}
-          >
             <motion.div
-              initial={{ opacity: 0, scale: 0.96, y: 12 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.98, y: 8 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="mx-auto flex max-h-[min(92dvh,900px)] w-full max-w-6xl flex-col overflow-hidden rounded-[28px] border-[4px] border-black bg-[#FFF8E6] shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]"
-              onClick={(event) => event.stopPropagation()}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto overscroll-contain bg-black/65 p-3 pt-[max(0.75rem,3vh)] backdrop-blur-sm sm:p-6 sm:pt-[max(1rem,4vh)]"
+              onClick={() => setStylePickerOpen(false)}
             >
-              <div className="flex items-start justify-between gap-4 border-b-[3px] border-black bg-white px-4 py-4 sm:px-6">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">Style Picker</p>
-                  <h2 className="mt-1 text-xl font-black uppercase text-black sm:text-2xl">Choose Style</h2>
-                  <p className="mt-1 text-xs font-semibold text-black/65 sm:text-sm">Pick a preset without stretching the whole page.</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setStylePickerOpen(false)}
-                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-[3px] border-black bg-[#FFD93D] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-              <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
-                <BrutalCard className="rounded-2xl p-4 md:p-6">
-                  <div className="mb-4 flex items-center gap-3">
-                    <span className="flex h-8 w-8 items-center justify-center border-2 border-black bg-black text-xs font-black text-white">1</span>
-                    <h2 className="text-lg md:text-xl font-black uppercase">Choose Style</h2>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96, y: 12 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.98, y: 8 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                className="mx-auto flex max-h-[min(92dvh,900px)] w-full max-w-6xl flex-col overflow-hidden rounded-[28px] border-[4px] border-black bg-[#FFF8E6] shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="flex items-start justify-between gap-4 border-b-[3px] border-black bg-white px-4 py-4 sm:px-6">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">Style Picker</p>
+                    <h2 className="mt-1 text-xl font-black uppercase text-black sm:text-2xl">Choose Style</h2>
+                    <p className="mt-1 text-xs font-semibold text-black/65 sm:text-sm">Pick a preset without stretching the whole page.</p>
                   </div>
-                  <div className="flex flex-wrap gap-2 border-b-2 border-black pb-4">
-                    <button type="button"
-                      onClick={() => setActiveCategory('all')}
-                      className={cn(
-                        'inline-flex items-center gap-2 rounded-lg border-2 border-black px-3 py-2 text-xs font-black uppercase transition-all duration-200',
-                        activeCategory === 'all'
-                          ? 'bg-black text-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
-                          : 'bg-[#FFF8E6] text-black hover:-translate-y-0.5 hover:bg-[#FFD93D]'
-                      )}
-                    >
-                      <Sparkles className="h-4 w-4" />
-                      All Cinematic
-                    </button>
-                    {AD_PRESET_CATEGORIES.map((cat) => (
+                  <button
+                    type="button"
+                    onClick={() => setStylePickerOpen(false)}
+                    className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-[3px] border-black bg-[#FFD93D] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+                  <BrutalCard className="rounded-2xl p-4 md:p-6">
+                    <div className="mb-4 flex items-center gap-3">
+                      <span className="flex h-8 w-8 items-center justify-center border-2 border-black bg-black text-xs font-black text-white">1</span>
+                      <h2 className="text-lg md:text-xl font-black uppercase">Choose Style</h2>
+                    </div>
+                    <div className="flex flex-wrap gap-2 border-b-2 border-black pb-4">
                       <button type="button"
-                        key={cat.id}
-                        onClick={() => setActiveCategory(cat.id)}
+                        onClick={() => setActiveCategory('all')}
                         className={cn(
                           'inline-flex items-center gap-2 rounded-lg border-2 border-black px-3 py-2 text-xs font-black uppercase transition-all duration-200',
-                          activeCategory === cat.id
+                          activeCategory === 'all'
                             ? 'bg-black text-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
                             : 'bg-[#FFF8E6] text-black hover:-translate-y-0.5 hover:bg-[#FFD93D]'
                         )}
                       >
-                        {ICON_MAP[cat.icon]}
-                        {cat.label}
+                        <Sparkles className="h-4 w-4" />
+                        All Cinematic
                       </button>
-                    ))}
-                  </div>
-
-                  <motion.div
-                    variants={staggerContainer}
-                    initial="initial"
-                    animate="animate"
-                    key={activeCategory}
-                    className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
-                  >
-                    {displayedPresets.map((preset) => {
-                      const isCinematic = preset.category === 'cinematic'
-                      return (
-                        <motion.button
-                          key={preset.id}
-                          variants={staggerItem}
-                          whileHover={{ y: -3, scale: 1.01 }}
-                          transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-                          onClick={() => { setSelectedPreset(preset.id); setStylePickerOpen(false) }}
+                      {AD_PRESET_CATEGORIES.map((cat) => (
+                        <button type="button"
+                          key={cat.id}
+                          onClick={() => setActiveCategory(cat.id)}
                           className={cn(
-                            'relative rounded-xl border-[3px] border-black p-4 text-left transition-all',
-                            selectedPreset === preset.id
-                              ? isCinematic
-                                ? 'bg-gradient-to-br from-[#E8D5F5] to-[#FFD93D] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
-                                : 'bg-[#FFD93D] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
-                              : isCinematic
-                                ? 'bg-gradient-to-br from-[#FAF5FF] to-white hover:from-[#F3E8FF] hover:to-[#FFF3BF] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
-                                : 'bg-white hover:bg-[#FFF3BF] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                            'inline-flex items-center gap-2 rounded-lg border-2 border-black px-3 py-2 text-xs font-black uppercase transition-all duration-200',
+                            activeCategory === cat.id
+                              ? 'bg-black text-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                              : 'bg-[#FFF8E6] text-black hover:-translate-y-0.5 hover:bg-[#FFD93D]'
                           )}
                         >
-                          <div className="flex items-start gap-3">
-                            <span className={cn(
-                              'inline-flex h-9 w-9 items-center justify-center border-2 border-black',
+                          {ICON_MAP[cat.icon]}
+                          {cat.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <motion.div
+                      variants={staggerContainer}
+                      initial="initial"
+                      animate="animate"
+                      key={activeCategory}
+                      className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+                    >
+                      {displayedPresets.map((preset) => {
+                        const isCinematic = preset.category === 'cinematic'
+                        return (
+                          <motion.button
+                            key={preset.id}
+                            variants={staggerItem}
+                            whileHover={{ y: -3, scale: 1.01 }}
+                            transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+                            onClick={() => { setSelectedPreset(preset.id); setStylePickerOpen(false) }}
+                            className={cn(
+                              'relative rounded-xl border-[3px] border-black p-4 text-left transition-all',
                               selectedPreset === preset.id
-                                ? 'bg-black text-white'
+                                ? isCinematic
+                                  ? 'bg-gradient-to-br from-[#E8D5F5] to-[#FFD93D] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+                                  : 'bg-[#FFD93D] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
                                 : isCinematic
-                                  ? 'bg-[#D8B4FE] text-black'
-                                  : 'bg-[#B4F056] text-black'
-                            )}>
-                              {ICON_MAP[preset.icon] ?? <Sparkles className="h-4 w-4" />}
-                            </span>
-                            <div>
-                              <p className="text-sm font-black uppercase leading-tight">{preset.name}</p>
-                              <p className="mt-1 line-clamp-2 text-xs font-medium text-black/70">{preset.description}</p>
-                              {isCinematic && (
-                                <p className="mt-1 text-[10px] font-black uppercase tracking-wide text-purple-700">
-                                  Cinematic Production Quality
-                                </p>
-                              )}
-                              <div className="mt-2 flex flex-wrap gap-1">
+                                  ? 'bg-gradient-to-br from-[#FAF5FF] to-white hover:from-[#F3E8FF] hover:to-[#FFF3BF] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                                  : 'bg-white hover:bg-[#FFF3BF] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                            )}
+                          >
+                            <div className="flex items-start gap-3">
+                              <span className={cn(
+                                'inline-flex h-9 w-9 items-center justify-center border-2 border-black',
+                                selectedPreset === preset.id
+                                  ? 'bg-black text-white'
+                                  : isCinematic
+                                    ? 'bg-[#D8B4FE] text-black'
+                                    : 'bg-[#B4F056] text-black'
+                              )}>
+                                {ICON_MAP[preset.icon] ?? <Sparkles className="h-4 w-4" />}
+                              </span>
+                              <div>
+                                <p className="text-sm font-black uppercase leading-tight">{preset.name}</p>
+                                <p className="mt-1 line-clamp-2 text-xs font-medium text-black/70">{preset.description}</p>
                                 {isCinematic && (
-                                  <span className="rounded-md border border-purple-800 bg-purple-100 px-1.5 py-0.5 text-[9px] font-black uppercase text-purple-800">
-                                    Cinematic
-                                  </span>
+                                  <p className="mt-1 text-[10px] font-black uppercase tracking-wide text-purple-700">
+                                    Cinematic Production Quality
+                                  </p>
                                 )}
-                                <span
-                                  className={cn(
-                                    'rounded-md border border-black px-1.5 py-0.5 text-[9px] font-black uppercase',
-                                    preset.tier === 'safe'
-                                      ? 'bg-[#B4F056]'
-                                      : preset.tier === 'bold'
-                                        ? 'bg-[#FFD93D]'
-                                        : 'bg-[#FF8C69]'
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                  {isCinematic && (
+                                    <span className="rounded-md border border-purple-800 bg-purple-100 px-1.5 py-0.5 text-[9px] font-black uppercase text-purple-800">
+                                      Cinematic
+                                    </span>
                                   )}
-                                >
-                                  {preset.tier}
-                                </span>
-                                {(selectedPreset === preset.id || showAllPresets) && (
-                                  <span className="rounded-md border border-black bg-white px-1.5 py-0.5 text-[9px] font-black uppercase">
-                                    {preset.stability}
+                                  <span
+                                    className={cn(
+                                      'rounded-md border border-black px-1.5 py-0.5 text-[9px] font-black uppercase',
+                                      preset.tier === 'safe'
+                                        ? 'bg-[#B4F056]'
+                                        : preset.tier === 'bold'
+                                          ? 'bg-[#FFD93D]'
+                                          : 'bg-[#FF8C69]'
+                                    )}
+                                  >
+                                    {preset.tier}
                                   </span>
-                                )}
+                                  {(selectedPreset === preset.id || showAllPresets) && (
+                                    <span className="rounded-md border border-black bg-white px-1.5 py-0.5 text-[9px] font-black uppercase">
+                                      {preset.stability}
+                                    </span>
+                                  )}
+                                  {(selectedPreset === preset.id || showAllPresets) && (
+                                    <span className="rounded-md border border-black bg-[#FFF8E6] px-1.5 py-0.5 text-[9px] font-black uppercase">
+                                      {preset.pack}
+                                    </span>
+                                  )}
+                                </div>
                                 {(selectedPreset === preset.id || showAllPresets) && (
-                                  <span className="rounded-md border border-black bg-[#FFF8E6] px-1.5 py-0.5 text-[9px] font-black uppercase">
-                                    {preset.pack}
-                                  </span>
+                                  <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-black/55">
+                                    Best for: {preset.platforms.map((p) => (p === 'google' ? 'Google' : p)).join(' / ')}
+                                  </p>
                                 )}
                               </div>
-                              {(selectedPreset === preset.id || showAllPresets) && (
-                                <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-black/55">
-                                  Best for: {preset.platforms.map((p) => (p === 'google' ? 'Google' : p)).join(' / ')}
-                                </p>
-                              )}
                             </div>
-                          </div>
-                          {selectedPreset === preset.id && (
-                            <span className="absolute right-2 top-2 inline-flex h-5 w-5 items-center justify-center rounded-md border-2 border-black bg-white">
-                              <Check className="h-3 w-3" />
-                            </span>
-                          )}
-                        </motion.button>
-                      )
-                    })}
-                  </motion.div>
-                  {visiblePresets.length > collapsedPresetCount && (
-                    <div className="mt-4 flex justify-center">
-                      <button
-                        type="button"
-                        onClick={() => setShowAllPresets((prev) => !prev)}
-                        className="inline-flex items-center gap-2 rounded-lg border-2 border-black bg-white px-4 py-2 text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-[#FFD93D]"
-                      >
-                        {showAllPresets ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                        {showAllPresets ? 'Show fewer styles' : `Show all ${visiblePresets.length} styles`}
-                      </button>
-                    </div>
-                  )}
-                </BrutalCard>
-              </div>
+                            {selectedPreset === preset.id && (
+                              <span className="absolute right-2 top-2 inline-flex h-5 w-5 items-center justify-center rounded-md border-2 border-black bg-white">
+                                <Check className="h-3 w-3" />
+                              </span>
+                            )}
+                          </motion.button>
+                        )
+                      })}
+                    </motion.div>
+                    {visiblePresets.length > collapsedPresetCount && (
+                      <div className="mt-4 flex justify-center">
+                        <button
+                          type="button"
+                          onClick={() => setShowAllPresets((prev) => !prev)}
+                          className="inline-flex items-center gap-2 rounded-lg border-2 border-black bg-white px-4 py-2 text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-[#FFD93D]"
+                        >
+                          {showAllPresets ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                          {showAllPresets ? 'Show fewer styles' : `Show all ${visiblePresets.length} styles`}
+                        </button>
+                      </div>
+                    )}
+                  </BrutalCard>
+                </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
           )}
         </AnimatePresence>,
         document.body

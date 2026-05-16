@@ -793,7 +793,7 @@ export default function CreativesPage() {
             variants={pageVariants}
             initial="initial"
             animate="animate"
-            className="min-h-screen bg-[#FFFDF5] pt-4 md:pt-6 pb-10 md:pb-16"
+            className="bg-[#FFFDF5] pt-4 md:pt-6 pb-10 md:pb-16"
         >
             <div className="container mx-auto px-4 max-w-6xl">                {/* Header */}
                 <div className="mb-8 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
