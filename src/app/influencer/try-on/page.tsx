@@ -927,7 +927,7 @@ function TryOnPageContent() {
             <div className="border-b-[4px] border-black bg-[#FF8C69] p-5">
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full border-[3px] border-black bg-white shadow-[3px_3px_0_0_#000]">
-                  <span className="text-2xl">⚠️</span>
+                  <AlertTriangle className="h-6 w-6 text-[#FF8C69]" strokeWidth={2.75} />
                 </div>
                 <div className="flex-1">
                   <h2 id="tryon-failure-title" className="text-xl font-black uppercase leading-tight text-black">
@@ -941,11 +941,16 @@ function TryOnPageContent() {
                 {failureModal.message}
               </p>
               {failureModal.retryAfter && failureModal.retryAfter > 0 && (
-                <div className="mt-4 inline-flex items-center gap-2 rounded-full border-2 border-black bg-[#FFD93D] px-4 py-2 text-xs font-black uppercase">
-                  Try again in {failureModal.retryAfter}s
+                <div className="mt-4 rounded-[18px] border-[3px] border-black bg-[#FFF4CC] px-4 py-3 shadow-[3px_3px_0_0_#000]">
+                  <p className="text-[11px] font-black uppercase tracking-[0.08em] text-black/55">
+                    Cooldown active
+                  </p>
+                  <p className="mt-1 text-sm font-black uppercase text-black">
+                    Try again in {failureModal.retryAfter}s
+                  </p>
                 </div>
               )}
-              <div className="mt-6 flex gap-3">
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                 <button
                   type="button"
                   onClick={() => setFailureModal(null)}
@@ -959,9 +964,10 @@ function TryOnPageContent() {
                     setFailureModal(null)
                     void submitTryOn()
                   }}
-                  className="flex-1 rounded-full border-[3px] border-black bg-[#FFD93D] px-5 py-3 text-sm font-black uppercase shadow-[4px_4px_0_0_#000] transition hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000]"
+                  disabled={Boolean(failureModal.retryAfter && failureModal.retryAfter > 0)}
+                  className="flex-1 rounded-full border-[3px] border-black bg-[#FFD93D] px-5 py-3 text-sm font-black uppercase shadow-[4px_4px_0_0_#000] transition hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] disabled:cursor-not-allowed disabled:bg-[#E5E5E5] disabled:text-black/45 disabled:shadow-none disabled:hover:translate-x-0 disabled:hover:translate-y-0"
                 >
-                  Try Again
+                  {failureModal.retryAfter && failureModal.retryAfter > 0 ? 'Please Wait' : 'Try Again'}
                 </button>
               </div>
             </div>

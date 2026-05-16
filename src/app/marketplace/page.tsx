@@ -80,6 +80,8 @@ export default async function MarketplacePage({
       description,
       category,
       price,
+      cover_image,
+      tryon_image,
       brand_id,
       brand:brand_id (
         id,
@@ -110,10 +112,28 @@ export default async function MarketplacePage({
   const categories = ['All Products', 'Clothing', 'Accessories', 'Footwear', 'Beauty', 'Lifestyle']
   const activeCategory = resolvedSearchParams.category || 'all'
 
+  const pickListingImage = (product: { cover_image?: unknown; tryon_image?: unknown }) => {
+    const candidates = [product.cover_image, product.tryon_image]
+
+    for (const candidate of candidates) {
+      if (typeof candidate !== 'string') continue
+      const trimmed = candidate.trim()
+      if (!trimmed) continue
+
+      // Keep listing payloads light: avoid very large inline base64 blobs.
+      if (trimmed.startsWith('data:') && trimmed.length > 300 * 1024) continue
+
+      return trimmed
+    }
+
+    return ''
+  }
+
   // Transform to match Client Component interface
   const transformedProducts: ClientProduct[] = (products || []).map((p: any) => {
     const brandData = p.brand?.brand_data as Record<string, any> || {}
     const companyName = brandData.companyName || 'Unknown Brand'
+    const imagePath = pickListingImage(p)
 
     return {
       id: p.id,
@@ -121,7 +141,7 @@ export default async function MarketplacePage({
       description: p.description,
       category: p.category,
       price: Number(p.price || 0),
-      imagePath: '',
+      imagePath,
       brand: {
         id: p.brand?.id || 'unknown',
         companyName: companyName,
@@ -130,8 +150,7 @@ export default async function MarketplacePage({
           slug: null
         }
       },
-      // Don't pass images on listing - they're only needed on detail page
-      images: []
+      images: imagePath ? [{ id: `${p.id}-cover`, imagePath }] : []
     }
   })
 
