@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import {
   Activity,
   ArrowUpRight,
@@ -283,7 +283,7 @@ function RankingList({ title, items, type = 'product' }: { title: string; items:
         <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-tight text-black">
           {title}
         </h3>
-        <button className="rounded-lg border-2 border-black bg-blue-400 px-3 py-1 text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none">
+        <button type="button" className="rounded-lg border-2 border-black bg-blue-400 px-3 py-1 text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none">
           See all
         </button>
       </div>
@@ -377,6 +377,7 @@ export default function AnalyticsBoard({ expectedRole }: { expectedRole: Role })
       if (!res.ok) throw new Error('Failed to load analytics')
       return res.json()
     },
+    placeholderData: keepPreviousData,
   })
 
   const role = data?.role || expectedRole
@@ -429,6 +430,7 @@ export default function AnalyticsBoard({ expectedRole }: { expectedRole: Role })
             {[7, 30, 90, 365].map((d) => (
               <button
                 key={d}
+                type="button"
                 onClick={() => setDays(d)}
                 className={`rounded-xl px-4 py-2 text-[10px] font-black uppercase transition-all ${days === d ? 'bg-black text-white' : 'text-black/40 hover:bg-black/5'
                   }`}
@@ -438,6 +440,7 @@ export default function AnalyticsBoard({ expectedRole }: { expectedRole: Role })
             ))}
             <div className="mx-1 h-6 w-[2px] bg-black" />
             <button
+              type="button"
               onClick={() => refetch()}
               className="flex items-center gap-1.5 rounded-xl border-2 border-black bg-emerald-400 px-4 py-2 text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
             >
