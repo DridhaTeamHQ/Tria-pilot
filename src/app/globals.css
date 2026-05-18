@@ -58,6 +58,10 @@
   --font-sans-landing: var(--font-plus-jakarta-sans), ui-sans-serif, sans-serif;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 /* Prevent horizontal overflow on mobile */
 html,
 body {

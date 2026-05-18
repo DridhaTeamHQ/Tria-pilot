@@ -154,11 +154,21 @@ export default function AdsPage() {
 
   // UI
   const [loading, setLoading] = useState(false)
+  const [dots, setDots] = useState('.')
   const [result, setResult] = useState<GenerationResult | null>(null)
   const [retryAfterSeconds, setRetryAfterSeconds] = useState(0)
   const [generationStatus, setGenerationStatus] = useState<'idle' | 'submitting' | 'rate_limited' | 'busy' | 'error' | 'success'>('idle')
   const [generationStatusText, setGenerationStatusText] = useState('')
   const [generationAttempt, setGenerationAttempt] = useState(0)
+
+  useEffect(() => {
+    if (!loading) return
+    setDots('.')
+    const interval = setInterval(() => {
+      setDots((prev) => (prev.length >= 3 ? '.' : prev + '.'))
+    }, 400)
+    return () => clearInterval(interval)
+  }, [loading])
 
   const hasText = !!(textHeadline || textSubline || textTagline)
   const canSubmit = selectedPreset && selectedPlatforms.length > 0 && !loading && retryAfterSeconds <= 0
@@ -465,7 +475,7 @@ export default function AdsPage() {
                       <p className="text-[11px] font-black uppercase tracking-wider">Product Image</p>
                       {productImage ? (
                         <div className="relative flex-1 w-full min-h-[320px] overflow-hidden rounded-lg border-2 border-black">
-                          <Image unoptimized width={1200} height={1200} src={productImage} alt="Product" className="h-full w-full object-cover" />
+                          <img src={productImage} alt="Product" className="absolute inset-0 h-full w-full object-cover" />
                           <button type="button"
                             onClick={() => setProductImage('')}
                             className="absolute top-2 right-2 inline-flex h-7 w-7 items-center justify-center rounded-md border-2 border-black bg-white"
@@ -626,7 +636,7 @@ export default function AdsPage() {
 
                       {influencerImage ? (
                         <div className="relative mt-auto flex-1 w-full min-h-[320px] overflow-hidden rounded-lg border-2 border-black">
-                          <Image unoptimized width={1200} height={1200} src={influencerImage} alt="Model" className="h-full w-full object-cover" />
+                          <img src={influencerImage} alt="Model" className="absolute inset-0 h-full w-full object-cover" />
                           <button type="button"
                             onClick={() => {
                               setInfluencerImage('')
@@ -649,51 +659,48 @@ export default function AdsPage() {
               </motion.div>
 
               <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.35, delay: 0.06 }}>
-                <BrutalCard className="overflow-hidden rounded-2xl">
-                  <button type="button"
-                    onClick={() => setTextOpen(!textOpen)}
-                    className="flex w-full items-center justify-between border-b-[3px] border-black bg-[#B4F056] px-4 py-4 md:px-5"
+                <BrutalCard className={cn("overflow-hidden rounded-2xl", textOpen ? "bg-white" : "bg-[#B4F056]")}>
+                  <div
+                    className={cn(
+                      "flex w-[calc(100%+6px)] -ml-[3px] -mr-[3px] -mt-[3px] items-center justify-between bg-[#B4F056] px-5 py-4 md:px-6 border-b-[3px]",
+                      textOpen ? "border-black" : "border-transparent"
+                    )}
                   >
-                    <span className="text-sm font-black uppercase flex items-center gap-2">
+                    <span className="text-sm font-black uppercase flex items-center gap-2 select-none">
                       <Type className="h-4 w-4" />
                       Typography
                       {hasText && <span className="border-2 border-black bg-white px-2 py-0.5 text-[10px]">Active</span>}
                     </span>
-                    {textOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                  </button>
-                  <AnimatePresence>
-                    {textOpen && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="space-y-4 bg-white p-4 md:p-5">
-                          <Input
-                            placeholder="Headline (e.g. JUST DO IT)"
-                            value={textHeadline}
-                            onChange={(e) => setTextHeadline(e.target.value)}
-                            className="h-11 rounded-lg border-[2px] border-black text-sm font-bold placeholder:text-black/40"
-                          />
-                          <Input
-                            placeholder="Subline (optional)"
-                            value={textSubline}
-                            onChange={(e) => setTextSubline(e.target.value)}
-                            className="h-11 rounded-lg border-[2px] border-black text-sm font-semibold placeholder:text-black/40"
-                          />
-                          <Input
-                            placeholder="Tagline / CTA"
-                            value={textTagline}
-                            onChange={(e) => setTextTagline(e.target.value)}
-                            className="h-11 rounded-lg border-[2px] border-black text-sm font-semibold placeholder:text-black/40"
-                          />
-
-
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                    <button
+                      type="button"
+                      onClick={() => setTextOpen(!textOpen)}
+                      className="flex h-8 w-8 items-center justify-center bg-transparent border-0 outline-none cursor-pointer hover:scale-115 active:scale-95 transition-transform duration-100"
+                    >
+                      {textOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  {textOpen && (
+                    <div className="space-y-4 bg-white p-4 md:p-5">
+                      <Input
+                        placeholder="Headline (e.g. JUST DO IT)"
+                        value={textHeadline}
+                        onChange={(e) => setTextHeadline(e.target.value)}
+                        className="h-11 rounded-lg border-[2px] border-black text-sm font-bold placeholder:text-black/40"
+                      />
+                      <Input
+                        placeholder="Subline (optional)"
+                        value={textSubline}
+                        onChange={(e) => setTextSubline(e.target.value)}
+                        className="h-11 rounded-lg border-[2px] border-black text-sm font-semibold placeholder:text-black/40"
+                      />
+                      <Input
+                        placeholder="Tagline / CTA"
+                        value={textTagline}
+                        onChange={(e) => setTextTagline(e.target.value)}
+                        className="h-11 rounded-lg border-[2px] border-black text-sm font-semibold placeholder:text-black/40"
+                      />
+                    </div>
+                  )}
                 </BrutalCard>
               </motion.div>
 
@@ -715,10 +722,10 @@ export default function AdsPage() {
                 {retryAfterSeconds > 0 ? (
                   <span>Wait {retryAfterSeconds}s</span>
                 ) : loading ? (
-                  <>
-                    <BrutalLoader size="sm" tone="brand" />
+                  <span className="flex items-center justify-center">
                     <span>Generating</span>
-                  </>
+                    <span className="inline-block w-6 text-left">{dots}</span>
+                  </span>
                 ) : (
                   <>
                     <Sparkles className="h-5 w-5" />
@@ -818,108 +825,107 @@ export default function AdsPage() {
               </motion.div>
 
               <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.35, delay: 0.08 }}>
-                <BrutalCard className="overflow-hidden rounded-2xl">
-                  <button type="button"
-                    onClick={() => setOptionsOpen(!optionsOpen)}
-                    className="flex w-full items-center justify-between border-b-[3px] border-black bg-[#FFD93D] px-4 py-4 md:px-5"
+                <BrutalCard className={cn("overflow-hidden rounded-2xl", optionsOpen ? "bg-white" : "bg-[#FFD93D]")}>
+                  <div
+                    className={cn(
+                      "flex w-[calc(100%+6px)] -ml-[3px] -mr-[3px] -mt-[3px] items-center justify-between bg-[#FFD93D] px-5 py-4 md:px-6 border-b-[3px]",
+                      optionsOpen ? "border-black" : "border-transparent"
+                    )}
                   >
-                    <span className="text-sm font-black uppercase flex items-center gap-2">
+                    <span className="text-sm font-black uppercase flex items-center gap-2 select-none">
                       <Wand2 className="h-4 w-4" />
                       Configuration
                     </span>
-                    {optionsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                  </button>
-                  <AnimatePresence>
-                    {optionsOpen && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="space-y-6 bg-white p-4 md:p-5 pb-6 md:pb-8">
-                          <div>
-                            <p className="mb-2 text-[10px] font-black uppercase tracking-wider">Aspect Ratio</p>
-                            <div className="flex flex-wrap gap-2">
-                              {ASPECT_RATIO_OPTIONS.map((opt) => (
-                                <button type="button"
-                                  key={opt.value}
-                                  onClick={() => setAspectRatio(opt.value)}
-                                  className={cn(
-                                    'rounded-md border-2 border-black px-3 py-2 text-xs font-black uppercase',
-                                    aspectRatio === opt.value ? 'bg-black text-white' : 'bg-white'
-                                  )}
-                                >
-                                  {opt.label}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
+                    <button
+                      type="button"
+                      onClick={() => setOptionsOpen(!optionsOpen)}
+                      className="flex h-8 w-8 items-center justify-center bg-transparent border-0 outline-none cursor-pointer hover:scale-115 active:scale-95 transition-transform duration-100"
+                    >
+                      {optionsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  {optionsOpen && (
+                    <div className="space-y-6 bg-white p-4 md:p-5 pb-6 md:pb-8">
+                      <div>
+                        <p className="mb-2 text-[10px] font-black uppercase tracking-wider">Aspect Ratio</p>
+                        <div className="flex flex-wrap gap-2">
+                          {ASPECT_RATIO_OPTIONS.map((opt) => (
+                            <button type="button"
+                              key={opt.value}
+                              onClick={() => setAspectRatio(opt.value)}
+                              className={cn(
+                                'rounded-md border-2 border-black px-3 py-2 text-xs font-black uppercase',
+                                aspectRatio === opt.value ? 'bg-black text-white' : 'bg-white'
+                              )}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
 
-                          <div className="space-y-4">
-                            <div>
-                              <p className="mb-2 text-[10px] font-black uppercase tracking-wider">Platforms</p>
-                              <div className="flex flex-wrap gap-2">
-                                {PLATFORM_OPTIONS.map((opt) => (
-                                  <button type="button"
-                                    key={opt.value}
-                                    onClick={() => togglePlatform(opt.value)}
-                                    className={cn(
-                                      'inline-flex items-center gap-1 rounded-md border-2 border-black px-2 py-1.5 text-[10px] font-black uppercase',
-                                      selectedPlatforms.includes(opt.value) ? 'bg-[#B4F056]' : 'bg-white'
-                                    )}
-                                  >
-                                    {opt.value === 'instagram' && <Instagram className="h-3 w-3" />}
-                                    {opt.value === 'facebook' && <Facebook className="h-3 w-3" />}
-                                    {opt.value !== 'instagram' && opt.value !== 'facebook' && <Globe className="h-3 w-3" />}
-                                    {opt.label}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                            <div>
-                              <p className="mb-2 text-[10px] font-black uppercase tracking-wider">Camera Angle</p>
-                              <div className="flex flex-wrap gap-2">
-                                {CAMERA_ANGLE_OPTIONS.map((opt) => (
-                                  <button type="button"
-                                    key={opt.value}
-                                    onClick={() => setCameraAngle(opt.value)}
-                                    className={cn(
-                                      'rounded-md border-2 border-black px-2 py-1.5 text-[10px] font-black uppercase',
-                                      cameraAngle === opt.value ? 'bg-black text-white' : 'bg-white'
-                                    )}
-                                  >
-                                    {opt.label}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="rounded-lg border-[3px] border-black bg-[#FFF8E6] p-3">
-                            <div className="flex items-center justify-between gap-3">
-                              <div>
-                                <p className="text-[10px] font-black uppercase tracking-wider">Strict Realism (Anti-AI)</p>
-                                <p className="mt-1 text-[10px] font-semibold text-black/70">
-                                  Locked ON for cinematic production quality across all presets.
-                                </p>
-                              </div>
-                              <button
-                                type="button"
+                      <div className="space-y-4">
+                        <div>
+                          <p className="mb-2 text-[10px] font-black uppercase tracking-wider">Platforms</p>
+                          <div className="flex flex-wrap gap-2">
+                            {PLATFORM_OPTIONS.map((opt) => (
+                              <button type="button"
+                                key={opt.value}
+                                onClick={() => togglePlatform(opt.value)}
                                 className={cn(
-                                  'inline-flex items-center gap-1 rounded-md border-2 border-black px-2 py-1 text-[10px] font-black uppercase',
-                                  'bg-[#B4F056]'
+                                  'inline-flex items-center gap-1 rounded-md border-2 border-black px-2 py-1.5 text-[10px] font-black uppercase',
+                                  selectedPlatforms.includes(opt.value) ? 'bg-[#B4F056]' : 'bg-white'
                                 )}
-                                disabled
                               >
-                                ON
+                                {opt.value === 'instagram' && <Instagram className="h-3 w-3" />}
+                                {opt.value === 'facebook' && <Facebook className="h-3 w-3" />}
+                                {opt.value !== 'instagram' && opt.value !== 'facebook' && <Globe className="h-3 w-3" />}
+                                {opt.label}
                               </button>
-                            </div>
+                            ))}
                           </div>
                         </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                        <div>
+                          <p className="mb-2 text-[10px] font-black uppercase tracking-wider">Camera Angle</p>
+                          <div className="flex flex-wrap gap-2">
+                            {CAMERA_ANGLE_OPTIONS.map((opt) => (
+                              <button type="button"
+                                key={opt.value}
+                                onClick={() => setCameraAngle(opt.value)}
+                                className={cn(
+                                  'rounded-md border-2 border-black px-2 py-1.5 text-[10px] font-black uppercase',
+                                  cameraAngle === opt.value ? 'bg-black text-white' : 'bg-white'
+                                )}
+                              >
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="rounded-lg border-[3px] border-black bg-[#FFF8E6] p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-wider">Strict Realism (Anti-AI)</p>
+                            <p className="mt-1 text-[10px] font-semibold text-black/70">
+                              Locked ON for cinematic production quality across all presets.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            className={cn(
+                              'inline-flex items-center gap-1 rounded-md border-2 border-black px-2 py-1 text-[10px] font-black uppercase',
+                              'bg-[#B4F056]'
+                            )}
+                            disabled
+                          >
+                            ON
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </BrutalCard>
               </motion.div>
             </div>
