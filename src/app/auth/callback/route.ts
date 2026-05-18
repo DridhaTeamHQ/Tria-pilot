@@ -41,6 +41,43 @@ function enforceRoleSafeDestination(role: SupportedRole, nextPath: string): stri
   return value
 }
 
+function resolvePostAuthDestination(params: {
+  role: SupportedRole
+  onboardingCompleted: boolean
+  approvalStatus: string | null | undefined
+  requestedNext: string | null
+}): string {
+  const approvalStatus = String(params.approvalStatus || 'none').trim().toLowerCase()
+
+  if (params.role === 'brand') {
+    if (!params.onboardingCompleted) {
+      return '/onboarding/brand'
+    }
+
+    return enforceRoleSafeDestination(
+      params.role,
+      sanitizeNextPath(params.requestedNext, '/brand/dashboard')
+    )
+  }
+
+  if (!params.onboardingCompleted) {
+    return '/onboarding/influencer'
+  }
+
+  if (approvalStatus === 'rejected') {
+    return '/onboarding/influencer?mode=resubmit'
+  }
+
+  if (approvalStatus !== 'approved') {
+    return '/influencer/pending'
+  }
+
+  return enforceRoleSafeDestination(
+    params.role,
+    sanitizeNextPath(params.requestedNext, '/influencer/dashboard')
+  )
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
@@ -106,7 +143,7 @@ export async function GET(request: NextRequest) {
   // Never overwrite an already valid role on login.
   if (!existingRole) {
     profilePayload.role = roleHint
-    profilePayload.approval_status = roleHint === 'influencer' ? 'pending' : 'approved'
+    profilePayload.approval_status = 'pending'
     if (!existingProfile) {
       profilePayload.onboarding_completed = false
     }
@@ -141,11 +178,18 @@ export async function GET(request: NextRequest) {
   }
 
   const resolvedRole: SupportedRole = existingRole || roleHint
-  const defaultNext = resolvedRole === 'brand' ? '/brand/campaigns' : '/marketplace'
-  const next = enforceRoleSafeDestination(
-    resolvedRole,
-    sanitizeNextPath(searchParams.get('next'), defaultNext)
+  const resolvedOnboardingCompleted = Boolean(
+    profilePayload.onboarding_completed ?? existingProfile?.onboarding_completed
   )
+  const resolvedApprovalStatus = String(
+    profilePayload.approval_status ?? existingProfile?.approval_status ?? 'pending'
+  )
+  const next = resolvePostAuthDestination({
+    role: resolvedRole,
+    onboardingCompleted: resolvedOnboardingCompleted,
+    approvalStatus: resolvedApprovalStatus,
+    requestedNext: searchParams.get('next'),
+  })
   const redirectUrl = new URL(next, request.nextUrl)
   return NextResponse.redirect(redirectUrl)
 }

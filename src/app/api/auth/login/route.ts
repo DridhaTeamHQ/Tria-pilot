@@ -48,7 +48,7 @@ function buildFallbackProfile(user: { id: string; email?: string | null; user_me
     email: user.email || null,
     role,
     onboarding_completed: false,
-    approval_status: role === 'brand' ? 'approved' : 'pending',
+    approval_status: 'pending',
     full_name: (user.user_metadata?.name as string) || (user.user_metadata?.full_name as string) || (user.email ? emailLocalPart(user.email) : null),
     avatar_url: null,
   }
@@ -342,4 +342,3 @@ async function handleLogin(request: Request) {
     )
   }
 }
-

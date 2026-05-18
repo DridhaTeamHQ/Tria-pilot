@@ -66,7 +66,7 @@ export default async function Dashboard() {
           role: fallbackRole,
           full_name: (authUser.user_metadata?.name as string) || (authUser.user_metadata?.full_name as string) || null,
           onboarding_completed: false,
-          approval_status: fallbackRole === 'brand' ? 'approved' : 'none',
+          approval_status: 'pending',
         })
         .select('role, onboarding_completed, approval_status')
         .maybeSingle()
