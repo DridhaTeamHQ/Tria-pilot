@@ -154,7 +154,7 @@ export default function CampaignsPage() {
         style={{ backgroundImage: 'linear-gradient(#000 0.5px, transparent 0.5px), linear-gradient(90deg, #000 0.5px, transparent 0.5px)', backgroundSize: '40px 40px' }}
       />
 
-      <div className="container mx-auto px-4 max-w-full lg:px-8 relative z-10">
+      <div className="relative z-10 w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-6 sm:py-8">
 
         {/* ── HEADER ── */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-6 mb-10">
