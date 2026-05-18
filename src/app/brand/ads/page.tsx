@@ -385,7 +385,7 @@ export default function AdsPage() {
           <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-[#B4F056]/20 blur-3xl" />
         </div>
 
-        <div className="relative z-10 w-full mx-auto space-y-6 px-4 lg:px-8 md:space-y-8">
+        <div className="relative z-10 w-full max-w-[1600px] mx-auto space-y-6 px-4 sm:px-6 py-6 sm:py-8 md:space-y-8">
           <motion.div
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
@@ -464,7 +464,7 @@ export default function AdsPage() {
                     <div className="flex flex-col gap-3 rounded-xl border-[3px] border-black bg-[#FFF3BF] p-3">
                       <p className="text-[11px] font-black uppercase tracking-wider">Product Image</p>
                       {productImage ? (
-                        <div className="relative aspect-[4/3] overflow-hidden rounded-lg border-2 border-black">
+                        <div className="relative flex-1 w-full min-h-[320px] overflow-hidden rounded-lg border-2 border-black">
                           <Image unoptimized width={1200} height={1200} src={productImage} alt="Product" className="h-full w-full object-cover" />
                           <button type="button"
                             onClick={() => setProductImage('')}
@@ -474,7 +474,7 @@ export default function AdsPage() {
                           </button>
                         </div>
                       ) : (
-                        <label className="flex aspect-[4/3] cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-[3px] border-dashed border-black bg-white p-4 text-center transition-colors hover:bg-[#FFD93D]/80">
+                        <label className="flex flex-1 w-full min-h-[320px] cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-[3px] border-dashed border-black bg-white p-4 text-center transition-colors hover:bg-[#FFD93D]/80">
                           <Upload className="h-6 w-6" />
                           <span className="text-xs font-black uppercase">Upload Product</span>
                           <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'product')} />
@@ -625,7 +625,7 @@ export default function AdsPage() {
                       )}
 
                       {influencerImage ? (
-                        <div className="relative mt-auto aspect-[4/3] overflow-hidden rounded-lg border-2 border-black">
+                        <div className="relative mt-auto flex-1 w-full min-h-[320px] overflow-hidden rounded-lg border-2 border-black">
                           <Image unoptimized width={1200} height={1200} src={influencerImage} alt="Model" className="h-full w-full object-cover" />
                           <button type="button"
                             onClick={() => {
@@ -637,7 +637,7 @@ export default function AdsPage() {
                           </button>
                         </div>
                       ) : (
-                        <label className="mt-auto flex aspect-[4/3] cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-[3px] border-dashed border-black bg-white p-4 text-center transition-colors hover:bg-[#FF8C69]/75">
+                        <label className="mt-auto flex flex-1 w-full min-h-[320px] cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-[3px] border-dashed border-black bg-white p-4 text-center transition-colors hover:bg-[#FF8C69]/75">
                           <User className="h-6 w-6" />
                           <span className="text-xs font-black uppercase">Reference Face</span>
                           <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'influencer')} />
@@ -697,6 +697,126 @@ export default function AdsPage() {
                 </BrutalCard>
               </motion.div>
 
+
+
+              <motion.button
+                whileHover={{ y: -2 }}
+                whileTap={{ y: 0 }}
+                onClick={handleGenerate}
+                disabled={!canSubmit || retryAfterSeconds > 0}
+                transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+                className={cn(
+                  'flex w-full items-center justify-center gap-2 rounded-xl border-[3px] border-black px-4 py-3.5 text-sm font-black uppercase tracking-wide shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all sm:text-base md:px-5 md:py-4',
+                  canSubmit
+                    ? 'bg-[#FF8C69] text-black hover:bg-[#ff7953]'
+                    : 'bg-black/10 text-black/50 cursor-not-allowed shadow-none'
+                )}
+              >
+                {retryAfterSeconds > 0 ? (
+                  <span>Wait {retryAfterSeconds}s</span>
+                ) : loading ? (
+                  <>
+                    <BrutalLoader size="sm" tone="brand" />
+                    <span>Generating</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-5 w-5" />
+                    Generate Ad
+                  </>
+                )}
+              </motion.button>
+              {generationStatus !== 'idle' && (
+                <div
+                  className={cn(
+                    'mt-3 rounded-lg border-2 px-3 py-2 text-[11px] font-black uppercase tracking-wide',
+                    generationStatus === 'success' ? 'border-black bg-[#B4F056] text-black'
+                      : generationStatus === 'error' ? 'border-black bg-[#FFE1D6] text-black'
+                        : 'border-black bg-[#FFF3BF] text-black'
+                  )}
+                >
+                  {generationStatusText}
+                </div>
+              )}
+            </div>
+
+            <div className="lg:sticky lg:top-24 space-y-6">
+              <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.35, delay: 0.08 }}>
+                <AnimatePresence mode="wait">
+                  {loading ? (
+                    <motion.div key="load" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                      <BrutalCard className="flex min-h-[420px] flex-col items-center justify-center rounded-2xl bg-[#FFF3BF] p-6 sm:min-h-[560px] sm:p-8">
+                        <BrutalLoader size="lg" showLabel={false} tone="brand" />
+                        <p className="mt-6 text-xs font-black uppercase tracking-[0.2em] text-black/70">Generating your creative</p>
+                        <p className="mt-2 text-[11px] font-semibold text-black/55">Balancing lighting, composition, and product focus.</p>
+                      </BrutalCard>
+                    </motion.div>
+                  ) : result ? (
+                    <motion.div key="result" variants={imageRevealVariants} initial="initial" animate="animate">
+                      <BrutalCard className="overflow-hidden rounded-2xl">
+                        <div className="relative border-b-[3px] border-black bg-black/5">
+                          {(result.imageBase64 || result.imageUrl) && (
+                            <Image unoptimized width={1400} height={1400} src={result.imageBase64 || result.imageUrl} alt="Generated Ad" className="w-full object-cover" />
+                          )}
+                          <div className="absolute left-3 top-3 rounded-md border-2 border-black bg-[#FFD93D] px-2 py-1 text-[10px] font-black uppercase">
+                            {result.qualityScore}/100 Quality
+                          </div>
+                        </div>
+                        <div className="p-4 space-y-3">
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                            <button type="button"
+                              onClick={handleDownload}
+                              className="inline-flex items-center justify-center gap-2 rounded-lg border-[3px] border-black bg-[#B4F056] px-4 py-3 text-xs font-black uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-0.5"
+                            >
+                              <Download className="h-4 w-4" />
+                              Download
+                            </button>
+                            <button type="button"
+                              onClick={handleOpenInpaint}
+                              disabled={!result.imageBase64 && !result.imageUrl}
+                              className="inline-flex items-center justify-center gap-2 rounded-lg border-[3px] border-black bg-[#FFD93D] px-4 py-3 text-xs font-black uppercase transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-black/10 disabled:text-black/45"
+                            >
+                              <Wand2 className="h-4 w-4" />
+                              Inpaint
+                            </button>
+                            <button type="button"
+                              onClick={handleGenerate}
+                              disabled={loading}
+                              className="inline-flex items-center justify-center gap-2 rounded-lg border-[3px] border-black bg-white px-4 py-3 text-xs font-black uppercase transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-black/10 disabled:text-black/45"
+                            >
+                              <RefreshCw className="h-4 w-4" />
+                              Regenerate
+                            </button>
+                          </div>
+                          {result.copy?.length > 0 && (
+                            <div className="space-y-2">
+                              <p className="text-[10px] font-black uppercase tracking-wider">Suggested Copy</p>
+                              {result.copy.slice(0, 2).map((c: any, i: number) => (
+                                <div key={i} className="rounded-lg border-2 border-black bg-[#FFF8E6] p-3 text-xs font-semibold">
+                                  {typeof c === 'string' ? c : c?.text || JSON.stringify(c)}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </BrutalCard>
+                    </motion.div>
+                  ) : (
+                    <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                      <BrutalCard className="flex min-h-[420px] flex-col items-center justify-center rounded-2xl bg-white p-6 text-center sm:min-h-[560px] sm:p-8">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-xl border-[3px] border-black bg-[#FFD93D]">
+                          <ImageIcon className="h-8 w-8" />
+                        </div>
+                        <p className="mt-5 text-base font-black uppercase">Your ad appears here</p>
+                        <p className="mt-2 text-xs font-semibold text-black/60 max-w-xs">
+                          Pick a style and hit generate. We will render the creative in this panel.
+                        </p>
+                      </BrutalCard>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+
               <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.35, delay: 0.08 }}>
                 <BrutalCard className="overflow-hidden rounded-2xl">
                   <button type="button"
@@ -717,7 +837,7 @@ export default function AdsPage() {
                         exit={{ height: 0, opacity: 0 }}
                         className="overflow-hidden"
                       >
-                        <div className="space-y-5 bg-white p-4 md:p-5">
+                        <div className="space-y-6 bg-white p-4 md:p-5 pb-6 md:pb-8">
                           <div>
                             <p className="mb-2 text-[10px] font-black uppercase tracking-wider">Aspect Ratio</p>
                             <div className="flex flex-wrap gap-2">
@@ -736,7 +856,7 @@ export default function AdsPage() {
                             </div>
                           </div>
 
-                          <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-4">
                             <div>
                               <p className="mb-2 text-[10px] font-black uppercase tracking-wider">Platforms</p>
                               <div className="flex flex-wrap gap-2">
@@ -802,123 +922,7 @@ export default function AdsPage() {
                   </AnimatePresence>
                 </BrutalCard>
               </motion.div>
-
-              <motion.button
-                whileHover={{ y: -2 }}
-                whileTap={{ y: 0 }}
-                onClick={handleGenerate}
-                disabled={!canSubmit || retryAfterSeconds > 0}
-                transition={{ type: 'spring', stiffness: 260, damping: 18 }}
-                className={cn(
-                  'flex w-full items-center justify-center gap-2 rounded-xl border-[3px] border-black px-4 py-3.5 text-sm font-black uppercase tracking-wide shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all sm:text-base md:px-5 md:py-4',
-                  canSubmit
-                    ? 'bg-[#FF8C69] text-black hover:bg-[#ff7953]'
-                    : 'bg-black/10 text-black/50 cursor-not-allowed shadow-none'
-                )}
-              >
-                {retryAfterSeconds > 0 ? (
-                  <span>Wait {retryAfterSeconds}s</span>
-                ) : loading ? (
-                  <>
-                    <BrutalLoader size="sm" tone="brand" />
-                    <span>Generating</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-5 w-5" />
-                    Generate Ad
-                  </>
-                )}
-              </motion.button>
-              {generationStatus !== 'idle' && (
-                <div
-                  className={cn(
-                    'mt-3 rounded-lg border-2 px-3 py-2 text-[11px] font-black uppercase tracking-wide',
-                    generationStatus === 'success' ? 'border-black bg-[#B4F056] text-black'
-                      : generationStatus === 'error' ? 'border-black bg-[#FFE1D6] text-black'
-                        : 'border-black bg-[#FFF3BF] text-black'
-                  )}
-                >
-                  {generationStatusText}
-                </div>
-              )}
             </div>
-
-            <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.35, delay: 0.08 }} className="lg:sticky lg:top-24">
-              <AnimatePresence mode="wait">
-                {loading ? (
-                  <motion.div key="load" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                    <BrutalCard className="flex min-h-[420px] flex-col items-center justify-center rounded-2xl bg-[#FFF3BF] p-6 sm:min-h-[560px] sm:p-8">
-                      <BrutalLoader size="lg" showLabel={false} tone="brand" />
-                      <p className="mt-6 text-xs font-black uppercase tracking-[0.2em] text-black/70">Generating your creative</p>
-                      <p className="mt-2 text-[11px] font-semibold text-black/55">Balancing lighting, composition, and product focus.</p>
-                    </BrutalCard>
-                  </motion.div>
-                ) : result ? (
-                  <motion.div key="result" variants={imageRevealVariants} initial="initial" animate="animate">
-                    <BrutalCard className="overflow-hidden rounded-2xl">
-                      <div className="relative border-b-[3px] border-black bg-black/5">
-                        {(result.imageBase64 || result.imageUrl) && (
-                          <Image unoptimized width={1400} height={1400} src={result.imageBase64 || result.imageUrl} alt="Generated Ad" className="w-full object-cover" />
-                        )}
-                        <div className="absolute left-3 top-3 rounded-md border-2 border-black bg-[#FFD93D] px-2 py-1 text-[10px] font-black uppercase">
-                          {result.qualityScore}/100 Quality
-                        </div>
-                      </div>
-                      <div className="p-4 space-y-3">
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                          <button type="button"
-                            onClick={handleDownload}
-                            className="inline-flex items-center justify-center gap-2 rounded-lg border-[3px] border-black bg-[#B4F056] px-4 py-3 text-xs font-black uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-0.5"
-                          >
-                            <Download className="h-4 w-4" />
-                            Download
-                          </button>
-                          <button type="button"
-                            onClick={handleOpenInpaint}
-                            disabled={!result.imageBase64 && !result.imageUrl}
-                            className="inline-flex items-center justify-center gap-2 rounded-lg border-[3px] border-black bg-[#FFD93D] px-4 py-3 text-xs font-black uppercase transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-black/10 disabled:text-black/45"
-                          >
-                            <Wand2 className="h-4 w-4" />
-                            Inpaint
-                          </button>
-                          <button type="button"
-                            onClick={handleGenerate}
-                            disabled={loading}
-                            className="inline-flex items-center justify-center gap-2 rounded-lg border-[3px] border-black bg-white px-4 py-3 text-xs font-black uppercase transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-black/10 disabled:text-black/45"
-                          >
-                            <RefreshCw className="h-4 w-4" />
-                            Regenerate
-                          </button>
-                        </div>
-                        {result.copy?.length > 0 && (
-                          <div className="space-y-2">
-                            <p className="text-[10px] font-black uppercase tracking-wider">Suggested Copy</p>
-                            {result.copy.slice(0, 2).map((c: any, i: number) => (
-                              <div key={i} className="rounded-lg border-2 border-black bg-[#FFF8E6] p-3 text-xs font-semibold">
-                                {typeof c === 'string' ? c : c?.text || JSON.stringify(c)}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </BrutalCard>
-                  </motion.div>
-                ) : (
-                  <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                    <BrutalCard className="flex min-h-[420px] flex-col items-center justify-center rounded-2xl bg-white p-6 text-center sm:min-h-[560px] sm:p-8">
-                      <div className="flex h-16 w-16 items-center justify-center rounded-xl border-[3px] border-black bg-[#FFD93D]">
-                        <ImageIcon className="h-8 w-8" />
-                      </div>
-                      <p className="mt-5 text-base font-black uppercase">Your ad appears here</p>
-                      <p className="mt-2 text-xs font-semibold text-black/60 max-w-xs">
-                        Pick a style and hit generate. We will render the creative in this panel.
-                      </p>
-                    </BrutalCard>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
           </div>
         </div>
       </motion.div>
