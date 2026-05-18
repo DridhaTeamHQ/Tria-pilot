@@ -295,13 +295,13 @@ function CreativeCard({
                             }}
                             disabled={regenerating || inpainting}
                             className={cn(
-                                'flex min-h-[40px] items-center justify-center gap-1.5 rounded-[18px] px-2.5 py-2 text-center border-[2px] border-black text-[10px] sm:text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
+                                'flex min-h-[40px] items-center justify-center gap-1.5 rounded-[18px] px-2.5 py-2 text-center border-[2px] border-black text-[10px] sm:text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all bg-[#FF8C69]',
                                 regenerating
-                                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                                    : 'bg-[#FF8C69] hover:bg-[#ff9d7d] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                                    ? 'opacity-60 cursor-not-allowed'
+                                    : 'hover:bg-[#ff9d7d] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
                             )}
                         >
-                            {regenerating ? <BrutalLoader size="sm" tone="brand" className="!min-h-0" /> : <RefreshCw className="h-3.5 w-3.5 shrink-0" />}
+                            <RefreshCw className={cn("h-3.5 w-3.5 shrink-0", regenerating && "animate-spin")} />
                             <span className="hidden sm:inline">Redo</span>
                         </button>
                         <button
@@ -312,13 +312,13 @@ function CreativeCard({
                             }}
                             disabled={regenerating || inpainting}
                             className={cn(
-                                'flex min-h-[40px] items-center justify-center gap-1.5 rounded-[18px] px-2.5 py-2 text-center border-[2px] border-black text-[10px] sm:text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
+                                'flex min-h-[40px] items-center justify-center gap-1.5 rounded-[18px] px-2.5 py-2 text-center border-[2px] border-black text-[10px] sm:text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all bg-[#FFD93D]',
                                 inpainting
-                                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                                    : 'bg-[#FFD93D] hover:bg-[#ffe37a] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                                    ? 'opacity-60 cursor-not-allowed'
+                                    : 'hover:bg-[#ffe37a] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
                             )}
                         >
-                            {inpainting ? <BrutalLoader size="sm" className="!min-h-0" /> : <Wand2 className="h-3.5 w-3.5 shrink-0" />}
+                            <Wand2 className="h-3.5 w-3.5 shrink-0" />
                             <span className="hidden sm:inline">{creative.isEdited ? 'Re-edit' : 'Edit'}</span>
                         </button>
                         <button
