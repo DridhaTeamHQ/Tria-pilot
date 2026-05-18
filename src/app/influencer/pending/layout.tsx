@@ -1,11 +1,11 @@
 /**
  * INFLUENCER PENDING LAYOUT GUARD
- * 
+ *
  * Enforces:
  * - Must have completed onboarding
- * - Must NOT be approved
+ * - Must not be approved yet
  */
-import { getAuthState } from '@/lib/auth-state'
+import { getIdentity } from '@/lib/auth-state'
 import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
@@ -15,25 +15,28 @@ export default async function InfluencerPendingLayout({
 }: {
   children: React.ReactNode
 }) {
-  const state = await getAuthState()
+  const auth = await getIdentity()
 
-  // Must be authenticated
-  if (state.type === 'unauthenticated') {
+  if (!auth.authenticated) {
     redirect('/login')
   }
 
-  // Must be influencer_pending (onboarding completed, not approved)
-  if (state.type !== 'influencer_pending') {
-    // If draft → redirect to onboarding
-    if (state.type === 'influencer_draft') {
-      redirect('/onboarding/influencer')
-    }
-    // If approved → redirect to marketplace
-    if (state.type === 'influencer_approved') {
-      redirect('/marketplace')
-    }
-    // Other states → dashboard
+  if (!auth.identity) {
     redirect('/dashboard')
+  }
+
+  const { identity } = auth
+
+  if (identity.role !== 'influencer') {
+    redirect('/dashboard')
+  }
+
+  if (!identity.onboarding_completed) {
+    redirect('/onboarding/influencer')
+  }
+
+  if (identity.approval_status === 'approved') {
+    redirect('/marketplace')
   }
 
   return <>{children}</>

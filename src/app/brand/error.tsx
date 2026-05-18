@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { AlertCircle, RotateCcw } from 'lucide-react'
 
 export default function Error({
@@ -10,6 +11,8 @@ export default function Error({
     error: Error & { digest?: string }
     reset: () => void
 }) {
+    const router = useRouter()
+
     useEffect(() => {
         // Log the error to an error reporting service
         console.error('Brand Portal Error:', error)
@@ -27,7 +30,10 @@ export default function Error({
             </p>
             <div className="flex gap-4 mt-4">
                 <button type="button"
-                    onClick={() => window.location.href = '/dashboard'}
+                    onClick={() => {
+                        router.replace('/dashboard')
+                        router.refresh()
+                    }}
                     className="px-6 py-3 border-2 border-black font-bold uppercase hover:bg-gray-100"
                 >
                     Go to Dashboard

@@ -5,13 +5,13 @@ export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | null
 
 export async function checkInfluencerApproval(userId: string): Promise<ApprovalStatus> {
   const supabase = await createClient()
-  const { data: application } = await supabase
-    .from('influencer_applications')
-    .select('status')
-    .eq('user_id', userId)
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('approval_status')
+    .eq('id', userId)
     .maybeSingle()
 
-  return (application?.status as ApprovalStatus) ?? null
+  return (profile?.approval_status as ApprovalStatus) ?? null
 }
 
 export async function requireApproval(userId: string) {
