@@ -348,16 +348,17 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
       }
     }
 
-    // ── GEMINI MODERATION FALLBACK ───────────────────────────────────
-    // BFL's hard content moderation blocks some legitimate graphic-print
-    // apparel (Venom/Marvel monster tees, skull prints) regardless of
-    // safety_tolerance. Gemini's content rules are different and accept
-    // these. When FLUX fails specifically on moderation, retry the slot
-    // on Gemini before giving up.
-    const fluxModerationBlocked = /moderat|content.*block|safety/i.test(lastErr)
-    if (fluxModerationBlocked) {
+    // ── GEMINI FALLBACK ──────────────────────────────────────────────
+    // Whenever FLUX fails for ANY reason after its retries — moderation
+    // block, insufficient credits (402), auth error, timeout, 5xx,
+    // empty response — fall through to Gemini. Gemini is a fully
+    // independent provider, so a dead BFL balance or a FLUX outage no
+    // longer kills the slot. The only thing that NEVER falls back is a
+    // genuine "invalid input image" (no provider can fix that).
+    const fluxFailedRecoverably = !/invalid (person|garment) image/i.test(lastErr)
+    if (fluxFailedRecoverably) {
       try {
-        if (isDev) console.log(`🍌 Slot ${idx + 1} → FLUX moderation-blocked, trying Gemini fallback`)
+        if (isDev) console.log(`🍌 Slot ${idx + 1} → FLUX failed (${lastErr.slice(0, 60)}), trying Gemini fallback`)
         const prevEngine = process.env.TRYON_ENGINE
         process.env.TRYON_ENGINE = 'gemini'
         let geminiOut: string
