@@ -31,10 +31,11 @@
  */
 
 import 'server-only'
+import sharp from 'sharp'
 import { preprocessGarmentImage } from '@/lib/tryon/garment-preprocessor'
 import { orchestrateTryOn, type PhotoCandidate } from '@/lib/tryon/gpt-orchestrator'
 import { analyzeGarment } from '@/lib/tryon/garment-intel'
-import { generateTryOnDirect } from '@/lib/nanobanana'
+import { flux2Generate, downloadFluxImage } from '@/lib/flux/client'
 
 const isDev = process.env.NODE_ENV !== 'production'
 
@@ -223,15 +224,37 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
   }
   if (isDev) console.log(`🎬 [clean] Step 2 done in ${Date.now() - orchestrateStart}ms — picked ${orchestrated.selections.length} photos`)
 
-  // ── STEP 3: GEMINI SWAPS (3 parallel) ────────────────────────────────
-  // Gemini-only. FLUX removed entirely from the influencer pipeline.
-  // Each of the 3 slots runs an independent Gemini Nano Banana call.
-  if (isDev) console.log('🎨 [clean] Step 3: Gemini swaps (3 parallel)')
+  // ── STEP 3: FLUX-2 [pro] SWAPS (3 parallel) ──────────────────────────
+  // FLUX-only. No Gemini anywhere in the swap path. Each of the 3 slots
+  // runs an independent FLUX-2 [pro] call; the BFL key pool hands each
+  // parallel call its own account so they don't contend.
+  if (isDev) console.log('🎨 [clean] Step 3: FLUX-2 [pro] swaps (3 parallel)')
   const swapStart = Date.now()
 
   const photoLookup = new Map(input.candidatePhotos.map((p) => [p.id, p.base64]))
 
-  const runGeminiSlot = async (
+  // FLUX needs explicit width/height (multiples of 64). Mirror the input
+  // photo's dimensions so FLUX doesn't recompose / zoom.
+  const roundTo64 = (n: number) => Math.max(64, Math.round(n / 64) * 64)
+  const detectDims = async (personBase64: string): Promise<{ width: number; height: number }> => {
+    try {
+      const meta = await sharp(Buffer.from(personBase64, 'base64')).metadata()
+      if (meta.width && meta.height) {
+        const MAX_LONG = 1536
+        const scale = Math.min(1, MAX_LONG / Math.max(meta.width, meta.height))
+        return { width: roundTo64(meta.width * scale), height: roundTo64(meta.height * scale) }
+      }
+    } catch { /* fall through */ }
+    switch (input.aspectRatio || '4:5') {
+      case '1:1': return { width: 1024, height: 1024 }
+      case '9:16': return { width: 768, height: 1344 }
+      case '16:9': return { width: 1344, height: 768 }
+      case '3:4': return { width: 832, height: 1088 }
+      default: return { width: 832, height: 1024 }
+    }
+  }
+
+  const runFluxSlot = async (
     sel: typeof orchestrated.selections[number],
     idx: number,
   ): Promise<CleanTryOnSlot | CleanTryOnFailure> => {
@@ -248,7 +271,7 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
     const hasFace = Boolean(faceCropBase64 && faceCropBase64.length > 100)
 
     // Orchestrator's "change X to Y, keep Z" prompt + identity/fidelity guards.
-    const swapPrompt = (
+    const fluxPrompt = (
       `${sel.prompt} ` +
       `Keep the person's face, hair, skin tone, body and pose identical to image 1. ` +
       (hasFace ? `Image 3 is a close-up of this exact person's face — the output face MUST match image 3 precisely; do not generate a different face. ` : '') +
@@ -256,43 +279,48 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
       `Photorealistic, natural fabric drape, no overlay or sticker effect.`
     ).slice(0, 1500)
 
-    // 2 attempts — Gemini occasionally returns empty under load.
+    const dims = await detectDims(personBase64)
+    const seed = (Date.now() % 1_000_000_000) + idx * 9973
+    // person, garment, [face crop]. Face crop = identity anchor.
+    const fluxInputs = hasFace
+      ? [personBase64, cleanedGarment, faceCropBase64!.replace(/^data:image\/[a-z+]+;base64,/, '')]
+      : [personBase64, cleanedGarment]
+
+    // 2 attempts — FLUX occasionally returns empty under load.
     const MAX_ATTEMPTS = 2
     let lastErr = 'unknown error'
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-      const prevEngine = process.env.TRYON_ENGINE
-      process.env.TRYON_ENGINE = 'gemini'
       try {
-        if (isDev && attempt > 1) console.log(`   🔁 Slot ${idx + 1} Gemini retry ${attempt}`)
-        const out = await generateTryOnDirect({
-          personImageBase64: personBase64,
-          garmentImageBase64: cleanedGarment,
-          faceCropBase64: hasFace ? faceCropBase64 : undefined,
-          prompt: swapPrompt,
-          aspectRatio: input.aspectRatio || '4:5',
-          model: 'gemini-3.1-flash-image-preview',
-          garmentIntel: intel,
-        } as any)
-        if (!out || out.length < 100) throw new Error('Gemini returned empty output')
-        if (isDev) console.log(`✅ [clean] Slot ${idx + 1} done in ${Date.now() - slotStart}ms`)
+        if (isDev && attempt > 1) console.log(`   🔁 Slot ${idx + 1} FLUX retry ${attempt}`)
+        const result = await flux2Generate({
+          prompt: fluxPrompt,
+          inputImages: fluxInputs,
+          width: dims.width,
+          height: dims.height,
+          outputFormat: 'png',
+          safetyTolerance: 5,
+          timeoutMs: 120_000,
+          model: 'flux-2-pro',
+          seed: seed + attempt,
+        })
+        const downloaded = await downloadFluxImage(result.imageUrl)
+        const outputBase64 = `data:${downloaded.mime};base64,${downloaded.base64}`
+        if (isDev) console.log(`✅ [clean] Slot ${idx + 1} done in ${Date.now() - slotStart}ms (FLUX job ${result.jobId.slice(0, 8)})`)
         return {
           photoId: sel.photoId, prompt: sel.prompt, reasoning: sel.reasoning,
-          outputBase64: out, jobId: `gemini-${Date.now()}-${idx}`,
+          outputBase64, jobId: result.jobId, seed: result.seed,
           durationMs: Date.now() - slotStart,
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
         lastErr = msg
-        const isUserActionable = /moderat|safety filter|invalid (person|garment)|401|403/i.test(msg)
+        const isUserActionable = /moderat|safety|insufficient credit|402|401|403/i.test(msg)
         if (isUserActionable || attempt >= MAX_ATTEMPTS) {
-          if (isDev) console.warn(`❌ [clean] Slot ${idx + 1} Gemini failed: ${msg.slice(0, 150)}`)
+          if (isDev) console.warn(`❌ [clean] Slot ${idx + 1} FLUX failed: ${msg.slice(0, 150)}`)
           break
         }
-        if (isDev) console.warn(`⚠️ Slot ${idx + 1} Gemini attempt ${attempt} failed: ${msg.slice(0, 100)}`)
+        if (isDev) console.warn(`⚠️ Slot ${idx + 1} FLUX attempt ${attempt} failed: ${msg.slice(0, 100)}`)
         await new Promise((r) => setTimeout(r, 1000 + Math.floor(Math.random() * 600)))
-      } finally {
-        if (prevEngine === undefined) delete process.env.TRYON_ENGINE
-        else process.env.TRYON_ENGINE = prevEngine
       }
     }
 
@@ -304,7 +332,7 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
 
   // Fire all 3 slots in parallel.
   const slots = await Promise.all(
-    orchestrated.selections.slice(0, 3).map((sel, idx) => runGeminiSlot(sel, idx))
+    orchestrated.selections.slice(0, 3).map((sel, idx) => runFluxSlot(sel, idx))
   )
   if (isDev) console.log(`🎨 [clean] Step 3 done in ${Date.now() - swapStart}ms`)
 
