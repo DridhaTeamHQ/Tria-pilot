@@ -99,12 +99,12 @@ export function FilterDropdown<V extends string | number>(props: Props<V>) {
             />
           )}
           <div className="flex flex-col items-start leading-none gap-0.5">
-            <span className="text-[9px] font-black uppercase tracking-widest opacity-60">{label}</span>
-            <span className="text-xs font-black tracking-tight">{triggerLabel}</span>
+            <span className="text-[9px] font-semibold uppercase tracking-widest opacity-60">{label}</span>
+            <span className="text-xs font-semibold tracking-tight">{triggerLabel}</span>
           </div>
           <ChevronDown
             className={`w-4 h-4 transition-transform duration-500 text-black/40 group-hover:text-black ${open ? 'rotate-180 text-[#B4F056] opacity-100' : ''}`}
-            strokeWidth={3.5}
+            strokeWidth={2}
           />
         </button>
 

@@ -386,7 +386,7 @@ export default function BrandInfluencersPage() {
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
                     placeholder="Search by name, niche, or bio..."
-                    className="w-full pl-14 pr-12 py-4 bg-white border-2 border-black rounded-2xl text-sm font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:shadow-none focus:translate-x-[1px] focus:translate-y-[1px] outline-none transition-all placeholder:text-black/30"
+                    className="w-full pl-14 pr-12 py-4 bg-white border-2 border-black rounded-2xl text-sm font-medium shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:shadow-none focus:translate-x-[1px] focus:translate-y-[1px] outline-none transition-all placeholder:text-black/30"
                   />
                   {searchInput && (
                     <button
@@ -400,7 +400,7 @@ export default function BrandInfluencersPage() {
                 </div>
                 <button
                   type="submit"
-                  className="w-full sm:w-auto px-8 py-4 bg-black text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-gray-900 active:translate-y-0.5 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)]"
+                  className="w-full sm:w-auto px-8 py-4 bg-black text-white rounded-2xl font-semibold text-xs uppercase tracking-widest hover:bg-gray-900 active:translate-y-0.5 transition-all shadow-md shadow-black/20 hover:shadow-lg"
                 >
                   Find Creators
                 </button>
