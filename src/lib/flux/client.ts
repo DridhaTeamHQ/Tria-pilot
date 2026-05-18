@@ -141,20 +141,38 @@ function totalInFlight(): number {
   return n
 }
 
+// Per-process random offset into the key pool. Each Vercel function
+// instance gets a different offset at cold-start, so concurrent
+// instances START scanning the key list from different positions.
+// Without this, every fresh instance sees all keys as "0 in-flight"
+// and picks key #1 — concentrating load on the first keys and
+// rate-limiting them while later keys idle. The offset spreads
+// concurrent instances across the whole pool.
+const KEY_SCAN_OFFSET = Math.floor(Math.random() * 997)
+
 /**
  * Pick the least-busy key from the pool that is NOT cooling down and has
  * room under PER_KEY_MAX. Returns null if every key is at capacity or
  * cooling down (caller should wait).
+ *
+ * Ties (equal in-flight count) are broken by a per-instance rotating
+ * offset so concurrent serverless instances don't all converge on the
+ * same key.
  */
 function pickLeastBusyKey(): string | null {
   const pool = loadKeyPool()
   if (pool.length === 0) return null
   let best: string | null = null
   let bestCount = Infinity
-  for (const k of pool) {
+  // Scan the pool starting from a per-instance rotated position.
+  for (let i = 0; i < pool.length; i++) {
+    const k = pool[(i + KEY_SCAN_OFFSET) % pool.length]
     if (isKeyCoolingDown(k)) continue
     const count = keyInFlight.get(k) || 0
     if (count >= PER_KEY_MAX) continue
+    // Strict < means the FIRST key at the lowest count wins — and
+    // because the scan order is offset per-instance, "first" differs
+    // across instances, spreading concurrent load.
     if (count < bestCount) {
       best = k
       bestCount = count
