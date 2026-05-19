@@ -36,6 +36,7 @@ import { preprocessGarmentImage } from '@/lib/tryon/garment-preprocessor'
 import { orchestrateTryOn, type PhotoCandidate } from '@/lib/tryon/gpt-orchestrator'
 import { analyzeGarment } from '@/lib/tryon/garment-intel'
 import { flux2Generate, downloadFluxImage } from '@/lib/flux/client'
+import { generateTryOnDirect } from '@/lib/nanobanana'
 
 const isDev = process.env.NODE_ENV !== 'production'
 
@@ -321,6 +322,53 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
         }
         if (isDev) console.warn(`⚠️ Slot ${idx + 1} FLUX attempt ${attempt} failed: ${msg.slice(0, 100)}`)
         await new Promise((r) => setTimeout(r, 1000 + Math.floor(Math.random() * 600)))
+      }
+    }
+
+    // ── GEMINI MODERATION FALLBACK ───────────────────────────────────
+    // FLUX's HARD content moderation blocks licensed-character / horror
+    // graphic apparel (Daredevil, Venom, anime, skull prints) — no
+    // safety_tolerance setting overrides it. Gemini's content rules are
+    // different and accept these. When FLUX fails specifically on a
+    // content/moderation block, retry the slot on Gemini.
+    //
+    // This is NARROW: it fires ONLY on moderation errors. Every other
+    // FLUX failure (timeout, 402, 5xx, empty) does NOT touch Gemini —
+    // FLUX stays the engine for 95%+ of generations.
+    const fluxModerationBlocked = /moderat|content.*(block|moderat)|safety|request moderated/i.test(lastErr)
+    if (fluxModerationBlocked) {
+      try {
+        if (isDev) console.log(`🍌 Slot ${idx + 1} → FLUX moderation-blocked, falling back to Gemini`)
+        const prevEngine = process.env.TRYON_ENGINE
+        process.env.TRYON_ENGINE = 'gemini'
+        let geminiOut: string
+        try {
+          geminiOut = await generateTryOnDirect({
+            personImageBase64: personBase64,
+            garmentImageBase64: cleanedGarment,
+            faceCropBase64: hasFace ? faceCropBase64 : undefined,
+            prompt: fluxPrompt,
+            aspectRatio: input.aspectRatio || '4:5',
+            model: 'gemini-3.1-flash-image-preview',
+            garmentIntel: intel,
+          } as any)
+        } finally {
+          if (prevEngine === undefined) delete process.env.TRYON_ENGINE
+          else process.env.TRYON_ENGINE = prevEngine
+        }
+        if (geminiOut && geminiOut.length > 100) {
+          if (isDev) console.log(`✨ [clean] Slot ${idx + 1} recovered via Gemini in ${Date.now() - slotStart}ms`)
+          return {
+            photoId: sel.photoId, prompt: sel.prompt, reasoning: sel.reasoning,
+            outputBase64: geminiOut, jobId: `gemini-mod-fallback-${Date.now()}-${idx}`,
+            durationMs: Date.now() - slotStart,
+          }
+        }
+        if (isDev) console.warn(`⚠️ Slot ${idx + 1} Gemini fallback returned empty`)
+      } catch (gemErr) {
+        const gmsg = gemErr instanceof Error ? gemErr.message : String(gemErr)
+        if (isDev) console.warn(`⚠️ Slot ${idx + 1} Gemini fallback failed: ${gmsg.slice(0, 120)}`)
+        lastErr = `FLUX moderation-blocked; Gemini fallback also failed: ${gmsg}`
       }
     }
 
