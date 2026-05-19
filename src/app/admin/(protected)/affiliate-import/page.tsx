@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, CheckCircle2, FileSpreadsheet, Loader2, Upload, AlertTriangle } from 'lucide-react'
 import { toast } from '@/lib/simple-sonner'
 
@@ -33,10 +34,41 @@ type ImportResult = {
   error?: string
 }
 
+type ImportHealth = {
+  summary: {
+    totalCreators: number
+    trackedCreators: number
+    missingTrackingIds: number
+    importBatches: number
+    latestImportAt: string | null
+  }
+  recentImports: Array<{
+    batchId: string
+    importedAt: string
+    rows: number
+    revenue: number
+    commission: number
+    matchedInfluencers: number
+  }>
+  missingTrackingIds: Array<{
+    userId: string
+    name: string
+    affiliateTag: string | null
+  }>
+}
+
 export default function AdminAffiliateImportPage() {
   const [csvText, setCsvText] = useState('')
   const [importing, setImporting] = useState(false)
   const [result, setResult] = useState<ImportResult | null>(null)
+  const { data: health, isLoading: healthLoading, refetch: refetchHealth } = useQuery<ImportHealth>({
+    queryKey: ['admin-affiliate-import-health'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/affiliate/amazon-import', { credentials: 'include' })
+      if (!res.ok) throw new Error('Failed to load import health')
+      return res.json()
+    },
+  })
 
   const rowEstimate = useMemo(() => {
     return csvText
@@ -79,6 +111,7 @@ export default function AdminAffiliateImportPage() {
 
       setResult(data)
       toast.success('Amazon report imported')
+      void refetchHealth()
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Import failed'
       setResult({ error: message })
@@ -183,6 +216,43 @@ export default function AdminAffiliateImportPage() {
           </BrutalCard>
 
           <div className="space-y-8">
+            <BrutalCard title="Tracking Health">
+              {healthLoading ? (
+                <div className="flex items-center gap-3 text-sm font-semibold text-black/60">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading affiliate health...
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-[16px] border-[3px] border-black bg-white p-4 shadow-[4px_4px_0_0_#000]">
+                      <p className="text-[11px] font-black uppercase tracking-[0.12em] text-black/45">Creators Ready</p>
+                      <p className="mt-2 text-3xl font-black">{health?.summary.trackedCreators || 0}</p>
+                    </div>
+                    <div className="rounded-[16px] border-[3px] border-black bg-white p-4 shadow-[4px_4px_0_0_#000]">
+                      <p className="text-[11px] font-black uppercase tracking-[0.12em] text-black/45">Missing IDs</p>
+                      <p className="mt-2 text-3xl font-black">{health?.summary.missingTrackingIds || 0}</p>
+                    </div>
+                  </div>
+
+                  {health?.missingTrackingIds?.length ? (
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.14em] text-black/45">Creators Missing Tracking IDs</p>
+                      <div className="mt-3 space-y-2">
+                        {health.missingTrackingIds.map((item) => (
+                          <div key={item.userId} className="rounded-xl border-[2px] border-black bg-[#FFF4CC] px-3 py-2 text-sm font-bold text-black">
+                            {item.name}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm font-semibold text-black/65">All visible creators have a saved Amazon Tracking ID.</p>
+                  )}
+                </div>
+              )}
+            </BrutalCard>
+
             <BrutalCard title="How It Works">
               <div className="space-y-4 text-sm font-semibold text-black/75">
                 <p>1. Creator saves their Amazon Tracking ID in Kiwikoo.</p>
@@ -261,6 +331,43 @@ export default function AdminAffiliateImportPage() {
                 <p className="text-sm font-semibold text-black/60">
                   Import feedback will show here after you upload a report.
                 </p>
+              )}
+            </BrutalCard>
+
+            <BrutalCard title="Recent Imports">
+              {healthLoading ? (
+                <div className="flex items-center gap-3 text-sm font-semibold text-black/60">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading import history...
+                </div>
+              ) : health?.recentImports?.length ? (
+                <div className="space-y-3">
+                  {health.recentImports.map((item) => (
+                    <div key={item.batchId} className="rounded-[18px] border-[3px] border-black bg-white p-4 shadow-[4px_4px_0_0_#000]">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <p className="text-sm font-black uppercase">Imported {item.rows} rows</p>
+                          <p className="mt-1 text-xs font-bold uppercase tracking-[0.12em] text-black/45">
+                            {new Date(item.importedAt).toLocaleString('en-IN')}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <span className="rounded-full border-[2px] border-black bg-[#FFF4CC] px-3 py-1 text-[10px] font-black uppercase">
+                            Creators {item.matchedInfluencers}
+                          </span>
+                          <span className="rounded-full border-[2px] border-black bg-[#E7FFD1] px-3 py-1 text-[10px] font-black uppercase">
+                            Revenue Rs. {Math.round(item.revenue).toLocaleString('en-IN')}
+                          </span>
+                          <span className="rounded-full border-[2px] border-black bg-[#EAE4FF] px-3 py-1 text-[10px] font-black uppercase">
+                            Commission Rs. {Math.round(item.commission).toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm font-semibold text-black/60">No Amazon import batches recorded yet.</p>
               )}
             </BrutalCard>
           </div>

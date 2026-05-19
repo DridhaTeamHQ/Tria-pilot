@@ -184,27 +184,142 @@ function buildImportKey(row: {
   return [row.influencerId, row.trackingId, row.reportDate, row.asin || ''].join('::')
 }
 
+async function requireAdmin() {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) as NextResponse, user: null, service: null }
+  }
+
+  const service = createServiceClient()
+  const { data: profile } = await service
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if ((profile?.role || '').toLowerCase() !== 'admin') {
+    return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) as NextResponse, user: null, service: null }
+  }
+
+  return { error: null, user, service }
+}
+
+export async function GET() {
+  try {
+    const auth = await requireAdmin()
+    if (auth.error || !auth.service) {
+      return auth.error!
+    }
+
+    const service = auth.service
+
+    const [{ data: importEvents }, { data: influencers }] = await Promise.all([
+      service
+        .from('affiliate_events')
+        .select('id, influencer_id, amount, metadata, created_at')
+        .eq('event_type', 'purchase')
+        .order('created_at', { ascending: false })
+        .limit(1000),
+      service
+        .from('influencer_profiles')
+        .select('user_id, affiliate_code, profiles!influencer_profiles_user_id_fkey(full_name, email)')
+        .limit(1000),
+    ])
+
+    const importedEvents = (importEvents || []).filter((event) => {
+      const metadata = (event.metadata || {}) as Record<string, unknown>
+      return String(metadata.source || '') === 'amazon_associates_import'
+    })
+
+    const importGroups = new Map<string, {
+      batchId: string
+      importedAt: string
+      rows: number
+      revenue: number
+      commission: number
+      influencers: Set<string>
+    }>()
+
+    for (const event of importedEvents) {
+      const metadata = (event.metadata || {}) as Record<string, unknown>
+      const batchId =
+        (typeof metadata.batchId === 'string' && metadata.batchId) ||
+        (typeof metadata.importedAt === 'string' && metadata.importedAt) ||
+        event.created_at
+
+      const importedAt =
+        (typeof metadata.importedAt === 'string' && metadata.importedAt) ||
+        event.created_at
+
+      const current = importGroups.get(batchId) || {
+        batchId,
+        importedAt,
+        rows: 0,
+        revenue: 0,
+        commission: 0,
+        influencers: new Set<string>(),
+      }
+
+      current.rows += 1
+      current.revenue += parseNumber(metadata.shippedRevenue ?? metadata.revenue ?? event.amount)
+      current.commission += parseNumber(metadata.commissionAmount ?? metadata.commission)
+      if (event.influencer_id) current.influencers.add(event.influencer_id)
+      importGroups.set(batchId, current)
+    }
+
+    const recentImports = Array.from(importGroups.values())
+      .sort((a, b) => new Date(b.importedAt).getTime() - new Date(a.importedAt).getTime())
+      .slice(0, 8)
+      .map((group) => ({
+        batchId: group.batchId,
+        importedAt: group.importedAt,
+        rows: group.rows,
+        revenue: group.revenue,
+        commission: group.commission,
+        matchedInfluencers: group.influencers.size,
+      }))
+
+    const creators = (influencers || []).map((row: any) => {
+      const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles
+      return {
+        userId: row.user_id,
+        name: profile?.full_name || profile?.email || 'Unknown creator',
+        affiliateTag: normalizeAmazonTrackingId(row.affiliate_code),
+      }
+    })
+
+    const missingTrackingIds = creators.filter((creator) => !creator.affiliateTag)
+    const trackedCreators = creators.length - missingTrackingIds.length
+    const latestImportAt = recentImports[0]?.importedAt || null
+
+    return NextResponse.json({
+      summary: {
+        totalCreators: creators.length,
+        trackedCreators,
+        missingTrackingIds: missingTrackingIds.length,
+        importBatches: recentImports.length,
+        latestImportAt,
+      },
+      recentImports,
+      missingTrackingIds: missingTrackingIds.slice(0, 20),
+    })
+  } catch (error) {
+    console.error('[amazon-import:get] error:', error)
+    return NextResponse.json({ error: 'Failed to load affiliate import health' }, { status: 500 })
+  }
+}
+
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const auth = await requireAdmin()
+    if (auth.error || !auth.service || !auth.user) {
+      return auth.error!
     }
-
-    const service = createServiceClient()
-    const { data: profile } = await service
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if ((profile?.role || '').toLowerCase() !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
+    const { user, service } = auth
 
     const body = await request.json().catch(() => null)
     const parsed = requestSchema.safeParse(body)
@@ -292,6 +407,8 @@ export async function POST(request: Request) {
 
     const inserts = []
     let skippedDuplicates = 0
+    const batchId = `amazon-${Date.now()}`
+    const importedAt = new Date().toISOString()
 
     for (const row of matchedRows) {
       const dedupeKey = buildImportKey({
@@ -327,7 +444,8 @@ export async function POST(request: Request) {
           asin: row.asin,
           productName: row.productName,
           importedBy: user.id,
-          importedAt: new Date().toISOString(),
+          importedAt,
+          batchId,
         },
         created_at: `${row.reportDate}T12:00:00.000Z`,
       })

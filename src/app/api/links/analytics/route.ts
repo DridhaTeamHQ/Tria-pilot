@@ -21,6 +21,11 @@ export async function GET() {
         }
 
         const service = createServiceClient()
+        const { data: influencerProfile } = await service
+            .from('influencer_profiles')
+            .select('affiliate_code')
+            .eq('user_id', authUser.id)
+            .maybeSingle()
 
         // 1. Fetch all tracked links for this influencer
         const { data: links, error: linksError } = await service
@@ -120,10 +125,12 @@ export async function GET() {
         })
 
         return NextResponse.json({
+            affiliateTag: influencerProfile?.affiliate_code || null,
             totalClicks,
             totalProducts,
             totalRevenue,
             totalEarnings,
+            totalOrders: processedProducts.reduce((sum, product) => sum + Number(product.orderCount || 0), 0),
             averageClicks: totalProducts > 0 ? totalClicks / totalProducts : 0,
             products: processedProducts,
         })

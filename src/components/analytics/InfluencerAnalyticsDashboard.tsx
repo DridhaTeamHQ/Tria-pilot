@@ -14,6 +14,7 @@ import {
   IndianRupee,
   Globe,
   Info,
+  Link as LinkIcon,
   LineChart,
   MousePointerClick,
   RefreshCw,
@@ -47,6 +48,31 @@ type AnalyticsData = {
   devices: Array<{ label: string; value: number }>
 }
 
+type AffiliateLinksData = {
+  affiliateTag: string | null
+  totalClicks: number
+  totalProducts: number
+  totalRevenue: number
+  totalEarnings: number
+  totalOrders: number
+  averageClicks: number
+  products: Array<{
+    productId: string
+    productName: string
+    productImage: string | null
+    maskedUrl: string
+    originalUrl: string | null
+    linkCode: string
+    clickCount: number
+    uniqueClicks: number
+    orderCount: number
+    revenue: number
+    earnings: number
+    lastClickedAt: string | null
+    createdAt: string
+  }>
+}
+
 function formatNumber(value: number | undefined) {
   const n = value || 0
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
@@ -57,6 +83,13 @@ function formatNumber(value: number | undefined) {
 function formatMoney(value: number | undefined) {
   const n = value || 0
   return `Rs. ${Math.round(n).toLocaleString('en-IN')}`
+}
+
+function formatRelativeDate(value?: string | null) {
+  if (!value) return 'No clicks yet'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'No clicks yet'
+  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 function StatCard({
@@ -400,6 +433,121 @@ function QuickInsightRow({ label, value, subValue, data, color, days }: { label:
   )
 }
 
+function AffiliateStatusCard({
+  trackingId,
+  totalLinks,
+  totalOrders,
+}: {
+  trackingId: string | null
+  totalLinks: number
+  totalOrders: number
+}) {
+  const healthy = Boolean(trackingId)
+  return (
+    <div className="rounded-2xl border-[3px] border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-tight text-black">
+            <LinkIcon className="h-4 w-4" />
+            Affiliate Setup
+          </h3>
+          <p className="mt-2 text-xs font-black uppercase tracking-wider text-black/40">Amazon Tracking ID</p>
+          <p className="mt-2 break-all text-lg font-black text-black">{trackingId || 'Not saved yet'}</p>
+        </div>
+        <span className={`rounded-full border-2 border-black px-3 py-1 text-[10px] font-black uppercase ${healthy ? 'bg-[#B4F056]' : 'bg-[#FFD93D]'}`}>
+          {healthy ? 'Ready' : 'Needs Setup'}
+        </span>
+      </div>
+      <div className="mt-5 grid grid-cols-2 gap-3">
+        <div className="rounded-xl border-2 border-black bg-[#F9F8F4] p-3">
+          <p className="text-[10px] font-black uppercase tracking-wider text-black/40">Live Links</p>
+          <p className="mt-2 text-2xl font-black text-black">{totalLinks}</p>
+        </div>
+        <div className="rounded-xl border-2 border-black bg-[#F9F8F4] p-3">
+          <p className="text-[10px] font-black uppercase tracking-wider text-black/40">Imported Orders</p>
+          <p className="mt-2 text-2xl font-black text-black">{totalOrders}</p>
+        </div>
+      </div>
+      {!healthy ? (
+        <div className="mt-5 rounded-xl border-2 border-black bg-[#FFF4CC] p-4">
+          <p className="text-[11px] font-black uppercase tracking-widest text-black/55">Next Step</p>
+          <p className="mt-1 text-xs font-bold leading-relaxed text-black/70">
+            Add your Amazon Tracking ID in Settings so every Kiwikoo link carries your own affiliate attribution.
+          </p>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function AffiliateLinksTable({ data }: { data: AffiliateLinksData | undefined }) {
+  const rows = data?.products || []
+
+  return (
+    <div className="rounded-2xl border-[3px] border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h3 className="text-sm font-black uppercase tracking-tight text-black">Affiliate Links</h3>
+          <p className="mt-1 text-xs font-bold uppercase tracking-wider text-black/40">
+            Real links, real clicks, imported revenue
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <span className="rounded-full border-2 border-black bg-[#FFF4CC] px-3 py-1 text-[10px] font-black uppercase">
+            Links {data?.totalProducts || 0}
+          </span>
+          <span className="rounded-full border-2 border-black bg-[#E7FFD1] px-3 py-1 text-[10px] font-black uppercase">
+            Revenue {formatMoney(data?.totalRevenue)}
+          </span>
+          <span className="rounded-full border-2 border-black bg-[#EAE4FF] px-3 py-1 text-[10px] font-black uppercase">
+            Earnings {formatMoney(data?.totalEarnings)}
+          </span>
+        </div>
+      </div>
+
+      {rows.length === 0 ? (
+        <div className="rounded-2xl border-2 border-dashed border-black/20 bg-[#F9F8F4] p-8 text-center">
+          <p className="text-sm font-black uppercase tracking-widest text-black/35">No affiliate links generated yet</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {rows.slice(0, 8).map((row) => (
+            <div key={row.linkCode} className="rounded-2xl border-[3px] border-black bg-[#FDFBF7] p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0">
+                  <p className="truncate text-lg font-black text-black">{row.productName}</p>
+                  <p className="mt-2 break-all text-xs font-bold text-black/45">{row.maskedUrl}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <span className="rounded-full border-2 border-black bg-white px-3 py-1 text-[10px] font-black uppercase">
+                      Clicks {formatNumber(row.clickCount)}
+                    </span>
+                    <span className="rounded-full border-2 border-black bg-white px-3 py-1 text-[10px] font-black uppercase">
+                      Orders {formatNumber(row.orderCount)}
+                    </span>
+                    <span className="rounded-full border-2 border-black bg-white px-3 py-1 text-[10px] font-black uppercase">
+                      Last click {formatRelativeDate(row.lastClickedAt)}
+                    </span>
+                  </div>
+                </div>
+                <div className="grid min-w-[210px] grid-cols-2 gap-3">
+                  <div className="rounded-xl border-2 border-black bg-[#E7FFD1] p-3">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-black/45">Revenue</p>
+                    <p className="mt-2 text-xl font-black text-black">{formatMoney(row.revenue)}</p>
+                  </div>
+                  <div className="rounded-xl border-2 border-black bg-[#EAE4FF] p-3">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-black/45">Earnings</p>
+                    <p className="mt-2 text-xl font-black text-black">{formatMoney(row.earnings)}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function InfluencerAnalyticsDashboard() {
   const [days, setDays] = useState(30)
   const { data, isLoading, isFetching, refetch } = useQuery<AnalyticsData>({
@@ -407,6 +555,14 @@ export default function InfluencerAnalyticsDashboard() {
     queryFn: async () => {
       const res = await fetch(`/api/analytics/overview?days=${days}`, { credentials: 'include' })
       if (!res.ok) throw new Error('Failed to load analytics')
+      return res.json()
+    },
+  })
+  const { data: affiliateLinks } = useQuery<AffiliateLinksData>({
+    queryKey: ['affiliate-links-analytics'],
+    queryFn: async () => {
+      const res = await fetch('/api/links/analytics', { credentials: 'include' })
+      if (!res.ok) throw new Error('Failed to load affiliate links')
       return res.json()
     },
   })
@@ -500,6 +656,8 @@ export default function InfluencerAnalyticsDashboard() {
               <RankingList title="Top Products" items={data?.topProducts || []} type="product" />
             </div>
 
+            <AffiliateLinksTable data={affiliateLinks} />
+
             <div className="rounded-2xl border-[3px] border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden">
               <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-tight text-black">
                 <Globe className="h-4 w-4" />
@@ -550,6 +708,11 @@ export default function InfluencerAnalyticsDashboard() {
                 <QuickInsightRow label="Total Earnings" value={formatMoney(kpis.commission)} subValue="0% =" data={[0, 0, 0, 0, 0, 0, 0]} color="#EF4444" days={days} />
               </div>
             </div>
+            <AffiliateStatusCard
+              trackingId={affiliateLinks?.affiliateTag || null}
+              totalLinks={affiliateLinks?.totalProducts || 0}
+              totalOrders={affiliateLinks?.totalOrders || 0}
+            />
           </div>
         </div>
 

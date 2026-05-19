@@ -83,7 +83,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const tagsArray = Array.isArray(product.tags) ? product.tags : []
 
   return (
-    <div className="relative h-screen overflow-hidden bg-[#FAFAF8]">
+    <div className="relative min-h-screen bg-[#FAFAF8]">
       {/* Aesthetic background */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-20 -left-20 h-72 w-72 rounded-full bg-[#FFD93D]/15 blur-3xl" />
@@ -92,17 +92,17 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       </div>
 
       {/* Main content — fixed to viewport */}
-      <div className="relative z-10 h-full flex flex-col pt-[80px]">
-        <div className="flex-1 min-h-0 container mx-auto px-4 sm:px-6 py-2">
-          <div className="h-full grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-4 lg:gap-6">
+      <div className="relative z-10 flex flex-col pt-[80px]">
+        <div className="container mx-auto px-4 py-3 sm:px-6 sm:py-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-6">
 
             {/* ═══ LEFT: Image Gallery (Amazon style thumbnails + main) ═══ */}
-            <div className="h-full min-h-0 rounded-2xl border-2 border-black bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] overflow-hidden p-3">
+            <div className="overflow-hidden rounded-2xl border-2 border-black bg-white p-3 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] lg:sticky lg:top-[96px]">
               <ImageCarousel images={images} />
             </div>
 
             {/* ═══ RIGHT: Product Info ═══ */}
-            <div className="h-full min-h-0 overflow-y-auto px-4 -mx-4 space-y-5 pb-10">
+            <div className="space-y-5 pb-10">
 
               {/* ── Card 1: Title + Price ── */}
               <div className="bg-white border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
@@ -115,10 +115,10 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                     <ShoppingBag className="w-2.5 h-2.5" strokeWidth={3} /> {product.category || 'Product'}
                   </span>
                 </div>
-                <div className="flex items-center justify-between gap-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <h1 className="text-2xl sm:text-3xl font-black text-black leading-tight tracking-tight">{product.name}</h1>
                   {product.price && (
-                    <span className="shrink-0 px-5 py-2 bg-black text-white rounded-xl text-xl font-black">
+                    <span className="shrink-0 self-start px-5 py-2 bg-black text-white rounded-xl text-xl font-black sm:self-auto">
                       ₹{Number(product.price).toLocaleString()}
                     </span>
                   )}
@@ -127,7 +127,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
               {/* ── Card 2: CTA Buttons ── */}
               <div className="bg-white border-2 border-black rounded-2xl p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Link
                   href={`/influencer/try-on?productId=${product.id}`}
                   className="flex w-full items-center justify-center gap-2 border-2 border-black bg-[#FFD93D] py-3 rounded-xl text-xs font-black text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all uppercase tracking-widest"
@@ -148,13 +148,13 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
               {/* ── Card 4: Actions Row ── */}
               <div className="bg-white border-2 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   {product.link ? (
                     <a
                       href={product.link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-1.5 border-2 border-black bg-[#F5F5F0] py-2.5 text-[10px] font-black uppercase tracking-wider text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
+                      className="flex items-center justify-center gap-1.5 border-2 border-black bg-[#F5F5F0] py-3 text-[10px] font-black uppercase tracking-wider text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
                     >
                       <ExternalLink className="w-3.5 h-3.5 shrink-0" strokeWidth={3} />
                       Original
@@ -189,7 +189,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                     </div>
                   )}
 
-                  <div className="pt-3 border-t-2 border-black/5 grid grid-cols-2 gap-4">
+                  <div className="pt-3 border-t-2 border-black/5 grid grid-cols-1 gap-4 sm:grid-cols-2">
                     {product.audience && (
                       <div>
                         <p className="text-[10px] font-black text-black/40 uppercase tracking-widest mb-1">Target Audience</p>
