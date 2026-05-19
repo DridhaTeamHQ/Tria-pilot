@@ -332,7 +332,37 @@ export function assertSafeReferenceUrl(rawUrl: string): URL {
 }
 
 export async function fetchReferencePhotoAsBase64(imageUrl: string): Promise<string> {
-  const safeUrl = assertSafeReferenceUrl(imageUrl)
+  const trimmed = (imageUrl || '').trim()
+  if (!trimmed) {
+    throw new Error('Reference photo URL is empty')
+  }
+
+  // Some reference photos are stored as inline data: URLs (base64 embedded
+  // in the DB column) rather than uploaded storage URLs. Those can't be
+  // fetched over HTTP — extract the base64 payload directly.
+  if (trimmed.startsWith('data:')) {
+    const comma = trimmed.indexOf(',')
+    if (comma < 0) throw new Error('Malformed data: URL reference photo')
+    const payload = trimmed.slice(comma + 1)
+    if (!payload || payload.length < 100) {
+      throw new Error('Empty data: URL reference photo')
+    }
+    return payload
+  }
+
+  // Relative storage path (no scheme) → resolve to the Supabase public URL.
+  let resolvableUrl = trimmed
+  if (!/^https?:\/\//i.test(trimmed)) {
+    const base = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/+$/, '')
+    if (base) {
+      const path = trimmed.replace(/^\/+/, '')
+      resolvableUrl = path.startsWith('storage/')
+        ? `${base}/${path}`
+        : `${base}/storage/v1/object/public/${path}`
+    }
+  }
+
+  const safeUrl = assertSafeReferenceUrl(resolvableUrl)
 
   // Bound the response size to prevent OOM via gigantic payloads.
   const MAX_BYTES = 25 * 1024 * 1024 // 25MB cap
