@@ -210,7 +210,7 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
   }))
 
   const intel = await intelPromise
-  const orchestrated = await orchestrateTryOn({
+  let orchestrated = await orchestrateTryOn({
     garmentBase64: cleanedGarment,
     candidates,
     productText: input.productText,
@@ -218,12 +218,39 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
     graphicPlacement: intel?.graphicPlacement,
     visibleTopInPhoto: intel?.visibleTopInPhoto,
     visibleBottomInPhoto: intel?.visibleBottomInPhoto,
+  }).catch((e) => {
+    if (isDev) console.warn(`🎬 [clean] orchestrator threw: ${e instanceof Error ? e.message : e}`)
+    return null
   })
 
+  // ── ORCHESTRATOR FALLBACK ────────────────────────────────────────────
+  // The GPT-4o orchestrator is NOT a hard dependency. When it fails
+  // (OpenAI rate limit / outage / timeout) we DON'T kill the generation
+  // — we fall back to: take the first 3 photos from the (shuffled)
+  // pool + a template prompt built from garment intel. The actual
+  // garment image still goes to the swap engine, so the swap still works.
   if (!orchestrated || orchestrated.selections.length < 3) {
-    throw new Error('GPT-4o orchestrator failed to produce 3 selections — check OPENAI_API_KEY and try again')
+    if (isDev) console.warn('🎬 [clean] orchestrator unavailable — using rules-based fallback (first 3 photos + template prompt)')
+    const desc = (intel?.description
+      || `${intel?.primaryColor || ''} ${intel?.pattern && intel.pattern !== 'solid' ? intel.pattern : ''} ${(intel?.garmentType || 'garment').replace(/_/g, ' ')}`
+    ).replace(/\s+/g, ' ').trim()
+    const fallbackPhotos = orchestratorPool.length >= 3
+      ? orchestratorPool.slice(0, 3)
+      : input.candidatePhotos.slice(0, 3)
+    if (fallbackPhotos.length < 3) {
+      throw new Error('Not enough reference photos to generate a try-on (need 3).')
+    }
+    orchestrated = {
+      garmentSummary: desc,
+      durationMs: 0,
+      selections: fallbackPhotos.map((p) => ({
+        photoId: p.id,
+        prompt: `Change the clothing on the person in image 1 to the garment shown in image 2 — ${desc}. Keep the person's face, hair, skin tone, body, pose, framing, lighting and background exactly the same as image 1. Only the clothing changes. Photorealistic.`,
+        reasoning: 'Rules-based fallback — orchestrator unavailable',
+      })),
+    }
   }
-  if (isDev) console.log(`🎬 [clean] Step 2 done in ${Date.now() - orchestrateStart}ms — picked ${orchestrated.selections.length} photos`)
+  if (isDev) console.log(`🎬 [clean] Step 2 done in ${Date.now() - orchestrateStart}ms — ${orchestrated.selections.length} photos`)
 
   // ── STEP 3: FLUX-2 [pro] SWAPS (3 parallel) ──────────────────────────
   // FLUX-only. No Gemini anywhere in the swap path. Each of the 3 slots
