@@ -20,7 +20,9 @@ import {
     Trash2,
     ZoomIn,
     ImageIcon,
-    Share2
+    Share2,
+    ChevronLeft,
+    ChevronRight
 } from 'lucide-react'
 import { useDeleteGeneration, useGenerations } from '@/lib/react-query/hooks'
 import { toast } from '@/lib/simple-sonner'
@@ -106,6 +108,7 @@ export default function GenerationsPage() {
     const deleteMutation = useDeleteGeneration()
     const [selectedImage, setSelectedImage] = useState<string | null>(null)
     const [selectedJob, setSelectedJob] = useState<any>(null)
+    const [selectedVariantIndex, setSelectedVariantIndex] = useState(0)
     const [downloading, setDownloading] = useState<string | null>(null)
     const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; imageUrl?: string | null } | null>(null)
     const [shareModalOpen, setShareModalOpen] = useState(false)
@@ -117,6 +120,80 @@ export default function GenerationsPage() {
     useEffect(() => {
         setImageError(false)
     }, [selectedImage])
+
+    // Get all variants for a generation (main + variants if available) 
+    const getGenerationVariants = (generation: any) => {
+        const variants: { url: string; label: string }[] = []
+        const mainUrl = generation?.outputImagePath
+
+        if (!mainUrl) return [{ url: '', label: 'Result' }]
+
+        const settings = generation?.settings as any
+        const outputs = settings?.outputs || settings?.outcome?.outputs
+
+        // 1. Check for outputs in settings.outputs (clean-tryon pipeline)
+        if (Array.isArray(outputs) && outputs.length > 0) {
+            outputs.forEach((o: any) => {
+                if (o && o.status !== 'failed') {
+                    const path = o.outputImagePath || o.output_image_path || o.imageUrl || o.image_url || o.url
+                    if (path) {
+                        variants.push({
+                            url: path,
+                            label: o.label || `Option ${variants.length + 1}`
+                        })
+                    }
+                }
+            })
+        }
+
+        // 2. Fall back to _vA, _vB, _vC pattern if no outputs were found in settings
+        if (variants.length === 0) {
+            if (mainUrl.includes('_vA.')) {
+                const baseUrl = mainUrl.replace('_vA.', '_vX.')
+                variants.push({ url: mainUrl, label: 'Option 1' })
+                variants.push({ url: baseUrl.replace('_vX.', '_vB.'), label: 'Option 2' })
+                variants.push({ url: baseUrl.replace('_vX.', '_vC.'), label: 'Option 3' })
+            } else if (mainUrl.includes('_vB.')) {
+                const baseUrl = mainUrl.replace('_vB.', '_vX.')
+                variants.push({ url: baseUrl.replace('_vX.', '_vA.'), label: 'Option 1' })
+                variants.push({ url: mainUrl, label: 'Option 2' })
+                variants.push({ url: baseUrl.replace('_vX.', '_vC.'), label: 'Option 3' })
+            } else if (mainUrl.includes('_vC.')) {
+                const baseUrl = mainUrl.replace('_vC.', '_vX.')
+                variants.push({ url: baseUrl.replace('_vX.', '_vA.'), label: 'Option 1' })
+                variants.push({ url: baseUrl.replace('_vX.', '_vB.'), label: 'Option 2' })
+                variants.push({ url: mainUrl, label: 'Option 3' })
+            }
+        }
+
+        // 3. Fall back to legacy settings.variants if still empty
+        if (variants.length === 0 && settings?.variants && Array.isArray(settings.variants)) {
+            variants.push({ url: mainUrl, label: 'Result' })
+            settings.variants.forEach((v: any) => {
+                const variantUrl = v.imageUrl || v.outputImagePath || v.url
+                if (variantUrl && variantUrl !== mainUrl) {
+                    variants.push({ url: variantUrl, label: `Option ${variants.length + 1}` })
+                }
+            })
+        }
+
+        // 4. Ultimate fallback if absolutely nothing was found, show the main image
+        if (variants.length === 0) {
+            variants.push({ url: mainUrl, label: 'Result' })
+        }
+
+        return variants
+    }
+
+    const navigateVariant = (direction: 'prev' | 'next') => {
+        if (!selectedJob) return
+        const variants = getGenerationVariants(selectedJob)
+        if (direction === 'prev') {
+            setSelectedVariantIndex((prev) => (prev > 0 ? prev - 1 : variants.length - 1))
+        } else {
+            setSelectedVariantIndex((prev) => (prev < variants.length - 1 ? prev + 1 : 0))
+        }
+    }
 
     const handleDownload = async (imageUrl: string, jobId: string) => {
         try {
@@ -239,11 +316,13 @@ export default function GenerationsPage() {
 
         setSelectedImage(job.outputImagePath)
         setSelectedJob(job)
+        setSelectedVariantIndex(0)
     }
 
     const closeLightbox = () => {
         setSelectedImage(null)
         setSelectedJob(null)
+        setSelectedVariantIndex(0)
     }
 
     if (isLoading) {
@@ -506,141 +585,174 @@ export default function GenerationsPage() {
 
             {/* Lightbox Modal - Redesigned & moved to Portal */}
             <PortalModal isOpen={!!(selectedImage && selectedJob)} onClose={closeLightbox}>
-                {selectedImage && selectedJob && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="fixed inset-0 flex items-center justify-center bg-black/90 p-2 backdrop-blur-md sm:p-4"
-                        onClick={closeLightbox}
-                        data-lightbox="true"
-                    >
+                {selectedImage && selectedJob && (() => {
+                    const variants = getGenerationVariants(selectedJob)
+                    const currentImageUrl = variants[selectedVariantIndex]?.url || selectedImage
+                    return (
                         <motion.div
-                            initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: 10, scale: 0.98 }}
-                            transition={{ duration: 0.22 }}
-                            className="flex h-[min(92dvh,920px)] w-full max-w-[min(94vw,1120px)] flex-col overflow-hidden rounded-[24px] border-[3px] border-black bg-[#181818] shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]"
-                            onClick={(e) => e.stopPropagation()}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="fixed inset-0 flex items-center justify-center bg-black/90 p-2 backdrop-blur-md sm:p-4"
+                            onClick={closeLightbox}
+                            data-lightbox="true"
                         >
                             <motion.div
-                                initial={{ opacity: 0, y: -20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -20 }}
-                                transition={{ delay: 0.1, type: "spring", stiffness: 300, damping: 25 }}
-                                className="relative z-[200] flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-[#111111] px-3 py-3 sm:px-5"
+                                initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 10, scale: 0.98 }}
+                                transition={{ duration: 0.22 }}
+                                className="flex h-[min(92dvh,920px)] w-full max-w-[min(94vw,1120px)] flex-col overflow-hidden rounded-[24px] border-[3px] border-black bg-[#181818] shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]"
+                                onClick={(e) => e.stopPropagation()}
                             >
-                                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                                <motion.div
+                                    initial={{ opacity: 0, y: -20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -20 }}
+                                    transition={{ delay: 0.1, type: "spring", stiffness: 300, damping: 25 }}
+                                    className="relative z-[200] flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-[#111111] px-3 py-3 sm:px-5"
+                                >
+                                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                                        <motion.button
+                                            onClick={closeLightbox}
+                                            whileHover={{ scale: 1.05 }}
+                                            whileTap={{ scale: 0.95 }}
+                                            className="flex items-center gap-2 rounded-lg border-[2px] border-black bg-white px-2.5 py-2 text-xs font-bold text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:px-4 sm:text-sm"
+                                        >
+                                            <ArrowLeft className="w-4 h-4" />
+                                            <span>Back</span>
+                                        </motion.button>
+                                        <motion.button
+                                            onClick={() => currentImageUrl && handleDownload(currentImageUrl, selectedJob.id)}
+                                            disabled={downloading === selectedJob.id}
+                                            whileHover={{ scale: 1.05 }}
+                                            whileTap={{ scale: 0.95 }}
+                                            className="flex items-center gap-2 rounded-lg border-[2px] border-black bg-white px-2.5 py-2 text-xs font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 sm:px-4 sm:py-2.5 sm:text-sm"
+                                        >
+                                            {downloading === selectedJob.id ? (
+                                                <>
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                    Downloading...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Download className="w-4 h-4" />
+                                                    Download
+                                                </>
+                                            )}
+                                        </motion.button>
+                                        <motion.button
+                                            onClick={() => currentImageUrl && handleShare(currentImageUrl)}
+                                            whileHover={{ scale: 1.05 }}
+                                            whileTap={{ scale: 0.95 }}
+                                            className="flex items-center gap-2 rounded-lg border-[2px] border-black bg-[#FF8C69] px-2.5 py-2 text-xs font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:px-4 sm:py-2.5 sm:text-sm"
+                                        >
+                                            <Share2 className="w-4 h-4" />
+                                            Share
+                                        </motion.button>
+                                        <motion.button
+                                            onClick={() => requestDelete(selectedJob)}
+                                            whileHover={{ scale: 1.05 }}
+                                            whileTap={{ scale: 0.95 }}
+                                            className="flex items-center gap-2 rounded-lg border-[2px] border-black bg-[#FF6B6B] px-2.5 py-2 text-xs font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:px-4 sm:py-2.5 sm:text-sm"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                            Delete
+                                        </motion.button>
+                                    </div>
+
+                                    <div className="hidden sm:flex flex-col items-center">
+                                        <span className="text-xs font-mono text-white/60">Generation</span>
+                                        <span className="text-sm font-mono text-white">#{selectedJob.id.slice(0, 8)}</span>
+                                    </div>
+
                                     <motion.button
                                         onClick={closeLightbox}
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        className="flex items-center gap-2 rounded-lg border-[2px] border-black bg-white px-2.5 py-2 text-xs font-bold text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:px-4 sm:text-sm"
+                                        whileHover={{ scale: 1.1, rotate: 90 }}
+                                        whileTap={{ scale: 0.9 }}
+                                        transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                                        className="rounded-lg border-[2px] border-black bg-white p-2.5 text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-colors"
                                     >
-                                        <ArrowLeft className="w-4 h-4" />
-                                        <span>Back</span>
+                                        <X className="w-5 h-5" />
                                     </motion.button>
-                                    <motion.button
-                                        onClick={() => selectedImage && handleDownload(selectedImage, selectedJob.id)}
-                                        disabled={downloading === selectedJob.id}
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        className="flex items-center gap-2 rounded-lg border-[2px] border-black bg-white px-2.5 py-2 text-xs font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 sm:px-4 sm:py-2.5 sm:text-sm"
-                                    >
-                                        {downloading === selectedJob.id ? (
-                                            <>
-                                                <Loader2 className="w-4 h-4 animate-spin" />
-                                                Downloading...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Download className="w-4 h-4" />
-                                                Download
-                                            </>
-                                        )}
-                                    </motion.button>
-                                    <motion.button
-                                        onClick={() => selectedImage && handleShare(selectedImage)}
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        className="flex items-center gap-2 rounded-lg border-[2px] border-black bg-[#FF8C69] px-2.5 py-2 text-xs font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:px-4 sm:py-2.5 sm:text-sm"
-                                    >
-                                        <Share2 className="w-4 h-4" />
-                                        Share
-                                    </motion.button>
-                                    <motion.button
-                                        onClick={() => requestDelete(selectedJob)}
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        className="flex items-center gap-2 rounded-lg border-[2px] border-black bg-[#FF6B6B] px-2.5 py-2 text-xs font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:px-4 sm:py-2.5 sm:text-sm"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                        Delete
-                                    </motion.button>
-                                </div>
+                                </motion.div>
 
-                                <div className="hidden sm:flex flex-col items-center">
-                                    <span className="text-xs font-mono text-white/60">Generation</span>
-                                    <span className="text-sm font-mono text-white">#{selectedJob.id.slice(0, 8)}</span>
-                                </div>
+                                <div className="relative z-[100] flex min-h-0 flex-1 p-2 sm:p-4">
+                                    {variants.length > 1 && (
+                                        <>
+                                            <motion.button
+                                                onClick={() => navigateVariant('prev')}
+                                                whileHover={{ scale: 1.1 }}
+                                                whileTap={{ scale: 0.9 }}
+                                                className="absolute left-4 top-1/2 z-10 -translate-y-1/2 rounded-full border-[2px] border-black bg-white p-3 text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:left-8 animate-fade-in"
+                                            >
+                                                <ChevronLeft className="w-6 h-6 animate-pulse-slow" />
+                                            </motion.button>
+                                            <motion.button
+                                                onClick={() => navigateVariant('next')}
+                                                whileHover={{ scale: 1.1 }}
+                                                whileTap={{ scale: 0.9 }}
+                                                className="absolute right-4 top-1/2 z-10 -translate-y-1/2 rounded-full border-[2px] border-black bg-white p-3 text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:right-8 animate-fade-in"
+                                            >
+                                                <ChevronRight className="w-6 h-6 animate-pulse-slow" />
+                                            </motion.button>
+                                        </>
+                                    )}
 
-                                <motion.button
-                                    onClick={closeLightbox}
-                                    whileHover={{ scale: 1.1, rotate: 90 }}
-                                    whileTap={{ scale: 0.9 }}
-                                    transition={{ type: "spring", stiffness: 400, damping: 15 }}
-                                    className="rounded-lg border-[2px] border-black bg-white p-2.5 text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-colors"
-                                >
-                                    <X className="w-5 h-5" />
-                                </motion.button>
-                            </motion.div>
-
-                            <div className="relative z-[100] flex min-h-0 flex-1 p-2 sm:p-4">
-                                {!imageError ? (
-                                    <div className="flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden rounded-[20px] border border-white/10 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.16),_rgba(255,255,255,0.04)_35%,_rgba(0,0,0,0.15)_100%)] px-3 py-4 sm:px-6 sm:py-6">
-                                        <AppImage
-                                            src={getImageUrl(selectedImage)}
-                                            alt="Generation Result"
-                                            fill={false}
-                                            width={1600}
-                                            height={1600}
-                                            sizes="100vw"
-                                            className="block h-auto max-h-full w-auto max-w-full rounded-[18px] object-contain shadow-[0_18px_40px_rgba(0,0,0,0.38)]"
-                                            draggable={false}
-                                            onError={() => setImageError(true)}
-                                        />
-                                    </div>
-                                ) : (
-                                    <div className="flex w-full flex-1 flex-col items-center justify-center gap-4 rounded-[20px] border border-white/10 bg-white/5 p-12 text-white/60 backdrop-blur-sm">
-                                        <AlertCircle className="w-12 h-12" />
-                                        <div className="text-center">
-                                            <p className="font-medium">Image unavailable</p>
-                                            <p className="mt-1 text-xs opacity-70">Check your connection</p>
+                                    {!imageError ? (
+                                        <div className="flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden rounded-[20px] border border-white/10 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.16),_rgba(255,255,255,0.04)_35%,_rgba(0,0,0,0.15)_100%)] px-3 py-4 sm:px-6 sm:py-6">
+                                            <AppImage
+                                                src={getImageUrl(currentImageUrl)}
+                                                alt="Generation Result"
+                                                fill={false}
+                                                width={1600}
+                                                height={1600}
+                                                sizes="100vw"
+                                                className="block h-auto max-h-full w-auto max-w-full rounded-[18px] object-contain shadow-[0_18px_40px_rgba(0,0,0,0.38)]"
+                                                draggable={false}
+                                                onError={() => setImageError(true)}
+                                            />
                                         </div>
-                                    </div>
-                                )}
-                            </div>
+                                    ) : (
+                                        <div className="flex w-full flex-1 flex-col items-center justify-center gap-4 rounded-[20px] border border-white/10 bg-white/5 p-12 text-white/60 backdrop-blur-sm">
+                                            <AlertCircle className="w-12 h-12" />
+                                            <div className="text-center">
+                                                <p className="font-medium">Image unavailable</p>
+                                                <p className="mt-1 text-xs opacity-70">Check your connection</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
 
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: 20 }}
-                                transition={{ delay: 0.15 }}
-                                className="relative z-[200] flex items-center justify-center gap-4 border-t border-white/10 bg-[#111111] px-4 py-3"
-                            >
-                                <span className="flex items-center gap-1.5 text-xs font-mono text-white/40">
-                                    <Calendar className="w-3 h-3" />
-                                    {formatDate(selectedJob.createdAt)}
-                                </span>
-                                <span className="text-white/20">•</span>
-                                <span className="text-xs font-mono text-white/40">
-                                    Click outside or press ESC to close
-                                </span>
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: 20 }}
+                                    transition={{ delay: 0.15 }}
+                                    className="relative z-[200] flex items-center justify-center gap-4 border-t border-white/10 bg-[#111111] px-4 py-3"
+                                >
+                                    <span className="flex items-center gap-1.5 text-xs font-mono text-white/40">
+                                        <Calendar className="w-3 h-3" />
+                                        {formatDate(selectedJob.createdAt)}
+                                    </span>
+                                    {variants.length > 1 && (
+                                        <>
+                                            <span className="text-white/20">•</span>
+                                            <span className="text-xs font-mono text-[#FFD93D] font-bold">
+                                                {variants[selectedVariantIndex]?.label || `Option ${selectedVariantIndex + 1}`}
+                                            </span>
+                                        </>
+                                    )}
+                                    <span className="text-white/20">•</span>
+                                    <span className="text-xs font-mono text-white/40">
+                                        Click outside or press ESC to close
+                                    </span>
+                                </motion.div>
                             </motion.div>
                         </motion.div>
-                    </motion.div>
-                )}
+                    )
+                })()}
             </PortalModal>
 
             {/* Delete confirm modal - Redesigned */}

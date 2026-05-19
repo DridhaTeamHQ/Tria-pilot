@@ -193,38 +193,59 @@ export default function InfluencerDashboard() {
 
     if (!mainUrl) return [{ url: '', label: 'Result' }]
 
-    // Check if the URL follows the variant pattern (_vA.png, _vB.png, _vC.png)
-    // Storage pattern: .../{jobId}_vA.png, .../{jobId}_vB.png, .../{jobId}_vC.png
-    if (mainUrl.includes('_vA.')) {
-      // This is variant A - derive B and C
-      const baseUrl = mainUrl.replace('_vA.', '_vX.')
-      variants.push({ url: mainUrl, label: 'Option 1' })
-      variants.push({ url: baseUrl.replace('_vX.', '_vB.'), label: 'Option 2' })
-      variants.push({ url: baseUrl.replace('_vX.', '_vC.'), label: 'Option 3' })
-    } else if (mainUrl.includes('_vB.')) {
-      const baseUrl = mainUrl.replace('_vB.', '_vX.')
-      variants.push({ url: baseUrl.replace('_vX.', '_vA.'), label: 'Option 1' })
-      variants.push({ url: mainUrl, label: 'Option 2' })
-      variants.push({ url: baseUrl.replace('_vX.', '_vC.'), label: 'Option 3' })
-    } else if (mainUrl.includes('_vC.')) {
-      const baseUrl = mainUrl.replace('_vC.', '_vX.')
-      variants.push({ url: baseUrl.replace('_vX.', '_vA.'), label: 'Option 1' })
-      variants.push({ url: baseUrl.replace('_vX.', '_vB.'), label: 'Option 2' })
-      variants.push({ url: mainUrl, label: 'Option 3' })
-    } else {
-      // Not a variant pattern - just show the single image
-      variants.push({ url: mainUrl, label: 'Result' })
+    const settings = generation.settings as any
+    const outputs = settings?.outputs || settings?.outcome?.outputs
 
-      // Check for variants in settings.variants (legacy support)
-      const settings = generation.settings as any
-      if (settings?.variants && Array.isArray(settings.variants)) {
-        settings.variants.forEach((v: any) => {
-          const variantUrl = v.imageUrl || v.outputImagePath || v.url
-          if (variantUrl && variantUrl !== mainUrl) {
-            variants.push({ url: variantUrl, label: `Option ${variants.length + 1}` })
+    // 1. Check for outputs in settings.outputs (clean-tryon pipeline)
+    if (Array.isArray(outputs) && outputs.length > 0) {
+      outputs.forEach((o: any) => {
+        if (o && o.status !== 'failed') {
+          const path = o.outputImagePath || o.output_image_path || o.imageUrl || o.image_url || o.url
+          if (path) {
+            variants.push({
+              url: path,
+              label: o.label || `Option ${variants.length + 1}`
+            })
           }
-        })
+        }
+      })
+    }
+
+    // 2. Fall back to _vA, _vB, _vC pattern if no outputs were found in settings
+    if (variants.length === 0) {
+      if (mainUrl.includes('_vA.')) {
+        // This is variant A - derive B and C
+        const baseUrl = mainUrl.replace('_vA.', '_vX.')
+        variants.push({ url: mainUrl, label: 'Option 1' })
+        variants.push({ url: baseUrl.replace('_vX.', '_vB.'), label: 'Option 2' })
+        variants.push({ url: baseUrl.replace('_vX.', '_vC.'), label: 'Option 3' })
+      } else if (mainUrl.includes('_vB.')) {
+        const baseUrl = mainUrl.replace('_vB.', '_vX.')
+        variants.push({ url: baseUrl.replace('_vX.', '_vA.'), label: 'Option 1' })
+        variants.push({ url: mainUrl, label: 'Option 2' })
+        variants.push({ url: baseUrl.replace('_vX.', '_vC.'), label: 'Option 3' })
+      } else if (mainUrl.includes('_vC.')) {
+        const baseUrl = mainUrl.replace('_vC.', '_vX.')
+        variants.push({ url: baseUrl.replace('_vX.', '_vA.'), label: 'Option 1' })
+        variants.push({ url: baseUrl.replace('_vX.', '_vB.'), label: 'Option 2' })
+        variants.push({ url: mainUrl, label: 'Option 3' })
       }
+    }
+
+    // 3. Fall back to legacy settings.variants if still empty
+    if (variants.length === 0 && settings?.variants && Array.isArray(settings.variants)) {
+      variants.push({ url: mainUrl, label: 'Result' })
+      settings.variants.forEach((v: any) => {
+        const variantUrl = v.imageUrl || v.outputImagePath || v.url
+        if (variantUrl && variantUrl !== mainUrl) {
+          variants.push({ url: variantUrl, label: `Option ${variants.length + 1}` })
+        }
+      })
+    }
+
+    // 4. Ultimate fallback if absolutely nothing was found, show the main image
+    if (variants.length === 0) {
+      variants.push({ url: mainUrl, label: 'Result' })
     }
 
     return variants
