@@ -454,136 +454,23 @@ export async function analyzeGarment(
     return gpt4oResult
   }
 
-  // ── FALLBACK: Gemini Flash / Flash-Lite ──────────────────────────────
-  // Retry across multiple models with different load profiles.
-  // Production sees frequent 503s on gemini-2.5-flash during peak hours;
-  // 2.5-flash-lite has separate quota; gemini-2.0-flash-exp is a fallback
-  // tier rarely hit by the same load. Backoff between attempts grows
-  // (250ms → 750ms → 2.5s).
-  const MODELS = [
-    'gemini-2.5-flash',
-    'gemini-2.5-flash-lite',
-    'gemini-2.0-flash-exp',
-    'gemini-2.5-flash-lite',
-  ]
-  const MAX_ATTEMPTS = MODELS.length
-
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    const model = MODELS[Math.min(attempt, MODELS.length - 1)]
-    try {
-      if (isDev) console.log(`🧠 Garment intel: analyzing (attempt ${attempt + 1}, model: ${model})...`)
-
-      const response = await geminiGenerateContent({
-        model,
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              { inlineData: { mimeType: 'image/jpeg', data: cleanBase64 } },
-              { text: ANALYSIS_PROMPT },
-            ],
-          },
-        ],
-        config: {
-          temperature: 0.1,
-          maxOutputTokens: 1500,
-          responseMimeType: 'application/json',
-        },
-      })
-
-      let text = ''
-      if (response.candidates?.length) {
-        for (const part of response.candidates[0].content?.parts || []) {
-          if (part.text) text += part.text
-        }
-      }
-
-      if (!text) throw new Error('Empty response from garment analysis')
-
-      const jsonText = extractJson(text)
-      const parsed = JSON.parse(jsonText) as Partial<GarmentIntelligence>
-
-      if (!parsed.garmentType) throw new Error('Missing garmentType in analysis response')
-
-      const rawBottom = (parsed.visibleBottomInPhoto ?? '').trim().toLowerCase()
-      const rawTop = (parsed.visibleTopInPhoto ?? '').trim().toLowerCase()
-      const visibleBottom = (rawBottom && rawBottom !== 'none' && rawBottom !== 'null' && rawBottom !== 'n/a')
-        ? parsed.visibleBottomInPhoto!.trim()
-        : ''
-      const visibleTop = (rawTop && rawTop !== 'none' && rawTop !== 'null' && rawTop !== 'n/a')
-        ? parsed.visibleTopInPhoto!.trim()
-        : ''
-
-      const intel: GarmentIntelligence = {
-        garmentType: parsed.garmentType || 'top',
-        coverage: parsed.coverage || 'upper_only',
-        primaryColor: parsed.primaryColor || 'neutral',
-        secondaryColor: parsed.secondaryColor || undefined,
-        pattern: parsed.pattern || 'solid',
-        material: parsed.material || 'cotton',
-        neckline: parsed.neckline || 'round',
-        sleeves: parsed.sleeves || 'short',
-        fit: parsed.fit || 'regular',
-        length: parsed.length || 'hip',
-        keyFeatures: Array.isArray(parsed.keyFeatures) ? parsed.keyFeatures : [],
-        visibleBottomInPhoto: visibleBottom,
-        visibleTopInPhoto: visibleTop,
-        bottomWearSuggestion: parsed.bottomWearSuggestion || 'dark fitted jeans',
-        description: parsed.description || `A ${parsed.garmentType || 'garment'}`,
-        promptModifiers: Array.isArray(parsed.promptModifiers) ? parsed.promptModifiers : [],
-        graphicPlacement: (['front', 'back', 'both', 'allover', 'none'].includes(parsed.graphicPlacement as string)
-          ? parsed.graphicPlacement : 'none') as GarmentIntelligence['graphicPlacement'],
-        productView: (['front', 'back', 'side'].includes(parsed.productView as string)
-          ? parsed.productView : 'front') as GarmentIntelligence['productView'],
-      }
-
-      setCache(cacheKey, intel)
-
-      if (isDev) {
-        console.log(`🧠 Garment intel: ${intel.garmentType} (${intel.coverage})`)
-        console.log(`   ${intel.description}`)
-        console.log(`   Color: ${intel.primaryColor} | Pattern: ${intel.pattern} | Material: ${intel.material}`)
-        if (intel.visibleBottomInPhoto) console.log(`   👖 Visible bottom: "${intel.visibleBottomInPhoto}"`)
-        if (intel.visibleTopInPhoto) console.log(`   👕 Visible top: "${intel.visibleTopInPhoto}"`)
-      }
-
-      return intel
-
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error)
-      const is503 = msg.includes('503') || msg.includes('UNAVAILABLE') || msg.includes('high demand') || msg.includes('overloaded')
-
-      // Also retry on 429 (rate limit), 504 (gateway timeout), and quota
-      // errors — these are all transient and likely to succeed on next model.
-      const isRetryable = is503 ||
-        msg.includes('429') ||
-        msg.includes('quota') ||
-        msg.includes('504') ||
-        msg.includes('timeout') ||
-        msg.includes('RESOURCE_EXHAUSTED')
-
-      if (isRetryable && attempt < MAX_ATTEMPTS - 1) {
-        // Exponential backoff: 250ms, 750ms, 2250ms — keeps total wait
-        // under 4s across 3 retries while giving Gemini room to recover.
-        const backoffMs = 250 * Math.pow(3, attempt)
-        if (isDev) console.warn(`⚠️ Garment analysis transient on ${model}, retrying in ${backoffMs}ms...`)
-        await new Promise((r) => setTimeout(r, backoffMs))
-        continue
-      }
-
-      console.warn('⚠️ Garment analysis failed, using heuristic fallback:', msg)
-      // Try heuristic fallback from text first — much better than blanket 'upper_only'
-      const heuristic = inferIntelFromText(textHint)
-      if (heuristic) {
-        if (isDev) console.log(`🧠 Heuristic intel: ${heuristic.garmentType} (${heuristic.coverage}) from text hint`)
-        return heuristic
-      }
-      return FALLBACK_INTEL
-    }
+  // ── FALLBACK: TEXT HEURISTIC (instant, no Gemini) ────────────────────
+  // GPT-4o failed. We deliberately DO NOT fall through to a Gemini retry
+  // chain here — that chain (4 models × retries × 30s timeout) could burn
+  // 60-90s and blow the whole Vercel function budget BEFORE the actual
+  // image generation ever runs. The garment intel is only a hint anyway:
+  // the GPT-4o orchestrator looks at the real garment image directly.
+  //
+  // So on GPT-4o failure we use the instant text heuristic (parses the
+  // product name/description) and move on. Zero blocking.
+  const heuristic = inferIntelFromText(textHint)
+  if (heuristic) {
+    if (isDev) console.log(`🧠 Heuristic intel: ${heuristic.garmentType} (${heuristic.coverage}) — GPT-4o unavailable, skipped slow Gemini fallback`)
+    setCache(cacheKey, heuristic)
+    return heuristic
   }
-
-  // Should not reach here — try heuristic before generic fallback
-  return inferIntelFromText(textHint) || FALLBACK_INTEL
+  if (isDev) console.warn('🧠 Garment intel: GPT-4o failed + no text hint — using generic fallback')
+  return FALLBACK_INTEL
 }
 
 // ── SMART PROMPT COMPOSER ────────────────────────────────────────────────────
