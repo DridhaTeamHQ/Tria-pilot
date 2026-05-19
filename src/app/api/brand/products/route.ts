@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/auth'
 import { z } from 'zod'
+import { validateProductBaseLink } from '@/lib/amazon-product-links'
 
 const productSchema = z.object({
     name: z.string().min(1, 'Product name is required'),
@@ -98,6 +99,11 @@ export async function POST(request: Request) {
             )
         }
 
+        const validatedLink = validateProductBaseLink(parsed.data.link || null)
+        if (!validatedLink.ok) {
+            return NextResponse.json({ error: validatedLink.error }, { status: 400 })
+        }
+
         const productData = {
             brand_id: user.id,
             name: parsed.data.name,
@@ -108,7 +114,7 @@ export async function POST(request: Request) {
             stock: parsed.data.stock ?? null,
             sku: parsed.data.sku || null,
             try_on_compatible: parsed.data.try_on_compatible ?? false,
-            link: parsed.data.link || null,
+            link: validatedLink.normalizedUrl || null,
             tags: parsed.data.tags || [],
             audience: parsed.data.audience || null,
             cover_image: parsed.data.cover_image || null,

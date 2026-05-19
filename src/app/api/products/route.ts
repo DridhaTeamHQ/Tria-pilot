@@ -3,6 +3,7 @@ import { createClient, createServiceClient } from '@/lib/auth'
 import { productSchema } from '@/lib/validation'
 import { z } from 'zod'
 import { sanitizeSearchTerm, asUuid } from '@/lib/security/sanitize'
+import { validateProductBaseLink } from '@/lib/amazon-product-links'
 
 const createProductSchema = productSchema
   .extend({
@@ -54,6 +55,10 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => null)
     const parsed = createProductSchema.parse(body)
     const { name, description, category, link, tags, audience, images } = parsed
+    const validatedLink = validateProductBaseLink(link || null)
+    if (!validatedLink.ok) {
+      return NextResponse.json({ error: validatedLink.error }, { status: 400 })
+    }
 
     let priceValue = parsed.price
     if (typeof priceValue === 'string') {
@@ -72,7 +77,7 @@ export async function POST(request: Request) {
         description,
         category,
         price: priceValue,
-        link,
+        link: validatedLink.normalizedUrl,
         tags: tags ? (Array.isArray(tags) ? tags : [tags]) : [],
         audience,
         cover_image: coverImage,
@@ -350,6 +355,15 @@ export async function PATCH(request: Request) {
       if (field in (body as Record<string, unknown>)) {
         updateData[field] = (body as Record<string, unknown>)[field]
       }
+    }
+
+    if ('link' in updateData) {
+      const rawLink = typeof updateData.link === 'string' ? updateData.link : null
+      const validatedLink = validateProductBaseLink(rawLink)
+      if (!validatedLink.ok) {
+        return NextResponse.json({ error: validatedLink.error }, { status: 400 })
+      }
+      updateData.link = validatedLink.normalizedUrl
     }
 
     if (Object.keys(updateData).length === 0) {

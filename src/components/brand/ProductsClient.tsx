@@ -678,14 +678,17 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                                     <div className="space-y-2">
                                         <label className="block text-xs font-black uppercase tracking-wider text-black">
                                             Product Link
-                                        </label>
-                                        <input
-                                            type="url"
-                                            value={link}
-                                            onChange={(e) => setLink(e.target.value)}
-                                            className="w-full px-4 py-3 border-2 border-black font-medium focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
-                                            placeholder="https://..."
-                                        />
+                                          </label>
+                                          <input
+                                              type="url"
+                                              value={link}
+                                              onChange={(e) => setLink(e.target.value)}
+                                              className="w-full px-4 py-3 border-2 border-black font-medium focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
+                                              placeholder="https://www.amazon.in/dp/ASIN"
+                                          />
+                                          <p className="text-xs font-medium text-black/60">
+                                              Use the full product URL. Do not paste <code>amzn.to</code> short affiliate links here.
+                                          </p>
                                     </div>
 
                                     <div className="space-y-2">
@@ -880,7 +883,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                         <div>
                             <h3 className="text-2xl font-black mb-2 uppercase text-black">Delete Product?</h3>
                             <p className="text-black/60 font-medium">
-                                Are you sure you want to delete <span className="font-bold text-black">"{deleteConfirm?.name}"</span>? This action cannot be undone.
+                                Are you sure you want to delete <span className="font-bold text-black">&quot;{deleteConfirm?.name}&quot;</span>? This action cannot be undone.
                             </p>
                         </div>
                         <div className="flex gap-4">

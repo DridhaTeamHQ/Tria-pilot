@@ -10,6 +10,7 @@ import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/auth'
 import { z } from 'zod'
+import { validateProductBaseLink } from '@/lib/amazon-product-links'
 
 const updateSchema = z.object({
     name: z.string().min(1).optional(),
@@ -63,6 +64,14 @@ export async function PUT(request: Request, { params }: Params) {
                 { error: 'Invalid data', details: parsed.error.flatten() },
                 { status: 400 }
             )
+        }
+
+        if (typeof parsed.data.link !== 'undefined') {
+            const validatedLink = validateProductBaseLink(parsed.data.link || null)
+            if (!validatedLink.ok) {
+                return NextResponse.json({ error: validatedLink.error }, { status: 400 })
+            }
+            parsed.data.link = validatedLink.normalizedUrl || ''
         }
 
         // Update using Standard Client (RLS Enforced)
