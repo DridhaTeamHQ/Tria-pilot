@@ -109,7 +109,12 @@ interface PresetlessPersistedOutput {
 // A genuine in-progress generation never legitimately exceeds this.
 // Anything older is a crashed/timed-out job whose DB row was never
 // updated — we auto-expire it so the user isn't permanently locked out.
-const STALE_JOB_MS = 90_000
+// Must be LONGER than maxDuration — a genuine generation runs inline for
+// up to maxDuration seconds without touching updated_at, so anything
+// shorter would wrongly flag a still-running job as crashed (and flip its
+// row to 'failed' mid-run). Only jobs idle past maxDuration + 1min are
+// truly abandoned.
+const STALE_JOB_MS = (maxDuration + 60) * 1000
 
 async function findRecentActiveTryOnJob(service: ServiceClient, userId: string) {
   try {

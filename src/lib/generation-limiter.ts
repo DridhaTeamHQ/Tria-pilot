@@ -226,15 +226,21 @@ export interface SessionLockResult {
     existingRequestId?: string
 }
 
+// A genuine generation runs inline for up to maxDuration (300s on Vercel
+// Pro). The session lock MUST outlive that, or a second click mid-run
+// would steal the lock and start a duplicate generation. Default 360s;
+// override with TRYON_SESSION_LOCK_TTL_MS.
+const SESSION_LOCK_TTL_MS = parseInt(process.env.TRYON_SESSION_LOCK_TTL_MS || '360000')
+
 function acquireSessionLock(userId: string, requestId: string): SessionLockResult {
     const existingLock = sessionLockStore.get(userId)
     const now = Date.now()
 
     // Check for existing lock
     if (existingLock) {
-        // Auto-expire locks older than 2 minutes (safety net for crashes)
-        const lockAge = (now - existingLock.startTime) / 1000
-        if (lockAge < 120) {
+        // Auto-expire locks older than SESSION_LOCK_TTL_MS (crash safety net)
+        const lockAgeMs = now - existingLock.startTime
+        if (lockAgeMs < SESSION_LOCK_TTL_MS) {
             return {
                 acquired: false,
                 reason: 'Another generation is in progress',
@@ -510,9 +516,11 @@ export function getCostMonitorData(): CostMonitorData {
 export function cleanupStaleData(): void {
     const now = Date.now()
 
-    // Clean stale session locks (older than 5 minutes)
+    // Clean stale session locks. Must be >= SESSION_LOCK_TTL_MS so the
+    // sweeper never deletes a lock that acquireSessionLock still considers
+    // live (which would let a duplicate generation through mid-run).
     for (const [userId, lock] of sessionLockStore) {
-        if (now - lock.startTime > 5 * 60 * 1000) {
+        if (now - lock.startTime > SESSION_LOCK_TTL_MS) {
             sessionLockStore.delete(userId)
             console.log(`🧹 Cleaned stale lock for user ${userId}`)
         }
