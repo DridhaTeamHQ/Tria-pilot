@@ -318,11 +318,13 @@ function TryOnPageContent() {
   }, [defaultSelectedReferenceIds])
 
   useEffect(() => {
-    if (!activeJobId) return
-    setElapsedSeconds(0)
+    if (!isGenerating) {
+      setElapsedSeconds(0)
+      return
+    }
     const timer = setInterval(() => setElapsedSeconds((s) => s + 1), 1000)
     return () => clearInterval(timer)
-  }, [activeJobId])
+  }, [isGenerating])
 
   useEffect(() => {
     photosRef.current = photos
