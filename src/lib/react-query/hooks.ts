@@ -10,6 +10,7 @@ export function useUser() {
     queryFn: async () => {
       const res = await fetch('/api/auth/me', {
         credentials: 'include',
+        cache: 'no-store',
       })
       if (!res.ok) {
         // If 401, user is not authenticated - return null instead of throwing
@@ -33,12 +34,12 @@ export function useUser() {
         avatarUrl: data.user.avatarUrl ?? data.profile?.avatar_url ?? null,
       }
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
     gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
     retry: false, // Don't retry on 401 errors
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   })
 }
 

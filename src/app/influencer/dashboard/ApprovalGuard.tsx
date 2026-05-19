@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/auth-client'
 
 interface ApprovalGuardProps {
   userId: string
@@ -17,21 +16,32 @@ export default function ApprovalGuard({ userId, children }: ApprovalGuardProps) 
   useEffect(() => {
     async function checkApproval() {
       try {
-        const supabase = createClient()
+        const res = await fetch('/api/auth/profile-status', {
+          credentials: 'include',
+          cache: 'no-store',
+        })
 
-        const { data: application } = await supabase
-          .from('influencer_applications')
-          .select('status')
-          .eq('user_id', userId)
-          .single()
+        if (res.status === 401) {
+          router.replace('/login')
+          return
+        }
 
-        if (application?.status === 'approved') {
+        if (!res.ok) {
+          throw new Error('Failed to check approval status')
+        }
+
+        const data = await res.json()
+        const approvalStatus = String(data?.approval_status || 'none').toLowerCase()
+        const onboardingCompleted = Boolean(data?.onboarding_completed)
+
+        if (!onboardingCompleted) {
+          router.replace('/onboarding/influencer')
+        } else if (approvalStatus === 'approved') {
           setIsApproved(true)
-        } else if (application?.status === 'rejected') {
-          router.push('/onboarding/influencer?mode=resubmit')
+        } else if (approvalStatus === 'rejected') {
+          router.replace('/onboarding/influencer?mode=resubmit')
         } else {
-          // Redirect to pending screen if not approved
-          router.push('/influencer/pending')
+          router.replace('/influencer/pending')
         }
       } catch (error) {
         console.error('Error checking approval:', error)

@@ -9,6 +9,7 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { toast } from '@/lib/simple-sonner'
 import {
@@ -30,6 +31,7 @@ type Status = 'draft' | 'pending' | 'approved' | 'rejected'
 
 export default function InfluencerPendingPage() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const searchParams = useSearchParams()
   const [status, setStatus] = useState<Status>('pending')
   const [profileId, setProfileId] = useState<string | null>(null)
@@ -72,6 +74,7 @@ export default function InfluencerPendingPage() {
       }
 
       if (approvalStatus === 'approved') {
+        await queryClient.invalidateQueries({ queryKey: ['user'] })
         if (!approvedToastShownRef.current) {
           approvedToastShownRef.current = true
           toast.success("You're approved! Redirecting to Discovery...", {
@@ -79,6 +82,7 @@ export default function InfluencerPendingPage() {
           })
         }
         setTimeout(() => {
+          router.refresh()
           router.replace('/marketplace')
         }, 1500)
         return
@@ -136,8 +140,10 @@ export default function InfluencerPendingPage() {
 
           if (nextStatus === 'approved' && !approvedToastShownRef.current) {
             approvedToastShownRef.current = true
+            void queryClient.invalidateQueries({ queryKey: ['user'] })
             toast.success("You're approved! Redirecting to Discovery...")
             setTimeout(() => {
+              router.refresh()
               router.replace('/marketplace')
             }, 1200)
             return
@@ -153,7 +159,7 @@ export default function InfluencerPendingPage() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [profileId, router])
+  }, [profileId, queryClient, router])
 
   useEffect(() => {
     const timer = setInterval(() => {
