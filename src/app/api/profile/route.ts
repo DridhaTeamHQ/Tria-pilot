@@ -129,21 +129,39 @@ export async function PATCH(request: Request) {
         return NextResponse.json({ error: 'Amazon tracking IDs are only available for influencer accounts' }, { status: 403 })
       }
 
-      const { error: affiliateCodeError } = await service
+      const { data: existingInfluencerProfile, error: influencerProfileLookupError } = await service
         .from('influencer_profiles')
-        .upsert(
-          {
-            user_id: authUser.id,
-            niches: [],
-            socials: {},
-            affiliate_code: normalizedAmazonTrackingId,
-          },
-          { onConflict: 'user_id' }
-        )
+        .select('user_id')
+        .eq('user_id', authUser.id)
+        .maybeSingle()
+
+      if (influencerProfileLookupError) {
+        console.error('[PROFILE PATCH] Failed to load influencer profile before affiliate update:', influencerProfileLookupError)
+        return NextResponse.json({ error: 'Failed to update Amazon tracking ID' }, { status: 500 })
+      }
+
+      const affiliateCodeMutation = existingInfluencerProfile
+        ? service
+            .from('influencer_profiles')
+            .update({ affiliate_code: normalizedAmazonTrackingId })
+            .eq('user_id', authUser.id)
+        : service
+            .from('influencer_profiles')
+            .insert({
+              user_id: authUser.id,
+              niches: [],
+              socials: {},
+              affiliate_code: normalizedAmazonTrackingId,
+            })
+
+      const { error: affiliateCodeError } = await affiliateCodeMutation
 
       if (affiliateCodeError) {
         console.error('[PROFILE PATCH] Failed to update affiliate code:', affiliateCodeError)
-        return NextResponse.json({ error: 'Failed to update Amazon tracking ID' }, { status: 500 })
+        return NextResponse.json(
+          { error: `Failed to update Amazon tracking ID: ${affiliateCodeError.message}` },
+          { status: 500 }
+        )
       }
     }
 
