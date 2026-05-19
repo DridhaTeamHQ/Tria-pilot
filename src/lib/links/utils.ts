@@ -15,6 +15,24 @@ function hostMatches(host: string, candidate: string): boolean {
   return host === candidate || host.endsWith(`.${candidate}`)
 }
 
+function isUnsafePublicHost(hostname: string): boolean {
+  return isBlockedHost(hostname)
+}
+
+function sanitizeCandidateBaseUrl(url: string | null): string | null {
+  if (!url) return null
+
+  try {
+    const parsed = new URL(stripTrailingSlash(ensureProtocol(url)))
+    if (process.env.NODE_ENV === 'production' && isUnsafePublicHost(parsed.hostname)) {
+      return null
+    }
+    return stripTrailingSlash(parsed.toString())
+  } catch {
+    return null
+  }
+}
+
 function getConfiguredPublicBaseUrl(): string | null {
   const value =
     process.env.NEXT_PUBLIC_LINK_MASK_BASE_URL ||
@@ -27,7 +45,7 @@ function getConfiguredPublicBaseUrl(): string | null {
     // eslint-disable-next-line no-restricted-syntax
     (process.env as any).SITE_URL
 
-  return value ? stripTrailingSlash(ensureProtocol(value)) : null
+  return sanitizeCandidateBaseUrl(value ? String(value) : null)
 }
 
 function isPrivateIpv4(hostname: string): boolean {
@@ -64,13 +82,13 @@ export function getMaskedUrl(linkCode: string, requestOrigin?: string): string {
   let baseUrl = getConfiguredPublicBaseUrl()
   
   if (!baseUrl) {
-    if (process.env.NODE_ENV === 'production') {
-      baseUrl = 'https://kiwikoo.com'
-    } else if (requestOrigin) {
+    if (requestOrigin) {
       // Try to use request origin if available (for server-side)
-      baseUrl = stripTrailingSlash(
-        requestOrigin.startsWith('http') ? requestOrigin : `https://${requestOrigin}`
-      )
+      baseUrl = sanitizeCandidateBaseUrl(requestOrigin)
+    }
+
+    if (!baseUrl && process.env.NODE_ENV === 'production') {
+      baseUrl = 'https://kiwikoo.com'
     } else if (process.env.NODE_ENV === 'development') {
       // Only allow localhost in development
       baseUrl = 'http://localhost:3000'

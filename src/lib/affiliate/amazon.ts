@@ -17,10 +17,15 @@ export function isAmazonUrl(url: string | null | undefined): boolean {
 
 export function normalizeAmazonTrackingId(value: unknown): string | null {
   if (typeof value !== 'string') return null
-  const trimmed = value.trim().toLowerCase()
+  const trimmed = value.trim()
   if (!trimmed) return null
-  if (!/^[a-z0-9][a-z0-9-]{1,60}$/.test(trimmed)) return null
+  if (!/^[A-Za-z0-9][A-Za-z0-9-]{1,60}$/.test(trimmed)) return null
   return trimmed
+}
+
+export function canonicalizeAmazonTrackingId(value: unknown): string | null {
+  const normalized = normalizeAmazonTrackingId(value)
+  return normalized ? normalized.toLowerCase() : null
 }
 
 export function applyAmazonTrackingTag(url: string, trackingId: string | null | undefined): string {

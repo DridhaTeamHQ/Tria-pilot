@@ -20,6 +20,16 @@ function normalizeHostCandidate(value: string | null): string | null {
   return hostPattern.test(candidate) ? candidate : null
 }
 
+function isLocalLikeHost(host: string | null): boolean {
+  if (!host) return false
+  return (
+    host === 'localhost' ||
+    host === 'localhost:3000' ||
+    host.startsWith('127.0.0.1:') ||
+    host === '127.0.0.1'
+  )
+}
+
 function getConfiguredPublicUrl(): string | null {
   const candidate =
     process.env.NEXT_PUBLIC_APP_URL ||
@@ -29,7 +39,21 @@ function getConfiguredPublicUrl(): string | null {
     // eslint-disable-next-line no-restricted-syntax
     (process.env as any).SITE_URL
 
-  return candidate ? stripTrailingSlash(ensureProtocol(candidate)) : null
+  if (!candidate) return null
+
+  const normalized = stripTrailingSlash(ensureProtocol(candidate))
+  if (process.env.NODE_ENV === 'production') {
+    try {
+      const host = new URL(normalized).host.toLowerCase()
+      if (isLocalLikeHost(host)) {
+        return null
+      }
+    } catch {
+      return null
+    }
+  }
+
+  return normalized
 }
 
 function getAllowedPublicHosts(): string[] {
@@ -155,4 +179,3 @@ export function buildAuthConfirmUrl(base: string, nextPath: string) {
   const encodedNext = encodeURIComponent(cleanNext)
   return joinPublicUrl(base, `/auth/confirm?next=${encodedNext}`)
 }
-

@@ -42,7 +42,7 @@ export default function SettingsProfilePage() {
   const currentGenerationTag = typeof (user as any)?.profile?.generation_tag === 'string' ? (user as any).profile.generation_tag : ''
   const dobUnchanged = (dateOfBirth || '') === currentDob
   const isInfluencer = String(user?.role || '').toUpperCase() === 'INFLUENCER'
-  const normalizedAmazonTrackingId = amazonTrackingId.trim().toLowerCase()
+  const normalizedAmazonTrackingId = amazonTrackingId.trim()
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -292,7 +292,7 @@ export default function SettingsProfilePage() {
                     value={amazonTrackingId}
                     onChange={(e) => setAmazonTrackingId(e.target.value)}
                     placeholder="rahulinsta-21"
-                    className="w-full px-4 py-3 bg-white border-[3px] border-black text-black font-bold lowercase focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all placeholder:text-black/30"
+                    className="w-full px-4 py-3 bg-white border-[3px] border-black text-black font-bold focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all placeholder:text-black/30"
                     autoCapitalize="none"
                     autoCorrect="off"
                     spellCheck={false}

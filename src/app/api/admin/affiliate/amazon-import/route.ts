@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient, createServiceClient } from '@/lib/auth'
-import { normalizeAmazonTrackingId } from '@/lib/affiliate/amazon'
+import { canonicalizeAmazonTrackingId, normalizeAmazonTrackingId } from '@/lib/affiliate/amazon'
 
 export const dynamic = 'force-dynamic'
 
@@ -181,7 +181,12 @@ function buildImportKey(row: {
   reportDate: string
   asin?: string | null
 }) {
-  return [row.influencerId, row.trackingId, row.reportDate, row.asin || ''].join('::')
+  return [
+    row.influencerId,
+    canonicalizeAmazonTrackingId(row.trackingId) || row.trackingId,
+    row.reportDate,
+    row.asin || '',
+  ].join('::')
 }
 
 async function requireAdmin() {
@@ -335,11 +340,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No valid Amazon report rows found' }, { status: 400 })
     }
 
-    const trackingIds = Array.from(new Set(rows.map((row) => row.trackingId)))
     const { data: influencers, error: influencerLookupError } = await service
       .from('influencer_profiles')
       .select('user_id, affiliate_code')
-      .in('affiliate_code', trackingIds)
+      .not('affiliate_code', 'is', null)
 
     if (influencerLookupError) {
       throw influencerLookupError
@@ -347,7 +351,7 @@ export async function POST(request: Request) {
 
     const influencerByTrackingId = new Map<string, string>()
     for (const influencer of influencers || []) {
-      const trackingId = normalizeAmazonTrackingId(influencer.affiliate_code)
+      const trackingId = canonicalizeAmazonTrackingId(influencer.affiliate_code)
       if (trackingId) {
         influencerByTrackingId.set(trackingId, influencer.user_id)
       }
@@ -356,14 +360,14 @@ export async function POST(request: Request) {
     const matchedRows = rows
       .map((row) => ({
         ...row,
-        influencerId: influencerByTrackingId.get(row.trackingId) || null,
+        influencerId: influencerByTrackingId.get(canonicalizeAmazonTrackingId(row.trackingId) || '') || null,
       }))
       .filter((row) => row.influencerId)
 
     const unmatchedTrackingIds = Array.from(
       new Set(
         rows
-          .filter((row) => !influencerByTrackingId.has(row.trackingId))
+          .filter((row) => !influencerByTrackingId.has(canonicalizeAmazonTrackingId(row.trackingId) || ''))
           .map((row) => row.trackingId)
       )
     )
@@ -392,7 +396,7 @@ export async function POST(request: Request) {
     for (const event of existingEvents || []) {
       const metadata = (event.metadata || {}) as Record<string, unknown>
       if (String(metadata.source || '') !== 'amazon_associates_import') continue
-      const trackingId = normalizeAmazonTrackingId(metadata.trackingId)
+      const trackingId = canonicalizeAmazonTrackingId(metadata.trackingId)
       const reportDate = typeof metadata.reportDate === 'string' ? metadata.reportDate : null
       if (!trackingId || !reportDate || !event.influencer_id) continue
       existingKeys.add(
