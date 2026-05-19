@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/auth'
+import { applyAmazonTrackingTag, normalizeAmazonTrackingId } from '@/lib/affiliate/amazon'
 import { extractClickMetadata } from '@/lib/links/tracker'
 import { sanitizeRedirectUrl } from '@/lib/links/utils'
 import { ipRateLimit, getClientIp } from '@/lib/security/ip-rate-limit'
@@ -39,7 +40,7 @@ export async function GET(
 
     const { data: trackedLink, error } = await service
       .from('tracked_links')
-      .select('id, original_url, product_id, click_count, is_active')
+      .select('id, original_url, product_id, influencer_id, click_count, is_active')
       .eq('link_code', linkCode)
       .single()
 
@@ -96,7 +97,52 @@ export async function GET(
     const fallbackUrl = trackedLink.product_id
       ? joinPublicUrl(getPublicSiteUrlFromRequest(request), `/marketplace/${trackedLink.product_id}`)
       : null
-    const redirectUrl = sanitizeRedirectUrl(trackedLink.original_url) || fallbackUrl
+
+    let latestOriginalUrl = trackedLink.original_url
+    if (trackedLink.product_id && trackedLink.influencer_id) {
+      try {
+        const [{ data: influencerProfile }, { data: product }] = await Promise.all([
+          service
+            .from('influencer_profiles')
+            .select('*')
+            .eq('user_id', trackedLink.influencer_id)
+            .maybeSingle(),
+          service
+            .from('products')
+            .select('link')
+            .eq('id', trackedLink.product_id)
+            .maybeSingle(),
+        ])
+
+        const baseOriginalUrl =
+          typeof product?.link === 'string' && product.link.trim().length > 0
+            ? product.link.trim()
+            : trackedLink.original_url
+        const affiliateTag =
+          normalizeAmazonTrackingId((influencerProfile as { affiliate_code?: unknown } | null)?.affiliate_code) ||
+          normalizeAmazonTrackingId(process.env.AMAZON_DEFAULT_TRACKING_ID)
+        const recomputedUrl = applyAmazonTrackingTag(baseOriginalUrl, affiliateTag)
+
+        if (recomputedUrl && recomputedUrl !== trackedLink.original_url) {
+          latestOriginalUrl = recomputedUrl
+          const { error: syncError } = await service
+            .from('tracked_links')
+            .update({ original_url: recomputedUrl })
+            .eq('id', trackedLink.id)
+
+          if (syncError) {
+            console.warn('Failed to sync tracked link redirect URL:', syncError)
+          }
+        }
+      } catch (refreshError) {
+        console.warn('Failed to refresh tracked link affiliate redirect:', refreshError)
+      }
+    }
+
+    const redirectUrl =
+      sanitizeRedirectUrl(latestOriginalUrl) ||
+      sanitizeRedirectUrl(trackedLink.original_url) ||
+      fallbackUrl
     if (!redirectUrl) {
       return NextResponse.json({ error: 'Invalid URL' }, { status: 500 })
     }

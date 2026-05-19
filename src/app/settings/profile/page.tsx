@@ -166,6 +166,7 @@ export default function SettingsProfilePage() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['user'] }),
         queryClient.invalidateQueries({ queryKey: ['full-profile'] }),
+        queryClient.invalidateQueries({ queryKey: ['product-link'] }),
       ])
       router.refresh()
     } catch (err) {
