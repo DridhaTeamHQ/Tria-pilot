@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
+import { applyAmazonTrackingTag, normalizeAmazonTrackingId } from '@/lib/affiliate/amazon'
 import { generateLinkCode } from '@/lib/links/generator'
 import { getMaskedUrl } from '@/lib/links/utils'
 import { getPublicSiteUrlFromRequest, joinPublicUrl } from '@/lib/site-url'
@@ -36,6 +37,12 @@ export async function GET(
       return NextResponse.json({ error: 'Only influencers can generate tracked product links' }, { status: 403 })
     }
 
+    const { data: influencerProfile } = await service
+      .from('influencer_profiles')
+      .select('affiliate_code')
+      .eq('user_id', authUser.id)
+      .maybeSingle()
+
     const { data: product, error: productError } = await service
       .from('products')
       .select('id, name, link')
@@ -48,8 +55,12 @@ export async function GET(
 
     const siteUrl = getPublicSiteUrlFromRequest(request)
     const fallbackProductUrl = joinPublicUrl(siteUrl, `/marketplace/${productId}`)
-    const originalUrl =
+    const baseOriginalUrl =
       typeof product.link === 'string' && product.link.trim().length > 0 ? product.link.trim() : fallbackProductUrl
+    const affiliateTag =
+      normalizeAmazonTrackingId(influencerProfile?.affiliate_code) ||
+      normalizeAmazonTrackingId(process.env.AMAZON_DEFAULT_TRACKING_ID)
+    const originalUrl = applyAmazonTrackingTag(baseOriginalUrl, affiliateTag)
 
     const { data: existingLink, error: existingLinkError } = await service
       .from('tracked_links')
@@ -88,6 +99,7 @@ export async function GET(
         maskedUrl,
         linkCode,
         originalUrl,
+        affiliateTag,
         productId,
         productName: product.name ?? null,
       })
@@ -114,6 +126,7 @@ export async function GET(
       maskedUrl,
       linkCode,
       originalUrl,
+      affiliateTag,
       productId,
       productName: product.name ?? null,
     })

@@ -106,6 +106,7 @@ export default async function AdminPage() {
           </div>
           <div className="flex items-center gap-3">
             <Link href="/admin/analytics" className="px-5 py-2.5 rounded-full border border-charcoal/15 bg-white text-charcoal text-sm">Analytics</Link>
+            <Link href="/admin/affiliate-import" className="px-5 py-2.5 rounded-full border border-charcoal/15 bg-white text-charcoal text-sm">Amazon Import</Link>
             <Link href="/?from=admin" className="px-5 py-2.5 rounded-full border border-charcoal/15 text-charcoal text-sm">Back to site</Link>
           </div>
         </div>

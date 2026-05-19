@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
+import {
+    getAffiliateCommissionAmount,
+    getAffiliateOrderCount,
+    getAffiliateRevenueAmount,
+    isRealAffiliateEvent,
+} from '@/lib/affiliate/events'
 
 export const dynamic = 'force-dynamic'
 
@@ -77,10 +83,7 @@ export async function GET() {
             throw eventsError
         }
 
-        const events = (rawEvents || []).filter((row) => {
-            const source = (row as { metadata?: { source?: string } | null }).metadata?.source
-            return source !== 'simulation'
-        })
+        const events = (rawEvents || []).filter((row) => isRealAffiliateEvent(row as any))
 
         // 3. Process data
         const totalClicks = links.reduce((sum, link) => {
@@ -88,13 +91,14 @@ export async function GET() {
             return sum + Math.max(actualClicks, link.click_count || 0)
         }, 0)
         const totalProducts = links.length
-        const totalRevenue = events.reduce((sum, event) => sum + Number(event.amount || 0), 0)
-        const totalEarnings = totalRevenue * 0.15 // 15% commission
+        const totalRevenue = events.reduce((sum, event) => sum + getAffiliateRevenueAmount(event as any), 0)
+        const totalEarnings = events.reduce((sum, event) => sum + getAffiliateCommissionAmount(event as any), 0)
 
         const processedProducts = links.map((link: any) => {
             const productEvents = events.filter((e) => e.tracked_link_id === link.id)
-            const revenue = productEvents.reduce((sum, e) => sum + Number(e.amount || 0), 0)
-            const earnings = revenue * 0.15 // 15% commission
+            const revenue = productEvents.reduce((sum, e) => sum + getAffiliateRevenueAmount(e as any), 0)
+            const earnings = productEvents.reduce((sum, e) => sum + getAffiliateCommissionAmount(e as any), 0)
+            const orders = productEvents.reduce((sum, e) => sum + getAffiliateOrderCount(e as any), 0)
             const actualClicks = clickStats.get(link.id)?.count || 0
             const clickCount = Math.max(actualClicks, link.click_count || 0)
 
@@ -107,6 +111,7 @@ export async function GET() {
                 linkCode: link.link_code,
                 clickCount,
                 uniqueClicks: clickCount,
+                orderCount: orders,
                 revenue: revenue,
                 earnings: earnings,
                 lastClickedAt: clickStats.get(link.id)?.lastClickedAt || null,

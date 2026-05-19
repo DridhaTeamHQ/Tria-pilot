@@ -100,6 +100,7 @@ export default function InfluencerOnboardingPage() {
       snapchat: '',
       facebook: '',
     },
+    affiliateCode: '',
     bio: '',
   })
 
@@ -151,6 +152,7 @@ export default function InfluencerOnboardingPage() {
               snapchat: existingSocials.snapchat || '',
               facebook: existingSocials.facebook || '',
             },
+            affiliateCode: data.profile.affiliateCode || '',
             bio: data.profile.bio || '',
           })
         } else {
@@ -657,8 +659,15 @@ export default function InfluencerOnboardingPage() {
               showVerify={Boolean(formData.socials.facebook)}
               verifyUrl={getSocialVerifyUrl('facebook', formData.socials.facebook)}
             />
+            <BrutalInput
+              label="Amazon Tracking ID"
+              icon={<span className="text-orange-500">a</span>}
+              placeholder="rahulinsta-21"
+              value={formData.affiliateCode}
+              onChange={(e) => setFormData({ ...formData, affiliateCode: e.target.value })}
+            />
             <p className="text-xs font-bold text-black/60">
-              Add at least one account to continue. Admin will verify and assign metrics/badges manually.
+              Add at least one social account to continue. Your Amazon Tracking ID is optional here, but adding it now makes your affiliate links ready immediately.
             </p>
           </div>
         )

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { toast } from '@/lib/simple-sonner'
-import { ArrowLeft, Mail, Shield, Sparkles, Save, Lock } from 'lucide-react'
+import { ArrowLeft, Mail, Shield, Sparkles, Save, Lock, Link as LinkIcon } from 'lucide-react'
 import { useUser } from '@/lib/react-query/hooks'
 import { formatDateOfBirth } from '@/lib/profile-demographics'
 
@@ -32,6 +32,8 @@ export default function SettingsProfilePage() {
   const [emailSaving, setEmailSaving] = useState(false)
   const [dobSaving, setDobSaving] = useState(false)
   const [dateOfBirth, setDateOfBirth] = useState('')
+  const [amazonTrackingId, setAmazonTrackingId] = useState('')
+  const [trackingIdSaving, setTrackingIdSaving] = useState(false)
 
   const currentEmail = user?.email?.trim().toLowerCase() || ''
   const normalizedNewEmail = newEmail.trim().toLowerCase()
@@ -39,6 +41,8 @@ export default function SettingsProfilePage() {
   const currentDob = typeof (user as any)?.profile?.date_of_birth === 'string' ? (user as any).profile.date_of_birth : ''
   const currentGenerationTag = typeof (user as any)?.profile?.generation_tag === 'string' ? (user as any).profile.generation_tag : ''
   const dobUnchanged = (dateOfBirth || '') === currentDob
+  const isInfluencer = String(user?.role || '').toUpperCase() === 'INFLUENCER'
+  const normalizedAmazonTrackingId = amazonTrackingId.trim().toLowerCase()
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -51,6 +55,28 @@ export default function SettingsProfilePage() {
   useEffect(() => {
     setDateOfBirth(currentDob)
   }, [currentDob])
+
+  useEffect(() => {
+    if (!isInfluencer) return
+    let cancelled = false
+
+    const loadAffiliateSettings = async () => {
+      try {
+        const res = await fetch('/api/profile', { credentials: 'include' })
+        if (!res.ok) return
+        const data = await res.json()
+        if (cancelled) return
+        setAmazonTrackingId(data?.user?.influencerProfile?.amazonTrackingId || '')
+      } catch (error) {
+        console.error('Failed to load affiliate settings:', error)
+      }
+    }
+
+    void loadAffiliateSettings()
+    return () => {
+      cancelled = true
+    }
+  }, [isInfluencer])
 
   const handleChangeEmail = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -115,6 +141,37 @@ export default function SettingsProfilePage() {
       toast.error(err instanceof Error ? err.message : 'Failed to update date of birth')
     } finally {
       setDobSaving(false)
+    }
+  }
+
+  const handleSaveAmazonTrackingId = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!isInfluencer) {
+      toast.error('Only creator accounts can save Amazon tracking IDs')
+      return
+    }
+
+    setTrackingIdSaving(true)
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amazonTrackingId: normalizedAmazonTrackingId }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data?.error || 'Failed to update Amazon tracking ID')
+
+      toast.success(normalizedAmazonTrackingId ? 'Amazon tracking ID saved' : 'Amazon tracking ID cleared')
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['user'] }),
+        queryClient.invalidateQueries({ queryKey: ['full-profile'] }),
+      ])
+      router.refresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update Amazon tracking ID')
+    } finally {
+      setTrackingIdSaving(false)
     }
   }
 
@@ -208,6 +265,67 @@ export default function SettingsProfilePage() {
             </button>
           </form>
         </BrutalCard>
+
+        {isInfluencer && (
+          <BrutalCard title="Affiliate Settings" className="mb-10">
+            <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6 mb-8 text-center sm:text-left">
+              <div className="w-16 h-16 border-[3px] border-black bg-[#FF8C69] flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mx-auto sm:mx-0 shrink-0">
+                <LinkIcon className="w-8 h-8 text-black" />
+              </div>
+              <div>
+                <h2 className="text-xl sm:text-2xl font-black uppercase">Amazon Tracking ID</h2>
+                <p className="text-sm sm:text-base text-black/70 font-medium">
+                  Save your Amazon Associates tracking ID here so every Kiwikoo product link is generated with your affiliate tag.
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveAmazonTrackingId} className="space-y-6 max-w-xl">
+              <div className="space-y-2">
+                <label htmlFor="amazonTrackingId" className="block text-sm font-bold uppercase tracking-wide text-black">
+                  Tracking ID
+                </label>
+                <div className="relative">
+                  <input
+                    id="amazonTrackingId"
+                    type="text"
+                    value={amazonTrackingId}
+                    onChange={(e) => setAmazonTrackingId(e.target.value)}
+                    placeholder="rahulinsta-21"
+                    className="w-full px-4 py-3 bg-white border-[3px] border-black text-black font-bold lowercase focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all placeholder:text-black/30"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                  />
+                  <LinkIcon className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-black/40" />
+                </div>
+                <p className="text-xs font-bold text-black/50 uppercase tracking-wide">
+                  Example: `rahulinsta-21`. Leave blank to use the platform default tag.
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                disabled={trackingIdSaving}
+                className="w-full py-4 bg-black text-white font-black uppercase tracking-wider border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] hover:bg-white hover:text-black transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {trackingIdSaving ? (
+                  <>
+                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+                      <Sparkles className="w-5 h-5" />
+                    </motion.div>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-5 h-5" />
+                    Save Amazon Tracking ID
+                  </>
+                )}
+              </button>
+            </form>
+          </BrutalCard>
+        )}
 
         <BrutalCard title="Account Security">
           <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6 mb-8 text-center sm:text-left">

@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
+import {
+  getAffiliateCommissionAmount,
+  getAffiliateOrderCount,
+  getAffiliateRevenueAmount,
+  isRealAffiliateEvent,
+} from '@/lib/affiliate/events'
 
 export const dynamic = 'force-dynamic'
 
@@ -70,10 +76,6 @@ function normalizeRole(value: unknown): Role | null {
   const role = String(value || '').toLowerCase()
   if (role === 'admin' || role === 'brand' || role === 'influencer') return role
   return null
-}
-
-function isRealPurchase(row: EventRow) {
-  return row.event_type === 'purchase' && row.metadata?.source !== 'simulation'
 }
 
 async function safeSelect<T>(
@@ -187,7 +189,7 @@ export async function GET(request: Request) {
           : links
     const scopedLinkIds = new Set(scopedLinks.map((link) => link.id))
 
-    const purchases = events.filter(isRealPurchase)
+    const purchases = events.filter((event) => isRealAffiliateEvent(event))
     const scopedEvents =
       role === 'influencer'
         ? purchases.filter((event) => event.influencer_id === user.id)
@@ -208,8 +210,8 @@ export async function GET(request: Request) {
     const profileNames = groupByIdName(profiles)
     const productsById = Object.fromEntries(products.map((product) => [product.id, product]))
     const brandNames = profileNames
-    const revenue = scopedEvents.reduce((sum, event) => sum + numberValue(event.amount), 0)
-    const orders = scopedEvents.length
+    const revenue = scopedEvents.reduce((sum, event) => sum + getAffiliateRevenueAmount(event), 0)
+    const orders = scopedEvents.reduce((sum, event) => sum + getAffiliateOrderCount(event), 0)
     const linkClicks = scopedLinks.reduce((sum, link) => sum + numberValue(link.click_count), 0)
     const trackedClicks = scopedClicks.length
     const totalClicks = Math.max(linkClicks, trackedClicks)
@@ -220,7 +222,7 @@ export async function GET(request: Request) {
       scopedCampaigns.reduce((sum, campaign) => sum + numberValue(campaign.conversions), 0),
       orders,
     )
-    const commission = revenue * 0.15
+    const commission = scopedEvents.reduce((sum, event) => sum + getAffiliateCommissionAmount(event), 0)
 
     const byDay = new Map<string, { day: string; clicks: number; orders: number; revenue: number }>()
     for (const click of scopedClicks) {
@@ -232,8 +234,8 @@ export async function GET(request: Request) {
     for (const event of scopedEvents) {
       const key = dayKey(event.created_at)
       const row = byDay.get(key) || { day: key, clicks: 0, orders: 0, revenue: 0 }
-      row.orders += 1
-      row.revenue += numberValue(event.amount)
+      row.orders += getAffiliateOrderCount(event)
+      row.revenue += getAffiliateRevenueAmount(event)
       byDay.set(key, row)
     }
 
@@ -263,8 +265,8 @@ export async function GET(request: Request) {
         orders: 0,
         revenue: 0,
       }
-      row.orders += 1
-      row.revenue += numberValue(event.amount)
+      row.orders += getAffiliateOrderCount(event)
+      row.revenue += getAffiliateRevenueAmount(event)
       productStats.set(event.product_id, row)
     }
 
@@ -292,9 +294,9 @@ export async function GET(request: Request) {
         revenue: 0,
         commission: 0,
       }
-      row.orders += 1
-      row.revenue += numberValue(event.amount)
-      row.commission += numberValue(event.amount) * 0.15
+      row.orders += getAffiliateOrderCount(event)
+      row.revenue += getAffiliateRevenueAmount(event)
+      row.commission += getAffiliateCommissionAmount(event)
       influencerStats.set(event.influencer_id, row)
     }
 
@@ -321,8 +323,8 @@ export async function GET(request: Request) {
         orders: 0,
         revenue: 0,
       }
-      row.orders += 1
-      row.revenue += numberValue(event.amount)
+      row.orders += getAffiliateOrderCount(event)
+      row.revenue += getAffiliateRevenueAmount(event)
       brandStats.set(product.brand_id, row)
     }
 

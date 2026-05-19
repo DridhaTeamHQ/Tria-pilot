@@ -8,6 +8,7 @@ interface ProductLinkData {
   maskedUrl: string | null
   linkCode: string | null
   originalUrl: string | null
+  affiliateTag?: string | null
   productId: string
   productName: string | null
 }
@@ -82,6 +83,7 @@ export function useProductLink(productId: string | null, enabled: boolean = true
     displayUrl: shortenUrl(data?.originalUrl || null),
     linkCode: data?.linkCode || null,
     productName: data?.productName || null,
+    affiliateTag: data?.affiliateTag || null,
     loading: isLoading,
     error: error ? (error as Error).message : null,
     copied,

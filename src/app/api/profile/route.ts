@@ -7,12 +7,17 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
 import { z } from 'zod'
+import { normalizeAmazonTrackingId } from '@/lib/affiliate/amazon'
 import { getGenerationTagFromDob, normalizeDateOfBirth } from '@/lib/profile-demographics'
 
 const updateProfileSchema = z
   .object({
     name: z.string().trim().min(1).max(120).optional(),
     dateOfBirth: z.string().trim().max(40).optional(),
+    amazonTrackingId: z
+      .union([z.string().trim().max(64), z.null()])
+      .transform((value) => (value === null ? '' : value))
+      .optional(),
   })
   .strict()
 
@@ -34,11 +39,15 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
     }
 
-    const { name, dateOfBirth } = updateProfileSchema.parse(body)
+    const { name, dateOfBirth, amazonTrackingId } = updateProfileSchema.parse(body)
     const trimmedName = name?.trim()
     const normalizedDateOfBirth = normalizeDateOfBirth(dateOfBirth)
+    const normalizedAmazonTrackingId =
+      typeof amazonTrackingId === 'undefined'
+        ? undefined
+        : normalizeAmazonTrackingId(amazonTrackingId) || null
 
-    if (!trimmedName && typeof dateOfBirth === 'undefined') {
+    if (!trimmedName && typeof dateOfBirth === 'undefined' && typeof normalizedAmazonTrackingId === 'undefined') {
       return NextResponse.json({ error: 'Nothing to update' }, { status: 400 })
     }
 
@@ -102,6 +111,39 @@ export async function PATCH(request: Request) {
       if (metadataError) {
         console.error('[PROFILE PATCH] Failed to update demographics metadata:', metadataError)
         return NextResponse.json({ error: 'Failed to update date of birth' }, { status: 500 })
+      }
+    }
+
+    if (typeof normalizedAmazonTrackingId !== 'undefined') {
+      const { data: profileForRole, error: profileForRoleError } = await service
+        .from('profiles')
+        .select('role')
+        .eq('id', authUser.id)
+        .single()
+
+      if (profileForRoleError || !profileForRole) {
+        return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+      }
+
+      if (String(profileForRole.role || '').toLowerCase() !== 'influencer') {
+        return NextResponse.json({ error: 'Amazon tracking IDs are only available for influencer accounts' }, { status: 403 })
+      }
+
+      const { error: affiliateCodeError } = await service
+        .from('influencer_profiles')
+        .upsert(
+          {
+            user_id: authUser.id,
+            niches: [],
+            socials: {},
+            affiliate_code: normalizedAmazonTrackingId,
+          },
+          { onConflict: 'user_id' }
+        )
+
+      if (affiliateCodeError) {
+        console.error('[PROFILE PATCH] Failed to update affiliate code:', affiliateCodeError)
+        return NextResponse.json({ error: 'Failed to update Amazon tracking ID' }, { status: 500 })
       }
     }
 
@@ -172,6 +214,7 @@ export async function GET() {
           badgeTier: infProfile.badge_tier,
           badgeScore: infProfile.badge_score,
           gender: infProfile.gender,
+          amazonTrackingId: normalizeAmazonTrackingId(infProfile.affiliate_code),
           dateOfBirth,
           generationTag,
         }
