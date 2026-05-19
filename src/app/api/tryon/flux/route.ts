@@ -43,7 +43,7 @@ import {
 import { ipRateLimit } from '@/lib/security/ip-rate-limit'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 180
+export const maxDuration = 300
 
 const bodySchema = z.object({
   // 'flux2'   — FLUX.2 [pro], image-conditioned generation. Default.
