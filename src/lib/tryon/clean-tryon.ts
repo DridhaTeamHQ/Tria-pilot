@@ -301,11 +301,15 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
     // Orchestrator's "change X to Y, keep Z" prompt + identity/fidelity guards.
     const fluxPrompt = (
       `${sel.prompt} ` +
-      `Keep the person's face, hair, skin tone, body and pose identical to image 1. ` +
+      `Keep the person's face, hair, skin tone, body proportions and pose identical to image 1; ` +
+      `keep the background, camera angle, lighting and crop unchanged. ` +
       (hasFace ? `Image 3 is a close-up of this exact person's face — the output face MUST match image 3 precisely; do not generate a different face. ` : '') +
-      `Reproduce the garment's full pattern, embroidery, prints and texture detail from image 2 faithfully — do not simplify or wash out intricate motifs. ` +
-      `Photorealistic, natural fabric drape, no overlay or sticker effect.`
-    ).slice(0, 1500)
+      `Match the garment in image 2 exactly: same colours and hue, same neckline, sleeve length, hemline and overall fit. ` +
+      `Reproduce every pattern, embroidery, print and texture detail faithfully — do not simplify, recolour or wash out intricate motifs. ` +
+      `Any text, logo or graphic on the garment must be rendered sharp, correctly spelled and in the same position as image 2. ` +
+      `Do not add, remove or restyle garment elements. ` +
+      `Photorealistic, natural fabric drape with realistic shadows; no overlay, sticker, decal or pasted-on effect.`
+    ).slice(0, 1800)
 
     const dims = await detectDims(personBase64)
     const seed = (Date.now() % 1_000_000_000) + idx * 9973

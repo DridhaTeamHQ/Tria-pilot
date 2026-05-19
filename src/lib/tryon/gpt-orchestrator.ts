@@ -52,6 +52,20 @@ export interface OrchestrateResult {
 
 const isDev = process.env.NODE_ENV !== 'production'
 
+/**
+ * Detect an image's MIME type from its base64 magic bytes. The cleaned
+ * garment can be PNG (preprocessor output), JPEG or WEBP — labelling it
+ * wrong in the data: URL degrades how GPT-4o decodes the garment.
+ */
+function detectImageMime(base64: string): string {
+  const head = base64.slice(0, 16)
+  if (head.startsWith('iVBORw0KGgo')) return 'image/png'
+  if (head.startsWith('/9j/')) return 'image/jpeg'
+  if (head.startsWith('UklGR')) return 'image/webp'
+  if (head.startsWith('R0lGOD')) return 'image/gif'
+  return 'image/jpeg'
+}
+
 const SYSTEM_PROMPT = `You are an expert virtual try-on orchestrator. Your job: look at a clothing product and a pool of model photos, then decide which 3 photos will produce the best AI clothing-swap outputs, and write a tailored FLUX prompt for each.
 
 INPUT YOU RECEIVE:
@@ -240,16 +254,21 @@ export async function orchestrateTryOn(params: {
       {
         type: 'image_url',
         image_url: {
-          url: `data:image/jpeg;base64,${params.garmentBase64}`,
+          url: `data:${detectImageMime(params.garmentBase64)};base64,${params.garmentBase64}`,
           detail: 'high',
         },
       },
-      // Images 2..N = candidate photos
+      // Images 2..N = candidate photos.
+      // detail: 'high' — the compatibility filter (which existing-clothing
+      // matches the product → invisible swap) is the #1 quality mechanism.
+      // At 'low' detail GPT-4o sees ~85-token thumbnails and cannot reliably
+      // read top/bottom type and colour, so it mis-picks photos. 'high'
+      // costs more tokens but the selection accuracy is worth it.
       ...candidatesForCall.map((c) => ({
         type: 'image_url' as const,
         image_url: {
           url: c.imageUrl,
-          detail: 'low' as const, // low detail = ~85 tokens vs 700 — affordable at scale
+          detail: 'high' as const,
         },
       })),
     ]
