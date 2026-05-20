@@ -303,13 +303,20 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
       `${sel.prompt} ` +
       `Keep the person's face, hair, skin tone, body proportions and pose identical to image 1; ` +
       `keep the background, camera angle, lighting and crop unchanged. ` +
+      // FRAMING LOCK — without this FLUX-2 [pro] re-centres on the face,
+      // shrinking the visible torso and producing head-heavy outputs where
+      // the new garment barely shows. Pin the head-to-body ratio to image 1.
+      `Critical framing rule: do NOT zoom in, do NOT recompose the shot, do NOT enlarge the head. ` +
+      `The head must occupy the SAME percentage of the frame as in image 1 — no bigger. ` +
+      `Show exactly the same amount of body that is visible in image 1: if the waist is visible in image 1 it must be visible in the output; if full body is shown, keep it full body. ` +
+      `Preserve the original head-to-torso size ratio precisely. ` +
       (hasFace ? `Image 3 is a close-up of this exact person's face — the output face MUST match image 3 precisely; do not generate a different face. ` : '') +
       `Match the garment in image 2 exactly: same colours and hue, same neckline, sleeve length, hemline and overall fit. ` +
       `Reproduce every pattern, embroidery, print and texture detail faithfully — do not simplify, recolour or wash out intricate motifs. ` +
       `Any text, logo or graphic on the garment must be rendered sharp, correctly spelled and in the same position as image 2. ` +
       `Do not add, remove or restyle garment elements. ` +
       `Photorealistic, natural fabric drape with realistic shadows; no overlay, sticker, decal or pasted-on effect.`
-    ).slice(0, 1800)
+    ).slice(0, 2000)
 
     const dims = await detectDims(personBase64)
     const seed = (Date.now() % 1_000_000_000) + idx * 9973
