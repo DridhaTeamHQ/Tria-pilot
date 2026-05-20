@@ -20,8 +20,9 @@ export function normalizeAmazonProductUrl(url: string | null | undefined): strin
   if (!url) return null
 
   try {
-    const parsed = new URL(url.trim())
-    return parsed.toString()
+    const trimmed = url.trim()
+    new URL(trimmed)
+    return trimmed
   } catch {
     return null
   }
