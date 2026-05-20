@@ -175,9 +175,11 @@ export async function orchestrateTryOn(params: {
   try {
     const openai = getOpenAI()
 
-    // Cap candidate pool at 8 — costs scale with image count and 8 is
-    // more than enough to find 3 good picks.
-    const candidatesForCall = params.candidates.slice(0, 8)
+    // Cap candidate pool at 6 — at detail:'high' each image is expensive
+    // (~1k tokens) and 6 still gives the orchestrator real choice when we
+    // only need 3. Smaller pool also returns 3-5s faster, which directly
+    // protects against function-timeout when OpenAI is slow.
+    const candidatesForCall = params.candidates.slice(0, 6)
 
     // Build a candidate manifest so GPT-4o knows which photo is which
     const manifest = candidatesForCall.map((c, idx) => {

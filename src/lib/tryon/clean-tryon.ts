@@ -201,7 +201,7 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
     console.log(`🎲 [clean] variety window: ${orchestratorPool.length}/${input.candidatePhotos.length} photos → ${orchestratorPool.map((p) => p.id.slice(0, 6)).join(', ')}`)
   }
 
-  const candidates: PhotoCandidate[] = orchestratorPool.slice(0, 8).map((p) => ({
+  const candidates: PhotoCandidate[] = orchestratorPool.slice(0, 6).map((p) => ({
     id: p.id,
     imageUrl: p.imageUrl,
     bodyVisibility: p.bodyVisibility,
@@ -338,7 +338,10 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
           height: dims.height,
           outputFormat: 'png',
           safetyTolerance: 5,
-          timeoutMs: 120_000,
+          // 90s per attempt × 2 attempts = 185s worst-case slot. 3 parallel
+          // slots + orchestrator fit in ~210s with 90s headroom against the
+          // 300s function limit — was 240s/slot leaving only ~10s margin.
+          timeoutMs: 90_000,
           model: 'flux-2-pro',
           seed: seed + attempt,
         })
@@ -377,23 +380,19 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
     if (fluxModerationBlocked) {
       try {
         if (isDev) console.log(`🍌 Slot ${idx + 1} → FLUX moderation-blocked, falling back to Gemini`)
-        const prevEngine = process.env.TRYON_ENGINE
-        process.env.TRYON_ENGINE = 'gemini'
-        let geminiOut: string
-        try {
-          geminiOut = await generateTryOnDirect({
-            personImageBase64: personBase64,
-            garmentImageBase64: cleanedGarment,
-            faceCropBase64: hasFace ? faceCropBase64 : undefined,
-            prompt: fluxPrompt,
-            aspectRatio: input.aspectRatio || '4:5',
-            model: 'gemini-3.1-flash-image-preview',
-            garmentIntel: intel,
-          } as any)
-        } finally {
-          if (prevEngine === undefined) delete process.env.TRYON_ENGINE
-          else process.env.TRYON_ENGINE = prevEngine
-        }
+        // engineOverride forces Gemini for THIS call only — no
+        // process.env.TRYON_ENGINE mutation that would race other
+        // concurrent generations on the same Vercel instance.
+        const geminiOut = await generateTryOnDirect({
+          personImageBase64: personBase64,
+          garmentImageBase64: cleanedGarment,
+          faceCropBase64: hasFace ? faceCropBase64 : undefined,
+          prompt: fluxPrompt,
+          aspectRatio: input.aspectRatio || '4:5',
+          model: 'gemini-3.1-flash-image-preview',
+          garmentIntel: intel,
+          engineOverride: 'gemini',
+        } as any)
         if (geminiOut && geminiOut.length > 100) {
           if (isDev) console.log(`✨ [clean] Slot ${idx + 1} recovered via Gemini in ${Date.now() - slotStart}ms`)
           return {

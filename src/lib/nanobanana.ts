@@ -440,6 +440,13 @@ export interface DirectTryOnOptions {
    * written by an orchestrator) — skip template building.
    */
   useExplicitPrompt?: boolean
+  /**
+   * Force a specific engine for this single call, bypassing the
+   * TRYON_ENGINE env var entirely. Used by the moderation fallback to
+   * route a single slot to Gemini WITHOUT mutating process.env (which
+   * would race other concurrent generations on the same instance).
+   */
+  engineOverride?: 'flux' | 'gemini'
 }
 
 /**
@@ -459,18 +466,22 @@ export interface DirectTryOnOptions {
  * Content order: [person_image, garment_image, face_crop, character_refs, prompt_text]
  */
 export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<string> {
-  // Engine selection. Defaults to 'flux' when FLUX_API_KEY is set,
-  // 'gemini' otherwise. Override with TRYON_ENGINE=gemini|flux.
+  // Engine selection.
+  // Priority: options.engineOverride > TRYON_ENGINE env > FLUX_API_KEY presence.
+  // engineOverride lets a single call force an engine WITHOUT mutating
+  // process.env, which would race other concurrent generations.
   const explicitEngine = (process.env.TRYON_ENGINE || '').trim().toLowerCase()
   const fluxKeyConfigured = Boolean((process.env.FLUX_API_KEY || '').trim())
-  const engine =
-    explicitEngine === 'gemini'
-      ? 'gemini'
-      : explicitEngine === 'flux'
-        ? 'flux'
-        : fluxKeyConfigured
+  const engine: 'flux' | 'gemini' =
+    options.engineOverride === 'gemini' || options.engineOverride === 'flux'
+      ? options.engineOverride
+      : explicitEngine === 'gemini'
+        ? 'gemini'
+        : explicitEngine === 'flux'
           ? 'flux'
-          : 'gemini'
+          : fluxKeyConfigured
+            ? 'flux'
+            : 'gemini'
 
   if (engine === 'flux') {
     const { generateTryOnFlux } = await import('@/lib/flux/tryon-engine')
