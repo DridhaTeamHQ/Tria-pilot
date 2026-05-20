@@ -16,7 +16,7 @@ const BRAND_TYPE_OPTIONS = ['Fast Fashion', 'Luxury', 'Sustainable', 'Streetwear
 const AUDIENCE_OPTIONS = ['Men', 'Women', 'Unisex', 'Kids']
 const PRODUCT_TYPE_OPTIONS = ['Clothing', 'Accessories', 'Footwear', 'Beauty', 'Lifestyle', 'Jewelry']
 const VERTICAL_OPTIONS = ['Fashion', 'Tech', 'Lifestyle', 'Sports', 'Entertainment', 'Other']
-const BUDGET_RANGES = ['$0-1k', '$1k-5k', '$5k-10k', '$10k-25k', '$25k+']
+const BUDGET_RANGES = ['₹0-25k', '₹25k-1L', '₹1L-3L', '₹3L-10L', '₹10L+']
 const TOTAL_STEPS = 7
 
 export default function BrandOnboardingPage() {

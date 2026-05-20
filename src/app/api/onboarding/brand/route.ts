@@ -7,13 +7,24 @@ import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
 import { z } from 'zod'
 
+function normalizeOptionalUrlInput(value: unknown) {
+  if (typeof value !== 'string') return value
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  return `https://${trimmed}`
+}
+
 const onboardingSchema = z
   .object({
     companyName: z.string().trim().max(120).optional(),
     brandType: z.string().trim().max(80).optional(),
     targetAudience: z.array(z.string().trim().max(80)).max(20).optional(),
     productTypes: z.array(z.string().trim().max(80)).max(50).optional(),
-    website: z.string().trim().url().max(2048).optional().or(z.literal('')),
+    website: z.preprocess(
+      normalizeOptionalUrlInput,
+      z.string().trim().url().max(2048).optional().or(z.literal('')),
+    ),
     vertical: z.string().trim().max(120).optional(),
     budgetRange: z.string().trim().max(80).optional(),
     description: z.string().trim().max(4000).optional(),
@@ -128,7 +139,10 @@ export async function POST(request: Request) {
     console.error('Onboarding error:', error)
 
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid request data' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Invalid request data', details: error.flatten() },
+        { status: 400 },
+      )
     }
 
     return NextResponse.json(

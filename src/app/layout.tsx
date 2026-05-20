@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next'
 import type React from 'react'
-import { Bungee } from 'next/font/google'
 import AuthToastBridge from '@/components/auth-toast-bridge'
 import { Toaster } from '@/components/ui/sonner'
 import NavSwitcher from '@/components/landing/NavSwitcher'
@@ -12,12 +11,6 @@ import RouteProgress from '@/components/route-progress'
 import { getCurrentUserPayload, toCurrentUserQueryData } from '@/lib/current-user'
 import './globals.css'
 import { ReactLenis } from '@/lib/lenis'
-
-const bungee = Bungee({
-  subsets: ['latin'],
-  weight: '400',
-  variable: '--font-bungee',
-})
 
 export const metadata: Metadata = {
   title: 'Kiwikoo - AI Fashion Try-On Discovery',
@@ -39,6 +32,7 @@ export const viewport: Viewport = {
 // Defined at module level so the object reference is stable across SSR and client,
 // preventing React's hydration mismatch on the <body> style prop.
 const FONT_VARS = {
+  '--font-bungee': '"Arial Black", Impact, sans-serif',
   '--font-plus-jakarta-sans': '"Plus Jakarta Sans", Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif',
   '--font-playfair': 'Playfair Display, Georgia, Cambria, "Times New Roman", serif',
   '--font-inter': 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif',
@@ -55,7 +49,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${bungee.variable} antialiased bg-cream text-charcoal`} style={FONT_VARS} suppressHydrationWarning>
+      <body className="antialiased bg-cream text-charcoal" style={FONT_VARS} suppressHydrationWarning>
         <ReactQueryProvider initialUser={initialUser}>
           <Toaster />
           <AuthToastBridge />
