@@ -129,7 +129,8 @@ export function useInboxRealtime({ userId, onMessage, onConversationUpdate }: Op
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      void channel.unsubscribe()
+      void supabase.removeChannel(channel)
     }
   }, [userId])
 }

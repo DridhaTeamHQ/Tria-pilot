@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useId, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AppImage } from '@/components/ui/AppImage'
@@ -107,6 +107,18 @@ async function compressImageDataUrl(dataUrl: string): Promise<string> {
 
 export default function ProductsClient({ initialProducts }: ProductsClientProps) {
     const router = useRouter()
+    const nameId = useId()
+    const descriptionId = useId()
+    const priceId = useId()
+    const discountId = useId()
+    const categoryId = useId()
+    const audienceId = useId()
+    const stockId = useId()
+    const skuId = useId()
+    const tryOnCompatibleId = useId()
+    const linkId = useId()
+    const tagsId = useId()
+    const imagesId = useId()
     // Hydrate state from Server Prop
     const [products, setProducts] = useState<Product[]>(initialProducts)
     // No loading state needed for initial load (it's instant)
@@ -529,10 +541,11 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                                 {/* Basic Info */}
                                 <div className="space-y-6">
                                     <div className="space-y-2">
-                                        <label className="block text-xs font-black uppercase tracking-wider text-black">
+                                        <label htmlFor={nameId} className="block text-xs font-black uppercase tracking-wider text-black">
                                             Product Name
                                         </label>
                                         <input
+                                            id={nameId}
                                             type="text"
                                             required
                                             value={name}
@@ -543,10 +556,11 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="block text-xs font-black uppercase tracking-wider text-black">
+                                        <label htmlFor={descriptionId} className="block text-xs font-black uppercase tracking-wider text-black">
                                             Description
                                         </label>
                                         <textarea
+                                            id={descriptionId}
                                             value={description}
                                             onChange={(e) => setDescription(e.target.value)}
                                             rows={4}
@@ -558,10 +572,11 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                                     {/* Price and Discount */}
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                         <div className="space-y-2">
-                                            <label className="block text-xs font-black uppercase tracking-wider text-black">
+                                            <label htmlFor={priceId} className="block text-xs font-black uppercase tracking-wider text-black">
                                                 Price (₹)
                                             </label>
                                             <input
+                                                id={priceId}
                                                 type="number"
                                                 required
                                                 value={price}
@@ -571,10 +586,11 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="block text-xs font-black uppercase tracking-wider text-black">
+                                            <label htmlFor={discountId} className="block text-xs font-black uppercase tracking-wider text-black">
                                                 Discount (%)
                                             </label>
                                             <input
+                                                id={discountId}
                                                 type="number"
                                                 value={discount}
                                                 onChange={(e) => setDiscount(e.target.value)}
@@ -586,11 +602,12 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                         <div className="space-y-2">
-                                            <label className="block text-xs font-black uppercase tracking-wider text-black">
+                                            <label htmlFor={categoryId} className="block text-xs font-black uppercase tracking-wider text-black">
                                                 Category
                                             </label>
                                             <div className="relative">
                                                 <select
+                                                    id={categoryId}
                                                     value={category}
                                                     onChange={(e) => setCategory(e.target.value)}
                                                     className="w-full px-4 py-3 border-2 border-black font-bold focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none appearance-none pr-10 bg-white"
@@ -607,11 +624,12 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                                             </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="block text-xs font-black uppercase tracking-wider text-black">
+                                            <label htmlFor={audienceId} className="block text-xs font-black uppercase tracking-wider text-black">
                                                 Target Audience
                                             </label>
                                             <div className="relative">
                                                 <select
+                                                    id={audienceId}
                                                     value={audience}
                                                     onChange={(e) => setAudience(e.target.value)}
                                                     className="w-full px-4 py-3 border-2 border-black font-bold focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none appearance-none pr-10 bg-white"
@@ -631,10 +649,11 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                         <div className="space-y-2">
-                                            <label className="block text-xs font-black uppercase tracking-wider text-black">
+                                            <label htmlFor={stockId} className="block text-xs font-black uppercase tracking-wider text-black">
                                                 Stock
                                             </label>
                                             <input
+                                                id={stockId}
                                                 type="number"
                                                 value={stock}
                                                 onChange={(e) => setStock(e.target.value)}
@@ -643,10 +662,11 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="block text-xs font-black uppercase tracking-wider text-black">
+                                            <label htmlFor={skuId} className="block text-xs font-black uppercase tracking-wider text-black">
                                                 SKU
                                             </label>
                                             <input
+                                                id={skuId}
                                                 type="text"
                                                 value={sku}
                                                 onChange={(e) => setSku(e.target.value)}
@@ -656,9 +676,10 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                                         </div>
                                     </div>
 
-                                    <label className="flex items-center gap-3 cursor-pointer group">
+                                    <label htmlFor={tryOnCompatibleId} className="flex items-center gap-3 cursor-pointer group">
                                         <div className="relative flex items-center justify-center">
                                             <input
+                                                id={tryOnCompatibleId}
                                                 type="checkbox"
                                                 checked={tryOnCompatible}
                                                 onChange={(e) => setTryOnCompatible(e.target.checked)}
@@ -676,10 +697,11 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                                     </label>
 
                                     <div className="space-y-2">
-                                        <label className="block text-xs font-black uppercase tracking-wider text-black">
+                                        <label htmlFor={linkId} className="block text-xs font-black uppercase tracking-wider text-black">
                                             Product Link
                                           </label>
                                           <input
+                                              id={linkId}
                                               type="url"
                                               value={link}
                                               onChange={(e) => setLink(e.target.value)}
@@ -692,10 +714,11 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="block text-xs font-black uppercase tracking-wider text-black">
+                                        <label htmlFor={tagsId} className="block text-xs font-black uppercase tracking-wider text-black">
                                             Tags (Comma Separated)
                                         </label>
                                         <input
+                                            id={tagsId}
                                             type="text"
                                             value={tags}
                                             onChange={(e) => setTags(e.target.value)}
@@ -706,7 +729,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
 
                                     {/* Images */}
                                     <div className="space-y-4">
-                                        <label className="block text-xs font-black uppercase tracking-wider text-black">
+                                        <label htmlFor={imagesId} className="block text-xs font-black uppercase tracking-wider text-black">
                                             Product Images
                                         </label>
 
@@ -793,7 +816,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                                                 </div>
                                             ))}
                                         </div>
-                                        <input ref={fileInputRef} type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" />
+                                        <input id={imagesId} ref={fileInputRef} type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" />
                                     </div>
                                 </div>
 

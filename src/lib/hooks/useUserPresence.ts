@@ -59,7 +59,9 @@ export function useUserPresence({ targetUserId, viewerUserId }: Options) {
       })
 
     return () => {
-      supabase.removeChannel(channel)
+      void channel.untrack().catch(() => undefined)
+      void channel.unsubscribe()
+      void supabase.removeChannel(channel)
       setIsOnline(false)
     }
   }, [targetUserId, viewerUserId])

@@ -161,18 +161,7 @@ export default function BrandAdsInpaintPage() {
               <p className="text-xs font-semibold text-black/55">Fetching your creative...</p>
             </div>
           </div>
-          <div className="rounded-2xl border-[3px] border-black bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] aspect-[4/5] inpaint-skel" />
-          <style jsx>{`
-            @keyframes shimmer {
-              0% { background-position: -200% 0; }
-              100% { background-position: 200% 0; }
-            }
-            .inpaint-skel {
-              background: linear-gradient(90deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.10) 50%, rgba(0,0,0,0.04) 100%);
-              background-size: 200% 100%;
-              animation: shimmer 1.5s ease-in-out infinite;
-            }
-          `}</style>
+          <div className="inpaint-skel aspect-[4/5] rounded-2xl border-[3px] border-black bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]" />
         </div>
       </div>
     )

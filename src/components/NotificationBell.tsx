@@ -233,7 +233,7 @@ export default function NotificationBell({
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-[min(360px,calc(100vw-2rem))] bg-white border-[3px] border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] rounded-xl overflow-hidden z-50 animate-fadeIn">
+        <div className="absolute right-0 top-full mt-2 w-[min(360px,calc(100vw-2rem))] bg-white border-[3px] border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] rounded-xl overflow-hidden z-50 animate-fade-in">
           <div className="px-4 py-3 border-b-2 border-black flex items-center justify-between bg-[#F9F8F4]">
             <div className="flex items-center gap-2">
               <Bell className="w-4 h-4" strokeWidth={3} />
@@ -293,10 +293,6 @@ export default function NotificationBell({
         </div>
       )}
 
-      <style jsx>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fadeIn { animation: fadeIn 0.15s ease-out; }
-      `}</style>
     </div>
   )
 }

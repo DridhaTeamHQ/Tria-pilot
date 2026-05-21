@@ -171,22 +171,6 @@ export function FilterDropdown<V extends string | number>(props: Props<V>) {
         )}
       </div>
 
-      <style jsx global>{`
-        @keyframes filterPopIn {
-          from {
-            opacity: 0;
-            transform: translateY(8px) scale(0.98);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-        .filter-pop {
-          animation: filterPopIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
-          transform-origin: top center;
-        }
-      `}</style>
     </>
   )
 }

@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import Link from 'next/link'
 import { toast } from '@/lib/simple-sonner'
 import { motion } from 'framer-motion'
 import { ArrowRight, ArrowLeft, Mail, Loader2, KeyRound, Sparkles, Shield } from 'lucide-react'
 
 export default function ForgotPasswordPage() {
+  const emailId = useId()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
@@ -195,12 +196,13 @@ export default function ForgotPasswordPage() {
                   <form onSubmit={handleSubmit} className="space-y-5">
                     {/* Email */}
                     <div>
-                      <label className="block text-sm font-bold text-black mb-1.5">Email</label>
+                      <label htmlFor={emailId} className="block text-sm font-bold text-black mb-1.5">Email</label>
                       <div className="relative">
                         <div className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-[#FFD93D] rounded-lg border-2 border-black flex items-center justify-center">
                           <Mail className="w-4 h-4 text-black" strokeWidth={2.5} />
                         </div>
                         <input
+                          id={emailId}
                           type="email"
                           placeholder="you@example.com"
                           value={email}
@@ -252,4 +254,3 @@ export default function ForgotPasswordPage() {
     </div>
   )
 }
-

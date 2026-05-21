@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import Image from 'next/image'
 import {
   Brush,
@@ -95,6 +95,9 @@ export default function AdInpaintModal({
   onApply,
   embedded = false,
 }: AdInpaintModalProps) {
+  const brushSizeId = useId()
+  const referenceInputId = useId()
+  const promptId = useId()
   const imageRef = useRef<HTMLImageElement | null>(null)
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const exportCanvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -524,23 +527,23 @@ export default function AdInpaintModal({
                 )}
 
                 <div>
-                  <div className="mb-2 flex items-center justify-between gap-3 text-[11px] font-black uppercase tracking-[0.18em] text-black/70"><span>Brush Size</span><span>{brushSize}px</span></div>
-                  <input type="range" min="16" max="180" step="2" value={brushSize} onChange={(event) => setBrushSize(Number(event.target.value))} className="w-full accent-black" />
+                  <div className="mb-2 flex items-center justify-between gap-3 text-[11px] font-black uppercase tracking-[0.18em] text-black/70"><label htmlFor={brushSizeId}>Brush Size</label><span>{brushSize}px</span></div>
+                  <input id={brushSizeId} type="range" min="16" max="180" step="2" value={brushSize} onChange={(event) => setBrushSize(Number(event.target.value))} className="w-full accent-black" />
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.18em] text-black/70">Reference Image</label>
-                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border-[3px] border-dashed border-black bg-[#FFFDF5] px-4 py-4 text-sm font-black uppercase text-black">
+                  <label htmlFor={referenceInputId} className="mb-2 block text-[11px] font-black uppercase tracking-[0.18em] text-black/70">Reference Image</label>
+                  <label htmlFor={referenceInputId} className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border-[3px] border-dashed border-black bg-[#FFFDF5] px-4 py-4 text-sm font-black uppercase text-black">
                     <ImagePlus className="h-4 w-4" />
                     {referenceImageBase64 ? 'Replace Reference Image' : 'Upload Product / Reference'}
-                    <input type="file" accept="image/*" className="hidden" onChange={handleReferenceUpload} />
+                    <input id={referenceInputId} type="file" accept="image/*" className="hidden" onChange={handleReferenceUpload} />
                   </label>
                   {referenceImageBase64 && <div className="mt-3 overflow-hidden rounded-2xl border-[3px] border-black bg-white"><Image src={referenceImageBase64} alt="Reference" width={640} height={320} unoptimized className="h-40 w-full object-contain bg-[#FFFDF5]" /></div>}
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.18em] text-black/70">Edit Prompt</label>
-                  <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Describe the creative change naturally. Example: make him hold this product and shift to a stronger camera angle." rows={6} className="w-full rounded-2xl border-[3px] border-black bg-[#FFFDF5] px-4 py-3 text-sm font-semibold text-black outline-none placeholder:text-black/35" />
+                  <label htmlFor={promptId} className="mb-2 block text-[11px] font-black uppercase tracking-[0.18em] text-black/70">Edit Prompt</label>
+                  <textarea id={promptId} value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Describe the creative change naturally. Example: make him hold this product and shift to a stronger camera angle." rows={6} className="w-full rounded-2xl border-[3px] border-black bg-[#FFFDF5] px-4 py-3 text-sm font-semibold text-black outline-none placeholder:text-black/35" />
                 </div>
 
                 <div className="flex flex-wrap gap-2">
@@ -569,4 +572,3 @@ export default function AdInpaintModal({
     </PortalModal>
   )
 }
-

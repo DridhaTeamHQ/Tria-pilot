@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, LayoutGroup } from 'framer-motion'
 import Link from 'next/link'
@@ -461,6 +461,8 @@ function AuthCard({
   floatingLabel,
   accentColor,
 }: AuthCardProps) {
+  const identifierId = useId()
+  const passwordId = useId()
   return (
     <div className="relative z-20 rounded-[20px] border-[3px] sm:border-[4px] border-black bg-white p-5 pt-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:p-6">
       <div className="absolute -top-5 left-8 inline-flex items-center gap-2 rounded-full border-[2px] sm:border-[3px] border-black bg-[#FFD93D] px-4 py-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
@@ -491,12 +493,13 @@ function AuthCard({
 
       <form onSubmit={handleSubmit} noValidate className="space-y-3.5">
         <div className="space-y-2">
-          <label className="text-xs font-black uppercase tracking-[0.2em] text-black">Username / Email</label>
+          <label htmlFor={identifierId} className="text-xs font-black uppercase tracking-[0.2em] text-black">Username / Email</label>
           <div className="relative">
             <div className="absolute left-3 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl border-[2px] border-black bg-white">
               <Mail className="h-4 w-4 text-black" strokeWidth={2.5} />
             </div>
             <input
+              id={identifierId}
               type="text"
               value={identifier}
               onChange={(e) => onIdentifierChange(e.target.value)}
@@ -509,7 +512,7 @@ function AuthCard({
 
         <div className="space-y-2">
           <div className="flex items-baseline justify-between">
-            <label className="text-xs font-black uppercase tracking-[0.2em] text-black">Password</label>
+            <label htmlFor={passwordId} className="text-xs font-black uppercase tracking-[0.2em] text-black">Password</label>
             <Link href="/forgot-password" className="hidden sm:block text-xs font-bold underline decoration-2 hover:text-[#FF8C69]">
               Forgot?
             </Link>
@@ -519,6 +522,7 @@ function AuthCard({
               <Lock className="h-4 w-4 text-black" strokeWidth={2.5} />
             </div>
             <input
+              id={passwordId}
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => onPasswordChange(e.target.value)}

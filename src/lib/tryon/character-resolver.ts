@@ -126,6 +126,7 @@ export async function resolveCharacterReferences(
         }))
 
         const availableTypes = new Set(allImages.map(img => img.imageType))
+        const imagesByType = new Map(allImages.map((img) => [img.imageType, img]))
 
         // Find best angles for this preset
         const desiredAngles = getDesiredAngles(presetId)
@@ -137,7 +138,7 @@ export async function resolveCharacterReferences(
         // First pass: pick from desired angles in priority order
         for (const angle of desiredAngles) {
             if (availableTypes.has(angle) && !usedTypes.has(angle)) {
-                const ref = allImages.find(img => img.imageType === angle)
+                const ref = imagesByType.get(angle)
                 if (ref) {
                     references.push(ref)
                     usedTypes.add(angle)
@@ -151,7 +152,7 @@ export async function resolveCharacterReferences(
             const facePriority: IdentityImageType[] = ['face_front', 'face_smile', 'face_left', 'face_right']
             for (const faceType of facePriority) {
                 if (availableTypes.has(faceType) && !usedTypes.has(faceType)) {
-                    const ref = allImages.find(img => img.imageType === faceType)
+                    const ref = imagesByType.get(faceType)
                     if (ref) {
                         references.push(ref)
                         usedTypes.add(faceType)

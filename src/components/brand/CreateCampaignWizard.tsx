@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from '@/lib/simple-sonner'
@@ -63,6 +63,21 @@ const defaultForm = {
 
 export default function CreateCampaignWizard() {
   const router = useRouter()
+  const titleId = useId()
+  const ageMinId = useId()
+  const ageMaxId = useId()
+  const genderId = useId()
+  const locationId = useId()
+  const interestsId = useId()
+  const productFieldId = useId()
+  const headlineId = useId()
+  const descriptionId = useId()
+  const ctaId = useId()
+  const assetsId = useId()
+  const dailyBudgetId = useId()
+  const totalBudgetId = useId()
+  const startDateId = useId()
+  const endDateId = useId()
   const [step, setStep] = useState(1)
   const [form, setForm] = useState(defaultForm)
   const [interestsInput, setInterestsInput] = useState('')
@@ -217,10 +232,11 @@ export default function CreateCampaignWizard() {
         {step === 1 && (
           <div className="space-y-6">
             <div>
-              <label className="block text-xs font-black uppercase tracking-wider mb-2">
+              <label htmlFor={titleId} className="block text-xs font-black uppercase tracking-wider mb-2">
                 Campaign title *
               </label>
               <input
+                id={titleId}
                 type="text"
                 value={form.title}
                 onChange={(e) => updateForm('title', e.target.value)}
@@ -257,10 +273,11 @@ export default function CreateCampaignWizard() {
           <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-black uppercase tracking-wider mb-2">
+                <label htmlFor={ageMinId} className="block text-xs font-black uppercase tracking-wider mb-2">
                   Age min
                 </label>
                 <input
+                  id={ageMinId}
                   type="number"
                   min={0}
                   max={100}
@@ -273,10 +290,11 @@ export default function CreateCampaignWizard() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-black uppercase tracking-wider mb-2">
+                <label htmlFor={ageMaxId} className="block text-xs font-black uppercase tracking-wider mb-2">
                   Age max
                 </label>
                 <input
+                  id={ageMaxId}
                   type="number"
                   min={0}
                   max={100}
@@ -290,10 +308,11 @@ export default function CreateCampaignWizard() {
               </div>
             </div>
             <div>
-              <label className="block text-xs font-black uppercase tracking-wider mb-2">
+              <label htmlFor={genderId} className="block text-xs font-black uppercase tracking-wider mb-2">
                 Gender
               </label>
               <select
+                id={genderId}
                 value={form.audience.gender}
                 onChange={(e) => updateAudience('gender', e.target.value)}
                 className="w-full px-4 py-3 border-2 border-black font-bold bg-white focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
@@ -306,10 +325,11 @@ export default function CreateCampaignWizard() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-black uppercase tracking-wider mb-2">
+              <label htmlFor={locationId} className="block text-xs font-black uppercase tracking-wider mb-2">
                 Location
               </label>
               <input
+                id={locationId}
                 type="text"
                 value={form.audience.location}
                 onChange={(e) => updateAudience('location', e.target.value)}
@@ -318,11 +338,12 @@ export default function CreateCampaignWizard() {
               />
             </div>
             <div>
-              <label className="block text-xs font-black uppercase tracking-wider mb-2">
+              <label htmlFor={interestsId} className="block text-xs font-black uppercase tracking-wider mb-2">
                 Interests (add one or comma-separated)
               </label>
               <div className="flex flex-col sm:flex-row gap-2">
                 <input
+                  id={interestsId}
                   type="text"
                   value={interestsInput}
                   onChange={(e) => setInterestsInput(e.target.value)}
@@ -366,10 +387,11 @@ export default function CreateCampaignWizard() {
         {step === 3 && (
           <div className="space-y-6">
             <div>
-              <label className="block text-xs font-black uppercase tracking-wider mb-2">
+              <label htmlFor={productFieldId} className="block text-xs font-black uppercase tracking-wider mb-2">
                 Product (optional)
               </label>
               <select
+                id={productFieldId}
                 value={form.creative.product_id}
                 onChange={(e) => updateCreative('product_id', e.target.value)}
                 className="w-full px-4 py-3 border-2 border-black font-bold bg-white focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
@@ -387,10 +409,11 @@ export default function CreateCampaignWizard() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-black uppercase tracking-wider mb-2">
+              <label htmlFor={headlineId} className="block text-xs font-black uppercase tracking-wider mb-2">
                 Headline
               </label>
               <input
+                id={headlineId}
                 type="text"
                 value={form.creative.headline}
                 onChange={(e) => updateCreative('headline', e.target.value)}
@@ -399,10 +422,11 @@ export default function CreateCampaignWizard() {
               />
             </div>
             <div>
-              <label className="block text-xs font-black uppercase tracking-wider mb-2">
+              <label htmlFor={descriptionId} className="block text-xs font-black uppercase tracking-wider mb-2">
                 Description
               </label>
               <textarea
+                id={descriptionId}
                 value={form.creative.description}
                 onChange={(e) => updateCreative('description', e.target.value)}
                 rows={3}
@@ -411,10 +435,11 @@ export default function CreateCampaignWizard() {
               />
             </div>
             <div>
-              <label className="block text-xs font-black uppercase tracking-wider mb-2">
+              <label htmlFor={ctaId} className="block text-xs font-black uppercase tracking-wider mb-2">
                 CTA button text
               </label>
               <input
+                id={ctaId}
                 type="text"
                 value={form.creative.cta_text}
                 onChange={(e) => updateCreative('cta_text', e.target.value)}
@@ -423,10 +448,11 @@ export default function CreateCampaignWizard() {
               />
             </div>
             <div>
-              <label className="block text-xs font-black uppercase tracking-wider mb-2">
+              <label htmlFor={assetsId} className="block text-xs font-black uppercase tracking-wider mb-2">
                 Image or video URLs (one per line)
               </label>
               <textarea
+                id={assetsId}
                 value={assetsInput}
                 onChange={(e) => setAssetsInput(e.target.value)}
                 onBlur={setCreativeAssetsFromInput}
@@ -477,10 +503,11 @@ export default function CreateCampaignWizard() {
             </div>
             {form.budget.budget_type === 'daily' && (
               <div>
-                <label className="block text-xs font-black uppercase tracking-wider mb-2">
+                <label htmlFor={dailyBudgetId} className="block text-xs font-black uppercase tracking-wider mb-2">
                   Daily budget (Rs.)
                 </label>
                 <input
+                  id={dailyBudgetId}
                   type="number"
                   min={0}
                   step={100}
@@ -495,10 +522,11 @@ export default function CreateCampaignWizard() {
             )}
             {form.budget.budget_type === 'lifetime' && (
               <div>
-                <label className="block text-xs font-black uppercase tracking-wider mb-2">
+                <label htmlFor={totalBudgetId} className="block text-xs font-black uppercase tracking-wider mb-2">
                   Total budget (Rs.)
                 </label>
                 <input
+                  id={totalBudgetId}
                   type="number"
                   min={0}
                   step={500}
@@ -513,10 +541,11 @@ export default function CreateCampaignWizard() {
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-black uppercase tracking-wider mb-2">
+                <label htmlFor={startDateId} className="block text-xs font-black uppercase tracking-wider mb-2">
                   Start date
                 </label>
                 <input
+                  id={startDateId}
                   type="date"
                   value={form.budget.start_date}
                   onChange={(e) => updateBudget('start_date', e.target.value)}
@@ -524,10 +553,11 @@ export default function CreateCampaignWizard() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-black uppercase tracking-wider mb-2">
+                <label htmlFor={endDateId} className="block text-xs font-black uppercase tracking-wider mb-2">
                   End date
                 </label>
                 <input
+                  id={endDateId}
                   type="date"
                   value={form.budget.end_date}
                   onChange={(e) => updateBudget('end_date', e.target.value)}

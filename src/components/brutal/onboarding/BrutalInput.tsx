@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { motion } from 'framer-motion'
 import { ExternalLink, Check, X, Loader2 } from 'lucide-react'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 
 interface BrutalInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     label: string
@@ -28,6 +28,8 @@ export function BrutalInput({
     ...props
 }: BrutalInputProps) {
     const [verifyState, setVerifyState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+    const generatedId = useId()
+    const inputId = props.id || generatedId
 
     const openSafeVerifyUrl = (rawUrl: string) => {
         try {
@@ -55,7 +57,7 @@ export function BrutalInput({
 
     return (
         <div className="space-y-1.5">
-            <Label className="text-black font-bold text-sm tracking-wide ml-1 flex items-center gap-2">
+            <Label htmlFor={inputId} className="text-black font-bold text-sm tracking-wide ml-1 flex items-center gap-2">
                 {icon}
                 {label}
             </Label>
@@ -64,6 +66,7 @@ export function BrutalInput({
                     <span className="absolute left-4 text-black/40 font-bold text-sm">{prefix}</span>
                 )}
                 <Input
+                    id={inputId}
                     className={`
             border-[2px] border-black rounded-xl px-3 sm:px-4 py-3 sm:py-6 text-sm sm:text-base font-medium 
             bg-white placeholder:text-black/30

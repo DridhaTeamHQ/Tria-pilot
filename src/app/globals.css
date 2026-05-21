@@ -84,6 +84,35 @@ body {
   text-transform: none;
 }
 
+@keyframes typingPulse {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.35;
+  }
+
+  30% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
+
+@keyframes filterPopIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.filter-pop {
+  animation: filterPopIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: top center;
+}
+
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
@@ -1011,4 +1040,20 @@ body:has(.onboarding-wrapper) main {
 
 .animate-bounce-slow {
   animation: bounce-slow 4s ease-in-out infinite;
+}
+
+@keyframes inpaintShimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.inpaint-skel {
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.04) 0%, rgba(0, 0, 0, 0.1) 50%, rgba(0, 0, 0, 0.04) 100%);
+  background-size: 200% 100%;
+  animation: inpaintShimmer 1.5s ease-in-out infinite;
 }

@@ -73,14 +73,22 @@ const DUMMY_CAMPAIGNS = [
 ]
 
 export default function MarketplaceClient({ products, categories, activeCategory }: MarketplaceClientProps) {
-    const router = useRouter()
+    const { prefetch } = useRouter()
     const [searchInput, setSearchInput] = useState('')
     const [searchQuery, setSearchQuery] = useState('')
     const [activeCampaign, setActiveCampaign] = useState(0)
     const [showFilters, setShowFilters] = useState(false)
     const [mounted, setMounted] = useState(false)
+    const [allowPrefetch, setAllowPrefetch] = useState(true)
 
     useEffect(() => { setMounted(true) }, [])
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return
+        const connection = (navigator as any).connection
+        const slowConnection = connection?.saveData || /2g/.test(connection?.effectiveType || '')
+        setAllowPrefetch(!slowConnection)
+    }, [])
 
     // Memoize filtered products
     const filteredProducts = useMemo(() => {
@@ -106,11 +114,12 @@ export default function MarketplaceClient({ products, categories, activeCategory
     }, [])
 
     useEffect(() => {
+        if (!allowPrefetch) return
         // Prefetch top visible product routes so first click feels instant.
-        products.slice(0, 8).forEach((p) => {
-            router.prefetch(`/marketplace/${p.id}`)
+        products.slice(0, 4).forEach((p) => {
+            prefetch(`/marketplace/${p.id}`)
         })
-    }, [products, router])
+    }, [allowPrefetch, prefetch, products])
 
     useEffect(() => {
         const interval = window.setInterval(() => {

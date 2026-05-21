@@ -42,8 +42,9 @@ export default function InfluencerFilters() {
       </CardHeader>
       <CardContent className="space-y-5">
         <div>
-          <Label className="text-sm font-medium mb-2 block text-zinc-700 dark:text-zinc-300">Niche</Label>
+          <Label htmlFor="influencer-filter-niche" className="text-sm font-medium mb-2 block text-zinc-700 dark:text-zinc-300">Niche</Label>
           <select
+            id="influencer-filter-niche"
             className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-600"
             value={searchParams.get('niche') || ''}
             onChange={(e) => updateFilter('niche', e.target.value)}
@@ -58,8 +59,9 @@ export default function InfluencerFilters() {
         </div>
 
         <div>
-          <Label className="text-sm font-medium mb-2 block text-zinc-700 dark:text-zinc-300">Audience</Label>
+          <Label htmlFor="influencer-filter-audience" className="text-sm font-medium mb-2 block text-zinc-700 dark:text-zinc-300">Audience</Label>
           <select
+            id="influencer-filter-audience"
             className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-600"
             value={searchParams.get('audience') || ''}
             onChange={(e) => updateFilter('audience', e.target.value)}
@@ -74,8 +76,9 @@ export default function InfluencerFilters() {
         </div>
 
         <div>
-          <Label className="text-sm font-medium mb-2 block text-zinc-700 dark:text-zinc-300">Gender</Label>
+          <Label htmlFor="influencer-filter-gender" className="text-sm font-medium mb-2 block text-zinc-700 dark:text-zinc-300">Gender</Label>
           <select
+            id="influencer-filter-gender"
             className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-600"
             value={searchParams.get('gender') || ''}
             onChange={(e) => updateFilter('gender', e.target.value)}
@@ -90,8 +93,9 @@ export default function InfluencerFilters() {
         </div>
 
         <div>
-          <Label className="text-sm font-medium mb-2 block text-zinc-700 dark:text-zinc-300">Preferred Categories</Label>
+          <Label htmlFor="influencer-filter-category" className="text-sm font-medium mb-2 block text-zinc-700 dark:text-zinc-300">Preferred Categories</Label>
           <select
+            id="influencer-filter-category"
             className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-600"
             value={searchParams.get('category') || ''}
             onChange={(e) => updateFilter('category', e.target.value)}
@@ -106,8 +110,9 @@ export default function InfluencerFilters() {
         </div>
 
         <div>
-          <Label className="text-sm font-medium mb-2 block text-zinc-700 dark:text-zinc-300">Badge Tier</Label>
+          <Label htmlFor="influencer-filter-badge" className="text-sm font-medium mb-2 block text-zinc-700 dark:text-zinc-300">Badge Tier</Label>
           <select
+            id="influencer-filter-badge"
             className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-600"
             value={searchParams.get('badge') || ''}
             onChange={(e) => updateFilter('badge', e.target.value)}
@@ -121,8 +126,9 @@ export default function InfluencerFilters() {
         </div>
 
         <div>
-          <Label className="text-sm font-medium mb-2 block text-zinc-700 dark:text-zinc-300">Sort By</Label>
+          <Label htmlFor="influencer-filter-sort" className="text-sm font-medium mb-2 block text-zinc-700 dark:text-zinc-300">Sort By</Label>
           <select
+            id="influencer-filter-sort"
             className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-600"
             value={searchParams.get('sortBy') || 'followers'}
             onChange={(e) => updateFilter('sortBy', e.target.value)}
@@ -138,4 +144,3 @@ export default function InfluencerFilters() {
     </Card>
   )
 }
-

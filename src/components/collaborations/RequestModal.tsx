@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -29,6 +29,8 @@ export default function RequestModal({
   productName,
   brandId,
 }: RequestModalProps) {
+  const brandFieldId = useId()
+  const productFieldId = useId()
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -146,14 +148,14 @@ export default function RequestModal({
           <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
             {brandName && (
               <div>
-                <Label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-black">Brand</Label>
-                <Input value={brandName} disabled className="border-[2px] border-black bg-white/80" />
+                <Label htmlFor={brandFieldId} className="mb-1.5 block text-xs font-black uppercase tracking-wide text-black">Brand</Label>
+                <Input id={brandFieldId} value={brandName} disabled className="border-[2px] border-black bg-white/80" />
               </div>
             )}
             {productName && (
               <div>
-                <Label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-black">Product</Label>
-                <Input value={productName} disabled className="border-[2px] border-black bg-white/80" />
+                <Label htmlFor={productFieldId} className="mb-1.5 block text-xs font-black uppercase tracking-wide text-black">Product</Label>
+                <Input id={productFieldId} value={productName} disabled className="border-[2px] border-black bg-white/80" />
               </div>
             )}
             <div>

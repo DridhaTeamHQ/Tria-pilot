@@ -7,15 +7,21 @@ import { useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import {
   AlertTriangle,
+  CalendarClock,
   Check,
   Copy,
   ExternalLink,
   Image as ImageIcon,
   Link as LinkIcon,
   Loader2,
+  Palette,
   RefreshCw,
   Sparkles,
+  SplitSquareVertical,
+  Stars,
+  TimerReset,
   Trash2,
+  TrendingUp,
   Upload,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -26,6 +32,7 @@ import { BrutalLoader } from '@/components/ui/BrutalLoader'
 import { MonaLisaGenerationLoader } from '@/components/ui/MonaLisaGenerationLoader'
 import CaptionGenerator from '@/components/creator/CaptionGenerator'
 import { useProductLink } from '@/lib/hooks/useProductLink'
+import { getBestTimeToPost } from '@/lib/creator-post-timing'
 
 const MIN_TRYON_SOURCES = 3
 const ASPECT_RATIOS = ['1:1', '4:5', '9:16'] as const
@@ -145,6 +152,25 @@ function pickProductImage(product: any, selected: string) {
   return first.imagePath ?? first.imageUrl ?? first.image_url ?? first.path ?? ''
 }
 
+type StyleInsight = {
+  label: string
+  score: number
+  summary: string
+  breakdown: {
+    fitMatch: number
+    colorHarmony: number
+    seasonalRelevance: number
+  }
+  shareCaption: string
+}
+
+type VariationCard = {
+  id: string
+  label: string
+  note: string
+  imageUrl: string
+}
+
 export default function TryOnPage() {
   return (
     <Suspense fallback={<div className="min-h-screen bg-[#FDFBF7] pt-24 flex items-center justify-center"><BrutalLoader size="lg" tone="influencer" label="Loading try-on studio" /></div>}>
@@ -176,6 +202,11 @@ function TryOnPageContent() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [result, setResult] = useState<any | null>(null)
   const [selectedOutputIndex, setSelectedOutputIndex] = useState(0)
+  const [resultViewMode, setResultViewMode] = useState<'tryon' | 'product' | 'split'>('tryon')
+  const [styleInsight, setStyleInsight] = useState<StyleInsight | null>(null)
+  const [loadingStyleInsight, setLoadingStyleInsight] = useState(false)
+  const [variationOutputs, setVariationOutputs] = useState<VariationCard[]>([])
+  const [generatingVariations, setGeneratingVariations] = useState(false)
   const [garmentIntel, setGarmentIntel] = useState<any | null>(null)
   const [loadingRecommend, setLoadingRecommend] = useState(false)
   const [selectionMode, setSelectionMode] = useState<'auto' | 'manual'>('auto')
@@ -191,6 +222,9 @@ function TryOnPageContent() {
     setResult(null)
     setGarmentIntel(null)
     setSelectedOutputIndex(0)
+    setResultViewMode('tryon')
+    setStyleInsight(null)
+    setVariationOutputs([])
     setSelectedGarmentImage('')
     setRetryAfterSeconds(0)
     setFailureModal(null)
@@ -245,6 +279,11 @@ function TryOnPageContent() {
     return []
   }, [result, selectedReferenceIds])
   const selectedOutput = outputs[selectedOutputIndex] ?? outputs[0] ?? null
+  const selectedOutputSrc = selectedOutput?.imageUrl
+    ? resolveStoredImageUrl(selectedOutput.imageUrl)
+    : toImageSrc(selectedOutput?.base64Image)
+  const productPreviewSrc = selectedProductImage ? resolveStoredImageUrl(selectedProductImage) : ''
+  const postTiming = useMemo(() => getBestTimeToPost(productData?.category), [productData?.category])
   const hasCompleteSelection = selectedReferenceIds.filter(Boolean).length === 3 && selectedPhotos.length === 3
   const hasManualSelection = selectionMode === 'manual' && hasCompleteSelection
   const readyForTryOn = currentRecommendations.totalApproved >= currentRecommendations.minRequired
@@ -262,6 +301,52 @@ function TryOnPageContent() {
     copied: linkCopied,
     copyLink,
   } = useProductLink(productId, shouldShowProductLink)
+
+  useEffect(() => {
+    const imageInput = selectedOutputSrc
+    if (!imageInput) {
+      setStyleInsight(null)
+      return
+    }
+
+    let cancelled = false
+
+    const loadStyleInsight = async () => {
+      setLoadingStyleInsight(true)
+      try {
+        const res = await fetch('/api/influencer/style-score', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            imageUrl: imageInput.startsWith('http') ? imageInput : undefined,
+            imageDataUrl: imageInput.startsWith('data:image/') ? imageInput : undefined,
+            productName: productData?.name,
+            productCategory: productData?.category,
+            productDescription: productData?.description,
+          }),
+        })
+        const data = await safeParseResponse<any>(res, 'style score')
+        if (!cancelled) {
+          setStyleInsight(data)
+        }
+      } catch {
+        if (!cancelled) {
+          setStyleInsight(null)
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingStyleInsight(false)
+        }
+      }
+    }
+
+    void loadStyleInsight()
+
+    return () => {
+      cancelled = true
+    }
+  }, [productData?.category, productData?.description, productData?.name, selectedOutputSrc])
 
   const loadLibrary = useCallback(async () => {
     setLoadingLibrary(true)
@@ -787,12 +872,14 @@ function TryOnPageContent() {
                     )}
                   </div>
                   <div className="grid grid-cols-3 gap-3 max-w-[600px] mx-auto">
-                    {outputs.map((output: any, index: number) => (
-                      <button key={index} type="button" onClick={() => setSelectedOutputIndex(index)} className={`relative aspect-[4/5] overflow-hidden rounded-2xl border-[3px] shadow-[4px_4px_0_0_#000] ${selectedOutputIndex === index ? 'border-[#FF8C69]' : 'border-black'}`}>
+                    {outputs.map((output: any, index: number) => {
+                      const outputKey = output.referenceImageId || output.imageUrl || output.label || `output-${index}`
+                      return (
+                      <button key={outputKey} type="button" onClick={() => setSelectedOutputIndex(index)} className={`relative aspect-[4/5] overflow-hidden rounded-2xl border-[3px] shadow-[4px_4px_0_0_#000] ${selectedOutputIndex === index ? 'border-[#FF8C69]' : 'border-black'}`}>
                         {output.imageUrl || output.base64Image ? <Image src={output.imageUrl ? resolveStoredImageUrl(output.imageUrl) : toImageSrc(output.base64Image)} alt={`Variant ${index}`} fill unoptimized className="object-cover" /> : <div className="flex h-full items-center justify-center bg-gray-100"><AlertTriangle className="h-5 w-5 text-black/30" /></div>}
                         <div className="absolute bottom-0 inset-x-0 bg-black/60 px-2 py-1 text-[10px] font-bold text-white truncate">{output.label || `Photo ${index + 1}`}</div>
                       </button>
-                    ))}
+                    )})}
                   </div>
                   {/* Partial-failure banner — fires when 1 or 2 of 3 outputs failed */}
                   {(() => {
