@@ -32,7 +32,7 @@ export const viewport: Viewport = {
 // Defined at module level so the object reference is stable across SSR and client,
 // preventing React's hydration mismatch on the <body> style prop.
 const FONT_VARS = {
-  '--font-bungee': '"Arial Black", Impact, sans-serif',
+  '--font-bungee': '"Bungee", "Arial Black", Impact, sans-serif',
   '--font-plus-jakarta-sans': '"Plus Jakarta Sans", Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif',
   '--font-playfair': 'Playfair Display, Georgia, Cambria, "Times New Roman", serif',
   '--font-inter': 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif',

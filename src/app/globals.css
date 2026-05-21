@@ -68,6 +68,13 @@ body {
   overflow-x: hidden;
 }
 
+@font-face {
+  font-family: "Bungee";
+  src: url("/fonts/bungee-latin-400-normal.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
 
 
 .kiwikoo-wordmark {
