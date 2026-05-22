@@ -221,6 +221,23 @@ function TryOnPageContent() {
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false)
   const [failureModal, setFailureModal] = useState<{ title: string; message: string; retryAfter?: number } | null>(null)
 
+  useEffect(() => {
+    const mobileQuery = window.matchMedia('(max-width: 1023px)')
+    const originalOverflow = document.body.style.overflow
+
+    const syncBodyScroll = () => {
+      document.body.style.overflow = mobileSettingsOpen && mobileQuery.matches ? 'hidden' : originalOverflow
+    }
+
+    syncBodyScroll()
+    mobileQuery.addEventListener('change', syncBodyScroll)
+
+    return () => {
+      mobileQuery.removeEventListener('change', syncBodyScroll)
+      document.body.style.overflow = originalOverflow
+    }
+  }, [mobileSettingsOpen])
+
   // Clear all per-product state when the URL productId changes. Without
   // this, switching products (e.g. paisley top → jeans) left the previous
   // result, garment intel, and source-photo selection in the UI — making
@@ -811,7 +828,7 @@ function TryOnPageContent() {
   return (
     <div className="relative min-h-screen bg-[#F9F8F4] text-black pt-20 lg:pt-0">
       <div className="flex flex-col lg:flex-row lg:h-screen lg:pt-20">
-        <div className={`fixed inset-x-0 bottom-0 top-[10vh] z-50 overflow-y-auto rounded-t-[32px] border-t-[4px] border-black bg-white p-6 shadow-[0_-12px_0_0_rgba(0,0,0,0.1)] transition-transform duration-300 lg:static lg:block lg:h-full lg:w-[420px] lg:flex-shrink-0 lg:rounded-none lg:border-r-[4px] lg:border-t-0 lg:shadow-none xl:w-[460px] ${mobileSettingsOpen ? 'translate-y-0' : 'translate-y-full lg:translate-y-0'}`}>
+        <div className={`fixed inset-x-0 bottom-0 top-[10vh] z-50 overflow-y-auto rounded-t-[32px] border-t-[4px] border-black bg-white p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-[0_-12px_0_0_rgba(0,0,0,0.1)] transition-transform duration-300 lg:static lg:block lg:h-full lg:w-[420px] lg:flex-shrink-0 lg:rounded-none lg:border-r-[4px] lg:border-t-0 lg:p-6 lg:shadow-none xl:w-[460px] ${mobileSettingsOpen ? 'translate-y-0' : 'pointer-events-none translate-y-[calc(100%+96px)] lg:pointer-events-auto lg:translate-y-0'}`}>
           <div className="mb-6 flex items-center justify-between lg:hidden">
             <h2 className="text-2xl font-black uppercase">Try-On Settings</h2>
             <button type="button" onClick={() => setMobileSettingsOpen(false)} className="rounded-full border-[3px] border-black bg-[#F9F8F4] px-4 py-2 text-xs font-black uppercase shadow-[3px_3px_0_0_#000]">Close</button>
