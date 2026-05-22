@@ -790,7 +790,7 @@ export default function GenerationsPage() {
                                 </div>
                             )}
 
-                            <div className="p-6 -mt-8 relative">
+                            <div className="p-6 relative">
                                 <motion.div
                                     initial={{ scale: 0 }}
                                     animate={{ scale: 1 }}

@@ -370,24 +370,41 @@ function SignupCard({
           </button>
         </AuthField>
 
-        <label className="flex items-start gap-3 rounded-2xl border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          <span className="relative mt-0.5">
-            <input
-              type="checkbox"
-              checked={formData.agreeTerms}
-              onChange={(e) => setFormData((prev) => ({ ...prev, agreeTerms: e.target.checked }))}
-              className="h-5 w-5 appearance-none rounded border-[2px] border-black bg-white checked:bg-[#B4F056]"
-            />
+        <div
+          role="checkbox"
+          aria-checked={formData.agreeTerms}
+          tabIndex={0}
+          onClick={() => setFormData((prev) => ({ ...prev, agreeTerms: !prev.agreeTerms }))}
+          onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); setFormData((prev) => ({ ...prev, agreeTerms: !prev.agreeTerms })) } }}
+          className="flex cursor-pointer items-start gap-3 rounded-2xl border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+        >
+          {/* Custom square checkbox */}
+          <div
+            className="mt-0.5 flex-shrink-0"
+            style={{
+              width: 24,
+              height: 24,
+              minWidth: 24,
+              minHeight: 24,
+              borderRadius: 6,
+              border: '2.5px solid black',
+              backgroundColor: formData.agreeTerms ? '#B4F056' : '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background-color 0.15s',
+            }}
+          >
             {formData.agreeTerms && (
-              <svg className="pointer-events-none absolute left-0.5 top-0.5 h-4 w-4 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 13l4 4L19 7" />
               </svg>
             )}
-          </span>
-          <span className="text-sm font-semibold leading-snug text-black/70">
+          </div>
+          <span className="text-sm font-semibold leading-snug text-black/70 select-none">
             I agree to the <span className="font-black text-black">Terms</span> and <span className="font-black text-black">Privacy Policy</span>
           </span>
-        </label>
+        </div>
 
         <button
           type="submit"
