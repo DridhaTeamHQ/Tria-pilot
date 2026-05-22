@@ -8,14 +8,14 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 30
 
 const bodySchema = z.object({
-  imageUrl: z.string().optional(),
-  imageDataUrl: z.string().optional(),
-  productName: z.string().max(200).optional(),
-  productCategory: z.string().max(100).optional(),
-  productDescription: z.string().max(2000).optional(),
+  imageUrl: z.string().nullish(),
+  imageDataUrl: z.string().nullish(),
+  productName: z.string().max(200).nullish(),
+  productCategory: z.string().max(100).nullish(),
+  productDescription: z.string().max(2000).nullish(),
 })
 
-function fallbackInsight(category?: string) {
+function fallbackInsight(category?: string | null) {
   const normalized = String(category || '').toLowerCase()
   const seasonalBias =
     normalized.includes('dress') || normalized.includes('summer')

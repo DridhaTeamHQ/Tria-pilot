@@ -37,10 +37,10 @@ const TONES = ['casual', 'aspirational', 'witty', 'authentic', 'bold', 'storytel
 const bodySchema = z.object({
   imageUrl: z.string().url().optional(),
   imageDataUrl: z.string().min(20).max(30_000_000).optional(),
-  productName: z.string().max(200).optional(),
-  productCategory: z.string().max(100).optional(),
-  productDescription: z.string().max(2000).optional(),
-  niches: z.array(z.string()).max(10).optional(),
+  productName: z.string().max(200).nullish(),
+  productCategory: z.string().max(100).nullish(),
+  productDescription: z.string().max(2000).nullish(),
+  niches: z.array(z.string()).max(10).nullish(),
   platforms: z.array(z.enum(PLATFORMS)).max(4).optional(),
   tone: z.enum(TONES).optional(),
   tones: z.array(z.enum(TONES)).min(1).max(7).optional(),
@@ -78,12 +78,13 @@ export async function POST(request: Request) {
       productName,
       productCategory,
       productDescription,
-      niches = [],
+      niches: nichesInput,
       platforms = ['instagram'],
       tone = 'authentic',
       tones,
       count = 3,
     } = parsed.data
+    const niches = nichesInput ?? []
     const requestedTones = Array.isArray(tones) && tones.length > 0 ? tones : [tone]
 
     let apiKey: string
