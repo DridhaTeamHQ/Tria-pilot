@@ -46,14 +46,32 @@ export default function RequestModal({
 
   useEffect(() => {
     if (!isOpen) return
-    const originalOverflow = document.body.style.overflow
+
+    // Lock both <html> and <body> — some browsers scroll via the root element
+    const scrollY = window.scrollY
+    const bodyOverflow = document.body.style.overflow
+    const htmlOverflow = document.documentElement.style.overflow
+
     document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+    // Preserve scroll position to avoid layout jump
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${scrollY}px`
+    document.body.style.width = '100%'
+
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', onKeyDown)
+
     return () => {
-      document.body.style.overflow = originalOverflow
+      document.body.style.overflow = bodyOverflow
+      document.documentElement.style.overflow = htmlOverflow
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.width = ''
+      // Restore the exact scroll position
+      window.scrollTo(0, scrollY)
       window.removeEventListener('keydown', onKeyDown)
     }
   }, [isOpen, onClose])
@@ -113,7 +131,7 @@ export default function RequestModal({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className="fixed inset-0 z-[300] flex items-center justify-center overflow-y-auto bg-black/60 p-3 py-[max(0.75rem,3vh)] backdrop-blur-sm sm:p-5"
+        className="fixed inset-0 z-[300] flex items-center justify-center overflow-hidden bg-black/60 p-3 py-[max(0.75rem,3vh)] backdrop-blur-sm sm:p-5"
       >
         <motion.div
           initial={{ opacity: 0, scale: 0.96, y: 14 }}
@@ -144,7 +162,7 @@ export default function RequestModal({
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="max-h-[min(72dvh,680px)] overflow-y-auto px-5 py-5 sm:px-6 sm:py-6">
+        <CardContent className="max-h-[min(65dvh,620px)] overflow-y-auto px-5 py-5 sm:px-6 sm:py-6">
           <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
             {brandName && (
               <div>
