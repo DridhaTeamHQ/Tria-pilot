@@ -6,6 +6,8 @@ import { useUser } from "@/lib/react-query/hooks";
 export default function Footer() {
     const { data: user, isLoading } = useUser();
     const isLoggedIn = !!user && !isLoading;
+    const role = typeof user?.role === 'string' ? user.role.toLowerCase() : null;
+    const showBrandFeatureLinks = isLoading ? false : !isLoggedIn || role === 'brand';
 
     return (
         <footer className="border-t-[3px] border-black bg-[var(--brutal-cream)] py-10 sm:py-14">
@@ -68,16 +70,20 @@ export default function Footer() {
                                     Virtual Try-On
                                 </Link>
                             </li>
-                            <li>
-                                <Link href="/brand/ads" className="hover:text-black hover:underline">
-                                    Ad Generation
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="/brand/campaigns" className="hover:text-black hover:underline">
-                                    Campaigns
-                                </Link>
-                            </li>
+                            {showBrandFeatureLinks && (
+                                <>
+                                    <li>
+                                        <Link href="/brand/ads" className="hover:text-black hover:underline">
+                                            Ad Generation
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link href="/brand/campaigns" className="hover:text-black hover:underline">
+                                            Campaigns
+                                        </Link>
+                                    </li>
+                                </>
+                            )}
                             <li>
                                 <Link href="/influencer/dashboard" className="hover:text-black hover:underline">
                                     Dashboard
