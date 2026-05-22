@@ -252,11 +252,6 @@ export default function InfluencerDashboard() {
   }
 
   const openVariantViewer = (generation: any) => {
-    if (window.matchMedia('(max-width: 767px)').matches) {
-      router.push('/influencer/generations')
-      return
-    }
-
     setSelectedGeneration(generation)
     setSelectedVariantIndex(0)
   }
@@ -277,7 +272,7 @@ export default function InfluencerDashboard() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#F9F8F4] pt-20 sm:pt-24 pb-16 animate-fade-in">
+    <div className="relative min-h-screen overflow-hidden bg-[#F9F8F4] pt-28 sm:pt-24 pb-16 animate-fade-in">
 
 
       <div className="container relative z-10 mx-auto px-4 sm:px-6">
@@ -305,7 +300,7 @@ export default function InfluencerDashboard() {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-12 sm:mb-16"
+          className="grid grid-cols-1 gap-4 mb-12 sm:mb-16 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4"
         >
           {stats.map((stat, index) => {
             const Icon = stat.icon
@@ -318,13 +313,13 @@ export default function InfluencerDashboard() {
                 key={stat.label}
                 variants={cardVariants}
                 whileHover={{ y: -4 }}
-                className={`${bgColor} rounded-xl p-6 sm:p-8 border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 relative overflow-hidden group`}
+                className={`${bgColor} flex items-center gap-4 rounded-xl p-5 sm:block sm:p-8 border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 relative overflow-hidden group`}
               >
-                <div className={`w-12 h-12 rounded-lg bg-white/20 border-[2px] border-black flex items-center justify-center mb-6`}>
+                <div className={`w-12 h-12 shrink-0 rounded-lg bg-white/20 border-[2px] border-black flex items-center justify-center sm:mb-6`}>
                   <Icon className="w-6 h-6 text-black" />
                 </div>
-                <p className="text-4xl sm:text-5xl font-bold text-black mb-2 tracking-tight">{stat.value}</p>
-                <p className="text-sm text-black font-bold uppercase tracking-wider">{stat.label}</p>
+                <p className="shrink-0 text-3xl sm:text-5xl font-bold text-black sm:mb-2 tracking-tight">{stat.value}</p>
+                <p className="min-w-0 flex-1 text-xs sm:text-sm text-black font-bold uppercase tracking-wider">{stat.label}</p>
               </motion.div>
             )
           })}
@@ -463,14 +458,14 @@ export default function InfluencerDashboard() {
             className="fixed inset-0 flex items-center justify-center bg-black/85 p-2 backdrop-blur-md sm:p-4"
             onClick={closeVariantViewer}
           >
-            <div className="relative flex h-[min(92dvh,960px)] w-full max-w-[min(96vw,1240px)] flex-col overflow-hidden rounded-[28px] border-[3px] border-black bg-[#171717] shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
+            <div className="relative flex h-[min(92dvh,960px)] w-full max-w-[min(96vw,1240px)] flex-col overflow-hidden rounded-[20px] border-[3px] border-black bg-[#171717] shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] sm:rounded-[28px]">
               <motion.button
                 onClick={closeVariantViewer}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="absolute top-4 left-4 z-[10000] flex items-center gap-2 rounded-xl border-[3px] border-black bg-white px-4 py-3 font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] md:hidden"
+                className="hidden"
               >
                 <ArrowLeft className="w-5 h-5" />
                 <span className="sr-only">Back</span>
@@ -479,15 +474,15 @@ export default function InfluencerDashboard() {
               <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="relative z-[200] flex items-center justify-between border-b border-white/10 bg-[#111111] px-4 py-4 sm:px-6"
+                className="relative z-[200] flex flex-col items-stretch gap-3 border-b border-white/10 bg-[#111111] px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="grid grid-cols-3 gap-2 pr-12 sm:flex sm:flex-wrap sm:items-center sm:gap-3 sm:pr-0">
                   <motion.button
                     onClick={closeVariantViewer}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="flex items-center gap-2 rounded-lg border-[2px] border-black bg-white px-4 py-2.5 text-sm font-bold text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-colors"
+                    className="flex min-w-0 items-center justify-center gap-1.5 rounded-lg border-[2px] border-black bg-white px-2 py-2 text-xs font-bold text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-colors sm:gap-2 sm:px-4 sm:py-2.5 sm:text-sm"
                   >
                     <ArrowLeft className="w-4 h-4" />
                     Back
@@ -496,7 +491,7 @@ export default function InfluencerDashboard() {
                     onClick={() => handleDownload(getGenerationVariants(selectedGeneration)[selectedVariantIndex]?.url)}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="flex items-center gap-2 rounded-lg border-[2px] border-black bg-white px-4 py-2.5 text-sm font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                    className="flex min-w-0 items-center justify-center gap-1.5 rounded-lg border-[2px] border-black bg-white px-2 py-2 text-xs font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:gap-2 sm:px-4 sm:py-2.5 sm:text-sm"
                   >
                     <Download className="w-4 h-4" />
                     Download
@@ -505,14 +500,14 @@ export default function InfluencerDashboard() {
                     onClick={() => handleShare(getGenerationVariants(selectedGeneration)[selectedVariantIndex]?.url)}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="flex items-center gap-2 rounded-lg border-[2px] border-black bg-[#FF8C69] px-4 py-2.5 text-sm font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                    className="flex min-w-0 items-center justify-center gap-1.5 rounded-lg border-[2px] border-black bg-[#FF8C69] px-2 py-2 text-xs font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:gap-2 sm:px-4 sm:py-2.5 sm:text-sm"
                   >
                     <Share2 className="w-4 h-4" />
                     Share
                   </motion.button>
                 </div>
 
-                <div className="text-center">
+                <div className="pr-12 text-left sm:pr-0 sm:text-center">
                   <span className="text-xs font-mono text-white/60">Generation</span>
                   <p className="text-sm font-mono text-white">#{selectedGeneration.id.slice(0, 8)}</p>
                 </div>
@@ -521,7 +516,7 @@ export default function InfluencerDashboard() {
                   onClick={closeVariantViewer}
                   whileHover={{ scale: 1.1, rotate: 90 }}
                   whileTap={{ scale: 0.9 }}
-                  className="rounded-lg border-[2px] border-black bg-white p-2.5 text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                  className="absolute right-3 top-3 rounded-lg border-[2px] border-black bg-white p-2.5 text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:static"
                 >
                   <X className="w-5 h-5" />
                 </motion.button>

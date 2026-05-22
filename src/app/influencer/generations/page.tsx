@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { AppImage } from '@/components/ui/AppImage'
 import {
     ArrowLeft,
@@ -103,7 +102,6 @@ const scaleIn = {
 }
 
 export default function GenerationsPage() {
-    const router = useRouter()
     const { data: generations, isLoading } = useGenerations()
     const deleteMutation = useDeleteGeneration()
     const [selectedImage, setSelectedImage] = useState<string | null>(null)
@@ -303,17 +301,6 @@ export default function GenerationsPage() {
     }
 
     const openLightbox = (job: any) => {
-        if (window.matchMedia('(max-width: 767px)').matches && job.outputImagePath && !job.outputImagePath.startsWith('data:')) {
-            const params = new URLSearchParams({
-                image: getImageUrl(job.outputImagePath),
-                title: `Generation #${job.id.slice(0, 8)}`,
-                back: '/influencer/generations',
-                download: `kiwikoo-tryon-${job.id.slice(0, 8)}.png`,
-            })
-            router.push(`/gallery/view?${params.toString()}`)
-            return
-        }
-
         setSelectedImage(job.outputImagePath)
         setSelectedJob(job)
         setSelectedVariantIndex(0)
