@@ -171,6 +171,10 @@ type VariationCard = {
   imageUrl: string
 }
 
+function clampScore(value: number) {
+  return Math.max(0, Math.min(100, Math.round(value)))
+}
+
 export default function TryOnPage() {
   return (
     <Suspense fallback={<div className="min-h-screen bg-[#FDFBF7] pt-24 flex items-center justify-center"><BrutalLoader size="lg" tone="influencer" label="Loading try-on studio" /></div>}>
@@ -283,6 +287,7 @@ function TryOnPageContent() {
     ? resolveStoredImageUrl(selectedOutput.imageUrl)
     : toImageSrc(selectedOutput?.base64Image)
   const productPreviewSrc = selectedProductImage ? resolveStoredImageUrl(selectedProductImage) : ''
+  const selectedReferencePhoto = selectedPhotos[0] ?? currentRecommendations.selected[0] ?? approvedPhotos[0] ?? null
   const postTiming = useMemo(() => getBestTimeToPost(productData?.category), [productData?.category])
   const hasCompleteSelection = selectedReferenceIds.filter(Boolean).length === 3 && selectedPhotos.length === 3
   const hasManualSelection = selectionMode === 'manual' && hasCompleteSelection
@@ -755,6 +760,51 @@ function TryOnPageContent() {
     a.click()
   }, [selectedOutput])
 
+  const copyText = useCallback(async (value: string, success: string) => {
+    try {
+      await navigator.clipboard.writeText(value)
+      showSuccessToast('Copied', success)
+    } catch {
+      showErrorToast('Copy failed', 'Please try again.')
+    }
+  }, [])
+
+  const generateVariations = useCallback(async () => {
+    if (!selectedReferencePhoto) {
+      showWarningToast('No source photo', 'Pick or upload a reference photo first.')
+      return
+    }
+    if (!selectedProductImage) {
+      showWarningToast('No product image', 'Choose a product image before generating variations.')
+      return
+    }
+
+    setGeneratingVariations(true)
+    try {
+      const res = await fetch('/api/influencer/try-on-variations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          personImageUrl: selectedReferencePhoto.imageUrl?.startsWith('http') ? selectedReferencePhoto.imageUrl : undefined,
+          personImageDataUrl: selectedReferencePhoto.imageUrl?.startsWith('data:image/') ? selectedReferencePhoto.imageUrl : undefined,
+          garmentImageUrl: selectedProductImage.startsWith('http') ? selectedProductImage : undefined,
+          garmentImageDataUrl: selectedProductImage.startsWith('data:image/') ? selectedProductImage : undefined,
+          productName: productData?.name,
+          productCategory: productData?.category,
+          productDescription: productData?.description,
+        }),
+      })
+      const data = await safeParseResponse<{ variations?: VariationCard[] }>(res, 'try-on variations')
+      setVariationOutputs(Array.isArray(data.variations) ? data.variations : [])
+      showSuccessToast('Variations ready', 'Two alternate looks are ready to review.')
+    } catch (error) {
+      showErrorToast('Variation generation failed', error instanceof Error ? error.message : 'Please try again.')
+    } finally {
+      setGeneratingVariations(false)
+    }
+  }, [productData?.category, productData?.description, productData?.name, selectedProductImage, selectedReferencePhoto])
+
   return (
     <div className="relative min-h-screen bg-[#F9F8F4] text-black pt-20 lg:pt-0">
       <div className="flex flex-col lg:flex-row lg:h-screen lg:pt-20">
@@ -864,8 +914,55 @@ function TryOnPageContent() {
                 </div>
               ) : outputs.length > 0 ? (
                 <div className="space-y-6">
+                  <div className="mx-auto flex max-w-[600px] flex-wrap items-center justify-between gap-3">
+                    <div className="inline-flex rounded-full border-[3px] border-black bg-white p-1 shadow-[3px_3px_0_0_#000]">
+                      {[
+                        { key: 'tryon', label: 'Try-On', icon: Sparkles },
+                        { key: 'product', label: 'Product', icon: Palette },
+                        { key: 'split', label: 'Split', icon: SplitSquareVertical },
+                      ].map((mode) => {
+                        const Icon = mode.icon
+                        const active = resultViewMode === mode.key
+                        return (
+                          <button
+                            key={mode.key}
+                            type="button"
+                            onClick={() => setResultViewMode(mode.key as 'tryon' | 'product' | 'split')}
+                            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black uppercase transition ${active ? 'bg-[#FFD93D]' : 'bg-transparent text-black/55'}`}
+                          >
+                            <Icon className="h-4 w-4" />
+                            {mode.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    {styleInsight ? (
+                      <button
+                        type="button"
+                        onClick={() => void copyText(`${styleInsight.label} ${clampScore(styleInsight.score)}/100\n${styleInsight.summary}\n${styleInsight.shareCaption}`, 'Style card text is ready to paste.')}
+                        className="inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-white px-4 py-2 text-xs font-black uppercase shadow-[3px_3px_0_0_#000] transition hover:-translate-y-0.5"
+                      >
+                        <Copy className="h-4 w-4" />
+                        Copy Share Card
+                      </button>
+                    ) : null}
+                  </div>
                   <div className="relative aspect-[4/5] w-full max-w-[600px] mx-auto overflow-hidden rounded-[24px] border-[4px] border-black bg-[#F9F8F4] shadow-[6px_6px_0_0_#000]">
-                    {selectedOutput?.imageUrl || selectedOutput?.base64Image ? (
+                    {resultViewMode === 'product' && productPreviewSrc ? (
+                      <Image src={productPreviewSrc} alt="Product preview" fill unoptimized className="object-cover" />
+                    ) : resultViewMode === 'split' && selectedOutputSrc && productPreviewSrc ? (
+                      <>
+                        <Image src={productPreviewSrc} alt="Before" fill unoptimized className="object-cover" />
+                        <div className="absolute inset-y-0 left-1/2 w-[50%] overflow-hidden border-l-[4px] border-black">
+                          <div className="relative h-full w-[200%] -translate-x-1/2">
+                            <Image src={selectedOutputSrc} alt="After" fill unoptimized className="object-cover" />
+                          </div>
+                        </div>
+                        <div className="absolute left-1/2 top-4 -translate-x-1/2 rounded-full border-[3px] border-black bg-white px-3 py-1 text-[10px] font-black uppercase shadow-[3px_3px_0_0_#000]">
+                          Before / After
+                        </div>
+                      </>
+                    ) : selectedOutput?.imageUrl || selectedOutput?.base64Image ? (
                       <Image src={selectedOutput.imageUrl ? resolveStoredImageUrl(selectedOutput.imageUrl) : toImageSrc(selectedOutput.base64Image)} alt="Result" fill unoptimized className="object-cover" />
                     ) : (
                       <div className="flex h-full items-center justify-center"><AlertTriangle className="h-10 w-10 text-red-500" /></div>
@@ -912,14 +1009,108 @@ function TryOnPageContent() {
                   })()}
                   <div className="flex flex-wrap justify-center gap-3">
                     <button type="button" onClick={downloadCurrent} className="rounded-full border-[3px] border-black bg-[#FF8C69] px-6 py-3 font-black uppercase text-white shadow-[4px_4px_0_0_#000]">Download Image</button>
-                    {selectedOutput?.imageUrl ? (
+                    {(selectedOutput?.imageUrl || selectedOutput?.base64Image) ? (
                       <CaptionGenerator
-                        imageUrl={resolveStoredImageUrl(selectedOutput.imageUrl)}
+                        imageUrl={selectedOutput?.imageUrl ? resolveStoredImageUrl(selectedOutput.imageUrl) : undefined}
+                        imageDataUrl={selectedOutput?.base64Image ? toImageSrc(selectedOutput.base64Image) : undefined}
                         productName={productData?.name}
                         productCategory={productData?.category}
                         productDescription={productData?.description}
                       />
                     ) : null}
+                    <button
+                      type="button"
+                      onClick={() => void generateVariations()}
+                      disabled={generatingVariations || !selectedReferencePhoto || !selectedProductImage}
+                      className="inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-[#B4F056] px-4 py-2.5 text-sm font-black uppercase tracking-wider text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-[#E5E5E5] disabled:text-black/40 disabled:shadow-none"
+                    >
+                      {generatingVariations ? <Loader2 className="h-4 w-4 animate-spin" /> : <Stars className="h-4 w-4" strokeWidth={3} />}
+                      {generatingVariations ? 'Generating Looks' : 'Outfit Variations'}
+                    </button>
+                  </div>
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    <div className="rounded-[24px] border-[4px] border-black bg-[#FFF8DB] p-5 shadow-[6px_6px_0_0_#000]">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-white px-3 py-1 text-xs font-black uppercase">
+                            <TrendingUp className="h-4 w-4" />
+                            Style Score
+                          </div>
+                          <h3 className="mt-3 text-2xl font-black uppercase">
+                            {loadingStyleInsight ? 'Scoring...' : styleInsight ? `${styleInsight.label} ${clampScore(styleInsight.score)}/100` : 'Score unavailable'}
+                          </h3>
+                          <p className="mt-2 text-sm font-semibold text-black/65">
+                            {loadingStyleInsight ? 'Reading the look and building the scorecard.' : styleInsight?.summary || 'Run another try-on to refresh the scorecard.'}
+                          </p>
+                        </div>
+                      </div>
+                      {styleInsight ? (
+                        <>
+                          <div className="mt-5 space-y-3">
+                            {[
+                              { label: 'Fit Match', value: styleInsight.breakdown.fitMatch, tone: 'bg-[#B4F056]' },
+                              { label: 'Color Harmony', value: styleInsight.breakdown.colorHarmony, tone: 'bg-[#A78BFA]' },
+                              { label: 'Seasonal Relevance', value: styleInsight.breakdown.seasonalRelevance, tone: 'bg-[#FFD93D]' },
+                            ].map((item) => (
+                              <div key={item.label}>
+                                <div className="mb-1 flex items-center justify-between text-[11px] font-black uppercase text-black/65">
+                                  <span>{item.label}</span>
+                                  <span>{clampScore(item.value)}</span>
+                                </div>
+                                <div className="h-3 overflow-hidden rounded-full border-2 border-black bg-white">
+                                  <div className={`h-full ${item.tone}`} style={{ width: `${clampScore(item.value)}%` }} />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="mt-5 rounded-[18px] border-[3px] border-black bg-white p-4">
+                            <p className="text-[11px] font-black uppercase tracking-[0.12em] text-black/45">Share line</p>
+                            <p className="mt-2 text-sm font-semibold leading-relaxed text-black/80">{styleInsight.shareCaption}</p>
+                          </div>
+                        </>
+                      ) : null}
+                    </div>
+                    <div className="space-y-4">
+                      <div className="rounded-[24px] border-[4px] border-black bg-[#F0EDFF] p-5 shadow-[6px_6px_0_0_#000]">
+                        <div className="inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-white px-3 py-1 text-xs font-black uppercase">
+                          <CalendarClock className="h-4 w-4" />
+                          Best Time To Post
+                        </div>
+                        <h3 className="mt-3 text-2xl font-black uppercase">{postTiming.window}</h3>
+                        <p className="mt-2 text-sm font-semibold text-black/70">{postTiming.reason}</p>
+                        <div className="mt-4 rounded-[18px] border-[3px] border-black bg-white p-4">
+                          <p className="text-[11px] font-black uppercase tracking-[0.12em] text-black/45">Posting angle</p>
+                          <p className="mt-2 text-sm font-semibold leading-relaxed text-black/80">{postTiming.angle}</p>
+                        </div>
+                      </div>
+                      {variationOutputs.length > 0 ? (
+                        <div className="rounded-[24px] border-[4px] border-black bg-[#F6F1E8] p-5 shadow-[6px_6px_0_0_#000]">
+                          <div className="inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-white px-3 py-1 text-xs font-black uppercase">
+                            <Stars className="h-4 w-4" />
+                            Outfit Variations
+                          </div>
+                          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                            {variationOutputs.map((variation) => (
+                              <div key={variation.id} className="rounded-[20px] border-[3px] border-black bg-white p-3 shadow-[4px_4px_0_0_#000]">
+                                <div className="relative aspect-[4/5] overflow-hidden rounded-[16px] border-[3px] border-black bg-[#F9F8F4]">
+                                  <Image src={resolveStoredImageUrl(variation.imageUrl)} alt={variation.label} fill unoptimized className="object-cover" />
+                                </div>
+                                <h4 className="mt-3 text-sm font-black uppercase">{variation.label}</h4>
+                                <p className="mt-1 text-xs font-semibold leading-relaxed text-black/65">{variation.note}</p>
+                                <button
+                                  type="button"
+                                  onClick={() => window.open(variation.imageUrl, '_blank', 'noopener,noreferrer')}
+                                  className="mt-3 inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-[#FFD93D] px-4 py-2 text-[11px] font-black uppercase shadow-[3px_3px_0_0_#000] transition hover:-translate-y-0.5"
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                  Open Variation
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                   {shouldShowProductLink ? (
                     <div className="mx-auto max-w-[600px] rounded-[24px] border-[4px] border-black bg-[#FFF8DB] p-5 shadow-[6px_6px_0_0_#000]">
