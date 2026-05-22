@@ -134,7 +134,7 @@ export default function CaptionGenerator({
   }
 
   return (
-    <div className="mt-4 rounded-[24px] border-[4px] border-black bg-white p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+    <div className="w-full rounded-[24px] border-[4px] border-black bg-white p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">

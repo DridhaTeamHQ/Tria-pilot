@@ -207,6 +207,9 @@ function TryOnPageContent() {
   const [result, setResult] = useState<any | null>(null)
   const [selectedOutputIndex, setSelectedOutputIndex] = useState(0)
   const [resultViewMode, setResultViewMode] = useState<'tryon' | 'product' | 'split'>('tryon')
+  const [splitPos, setSplitPos] = useState(50)
+  const splitDragging = useRef(false)
+  const splitContainerRef = useRef<HTMLDivElement>(null)
   const [styleInsight, setStyleInsight] = useState<StyleInsight | null>(null)
   const [loadingStyleInsight, setLoadingStyleInsight] = useState(false)
   const [variationOutputs, setVariationOutputs] = useState<VariationCard[]>([])
@@ -947,20 +950,56 @@ function TryOnPageContent() {
                       </button>
                     ) : null}
                   </div>
-                  <div className="relative aspect-[4/5] w-full max-w-[600px] mx-auto overflow-hidden rounded-[24px] border-[4px] border-black bg-[#F9F8F4] shadow-[6px_6px_0_0_#000]">
+                  <div
+                    ref={splitContainerRef}
+                    className="relative aspect-[4/5] w-full max-w-[600px] mx-auto overflow-hidden rounded-[24px] border-[4px] border-black bg-[#F9F8F4] shadow-[6px_6px_0_0_#000]"
+                    style={{ cursor: resultViewMode === 'split' ? 'col-resize' : 'default' }}
+                    onMouseMove={(e) => {
+                      if (resultViewMode !== 'split') return
+                      const rect = e.currentTarget.getBoundingClientRect()
+                      setSplitPos(Math.min(98, Math.max(2, ((e.clientX - rect.left) / rect.width) * 100)))
+                    }}
+                    onMouseDown={() => { if (resultViewMode === 'split') splitDragging.current = true }}
+                    onMouseUp={() => { splitDragging.current = false }}
+                    onMouseLeave={() => { splitDragging.current = false }}
+                    onTouchMove={(e) => {
+                      if (resultViewMode !== 'split') return
+                      const rect = e.currentTarget.getBoundingClientRect()
+                      const touch = e.touches[0]
+                      setSplitPos(Math.min(98, Math.max(2, ((touch.clientX - rect.left) / rect.width) * 100)))
+                    }}
+                  >
                     {resultViewMode === 'product' && productPreviewSrc ? (
                       <Image src={productPreviewSrc} alt="Product preview" fill unoptimized className="object-cover" />
                     ) : resultViewMode === 'split' && selectedOutputSrc && productPreviewSrc ? (
                       <>
+                        {/* Before — product/original */}
                         <Image src={productPreviewSrc} alt="Before" fill unoptimized className="object-cover" />
-                        <div className="absolute inset-y-0 left-1/2 w-[50%] overflow-hidden border-l-[4px] border-black">
-                          <div className="relative h-full w-[200%] -translate-x-1/2">
+                        {/* After — generated try-on clipped to right portion */}
+                        <div
+                          className="absolute inset-y-0 right-0 overflow-hidden"
+                          style={{ left: `${splitPos}%` }}
+                        >
+                          <div className="relative h-full" style={{ width: `${100 / (1 - splitPos / 100)}%`, marginLeft: `-${splitPos / (1 - splitPos / 100)}%` }}>
                             <Image src={selectedOutputSrc} alt="After" fill unoptimized className="object-cover" />
                           </div>
                         </div>
-                        <div className="absolute left-1/2 top-4 -translate-x-1/2 rounded-full border-[3px] border-black bg-white px-3 py-1 text-[10px] font-black uppercase shadow-[3px_3px_0_0_#000]">
-                          Before / After
+                        {/* Divider line + handle */}
+                        <div
+                          className="pointer-events-none absolute inset-y-0 z-10"
+                          style={{ left: `${splitPos}%`, transform: 'translateX(-50%)' }}
+                        >
+                          <div className="absolute inset-y-0 left-1/2 w-[3px] -translate-x-1/2 bg-white shadow-[0_0_6px_rgba(0,0,0,0.5)]" />
+                          {/* Centre handle circle */}
+                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full border-[3px] border-black bg-white shadow-[3px_3px_0_0_#000]">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                              <path d="M5 8H1M11 8h4M5 5l-3 3 3 3M11 5l3 3-3 3" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </div>
                         </div>
+                        {/* Labels */}
+                        <div className="pointer-events-none absolute bottom-3 left-3 rounded-full border-[2px] border-black bg-white/90 px-2.5 py-1 text-[10px] font-black uppercase backdrop-blur">Before</div>
+                        <div className="pointer-events-none absolute bottom-3 right-3 rounded-full border-[2px] border-black bg-[#FFD93D]/90 px-2.5 py-1 text-[10px] font-black uppercase backdrop-blur">After</div>
                       </>
                     ) : selectedOutput?.imageUrl || selectedOutput?.base64Image ? (
                       <Image src={selectedOutput.imageUrl ? resolveStoredImageUrl(selectedOutput.imageUrl) : toImageSrc(selectedOutput.base64Image)} alt="Result" fill unoptimized className="object-cover" />
@@ -1018,15 +1057,6 @@ function TryOnPageContent() {
                         productDescription={productData?.description}
                       />
                     ) : null}
-                    <button
-                      type="button"
-                      onClick={() => void generateVariations()}
-                      disabled={generatingVariations || !selectedReferencePhoto || !selectedProductImage}
-                      className="inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-[#B4F056] px-4 py-2.5 text-sm font-black uppercase tracking-wider text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-[#E5E5E5] disabled:text-black/40 disabled:shadow-none"
-                    >
-                      {generatingVariations ? <Loader2 className="h-4 w-4 animate-spin" /> : <Stars className="h-4 w-4" strokeWidth={3} />}
-                      {generatingVariations ? 'Generating Looks' : 'Outfit Variations'}
-                    </button>
                   </div>
                   <div className="grid gap-4 lg:grid-cols-2">
                     <div className="rounded-[24px] border-[4px] border-black bg-[#FFF8DB] p-5 shadow-[6px_6px_0_0_#000]">
@@ -1083,37 +1113,11 @@ function TryOnPageContent() {
                           <p className="mt-2 text-sm font-semibold leading-relaxed text-black/80">{postTiming.angle}</p>
                         </div>
                       </div>
-                      {variationOutputs.length > 0 ? (
-                        <div className="rounded-[24px] border-[4px] border-black bg-[#F6F1E8] p-5 shadow-[6px_6px_0_0_#000]">
-                          <div className="inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-white px-3 py-1 text-xs font-black uppercase">
-                            <Stars className="h-4 w-4" />
-                            Outfit Variations
-                          </div>
-                          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                            {variationOutputs.map((variation) => (
-                              <div key={variation.id} className="rounded-[20px] border-[3px] border-black bg-white p-3 shadow-[4px_4px_0_0_#000]">
-                                <div className="relative aspect-[4/5] overflow-hidden rounded-[16px] border-[3px] border-black bg-[#F9F8F4]">
-                                  <Image src={resolveStoredImageUrl(variation.imageUrl)} alt={variation.label} fill unoptimized className="object-cover" />
-                                </div>
-                                <h4 className="mt-3 text-sm font-black uppercase">{variation.label}</h4>
-                                <p className="mt-1 text-xs font-semibold leading-relaxed text-black/65">{variation.note}</p>
-                                <button
-                                  type="button"
-                                  onClick={() => window.open(variation.imageUrl, '_blank', 'noopener,noreferrer')}
-                                  className="mt-3 inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-[#FFD93D] px-4 py-2 text-[11px] font-black uppercase shadow-[3px_3px_0_0_#000] transition hover:-translate-y-0.5"
-                                >
-                                  <ExternalLink className="h-4 w-4" />
-                                  Open Variation
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ) : null}
+
                     </div>
                   </div>
                   {shouldShowProductLink ? (
-                    <div className="mx-auto max-w-[600px] rounded-[24px] border-[4px] border-black bg-[#FFF8DB] p-5 shadow-[6px_6px_0_0_#000]">
+                    <div className="rounded-[24px] border-[4px] border-black bg-[#FFF8DB] p-5 shadow-[6px_6px_0_0_#000]">
                       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                         <div className="space-y-2">
                           <div className="inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-white px-3 py-1 text-xs font-black uppercase">

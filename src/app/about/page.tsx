@@ -1,8 +1,16 @@
 import Link from 'next/link'
+import { createClient } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const isLoggedIn = Boolean(user)
+
   return (
     <main className="min-h-screen bg-cream">
       <div className="mx-auto max-w-4xl px-4 pb-16 pt-24 sm:px-6 sm:pb-20 sm:pt-28">
@@ -27,14 +35,16 @@ export default function AboutPage() {
           </div>
         </div>
 
-        <div className="mt-10">
-          <Link
-            href="/register"
-            className="inline-flex items-center justify-center rounded-full bg-charcoal px-7 py-3 font-medium text-cream hover:bg-charcoal/90"
-          >
-            Create an account
-          </Link>
-        </div>
+        {!isLoggedIn && (
+          <div className="mt-10">
+            <Link
+              href="/register"
+              className="inline-flex items-center justify-center rounded-full bg-charcoal px-7 py-3 font-medium text-cream hover:bg-charcoal/90"
+            >
+              Create an account
+            </Link>
+          </div>
+        )}
       </div>
     </main>
   )
