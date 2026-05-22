@@ -80,8 +80,37 @@ export default function MarketplaceClient({ products, categories, activeCategory
     const [showFilters, setShowFilters] = useState(false)
     const [mounted, setMounted] = useState(false)
     const [allowPrefetch, setAllowPrefetch] = useState(true)
+    const scrollYRef = useRef(0)
 
     useEffect(() => { setMounted(true) }, [])
+
+    useEffect(() => {
+        if (!showFilters || typeof window === 'undefined') return
+
+        const mobileQuery = window.matchMedia('(max-width: 639px)')
+        if (!mobileQuery.matches) return
+
+        scrollYRef.current = window.scrollY
+        const previousBodyStyle = {
+            overflow: document.body.style.overflow,
+            position: document.body.style.position,
+            top: document.body.style.top,
+            width: document.body.style.width,
+        }
+
+        document.body.style.overflow = 'hidden'
+        document.body.style.position = 'fixed'
+        document.body.style.top = `-${scrollYRef.current}px`
+        document.body.style.width = '100%'
+
+        return () => {
+            document.body.style.overflow = previousBodyStyle.overflow
+            document.body.style.position = previousBodyStyle.position
+            document.body.style.top = previousBodyStyle.top
+            document.body.style.width = previousBodyStyle.width
+            window.scrollTo(0, scrollYRef.current)
+        }
+    }, [showFilters])
 
     useEffect(() => {
         if (typeof window === 'undefined') return
@@ -218,12 +247,12 @@ export default function MarketplaceClient({ products, categories, activeCategory
                     {/* Mobile: bottom sheet — rendered via portal at document.body to escape stacking contexts */}
                     {mounted && showFilters && createPortal(
                         <div
-                            className="fixed inset-0 z-[9999] flex flex-col justify-end sm:hidden"
+                            className="fixed inset-0 z-[9999] flex touch-none flex-col justify-end overflow-hidden overscroll-none sm:hidden"
                             style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
                             onClick={() => setShowFilters(false)}
                         >
                             <div
-                                className="animate-slide-up-sheet w-full rounded-t-[28px] border-t-[3px] border-l-[3px] border-r-[3px] border-black bg-white px-5 pb-8 pt-4"
+                                className="animate-slide-up-sheet max-h-[82dvh] w-full touch-auto overflow-y-auto overscroll-contain rounded-t-[28px] border-t-[3px] border-l-[3px] border-r-[3px] border-black bg-white px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-4"
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 {/* Handle bar */}
