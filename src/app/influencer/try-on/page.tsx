@@ -1067,8 +1067,14 @@ function TryOnPageContent() {
                     <button type="button" onClick={downloadCurrent} className="rounded-full border-[3px] border-black bg-[#FF8C69] px-6 py-3 font-black uppercase text-white shadow-[4px_4px_0_0_#000]">Download Image</button>
                     {(selectedOutput?.imageUrl || selectedOutput?.base64Image) ? (
                       <CaptionGenerator
-                        imageUrl={selectedOutput?.imageUrl ? resolveStoredImageUrl(selectedOutput.imageUrl) : undefined}
-                        imageDataUrl={selectedOutput?.base64Image ? toImageSrc(selectedOutput.base64Image) : undefined}
+                        imageUrl={selectedOutputSrc.startsWith('http') ? selectedOutputSrc : undefined}
+                        imageDataUrl={
+                          selectedOutput?.base64Image
+                            ? toImageSrc(selectedOutput.base64Image)
+                            : selectedOutputSrc.startsWith('data:image/')
+                              ? selectedOutputSrc
+                              : undefined
+                        }
                         productName={productData?.name}
                         productCategory={productData?.category}
                         productDescription={productData?.description}
