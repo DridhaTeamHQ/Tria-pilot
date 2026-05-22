@@ -111,7 +111,6 @@ export default function BrandNavbar({ brandName: initialBrandName, avatarUrl: in
             {navItems.map((item, idx) => {
               const Icon = item.icon
               const active = isActive(item.href)
-              const isAnalytics = item.href === '/brand/analytics'
               return (
                 <motion.div
                   key={item.href}
@@ -122,7 +121,7 @@ export default function BrandNavbar({ brandName: initialBrandName, avatarUrl: in
                   <Link
                     href={item.href}
                     onClick={() => setPendingPath(item.href)}
-                    className={`flex items-center gap-2 rounded-xl border-2 border-black px-3 py-1.5 text-sm font-bold transition-all xl:py-2 xl:text-base ${isAnalytics ? 'xl:px-3.5' : 'xl:px-4'} ${pendingPath === item.href ? 'opacity-50 pointer-events-none' : ''} ${active
+                    className={`flex items-center gap-2 rounded-xl border-2 border-black px-3 py-1.5 text-sm font-bold transition-all xl:px-4 xl:py-2 xl:text-base ${pendingPath === item.href ? 'opacity-50 pointer-events-none' : ''} ${active
                       ? 'text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)]'
                       : 'bg-white text-black hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)]'
                       }`}
