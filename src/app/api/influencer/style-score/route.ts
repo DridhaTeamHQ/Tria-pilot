@@ -17,24 +17,34 @@ const bodySchema = z.object({
 
 function fallbackInsight(category?: string | null) {
   const normalized = String(category || '').toLowerCase()
-  const seasonalBias =
+  const baseFloor =
     normalized.includes('dress') || normalized.includes('summer')
       ? 91
       : normalized.includes('jacket') || normalized.includes('layer')
-        ? 84
-        : 88
+        ? 87
+        : 89
+  const randomOffset = Math.floor(Math.random() * 7)
+  const score = Math.min(97, Math.max(85, baseFloor + randomOffset))
+  const fitMatch = Math.min(97, Math.max(85, score - 1 + Math.floor(Math.random() * 3)))
+  const colorHarmony = Math.min(97, Math.max(85, score - 2 + Math.floor(Math.random() * 4)))
+  const seasonalRelevance = Math.min(97, Math.max(85, score - 1 + Math.floor(Math.random() * 3)))
 
   return {
-    label: seasonalBias >= 90 ? 'Trendy' : seasonalBias >= 85 ? 'Strong fit' : 'On-point',
-    score: Math.round((84 + seasonalBias) / 2),
+    label: score >= 94 ? 'Trendy' : score >= 89 ? 'Strong fit' : 'On-point',
+    score,
     summary: 'The look reads clean, wearable, and social-first enough to feel intentional on feed.',
     breakdown: {
-      fitMatch: 86,
-      colorHarmony: 88,
-      seasonalRelevance: seasonalBias,
+      fitMatch,
+      colorHarmony,
+      seasonalRelevance,
     },
     shareCaption: `Style score locked. Clean fit, sharp palette, and strong post energy.`,
   }
+}
+
+function clampPremiumScore(value: number, fallback: number) {
+  const numeric = Number.isFinite(value) ? Math.round(value) : fallback
+  return Math.min(97, Math.max(85, numeric))
 }
 
 export async function POST(request: Request) {
@@ -95,7 +105,7 @@ Return JSON in this exact shape:
 }
 
 Rules:
-- Score each metric from 0 to 100
+- Score each metric from 85 to 97
 - Keep summary and shareCaption short
 - Be optimistic but believable
 - Focus on fit match, color harmony, and seasonal relevance`
@@ -123,16 +133,17 @@ Rules:
     }
 
     const parsedJson = JSON.parse(raw)
+    const fallback = fallbackInsight(productCategory)
     return NextResponse.json({
-      label: String(parsedJson.label || fallbackInsight(productCategory).label),
-      score: Number(parsedJson.score || fallbackInsight(productCategory).score),
-      summary: String(parsedJson.summary || fallbackInsight(productCategory).summary),
+      label: String(parsedJson.label || fallback.label),
+      score: clampPremiumScore(Number(parsedJson.score), fallback.score),
+      summary: String(parsedJson.summary || fallback.summary),
       breakdown: {
-        fitMatch: Number(parsedJson.breakdown?.fitMatch || 86),
-        colorHarmony: Number(parsedJson.breakdown?.colorHarmony || 88),
-        seasonalRelevance: Number(parsedJson.breakdown?.seasonalRelevance || 89),
+        fitMatch: clampPremiumScore(Number(parsedJson.breakdown?.fitMatch), fallback.breakdown.fitMatch),
+        colorHarmony: clampPremiumScore(Number(parsedJson.breakdown?.colorHarmony), fallback.breakdown.colorHarmony),
+        seasonalRelevance: clampPremiumScore(Number(parsedJson.breakdown?.seasonalRelevance), fallback.breakdown.seasonalRelevance),
       },
-      shareCaption: String(parsedJson.shareCaption || fallbackInsight(productCategory).shareCaption),
+      shareCaption: String(parsedJson.shareCaption || fallback.shareCaption),
     })
   } catch (error) {
     console.error('[style-score] error:', error)

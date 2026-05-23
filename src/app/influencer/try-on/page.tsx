@@ -964,7 +964,7 @@ function TryOnPageContent() {
                     {styleInsight ? (
                       <button
                         type="button"
-                        onClick={() => void copyText(`KOO Score ${clampScore(styleInsight.score)}/100\n${styleInsight.label}\n${styleInsight.summary}\n${styleInsight.shareCaption}`, 'KOO Score card text is ready to paste.')}
+                        onClick={() => void copyText(`KOO Score ${clampScore(styleInsight.score)}%\n${styleInsight.label}\n${styleInsight.summary}\n${styleInsight.shareCaption}`, 'KOO Score card text is ready to paste.')}
                         className="inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-white px-4 py-2 text-xs font-black uppercase shadow-[3px_3px_0_0_#000] transition hover:-translate-y-0.5"
                       >
                         <Copy className="h-4 w-4" />
@@ -1095,7 +1095,7 @@ function TryOnPageContent() {
                             KOO Score
                           </div>
                           <h3 className="mt-3 text-2xl font-black uppercase">
-                            {loadingStyleInsight ? 'Scoring...' : styleInsight ? `KOO Score ${clampScore(styleInsight.score)}/100` : 'Score unavailable'}
+                            {loadingStyleInsight ? 'Scoring...' : styleInsight ? `KOO Score ${clampScore(styleInsight.score)}%` : 'Score unavailable'}
                           </h3>
                           <p className="mt-2 text-sm font-semibold text-black/65">
                             {loadingStyleInsight ? 'Reading the look and building the scorecard.' : styleInsight?.summary || 'Run another try-on to refresh the scorecard.'}
