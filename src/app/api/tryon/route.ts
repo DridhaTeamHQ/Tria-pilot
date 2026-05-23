@@ -408,6 +408,14 @@ function formatQualityGateScores(scores: IdentityCompositionAssessment['scores']
   return `face=${scores.faceIdentity}, garment=${scores.garmentFidelity}, body=${scores.bodyConsistency}, composition=${scores.compositionQuality}, background=${scores.backgroundIntegrity}`
 }
 
+function hasCriticalLimbPlacementIssue(issues: string[] = [], reasoning = ''): boolean {
+  const text = [...issues, reasoning].join(' ').toLowerCase()
+  return (
+    /\b(hand|hands|arm|arms|forearm|wrist|finger|fingers|limb|limbs|elbow)\b/.test(text) &&
+    /\b(misplac|float|impossible|unnatural|duplicat|extra|merged|melt|cross|cover|torso|chest|garment|body|distort)\b/.test(text)
+  )
+}
+
 interface StrictOutputValidationResult {
   qualityAssessment: IdentityCompositionAssessment | null
   garmentValidation: GarmentValidationResult | null
@@ -1301,6 +1309,7 @@ async function handlePresetlessTryOnRequest(params: {
       // validation, we return the highest-scored one rather than failing.
       // Better to ship a marginal output than block the user entirely.
       let bestResult: { image: string; score: number; label: string; issues?: string[] } | null = null
+      let criticalQualityErr: Error | null = null
 
       for (let i = 0; i < strategies.length; i++) {
         const strategy = strategies[i]
@@ -1314,9 +1323,9 @@ async function handlePresetlessTryOnRequest(params: {
           // ── QUALITY VALIDATION ─────────────────────────────────────
           // GPT-4o-mini vision check: does the output actually show the
           // right garment on the right person with the right coverage?
-          // Skip validation on the last strategy — we'd return it anyway.
-          const isLastStrategy = i === strategies.length - 1
-          if (!isLastStrategy) {
+          // Validate every strategy, including the final fallback. The
+          // final candidate can still have obvious hand/arm artifacts.
+          {
             try {
               const { validateTryOnQuality } = await import('@/lib/tryon/quality-validator')
               const outputBase64 = result.replace(/^data:image\/[a-z+]+;base64,/, '')
@@ -1328,21 +1337,41 @@ async function handlePresetlessTryOnRequest(params: {
               })
 
               if (validation) {
-                if (!bestResult || validation.score > bestResult.score) {
+                const hasCriticalLimbIssue = hasCriticalLimbPlacementIssue(validation.issues, validation.reasoning)
+                if (hasCriticalLimbIssue) {
+                  criticalQualityErr = new Error(
+                    `Try-on output rejected: impossible hand/arm placement (${validation.issues.join(', ') || validation.reasoning})`
+                  )
+                  if (isDev) console.warn(`ðŸ” Slot ${slotIdx + 1} ${strategy.label} rejected for hand/arm placement (${validation.score}/100): ${validation.issues.join(', ') || validation.reasoning}`)
+                  if (i < strategies.length - 1) {
+                    await new Promise((r) => setTimeout(r, 400))
+                    continue
+                  }
+                  throw criticalQualityErr
+                }
+
+                if ((!bestResult || validation.score > bestResult.score) && validation.score >= 50) {
                   bestResult = { image: result, score: validation.score, label: strategy.label, issues: validation.issues }
                 }
                 if (!validation.valid && validation.score < 65) {
                   if (isDev) console.warn(`🔁 Slot ${slotIdx + 1} ${strategy.label} failed quality (${validation.score}/100) — trying next strategy. Issues: ${validation.issues.join(', ')}`)
                   if (i < strategies.length - 1) {
                     await new Promise((r) => setTimeout(r, 400))
+                    continue
                   }
-                  continue
+                  throw new Error(`Try-on output rejected by quality validator (${validation.score}/100): ${validation.issues.join(', ') || validation.reasoning}`)
                 }
                 // Passed validation — return with the score so UI can show it
                 if (isDev && i > 0) console.log(`✨ Slot ${slotIdx + 1} recovered via ${strategy.label} (strategy ${i + 1}) @ ${validation.score}/100`)
                 return { image: result, qualityScore: validation.score, qualityIssues: validation.issues, strategyUsed: strategy.label }
               }
             } catch (valErr) {
+              if (
+                valErr instanceof Error &&
+                /Try-on output rejected|quality validator/i.test(valErr.message)
+              ) {
+                throw valErr
+              }
               // Validator failure is non-fatal — fall through and accept the result
               if (isDev) console.warn(`⚠️ Slot ${slotIdx + 1} validator error, accepting result: ${valErr instanceof Error ? valErr.message : valErr}`)
             }
@@ -1387,6 +1416,10 @@ async function handlePresetlessTryOnRequest(params: {
           qualityIssues: bestResult.issues,
           strategyUsed: bestResult.label,
         }
+      }
+
+      if (criticalQualityErr) {
+        throw criticalQualityErr
       }
 
       throw lastErr instanceof Error

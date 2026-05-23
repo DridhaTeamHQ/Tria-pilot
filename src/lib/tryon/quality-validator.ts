@@ -7,6 +7,8 @@
  *   - Wrong body region was modified (top extended into a dress, etc.)
  *   - Output is nearly unchanged from input (no swap happened)
  *   - Garment looks pasted/overlaid (sticker effect, not naturally worn)
+ *   - Arms/hands are moved, duplicated, misplaced, or unnaturally laid
+ *     across the torso/garment
  *
  * Returns null on any error so the caller treats it as "couldn't validate"
  * rather than as a failure — never blocks the pipeline on validator issues.
@@ -43,6 +45,8 @@ Score the OUTPUT (image 3) against these criteria:
 3. COVERAGE — was only the correct region changed? For top swaps, her pants/bottom must match image 1. For bottom swaps, her top must match image 1.
 4. REALISM — looks like a real photo? No overlay/sticker artifacts, no distorted body, no melted face?
 
+5. ANATOMY / LIMB PLACEMENT - arms and hands must be anatomically plausible and must preserve the reference pose. Hands must not appear in impossible places, float over the chest, merge into the garment, duplicate, or cover the torso unless they already do so in image 1.
+
 Return ONLY JSON, no markdown:
 {
   "valid": boolean,
@@ -58,6 +62,8 @@ Be STRICT. Fail if:
 - Garment looks pasted/overlaid instead of naturally worn
 - Image is essentially identical to image 1 (no swap happened)
 - Major artifacts (melted face, extra limbs, distorted body)
+- Any misplaced, floating, duplicated, merged, or impossible hand/arm
+- A hand or forearm newly crossing/covering the torso or garment when that was not present in image 1
 
 Pass if: same person, wearing the new garment naturally, non-swap regions preserved, looks photorealistic. Score reflects how clean the swap is (90+ = excellent, 70-89 = acceptable, <70 = fail).`
 

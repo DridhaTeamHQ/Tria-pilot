@@ -134,6 +134,8 @@ FACE (LOCKED - MATCH EXACTLY):
 POSE (LOCKED - DO NOT CHANGE):
 • Body position - EXACT SAME as original
 • Arm positions and hand placement - EXACT SAME
+• Hands/arms must stay in their original locations; do not move them onto the torso, chest, stomach, or garment
+• No floating hands, duplicate limbs, merged fingers, impossible wrists, or forearms crossing the garment
 • Head angle and tilt - EXACT SAME  
 • Body orientation - EXACT SAME
 • Expression - natural, similar to original
@@ -189,6 +191,8 @@ FACE - LOCKED: EXACT same face from first image
 • Same hair color and style
 POSE - LOCKED: EXACT same body position
 • Same arm positions, head angle, orientation
+• Hands and arms stay where they are in image 1; no new hand on chest/torso/garment
+• No extra, floating, merged, or impossible hands/arms
 
 ═══════════════════════════════════════════════════════════════════════════════
 ✏️ EDITABLE ELEMENTS:
@@ -634,6 +638,8 @@ FORBIDDEN HALLUCINATIONS:
 - Do NOT create hybrid garments mixing features from Image 1 and Image 2
 - Do NOT change garment color, pattern, or material from what's in Image 2
 - Do NOT change the background, pose, framing, or zoom level — only the clothing changes
+- Preserve both arms and both hands exactly from Image 1. Do NOT place a hand or forearm across the chest, stomach, or garment unless it is already in that exact position in Image 1
+- Reject impossible anatomy: no floating hands, extra arms, duplicated fingers, merged wrists, or limbs fused into the garment
 
 REALISM: Photorealistic output. Natural skin, realistic fabric drape. No AI smoothing or CGI look.${factSheet}`,
     imageConfig: {
