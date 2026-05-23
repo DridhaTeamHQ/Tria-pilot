@@ -482,15 +482,41 @@ export function composeSmartPrompt(
   const { polishNotes } = options
 
   const polishSection = polishNotes?.trim() ? `\nAdditional styling notes: ${polishNotes.trim()}` : ''
+  const garmentSummary = `${intel.description} (${intel.primaryColor}, ${intel.pattern}, ${intel.material})`
+  const garmentDetailLines = [
+    intel.neckline && intel.neckline !== 'other' ? `- Neckline: ${intel.neckline}` : '',
+    intel.sleeves && intel.sleeves !== 'other' ? `- Sleeves: ${intel.sleeves}` : '',
+    intel.fit ? `- Fit: ${intel.fit}` : '',
+    intel.length ? `- Length: ${intel.length}` : '',
+    intel.keyFeatures.length > 0 ? `- Key features: ${intel.keyFeatures.slice(0, 4).join(', ')}` : '',
+  ].filter(Boolean)
 
-  return `Replace all the clothing on the person in Image 1 with the clothing shown in Image 2.
+  const preserveBodyLine =
+    intel.coverage === 'upper_only'
+      ? `5. KEEP the person's existing lower-body clothing, shoes, watch, bracelets, sunglasses, hands, body shape, and leg proportions exactly the same. Only the upper-body garment is allowed to change.`
+      : intel.coverage === 'lower_only'
+        ? `5. KEEP the person's existing upper-body clothing, hairstyle, sunglasses, watch, bracelets, torso proportions, and arm position exactly the same. Only the lower-body garment is allowed to change.`
+        : `5. KEEP the person's face, hairstyle, sunglasses, watch, bracelets, body shape, stance, framing, and background exactly the same. Only the garment areas covered by the product may change.`
 
-The clothing to apply: ${intel.description} (${intel.primaryColor}, ${intel.pattern}, ${intel.material})
+  const coverageSpecificLine =
+    intel.coverage === 'upper_only'
+      ? `6. This is an upper-body swap. Do not redesign the pants, do not change the shoes, and do not slim, widen, or restyle the person's body.`
+      : intel.coverage === 'lower_only'
+        ? `6. This is a lower-body swap. Do not redesign the shirt, jacket, face, or hairstyle. Ensure the new lower garment is fully visible and naturally worn.`
+        : `6. This is a full-outfit swap. Preserve the exact person and scene, but match the full outfit from Image 2.`
+
+  return `Apply a photorealistic virtual try-on using Image 1 as the identity/source photo and Image 2 as the garment reference.
+
+Target garment from Image 2: ${garmentSummary}
+${garmentDetailLines.length > 0 ? `\nGarment details:\n${garmentDetailLines.join('\n')}` : ''}
 
 CRITICAL RULES:
-1. REMOVE all of the person's current clothes first, then dress them in the garment from Image 2.
-2. The person's face, hair, body, pose, and background must stay exactly the same — do not change the person at all.
-3. The final garment must exactly match Image 2 — same color, pattern, texture, fit, and details.
-4. Output a photorealistic photo, not an AI-looking image.
+1. The output must be the exact same person from Image 1.
+2. Preserve the exact face, skin tone, hairstyle, facial hair, sunglasses, expression, body shape, arm position, hand position, pose, camera angle, framing, and background from Image 1.
+3. Match the garment from Image 2 exactly: same color, pattern, texture, fit, silhouette, sleeve length, hemline, and design details.
+4. Do not beautify, stylize, age-shift, gender-shift, slim, broaden, or otherwise change the person.
+${preserveBodyLine}
+${coverageSpecificLine}
+7. Output a realistic photograph with natural lighting and fabric drape. It must look like the same person simply wearing the new garment, not a different model.
 ${polishSection}`
 }

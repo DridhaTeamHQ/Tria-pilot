@@ -308,6 +308,11 @@ function TryOnPageContent() {
     : toImageSrc(selectedOutput?.base64Image)
   const productPreviewSrc = selectedProductImage ? resolveStoredImageUrl(selectedProductImage) : ''
   const selectedReferencePhoto = selectedPhotos[0] ?? currentRecommendations.selected[0] ?? approvedPhotos[0] ?? null
+  const beforePreviewPhoto =
+    (selectedOutput?.referenceImageId ? photoMap.get(selectedOutput.referenceImageId) : null) ??
+    selectedReferencePhoto ??
+    null
+  const beforePreviewSrc = beforePreviewPhoto?.imageUrl ? resolveStoredImageUrl(beforePreviewPhoto.imageUrl) : ''
   const postTiming = useMemo(() => getBestTimeToPost(productData?.category), [productData?.category])
   const hasCompleteSelection = selectedReferenceIds.filter(Boolean).length === 3 && selectedPhotos.length === 3
   const hasManualSelection = selectionMode === 'manual' && hasCompleteSelection
@@ -988,10 +993,10 @@ function TryOnPageContent() {
                   >
                     {resultViewMode === 'product' && productPreviewSrc ? (
                       <Image src={productPreviewSrc} alt="Product preview" fill unoptimized className="object-cover" />
-                    ) : resultViewMode === 'split' && selectedOutputSrc && productPreviewSrc ? (
+                    ) : resultViewMode === 'split' && selectedOutputSrc && beforePreviewSrc ? (
                       <>
-                        {/* Before — product/original */}
-                        <Image src={productPreviewSrc} alt="Before" fill unoptimized className="object-cover" />
+                        {/* Before — influencer source photo */}
+                        <Image src={beforePreviewSrc} alt="Before try-on" fill unoptimized className="object-cover" />
                         {/* After — generated try-on clipped to right portion */}
                         <div
                           className="absolute inset-y-0 right-0 overflow-hidden"
