@@ -1115,6 +1115,9 @@ async function handlePresetlessTryOnRequest(params: {
         // We already ran analyzeGarment upstream — pass it through to skip
         // the duplicate call inside the clean pipeline (saves 3-5s).
         prebuiltIntel: garmentIntel,
+        // Preserve the exact strict garment profile all the way into the
+        // clean FLUX slot prompts so color/pattern/texture locks survive.
+        prebuiltStrictGarmentProfile: strictGarmentProfile ?? null,
         // We already ran preprocessGarmentImage upstream and processedGarment
         // is the cleaned result. Tell the pipeline to skip Step 1 entirely
         // (saves 5-25s — was the biggest source of Vercel 504s).

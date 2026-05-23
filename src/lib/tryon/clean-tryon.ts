@@ -35,6 +35,7 @@ import sharp from 'sharp'
 import { preprocessGarmentImage } from '@/lib/tryon/garment-preprocessor'
 import { orchestrateTryOn, type PhotoCandidate } from '@/lib/tryon/gpt-orchestrator'
 import { analyzeGarment } from '@/lib/tryon/garment-intel'
+import { buildGarmentEnforcementBlock } from '@/lib/tryon/garment-strict-schema'
 import { flux2Generate, downloadFluxImage } from '@/lib/flux/client'
 import { generateTryOnDirect } from '@/lib/nanobanana'
 
@@ -75,6 +76,12 @@ export interface CleanTryOnInput {
    */
   prebuiltIntel?: import('@/lib/tryon/garment-intel').GarmentIntelligence | null
   /**
+   * Pre-computed strict garment profile. When supplied, the clean pipeline
+   * threads exact color/pattern/fabric constraints into the final swap
+   * prompt so FLUX does not drift on hue, texture, or motif scale.
+   */
+  prebuiltStrictGarmentProfile?: import('@/lib/tryon/garment-strict-schema').StrictGarmentProfile | null
+  /**
    * Set true when the caller already ran preprocessGarmentImage and is
    * passing in the cleaned garment as garmentImageBase64. Skips body
    * detection + extraction inside the pipeline entirely — saves
@@ -114,6 +121,28 @@ export interface CleanTryOnResult {
 
 function strip(b64: string): string {
   return b64.replace(/^data:image\/[a-z+]+;base64,/, '')
+}
+
+function buildCompactGarmentLock(
+  profile: import('@/lib/tryon/garment-strict-schema').StrictGarmentProfile | null | undefined,
+): string {
+  if (!profile) return ''
+
+  const baseColor = `${profile.base_color.name} (${profile.base_color.hex})`
+  const secondaryColors = profile.secondary_colors.length > 0
+    ? profile.secondary_colors.slice(0, 3).map((c) => `${c.name} (${c.hex})`).join(', ')
+    : 'none'
+  const patternSummary = profile.pattern.exists
+    ? `${profile.pattern.type}; motif=${profile.pattern.motif_description}; scale=${profile.pattern.motif_scale}; density=${profile.pattern.repeat_density}; orientation=${profile.pattern.orientation}`
+    : 'solid color; no pattern allowed'
+
+  return [
+    `GARMENT LOCK: exact type=${profile.garment_type}.`,
+    `Base color must remain ${baseColor}. Secondary colors: ${secondaryColors}.`,
+    `Pattern lock: ${patternSummary}.`,
+    `Fabric lock: material=${profile.fabric.material}, weight=${profile.fabric.weight}, finish=${profile.fabric.surface_finish}, drape=${profile.fabric.drape}.`,
+    `Hard constraints: no color shift, no pattern scaling, no redesign, no texture simplification, no added print, no removed print, no artistic reinterpretation.`,
+  ].join(' ')
 }
 
 /**
@@ -210,6 +239,7 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
   }))
 
   const intel = await intelPromise
+  const strictProfile = input.prebuiltStrictGarmentProfile ?? null
   let orchestrated = await orchestrateTryOn({
     garmentBase64: cleanedGarment,
     candidates,
@@ -240,12 +270,12 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
     if (fallbackPhotos.length < 3) {
       throw new Error('Not enough reference photos to generate a try-on (need 3).')
     }
-    orchestrated = {
+      orchestrated = {
       garmentSummary: desc,
       durationMs: 0,
       selections: fallbackPhotos.map((p) => ({
         photoId: p.id,
-        prompt: `Change the clothing on the person in image 1 to the garment shown in image 2 — ${desc}. Keep the person's face, hair, skin tone, body, pose, framing, lighting and background exactly the same as image 1. Only the clothing changes. Photorealistic.`,
+        prompt: `Change the clothing on the person in image 1 to the garment shown in image 2 — ${desc}. Keep the person's face, hair, skin tone, body, pose, framing, lighting and background exactly the same as image 1. Only the clothing changes. Match the garment's exact color, pattern, material, texture, and construction details from image 2 with no reinterpretation. Photorealistic.`,
         reasoning: 'Rules-based fallback — orchestrator unavailable',
       })),
     }
@@ -298,6 +328,11 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
     const faceCropBase64 = photoRecord?.faceCropBase64
     const hasFace = Boolean(faceCropBase64 && faceCropBase64.length > 100)
 
+    const compactGarmentLock = buildCompactGarmentLock(strictProfile)
+    const garmentEnforcement = strictProfile
+      ? buildGarmentEnforcementBlock(strictProfile).replace(/\s+/g, ' ').slice(0, 1200)
+      : ''
+
     // Orchestrator's "change X to Y, keep Z" prompt + identity/fidelity guards.
     const fluxPrompt = (
       `${sel.prompt} ` +
@@ -313,10 +348,12 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
       (hasFace ? `Image 3 is a close-up of this exact person's face — the output face MUST match image 3 precisely; do not generate a different face. ` : '') +
       `Match the garment in image 2 exactly: same colours and hue, same neckline, sleeve length, hemline and overall fit. ` +
       `Reproduce every pattern, embroidery, print and texture detail faithfully — do not simplify, recolour or wash out intricate motifs. ` +
+      `${compactGarmentLock} ` +
+      `${garmentEnforcement} ` +
       `Any text, logo or graphic on the garment must be rendered sharp, correctly spelled and in the same position as image 2. ` +
       `Do not add, remove or restyle garment elements. ` +
       `Photorealistic, natural fabric drape with realistic shadows; no overlay, sticker, decal or pasted-on effect.`
-    ).slice(0, 2000)
+    ).slice(0, 3200)
 
     const dims = await detectDims(personBase64)
     const seed = (Date.now() % 1_000_000_000) + idx * 9973
