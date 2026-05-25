@@ -6,7 +6,6 @@ import { toast } from '@/lib/simple-sonner'
 
 interface CaptionVariant {
   text: string
-  hashtags: string[]
 }
 
 interface ToneResult {
@@ -175,11 +174,7 @@ export default function CaptionGenerator({
         <div className="grid gap-4 lg:grid-cols-3">
           {orderedResults.map((card) => {
             const caption = card.result?.captions?.[0]
-            const fullText = caption
-              ? caption.hashtags.length
-                ? `${caption.text}\n\n${caption.hashtags.join(' ')}`
-                : caption.text
-              : ''
+            const fullText = caption ? caption.text : ''
             const copied = copiedKey === card.key
             const combinedText = affiliateLink
               ? `${fullText}\n\nShop here: ${affiliateLink}`
@@ -205,11 +200,6 @@ export default function CaptionGenerator({
                       <p className="whitespace-pre-wrap text-sm font-medium leading-relaxed text-black/85">
                         {caption.text}
                       </p>
-                      {caption.hashtags.length > 0 ? (
-                        <p className="mt-3 break-words text-[12px] font-semibold leading-relaxed text-[#7C5DFA]">
-                          {caption.hashtags.join(' ')}
-                        </p>
-                      ) : null}
                     </>
                   ) : (
                     <p className="text-sm font-semibold text-black/40">

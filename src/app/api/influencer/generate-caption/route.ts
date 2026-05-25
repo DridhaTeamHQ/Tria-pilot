@@ -2,7 +2,7 @@
  * POST /api/influencer/generate-caption
  *
  * Given a try-on image (or product context) + platform + tone, returns
- * 3 platform-tailored captions with hashtags. Designed for the creator
+ * 3 platform-tailored captions without hashtags. Designed for the creator
  * try-on result screen — one click and they have ready-to-post copy.
  *
  * Body:
@@ -19,7 +19,7 @@
  *   }
  *
  * Returns:
- *   { results: { platform, tone, captions: [{text, hashtags[]}] }[] }
+ *   { results: { platform, tone, captions: [{text}] }[] }
  */
 
 import { NextResponse } from 'next/server'
@@ -50,7 +50,7 @@ const bodySchema = z.object({
 interface CaptionResult {
   platform: string
   tone: string
-  captions: Array<{ text: string; hashtags: string[] }>
+  captions: Array<{ text: string }>
 }
 
 export async function POST(request: Request) {
@@ -103,13 +103,13 @@ export async function POST(request: Request) {
       .map((p) => {
         switch (p) {
           case 'instagram':
-            return '- Instagram: 1-2 sentence captions, emoji-friendly, 6-10 hashtags (mix popular + niche).'
+            return '- Instagram: 1-2 sentence captions, emoji-friendly, clean and premium, no hashtags.'
           case 'tiktok':
-            return '- TikTok: punchy hooks under 100 chars, trend-aware, 3-5 hashtags including discovery tags.'
+            return '- TikTok: punchy hooks under 100 chars, trend-aware, no hashtags.'
           case 'youtube_shorts':
-            return '- YouTube Shorts: descriptive but tight, question hook OK, 4-6 hashtags including #Shorts.'
+            return '- YouTube Shorts: descriptive but tight, question hook OK, no hashtags.'
           case 'twitter':
-            return '- Twitter/X: under 280 chars, witty/conversational, 1-3 hashtags max.'
+            return '- Twitter/X: under 280 chars, witty/conversational, no hashtags.'
           default:
             return ''
         }
@@ -155,13 +155,13 @@ Return JSON:
       "platform": "<platform name>",
       "tone": "<requested tone>",
       "captions": [
-        { "text": "<caption text>", "hashtags": ["#tag1", "#tag2"] }
+        { "text": "<caption text>" }
       ]
     }
   ]
 }
 
-Each caption.text should NOT contain the hashtags (return them separately so the creator can pick which to use).`
+Each caption.text must be clean and ready to paste with no hashtags at all.`
 
     const messages: any[] = [{ role: 'system', content: systemContent }]
 
