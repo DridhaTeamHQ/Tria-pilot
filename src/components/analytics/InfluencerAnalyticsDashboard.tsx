@@ -111,7 +111,7 @@ function StatCard({
   return (
     <motion.div
       whileHover={{ y: -4, x: -4, boxShadow: '12px 12px 0px 0px rgba(0,0,0,1)' }}
-      className="group relative overflow-hidden rounded-2xl border-[3px] border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all"
+      className="group relative overflow-hidden rounded-2xl border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all sm:p-6 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
     >
       <div className="flex items-center justify-between">
         <div className={`flex h-12 w-12 items-center justify-center rounded-xl border-2 border-black transition-transform group-hover:scale-110`} style={{ backgroundColor: color }}>
@@ -121,11 +121,11 @@ function StatCard({
           <TrendingUp className="h-4 w-4 text-black/10" />
         </div>
       </div>
-      <div className="mt-5">
+      <div className="mt-4 sm:mt-5">
         <p className="text-xs font-black uppercase tracking-wider text-black/40">{label}</p>
-        <h3 className="mt-1 text-3xl font-black text-black">{value}</h3>
+        <h3 className="mt-1 text-2xl font-black text-black sm:text-3xl">{value}</h3>
       </div>
-      <div className="mt-4 flex items-center gap-1.5">
+      <div className="mt-4 flex flex-wrap items-center gap-1.5">
         <div className={`flex items-center gap-1 rounded-full border-2 border-black px-2 py-0.5 text-[10px] font-black ${isPositive ? 'bg-emerald-400' : 'bg-rose-400'}`}>
           {isPositive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
           {Math.abs(change).toFixed(1)}%
@@ -139,7 +139,13 @@ function StatCard({
 function MainTrendChart({ data: inputData, height = '300px', days = 7 }: { data: AnalyticsData['series']; height?: number | string; days?: number }) {
   // Generate skeleton data if empty
   const data = useMemo(() => {
-    if (inputData?.length) return inputData;
+    if (inputData?.length > 1) return inputData;
+    if (inputData?.length === 1) {
+      const first = inputData[0]
+      const nextDay = new Date(first.day)
+      nextDay.setDate(nextDay.getDate() + 1)
+      return [first, { ...first, day: nextDay.toISOString() }]
+    }
     // Create skeleton days
     return Array.from({ length: days }).map((_, i) => {
       const d = new Date();
@@ -159,13 +165,15 @@ function MainTrendChart({ data: inputData, height = '300px', days = 7 }: { data:
   const maxClicks = Math.max(...data.map((d) => d.clicks), 50)
   const maxRevenue = Math.max(...data.map((d) => d.revenue), 100)
 
+  const pointDenominator = Math.max(data.length - 1, 1)
+
   const clickPoints = data.map((d, i) => ({
-    x: (i / (data.length - 1)) * 100,
+    x: (i / pointDenominator) * 100,
     y: 100 - (d.clicks / maxClicks) * 80 - 10,
   }))
 
   const revenuePoints = data.map((d, i) => ({
-    x: (i / (data.length - 1)) * 100,
+    x: (i / pointDenominator) * 100,
     y: 100 - (d.revenue / maxRevenue) * 80 - 10,
   }))
 
@@ -185,27 +193,27 @@ function MainTrendChart({ data: inputData, height = '300px', days = 7 }: { data:
   const revenuePath = getSmoothPath(revenuePoints);
 
   return (
-    <div className="relative w-full px-12 pt-4" style={{ height }}>
+    <div className="relative min-h-[210px] w-full px-6 pt-4 sm:min-h-0 sm:px-12" style={{ height }}>
       {/* Grid Lines */}
-      <div className="absolute inset-x-12 top-4 bottom-5 flex flex-col justify-between pointer-events-none">
+      <div className="absolute inset-x-6 top-4 bottom-5 flex flex-col justify-between pointer-events-none sm:inset-x-12">
         {[0, 1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="w-full border-b border-black/[0.03]" />
         ))}
       </div>
 
       {/* Axis Labels */}
-      <div className="absolute left-0 top-4 bottom-5 flex flex-col justify-between py-1 text-[10px] font-bold text-black/30 w-10 text-right pr-2">
+      <div className="absolute left-0 top-4 bottom-5 flex w-6 flex-col justify-between py-1 pr-1 text-right text-[8px] font-bold text-black/30 sm:w-10 sm:pr-2 sm:text-[10px]">
         {[maxClicks, maxClicks * 0.8, maxClicks * 0.6, maxClicks * 0.4, maxClicks * 0.2, 0].map((v, i) => (
           <span key={i}>{Math.round(v)}</span>
         ))}
       </div>
-      <div className="absolute right-0 top-4 bottom-5 flex flex-col justify-between py-1 text-[10px] font-bold text-black/30 w-10 text-left pl-2">
+      <div className="absolute right-0 top-4 bottom-5 flex w-6 flex-col justify-between py-1 pl-1 text-left text-[8px] font-bold text-black/30 sm:w-10 sm:pl-2 sm:text-[10px]">
         {[maxRevenue, maxRevenue * 0.8, maxRevenue * 0.6, maxRevenue * 0.4, maxRevenue * 0.2, 0].map((v, i) => (
           <span key={i}>{Math.round(v)}</span>
         ))}
       </div>
 
-      <div className="absolute inset-x-12 top-4 bottom-5">
+      <div className="absolute inset-x-6 top-4 bottom-5 sm:inset-x-12">
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
           <defs>
             <linearGradient id="clickGradient" x1="0" y1="0" x2="0" y2="1">
@@ -287,7 +295,7 @@ function MainTrendChart({ data: inputData, height = '300px', days = 7 }: { data:
         </svg>
       </div>
 
-      <div className="absolute bottom-2 inset-x-12 flex justify-between">
+      <div className="absolute bottom-2 inset-x-6 flex justify-between sm:inset-x-12">
         {data.map((d, i) => {
           const isLast = i === data.length - 1
           const showLabel = i % labelStep === 0 || isLast
@@ -317,7 +325,7 @@ function DoughnutChart({ value, total = 100 }: { value: number; total?: number }
 
   return (
     <div className="relative flex items-center justify-center">
-      <svg className="h-52 w-52 -rotate-90">
+      <svg className="h-44 w-44 -rotate-90 sm:h-52 sm:w-52">
         <circle cx="104" cy="104" r={radius} fill="transparent" stroke="rgba(0,0,0,0.05)" strokeWidth="16" />
         <motion.circle
           cx="104"
@@ -343,8 +351,8 @@ function DoughnutChart({ value, total = 100 }: { value: number; total?: number }
 
 function RankingList({ title, items, type = 'product' }: { title: string; items: any[]; type?: 'influencer' | 'product' | 'campaign' }) {
   return (
-    <div className="flex min-h-[370px] flex-col rounded-2xl border-[3px] border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-      <div className="mb-6 flex items-center justify-between">
+    <div className="flex min-h-[320px] flex-col rounded-2xl border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:min-h-[370px] sm:p-6 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+      <div className="mb-5 flex items-center justify-between gap-3 sm:mb-6">
         <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-tight text-black">
           {title}
         </h3>
@@ -354,7 +362,7 @@ function RankingList({ title, items, type = 'product' }: { title: string; items:
       </div>
       <div className="space-y-4">
         {items.slice(0, 5).map((item, i) => (
-          <div key={i} className="flex items-center justify-between gap-4 rounded-xl border-2 border-black/5 p-2 transition-colors hover:border-black/20">
+          <div key={i} className="flex items-center justify-between gap-3 rounded-xl border-2 border-black/5 p-2 transition-colors hover:border-black/20 sm:gap-4">
             <div className="flex items-center gap-3 min-w-0">
               <div className="min-w-0">
                 <p className="truncate text-sm font-black text-black">{item.name || item.title}</p>
@@ -363,7 +371,7 @@ function RankingList({ title, items, type = 'product' }: { title: string; items:
                 </p>
               </div>
             </div>
-            <div className="text-right">
+            <div className="shrink-0 text-right">
               <p className="text-sm font-black text-black">{formatMoney(item.revenue || item.commission)}</p>
             </div>
           </div>
@@ -388,7 +396,7 @@ function Sparkline({ data, color = "#10B981" }: { data: number[], color?: string
   const path = `M ${points[0].x} ${points[0].y} ` + points.slice(1).map(p => `L ${p.x} ${p.y}`).join(' ');
 
   return (
-    <div className="relative h-12 w-24">
+    <div className="relative h-12 w-20 sm:w-24">
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full">
         <defs>
           <linearGradient id={`sparkGradient-${color}`} x1="0" y1="0" x2="0" y2="1">
@@ -416,7 +424,7 @@ function Sparkline({ data, color = "#10B981" }: { data: number[], color?: string
 
 function QuickInsightRow({ label, value, subValue, data, color, days }: { label: string, value: string, subValue: string, data: number[], color: string, days: number }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border-2 border-black p-4 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" style={{ backgroundColor: `${color}10` }}>
+    <div className="flex items-center justify-between gap-3 rounded-xl border-2 border-black p-3 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:p-4" style={{ backgroundColor: `${color}10` }}>
       <div className="flex flex-col">
         <span className="text-xl font-black text-black">{value}</span>
         <span className="text-[10px] font-black uppercase tracking-wider text-black/60">{label}</span>
@@ -444,8 +452,8 @@ function AffiliateStatusCard({
 }) {
   const healthy = Boolean(trackingId)
   return (
-    <div className="rounded-2xl border-[3px] border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-      <div className="flex items-start justify-between gap-4">
+    <div className="rounded-2xl border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:p-6 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-tight text-black">
             <LinkIcon className="h-4 w-4" />
@@ -484,7 +492,7 @@ function AffiliateLinksTable({ data }: { data: AffiliateLinksData | undefined })
   const rows = data?.products || []
 
   return (
-    <div className="rounded-2xl border-[3px] border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+    <div className="rounded-2xl border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:p-6 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h3 className="text-sm font-black uppercase tracking-tight text-black">Affiliate Links</h3>
@@ -529,7 +537,7 @@ function AffiliateLinksTable({ data }: { data: AffiliateLinksData | undefined })
                     </span>
                   </div>
                 </div>
-                <div className="grid min-w-[210px] grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3 lg:min-w-[210px]">
                   <div className="rounded-xl border-2 border-black bg-[#E7FFD1] p-3">
                     <p className="text-[10px] font-black uppercase tracking-wider text-black/45">Revenue</p>
                     <p className="mt-2 text-xl font-black text-black">{formatMoney(row.revenue)}</p>
@@ -585,29 +593,29 @@ export default function InfluencerAnalyticsDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F9F8F4] pt-24 pb-12">
-      <div className="mx-auto max-w-full px-4 sm:px-10 lg:px-16">
-        <div className="mb-8 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mx-auto max-w-full overflow-hidden px-3 sm:px-10 lg:px-16">
+        <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
           <div>
-            <h1 className="text-4xl font-black uppercase tracking-tighter text-black">
+            <h1 className="text-3xl font-black uppercase tracking-tighter text-black sm:text-4xl">
               Welcome back, <span className="text-blue-500">{data?.viewer?.name || 'Creator'}</span>!
             </h1>
             <p className="mt-2 text-sm font-black uppercase tracking-widest text-black/40">Performance Overview & Strategic Insights</p>
           </div>
-          <div className="flex items-center gap-2 rounded-2xl border-[3px] border-black bg-white p-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          <div className="grid grid-cols-5 gap-1 rounded-2xl border-[3px] border-black bg-white p-1.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:flex sm:items-center sm:gap-2 sm:p-2">
             {[7, 30, 90, 365].map((d) => (
               <button
                 key={d}
                 onClick={() => setDays(d)}
-                className={`rounded-xl px-4 py-2 text-[10px] font-black uppercase transition-all ${days === d ? 'bg-black text-white' : 'text-black/40 hover:bg-black/5'
+                className={`rounded-xl px-2 py-2 text-[10px] font-black uppercase transition-all sm:px-4 ${days === d ? 'bg-black text-white' : 'text-black/40 hover:bg-black/5'
                   }`}
               >
                 {d === 365 ? '365D' : `${d}D`}
               </button>
             ))}
-            <div className="mx-1 h-6 w-[2px] bg-black" />
+            <div className="hidden sm:mx-1 sm:block sm:h-6 sm:w-[2px] sm:bg-black" />
             <button
               onClick={() => refetch()}
-              className="flex items-center gap-1.5 rounded-xl border-2 border-black bg-emerald-400 px-4 py-2 text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
+              className="flex items-center justify-center gap-1 rounded-xl border-2 border-black bg-emerald-400 px-2 py-2 text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none sm:gap-1.5 sm:px-4"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
               Sync
@@ -615,22 +623,22 @@ export default function InfluencerAnalyticsDashboard() {
           </div>
         </div>
 
-        <div className="mb-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-6 grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
           {stats.map((stat, i) => (
             <StatCard key={i} {...stat} days={days} />
           ))}
         </div>
 
-        <div className="mb-6 grid gap-6 lg:grid-cols-3 items-start">
-          <div className="flex flex-col gap-6 lg:col-span-2">
-            <div className="rounded-2xl border-[3px] border-black bg-white p-6 pb-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col">
-              <div className="mb-8 flex items-center justify-between">
+        <div className="mb-6 grid items-start gap-4 sm:gap-6 lg:grid-cols-3">
+          <div className="flex flex-col gap-4 sm:gap-6 lg:col-span-2">
+            <div className="flex flex-col rounded-2xl border-[3px] border-black bg-white p-4 pb-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:p-6 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+              <div className="mb-5 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
                 <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-tight text-black">
                   <BarChart3 className="h-5 w-5" />
                   Revenue & Clicks Trend
                 </h3>
-                <div className="flex items-center gap-6">
-                  <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center gap-3 sm:gap-6">
+                  <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                     <div className="flex items-center gap-2">
                       <div className="h-3 w-3 rounded-full border-2 border-black bg-[#FF8C69]" />
                       <span className="text-[10px] font-black uppercase tracking-wider text-black/40">Clicks</span>
@@ -646,19 +654,19 @@ export default function InfluencerAnalyticsDashboard() {
                   </div>
                 </div>
               </div>
-              <div className="h-[280px]">
-                <MainTrendChart data={data?.series || []} days={days} height={280} />
+              <div className="h-[230px] sm:h-[280px]">
+                <MainTrendChart data={data?.series || []} days={days} height="100%" />
               </div>
             </div>
 
-            <div className="grid gap-6 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2 sm:gap-6">
               <RankingList title="Top Influencers" items={data?.topInfluencers || []} type="influencer" />
               <RankingList title="Top Products" items={data?.topProducts || []} type="product" />
             </div>
 
             <AffiliateLinksTable data={affiliateLinks} />
 
-            <div className="rounded-2xl border-[3px] border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden">
+            <div className="relative overflow-hidden rounded-2xl border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:p-6 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
               <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-tight text-black">
                 <Globe className="h-4 w-4" />
                 Country Split
@@ -669,8 +677,8 @@ export default function InfluencerAnalyticsDashboard() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-6">
-            <div className="flex flex-col rounded-2xl border-[3px] border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <div className="flex flex-col gap-4 sm:gap-6">
+            <div className="flex flex-col rounded-2xl border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:p-6 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
               <h3 className="mb-4 text-sm font-black uppercase tracking-tight text-black">Traffic Quality</h3>
               <div className="flex flex-1 flex-col items-center justify-center py-4">
                 <DoughnutChart value={kpis.cvr || 0} />
@@ -699,7 +707,7 @@ export default function InfluencerAnalyticsDashboard() {
               </div>
             </div>
 
-            <div className="flex flex-col rounded-2xl border-[3px] border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] h-fit">
+            <div className="flex h-fit flex-col rounded-2xl border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:p-6 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
               <h3 className="mb-6 text-sm font-black uppercase tracking-tight text-black">Quick Insights</h3>
               <div className="flex flex-col gap-4">
                 <QuickInsightRow label="Total Clicks" value={formatNumber(kpis.clicks)} subValue="33.3% ↑" data={[30, 45, 35, 50, 48, 65, 80]} color="#10B981" days={days} />
