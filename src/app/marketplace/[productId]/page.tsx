@@ -93,17 +93,17 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
       <div className="relative z-10 w-full pt-[100px] px-4 sm:px-6 lg:px-8 pb-8 max-w-[1600px] mx-auto">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,45%)_minmax(0,55%)] lg:gap-12">
-            
+
           {/* LEFT: Image Gallery */}
           <div className="w-full">
-            <div className="overflow-hidden rounded-2xl border-2 border-black bg-white p-3 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] lg:sticky lg:top-[96px]">
+            <div className="overflow-hidden rounded-2xl border-2 border-black bg-white p-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] lg:sticky lg:top-[96px]">
               <ImageCarousel images={images} />
             </div>
           </div>
 
           {/* RIGHT: Product Info */}
           <div className="flex flex-col space-y-6 lg:py-4">
-              
+
             {/* Badges */}
             <div className="flex flex-wrap items-center gap-2">
               <span className="px-3 py-1 bg-[#FFD93D] border-2 border-black rounded-lg text-[9px] font-black uppercase tracking-widest shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">{brandName}</span>
@@ -186,7 +186,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                   {product.description || 'No description available.'}
                 </p>
               </div>
-              
+
               <div className="space-y-6">
                 {product.audience && (
                   <div>
