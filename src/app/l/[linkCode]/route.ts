@@ -94,11 +94,11 @@ export async function GET(
       console.warn('increment_click_count RPC failed:', countError)
     }
 
-    const fallbackUrl = trackedLink.product_id
-      ? joinPublicUrl(getPublicSiteUrlFromRequest(request), `/marketplace/${trackedLink.product_id}`)
-      : null
+    const publicSiteUrl = getPublicSiteUrlFromRequest(request)
+    const fallbackUrl = publicSiteUrl
 
     let latestOriginalUrl = trackedLink.original_url
+    let currentProductUrl: string | null = null
     if (trackedLink.product_id && trackedLink.influencer_id) {
       try {
         const [{ data: influencerProfile }, { data: product }] = await Promise.all([
@@ -114,6 +114,10 @@ export async function GET(
             .maybeSingle(),
         ])
 
+        currentProductUrl =
+          typeof product?.link === 'string' && product.link.trim().length > 0
+            ? product.link.trim()
+            : null
         const baseOriginalUrl =
           typeof product?.link === 'string' && product.link.trim().length > 0
             ? product.link.trim()
@@ -142,6 +146,7 @@ export async function GET(
     const redirectUrl =
       sanitizeRedirectUrl(latestOriginalUrl) ||
       sanitizeRedirectUrl(trackedLink.original_url) ||
+      sanitizeRedirectUrl(currentProductUrl || '') ||
       fallbackUrl
     if (!redirectUrl) {
       return NextResponse.json({ error: 'Invalid URL' }, { status: 500 })

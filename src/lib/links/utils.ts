@@ -128,7 +128,7 @@ export function validateOriginalUrl(url: string): boolean {
  */
 export function sanitizeRedirectUrl(url: string): string | null {
   try {
-    const parsed = new URL(url)
+    const parsed = new URL(ensureProtocol(url.trim()))
     const host = parsed.hostname.toLowerCase()
     const knownMarketplaceHosts = [
       'amazon.com',
