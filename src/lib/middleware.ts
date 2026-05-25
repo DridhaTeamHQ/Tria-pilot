@@ -41,6 +41,7 @@ const PUBLIC_PATHS = new Set([
 const PUBLIC_PREFIXES = [
     '/auth',
     '/api/auth',
+    '/l',
     '/marketplace',
     '/api/products',
     '/signup',
