@@ -355,7 +355,8 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
     // Orchestrator's "change X to Y, keep Z" prompt + identity/fidelity guards.
     const fluxPrompt = (
       `${sel.prompt} ` +
-      `Keep the person's face, hair, skin tone, body proportions and pose identical to image 1; ` +
+      `This is a clothing swap only, not a restyle, retouch, or portrait regeneration. ` +
+      `Keep the person's face, eyes, eyebrows, nose, lips, jawline, facial hair, hairstyle, skin tone, ears, earrings, glasses, watch, bracelets, body proportions, and expression identical to image 1; ` +
       `keep the background, camera angle, lighting and crop unchanged. ` +
       // FRAMING LOCK — without this FLUX-2 [pro] re-centres on the face,
       // shrinking the visible torso and producing head-heavy outputs where
@@ -365,6 +366,7 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
       `Show exactly the same amount of body that is visible in image 1: if the waist is visible in image 1 it must be visible in the output; if full body is shown, keep it full body. ` +
       `Preserve the original head-to-torso size ratio precisely. ` +
       (hasFace ? `Image 3 is a close-up of this exact person's face — the output face MUST match image 3 precisely; do not generate a different face. ` : '') +
+      `Do not beautify, smooth skin, sharpen eyes, alter beard shape, change hairstyle, add jewelry, add makeup, add accessories, change expression, or modify any non-clothing part of the person. ` +
       `Match the garment in image 2 exactly: same colours and hue, same neckline, sleeve length, hemline and overall fit. ` +
       `Reproduce every pattern, embroidery, print and texture detail faithfully — do not simplify, recolour or wash out intricate motifs. ` +
       `${compactGarmentLock} ` +
@@ -372,6 +374,7 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
       `${garmentEnforcement} ` +
       `Any text, logo, emblem, monogram, crest, mascot, or embroidered chest mark on the garment must be copied exactly from image 2 with the same symbol, stitch feel, color, size, sharpness, and placement. ` +
       `Do not add, remove or restyle garment elements. ` +
+      `Do not invent props, objects, layers, accessories, backgrounds, or styling details that are not already visible in image 1. ` +
       `Photorealistic, natural fabric drape with realistic shadows; no overlay, sticker, decal or pasted-on effect.`
     ).slice(0, 3200)
 
@@ -379,8 +382,13 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
     const seed = (Date.now() % 1_000_000_000) + idx * 9973
     // person, garment, [face crop]. Face crop = identity anchor.
     const fluxInputs = hasFace
-      ? [personBase64, cleanedGarment, faceCropBase64!.replace(/^data:image\/[a-z+]+;base64,/, '')]
-      : [personBase64, cleanedGarment]
+      ? [
+          personBase64,
+          cleanedGarment,
+          faceCropBase64!.replace(/^data:image\/[a-z+]+;base64,/, ''),
+          personBase64,
+        ]
+      : [personBase64, cleanedGarment, personBase64]
 
     // 2 attempts — FLUX occasionally returns empty under load.
     const MAX_ATTEMPTS = 2

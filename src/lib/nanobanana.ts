@@ -617,6 +617,7 @@ IDENTITY (NON-NEGOTIABLE):
 - Copy their face pixel-for-pixel — preserve every facial feature, skin tone, hair, and body proportion
 - If Image 3 is a face close-up, use it as the DEFINITIVE identity anchor — output face must match Image 3 exactly
 - Do NOT generate a different person or alter any facial features
+- Do NOT retouch the face, smooth skin, change expression, alter beard or moustache shape, modify hairstyle, or add/remove earrings, glasses, or jewelry
 
 GARMENT REPLACEMENT (STRIP-AND-REPLACE):
 - FIRST: Mentally STRIP all existing clothing from the person
@@ -640,6 +641,7 @@ FORBIDDEN HALLUCINATIONS:
 - Do NOT change garment color, pattern, or material from what's in Image 2
 - Do NOT replace or reinterpret any logo, embroidery, brand mark, text, crest, or small chest graphic from Image 2
 - Do NOT change the background, pose, framing, or zoom level — only the clothing changes
+- Do NOT invent props, accessories, beauty edits, new layers, or styling details that are not already present in Image 1
 - Preserve both arms and both hands exactly from Image 1. Do NOT place a hand or forearm across the chest, stomach, or garment unless it is already in that exact position in Image 1
 - Reject impossible anatomy: no floating hands, extra arms, duplicated fingers, merged wrists, or limbs fused into the garment
 
