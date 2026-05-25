@@ -288,6 +288,10 @@ CRITICAL RULES:
    - If the big graphic is on the BACK of the garment (e.g. a back-print tee), set graphicPlacement='back'. A back graphic is NOT visible when the wearer faces the camera.
    - If on the chest/front, 'front'. If on both sides, 'both'. If an all-over print, 'allover'. If plain/no graphic, 'none'.
    Also report productView: which side of the garment the product photo shows ('front', 'back', or 'side').
+6. LOGOS / EMBROIDERY / MONOGRAMS — treat small brand marks as CRITICAL garment identity.
+   - If there is a chest logo, embroidered emblem, stitched icon, monogram, crest, badge, or small text mark, include it in keyFeatures.
+   - Mention its approximate placement and style, for example: "small embroidered bee logo on left chest", "tiny polo horse logo on chest pocket", "script wordmark on upper back".
+   - Do NOT describe it generically as just "logo" when you can identify its form, color, size, or location.
 
 Return ONLY valid JSON matching this schema (no markdown, no commentary):
 {
@@ -301,7 +305,7 @@ Return ONLY valid JSON matching this schema (no markdown, no commentary):
   "sleeves": "sleeveless|cap|short|three-quarter|long|puff|bell|balloon|other",
   "fit": "slim|regular|loose|oversized|bodycon|flared",
   "length": "crop|waist|hip|knee|midi|maxi|floor",
-  "keyFeatures": ["array", "of", "visible", "details", "up to 5"],
+  "keyFeatures": ["array", "of", "visible", "details", "up to 5", "include logos or embroidery if present"],
   "visibleBottomInPhoto": "describe bottom wear visible on the model, or 'none' if not applicable",
   "visibleTopInPhoto": "describe top wear visible on the model when product is bottom, or 'none' if not applicable",
   "bottomWearSuggestion": "complementary bottom suggestion, or 'included' if full-body",

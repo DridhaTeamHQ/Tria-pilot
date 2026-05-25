@@ -145,6 +145,24 @@ function buildCompactGarmentLock(
   ].join(' ')
 }
 
+function buildLogoPreservationLock(
+  intel: import('@/lib/tryon/garment-intel').GarmentIntelligence | null | undefined,
+): string {
+  if (!intel?.keyFeatures?.length) return ''
+
+  const logoFeatures = intel.keyFeatures
+    .map((feature) => String(feature || '').trim())
+    .filter((feature) => /logo|embroid|monogram|crest|badge|wordmark|chest|graphic|print|icon|emblem|pocket/i.test(feature))
+    .slice(0, 3)
+
+  if (logoFeatures.length === 0) return ''
+
+  return [
+    `Logo lock: preserve these garment identity marks exactly as seen in image 2: ${logoFeatures.join('; ')}.`,
+    `Do not swap the symbol, simplify the embroidery, change the stitching, recolor the mark, resize it, move it, mirror it, or replace it with a different icon.`,
+  ].join(' ')
+}
+
 /**
  * Run the full clean pipeline. Throws only on catastrophic failure
  * (no garment, no photos, no OpenAI key). Individual slot failures
@@ -240,6 +258,7 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
 
   const intel = await intelPromise
   const strictProfile = input.prebuiltStrictGarmentProfile ?? null
+  const logoPreservationLock = buildLogoPreservationLock(intel)
   let orchestrated = await orchestrateTryOn({
     garmentBase64: cleanedGarment,
     candidates,
@@ -349,8 +368,9 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
       `Match the garment in image 2 exactly: same colours and hue, same neckline, sleeve length, hemline and overall fit. ` +
       `Reproduce every pattern, embroidery, print and texture detail faithfully — do not simplify, recolour or wash out intricate motifs. ` +
       `${compactGarmentLock} ` +
+      `${logoPreservationLock} ` +
       `${garmentEnforcement} ` +
-      `Any text, logo or graphic on the garment must be rendered sharp, correctly spelled and in the same position as image 2. ` +
+      `Any text, logo, emblem, monogram, crest, mascot, or embroidered chest mark on the garment must be copied exactly from image 2 with the same symbol, stitch feel, color, size, sharpness, and placement. ` +
       `Do not add, remove or restyle garment elements. ` +
       `Photorealistic, natural fabric drape with realistic shadows; no overlay, sticker, decal or pasted-on effect.`
     ).slice(0, 3200)

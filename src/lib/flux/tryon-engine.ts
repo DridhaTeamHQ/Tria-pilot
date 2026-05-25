@@ -234,6 +234,12 @@ function buildFluxClothingSwapPrompt(
     featuresList.push(`${strictProfile.fabric.drape} drape`)
   }
   const features = featuresList.length > 0 ? ` Details: ${featuresList.slice(0, 5).join(', ')}.` : ''
+  const logoFeatures = featuresList
+    .filter((feature) => /logo|embroid|monogram|crest|badge|wordmark|chest|graphic|print|icon|emblem|pocket/i.test(feature))
+    .slice(0, 3)
+  const logoClause = logoFeatures.length > 0
+    ? ` Garment identity marks to preserve exactly: ${logoFeatures.join(', ')}. Do not replace, resize, relocate, blur, mirror, or reinterpret them.`
+    : ''
 
   // Semantic anchor: Gemini's 1-sentence description of the product. Helps
   // FLUX disambiguate when the spec list alone is ambiguous (e.g.
@@ -362,6 +368,7 @@ function buildFluxClothingSwapPrompt(
     fidelityClause,
     `${preserveClause}.`,
     specClause,
+    logoClause,
     styleClause,
     anchorClause,
     coverage === 'upper_only'

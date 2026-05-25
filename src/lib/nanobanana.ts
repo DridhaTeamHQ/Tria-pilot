@@ -625,6 +625,7 @@ GARMENT REPLACEMENT (STRIP-AND-REPLACE):
 - Do NOT blend, layer, or mix original clothing with the new garment
 - PIXEL-PERFECT match: same color, pattern, texture, collar, sleeves, hem, fit, silhouette, and fabric as Image 2
 - If Image 2 shows a model, IGNORE their face/body — copy ONLY the garment
+- Any logo, chest emblem, monogram, stitched icon, wordmark, or embroidery on the garment is a locked detail — copy the exact symbol, color, stitch feel, size, and placement from Image 2
 
 TEXTURE & COLOR FIDELITY:
 - Reproduce the exact fabric texture from Image 2 — weave, sheen, drape, surface finish
@@ -637,6 +638,7 @@ FORBIDDEN HALLUCINATIONS:
 - Do NOT keep sleeves, collars, or hems from the original clothing in Image 1
 - Do NOT create hybrid garments mixing features from Image 1 and Image 2
 - Do NOT change garment color, pattern, or material from what's in Image 2
+- Do NOT replace or reinterpret any logo, embroidery, brand mark, text, crest, or small chest graphic from Image 2
 - Do NOT change the background, pose, framing, or zoom level — only the clothing changes
 - Preserve both arms and both hands exactly from Image 1. Do NOT place a hand or forearm across the chest, stomach, or garment unless it is already in that exact position in Image 1
 - Reject impossible anatomy: no floating hands, extra arms, duplicated fingers, merged wrists, or limbs fused into the garment
