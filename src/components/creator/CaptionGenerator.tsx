@@ -50,6 +50,7 @@ export default function CaptionGenerator({
   productName,
   productCategory,
   productDescription,
+  affiliateLink,
   niches,
   defaultPlatform = 'instagram',
 }: {
@@ -58,6 +59,7 @@ export default function CaptionGenerator({
   productName?: string
   productCategory?: string
   productDescription?: string
+  affiliateLink?: string
   niches?: string[]
   defaultPlatform?: PlatformKey
 }) {
@@ -179,6 +181,9 @@ export default function CaptionGenerator({
                 : caption.text
               : ''
             const copied = copiedKey === card.key
+            const combinedText = affiliateLink
+              ? `${fullText}\n\nShop here: ${affiliateLink}`
+              : fullText
 
             return (
               <div
@@ -213,17 +218,30 @@ export default function CaptionGenerator({
                   )}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => void copy(card.key, fullText)}
-                  disabled={!caption}
-                  className={`mt-4 inline-flex items-center justify-center gap-2 rounded-full border-[3px] border-black px-4 py-2 text-xs font-black uppercase shadow-[3px_3px_0_0_#000] transition-all ${
-                    copied ? 'bg-[#B4F056]' : 'bg-white hover:-translate-y-0.5'
-                  } ${caption ? '' : 'cursor-not-allowed opacity-50'}`}
-                >
-                  {copied ? <Check className="h-4 w-4" strokeWidth={3} /> : <Copy className="h-4 w-4" strokeWidth={3} />}
-                  {copied ? 'Copied' : 'Copy Caption'}
-                </button>
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => void copy(card.key, fullText)}
+                    disabled={!caption}
+                    className={`inline-flex items-center justify-center gap-2 rounded-full border-[3px] border-black px-4 py-2 text-xs font-black uppercase shadow-[3px_3px_0_0_#000] transition-all ${
+                      copied ? 'bg-[#B4F056]' : 'bg-white hover:-translate-y-0.5'
+                    } ${caption ? '' : 'cursor-not-allowed opacity-50'}`}
+                  >
+                    {copied ? <Check className="h-4 w-4" strokeWidth={3} /> : <Copy className="h-4 w-4" strokeWidth={3} />}
+                    {copied ? 'Copied' : 'Copy Caption'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void copy(`${card.key}-combo`, combinedText)}
+                    disabled={!caption || !affiliateLink}
+                    className={`inline-flex items-center justify-center gap-2 rounded-full border-[3px] border-black px-4 py-2 text-xs font-black uppercase shadow-[3px_3px_0_0_#000] transition-all ${
+                      copiedKey === `${card.key}-combo` ? 'bg-[#FFD93D]' : 'bg-[#FFF8DB] hover:-translate-y-0.5'
+                    } ${caption && affiliateLink ? '' : 'cursor-not-allowed opacity-50'}`}
+                  >
+                    {copiedKey === `${card.key}-combo` ? <Check className="h-4 w-4" strokeWidth={3} /> : <Copy className="h-4 w-4" strokeWidth={3} />}
+                    {copiedKey === `${card.key}-combo` ? 'Copied Both' : 'Copy Both'}
+                  </button>
+                </div>
               </div>
             )
           })}

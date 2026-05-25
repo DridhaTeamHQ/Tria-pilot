@@ -1083,6 +1083,7 @@ function TryOnPageContent() {
                         productName={productData?.name}
                         productCategory={productData?.category}
                         productDescription={productData?.description}
+                        affiliateLink={maskedLink || originalUrl || undefined}
                       />
                     ) : null}
                   </div>
