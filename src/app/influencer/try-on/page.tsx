@@ -927,7 +927,7 @@ function TryOnPageContent() {
           </div>
         </div>
         <div className="flex-1 overflow-y-auto bg-[#FDFBF7] p-4 lg:p-8">
-          <div className="mx-auto max-w-5xl">
+          <div className="mx-auto max-w-6xl">
             <div className="mb-6 flex flex-col gap-2">
               <h1 className="text-3xl font-black uppercase tracking-tight lg:text-5xl">Studio Workspace</h1>
               <p className="font-semibold text-black/60">Generate ultra-realistic try-on photos. Wait times apply to ensure maximum quality per source.</p>
@@ -939,7 +939,7 @@ function TryOnPageContent() {
                 </div>
               ) : outputs.length > 0 ? (
                 <div className="space-y-6">
-                  <div className="mx-auto flex max-w-[600px] flex-wrap items-center justify-between gap-3">
+                  <div className="mx-auto flex max-w-[680px] flex-wrap items-center justify-between gap-3">
                     <div className="inline-flex rounded-full border-[3px] border-black bg-white p-1 shadow-[3px_3px_0_0_#000]">
                       {[
                         { key: 'tryon', label: 'Try-On', icon: Sparkles },
@@ -974,7 +974,7 @@ function TryOnPageContent() {
                   </div>
                   <div
                     ref={splitContainerRef}
-                    className="relative aspect-[4/5] w-full max-w-[600px] mx-auto overflow-hidden rounded-[24px] border-[4px] border-black bg-[#F9F8F4] shadow-[6px_6px_0_0_#000]"
+                    className="relative aspect-[4/5] w-full max-w-[680px] mx-auto overflow-hidden rounded-[24px] border-[4px] border-black bg-[#F9F8F4] shadow-[6px_6px_0_0_#000]"
                     style={{ cursor: resultViewMode === 'split' ? 'col-resize' : 'default' }}
                     onMouseMove={(e) => {
                       if (resultViewMode !== 'split') return
@@ -1029,7 +1029,7 @@ function TryOnPageContent() {
                       <div className="flex h-full items-center justify-center"><AlertTriangle className="h-10 w-10 text-red-500" /></div>
                     )}
                   </div>
-                  <div className="grid grid-cols-3 gap-3 max-w-[600px] mx-auto">
+                  <div className="grid grid-cols-3 gap-3 max-w-[680px] mx-auto">
                     {outputs.map((output: any, index: number) => {
                       const outputKey = output.referenceImageId || output.imageUrl || output.label || `output-${index}`
                       return (
@@ -1045,7 +1045,7 @@ function TryOnPageContent() {
                     const succeeded = outputs.length - failed
                     if (failed > 0 && succeeded > 0) {
                       return (
-                        <div className="mx-auto max-w-[600px] rounded-2xl border-[3px] border-black bg-[#FFF4E0] p-4 shadow-[4px_4px_0_0_#000]">
+                        <div className="mx-auto max-w-[680px] rounded-2xl border-[3px] border-black bg-[#FFF4E0] p-4 shadow-[4px_4px_0_0_#000]">
                           <div className="flex items-start gap-3">
                             <AlertTriangle className="h-6 w-6 flex-shrink-0 text-[#FF8C69]" />
                             <div className="flex-1">
@@ -1068,8 +1068,8 @@ function TryOnPageContent() {
                     }
                     return null
                   })()}
-                  <div className="flex flex-wrap justify-center gap-3">
-                    <button type="button" onClick={downloadCurrent} className="rounded-full border-[3px] border-black bg-[#FF8C69] px-6 py-3 font-black uppercase text-white shadow-[4px_4px_0_0_#000]">Download Image</button>
+                  <div className="mx-auto flex max-w-[680px] flex-wrap justify-center gap-3">
+                    <button type="button" onClick={downloadCurrent} className="rounded-full border-[3px] border-black bg-[#FF8C69] px-6 py-3 text-sm font-black uppercase text-white shadow-[4px_4px_0_0_#000]">Download Image</button>
                     {(selectedOutput?.imageUrl || selectedOutput?.base64Image) ? (
                       <CaptionGenerator
                         imageUrl={selectedOutputSrc.startsWith('http') ? selectedOutputSrc : undefined}
@@ -1087,34 +1087,30 @@ function TryOnPageContent() {
                       />
                     ) : null}
                   </div>
-                  <div className="grid gap-4 lg:grid-cols-2">
+                  <div className="mx-auto grid max-w-[1100px] gap-4 xl:grid-cols-3">
                     <div className="rounded-[24px] border-[4px] border-black bg-[#FFF8DB] p-5 shadow-[6px_6px_0_0_#000]">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <div className="inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-white px-3 py-1 text-xs font-black uppercase">
-                            <TrendingUp className="h-4 w-4" />
-                            KOO Score
-                          </div>
-                          <h3 className="mt-3 text-2xl font-black uppercase">
-                            {loadingStyleInsight ? 'Scoring...' : styleInsight ? `KOO Score ${clampScore(styleInsight.score)}%` : 'Score unavailable'}
-                          </h3>
-                          <p className="mt-2 text-sm font-semibold text-black/65">
-                            {loadingStyleInsight ? 'Reading the look and building the scorecard.' : styleInsight?.summary || 'Run another try-on to refresh the scorecard.'}
-                          </p>
-                        </div>
+                      <div className="inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-white px-3 py-1 text-xs font-black uppercase">
+                        <TrendingUp className="h-4 w-4" />
+                        KOO Score
                       </div>
+                      <h3 className="mt-3 text-2xl font-black uppercase">
+                        {loadingStyleInsight ? 'Scoring...' : styleInsight ? `${clampScore(styleInsight.score)}%` : 'Score unavailable'}
+                      </h3>
+                      <p className="mt-2 text-sm font-semibold text-black/65">
+                        {loadingStyleInsight ? 'Reading the look.' : styleInsight?.summary || 'Run another try-on to refresh the scorecard.'}
+                      </p>
                       {styleInsight ? (
                         <>
-                          <div className="mt-5 space-y-3">
+                          <div className="mt-4 space-y-3">
                             {[
-                              { label: 'Fit Match', value: styleInsight.breakdown.fitMatch, tone: 'bg-[#B4F056]' },
-                              { label: 'Color Harmony', value: styleInsight.breakdown.colorHarmony, tone: 'bg-[#A78BFA]' },
-                              { label: 'Seasonal Relevance', value: styleInsight.breakdown.seasonalRelevance, tone: 'bg-[#FFD93D]' },
+                              { label: 'Fit', value: styleInsight.breakdown.fitMatch, tone: 'bg-[#B4F056]' },
+                              { label: 'Color', value: styleInsight.breakdown.colorHarmony, tone: 'bg-[#A78BFA]' },
+                              { label: 'Season', value: styleInsight.breakdown.seasonalRelevance, tone: 'bg-[#FFD93D]' },
                             ].map((item) => (
                               <div key={item.label}>
                                 <div className="mb-1 flex items-center justify-between text-[11px] font-black uppercase text-black/65">
                                   <span>{item.label}</span>
-                                  <span>{clampScore(item.value)}</span>
+                                  <span>{clampScore(item.value)}%</span>
                                 </div>
                                 <div className="h-3 overflow-hidden rounded-full border-2 border-black bg-white">
                                   <div className={`h-full ${item.tone}`} style={{ width: `${clampScore(item.value)}%` }} />
@@ -1122,42 +1118,29 @@ function TryOnPageContent() {
                               </div>
                             ))}
                           </div>
-                          <div className="mt-5 rounded-[18px] border-[3px] border-black bg-white p-4">
-                            <p className="text-[11px] font-black uppercase tracking-[0.12em] text-black/45">Share line</p>
-                            <p className="mt-2 text-sm font-semibold leading-relaxed text-black/80">{styleInsight.shareCaption}</p>
-                          </div>
+                          <p className="mt-4 text-sm font-semibold leading-relaxed text-black/80">{styleInsight.shareCaption}</p>
                         </>
                       ) : null}
                     </div>
-                    <div className="space-y-4">
-                      <div className="rounded-[24px] border-[4px] border-black bg-[#F0EDFF] p-5 shadow-[6px_6px_0_0_#000]">
-                        <div className="inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-white px-3 py-1 text-xs font-black uppercase">
-                          <CalendarClock className="h-4 w-4" />
-                          Best Time To Post
-                        </div>
-                        <h3 className="mt-3 text-2xl font-black uppercase">{postTiming.window}</h3>
-                        <p className="mt-2 text-sm font-semibold text-black/70">{postTiming.reason}</p>
-                        <div className="mt-4 rounded-[18px] border-[3px] border-black bg-white p-4">
-                          <p className="text-[11px] font-black uppercase tracking-[0.12em] text-black/45">Posting angle</p>
-                          <p className="mt-2 text-sm font-semibold leading-relaxed text-black/80">{postTiming.angle}</p>
-                        </div>
+                    <div className="rounded-[24px] border-[4px] border-black bg-[#F0EDFF] p-5 shadow-[6px_6px_0_0_#000]">
+                      <div className="inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-white px-3 py-1 text-xs font-black uppercase">
+                        <CalendarClock className="h-4 w-4" />
+                        {postTiming.label}
                       </div>
-
+                      <h3 className="mt-3 text-2xl font-black uppercase">{postTiming.window}</h3>
+                      <p className="mt-2 text-sm font-semibold text-black/70">{postTiming.reason}</p>
+                      <p className="mt-4 text-sm font-semibold leading-relaxed text-black/80">{postTiming.angle}</p>
                     </div>
-                  </div>
-                  {shouldShowProductLink ? (
                     <div className="rounded-[24px] border-[4px] border-black bg-[#FFF8DB] p-5 shadow-[6px_6px_0_0_#000]">
-                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="space-y-2">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
                           <div className="inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-white px-3 py-1 text-xs font-black uppercase">
                             <LinkIcon className="h-4 w-4" />
-                            Product Link
+                            Affiliate Link
                           </div>
-                          <div>
-                            <h3 className="text-lg font-black uppercase">Affiliate Link</h3>
-                          </div>
+                          <p className="mt-3 text-sm font-semibold text-black/65">Copy once and drop it into stories, reels, or DMs.</p>
                         </div>
-                        <div className="flex flex-wrap gap-3 sm:justify-end">
+                        <div className="flex flex-wrap gap-2">
                           <button
                             type="button"
                             onClick={() => void copyLink()}
@@ -1174,7 +1157,7 @@ function TryOnPageContent() {
                             className={`inline-flex items-center gap-2 rounded-full border-[3px] border-black px-4 py-2 text-xs font-black uppercase shadow-[4px_4px_0_0_#000] transition hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[5px_5px_0_0_#000] ${maskedLink || originalUrl ? 'bg-white' : 'pointer-events-none bg-[#E5E5E5] text-black/50 shadow-none'}`}
                           >
                             <ExternalLink className="h-4 w-4" />
-                            Open Link
+                            Open
                           </Link>
                         </div>
                       </div>
@@ -1193,7 +1176,7 @@ function TryOnPageContent() {
                         )}
                       </div>
                     </div>
-                  ) : null}
+                  </div>
                 </div>
               ) : (
                 <div className="flex min-h-[40vh] items-center justify-center rounded-[24px] border-2 border-dashed border-black/20 bg-[#F9F8F4] p-6 text-center lg:min-h-[60vh]">
