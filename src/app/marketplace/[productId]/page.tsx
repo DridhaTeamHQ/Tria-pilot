@@ -91,120 +91,116 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         <div className="absolute bottom-10 left-1/3 h-48 w-48 rounded-full bg-[#B4F056]/12 blur-3xl" />
       </div>
 
-      {/* Main content — fixed to viewport */}
-      <div className="relative z-10 flex flex-col pt-[80px]">
-        <div className="container mx-auto px-4 py-3 sm:px-6 sm:py-4">
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-6">
-
-            {/* ═══ LEFT: Image Gallery (Amazon style thumbnails + main) ═══ */}
+      <div className="relative z-10 w-full pt-[100px] px-4 sm:px-6 lg:px-8 pb-8 max-w-[1600px] mx-auto">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,45%)_minmax(0,55%)] lg:gap-12">
+            
+          {/* LEFT: Image Gallery */}
+          <div className="w-full">
             <div className="overflow-hidden rounded-2xl border-2 border-black bg-white p-3 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] lg:sticky lg:top-[96px]">
               <ImageCarousel images={images} />
             </div>
+          </div>
 
-            {/* ═══ RIGHT: Product Info ═══ */}
-            <div className="space-y-5 pb-10">
-
-              {/* ── Card 1: Title + Price ── */}
-              <div className="bg-white border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                <div className="flex items-center flex-wrap gap-2 mb-3">
-                  <span className="px-3 py-1 bg-[#FFD93D] border-2 border-black rounded-lg text-[9px] font-black uppercase tracking-widest shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">{brandName}</span>
-                  <span className="flex items-center gap-1 px-2 py-0.5 bg-black text-white text-[8px] font-black uppercase tracking-widest rounded-md">
-                    <Star className="w-2.5 h-2.5" strokeWidth={3} /> Verified
-                  </span>
-                  <span className="flex items-center gap-1 px-2 py-0.5 bg-[#FF8C69]/15 border border-[#FF8C69]/40 text-[#EA580C] text-[8px] font-black uppercase tracking-widest rounded-md">
-                    <ShoppingBag className="w-2.5 h-2.5" strokeWidth={3} /> {product.category || 'Product'}
-                  </span>
-                </div>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <h1 className="text-2xl sm:text-3xl font-black text-black leading-tight tracking-tight">{product.name}</h1>
-                  {product.price && (
-                    <span className="shrink-0 self-start px-5 py-2 bg-black text-white rounded-xl text-xl font-black sm:self-auto">
-                      ₹{Number(product.price).toLocaleString()}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* ── Card 2: CTA Buttons ── */}
-              <div className="bg-white border-2 border-black rounded-2xl p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <Link
-                  href={`/influencer/try-on?productId=${product.id}`}
-                  className="flex w-full items-center justify-center gap-2 border-2 border-black bg-[#FFD93D] py-3 rounded-xl text-xs font-black text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all uppercase tracking-widest"
-                >
-                  <Camera className="w-4 h-4" strokeWidth={3} />
-                  Try-On in Studio
-                </Link>
-                  <RequestCollaborationButton
-                    productId={product.id}
-                    productName={product.name}
-                    brandName={brandName}
-                  />
-                </div>
-              </div>
-
-              {/* ── Card 3: Affiliate Link ── */}
-              <AffiliateLinkDisplay productId={product.id} />
-
-              {/* ── Card 4: Actions Row ── */}
-              <div className="bg-white border-2 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  {product.link ? (
-                    <a
-                      href={product.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-1.5 border-2 border-black bg-[#F5F5F0] py-3 text-[10px] font-black uppercase tracking-wider text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5 shrink-0" strokeWidth={3} />
-                      Original
-                    </a>
-                  ) : <div />}
-                  <FavoriteButton productId={product.id} />
-                  <ProductShareButton productName={product.name} />
-                </div>
-              </div>
-
-              {/* ── Card 5: Specification ── */}
-              <div className="bg-white border-2 border-black rounded-2xl overflow-hidden shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                <div className="px-5 py-2.5 bg-[#F5F5F0] border-b-2 border-black">
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-black/60">Specification</span>
-                </div>
-                <div className="p-5 space-y-4">
-                  <div>
-                    <h2 className="text-sm font-black uppercase text-black mb-2">About the Product</h2>
-                    <p className="text-sm leading-relaxed text-black/55 font-medium">
-                      {product.description || 'No description available.'}
-                    </p>
-                  </div>
-
-                  {tagsArray.length > 0 && (
-                    <div className="pt-3 border-t-2 border-black/5">
-                      <h3 className="text-[10px] font-black uppercase tracking-widest text-black/40 mb-2">Tags</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {tagsArray.map((tag: string, i: number) => (
-                          <span key={i} className="px-3 py-1 bg-[#B4F056]/15 border border-[#B4F056]/40 rounded-lg text-[9px] font-black text-black/60 uppercase tracking-wider">#{tag.trim()}</span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="pt-3 border-t-2 border-black/5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    {product.audience && (
-                      <div>
-                        <p className="text-[10px] font-black text-black/40 uppercase tracking-widest mb-1">Target Audience</p>
-                        <p className="text-sm font-bold text-black">{product.audience}</p>
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-[10px] font-black text-black/40 uppercase tracking-widest mb-1">Category</p>
-                      <p className="text-sm font-bold text-black">{product.category || 'Uncategorized'}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
+          {/* RIGHT: Product Info */}
+          <div className="flex flex-col space-y-6 lg:py-4">
+              
+            {/* Badges */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-3 py-1 bg-[#FFD93D] border-2 border-black rounded-lg text-[9px] font-black uppercase tracking-widest shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">{brandName}</span>
+              <span className="flex items-center gap-1 px-2 py-0.5 bg-black text-white text-[8px] font-black uppercase tracking-widest rounded-md">
+                <Star className="w-2.5 h-2.5" strokeWidth={3} /> Verified
+              </span>
+              <span className="flex items-center gap-1 px-2 py-0.5 bg-[#FF8C69]/15 border border-[#FF8C69]/40 text-[#EA580C] text-[8px] font-black uppercase tracking-widest rounded-md">
+                <ShoppingBag className="w-2.5 h-2.5" strokeWidth={3} /> {product.category || 'Clothing'}
+              </span>
             </div>
+
+            {/* Title */}
+            <h1 className="text-xl font-black leading-tight text-black sm:text-3xl">
+              {product.name}
+            </h1>
+
+            {/* Price */}
+            {product.price && (
+              <div>
+                <span className="inline-block px-5 py-2 bg-black text-white rounded-xl text-xl font-black">
+                  ₹{Number(product.price).toLocaleString()}
+                </span>
+              </div>
+            )}
+
+            {/* CTA Buttons */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 pt-2">
+              <Link
+                href={`/influencer/try-on?productId=${product.id}`}
+                className="flex w-full items-center justify-center gap-2 border-[3px] border-black bg-[#FFD93D] py-3 rounded-xl text-xs font-black text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all uppercase tracking-widest"
+              >
+                <Camera className="w-4 h-4" strokeWidth={3} />
+                Try-On in Studio
+              </Link>
+              <RequestCollaborationButton
+                productId={product.id}
+                productName={product.name}
+                brandName={brandName}
+              />
+            </div>
+
+            {/* Affiliate Link */}
+            <div className="pt-2">
+              <AffiliateLinkDisplay productId={product.id} />
+            </div>
+
+            <hr className="border-2 border-black/10" />
+
+            {/* Actions Row */}
+            <div className="flex items-center gap-3 sm:gap-4 py-2 w-full">
+              {product.link && (
+                <div className="flex-1 min-w-0">
+                  <a
+                    href={product.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex min-h-[42px] w-full items-center justify-center gap-2 border-[3px] border-black bg-[#F5F5F0] px-3 py-2 text-xs font-bold uppercase tracking-wider text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
+                  >
+                    <ExternalLink className="w-4 h-4 shrink-0" />
+                    <span className="truncate">Original</span>
+                  </a>
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <FavoriteButton productId={product.id} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <ProductShareButton productName={product.name} />
+              </div>
+            </div>
+
+            <hr className="border-2 border-black/10" />
+
+            {/* Bottom Details Grid */}
+            <div className="grid grid-cols-1 gap-x-8 gap-y-6 pt-2 sm:grid-cols-2">
+              <div>
+                <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-black/40">Specification</p>
+                <h3 className="mb-2 text-sm font-black uppercase text-black">About the Product</h3>
+                <p className="text-sm font-medium leading-relaxed text-black/70">
+                  {product.description || 'No description available.'}
+                </p>
+              </div>
+              
+              <div className="space-y-6">
+                {product.audience && (
+                  <div>
+                    <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-black/40">Target Audience</p>
+                    <p className="text-sm font-bold text-black">{product.audience}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-black/40">Category</p>
+                  <p className="text-sm font-bold text-black">{product.category || 'Clothing'}</p>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
