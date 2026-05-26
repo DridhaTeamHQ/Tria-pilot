@@ -11,6 +11,7 @@ export interface IdentityCompositionAssessment {
   shouldRetry: boolean
   reason: string
   validationAvailable?: boolean
+  criticalGarmentDetailMissing?: boolean
   identityCorrectionGuidance?: string
   compositionCorrectionGuidance?: string
   garmentCorrectionGuidance?: string
@@ -41,6 +42,7 @@ export async function assessIdentityAndComposition(params: {
   generatedImageBase64: string
   faceCropBase64?: string
   garmentImageBase64?: string
+  expectedLogoDescription?: string
   presetId?: string
   anchorZone?: string
 }): Promise<IdentityCompositionAssessment> {
@@ -63,6 +65,7 @@ export async function assessIdentityAndComposition(params: {
           '    "garmentFidelity": <0-100>',
           '  },',
           '  "majorIssues": ["<short issue>", "..."],',
+          '  "criticalGarmentDetailMissing": <true|false>,',
           '  "identityCorrectionGuidance": "<single sentence about face/body preservation>",',
           '  "compositionCorrectionGuidance": "<single sentence about composition/background correction>",',
           '  "garmentCorrectionGuidance": "<single sentence about garment mismatch correction>"',
@@ -75,6 +78,8 @@ export async function assessIdentityAndComposition(params: {
           '- Composition quality means framing, balance, depth structure, and subject placement feel photographic and intentional.',
           '- Background integrity means no Gemini blur haze, no smear, no fake bokeh masking, and no pasted subject edges.',
           '- Garment fidelity means the clothing in the generated image matches the garment reference in type, collar, sleeves, buttons, hem length, fit, color, pattern, and fabric behavior.',
+          '- If an expected logo, symbol, emblem, badge, wordmark, stars, chest graphic, or printed mark is provided, it must be visible in the generated image with similar placement, color, size, and recognizable shape.',
+          '- If the expected visible mark is absent, faded away, moved to the wrong garment zone, or converted into a plain shirt, set criticalGarmentDetailMissing=true and score garmentFidelity low.',
           '- Be strict about slight face change. If the generated face looks like a similar person instead of the same person, score it low.',
           '- Pay special attention to eye shape/opening and facial fullness. Slightly puffier cheeks or changed eye aperture are failures.',
           '- If the shirt changes into a different silhouette, collar, sleeve length, or button structure, garment fidelity is low.',
@@ -88,6 +93,7 @@ export async function assessIdentityAndComposition(params: {
             text: [
               `Preset: ${params.presetId || 'not provided'}`,
               `Target scene: ${params.anchorZone || 'not provided'}`,
+              `Expected visible garment logo/symbol/graphic: ${params.expectedLogoDescription || 'none'}`,
               'Image 1 is the source identity.',
               'Image 2 is an optional face crop from the source identity.',
               'Image 3 is the generated result to evaluate.',
@@ -148,6 +154,7 @@ export async function assessIdentityAndComposition(params: {
     identityCorrectionGuidance?: string
     compositionCorrectionGuidance?: string
     garmentCorrectionGuidance?: string
+    criticalGarmentDetailMissing?: boolean
   }
 
   try {
@@ -163,6 +170,7 @@ export async function assessIdentityAndComposition(params: {
       identityCorrectionGuidance?: string
       compositionCorrectionGuidance?: string
       garmentCorrectionGuidance?: string
+      criticalGarmentDetailMissing?: boolean
     }>(raw)
   } catch (parseError) {
     console.warn(
@@ -208,8 +216,10 @@ export async function assessIdentityAndComposition(params: {
   const avgScore =
     (scores.faceIdentity + scores.bodyConsistency + scores.compositionQuality + scores.backgroundIntegrity + scores.garmentFidelity) / 5
   const majorIssues = (parsed.majorIssues || []).filter(Boolean)
+  const criticalGarmentDetailMissing = Boolean(parsed.criticalGarmentDetailMissing)
 
   const shouldRetry =
+    criticalGarmentDetailMissing ||
     scores.faceIdentity < 70 ||
     scores.bodyConsistency < 68 ||
     scores.garmentFidelity < 70 ||
@@ -218,8 +228,11 @@ export async function assessIdentityAndComposition(params: {
 
   return {
     shouldRetry,
-    reason: shouldRetry ? 'identity_or_composition_low' : 'identity_and_composition_stable',
+    reason: criticalGarmentDetailMissing
+      ? 'critical_garment_detail_missing'
+      : shouldRetry ? 'identity_or_composition_low' : 'identity_and_composition_stable',
     validationAvailable: true,
+    criticalGarmentDetailMissing,
     identityCorrectionGuidance: parsed.identityCorrectionGuidance?.trim(),
     compositionCorrectionGuidance: parsed.compositionCorrectionGuidance?.trim(),
     garmentCorrectionGuidance: parsed.garmentCorrectionGuidance?.trim(),

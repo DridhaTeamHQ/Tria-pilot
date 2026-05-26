@@ -51,11 +51,21 @@ export interface ConstructionSpec {
     length: 'crop' | 'waist' | 'hip' | 'above_knee' | 'knee' | 'midi' | 'ankle' | 'floor'
 }
 
+export interface LogoMarkSpec {
+    exists: boolean
+    description: string
+    placement: 'left_chest' | 'center_chest' | 'right_chest' | 'back' | 'sleeve' | 'allover' | 'other'
+    color: string
+    size: 'tiny' | 'small' | 'medium' | 'large'
+    type: 'logo' | 'symbol' | 'wordmark' | 'emblem' | 'badge' | 'character_graphic' | 'text' | 'other'
+}
+
 export interface StrictGarmentProfile {
     garment_type: 'dress' | 'shirt' | 'top' | 'blouse' | 'pants' | 'skirt' | 'jacket' | 'saree' | 'kurta' | 'kurti' | 't-shirt' | 'sweater' | 'other'
     base_color: ColorSpec
     secondary_colors: ColorSpec[]
     pattern: PatternSpec
+    logo_mark: LogoMarkSpec
     fabric: FabricSpec
     construction: ConstructionSpec
     constraints: {
@@ -111,6 +121,15 @@ RETURN THIS EXACT SCHEMA:
     "orientation": "non-directional|vertical|horizontal|diagonal",
     "edge_behavior": "how pattern continues across seams"
   },
+
+  "logo_mark": {
+    "exists": true|false,
+    "description": "precise description of any visible chest/back/sleeve logo, symbol, emblem, badge, character mark, stars, text, or graphic; write 'none' only if there is truly no mark",
+    "placement": "left_chest|center_chest|right_chest|back|sleeve|allover|other",
+    "color": "visible logo/symbol color, or 'none'",
+    "size": "tiny|small|medium|large",
+    "type": "logo|symbol|wordmark|emblem|badge|character_graphic|text|other"
+  },
   
   "fabric": {
     "material": "cotton|linen|silk|polyester|wool|denim|velvet|satin|chiffon|blend|other",
@@ -148,6 +167,12 @@ PATTERN ANALYSIS GUIDE:
 - Paisley: teardrop-shaped motifs
 - Animal print: leopard, zebra, snake, etc.
 - Solid: no pattern, single color
+
+LOGO / SYMBOL ANALYSIS GUIDE:
+- A T-shirt with a single chest symbol is NOT plain/solid-only. It has logo_mark.exists=true even if the rest of the fabric is solid.
+- Detect visible icons, superhero-style symbols, stars, chest graphics, embroidered patches, brand marks, wordmarks, mascots, crests, badges, and small sleeve marks.
+- For a central Batman-like symbol with stars, describe the symbol, surrounding stars, placement, color, and approximate size.
+- Never omit a visible mark just because it is small or monochrome.
 
 Return ONLY the JSON. No explanation. No markdown code blocks.`
 
@@ -242,6 +267,14 @@ function ensureCompleteProfile(partial: Partial<StrictGarmentProfile>): StrictGa
             orientation: 'non-directional',
             edge_behavior: 'N/A for solid color'
         },
+        logo_mark: partial.logo_mark || {
+            exists: false,
+            description: 'none',
+            placement: 'other',
+            color: 'none',
+            size: 'small',
+            type: 'other',
+        },
         fabric: partial.fabric || {
             material: 'cotton',
             weight: 'medium',
@@ -278,7 +311,7 @@ function getDefaultProfile(): StrictGarmentProfile {
  * - Role-based persona
  */
 export function buildGarmentEnforcementBlock(profile: StrictGarmentProfile): string {
-    const { base_color, secondary_colors, pattern, fabric, construction } = profile
+    const { base_color, secondary_colors, pattern, logo_mark, fabric, construction } = profile
 
     // Build detailed color specification
     const allColors = [base_color, ...secondary_colors]
@@ -329,6 +362,31 @@ SOLID COLOR GARMENT — No pattern
 • Do NOT add visual interest through patterns`
     }
 
+    const logoBlock = logo_mark.exists ? `
+VISIBLE LOGO / SYMBOL / CHEST GRAPHIC PRESERVATION - CRITICAL
+* Required mark: ${logo_mark.description}
+* Placement: ${logo_mark.placement}
+* Color: ${logo_mark.color}
+* Size: ${logo_mark.size}
+* Type: ${logo_mark.type}
+
+LOGO/SYMBOL COPY RULES (MANDATORY):
+1. The visible mark MUST appear in the output.
+2. It must stay in the same garment zone (${logo_mark.placement}).
+3. It must keep the same color, approximate size, and visual structure.
+4. If the mark has stars, text, outline, internal cutouts, or a character/symbol shape, preserve those visible elements.
+5. A plain shirt without this mark is an invalid failed output.
+
+LOGO/SYMBOL NEGATIVE CONSTRAINTS:
+- Do NOT remove the mark.
+- Do NOT fade it into the fabric.
+- Do NOT replace it with a generic patch.
+- Do NOT move it to another position.
+- Do NOT simplify it into an unrecognizable blob.
+- Do NOT turn a graphic shirt into a plain shirt.` : `
+NO VISIBLE LOGO/SYMBOL MARK DETECTED
+* Do NOT invent a new logo, symbol, emblem, badge, text, mascot, stars, or chest graphic.`
+
     // Build the enhanced enforcement block with REPETITION
     const block = `
 ╔═══════════════════════════════════════════════════════════════════════════════╗
@@ -351,6 +409,8 @@ Sleeves: ${construction.sleeves.length} ${construction.sleeves.style}
 Length: ${construction.length}
 
 ${patternBlock}
+
+${logoBlock}
 
 ═══════════════════════════════════════════════════════════════════════════════
 COLOR PRESERVATION (MANDATORY)
@@ -407,6 +467,7 @@ export function logStrictGarmentStatus(sessionId: string, profile: StrictGarment
             console.log(`   ✓ Pattern Scale: ${profile.pattern.motif_scale}`)
             console.log(`   ✓ Pattern Density: ${profile.pattern.repeat_density}`)
         }
+        console.log(`   ✓ Logo/Symbol: ${profile.logo_mark.exists ? profile.logo_mark.description : 'NONE'}`)
         console.log(`   ✓ Fabric: ${profile.fabric.material} (${profile.fabric.weight})`)
         console.log(`   ✓ Neckline: ${profile.construction.neckline}`)
         console.log(`   ✓ Sleeves: ${profile.construction.sleeves.length}`)

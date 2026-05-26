@@ -14,6 +14,7 @@ import { getTryOnRenderModel, resolveDirectGeminiRenderModel } from '@/lib/tryon
 import { analyzeGarment, composeSmartPrompt, type GarmentIntelligence } from '@/lib/tryon/garment-intel'
 import { extractFaceCrop } from '@/lib/tryon/face-crop'
 import { preprocessGarmentImage } from '@/lib/tryon/garment-preprocessor'
+import { extractStrictGarmentProfile } from '@/lib/tryon/garment-strict-schema'
 // face-crop removed — simple pipeline
 import {
   type GarmentClassification,
@@ -715,7 +716,7 @@ async function handlePresetlessTryOnRequest(params: {
   //      cleaned-up garment image)
   // Running #1 and #2 in parallel saves ~50-100ms on every request.
   const t0 = Date.now()
-  const [preprocessSettled, productTextSettled] = await Promise.allSettled([
+  const [preprocessSettled, productTextSettled, strictProfileSettled] = await Promise.allSettled([
     // Pure passthrough: body detection + extraction were costing 15-25s on
     // every request (and most of that was timeouts when Gemini is slow).
     // The GPT-4o vision orchestrator already handles "ignore styling on
@@ -735,6 +736,7 @@ async function handlePresetlessTryOnRequest(params: {
             data ? `${data.name || ''} ${data.description || ''}`.trim().slice(0, 300) : '',
           )
       : Promise.resolve(''),
+    extractStrictGarmentProfile(rawGarmentBase64),
   ])
 
   if (preprocessSettled.status === 'fulfilled') {
@@ -749,6 +751,12 @@ async function handlePresetlessTryOnRequest(params: {
     }
   } else {
     console.warn('[tryon] garment preprocessing failed, using raw garment:', preprocessSettled.reason)
+  }
+
+  if (!strictGarmentProfile && strictProfileSettled.status === 'fulfilled') {
+    strictGarmentProfile = strictProfileSettled.value
+  } else if (!strictGarmentProfile && strictProfileSettled.status === 'rejected') {
+    console.warn('[tryon] strict garment profile failed:', strictProfileSettled.reason)
   }
 
   const garmentTextHint =
@@ -913,6 +921,7 @@ async function handlePresetlessTryOnRequest(params: {
           confidence: garmentPreprocess.confidence,
           extractionMethod: garmentPreprocess.extractionMethod,
         },
+        strictGarmentProfile: strictGarmentProfile || null,
         outputs: [],
         candidateReferenceImageIds: candidatePhotoIds,
       },

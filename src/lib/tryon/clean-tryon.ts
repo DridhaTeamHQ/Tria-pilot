@@ -148,11 +148,15 @@ function buildCompactGarmentLock(
   const patternSummary = profile.pattern.exists
     ? `${profile.pattern.type}; motif=${profile.pattern.motif_description}; scale=${profile.pattern.motif_scale}; density=${profile.pattern.repeat_density}; orientation=${profile.pattern.orientation}`
     : 'solid color; no pattern allowed'
+  const logoSummary = profile.logo_mark?.exists
+    ? `Required visible mark=${profile.logo_mark.description}; placement=${profile.logo_mark.placement}; color=${profile.logo_mark.color}; size=${profile.logo_mark.size}. A plain garment without this mark is invalid.`
+    : 'No visible logo/symbol mark detected; do not invent one.'
 
   return [
     `GARMENT LOCK: exact type=${profile.garment_type}.`,
     `Base color must remain ${baseColor}. Secondary colors: ${secondaryColors}.`,
     `Pattern lock: ${patternSummary}.`,
+    `Logo/symbol lock: ${logoSummary}`,
     `Fabric lock: material=${profile.fabric.material}, weight=${profile.fabric.weight}, finish=${profile.fabric.surface_finish}, drape=${profile.fabric.drape}.`,
     `Hard constraints: no color shift, no pattern scaling, no redesign, no texture simplification, no added print, no removed print, no artistic reinterpretation.`,
   ].join(' ')
@@ -160,24 +164,52 @@ function buildCompactGarmentLock(
 
 function buildLogoPreservationLock(
   intel: import('@/lib/tryon/garment-intel').GarmentIntelligence | null | undefined,
+  strictProfile?: import('@/lib/tryon/garment-strict-schema').StrictGarmentProfile | null,
 ): string {
-  if (!intel?.keyFeatures?.length) return ''
+  const strictLogo = strictProfile?.logo_mark?.exists
+    ? [
+        `${strictProfile.logo_mark.description}`,
+        `placement=${strictProfile.logo_mark.placement}`,
+        `color=${strictProfile.logo_mark.color}`,
+        `size=${strictProfile.logo_mark.size}`,
+      ].join('; ')
+    : ''
 
   // Match only genuine brand/emblem marks. Deliberately NOT matching broad
-  // words like "chest", "pocket", "print", or "graphic" — a plain striped or
-  // patterned garment trips those and gets misclassified as having a logo,
-  // which then primes the model to invent/preserve a phantom chest emblem.
-  const logoFeatures = intel.keyFeatures
+  // words like "chest" or "pocket" alone. We do include symbol/icon/graphic
+  // because product shirts often have non-brand character marks.
+  const logoFeatures = (intel?.keyFeatures || [])
     .map((feature) => String(feature || '').trim())
-    .filter((feature) => /\b(logo|embroider(?:y|ed)?|monogram|crest|badge|wordmark|emblem|mascot|insignia|brand\s*mark)\b/i.test(feature))
+    .filter((feature) => /\b(logo|embroider(?:y|ed)?|monogram|crest|badge|wordmark|emblem|mascot|insignia|brand\s*mark|symbol|icon|chest\s*graphic|character\s*graphic|stars?)\b/i.test(feature))
     .slice(0, 3)
 
+  if (strictLogo) logoFeatures.unshift(strictLogo)
   if (logoFeatures.length === 0) return ''
 
   return [
     `Logo lock: preserve these garment identity marks exactly as seen in image 2: ${logoFeatures.join('; ')}.`,
-    `Do not swap the symbol, simplify the embroidery, change the stitching, recolor the mark, resize it, move it, mirror it, or replace it with a different icon.`,
+    `The output is invalid if this visible mark disappears or becomes a plain blank shirt. Do not swap the symbol, simplify the embroidery/graphic, change the stitching, recolor the mark, resize it, move it, mirror it, fade it out, or replace it with a different icon.`,
   ].join(' ')
+}
+
+function getExpectedLogoDescription(
+  intel: import('@/lib/tryon/garment-intel').GarmentIntelligence | null | undefined,
+  strictProfile?: import('@/lib/tryon/garment-strict-schema').StrictGarmentProfile | null,
+): string | undefined {
+  if (strictProfile?.logo_mark?.exists) {
+    return [
+      strictProfile.logo_mark.description,
+      `placement=${strictProfile.logo_mark.placement}`,
+      `color=${strictProfile.logo_mark.color}`,
+      `size=${strictProfile.logo_mark.size}`,
+    ].join('; ')
+  }
+
+  const feature = (intel?.keyFeatures || [])
+    .map((value) => String(value || '').trim())
+    .find((value) => /\b(logo|embroider(?:y|ed)?|monogram|crest|badge|wordmark|emblem|mascot|insignia|brand\s*mark|symbol|icon|chest\s*graphic|character\s*graphic|stars?)\b/i.test(value))
+
+  return feature || undefined
 }
 
 /**
@@ -275,7 +307,8 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
 
   const intel = await intelPromise
   const strictProfile = input.prebuiltStrictGarmentProfile ?? null
-  const logoPreservationLock = buildLogoPreservationLock(intel)
+  const logoPreservationLock = buildLogoPreservationLock(intel, strictProfile)
+  const expectedLogoDescription = getExpectedLogoDescription(intel, strictProfile)
   let orchestrated = await orchestrateTryOn({
     garmentBase64: cleanedGarment,
     candidates,
@@ -383,16 +416,17 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
         faceCropBase64: hasFace ? faceCropBase64 : undefined,
         generatedImageBase64: outputBase64,
         garmentImageBase64: cleanedGarment,
+        expectedLogoDescription,
       })
 
       const faceIdentityLow = assessment.scores.faceIdentity < STRICT_FACE_IDENTITY_MIN
       if (
         IDENTITY_GUARD_MODE === 'strict' &&
         assessment.validationAvailable !== false &&
-        (assessment.shouldRetry || faceIdentityLow)
+        (assessment.shouldRetry || faceIdentityLow || assessment.criticalGarmentDetailMissing)
       ) {
         throw new Error(
-          `Face identity guard rejected output: face=${assessment.scores.faceIdentity}, body=${assessment.scores.bodyConsistency}, garment=${assessment.scores.garmentFidelity}. ${assessment.identityCorrectionGuidance || assessment.reason}`
+          `Try-on guard rejected output: face=${assessment.scores.faceIdentity}, body=${assessment.scores.bodyConsistency}, garment=${assessment.scores.garmentFidelity}. ${assessment.garmentCorrectionGuidance || assessment.identityCorrectionGuidance || assessment.reason}`
         )
       }
 

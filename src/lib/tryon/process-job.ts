@@ -23,6 +23,7 @@ import { analyzeGarment } from '@/lib/tryon/garment-intel'
 import type { DirectTryOnOptions } from '@/lib/nanobanana'
 import { runCleanTryOn, isCleanTryOnSlotSuccess } from '@/lib/tryon/clean-tryon'
 import { extractFaceCrop } from '@/lib/tryon/face-crop'
+import type { StrictGarmentProfile } from '@/lib/tryon/garment-strict-schema'
 
 interface ProcessGenerationJobRow {
   id: string
@@ -44,6 +45,7 @@ interface ProcessGenerationJobRow {
     aspectRatio?: '1:1' | '4:5' | '3:4' | '9:16' | null
     resolution?: '1K' | '2K' | '4K' | null
     polishNotes?: string | null
+    strictGarmentProfile?: StrictGarmentProfile | null
   }
 }
 
@@ -206,6 +208,7 @@ export async function processTryOnJob(jobId: string): Promise<void> {
       productText: garmentTextHint,
       aspectRatio: aspectRatio as any,
       prebuiltIntel: garmentIntel,
+      prebuiltStrictGarmentProfile: settings.strictGarmentProfile || null,
       garmentAlreadyPreprocessed: true,
     })
 
@@ -289,6 +292,7 @@ export async function processTryOnJob(jobId: string): Promise<void> {
           model: directRenderModel,
           requestedModel: settings.requestedModel || null,
           strictSwap: true,
+          strictGarmentProfile: settings.strictGarmentProfile || null,
           selectionMethod,
           selectionReasoning,
           successCount,
