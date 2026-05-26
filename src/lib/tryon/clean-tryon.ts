@@ -38,8 +38,19 @@ import { analyzeGarment } from '@/lib/tryon/garment-intel'
 import { buildGarmentEnforcementBlock } from '@/lib/tryon/garment-strict-schema'
 import { flux2Generate, downloadFluxImage } from '@/lib/flux/client'
 import { generateTryOnDirect } from '@/lib/nanobanana'
+import {
+  assessIdentityAndComposition,
+  type IdentityCompositionAssessment,
+} from '@/lib/tryon/identity-composition-check'
 
 const isDev = process.env.NODE_ENV !== 'production'
+const IDENTITY_GUARD_MODE: 'off' | 'soft' | 'strict' =
+  process.env.TRYON_IDENTITY_GUARD_MODE === 'off'
+    ? 'off'
+    : process.env.TRYON_IDENTITY_GUARD_MODE === 'soft'
+      ? 'soft'
+      : 'strict'
+const STRICT_FACE_IDENTITY_MIN = 78
 
 export interface CleanTryOnInput {
   /** Garment image, raw base64 (no data: prefix) or with prefix */
@@ -100,6 +111,8 @@ export interface CleanTryOnSlot {
   jobId: string
   /** Seed used (for reproducibility) */
   seed?: number
+  /** Post-generation identity/composition guard result. */
+  identityAssessment?: IdentityCompositionAssessment
   durationMs: number
 }
 
@@ -360,6 +373,38 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
     const faceCropBase64 = photoRecord?.faceCropBase64
     const hasFace = Boolean(faceCropBase64 && faceCropBase64.length > 100)
 
+    const validateIdentity = async (
+      outputBase64: string,
+    ): Promise<IdentityCompositionAssessment | null> => {
+      if (IDENTITY_GUARD_MODE === 'off') return null
+
+      const assessment = await assessIdentityAndComposition({
+        sourceImageBase64: personBase64,
+        faceCropBase64: hasFace ? faceCropBase64 : undefined,
+        generatedImageBase64: outputBase64,
+        garmentImageBase64: cleanedGarment,
+      })
+
+      const faceIdentityLow = assessment.scores.faceIdentity < STRICT_FACE_IDENTITY_MIN
+      if (
+        IDENTITY_GUARD_MODE === 'strict' &&
+        assessment.validationAvailable !== false &&
+        (assessment.shouldRetry || faceIdentityLow)
+      ) {
+        throw new Error(
+          `Face identity guard rejected output: face=${assessment.scores.faceIdentity}, body=${assessment.scores.bodyConsistency}, garment=${assessment.scores.garmentFidelity}. ${assessment.identityCorrectionGuidance || assessment.reason}`
+        )
+      }
+
+      if ((assessment.shouldRetry || faceIdentityLow) && isDev) {
+        console.warn(
+          `⚠️ [clean] face identity guard warning slot ${idx + 1}: face=${assessment.scores.faceIdentity}, body=${assessment.scores.bodyConsistency}, garment=${assessment.scores.garmentFidelity}`
+        )
+      }
+
+      return assessment
+    }
+
     const compactGarmentLock = buildCompactGarmentLock(strictProfile)
     const garmentEnforcement = strictProfile
       ? buildGarmentEnforcementBlock(strictProfile).replace(/\s+/g, ' ').slice(0, 1200)
@@ -434,10 +479,12 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
         })
         const downloaded = await downloadFluxImage(result.imageUrl)
         const outputBase64 = `data:${downloaded.mime};base64,${downloaded.base64}`
+        const identityAssessment = await validateIdentity(outputBase64)
         if (isDev) console.log(`✅ [clean] Slot ${idx + 1} done in ${Date.now() - slotStart}ms (FLUX job ${result.jobId.slice(0, 8)})`)
         return {
           photoId: sel.photoId, prompt: sel.prompt, reasoning: sel.reasoning,
           outputBase64, jobId: result.jobId, seed: result.seed,
+          identityAssessment: identityAssessment || undefined,
           durationMs: Date.now() - slotStart,
         }
       } catch (err) {
@@ -481,10 +528,12 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
           engineOverride: 'gemini',
         } as any)
         if (geminiOut && geminiOut.length > 100) {
+          const identityAssessment = await validateIdentity(geminiOut)
           if (isDev) console.log(`✨ [clean] Slot ${idx + 1} recovered via Gemini in ${Date.now() - slotStart}ms`)
           return {
             photoId: sel.photoId, prompt: sel.prompt, reasoning: sel.reasoning,
             outputBase64: geminiOut, jobId: `gemini-mod-fallback-${Date.now()}-${idx}`,
+            identityAssessment: identityAssessment || undefined,
             durationMs: Date.now() - slotStart,
           }
         }

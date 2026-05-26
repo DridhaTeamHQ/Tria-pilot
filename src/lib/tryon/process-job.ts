@@ -22,6 +22,7 @@ import { getFirstSuccessfulOutput, getJobOutputsFromRecord } from '@/lib/tryon/j
 import { analyzeGarment } from '@/lib/tryon/garment-intel'
 import type { DirectTryOnOptions } from '@/lib/nanobanana'
 import { runCleanTryOn, isCleanTryOnSlotSuccess } from '@/lib/tryon/clean-tryon'
+import { extractFaceCrop } from '@/lib/tryon/face-crop'
 
 interface ProcessGenerationJobRow {
   id: string
@@ -52,6 +53,16 @@ interface ProcessPersistedOutput {
   outputImagePath?: string
   error?: string
   label: string
+  validation?: {
+    qualityScores?: {
+      faceIdentity: number
+      bodyConsistency: number
+      compositionQuality: number
+      backgroundIntegrity: number
+      garmentFidelity: number
+    }
+    warnings?: string[]
+  }
 }
 
 function ensureArray(value: unknown): string[] {
@@ -144,6 +155,16 @@ export async function processTryOnJob(jobId: string): Promise<void> {
         fetchReferencePhotoAsBase64(photo.image_url).then(base64 => normalizeBase64(base64))
       )
     )
+    const preExtractedFaceCrops = await Promise.all(
+      orderedReferenceBase64s.map(async (refBase64) => {
+        try {
+          const result = await extractFaceCrop(refBase64, null)
+          return result.success && result.faceCropBase64 ? result.faceCropBase64 : undefined
+        } catch {
+          return undefined
+        }
+      })
+    )
 
     // Heuristic text hint for fallback when Gemini analysis 503s
     let garmentTextHint: string | undefined
@@ -177,6 +198,7 @@ export async function processTryOnJob(jobId: string): Promise<void> {
         id: photo.id,
         imageUrl: photo.image_url || photo.imageUrl,
         base64: orderedReferenceBase64s[idx] || '',
+        faceCropBase64: preExtractedFaceCrops[idx] || undefined,
         bodyVisibility: photo.body_visibility || photo.bodyVisibility,
         framing: photo.framing,
         description: photo.description || photo.caption,
@@ -216,6 +238,15 @@ export async function processTryOnJob(jobId: string): Promise<void> {
         status: 'completed',
         outputImagePath,
         label: `Source ${idx + 1}`,
+        validation: {
+          qualityScores: sel.identityAssessment?.scores,
+          warnings: [
+            'clean_pipeline',
+            sel.identityAssessment
+              ? `identity_guard:${sel.identityAssessment.reason}`
+              : 'identity_guard:not_checked',
+          ],
+        },
       }
       outputs.push(persisted)
       successfulOutputs.push(persisted)

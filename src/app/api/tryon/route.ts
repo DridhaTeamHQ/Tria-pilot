@@ -1185,8 +1185,13 @@ async function handlePresetlessTryOnRequest(params: {
         outputImagePath,
         label: `Source ${idx + 1}`,
         validation: {
-          qualityScores: undefined,
-          warnings: ['clean_pipeline'],
+          qualityScores: sel.identityAssessment?.scores,
+          warnings: [
+            'clean_pipeline',
+            sel.identityAssessment
+              ? `identity_guard:${sel.identityAssessment.reason}`
+              : 'identity_guard:not_checked',
+          ],
           garmentGuardrail: undefined,
         },
       })
