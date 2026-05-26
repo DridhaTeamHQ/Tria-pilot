@@ -313,21 +313,30 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
   // FLUX needs explicit width/height (multiples of 64). Mirror the input
   // photo's dimensions so FLUX doesn't recompose / zoom.
   const roundTo64 = (n: number) => Math.max(64, Math.round(n / 64) * 64)
+  // Output resolution cap. Default 2048 (FLUX.2 [pro] supports up to ~4MP).
+  // Generating at higher resolution preserves fabric/skin detail and avoids
+  // the soft "watercolor" look from generating small. Tunable via env.
+  const MAX_LONG = Math.max(768, Number(process.env.TRYON_MAX_OUTPUT_PX) || 1792)
+  const MAX_PIXELS = 4_000_000
+  const fitMegapixels = (w: number, h: number): { width: number; height: number } => {
+    if (w * h <= MAX_PIXELS) return { width: w, height: h }
+    const areaScale = Math.sqrt(MAX_PIXELS / (w * h))
+    return { width: roundTo64(w * areaScale), height: roundTo64(h * areaScale) }
+  }
   const detectDims = async (personBase64: string): Promise<{ width: number; height: number }> => {
     try {
       const meta = await sharp(Buffer.from(personBase64, 'base64')).metadata()
       if (meta.width && meta.height) {
-        const MAX_LONG = 1536
         const scale = Math.min(1, MAX_LONG / Math.max(meta.width, meta.height))
-        return { width: roundTo64(meta.width * scale), height: roundTo64(meta.height * scale) }
+        return fitMegapixels(roundTo64(meta.width * scale), roundTo64(meta.height * scale))
       }
     } catch { /* fall through */ }
     switch (input.aspectRatio || '4:5') {
-      case '1:1': return { width: 1024, height: 1024 }
-      case '9:16': return { width: 768, height: 1344 }
-      case '16:9': return { width: 1344, height: 768 }
-      case '3:4': return { width: 832, height: 1088 }
-      default: return { width: 832, height: 1024 }
+      case '1:1': return { width: 1600, height: 1600 }
+      case '9:16': return { width: 1152, height: 2048 }
+      case '16:9': return { width: 2048, height: 1152 }
+      case '3:4': return { width: 1536, height: 2048 }
+      default: return { width: 1664, height: 2048 }
     }
   }
 

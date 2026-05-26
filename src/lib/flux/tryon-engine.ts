@@ -406,8 +406,11 @@ async function detectPersonDimensions(
     const srcW = meta.width
     const srcH = meta.height
 
-    // Cap long edge at 1536, scale the short edge proportionally
-    const MAX_LONG = 1536
+    // Cap long edge (default 2048 — FLUX.2 [pro] supports up to ~4MP).
+    // Higher output resolution = sharper fabric/skin detail and less of the
+    // soft "watercolor" look that comes from generating small and upscaling.
+    // Configurable via TRYON_MAX_OUTPUT_PX in case we need to dial cost/latency.
+    const MAX_LONG = Math.max(768, Number(process.env.TRYON_MAX_OUTPUT_PX) || 1792)
     const scale = Math.min(1, MAX_LONG / Math.max(srcW, srcH))
     let outW = roundTo64(srcW * scale)
     let outH = roundTo64(srcH * scale)
@@ -419,6 +422,16 @@ async function detectPersonDimensions(
       const upscale = SHORT_FLOOR / shortEdge
       outW = roundTo64(outW * upscale)
       outH = roundTo64(outH * upscale)
+    }
+
+    // Area guard: FLUX.2 [pro] rejects requests above ~4MP. If the capped
+    // dims still exceed it (e.g. near-square 2048×2048 = 4.19MP), scale both
+    // down proportionally to fit just under the ceiling.
+    const MAX_PIXELS = 4_000_000
+    if (outW * outH > MAX_PIXELS) {
+      const areaScale = Math.sqrt(MAX_PIXELS / (outW * outH))
+      outW = roundTo64(outW * areaScale)
+      outH = roundTo64(outH * areaScale)
     }
 
     return { width: outW, height: outH }
