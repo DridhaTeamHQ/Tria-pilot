@@ -150,9 +150,13 @@ function buildLogoPreservationLock(
 ): string {
   if (!intel?.keyFeatures?.length) return ''
 
+  // Match only genuine brand/emblem marks. Deliberately NOT matching broad
+  // words like "chest", "pocket", "print", or "graphic" — a plain striped or
+  // patterned garment trips those and gets misclassified as having a logo,
+  // which then primes the model to invent/preserve a phantom chest emblem.
   const logoFeatures = intel.keyFeatures
     .map((feature) => String(feature || '').trim())
-    .filter((feature) => /logo|embroid|monogram|crest|badge|wordmark|chest|graphic|print|icon|emblem|pocket/i.test(feature))
+    .filter((feature) => /\b(logo|embroider(?:y|ed)?|monogram|crest|badge|wordmark|emblem|mascot|insignia|brand\s*mark)\b/i.test(feature))
     .slice(0, 3)
 
   if (logoFeatures.length === 0) return ''
@@ -361,6 +365,16 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
       ? buildGarmentEnforcementBlock(strictProfile).replace(/\s+/g, ' ').slice(0, 1200)
       : ''
 
+    // LOGO INSTRUCTION — conditional on the analyzer actually detecting a
+    // logo/emblem on the garment. When there IS one we instruct exact
+    // preservation. When there ISN'T, we explicitly FORBID inventing one —
+    // otherwise FLUX hallucinates chest crests/mascots on polos and shirts
+    // (it has a strong prior that such garments carry an embroidered emblem).
+    const hasLogo = logoPreservationLock.trim().length > 0
+    const logoInstruction = hasLogo
+      ? `${logoPreservationLock} Any text, logo, emblem, monogram, or embroidered mark that IS visible on the garment in image 2 must be copied exactly — same symbol, stitch feel, color, size, and placement. `
+      : `The garment in image 2 has NO logo, emblem, crest, mascot, animal motif, monogram, badge, or chest graphic. Do NOT add, invent, or hallucinate any chest emblem, embroidered icon, or decorative graphic. Reproduce ONLY the colours, stripes/pattern, and texture exactly as shown in image 2 — the output garment chest must be as plain as image 2. `
+
     // Orchestrator's "change X to Y, keep Z" prompt + identity/fidelity guards.
     const fluxPrompt = (
       `${sel.prompt} ` +
@@ -377,12 +391,11 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
       (hasFace ? `Image 3 is a close-up of this exact person's face — the output face MUST match image 3 precisely; do not generate a different face. ` : '') +
       `Do not beautify, smooth skin, sharpen eyes, alter beard shape, change hairstyle, add jewelry, add makeup, add accessories, change expression, or modify any non-clothing part of the person. ` +
       `Match the garment in image 2 exactly: same colours and hue, same neckline, sleeve length, hemline and overall fit. ` +
-      `Reproduce every pattern, embroidery, print and texture detail faithfully — do not simplify, recolour or wash out intricate motifs. ` +
+      `Reproduce the garment's pattern and texture detail faithfully — do not simplify, recolour or wash out the motifs that ARE present in image 2. ` +
       `${compactGarmentLock} ` +
-      `${logoPreservationLock} ` +
       `${garmentEnforcement} ` +
-      `Any text, logo, emblem, monogram, crest, mascot, or embroidered chest mark on the garment must be copied exactly from image 2 with the same symbol, stitch feel, color, size, sharpness, and placement. ` +
-      `Do not add, remove or restyle garment elements. ` +
+      `${logoInstruction}` +
+      `Do not add, remove or restyle garment elements, and never invent garment decorations, emblems, prints, or graphics that are not clearly present in image 2. ` +
       `Do not invent props, objects, layers, accessories, backgrounds, or styling details that are not already visible in image 1. ` +
       `Photorealistic, natural fabric drape with realistic shadows; no overlay, sticker, decal or pasted-on effect.`
     ).slice(0, 3200)
