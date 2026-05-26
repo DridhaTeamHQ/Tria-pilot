@@ -55,7 +55,7 @@ export async function GET() {
         const { data: linkClicks, error: clicksError } = linkIds.length > 0
             ? await service
                 .from('link_clicks')
-                .select('tracked_link_id, clicked_at')
+                .select('tracked_link_id, created_at')
                 .in('tracked_link_id', linkIds)
             : { data: [], error: null }
 
@@ -69,8 +69,8 @@ export async function GET() {
             if (!trackedLinkId) continue
             const current = clickStats.get(trackedLinkId) || { count: 0, lastClickedAt: null }
             current.count += 1
-            if (!current.lastClickedAt || (click.clicked_at && click.clicked_at > current.lastClickedAt)) {
-                current.lastClickedAt = click.clicked_at || current.lastClickedAt
+            if (!current.lastClickedAt || (click.created_at && click.created_at > current.lastClickedAt)) {
+                current.lastClickedAt = click.created_at || current.lastClickedAt
             }
             clickStats.set(trackedLinkId, current)
         }

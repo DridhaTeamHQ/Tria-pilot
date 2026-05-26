@@ -42,7 +42,7 @@ type EventRow = {
 
 type ClickRow = {
   tracked_link_id?: string | null
-  clicked_at?: string | null
+  created_at?: string | null
   device_type?: string | null
   country?: string | null
 }
@@ -157,7 +157,7 @@ export async function GET(request: Request) {
         'affiliate_events',
       ),
       safeSelect<ClickRow>(
-        service.from('link_clicks').select('tracked_link_id, clicked_at, device_type, country').gte('clicked_at', startIso).limit(5000),
+        service.from('link_clicks').select('tracked_link_id, created_at, device_type, country').gte('created_at', startIso).limit(5000),
         'link_clicks',
       ),
       safeSelect<CampaignRow>(
@@ -226,7 +226,7 @@ export async function GET(request: Request) {
 
     const byDay = new Map<string, { day: string; clicks: number; orders: number; revenue: number }>()
     for (const click of scopedClicks) {
-      const key = dayKey(click.clicked_at)
+      const key = dayKey(click.created_at)
       const row = byDay.get(key) || { day: key, clicks: 0, orders: 0, revenue: 0 }
       row.clicks += 1
       byDay.set(key, row)

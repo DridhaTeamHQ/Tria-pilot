@@ -158,11 +158,11 @@ export async function GET(_request: Request, ctx: { params: Promise<{ id: string
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
       const { data: linkClicks } = await service
         .from('link_clicks')
-        .select('clicked_at')
+        .select('created_at')
         .in('tracked_link_id', linkIds)
-        .gte('clicked_at', thirtyDaysAgo.toISOString())
+        .gte('created_at', thirtyDaysAgo.toISOString())
         .limit(5000)
-      clickSeries = bucketByDay((linkClicks || []).map((c: any) => c.clicked_at), 30)
+      clickSeries = bucketByDay((linkClicks || []).map((c: any) => c.created_at), 30)
     }
 
     return NextResponse.json({
