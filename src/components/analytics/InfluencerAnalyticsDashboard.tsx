@@ -137,33 +137,38 @@ function StatCard({
 }
 
 function MainTrendChart({ data: inputData, height = '300px', days = 7 }: { data: AnalyticsData['series']; height?: number | string; days?: number }) {
-  // Generate skeleton data if empty
   const data = useMemo(() => {
-    if (inputData?.length > 1) return inputData;
-    if (inputData?.length === 1) {
-      const first = inputData[0]
-      const nextDay = new Date(first.day)
-      nextDay.setDate(nextDay.getDate() + 1)
-      return [first, { ...first, day: nextDay.toISOString() }]
-    }
-    // Create skeleton days
-    return Array.from({ length: days }).map((_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - (days - 1 - i));
+    const safeDays = days || 7;
+    const endDate = new Date(); // End date is always today for these preset timeframes
+    
+    return Array.from({ length: safeDays }).map((_, i) => {
+      const d = new Date(endDate);
+      d.setDate(d.getDate() - (safeDays - 1 - i));
+      d.setHours(0, 0, 0, 0);
+      
+      const existing = inputData?.find(item => {
+        const itemDate = new Date(item.day);
+        itemDate.setHours(0, 0, 0, 0);
+        return itemDate.getTime() === d.getTime();
+      });
+      
+      if (existing) return existing;
+      
       return { day: d.toISOString(), clicks: 0, orders: 0, revenue: 0 };
     });
   }, [inputData, days]);
 
   const labelStep = useMemo(() => {
     if (days <= 7) return 1
-    if (days <= 31) return 3
-    if (days <= 90) return 7
+    if (days <= 31) return 5
+    if (days <= 90) return 10
     if (days <= 365) return 30
     return 30
   }, [days])
 
   const maxClicks = Math.max(...data.map((d) => d.clicks), 50)
   const maxRevenue = Math.max(...data.map((d) => d.revenue), 100)
+  const maxOrders = Math.max(...data.map((d) => d.orders), 20)
 
   const pointDenominator = Math.max(data.length - 1, 1)
 
@@ -177,31 +182,32 @@ function MainTrendChart({ data: inputData, height = '300px', days = 7 }: { data:
     y: 100 - (d.revenue / maxRevenue) * 80 - 10,
   }))
 
-  const getSmoothPath = (points: { x: number; y: number }[]) => {
+  const orderPoints = data.map((d, i) => ({
+    x: (i / pointDenominator) * 100,
+    y: 100 - (d.orders / maxOrders) * 80 - 10,
+  }))
+
+  const getLinearPath = (points: { x: number; y: number }[]) => {
     if (points.length < 2) return "";
     let d = `M ${points[0].x} ${points[0].y}`;
-    for (let i = 0; i < points.length - 1; i++) {
-      const p0 = points[i];
-      const p1 = points[i + 1];
-      const cp1x = p0.x + (p1.x - p0.x) / 2;
-      d += ` C ${cp1x} ${p0.y}, ${cp1x} ${p1.y}, ${p1.x} ${p1.y}`;
+    for (let i = 1; i < points.length; i++) {
+      d += ` L ${points[i].x} ${points[i].y}`;
     }
     return d;
   };
 
-  const clickPath = getSmoothPath(clickPoints);
-  const revenuePath = getSmoothPath(revenuePoints);
+  const clickPath = getLinearPath(clickPoints);
+  const revenuePath = getLinearPath(revenuePoints);
+  const orderPath = getLinearPath(orderPoints);
 
   return (
     <div className="relative min-h-[210px] w-full px-6 pt-4 sm:min-h-0 sm:px-12" style={{ height }}>
-      {/* Grid Lines */}
       <div className="absolute inset-x-6 top-4 bottom-5 flex flex-col justify-between pointer-events-none sm:inset-x-12">
         {[0, 1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="w-full border-b border-black/[0.03]" />
         ))}
       </div>
 
-      {/* Axis Labels */}
       <div className="absolute left-0 top-4 bottom-5 flex w-6 flex-col justify-between py-1 pr-1 text-right text-[8px] font-bold text-black/30 sm:w-10 sm:pr-2 sm:text-[10px]">
         {[maxClicks, maxClicks * 0.8, maxClicks * 0.6, maxClicks * 0.4, maxClicks * 0.2, 0].map((v, i) => (
           <span key={i}>{Math.round(v)}</span>
@@ -209,100 +215,63 @@ function MainTrendChart({ data: inputData, height = '300px', days = 7 }: { data:
       </div>
       <div className="absolute right-0 top-4 bottom-5 flex w-6 flex-col justify-between py-1 pl-1 text-left text-[8px] font-bold text-black/30 sm:w-10 sm:pl-2 sm:text-[10px]">
         {[maxRevenue, maxRevenue * 0.8, maxRevenue * 0.6, maxRevenue * 0.4, maxRevenue * 0.2, 0].map((v, i) => (
-          <span key={i}>{Math.round(v)}</span>
+          <span key={i}>{formatNumber(v)}</span>
         ))}
       </div>
 
       <div className="absolute inset-x-6 top-4 bottom-5 sm:inset-x-12">
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
-          <defs>
-            <linearGradient id="clickGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#FF8C69" stopOpacity="0.15" />
-              <stop offset="100%" stopColor="#FF8C69" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-
-          <motion.path
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            d={`${clickPath} L 100 100 L 0 100 Z`}
-            fill="url(#clickGradient)"
-            vectorEffect="non-scaling-stroke"
-          />
-
-          <motion.path
-            initial={{ pathLength: 0 }}
-            animate={{ pathLength: 1 }}
-            transition={{ duration: 1.5, ease: "easeInOut" }}
+          <path
             d={clickPath}
             fill="none"
-            stroke="#FF8C69"
+            stroke="#ea580c"
             strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
             vectorEffect="non-scaling-stroke"
           />
-
-          <motion.path
-            initial={{ pathLength: 0 }}
-            animate={{ pathLength: 1 }}
-            transition={{ duration: 1.5, ease: "easeInOut", delay: 0.2 }}
+          <path
             d={revenuePath}
             fill="none"
-            stroke="#10B981"
+            stroke="#172554"
             strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
             vectorEffect="non-scaling-stroke"
           />
-
-          {clickPoints.map((p, i) => {
-            if (i % labelStep !== 0 && i !== data.length - 1) return null;
-            return (
-              <motion.circle
-                key={`click-${i}`}
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 1 + (i / labelStep) * 0.05 }}
-                cx={p.x}
-                cy={p.y}
-                r="1.5"
-                fill="#FF8C69"
-                stroke="white"
-                strokeWidth="0.5"
-                vectorEffect="non-scaling-stroke"
-              />
-            );
-          })}
-          {revenuePoints.map((p, i) => {
-            if (i % labelStep !== 0 && i !== data.length - 1) return null;
-            return (
-              <motion.circle
-                key={`rev-${i}`}
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 1.2 + (i / labelStep) * 0.05 }}
-                cx={p.x}
-                cy={p.y}
-                r="1.5"
-                fill="#10B981"
-                stroke="white"
-                strokeWidth="0.5"
-                vectorEffect="non-scaling-stroke"
-              />
-            );
-          })}
+          <path
+            d={orderPath}
+            fill="none"
+            stroke="#0d9488"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
+          />
         </svg>
       </div>
 
-      <div className="absolute bottom-2 inset-x-6 flex justify-between sm:inset-x-12">
+      <div className="absolute bottom-2 inset-x-6 sm:inset-x-12 h-4 pointer-events-none">
         {data.map((d, i) => {
           const isLast = i === data.length - 1
           const showLabel = i % labelStep === 0 || isLast
+          if (!showLabel) return null
+
+          let transform = "translateX(-50%)"
+          if (i === 0) transform = "translateX(0)"
+          else if (isLast) transform = "translateX(-100%)"
+
           return (
-            <span key={i} className="text-[10px] font-bold text-black/30">
-              {showLabel ? new Date(d.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
-            </span>
+            <div 
+              key={i} 
+              className="absolute text-[10px] font-bold text-black/30 whitespace-nowrap"
+              style={{ 
+                left: `${(i / Math.max(data.length - 1, 1)) * 100}%`,
+                transform
+              }}
+            >
+              {new Date(d.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            </div>
           )
         })}
       </div>
@@ -640,12 +609,16 @@ export default function InfluencerAnalyticsDashboard() {
                 <div className="flex flex-wrap items-center gap-3 sm:gap-6">
                   <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                     <div className="flex items-center gap-2">
-                      <div className="h-3 w-3 rounded-full border-2 border-black bg-[#FF8C69]" />
+                      <div className="h-3 w-3 rounded-full border-2 border-black bg-[#ea580c]" />
                       <span className="text-[10px] font-black uppercase tracking-wider text-black/40">Clicks</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="h-3 w-3 rounded-full border-2 border-black bg-[#10B981]" />
+                      <div className="h-3 w-3 rounded-full border-2 border-black bg-[#172554]" />
                       <span className="text-[10px] font-black uppercase tracking-wider text-black/40">Earnings</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-3 w-3 rounded-full border-2 border-black bg-[#0d9488]" />
+                      <span className="text-[10px] font-black uppercase tracking-wider text-black/40">Orders</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 rounded-lg border-2 border-black bg-yellow-300 px-3 py-1.5 text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
