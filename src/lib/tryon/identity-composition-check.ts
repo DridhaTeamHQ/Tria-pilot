@@ -12,6 +12,8 @@ export interface IdentityCompositionAssessment {
   reason: string
   validationAvailable?: boolean
   criticalGarmentDetailMissing?: boolean
+  criticalColorMismatch?: boolean
+  criticalFitMismatch?: boolean
   identityCorrectionGuidance?: string
   compositionCorrectionGuidance?: string
   garmentCorrectionGuidance?: string
@@ -43,6 +45,8 @@ export async function assessIdentityAndComposition(params: {
   faceCropBase64?: string
   garmentImageBase64?: string
   expectedLogoDescription?: string
+  expectedColorDescription?: string
+  expectedFitDescription?: string
   presetId?: string
   anchorZone?: string
 }): Promise<IdentityCompositionAssessment> {
@@ -66,6 +70,8 @@ export async function assessIdentityAndComposition(params: {
           '  },',
           '  "majorIssues": ["<short issue>", "..."],',
           '  "criticalGarmentDetailMissing": <true|false>,',
+          '  "criticalColorMismatch": <true|false>,',
+          '  "criticalFitMismatch": <true|false>,',
           '  "identityCorrectionGuidance": "<single sentence about face/body preservation>",',
           '  "compositionCorrectionGuidance": "<single sentence about composition/background correction>",',
           '  "garmentCorrectionGuidance": "<single sentence about garment mismatch correction>"',
@@ -80,6 +86,8 @@ export async function assessIdentityAndComposition(params: {
           '- Garment fidelity means the clothing in the generated image matches the garment reference in type, collar, sleeves, buttons, hem length, fit, color, pattern, and fabric behavior.',
           '- If an expected logo, symbol, emblem, badge, wordmark, stars, chest graphic, or printed mark is provided, it must be visible in the generated image with similar placement, color, size, and recognizable shape.',
           '- If the expected visible mark is absent, faded away, moved to the wrong garment zone, or converted into a plain shirt, set criticalGarmentDetailMissing=true and score garmentFidelity low.',
+          '- If expected colors are provided, compare the generated garment against the garment reference, not against the lighting of the scene. Shading is allowed, but hue/fabric color drift, washing out, or changing navy to black/blue/gray is a failure. Set criticalColorMismatch=true for clear color drift.',
+          '- If expected fit is provided, check whether the garment fit matches the product reference and sits naturally on the source body. A regular shirt becoming baggy/oversized, skin-tight, stretched, warped, pasted-on, or detached is a failure. Set criticalFitMismatch=true for clear fit/drape mismatch.',
           '- Be strict about slight face change. If the generated face looks like a similar person instead of the same person, score it low.',
           '- Pay special attention to eye shape/opening and facial fullness. Slightly puffier cheeks or changed eye aperture are failures.',
           '- If the shirt changes into a different silhouette, collar, sleeve length, or button structure, garment fidelity is low.',
@@ -94,6 +102,8 @@ export async function assessIdentityAndComposition(params: {
               `Preset: ${params.presetId || 'not provided'}`,
               `Target scene: ${params.anchorZone || 'not provided'}`,
               `Expected visible garment logo/symbol/graphic: ${params.expectedLogoDescription || 'none'}`,
+              `Expected garment color/fabric: ${params.expectedColorDescription || 'match image 4 exactly'}`,
+              `Expected garment fit/drape: ${params.expectedFitDescription || 'match image 4 and fit naturally on image 1 body'}`,
               'Image 1 is the source identity.',
               'Image 2 is an optional face crop from the source identity.',
               'Image 3 is the generated result to evaluate.',
@@ -155,6 +165,8 @@ export async function assessIdentityAndComposition(params: {
     compositionCorrectionGuidance?: string
     garmentCorrectionGuidance?: string
     criticalGarmentDetailMissing?: boolean
+    criticalColorMismatch?: boolean
+    criticalFitMismatch?: boolean
   }
 
   try {
@@ -171,6 +183,8 @@ export async function assessIdentityAndComposition(params: {
       compositionCorrectionGuidance?: string
       garmentCorrectionGuidance?: string
       criticalGarmentDetailMissing?: boolean
+      criticalColorMismatch?: boolean
+      criticalFitMismatch?: boolean
     }>(raw)
   } catch (parseError) {
     console.warn(
@@ -217,9 +231,13 @@ export async function assessIdentityAndComposition(params: {
     (scores.faceIdentity + scores.bodyConsistency + scores.compositionQuality + scores.backgroundIntegrity + scores.garmentFidelity) / 5
   const majorIssues = (parsed.majorIssues || []).filter(Boolean)
   const criticalGarmentDetailMissing = Boolean(parsed.criticalGarmentDetailMissing)
+  const criticalColorMismatch = Boolean(parsed.criticalColorMismatch)
+  const criticalFitMismatch = Boolean(parsed.criticalFitMismatch)
 
   const shouldRetry =
     criticalGarmentDetailMissing ||
+    criticalColorMismatch ||
+    criticalFitMismatch ||
     scores.faceIdentity < 70 ||
     scores.bodyConsistency < 68 ||
     scores.garmentFidelity < 70 ||
@@ -230,9 +248,15 @@ export async function assessIdentityAndComposition(params: {
     shouldRetry,
     reason: criticalGarmentDetailMissing
       ? 'critical_garment_detail_missing'
+      : criticalColorMismatch
+        ? 'critical_color_mismatch'
+        : criticalFitMismatch
+          ? 'critical_fit_mismatch'
       : shouldRetry ? 'identity_or_composition_low' : 'identity_and_composition_stable',
     validationAvailable: true,
     criticalGarmentDetailMissing,
+    criticalColorMismatch,
+    criticalFitMismatch,
     identityCorrectionGuidance: parsed.identityCorrectionGuidance?.trim(),
     compositionCorrectionGuidance: parsed.compositionCorrectionGuidance?.trim(),
     garmentCorrectionGuidance: parsed.garmentCorrectionGuidance?.trim(),

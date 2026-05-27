@@ -212,16 +212,12 @@ export async function processTryOnJob(jobId: string): Promise<void> {
       garmentAlreadyPreprocessed: true,
     })
 
-    // Persist successful slots to storage; collect failures.
+    // Persist successful slots to storage; collect failures internally only.
     const outputs: ProcessPersistedOutput[] = []
+    const failedAttempts: Array<{ referenceImageId: string; error: string }> = []
     await Promise.all(cleanResult.selections.map(async (sel, idx) => {
       if (!isCleanTryOnSlotSuccess(sel)) {
-        outputs.push({
-          referenceImageId: sel.photoId,
-          status: 'failed',
-          error: sel.error,
-          label: `Source ${idx + 1}`,
-        })
+        failedAttempts.push({ referenceImageId: sel.photoId, error: sel.error })
         return
       }
       let outputImagePath = sel.outputBase64
@@ -248,7 +244,10 @@ export async function processTryOnJob(jobId: string): Promise<void> {
             sel.identityAssessment
               ? `identity_guard:${sel.identityAssessment.reason}`
               : 'identity_guard:not_checked',
-          ],
+            sel.identityAssessment?.criticalColorMismatch ? 'color_guard:critical_mismatch' : undefined,
+            sel.identityAssessment?.criticalFitMismatch ? 'fit_guard:critical_mismatch' : undefined,
+            sel.identityAssessment?.criticalGarmentDetailMissing ? 'detail_guard:critical_missing' : undefined,
+          ].filter((warning): warning is string => Boolean(warning)),
         },
       }
       outputs.push(persisted)
@@ -262,23 +261,16 @@ export async function processTryOnJob(jobId: string): Promise<void> {
     })
     const firstSuccessfulOutput = getFirstSuccessfulOutput(normalizedOutputs)
     const successCount = normalizedOutputs.filter(output => output.status === 'completed').length
-    const failedCount = outputs.length - successCount
-    const status =
-      successCount === 0
-        ? 'failed'
-        : successCount === outputs.length
-          ? 'completed'
-          : 'completed_partial'
+    const failedCount = failedAttempts.length
+    const status = successCount === 0 ? 'failed' : 'completed'
     const aggregatedError =
       successCount === 0
-        ? outputs
-            .map(output => output.error)
+        ? failedAttempts
+            .map(failure => failure.error)
             .filter(Boolean)
             .join(' | ')
-            .slice(0, 1200)
-        : failedCount > 0
-          ? `${failedCount} of ${outputs.length} outputs failed.`
-          : null
+            .slice(0, 1200) || 'No try-on output passed the quality checks.'
+        : null
 
     await markJobStatus(jobId, {
       status,
@@ -297,6 +289,7 @@ export async function processTryOnJob(jobId: string): Promise<void> {
           selectionReasoning,
           successCount,
           failedCount,
+          failedAttempts: failedAttempts.slice(-3),
           outputs,
         },
       },

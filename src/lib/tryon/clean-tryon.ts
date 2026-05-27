@@ -51,6 +51,8 @@ const IDENTITY_GUARD_MODE: 'off' | 'soft' | 'strict' =
       ? 'soft'
       : 'strict'
 const STRICT_FACE_IDENTITY_MIN = 78
+const STRICT_BODY_CONSISTENCY_MIN = 72
+const STRICT_GARMENT_FIDELITY_MIN = 78
 
 export interface CleanTryOnInput {
   /** Garment image, raw base64 (no data: prefix) or with prefix */
@@ -212,6 +214,52 @@ function getExpectedLogoDescription(
   return feature || undefined
 }
 
+function getExpectedColorDescription(
+  intel: import('@/lib/tryon/garment-intel').GarmentIntelligence | null | undefined,
+  strictProfile?: import('@/lib/tryon/garment-strict-schema').StrictGarmentProfile | null,
+): string {
+  if (strictProfile) {
+    const colors = [strictProfile.base_color, ...strictProfile.secondary_colors]
+      .filter(Boolean)
+      .map((color) => `${color.name} ${color.hex} ${color.coverage_percent}%`)
+      .join('; ')
+    return `${colors}. Fabric=${strictProfile.fabric.material}, ${strictProfile.fabric.surface_finish}, ${strictProfile.fabric.weight}.`
+  }
+
+  return [
+    intel?.primaryColor ? `primary=${intel.primaryColor}` : '',
+    intel?.secondaryColor ? `secondary=${intel.secondaryColor}` : '',
+    intel?.material ? `material=${intel.material}` : '',
+    intel?.pattern ? `pattern=${intel.pattern}` : '',
+  ].filter(Boolean).join('; ') || 'match garment image exactly'
+}
+
+function getExpectedFitDescription(
+  intel: import('@/lib/tryon/garment-intel').GarmentIntelligence | null | undefined,
+  strictProfile?: import('@/lib/tryon/garment-strict-schema').StrictGarmentProfile | null,
+): string {
+  const strictFit = strictProfile
+    ? [
+        `type=${strictProfile.garment_type}`,
+        `neckline=${strictProfile.construction.neckline}`,
+        `sleeves=${strictProfile.construction.sleeves.length} ${strictProfile.construction.sleeves.style}`,
+        `length=${strictProfile.construction.length}`,
+        `drape=${strictProfile.fabric.drape}`,
+      ].join('; ')
+    : ''
+
+  const intelFit = [
+    intel?.fit ? `fit=${intel.fit}` : '',
+    intel?.length ? `length=${intel.length}` : '',
+    intel?.sleeves ? `sleeves=${intel.sleeves}` : '',
+    intel?.neckline ? `neckline=${intel.neckline}` : '',
+  ].filter(Boolean).join('; ')
+
+  return [strictFit, intelFit, 'must fit naturally on image 1 body; not oversized, not tight, not warped, not pasted on']
+    .filter(Boolean)
+    .join('; ')
+}
+
 /**
  * Run the full clean pipeline. Throws only on catastrophic failure
  * (no garment, no photos, no OpenAI key). Individual slot failures
@@ -309,6 +357,8 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
   const strictProfile = input.prebuiltStrictGarmentProfile ?? null
   const logoPreservationLock = buildLogoPreservationLock(intel, strictProfile)
   const expectedLogoDescription = getExpectedLogoDescription(intel, strictProfile)
+  const expectedColorDescription = getExpectedColorDescription(intel, strictProfile)
+  const expectedFitDescription = getExpectedFitDescription(intel, strictProfile)
   let orchestrated = await orchestrateTryOn({
     garmentBase64: cleanedGarment,
     candidates,
@@ -417,20 +467,32 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
         generatedImageBase64: outputBase64,
         garmentImageBase64: cleanedGarment,
         expectedLogoDescription,
+        expectedColorDescription,
+        expectedFitDescription,
       })
 
       const faceIdentityLow = assessment.scores.faceIdentity < STRICT_FACE_IDENTITY_MIN
+      const bodyConsistencyLow = assessment.scores.bodyConsistency < STRICT_BODY_CONSISTENCY_MIN
+      const garmentFidelityLow = assessment.scores.garmentFidelity < STRICT_GARMENT_FIDELITY_MIN
       if (
         IDENTITY_GUARD_MODE === 'strict' &&
         assessment.validationAvailable !== false &&
-        (assessment.shouldRetry || faceIdentityLow || assessment.criticalGarmentDetailMissing)
+        (
+          assessment.shouldRetry ||
+          faceIdentityLow ||
+          bodyConsistencyLow ||
+          garmentFidelityLow ||
+          assessment.criticalGarmentDetailMissing ||
+          assessment.criticalColorMismatch ||
+          assessment.criticalFitMismatch
+        )
       ) {
         throw new Error(
           `Try-on guard rejected output: face=${assessment.scores.faceIdentity}, body=${assessment.scores.bodyConsistency}, garment=${assessment.scores.garmentFidelity}. ${assessment.garmentCorrectionGuidance || assessment.identityCorrectionGuidance || assessment.reason}`
         )
       }
 
-      if ((assessment.shouldRetry || faceIdentityLow) && isDev) {
+      if ((assessment.shouldRetry || faceIdentityLow || bodyConsistencyLow || garmentFidelityLow) && isDev) {
         console.warn(
           `⚠️ [clean] face identity guard warning slot ${idx + 1}: face=${assessment.scores.faceIdentity}, body=${assessment.scores.bodyConsistency}, garment=${assessment.scores.garmentFidelity}`
         )
@@ -441,7 +503,7 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
 
     const compactGarmentLock = buildCompactGarmentLock(strictProfile)
     const garmentEnforcement = strictProfile
-      ? buildGarmentEnforcementBlock(strictProfile).replace(/\s+/g, ' ').slice(0, 1200)
+      ? buildGarmentEnforcementBlock(strictProfile).replace(/\s+/g, ' ').slice(0, 2200)
       : ''
 
     // LOGO INSTRUCTION — conditional on the analyzer actually detecting a
@@ -468,6 +530,9 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
       `Show exactly the same amount of body that is visible in image 1: if the waist is visible in image 1 it must be visible in the output; if full body is shown, keep it full body. ` +
       `Preserve the original head-to-torso size ratio precisely. ` +
       (hasFace ? `Image 3 is a close-up of this exact person's face — the output face MUST match image 3 precisely; do not generate a different face. ` : '') +
+      `Color lock: the garment color/fabric must match image 2 and this spec: ${expectedColorDescription}. Scene shadows may affect brightness only; do not change hue, saturation, fabric color, print color, or make the garment washed-out. ` +
+      `Fit lock: ${expectedFitDescription}. The garment must follow the source person's shoulders, chest, waist, arms, and pose naturally while keeping the product's intended fit. Do not make it looser, tighter, longer, shorter, stretched, warped, floating, or pasted-on. ` +
+      (expectedLogoDescription ? `Visible mark lock: ${expectedLogoDescription}. This mark/pattern/symbol must be visible and recognizable in the output; a blank/plain garment is invalid. ` : '') +
       `Do not beautify, smooth skin, sharpen eyes, alter beard shape, change hairstyle, add jewelry, add makeup, add accessories, change expression, or modify any non-clothing part of the person. ` +
       `Match the garment in image 2 exactly: same colours and hue, same neckline, sleeve length, hemline and overall fit. ` +
       `Reproduce the garment's pattern and texture detail faithfully — do not simplify, recolour or wash out the motifs that ARE present in image 2. ` +
@@ -477,7 +542,7 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
       `Do not add, remove or restyle garment elements, and never invent garment decorations, emblems, prints, or graphics that are not clearly present in image 2. ` +
       `Do not invent props, objects, layers, accessories, backgrounds, or styling details that are not already visible in image 1. ` +
       `Photorealistic, natural fabric drape with realistic shadows; no overlay, sticker, decal or pasted-on effect.`
-    ).slice(0, 3200)
+    ).slice(0, 6000)
 
     const dims = await detectDims(personBase64)
     const seed = (Date.now() % 1_000_000_000) + idx * 9973
@@ -492,7 +557,7 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
       : [personBase64, cleanedGarment, personBase64]
 
     // 2 attempts — FLUX occasionally returns empty under load.
-    const MAX_ATTEMPTS = 2
+    const MAX_ATTEMPTS = Math.max(2, Number(process.env.TRYON_SLOT_MAX_ATTEMPTS) || 3)
     let lastErr = 'unknown error'
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       try {
@@ -585,16 +650,50 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
     }
   }
 
-  // Fire all 3 slots in parallel.
+  // Fire the first 3 slots in parallel. If any selected source fails the
+  // face/garment/fit guard, try extra approved source photos internally.
+  const targetOutputCount = 3
+  const initialSelections = orchestrated.selections.slice(0, targetOutputCount)
   const slots = await Promise.all(
-    orchestrated.selections.slice(0, 3).map((sel, idx) => runFluxSlot(sel, idx))
+    initialSelections.map((sel, idx) => runFluxSlot(sel, idx))
   )
+
+  const successfulPhotoIds = new Set(
+    slots.filter(isCleanTryOnSlotSuccess).map((slot) => slot.photoId)
+  )
+  const attemptedPhotoIds = new Set(initialSelections.map((selection) => selection.photoId))
+  const fallbackPromptSeed =
+    orchestrated.selections[0]?.prompt ||
+    `Change the clothing on the person in image 1 to the garment shown in image 2. Keep the person's identity, face, pose, body, background, lighting, and crop the same. Match garment color, fit, pattern, symbol, logo, texture, and construction exactly. Photorealistic.`
+  const fallbackReasoningSeed = 'Recovery source photo after a guarded output failed'
+  const recoverySelections = [
+    ...orchestrated.selections.slice(targetOutputCount),
+    ...input.candidatePhotos
+      .filter((photo) => !attemptedPhotoIds.has(photo.id))
+      .map((photo) => ({
+        photoId: photo.id,
+        prompt: fallbackPromptSeed,
+        reasoning: fallbackReasoningSeed,
+      })),
+  ]
+
+  for (const selection of recoverySelections) {
+    if (slots.filter(isCleanTryOnSlotSuccess).length >= targetOutputCount) break
+    if (attemptedPhotoIds.has(selection.photoId) || successfulPhotoIds.has(selection.photoId)) continue
+    attemptedPhotoIds.add(selection.photoId)
+    const recovered = await runFluxSlot(selection, slots.length)
+    slots.push(recovered)
+    if (isCleanTryOnSlotSuccess(recovered)) successfulPhotoIds.add(recovered.photoId)
+  }
   if (isDev) console.log(`🎨 [clean] Step 3 done in ${Date.now() - swapStart}ms`)
 
   return {
     cleanedGarmentBase64: cleanedGarment,
     wasExtracted,
-    selections: slots,
+    selections: [
+      ...slots.filter(isCleanTryOnSlotSuccess).slice(0, targetOutputCount),
+      ...slots.filter((slot) => !isCleanTryOnSlotSuccess(slot)),
+    ],
     totalDurationMs: Date.now() - t0,
   }
 }

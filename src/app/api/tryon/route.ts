@@ -1200,7 +1200,10 @@ async function handlePresetlessTryOnRequest(params: {
             sel.identityAssessment
               ? `identity_guard:${sel.identityAssessment.reason}`
               : 'identity_guard:not_checked',
-          ],
+            sel.identityAssessment?.criticalColorMismatch ? 'color_guard:critical_mismatch' : undefined,
+            sel.identityAssessment?.criticalFitMismatch ? 'fit_guard:critical_mismatch' : undefined,
+            sel.identityAssessment?.criticalGarmentDetailMissing ? 'detail_guard:critical_missing' : undefined,
+          ].filter((warning): warning is string => Boolean(warning)),
           garmentGuardrail: undefined,
         },
       })
@@ -1505,19 +1508,6 @@ async function handlePresetlessTryOnRequest(params: {
 
     const outputs: PresetlessPersistedOutput[] = [...successfulOutputs]
 
-    if (outputs.length < targetOutputCount && failedAttempts.length > 0) {
-      const missingCount = targetOutputCount - outputs.length
-      const fallbackFailures = failedAttempts.slice(-missingCount)
-      fallbackFailures.forEach((failure, index) => {
-        outputs.push({
-          referenceImageId: failure.referenceImageId,
-          status: 'failed',
-          error: failure.error,
-          label: `Source ${successfulOutputs.length + index + 1}`,
-        })
-      })
-    }
-
     selectedPhotoIds = outputs
       .map((output) => output.referenceImageId)
       .filter((photoId): photoId is string => Boolean(photoId))
@@ -1529,19 +1519,13 @@ async function handlePresetlessTryOnRequest(params: {
     })
     const firstSuccessfulOutput = getFirstSuccessfulOutput(normalizedOutputs)
     const successCount = normalizedOutputs.filter((output) => output.status === 'completed').length
-    const failedCount = outputs.length - successCount
-    const status =
-      successCount === 0
-        ? 'failed'
-        : successCount === outputs.length
-          ? 'completed'
-          : 'completed_partial'
+    const failedCount = failedAttempts.length
+    const status = successCount === 0 ? 'failed' : 'completed'
     const aggregatedError =
       successCount === 0
-        ? outputs.map((output) => output.error).filter(Boolean).join(' | ').slice(0, 1200)
-        : failedCount > 0
-          ? `${failedCount} of ${outputs.length} outputs failed.`
-          : null
+        ? failedAttempts.map((failure) => failure.error).filter(Boolean).join(' | ').slice(0, 1200) ||
+          'No try-on output passed the quality checks.'
+        : null
 
     await service
       .from('generation_jobs')
@@ -1580,6 +1564,7 @@ async function handlePresetlessTryOnRequest(params: {
             selectionReasoning,
             successCount,
             failedCount,
+            failedAttempts: failedAttempts.slice(-3),
             outputs,
           },
         },
@@ -1587,10 +1572,9 @@ async function handlePresetlessTryOnRequest(params: {
       .eq('id', job.id)
 
     if (successCount === 0) {
-      const allQualityRejected = outputs.every(
-        (output) =>
-          output.status === 'failed' &&
-          /rejected by strict face consistency gate|rejected by quality gate|output rejected|garment_guardrail/i.test(output.error || '')
+      const allQualityRejected = failedAttempts.length > 0 && failedAttempts.every(
+        (failure) =>
+          /rejected by strict face consistency gate|rejected by quality gate|output rejected|try-on guard rejected|garment_guardrail/i.test(failure.error || '')
       )
 
       // FIX: previously returned 200 OK with success:false — frontend's
@@ -1599,10 +1583,10 @@ async function handlePresetlessTryOnRequest(params: {
       // structured error path fires and the user sees the failure modal.
       const failureStatus = allQualityRejected ? 422 : 502
       const userMessage = allQualityRejected
-        ? 'All three try-on drafts were rejected because face or garment fidelity was too low. Please upload stronger source photos and try again.'
+        ? 'We could not produce a try-on that passed quality checks. Please retry with clearer source and product images.'
         : aggregatedError
           ? `Try-on generation failed: ${aggregatedError.slice(0, 240)}`
-          : 'All three try-on drafts failed. Please try again.'
+          : 'Try-on generation failed. Please try again.'
 
       return NextResponse.json(
         {
@@ -1612,7 +1596,7 @@ async function handlePresetlessTryOnRequest(params: {
           retryAfterSeconds: allQualityRejected ? undefined : 5,
           jobId: job.id,
           status,
-          outputs: normalizedOutputs,
+          outputs: [],
           selectionMethod,
         },
         { status: failureStatus, headers: { 'Cache-Control': 'no-store' } }
