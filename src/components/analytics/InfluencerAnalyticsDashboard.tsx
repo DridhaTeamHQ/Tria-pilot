@@ -1,8 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Activity,
   ArrowUpRight,
@@ -136,7 +136,7 @@ function StatCard({
   )
 }
 
-function MainTrendChart({ data: inputData, height = '300px', days = 7 }: { data: AnalyticsData['series']; height?: number | string; days?: number }) {
+function MainTrendChart({ data: inputData, height = '300px', days = 7, activeSeries = { clicks: true, revenue: true, orders: true } }: { data: AnalyticsData['series']; height?: number | string; days?: number; activeSeries?: { clicks: boolean; revenue: boolean; orders: boolean } }) {
   const data = useMemo(() => {
     const safeDays = days || 7;
     const endDate = new Date(); // End date is always today for these preset timeframes
@@ -209,45 +209,51 @@ function MainTrendChart({ data: inputData, height = '300px', days = 7 }: { data:
       </div>
 
       <div className="absolute left-0 top-4 bottom-5 flex w-6 flex-col justify-between py-1 pr-1 text-right text-[8px] font-bold text-black/30 sm:w-10 sm:pr-2 sm:text-[10px]">
-        {[maxClicks, maxClicks * 0.8, maxClicks * 0.6, maxClicks * 0.4, maxClicks * 0.2, 0].map((v, i) => (
+        {activeSeries.clicks && [maxClicks, maxClicks * 0.8, maxClicks * 0.6, maxClicks * 0.4, maxClicks * 0.2, 0].map((v, i) => (
           <span key={i}>{Math.round(v)}</span>
         ))}
       </div>
       <div className="absolute right-0 top-4 bottom-5 flex w-6 flex-col justify-between py-1 pl-1 text-left text-[8px] font-bold text-black/30 sm:w-10 sm:pl-2 sm:text-[10px]">
-        {[maxRevenue, maxRevenue * 0.8, maxRevenue * 0.6, maxRevenue * 0.4, maxRevenue * 0.2, 0].map((v, i) => (
+        {activeSeries.revenue && [maxRevenue, maxRevenue * 0.8, maxRevenue * 0.6, maxRevenue * 0.4, maxRevenue * 0.2, 0].map((v, i) => (
           <span key={i}>{formatNumber(v)}</span>
         ))}
       </div>
 
       <div className="absolute inset-x-6 top-4 bottom-5 sm:inset-x-12">
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
-          <path
-            d={clickPath}
-            fill="none"
-            stroke="#ea580c"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            vectorEffect="non-scaling-stroke"
-          />
-          <path
-            d={revenuePath}
-            fill="none"
-            stroke="#172554"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            vectorEffect="non-scaling-stroke"
-          />
-          <path
-            d={orderPath}
-            fill="none"
-            stroke="#0d9488"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            vectorEffect="non-scaling-stroke"
-          />
+          {activeSeries.clicks && (
+            <path
+              d={clickPath}
+              fill="none"
+              stroke="#ea580c"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
+            />
+          )}
+          {activeSeries.revenue && (
+            <path
+              d={revenuePath}
+              fill="none"
+              stroke="#172554"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
+            />
+          )}
+          {activeSeries.orders && (
+            <path
+              d={orderPath}
+              fill="none"
+              stroke="#0d9488"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
+            />
+          )}
         </svg>
       </div>
 
@@ -527,6 +533,25 @@ function AffiliateLinksTable({ data }: { data: AffiliateLinksData | undefined })
 
 export default function InfluencerAnalyticsDashboard() {
   const [days, setDays] = useState(30)
+  const [activeSeries, setActiveSeries] = useState({ clicks: true, revenue: true, orders: true })
+  const [isChartDaysDropdownOpen, setIsChartDaysDropdownOpen] = useState(false)
+  const queryClient = useQueryClient()
+
+  useEffect(() => {
+    [7, 30, 90, 365].forEach(d => {
+      if (d !== days) {
+        queryClient.prefetchQuery({
+          queryKey: ['influencer-analytics', d],
+          queryFn: async () => {
+            const res = await fetch(`/api/analytics/overview?days=${d}`, { credentials: 'include' })
+            if (!res.ok) throw new Error('Failed to load analytics')
+            return res.json()
+          }
+        })
+      }
+    })
+  }, [queryClient, days])
+
   const { data, isLoading, isFetching, refetch } = useQuery<AnalyticsData>({
     queryKey: ['influencer-analytics', days],
     queryFn: async () => {
@@ -608,27 +633,57 @@ export default function InfluencerAnalyticsDashboard() {
                 </h3>
                 <div className="flex flex-wrap items-center gap-3 sm:gap-6">
                   <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-                    <div className="flex items-center gap-2">
+                    <div 
+                      className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${!activeSeries.clicks ? 'opacity-40' : ''}`}
+                      onClick={() => setActiveSeries(prev => ({ ...prev, clicks: !prev.clicks }))}
+                    >
                       <div className="h-3 w-3 rounded-full border-2 border-black bg-[#ea580c]" />
                       <span className="text-[10px] font-black uppercase tracking-wider text-black/40">Clicks</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div 
+                      className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${!activeSeries.revenue ? 'opacity-40' : ''}`}
+                      onClick={() => setActiveSeries(prev => ({ ...prev, revenue: !prev.revenue }))}
+                    >
                       <div className="h-3 w-3 rounded-full border-2 border-black bg-[#172554]" />
                       <span className="text-[10px] font-black uppercase tracking-wider text-black/40">Earnings</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div 
+                      className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${!activeSeries.orders ? 'opacity-40' : ''}`}
+                      onClick={() => setActiveSeries(prev => ({ ...prev, orders: !prev.orders }))}
+                    >
                       <div className="h-3 w-3 rounded-full border-2 border-black bg-[#0d9488]" />
                       <span className="text-[10px] font-black uppercase tracking-wider text-black/40">Orders</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 rounded-lg border-2 border-black bg-yellow-300 px-3 py-1.5 text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                    Last {days} Days
-                    <ChevronDown className="h-3.5 w-3.5" />
+                  <div className="relative">
+                    <button 
+                      onClick={() => setIsChartDaysDropdownOpen(!isChartDaysDropdownOpen)}
+                      className="flex items-center gap-1.5 rounded-lg border-2 border-black bg-yellow-300 px-3 py-1.5 text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
+                    >
+                      Last {days} Days
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </button>
+                    {isChartDaysDropdownOpen && (
+                      <div className="absolute right-0 top-full mt-2 z-10 w-32 rounded-xl border-2 border-black bg-white p-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                        {[7, 30, 90, 365].map((d) => (
+                          <button
+                            key={d}
+                            onClick={() => {
+                              setDays(d)
+                              setIsChartDaysDropdownOpen(false)
+                            }}
+                            className={`w-full text-left rounded-lg px-3 py-2 text-[10px] font-black uppercase transition-colors ${days === d ? 'bg-yellow-300 text-black' : 'text-black/60 hover:bg-black/5'}`}
+                          >
+                            Last {d} Days
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
               <div className="h-[230px] sm:h-[280px]">
-                <MainTrendChart data={data?.series || []} days={days} height="100%" />
+                <MainTrendChart data={data?.series || []} days={days} height="100%" activeSeries={activeSeries} />
               </div>
             </div>
 
