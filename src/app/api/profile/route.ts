@@ -7,7 +7,7 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
 import { z } from 'zod'
-import { normalizeAmazonTrackingId } from '@/lib/affiliate/amazon'
+import { normalizeAmazonStoreId, normalizeAmazonTrackingId } from '@/lib/affiliate/amazon'
 import { getGenerationTagFromDob, normalizeDateOfBirth } from '@/lib/profile-demographics'
 
 const updateProfileSchema = z
@@ -15,6 +15,10 @@ const updateProfileSchema = z
     name: z.string().trim().min(1).max(120).optional(),
     dateOfBirth: z.string().trim().max(40).optional(),
     amazonTrackingId: z
+      .union([z.string().trim().max(64), z.null()])
+      .transform((value) => (value === null ? '' : value))
+      .optional(),
+    amazonStoreId: z
       .union([z.string().trim().max(64), z.null()])
       .transform((value) => (value === null ? '' : value))
       .optional(),
@@ -39,15 +43,24 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
     }
 
-    const { name, dateOfBirth, amazonTrackingId } = updateProfileSchema.parse(body)
+    const { name, dateOfBirth, amazonTrackingId, amazonStoreId } = updateProfileSchema.parse(body)
     const trimmedName = name?.trim()
     const normalizedDateOfBirth = normalizeDateOfBirth(dateOfBirth)
     const normalizedAmazonTrackingId =
       typeof amazonTrackingId === 'undefined'
         ? undefined
         : normalizeAmazonTrackingId(amazonTrackingId) || null
+    const normalizedAmazonStoreId =
+      typeof amazonStoreId === 'undefined'
+        ? undefined
+        : normalizeAmazonStoreId(amazonStoreId) || null
 
-    if (!trimmedName && typeof dateOfBirth === 'undefined' && typeof normalizedAmazonTrackingId === 'undefined') {
+    if (
+      !trimmedName &&
+      typeof dateOfBirth === 'undefined' &&
+      typeof normalizedAmazonTrackingId === 'undefined' &&
+      typeof normalizedAmazonStoreId === 'undefined'
+    ) {
       return NextResponse.json({ error: 'Nothing to update' }, { status: 400 })
     }
 
@@ -114,7 +127,7 @@ export async function PATCH(request: Request) {
       }
     }
 
-    if (typeof normalizedAmazonTrackingId !== 'undefined') {
+    if (typeof normalizedAmazonTrackingId !== 'undefined' || typeof normalizedAmazonStoreId !== 'undefined') {
       const { data: profileForRole, error: profileForRoleError } = await service
         .from('profiles')
         .select('role')
@@ -140,10 +153,18 @@ export async function PATCH(request: Request) {
         return NextResponse.json({ error: 'Failed to update Amazon tracking ID' }, { status: 500 })
       }
 
+      const affiliateUpdate: Record<string, string | null> = {}
+      if (typeof normalizedAmazonTrackingId !== 'undefined') {
+        affiliateUpdate.affiliate_code = normalizedAmazonTrackingId
+      }
+      if (typeof normalizedAmazonStoreId !== 'undefined') {
+        affiliateUpdate.affiliate_store_id = normalizedAmazonStoreId
+      }
+
       const affiliateCodeMutation = existingInfluencerProfile
         ? service
             .from('influencer_profiles')
-            .update({ affiliate_code: normalizedAmazonTrackingId })
+            .update(affiliateUpdate)
             .eq('user_id', authUser.id)
         : service
             .from('influencer_profiles')
@@ -151,7 +172,10 @@ export async function PATCH(request: Request) {
               user_id: authUser.id,
               niches: [],
               socials: {},
-              affiliate_code: normalizedAmazonTrackingId,
+              affiliate_code:
+                typeof normalizedAmazonTrackingId === 'undefined' ? null : normalizedAmazonTrackingId,
+              affiliate_store_id:
+                typeof normalizedAmazonStoreId === 'undefined' ? null : normalizedAmazonStoreId,
             })
 
       const { error: affiliateCodeError } = await affiliateCodeMutation
@@ -232,6 +256,7 @@ export async function GET() {
           badgeTier: infProfile.badge_tier,
           badgeScore: infProfile.badge_score,
           gender: infProfile.gender,
+          amazonStoreId: normalizeAmazonStoreId(infProfile.affiliate_store_id),
           amazonTrackingId: normalizeAmazonTrackingId(infProfile.affiliate_code),
           dateOfBirth,
           generationTag,

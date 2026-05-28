@@ -23,14 +23,35 @@ export function normalizeAmazonTrackingId(value: unknown): string | null {
   return trimmed
 }
 
+export function normalizeAmazonStoreId(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  if (!/^[A-Za-z0-9][A-Za-z0-9-]{1,60}$/.test(trimmed)) return null
+  return trimmed
+}
+
 export function canonicalizeAmazonTrackingId(value: unknown): string | null {
   const normalized = normalizeAmazonTrackingId(value)
   return normalized ? normalized.toLowerCase() : null
 }
 
-export function applyAmazonTrackingTag(url: string, trackingId: string | null | undefined): string {
+export function getAmazonStoreIdFromTrackingId(value: unknown): string | null {
+  const normalized = normalizeAmazonTrackingId(value)
+  if (!normalized) return null
+
+  const match = normalized.match(/^(.+)-\d+$/)
+  return match?.[1] || normalized
+}
+
+export function applyAmazonTrackingTag(
+  url: string,
+  trackingId: string | null | undefined,
+  storeId?: string | null | undefined,
+): string {
   const normalizedTrackingId = normalizeAmazonTrackingId(trackingId)
-  if (!normalizedTrackingId) return url
+  const normalizedStoreId = normalizeAmazonStoreId(storeId)
+  if (!normalizedTrackingId && !normalizedStoreId) return url
 
   try {
     const parsed = new URL(url)
@@ -38,7 +59,13 @@ export function applyAmazonTrackingTag(url: string, trackingId: string | null | 
       return url
     }
 
-    parsed.searchParams.set('tag', normalizedTrackingId)
+    if (normalizedTrackingId) {
+      parsed.searchParams.set('tag', normalizedTrackingId)
+      parsed.searchParams.set('trackId', normalizedTrackingId)
+    }
+    if (normalizedStoreId) {
+      parsed.searchParams.set('storeId', normalizedStoreId)
+    }
     return parsed.toString()
   } catch {
     return url

@@ -73,6 +73,7 @@ model InfluencerProfile {
   niches                Json     // Array of strings
   socials               Json     // Object with platform links
   pricePerPost          Decimal? @db.Decimal(10, 2) @map("price_per_post")
+  affiliateStoreId      String?  @map("affiliate_store_id")
   affiliateCode         String?  @unique @map("affiliate_code")
   portfolioVisibility   Boolean  @default(true) @map("portfolio_visibility")
   followers             Int?     @default(0)

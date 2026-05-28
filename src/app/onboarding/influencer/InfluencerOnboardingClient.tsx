@@ -100,6 +100,7 @@ export default function InfluencerOnboardingPage() {
       snapchat: '',
       facebook: '',
     },
+    affiliateStoreId: '',
     affiliateCode: '',
     bio: '',
   })
@@ -152,6 +153,7 @@ export default function InfluencerOnboardingPage() {
               snapchat: existingSocials.snapchat || '',
               facebook: existingSocials.facebook || '',
             },
+            affiliateStoreId: data.profile.affiliateStoreId || '',
             affiliateCode: data.profile.affiliateCode || '',
             bio: data.profile.bio || '',
           })
@@ -660,6 +662,13 @@ export default function InfluencerOnboardingPage() {
               verifyUrl={getSocialVerifyUrl('facebook', formData.socials.facebook)}
             />
             <BrutalInput
+              label="Amazon Store ID"
+              icon={<span className="text-orange-500">s</span>}
+              placeholder="rahulinsta"
+              value={formData.affiliateStoreId}
+              onChange={(e) => setFormData({ ...formData, affiliateStoreId: e.target.value })}
+            />
+            <BrutalInput
               label="Amazon Tracking ID"
               icon={<span className="text-orange-500">a</span>}
               placeholder="rahulinsta-21"
@@ -667,7 +676,7 @@ export default function InfluencerOnboardingPage() {
               onChange={(e) => setFormData({ ...formData, affiliateCode: e.target.value })}
             />
             <p className="text-xs font-bold text-black/60">
-              Add at least one social account to continue. Your Amazon Tracking ID is optional here, but adding it now makes your affiliate links ready immediately.
+              Add at least one social account to continue. Amazon Store ID and Tracking ID are optional here, but adding them now makes your affiliate links ready immediately.
             </p>
           </div>
         )
