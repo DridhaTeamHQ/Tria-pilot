@@ -33,6 +33,7 @@ import { MonaLisaGenerationLoader } from '@/components/ui/MonaLisaGenerationLoad
 import CaptionGenerator from '@/components/creator/CaptionGenerator'
 import { useProductLink } from '@/lib/hooks/useProductLink'
 import { getBestTimeToPost } from '@/lib/creator-post-timing'
+import { PHOTOSHOOT_PRESET_CARDS } from '@/lib/tryon/photoshoot-presets'
 
 const MIN_TRYON_SOURCES = 3
 const ASPECT_RATIOS = ['1:1', '4:5', '9:16'] as const
@@ -220,6 +221,10 @@ function TryOnPageContent() {
   const [libraryModalOpen, setLibraryModalOpen] = useState(false)
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false)
   const [failureModal, setFailureModal] = useState<{ title: string; message: string; retryAfter?: number } | null>(null)
+  // ── Beta: Photoshoot (full image generation) mode ──────────────────
+  const [genMode, setGenMode] = useState<'clothing_swap' | 'photoshoot'>('clothing_swap')
+  const [selectedPresetId, setSelectedPresetId] = useState<string>(PHOTOSHOOT_PRESET_CARDS[0]?.id ?? 'studio_white')
+  const [customScene, setCustomScene] = useState('')
 
   useEffect(() => {
     const mobileQuery = window.matchMedia('(max-width: 1023px)')
@@ -777,6 +782,73 @@ function TryOnPageContent() {
     }
   }, [aspectRatio, currentRecommendations.isReadyForTryOn, currentRecommendations.photosNeeded, pollTryOnJob, polishNotes, productId, resolution, selectedProductImage, selectedReferenceIds, selectionMode])
 
+  const submitPhotoshoot = useCallback(async () => {
+    const sourceId = selectedReferenceIds.filter(Boolean)[0] || selectedReferencePhoto?.id || approvedPhotos[0]?.id
+    if (!sourceId) {
+      showWarningToast('Pick a source photo', 'Select at least one of your photos so we can keep your face.')
+      return
+    }
+    if (!productId && !selectedProductImage) {
+      showWarningToast('Choose a garment', 'Open the page from a product or choose a product image first.')
+      return
+    }
+    if (!selectedPresetId) {
+      showWarningToast('Pick a scene', 'Choose a photoshoot scene to generate.')
+      return
+    }
+
+    const isGarmentBase64 = Boolean(selectedProductImage?.startsWith('data:image/'))
+    const payload: Record<string, unknown> = {
+      referenceImageId: sourceId,
+      clothingImage: isGarmentBase64 ? selectedProductImage : undefined,
+      garmentImageUrl: !isGarmentBase64 ? (selectedProductImage || undefined) : undefined,
+      presetId: selectedPresetId,
+      customScene: customScene.trim() || undefined,
+      aspectRatio,
+    }
+
+    generateInFlightRef.current = true
+    setSubmitting(true)
+    setRetryAfterSeconds(0)
+    setResult(null)
+
+    try {
+      const res = await fetch('/api/photoshoot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      })
+      const data = await safeParseResponse<any>(res, 'photoshoot generation')
+      const normalized = normalizeResult({ outputs: Array.isArray(data?.outputs) ? data.outputs : [] })
+      if (!normalized.outputs.length) {
+        throw new Error('No photoshoot images were generated. Please try again.')
+      }
+      setResult(normalized)
+      setSelectedOutputIndex(0)
+      const total = normalized.outputs.length
+      showSuccessToast('Photoshoot ready', total > 1 ? `${total} looks generated.` : 'Your photoshoot image is ready.')
+    } catch (error) {
+      console.error('[photoshoot] caught error:', error)
+      const rawMsg = error instanceof Error ? error.message : 'Generation failed. Please try again.'
+      const lower = rawMsg.toLowerCase()
+      let title = 'Photoshoot failed'
+      let friendly = rawMsg
+      if (lower.includes('busy') || lower.includes('503') || lower.includes('unavailable') || lower.includes('overloaded') || lower.includes('quota')) {
+        title = 'Image model is busy'
+        friendly = 'The AI is busy right now. Please wait a moment and try again.'
+      } else if (lower.includes('moderat')) {
+        title = 'Image blocked'
+        friendly = 'The image or product was blocked by content moderation. Try a different photo or product.'
+      }
+      setFailureModal({ title, message: friendly })
+      showErrorToast(title, friendly)
+    } finally {
+      setSubmitting(false)
+      generateInFlightRef.current = false
+    }
+  }, [approvedPhotos, aspectRatio, customScene, productId, selectedPresetId, selectedProductImage, selectedReferenceIds, selectedReferencePhoto])
+
   const downloadCurrent = useCallback(() => {
     if (!selectedOutput?.imageUrl && !selectedOutput?.base64Image) return
     const a = document.createElement('a')
@@ -839,6 +911,26 @@ function TryOnPageContent() {
             <button type="button" onClick={() => setMobileSettingsOpen(false)} className="rounded-full border-[3px] border-black bg-[#F9F8F4] px-4 py-2 text-xs font-black uppercase shadow-[3px_3px_0_0_#000]">Close</button>
           </div>
           <div className="space-y-6">
+            {/* ── Mode toggle: Clothing Swap vs Photoshoot (Beta) ── */}
+            <div className="rounded-[24px] border-[3px] border-black bg-white p-1.5 shadow-[5px_5px_0_0_#000]">
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setGenMode('clothing_swap')}
+                  className={`rounded-[18px] border-2 border-black px-3 py-2.5 text-xs font-black uppercase transition ${genMode === 'clothing_swap' ? 'bg-[#FFD93D] shadow-[2px_2px_0_0_#000]' : 'bg-white text-black/55'}`}
+                >
+                  Clothing Swap
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGenMode('photoshoot')}
+                  className={`inline-flex items-center justify-center gap-1 rounded-[18px] border-2 border-black px-3 py-2.5 text-xs font-black uppercase transition ${genMode === 'photoshoot' ? 'bg-[#A78BFA] shadow-[2px_2px_0_0_#000]' : 'bg-white text-black/55'}`}
+                >
+                  Photoshoot
+                  <span className="rounded-full bg-black px-1.5 py-0.5 text-[8px] leading-none text-white">BETA</span>
+                </button>
+              </div>
+            </div>
             <div className="rounded-[24px] border-[3px] border-black bg-[#F9F8F4] p-5 shadow-[5px_5px_0_0_#000]">
               <div className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">Selected Target</div>
               <h3 className="mt-1 text-lg font-black uppercase">{productLoading ? 'Loading product...' : (productData?.name || 'No product selected')}</h3>
@@ -882,9 +974,38 @@ function TryOnPageContent() {
                 </div>
               )}
             </div>
+            {genMode === 'photoshoot' && (
+              <div className="rounded-[24px] border-[3px] border-black bg-white p-5 shadow-[5px_5px_0_0_#000]">
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">Photoshoot Scene</div>
+                <p className="mt-1 text-xs font-semibold text-black/60">We keep your face and put the product on you in a fresh AI photoshoot scene.</p>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  {PHOTOSHOOT_PRESET_CARDS.map((preset) => {
+                    const active = selectedPresetId === preset.id
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => setSelectedPresetId(preset.id)}
+                        className={`rounded-2xl border-2 border-black p-3 text-left transition ${active ? 'bg-[#A78BFA] shadow-[3px_3px_0_0_#000]' : 'bg-[#F9F8F4] hover:bg-white'}`}
+                      >
+                        <div className="text-[10px] font-black uppercase leading-tight">{preset.label}</div>
+                        <div className="mt-0.5 text-[9px] font-semibold leading-snug text-black/55">{preset.blurb}</div>
+                      </button>
+                    )
+                  })}
+                </div>
+                <label className="mt-4 block text-[10px] font-black uppercase tracking-[0.2em] text-black/50">Custom direction (optional)</label>
+                <textarea
+                  value={customScene}
+                  onChange={(e) => setCustomScene(e.target.value.slice(0, 300))}
+                  placeholder="e.g. holding a coffee, looking away, warm tones"
+                  className="mt-1 h-16 w-full rounded-xl border-2 border-black bg-[#F9F8F4] p-3 text-xs font-semibold outline-none focus:bg-white"
+                />
+              </div>
+            )}
             <div className="rounded-[24px] border-[3px] border-black bg-white p-5 shadow-[5px_5px_0_0_#000]">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">Photos ({selectedPhotos.length}/3)</div>
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">{genMode === 'photoshoot' ? 'Your Face (pick 1)' : `Photos (${selectedPhotos.length}/3)`}</div>
                 <button type="button" onClick={() => setLibraryModalOpen(true)} className="rounded-full border-[2px] border-black bg-[#FFD93D] px-3 py-1 text-[10px] font-black uppercase shadow-[2px_2px_0_0_#000]">Edit Sources</button>
               </div>
               <p className="mt-2 text-xs font-semibold text-black/60">{selectionMode === 'manual' ? 'Using your manual selection.' : 'AI automatically picked the best photos.'}</p>
@@ -919,9 +1040,9 @@ function TryOnPageContent() {
                 </div>
               </div>
             </div>
-            <button type="button" onClick={() => { setMobileSettingsOpen(false); void submitTryOn() }} disabled={submitting || !readyForTryOn} className={`flex w-full items-center justify-center gap-3 rounded-[20px] border-[4px] border-black p-4 text-sm font-black uppercase shadow-[4px_4px_0_0_#000] ${submitting || !readyForTryOn ? 'cursor-not-allowed bg-[#E5E5E5] text-black/50' : 'bg-[#FFD93D]'}`}>
+            <button type="button" onClick={() => { setMobileSettingsOpen(false); void (genMode === 'photoshoot' ? submitPhotoshoot() : submitTryOn()) }} disabled={submitting || !readyForTryOn} className={`flex w-full items-center justify-center gap-3 rounded-[20px] border-[4px] border-black p-4 text-sm font-black uppercase shadow-[4px_4px_0_0_#000] ${submitting || !readyForTryOn ? 'cursor-not-allowed bg-[#E5E5E5] text-black/50' : genMode === 'photoshoot' ? 'bg-[#A78BFA]' : 'bg-[#FFD93D]'}`}>
               {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
-              {submitting ? 'Generating...' : generationLabel}
+              {submitting ? 'Generating...' : (genMode === 'photoshoot' ? 'Generate Photoshoot' : generationLabel)}
             </button>
             {retryAfterSeconds > 0 && <div className="text-center text-xs font-bold text-red-500">Rate limit: retry in {retryAfterSeconds}s</div>}
           </div>
