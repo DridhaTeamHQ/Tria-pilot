@@ -649,9 +649,14 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
     // FLUX failure (timeout, 402, 5xx, empty) does NOT touch Gemini —
     // FLUX stays the engine for 95%+ of generations.
     const fluxModerationBlocked = /moderat|content.*(block|moderat)|safety|request moderated/i.test(lastErr)
-    if (fluxModerationBlocked) {
+    // FLUX out of credits (402) / quota — auto-route to Gemini so generations
+    // keep working even when the FLUX account has no credits. Same recovery
+    // path as moderation; this is what makes "shift to Gemini" resilient.
+    const fluxCreditExhausted = /insufficient credit|402|payment required|quota/i.test(lastErr)
+    if (fluxModerationBlocked || fluxCreditExhausted) {
       try {
-        if (isDev) console.log(`🍌 Slot ${idx + 1} → FLUX moderation-blocked, falling back to Gemini`)
+        const reason = fluxCreditExhausted ? 'FLUX out of credits' : 'FLUX moderation-blocked'
+        if (isDev) console.log(`🍌 Slot ${idx + 1} → ${reason}, falling back to Gemini`)
         // engineOverride forces Gemini for THIS call only — no
         // process.env.TRYON_ENGINE mutation that would race other
         // concurrent generations on the same Vercel instance.
@@ -679,7 +684,7 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
       } catch (gemErr) {
         const gmsg = gemErr instanceof Error ? gemErr.message : String(gemErr)
         if (isDev) console.warn(`⚠️ Slot ${idx + 1} Gemini fallback failed: ${gmsg.slice(0, 120)}`)
-        lastErr = `FLUX moderation-blocked; Gemini fallback also failed: ${gmsg}`
+        lastErr = `FLUX failed (${fluxCreditExhausted ? 'insufficient credits' : 'moderation'}); Gemini fallback also failed: ${gmsg}`
       }
     }
 
