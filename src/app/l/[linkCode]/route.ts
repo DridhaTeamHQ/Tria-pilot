@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/auth'
-import { applyAmazonTrackingTag, normalizeAmazonTrackingId } from '@/lib/affiliate/amazon'
+import { applyAmazonTrackingTag, getAmazonStoreIdFromTrackingId, normalizeAmazonStoreId, normalizeAmazonTrackingId } from '@/lib/affiliate/amazon'
 import { extractClickMetadata } from '@/lib/links/tracker'
 import { sanitizeRedirectUrl } from '@/lib/links/utils'
 import { ipRateLimit, getClientIp } from '@/lib/security/ip-rate-limit'
@@ -104,7 +104,7 @@ export async function GET(
         const [{ data: influencerProfile }, { data: product }] = await Promise.all([
           service
             .from('influencer_profiles')
-            .select('*')
+            .select('affiliate_code, affiliate_store_id')
             .eq('user_id', trackedLink.influencer_id)
             .maybeSingle(),
           service
@@ -125,7 +125,10 @@ export async function GET(
         const affiliateTag =
           normalizeAmazonTrackingId((influencerProfile as { affiliate_code?: unknown } | null)?.affiliate_code) ||
           normalizeAmazonTrackingId(process.env.AMAZON_DEFAULT_TRACKING_ID)
-        const recomputedUrl = applyAmazonTrackingTag(baseOriginalUrl, affiliateTag)
+        const storeId =
+          normalizeAmazonStoreId((influencerProfile as { affiliate_store_id?: unknown } | null)?.affiliate_store_id) ||
+          getAmazonStoreIdFromTrackingId(affiliateTag)
+        const recomputedUrl = applyAmazonTrackingTag(baseOriginalUrl, affiliateTag, storeId)
 
         if (recomputedUrl && recomputedUrl !== trackedLink.original_url) {
           latestOriginalUrl = recomputedUrl

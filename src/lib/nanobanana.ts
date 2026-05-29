@@ -753,8 +753,10 @@ REALISM: Photorealistic output. Natural skin, realistic fabric drape. No AI smoo
       const msg = err instanceof Error ? err.message : String(err)
       const msgLower = msg.toLowerCase()
 
-      // Treat 503 (capacity) and 504 (deadline exceeded) as switchable errors.
-      // Both mean the Pro model is overloaded \u2014 flash is the right fallback.
+      // Treat 503 (capacity), 504 (deadline exceeded), and 429 (rate limit /
+      // quota) as switchable errors. The Pro image model is ~2 RPM/key, so
+      // parallel try-on slots rate-limit fast \u2014 Flash (~10 RPM) is the right
+      // fallback rather than failing the slot.
       const isCapacityError =
         msg.includes('503') ||
         msg.includes('504') ||
@@ -765,8 +767,15 @@ REALISM: Photorealistic output. Natural skin, realistic fabric drape. No AI smoo
         msgLower.includes('deadline_exceeded') ||
         msgLower.includes('deadline expired')
 
-      if (isCapacityError && !isFinalModel) {
-        const errCode = msg.includes('504') || msgLower.includes('deadline') ? '504' : '503'
+      const isRateLimitError =
+        msg.includes('429') ||
+        msgLower.includes('rate limit') ||
+        msgLower.includes('resource_exhausted') ||
+        msgLower.includes('resource exhausted') ||
+        msgLower.includes('quota')
+
+      if ((isCapacityError || isRateLimitError) && !isFinalModel) {
+        const errCode = isRateLimitError ? '429' : (msg.includes('504') || msgLower.includes('deadline') ? '504' : '503')
         console.warn(`\u26a0\ufe0f ${modelAttempt} ${errCode} \u2014 switching to fallback ${modelsToTry[mi + 1]}`)
         continue
       }

@@ -1,11 +1,35 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
-import { applyAmazonTrackingTag, normalizeAmazonTrackingId } from '@/lib/affiliate/amazon'
+import {
+  applyAmazonTrackingTag,
+  getAmazonStoreIdFromTrackingId,
+  normalizeAmazonStoreId,
+  normalizeAmazonTrackingId,
+} from '@/lib/affiliate/amazon'
 import { generateLinkCode } from '@/lib/links/generator'
 import { getMaskedUrl } from '@/lib/links/utils'
 import { getPublicSiteUrlFromRequest, joinPublicUrl } from '@/lib/site-url'
 
 export const dynamic = 'force-dynamic'
+
+function appendVisibleAttributionParams(
+  maskedUrl: string,
+  options: { storeId: string | null; amazonTrackId: string | null; linkCode: string },
+) {
+  try {
+    const url = new URL(maskedUrl)
+    if (options.storeId) url.searchParams.set('storeId', options.storeId)
+    if (options.amazonTrackId) url.searchParams.set('trackId', options.amazonTrackId)
+    url.searchParams.set('linkCode', options.linkCode)
+    return url.toString()
+  } catch {
+    const params = new URLSearchParams()
+    if (options.storeId) params.set('storeId', options.storeId)
+    if (options.amazonTrackId) params.set('trackId', options.amazonTrackId)
+    params.set('linkCode', options.linkCode)
+    return `${maskedUrl}${maskedUrl.includes('?') ? '&' : '?'}${params.toString()}`
+  }
+}
 
 export async function GET(
   request: Request,
@@ -39,7 +63,7 @@ export async function GET(
 
     const { data: influencerProfile } = await service
       .from('influencer_profiles')
-      .select('affiliate_code')
+      .select('affiliate_code, affiliate_store_id')
       .eq('user_id', authUser.id)
       .maybeSingle()
 
@@ -60,7 +84,10 @@ export async function GET(
     const affiliateTag =
       normalizeAmazonTrackingId(influencerProfile?.affiliate_code) ||
       normalizeAmazonTrackingId(process.env.AMAZON_DEFAULT_TRACKING_ID)
-    const originalUrl = applyAmazonTrackingTag(baseOriginalUrl, affiliateTag)
+    const storeId =
+      normalizeAmazonStoreId(influencerProfile?.affiliate_store_id) ||
+      getAmazonStoreIdFromTrackingId(affiliateTag)
+    const originalUrl = applyAmazonTrackingTag(baseOriginalUrl, affiliateTag, storeId)
 
     const { data: existingLink, error: existingLinkError } = await service
       .from('tracked_links')
@@ -75,9 +102,14 @@ export async function GET(
 
     if (existingLink) {
       const linkCode = existingLink.link_code
-      const maskedUrl = existingLink.masked_url || getMaskedUrl(linkCode, siteUrl)
+      const storedMaskedUrl = existingLink.masked_url || getMaskedUrl(linkCode, siteUrl)
+      const maskedUrl = appendVisibleAttributionParams(storedMaskedUrl, {
+        storeId,
+        amazonTrackId: affiliateTag,
+        linkCode,
+      })
       const needsUpdate =
-        existingLink.masked_url !== maskedUrl ||
+        existingLink.masked_url !== storedMaskedUrl ||
         !existingLink.original_url ||
         existingLink.original_url !== originalUrl
 
@@ -85,7 +117,7 @@ export async function GET(
         const { error: updateError } = await service
           .from('tracked_links')
           .update({
-            masked_url: maskedUrl,
+            masked_url: storedMaskedUrl,
             original_url: originalUrl,
           })
           .eq('id', existingLink.id)
@@ -100,19 +132,25 @@ export async function GET(
         linkCode,
         originalUrl,
         affiliateTag,
+        storeId,
         productId,
         productName: product.name ?? null,
       })
     }
 
     const linkCode = await generateLinkCode()
-    const maskedUrl = getMaskedUrl(linkCode, siteUrl)
+    const storedMaskedUrl = getMaskedUrl(linkCode, siteUrl)
+    const maskedUrl = appendVisibleAttributionParams(storedMaskedUrl, {
+      storeId,
+      amazonTrackId: affiliateTag,
+      linkCode,
+    })
 
     const { error: insertError } = await service.from('tracked_links').insert({
       influencer_id: authUser.id,
       product_id: productId,
       original_url: originalUrl,
-      masked_url: maskedUrl,
+      masked_url: storedMaskedUrl,
       link_code: linkCode,
       click_count: 0,
       is_active: true,
@@ -127,6 +165,7 @@ export async function GET(
       linkCode,
       originalUrl,
       affiliateTag,
+      storeId,
       productId,
       productName: product.name ?? null,
     })

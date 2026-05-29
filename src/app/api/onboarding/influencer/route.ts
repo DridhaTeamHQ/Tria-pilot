@@ -10,7 +10,7 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/auth'
 import { z } from 'zod'
-import { normalizeAmazonTrackingId } from '@/lib/affiliate/amazon'
+import { normalizeAmazonStoreId, normalizeAmazonTrackingId } from '@/lib/affiliate/amazon'
 import { getGenerationTagFromDob, normalizeDateOfBirth } from '@/lib/profile-demographics'
 
 const ALLOWED_SOCIAL_PLATFORMS = ['instagram', 'youtube', 'snapchat', 'facebook'] as const
@@ -28,6 +28,7 @@ const onboardingSchema = z
     audienceType: z.array(z.string().trim().max(80)).max(20).optional(),
     preferredCategories: z.array(z.string().trim().max(80)).max(50).optional(),
     socials: z.record(z.string().trim().max(80)).optional(),
+    affiliateStoreId: z.string().trim().max(64).optional(),
     affiliateCode: z.string().trim().max(64).optional(),
     bio: z.string().trim().max(4000).optional(),
     audienceRate: z
@@ -137,6 +138,7 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => null)
     const data = onboardingSchema.parse(body)
     const normalizedSocials = normalizeSocials(data.socials)
+    const normalizedAffiliateStoreId = normalizeAmazonStoreId(data.affiliateStoreId) || null
     const normalizedAffiliateCode = normalizeAmazonTrackingId(data.affiliateCode) || null
     const fullName = [data.firstName?.trim(), data.lastName?.trim()].filter(Boolean).join(' ').trim()
     const normalizedDateOfBirth = normalizeDateOfBirth(data.dateOfBirth)
@@ -194,6 +196,7 @@ export async function POST(request: Request) {
           audience_type: data.audienceType || [],
           preferred_categories: data.preferredCategories || [],
           socials: normalizedSocials,
+          affiliate_store_id: normalizedAffiliateStoreId,
           affiliate_code: normalizedAffiliateCode,
           bio: data.bio,
         })
@@ -214,6 +217,7 @@ export async function POST(request: Request) {
       if (data.audienceType) updateData.audience_type = data.audienceType
       if (data.preferredCategories) updateData.preferred_categories = data.preferredCategories
       if (data.socials) updateData.socials = normalizedSocials
+      if (typeof data.affiliateStoreId !== 'undefined') updateData.affiliate_store_id = normalizedAffiliateStoreId
       if (typeof data.affiliateCode !== 'undefined') updateData.affiliate_code = normalizedAffiliateCode
       if (data.bio) updateData.bio = data.bio
 
@@ -357,6 +361,7 @@ export async function GET() {
         retentionRate: infProfile.retention_rate,
         badgeTier: infProfile.badge_tier,
         badgeScore: infProfile.badge_score,
+        affiliateStoreId: normalizeAmazonStoreId(infProfile.affiliate_store_id),
         affiliateCode: normalizeAmazonTrackingId(infProfile.affiliate_code),
       } : null,
     })

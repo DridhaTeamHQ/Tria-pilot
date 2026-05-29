@@ -9,6 +9,8 @@ interface AffiliateLinkResponse {
     maskedUrl: string
     linkCode: string
     originalUrl: string
+    affiliateTag?: string | null
+    storeId?: string | null
     productId: string
     productName: string | null
 }

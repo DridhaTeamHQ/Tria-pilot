@@ -32,6 +32,7 @@ export default function SettingsProfilePage() {
   const [emailSaving, setEmailSaving] = useState(false)
   const [dobSaving, setDobSaving] = useState(false)
   const [dateOfBirth, setDateOfBirth] = useState('')
+  const [amazonStoreId, setAmazonStoreId] = useState('')
   const [amazonTrackingId, setAmazonTrackingId] = useState('')
   const [trackingIdSaving, setTrackingIdSaving] = useState(false)
 
@@ -42,6 +43,7 @@ export default function SettingsProfilePage() {
   const currentGenerationTag = typeof (user as any)?.profile?.generation_tag === 'string' ? (user as any).profile.generation_tag : ''
   const dobUnchanged = (dateOfBirth || '') === currentDob
   const isInfluencer = String(user?.role || '').toUpperCase() === 'INFLUENCER'
+  const normalizedAmazonStoreId = amazonStoreId.trim()
   const normalizedAmazonTrackingId = amazonTrackingId.trim()
 
   useEffect(() => {
@@ -66,6 +68,7 @@ export default function SettingsProfilePage() {
         if (!res.ok) return
         const data = await res.json()
         if (cancelled) return
+        setAmazonStoreId(data?.user?.influencerProfile?.amazonStoreId || '')
         setAmazonTrackingId(data?.user?.influencerProfile?.amazonTrackingId || '')
       } catch (error) {
         console.error('Failed to load affiliate settings:', error)
@@ -157,12 +160,19 @@ export default function SettingsProfilePage() {
       const res = await fetch('/api/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amazonTrackingId: normalizedAmazonTrackingId }),
+        body: JSON.stringify({
+          amazonStoreId: normalizedAmazonStoreId,
+          amazonTrackingId: normalizedAmazonTrackingId,
+        }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.error || 'Failed to update Amazon tracking ID')
 
-      toast.success(normalizedAmazonTrackingId ? 'Amazon tracking ID saved' : 'Amazon tracking ID cleared')
+      toast.success(
+        normalizedAmazonStoreId || normalizedAmazonTrackingId
+          ? 'Amazon affiliate settings saved'
+          : 'Amazon affiliate settings cleared'
+      )
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['user'] }),
         queryClient.invalidateQueries({ queryKey: ['full-profile'] }),
@@ -274,14 +284,37 @@ export default function SettingsProfilePage() {
                 <LinkIcon className="w-8 h-8 text-black" />
               </div>
               <div>
-                <h2 className="text-xl sm:text-2xl font-black uppercase">Amazon Tracking ID</h2>
+                <h2 className="text-xl sm:text-2xl font-black uppercase">Amazon Affiliate IDs</h2>
                 <p className="text-sm sm:text-base text-black/70 font-medium">
-                  Save your Amazon Associates tracking ID here so every Kiwikoo product link is generated with your affiliate tag.
+                  Save your Amazon Associates Store ID and Tracking ID here so every Kiwikoo product link is generated with your affiliate tag.
                 </p>
               </div>
             </div>
 
             <form onSubmit={handleSaveAmazonTrackingId} className="space-y-6 max-w-xl">
+              <div className="space-y-2">
+                <label htmlFor="amazonStoreId" className="block text-sm font-bold uppercase tracking-wide text-black">
+                  Store ID
+                </label>
+                <div className="relative">
+                  <input
+                    id="amazonStoreId"
+                    type="text"
+                    value={amazonStoreId}
+                    onChange={(e) => setAmazonStoreId(e.target.value)}
+                    placeholder="rahulinsta"
+                    className="w-full px-4 py-3 bg-white border-[3px] border-black text-black font-bold focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all placeholder:text-black/30"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                  />
+                  <LinkIcon className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-black/40" />
+                </div>
+                <p className="text-xs font-bold text-black/50 uppercase tracking-wide">
+                  Example: `rahulinsta`.
+                </p>
+              </div>
+
               <div className="space-y-2">
                 <label htmlFor="amazonTrackingId" className="block text-sm font-bold uppercase tracking-wide text-black">
                   Tracking ID
@@ -320,7 +353,7 @@ export default function SettingsProfilePage() {
                 ) : (
                   <>
                     <Save className="w-5 h-5" />
-                    Save Amazon Tracking ID
+                    Save Amazon Affiliate IDs
                   </>
                 )}
               </button>
