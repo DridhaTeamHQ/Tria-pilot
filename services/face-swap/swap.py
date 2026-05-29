@@ -37,8 +37,13 @@ BUFFALO_L_URL = "https://github.com/deepinsight/insightface/releases/download/v0
 DET_MODEL = "det_10g.onnx"
 REC_MODEL = "w600k_r50.onnx"
 SWAP_MODEL = "inswapper_128.onnx"
-IDENTITY_STRENGTH = float(os.getenv("FACE_SWAP_IDENTITY_STRENGTH", "0.65"))
-MASK_STRENGTH = float(os.getenv("FACE_SWAP_MASK_STRENGTH", "0.55"))
+# Identity-first defaults. The old 0.65/0.55 were tuned for *subtle* face
+# touch-ups (blending the real face with the generated one) — which produced
+# "looks similar but isn't her". For the photoshoot use case we want the REAL
+# person, so apply the source identity at near-full strength and composite the
+# swapped face strongly. Still env-overridable on the service.
+IDENTITY_STRENGTH = float(os.getenv("FACE_SWAP_IDENTITY_STRENGTH", "0.95"))
+MASK_STRENGTH = float(os.getenv("FACE_SWAP_MASK_STRENGTH", "0.9"))
 SPOT_SUPPRESSION_STRENGTH = float(os.getenv("FACE_SWAP_SPOT_SUPPRESSION_STRENGTH", "0.9"))
 
 ARCFACE_DST = np.array(
