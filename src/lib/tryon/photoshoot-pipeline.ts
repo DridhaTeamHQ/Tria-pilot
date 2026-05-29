@@ -298,6 +298,12 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
 
   const presetId = preset?.id || 'custom'
 
+  // Default face box used when client-side detection is imperfect. The
+  // InsightFace service does its OWN face detection server-side, so we must
+  // never SKIP the swap just because the Gemini detector returned nothing —
+  // we pass a best-effort box and let the service handle it.
+  const DEFAULT_FACE_BOX: FaceCoordinates = { ymin: 120, xmin: 280, ymax: 620, xmax: 720, confidence: 0.4 }
+
   // Detect the source person's face ONCE (reused across variants) when the
   // face-restore post-pass is enabled.
   let personFace: FaceCoordinates | null = null
@@ -306,18 +312,20 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
   }
 
   // Post-pass: paste the real face back onto the generated image (InsightFace
-  // when configured, else Gemini restore fallback). Safe no-op on any failure.
+  // when FACE_SWAP_SERVICE_URL is set, else Gemini restore fallback). Safe
+  // no-op on any failure. Fires whenever the feature is enabled.
   const maybeRestoreFace = async (generated: string): Promise<string> => {
-    if (!FACE_RESTORE_ENABLED || !personFace) return generated
+    if (!FACE_RESTORE_ENABLED) return generated
     try {
-      const generatedFace = await detectFaceCoordinates(generated, { allowHeuristicFallback: true })
-      if (!generatedFace) return generated
+      const generatedFace =
+        (await detectFaceCoordinates(generated, { allowHeuristicFallback: true }).catch(() => null)) ||
+        DEFAULT_FACE_BOX
       const restored = await restoreFaceIdentity({
         generatedImageBase64: generated,
         personImageBase64: person,
         faceCropBase64: faceCrop || undefined,
         generatedFace,
-        personFace,
+        personFace: personFace || DEFAULT_FACE_BOX,
         aspectRatio,
       })
       if (restored.success && restored.restoredImageBase64 && restored.restoredImageBase64.length > 100) {
