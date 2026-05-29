@@ -22,8 +22,19 @@ import { extractFaceCrop } from '@/lib/tryon/face-crop'
 import { preprocessGarmentImage } from '@/lib/tryon/garment-preprocessor'
 import { analyzeGarment } from '@/lib/tryon/garment-intel'
 import { getPhotoshootPreset } from '@/lib/tryon/photoshoot-presets'
+import { restoreFaceIdentity } from '@/lib/tryon/face-restore'
+import { detectFaceCoordinates, type FaceCoordinates } from '@/lib/tryon/face-coordinates'
 
 const isDev = process.env.NODE_ENV !== 'production'
+
+// Optional face-restore post-pass for a hard identity lock. OFF by default
+// (adds latency + a face-detect call). Activates when an InsightFace service
+// is configured (best quality) OR when explicitly enabled to use the Gemini
+// restore fallback.
+const FACE_RESTORE_ENABLED =
+  Boolean((process.env.FACE_SWAP_SERVICE_URL || '').trim()) ||
+  process.env.PHOTOSHOOT_FACE_RESTORE === '1' ||
+  process.env.PHOTOSHOOT_FACE_RESTORE === 'true'
 
 function strip(b64: string): string {
   return b64.replace(/^data:image\/[a-z+]+;base64,/, '')
@@ -262,17 +273,51 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
 
   const presetId = preset?.id || 'custom'
 
+  // Detect the source person's face ONCE (reused across variants) when the
+  // face-restore post-pass is enabled.
+  let personFace: FaceCoordinates | null = null
+  if (FACE_RESTORE_ENABLED) {
+    personFace = await detectFaceCoordinates(person, { allowHeuristicFallback: true }).catch(() => null)
+  }
+
+  // Post-pass: paste the real face back onto the generated image (InsightFace
+  // when configured, else Gemini restore fallback). Safe no-op on any failure.
+  const maybeRestoreFace = async (generated: string): Promise<string> => {
+    if (!FACE_RESTORE_ENABLED || !personFace) return generated
+    try {
+      const generatedFace = await detectFaceCoordinates(generated, { allowHeuristicFallback: true })
+      if (!generatedFace) return generated
+      const restored = await restoreFaceIdentity({
+        generatedImageBase64: generated,
+        personImageBase64: person,
+        faceCropBase64: faceCrop || undefined,
+        generatedFace,
+        personFace,
+        aspectRatio,
+      })
+      if (restored.success && restored.restoredImageBase64 && restored.restoredImageBase64.length > 100) {
+        if (isDev) console.log(`🔁 [photoshoot] face-restored via ${restored.method || 'unknown'}`)
+        const img = restored.restoredImageBase64
+        return img.startsWith('data:') ? img : `data:image/png;base64,${img}`
+      }
+    } catch (e) {
+      if (isDev) console.warn(`[photoshoot] face-restore skipped: ${e instanceof Error ? e.message : e}`)
+    }
+    return generated
+  }
+
   const runVariant = async (variant: number): Promise<PhotoshootSlot | PhotoshootFailure> => {
     const slotStart = Date.now()
     const prompt = buildPrompt(variant)
     try {
-      const outputBase64 = await generateOneVariant({
+      let outputBase64 = await generateOneVariant({
         personB64: person,
         faceCropB64: faceCrop,
         garmentB64: cleanedGarment,
         prompt,
         aspectRatio,
       })
+      outputBase64 = await maybeRestoreFace(outputBase64)
       if (isDev) console.log(`✅ [photoshoot] variant ${variant + 1} done in ${Date.now() - slotStart}ms`)
       return { variant, presetId, prompt, outputBase64, durationMs: Date.now() - slotStart }
     } catch (err) {
