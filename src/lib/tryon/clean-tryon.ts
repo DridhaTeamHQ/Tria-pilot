@@ -561,7 +561,12 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
           faceCropBase64: hasFace ? faceCropBase64 : undefined,
           prompt: fluxPrompt,
           aspectRatio: input.aspectRatio || '4:5',
-          model: (process.env.TRYON_RENDER_MODEL?.trim() || 'gemini-3-pro-image-preview') as any,
+          // Default to the Flash image model: it has ~10 RPM/key + higher
+          // concurrency, so 3 parallel try-on slots on a single Gemini key
+          // succeed. The Pro image model is ~2 RPM/key and rate-limits the
+          // 2nd/3rd slot (429), leaving only 2 of 3 outputs. Override with
+          // TRYON_RENDER_MODEL=gemini-3-pro-image-preview when more keys exist.
+          model: (process.env.TRYON_RENDER_MODEL?.trim() || 'gemini-3.1-flash-image-preview') as any,
           garmentIntel: intel,
           // Force Gemini for THIS call regardless of env race conditions.
           engineOverride: 'gemini',
