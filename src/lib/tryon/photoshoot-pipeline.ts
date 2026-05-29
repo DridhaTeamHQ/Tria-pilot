@@ -24,8 +24,55 @@ import { analyzeGarment } from '@/lib/tryon/garment-intel'
 import { getPhotoshootPreset } from '@/lib/tryon/photoshoot-presets'
 import { restoreFaceIdentity } from '@/lib/tryon/face-restore'
 import { detectFaceCoordinates, type FaceCoordinates } from '@/lib/tryon/face-coordinates'
+import { getOpenAI } from '@/lib/openai'
 
 const isDev = process.env.NODE_ENV !== 'production'
+
+/**
+ * GPT-4o picks the SINGLE best face reference from the candidates. Passing
+ * multiple face photos confuses both the generator and the swap, so we choose
+ * the clearest, most front-facing, unobstructed face and use only that one.
+ * Falls back to the first photo on any error.
+ */
+async function pickBestFaceIndex(images: string[]): Promise<number> {
+  if (images.length <= 1) return 0
+  try {
+    const openai = getOpenAI()
+    const resp = await openai.chat.completions.create(
+      {
+        model: 'gpt-4o-mini',
+        temperature: 0,
+        max_tokens: 5,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `These are reference photos of the SAME person. Pick the SINGLE best one to use as a face-identity reference for an AI face swap: the clearest, most front-facing, well-lit, unobstructed face — no sunglasses, no heavy head turn, no motion blur, face large in the frame. Reply with ONLY the 0-based index number (e.g. "0").`,
+              },
+              ...images.map((b64) => ({
+                type: 'image_url' as const,
+                image_url: {
+                  url: b64.startsWith('data:') ? b64 : `data:image/jpeg;base64,${b64}`,
+                  detail: 'low' as const,
+                },
+              })),
+            ],
+          },
+        ],
+      },
+      { timeout: 15_000 },
+    )
+    const txt = resp.choices?.[0]?.message?.content?.trim() || '0'
+    const m = txt.match(/\d+/)
+    const idx = m ? parseInt(m[0], 10) : 0
+    return idx >= 0 && idx < images.length ? idx : 0
+  } catch (e) {
+    if (isDev) console.warn(`[photoshoot] face selection failed, using first photo: ${e instanceof Error ? e.message : e}`)
+    return 0
+  }
+}
 
 // Optional face-restore post-pass for a hard identity lock. OFF by default
 // (adds latency + a face-detect call). Activates when an InsightFace service
@@ -242,12 +289,18 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
 
   const person = strip(input.personImageBase64)
   if (!person || person.length < 100) throw new Error('Source person image is missing or too small')
-  // Multi-reference: primary photo + any extra angles of the SAME person.
-  // Dedupe and cap at 3 total (guides: 3-6 is the sweet spot; >10 hurts).
+  // Candidate face photos of the SAME person.
   const extraPersons = (input.extraPersonImagesBase64 || [])
     .map(strip)
     .filter((b) => b && b.length > 100)
-  const personImages = Array.from(new Set([person, ...extraPersons])).slice(0, 3)
+  const candidatePersonImages = Array.from(new Set([person, ...extraPersons])).slice(0, 4)
+  // Passing MULTIPLE face references confuses the generator and the swap.
+  // Have GPT pick the SINGLE clearest, most front-facing face and use ONLY that
+  // — both as the generation reference and as the face-swap source.
+  const bestIdx = candidatePersonImages.length > 1 ? await pickBestFaceIndex(candidatePersonImages) : 0
+  const selectedPerson = candidatePersonImages[bestIdx] ?? person
+  const refImages = [selectedPerson]
+  if (isDev) console.log(`🧑 [photoshoot] using face #${bestIdx} of ${candidatePersonImages.length} as the single reference`)
   const garmentRaw = strip(input.garmentImageBase64)
   if (!garmentRaw || garmentRaw.length < 100) throw new Error('Garment image is missing or too small')
 
@@ -264,7 +317,7 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
     preprocessGarmentImage(garmentRaw, { fast: true, model: 'flash', sessionId: `photoshoot-${Date.now()}` })
       .then((p) => strip(p.processedImage))
       .catch(() => garmentRaw),
-    extractFaceCrop(person, null)
+    extractFaceCrop(selectedPerson, null)
       .then((r) => (r.success ? strip(r.faceCropBase64) : null))
       .catch(() => null),
     analyzeGarment(garmentRaw).catch(() => null),
@@ -319,7 +372,7 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
   // we'd actually use it (Gemini fallback path).
   let personFace: FaceCoordinates | null = null
   if (FACE_RESTORE_ENABLED && !INSIGHTFACE_CONFIGURED) {
-    personFace = await detectFaceCoordinates(person, { allowHeuristicFallback: true }).catch(() => null)
+    personFace = await detectFaceCoordinates(selectedPerson, { allowHeuristicFallback: true }).catch(() => null)
   }
 
   // Post-pass: paste the real face back onto the generated image (InsightFace
@@ -337,7 +390,7 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
           DEFAULT_FACE_BOX
       const restored = await restoreFaceIdentity({
         generatedImageBase64: generated,
-        personImageBase64: person,
+        personImageBase64: selectedPerson,
         faceCropBase64: faceCrop || undefined,
         generatedFace,
         personFace: personFace || DEFAULT_FACE_BOX,
@@ -362,7 +415,7 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
     const prompt = buildPrompt(variant)
     try {
       let outputBase64 = await generateOneVariant({
-        personImages,
+        personImages: refImages,
         faceCropB64: faceCrop,
         garmentB64: cleanedGarment,
         prompt,
