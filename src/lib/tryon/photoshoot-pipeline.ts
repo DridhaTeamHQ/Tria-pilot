@@ -66,6 +66,8 @@ export interface PhotoshootSlot {
   prompt: string
   /** Generated image, base64 data URL. */
   outputBase64: string
+  /** Which face-restore method was applied, if any (diagnostic). */
+  restoredVia?: 'insightface' | 'gemini' | null
   durationMs: number
 }
 
@@ -314,8 +316,10 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
   // Post-pass: paste the real face back onto the generated image (InsightFace
   // when FACE_SWAP_SERVICE_URL is set, else Gemini restore fallback). Safe
   // no-op on any failure. Fires whenever the feature is enabled.
-  const maybeRestoreFace = async (generated: string): Promise<string> => {
-    if (!FACE_RESTORE_ENABLED) return generated
+  const maybeRestoreFace = async (
+    generated: string,
+  ): Promise<{ image: string; method: 'insightface' | 'gemini' | null }> => {
+    if (!FACE_RESTORE_ENABLED) return { image: generated, method: null }
     try {
       const generatedFace =
         (await detectFaceCoordinates(generated, { allowHeuristicFallback: true }).catch(() => null)) ||
@@ -329,14 +333,16 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
         aspectRatio,
       })
       if (restored.success && restored.restoredImageBase64 && restored.restoredImageBase64.length > 100) {
-        if (isDev) console.log(`🔁 [photoshoot] face-restored via ${restored.method || 'unknown'}`)
+        const method = (restored.method as 'insightface' | 'gemini') || null
+        console.log(`🔁 [photoshoot] face-restored via ${method || 'unknown'}`)
         const img = restored.restoredImageBase64
-        return img.startsWith('data:') ? img : `data:image/png;base64,${img}`
+        return { image: img.startsWith('data:') ? img : `data:image/png;base64,${img}`, method }
       }
+      console.warn(`⚠️ [photoshoot] face-restore returned no image (success=${restored.success}, err=${restored.error || 'n/a'})`)
     } catch (e) {
-      if (isDev) console.warn(`[photoshoot] face-restore skipped: ${e instanceof Error ? e.message : e}`)
+      console.warn(`⚠️ [photoshoot] face-restore threw: ${e instanceof Error ? e.message : e}`)
     }
-    return generated
+    return { image: generated, method: null }
   }
 
   const runVariant = async (variant: number): Promise<PhotoshootSlot | PhotoshootFailure> => {
@@ -350,9 +356,10 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
         prompt,
         aspectRatio,
       })
-      outputBase64 = await maybeRestoreFace(outputBase64)
-      if (isDev) console.log(`✅ [photoshoot] variant ${variant + 1} done in ${Date.now() - slotStart}ms`)
-      return { variant, presetId, prompt, outputBase64, durationMs: Date.now() - slotStart }
+      const restored = await maybeRestoreFace(outputBase64)
+      outputBase64 = restored.image
+      if (isDev) console.log(`✅ [photoshoot] variant ${variant + 1} done in ${Date.now() - slotStart}ms (face-restore: ${restored.method || 'none'})`)
+      return { variant, presetId, prompt, outputBase64, restoredVia: restored.method, durationMs: Date.now() - slotStart }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       if (isDev) console.warn(`❌ [photoshoot] variant ${variant + 1} failed: ${msg.slice(0, 150)}`)

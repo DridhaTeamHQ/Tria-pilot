@@ -54,6 +54,45 @@ const bodySchema = z
     path: ['referenceImageIds'],
   })
 
+/**
+ * GET /api/photoshoot — diagnostic. Reports whether the InsightFace face-swap
+ * service is configured + reachable, so you can verify the chain without
+ * digging through logs. Auth-gated.
+ */
+export async function GET() {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const url = (process.env.FACE_SWAP_SERVICE_URL || '').trim()
+  const flag = process.env.PHOTOSHOOT_FACE_RESTORE
+  const result: Record<string, unknown> = {
+    faceRestoreEnabled: Boolean(url) || flag === '1' || flag === 'true',
+    faceSwapServiceUrlSet: Boolean(url),
+    serviceHostMasked: url ? url.replace(/^(https?:\/\/[^/]{0,12}).*$/, '$1…') : null,
+    serviceHealthy: false,
+    health: null as unknown,
+  }
+
+  if (url) {
+    try {
+      const res = await fetch(`${url.replace(/\/$/, '')}/health`, {
+        signal: AbortSignal.timeout(10_000),
+        cache: 'no-store',
+      })
+      const body = await res.json().catch(() => null)
+      result.serviceHealthy = res.ok
+      result.health = body ?? `HTTP ${res.status}`
+    } catch (e) {
+      result.health = `unreachable: ${e instanceof Error ? e.message : String(e)}`
+    }
+  }
+
+  return NextResponse.json(result, { headers: { 'Cache-Control': 'no-store' } })
+}
+
 export async function POST(request: Request) {
   let userId: string | null = null
   let gateRequestId: string | null = null
@@ -177,6 +216,7 @@ export async function POST(request: Request) {
       label: string
       imageUrl?: string
       base64Image?: string
+      restoredVia?: 'insightface' | 'gemini' | null
     }> = []
     const failures: Array<{ variant: number; error: string }> = []
 
@@ -204,6 +244,7 @@ export async function POST(request: Request) {
           label: `Look ${sel.variant + 1}`,
           imageUrl,
           base64Image: imageUrl ? undefined : sel.outputBase64,
+          restoredVia: sel.restoredVia ?? null,
         })
       }),
     )
@@ -217,7 +258,13 @@ export async function POST(request: Request) {
 
     outputs.sort((a, b) => a.variant - b.variant)
     genResult = 'success'
-    return NextResponse.json({ outputs, failures }, { headers: { 'Cache-Control': 'no-store' } })
+    const faceRestore = {
+      configured: Boolean((process.env.FACE_SWAP_SERVICE_URL || '').trim()),
+      methodsApplied: Array.from(
+        new Set(outputs.map((o) => o.restoredVia).filter(Boolean)),
+      ),
+    }
+    return NextResponse.json({ outputs, failures, faceRestore }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
     console.error('[photoshoot] error:', error)
     return NextResponse.json(
