@@ -1,0 +1,17 @@
+# Railway config for the InsightFace face-swap microservice.
+#
+# IMPORTANT: In the Railway service settings, set the **Root Directory** to
+# `services/face-swap` so Railway uses THIS config + the Dockerfile here, and
+# NOT the repo-root railway.toml (which is the Node BullMQ worker → that's what
+# caused the `npm could not be found` error).
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+# The Dockerfile CMD runs uvicorn; Railway injects $PORT.
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
