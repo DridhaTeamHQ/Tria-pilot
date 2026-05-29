@@ -258,11 +258,16 @@ export async function POST(request: Request) {
 
     outputs.sort((a, b) => a.variant - b.variant)
     genResult = 'success'
+    const successfulSlots = result.selections.filter(isPhotoshootSlotSuccess)
+    const similarities = successfulSlots
+      .map((s) => s.faceSimilarity)
+      .filter((v): v is number => typeof v === 'number')
     const faceRestore = {
       configured: Boolean((process.env.FACE_SWAP_SERVICE_URL || '').trim()),
-      methodsApplied: Array.from(
-        new Set(outputs.map((o) => o.restoredVia).filter(Boolean)),
-      ),
+      methodsApplied: Array.from(new Set(successfulSlots.map((s) => s.restoredVia).filter(Boolean))),
+      // Highest identity-similarity (0-1) across the looks — proof of how well
+      // the swapped face matches the source.
+      identitySimilarity: similarities.length ? Math.max(...similarities) : null,
     }
     return NextResponse.json({ outputs, failures, faceRestore }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {

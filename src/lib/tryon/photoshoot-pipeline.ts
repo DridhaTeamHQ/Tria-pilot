@@ -68,6 +68,8 @@ export interface PhotoshootSlot {
   outputBase64: string
   /** Which face-restore method was applied, if any (diagnostic). */
   restoredVia?: 'insightface' | 'gemini' | null
+  /** InsightFace identity similarity AFTER swap (0-1), for diagnostics. */
+  faceSimilarity?: number | null
   durationMs: number
 }
 
@@ -325,8 +327,8 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
   // no-op on any failure. Fires whenever the feature is enabled.
   const maybeRestoreFace = async (
     generated: string,
-  ): Promise<{ image: string; method: 'insightface' | 'gemini' | null }> => {
-    if (!FACE_RESTORE_ENABLED) return { image: generated, method: null }
+  ): Promise<{ image: string; method: 'insightface' | 'gemini' | null; similarity: number | null }> => {
+    if (!FACE_RESTORE_ENABLED) return { image: generated, method: null, similarity: null }
     try {
       // Skip Gemini detection when InsightFace handles detection itself.
       const generatedFace = INSIGHTFACE_CONFIGURED
@@ -343,15 +345,16 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
       })
       if (restored.success && restored.restoredImageBase64 && restored.restoredImageBase64.length > 100) {
         const method = (restored.method as 'insightface' | 'gemini') || null
-        console.log(`🔁 [photoshoot] face-restored via ${method || 'unknown'}`)
+        const similarity = typeof restored.identitySimilarityAfter === 'number' ? restored.identitySimilarityAfter : null
+        console.log(`🔁 [photoshoot] face-restored via ${method || 'unknown'} (identity similarity: ${similarity ?? 'n/a'})`)
         const img = restored.restoredImageBase64
-        return { image: img.startsWith('data:') ? img : `data:image/png;base64,${img}`, method }
+        return { image: img.startsWith('data:') ? img : `data:image/png;base64,${img}`, method, similarity }
       }
       console.warn(`⚠️ [photoshoot] face-restore returned no image (success=${restored.success}, err=${restored.error || 'n/a'})`)
     } catch (e) {
       console.warn(`⚠️ [photoshoot] face-restore threw: ${e instanceof Error ? e.message : e}`)
     }
-    return { image: generated, method: null }
+    return { image: generated, method: null, similarity: null }
   }
 
   const runVariant = async (variant: number): Promise<PhotoshootSlot | PhotoshootFailure> => {
@@ -368,7 +371,7 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
       const restored = await maybeRestoreFace(outputBase64)
       outputBase64 = restored.image
       if (isDev) console.log(`✅ [photoshoot] variant ${variant + 1} done in ${Date.now() - slotStart}ms (face-restore: ${restored.method || 'none'})`)
-      return { variant, presetId, prompt, outputBase64, restoredVia: restored.method, durationMs: Date.now() - slotStart }
+      return { variant, presetId, prompt, outputBase64, restoredVia: restored.method, faceSimilarity: restored.similarity, durationMs: Date.now() - slotStart }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       if (isDev) console.warn(`❌ [photoshoot] variant ${variant + 1} failed: ${msg.slice(0, 150)}`)

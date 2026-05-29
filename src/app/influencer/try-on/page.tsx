@@ -838,8 +838,10 @@ function TryOnPageContent() {
       // obvious on-screen (no DevTools needed).
       const methods: string[] = Array.isArray(data?.faceRestore?.methodsApplied) ? data.faceRestore.methodsApplied : []
       const faceConfigured = Boolean(data?.faceRestore?.configured)
+      const sim = typeof data?.faceRestore?.identitySimilarity === 'number' ? data.faceRestore.identitySimilarity : null
+      const simPct = sim !== null ? ` (${Math.round(sim * 100)}% match)` : ''
       if (methods.includes('insightface')) {
-        showSuccessToast('Photoshoot ready', `${total} look${total > 1 ? 's' : ''} • face lock: InsightFace ✓`)
+        showSuccessToast('Photoshoot ready', `${total} look${total > 1 ? 's' : ''} • face lock: InsightFace ✓${simPct}`)
       } else if (faceConfigured) {
         showWarningToast('Face lock did NOT apply', 'The face-swap service is connected but the swap did not apply to these images — likely a slow/failed swap. We can fix the service side.')
       } else {
