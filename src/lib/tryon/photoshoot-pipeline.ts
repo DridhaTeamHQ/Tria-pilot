@@ -85,10 +85,10 @@ export function isPhotoshootSlotSuccess(s: PhotoshootSlot | PhotoshootFailure): 
 // face toward camera. Big head turns / off-camera gazes are a top cause of face
 // drift, so all variations keep the face clearly visible and matchable.
 const POSE_VARIATIONS = [
-  'a relaxed, confident standing pose facing the camera, weight on one leg, calm natural expression',
-  'a natural three-quarter stance facing the camera, hands relaxed at the sides',
-  'a poised pose with one hand near the waist, shoulders square, looking toward the camera',
-  'a calm editorial stance facing the camera, steady direct gaze',
+  'a relaxed head-and-shoulders pose facing the camera, calm natural expression',
+  'a confident chest-up pose with a subtle shoulder turn, looking toward the camera',
+  'a poised upper-body pose, chin level, steady gaze toward the camera',
+  'a calm editorial chest-up stance facing the camera, shoulders relaxed',
 ]
 
 // Kept deliberately SHORT and identity-first. Google's own guidance: the model
@@ -265,9 +265,10 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
       garmentDesc ? `GARMENT: ${garmentDesc}.` : '',
       `POSE: ${POSE_VARIATIONS[variant % POSE_VARIATIONS.length]}. Keep the face clearly visible and facing roughly toward the camera.`,
       preset && input.customScene ? `EXTRA DIRECTION: ${input.customScene}.` : '',
-      // FRAMING last so it OVERRIDES any "full-body" wording in the preset camera:
-      // a large, close face holds identity; a tiny full-body face drifts.
-      `IMPORTANT FRAMING: regardless of the camera note above, shoot a MEDIUM portrait from roughly the waist or chest up so the face is LARGE and clearly visible — do not produce a small full-body figure.`,
+      // FRAMING last so it OVERRIDES any wider wording: a large, close face
+      // holds identity; a small full-body face drifts. Tight chest-up is the
+      // single most reliable identity lever.
+      `IMPORTANT FRAMING: shoot a TIGHT CHEST-UP portrait so the FACE IS LARGE and prominent (head and shoulders dominate the frame). Do NOT produce a full-body, knees-up, or wide shot where the face becomes small — a large, clearly-resolved face is required.`,
       `Make it look like a real photograph (natural skin texture, soft even light on the face, real lighting). Avoid: ${negative}.`,
     ]
       .filter(Boolean)

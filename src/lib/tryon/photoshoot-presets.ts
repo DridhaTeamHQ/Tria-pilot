@@ -43,8 +43,11 @@ const BASE_NEGATIVE =
   'no fat or puffy face, no rounded or widened jaw, no bloated cheeks, no doll-like or airbrushed face, no over-retouched or waxy skin, no harsh on-camera flash, no flat washed-out face, no plastic/CGI skin, no AI smoothing, no oversaturation, no warped or floating objects, no distorted anatomy, no readable signage or license-plate text'
 
 // Shared camera tail — every scene resolves to a large, sharp, well-lit face.
+// Framing is TIGHT (chest-up) on purpose: face size in the frame is the single
+// biggest identity lever — a large face holds the person, a small full-body
+// face drifts. Chest-up still shows the top garment clearly.
 const FACE_FORWARD_CAMERA =
-  'Medium portrait framed from roughly the waist/chest up so the FACE is large, sharp and clearly visible; 50-85mm full-frame look, natural true-to-life color, fine realistic grain, the garment clearly shown on the torso.'
+  'Tight CHEST-UP portrait: the head and face are LARGE and prominent (the face fills a large central part of the frame), with the upper body and the garment on the chest clearly visible; eye-level 85mm portrait look, shallow depth of field, natural true-to-life color, fine realistic grain. This is NOT a full-body, knees-up, or wide shot.'
 
 function preset(p: Omit<PhotoshootPreset, 'negativeBias'> & { negativeBias?: string }): PhotoshootPreset {
   return {
