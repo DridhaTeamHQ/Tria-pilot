@@ -70,34 +70,32 @@ export function isPhotoshootSlotSuccess(s: PhotoshootSlot | PhotoshootFailure): 
   return 'outputBase64' in s
 }
 
-// Per-variant pose direction so the 3 outputs don't look identical.
+// Per-variant pose direction so the 3 outputs differ — but kept GENTLE with the
+// face toward camera. Big head turns / off-camera gazes are a top cause of face
+// drift, so all variations keep the face clearly visible and matchable.
 const POSE_VARIATIONS = [
-  'a relaxed, confident standing three-quarter pose, weight on one leg, natural expression',
-  'a candid mid-motion pose as if walking, hands relaxed, looking slightly off-camera',
-  'a poised pose leaning subtly with a hand near the waist, calm direct gaze',
-  'a dynamic editorial pose with a natural turn of the shoulders',
+  'a relaxed, confident standing pose facing the camera, weight on one leg, calm natural expression',
+  'a natural three-quarter stance facing the camera, hands relaxed at the sides',
+  'a poised pose with one hand near the waist, shoulders square, looking toward the camera',
+  'a calm editorial stance facing the camera, steady direct gaze',
 ]
 
-const FACE_LOCK_SYSTEM_INSTRUCTION = `You are a professional fashion photographer's AI generating a photorealistic PHOTOSHOOT image of a real person. The result must look like a genuine photograph taken on a real camera — NOT an AI render.
+// Kept deliberately SHORT and identity-first. Google's own guidance: the model
+// preserves identity from the reference IMAGE, not from long text descriptions
+// of facial features — and a long, background-heavy prompt dilutes the face.
+const FACE_LOCK_SYSTEM_INSTRUCTION = `You are generating a photorealistic PHOTOSHOOT photograph of a REAL, specific person. It must look like a genuine camera photo, never an AI render.
 
-IDENTITY (NON-NEGOTIABLE — this is the whole point):
-- The output person MUST be the EXACT SAME person as the close-up face reference (Image 2). Replicate their face with forensic precision: exact face shape, jawline, cheekbones, eye shape and spacing, nose, lips, eyebrows, forehead, skin tone and complexion, moles/marks, facial hair shape and density, hairline and hairstyle, and any eyewear.
-- Image 1 is the same person's full photo — use it for body build, proportions, height, and skin tone.
-- Do NOT beautify, slim, sharpen, smooth, lighten, change the age, or "improve" the face. Do NOT average it toward a generic model face. Their close friends and family must instantly recognise them with zero doubt.
-- Keep the head at a natural angle close to the references; avoid extreme rotations that would force you to invent unseen facial geometry.
+KEEP THE PERSON — THIS IS THE #1 PRIORITY:
+- The face and head in the output MUST be the SAME person shown in the FIRST image (the face reference). Reproduce that exact face: same face shape, features, skin tone, hair, facial hair, and any eyewear. Do NOT beautify, smooth, slim, re-age, or average it into a different-looking model. Their friends must recognise them instantly.
+- Keep the head facing roughly toward the camera so the face stays clearly visible and easy to match. Avoid extreme head rotations.
 
-WARDROBE:
-- Dress the person in the garment shown in Image 3 (the product). Reproduce its exact color, pattern, texture, fabric, neckline, sleeves, length, and any print/logo. If Image 3 shows the garment on a model, copy ONLY the garment, never that model's face or body.
+DRESS THEM in the garment from the garment image — copy its exact color, pattern, texture, and cut. If the garment image shows a model, copy ONLY the garment, never that model's face.
 
-SCENE (GENERATE FRESH — this is a NEW photoshoot, not an edit of the original photo):
-- Build the NEW background, pose, framing, and lighting described in the prompt. You MAY change the background, body pose, camera angle, and lighting completely.
+BUILD THE NEW SCENE described in the prompt (background, pose, lighting). Keep lighting on the person physically consistent with the scene.
 
-PHOTOREALISM (critical — the previous attempts looked fake):
-- The BACKGROUND must look like a real, physically plausible location: correct perspective and scale, real architecture/objects, natural depth-of-field falloff, accurate reflections and shadows. NO video-game/CGI look, NO floating or warped objects, NO impossible geometry, NO over-smooth painterly surfaces.
-- The PERSON must have natural skin texture with visible pores and fine detail, realistic fabric drape and wrinkles, true-to-life color, and lighting that is physically consistent between subject and background (same direction, color temperature, and softness).
-- Emulate a full-frame DSLR/mirrorless photo with an 85mm or 50mm lens: subtle natural grain, gentle highlight roll-off, realistic contact shadows where the body meets surfaces. Avoid HDR halos, plastic skin, over-saturation, waxy smoothing, and obvious AI artifacts.
+REALISM: real photographic skin texture, natural fabric drape, true-to-life color, real depth of field. No plastic/CGI skin, no video-game look, no warped or floating objects.
 
-OUTPUT: a single photorealistic photograph. No text, no borders, no collage, no watermark.`
+OUTPUT: one photorealistic photograph. No text, no borders, no watermark.`
 
 function resolveModelsToTry(): string[] {
   // Default to Flash: it has ~10 RPM/key + higher concurrency, so parallel
@@ -133,21 +131,29 @@ async function generateOneVariant(opts: {
   prompt: string
   aspectRatio: string
 }): Promise<string> {
-  const contents: ContentListUnion = [
-    { inlineData: { data: opts.personB64, mimeType: 'image/jpeg' } } as any,
-    'Image 1 — the person (full photo): use for body build, proportions, and skin tone. Keep this exact person.',
-  ]
+  // Identity reference FIRST (research + Google guidance: put the character
+  // reference first and label each image's role). When we have a tight face
+  // crop, lead with it as the locked identity; otherwise lead with the full photo.
+  const contents: ContentListUnion = []
   if (opts.faceCropB64) {
     contents.push(
       { inlineData: { data: opts.faceCropB64, mimeType: 'image/jpeg' } } as any,
-      'Image 2 — close-up of the SAME person\'s face: the output face MUST match this exactly.',
+      'Image 1 — the person\'s FACE: this is the locked identity. The output face must be this exact person.',
+      { inlineData: { data: opts.personB64, mimeType: 'image/jpeg' } } as any,
+      'Image 2 — the SAME person (full photo): use for body build, proportions, and skin tone.',
+      { inlineData: { data: opts.garmentB64, mimeType: 'image/jpeg' } } as any,
+      'Image 3 — the garment to wear: copy its exact color, pattern, texture, and cut.',
+      opts.prompt,
+    )
+  } else {
+    contents.push(
+      { inlineData: { data: opts.personB64, mimeType: 'image/jpeg' } } as any,
+      'Image 1 — the person: keep this exact face and identity in the output.',
+      { inlineData: { data: opts.garmentB64, mimeType: 'image/jpeg' } } as any,
+      'Image 2 — the garment to wear: copy its exact color, pattern, texture, and cut.',
+      opts.prompt,
     )
   }
-  contents.push(
-    { inlineData: { data: opts.garmentB64, mimeType: 'image/jpeg' } } as any,
-    'Image 3 — the garment to dress them in: copy its exact color, pattern, texture, and cut.',
-    opts.prompt,
-  )
 
   const imageConfig: ImageConfig = {
     aspectRatio: opts.aspectRatio as any,
@@ -158,9 +164,10 @@ async function generateOneVariant(opts: {
     responseModalities: ['TEXT', 'IMAGE'],
     systemInstruction: FACE_LOCK_SYSTEM_INSTRUCTION,
     imageConfig,
-    // Lower temperature = more faithful to the face/garment references and
-    // fewer invented details (better identity + realism).
-    temperature: 0.2,
+    // Moderate-low temperature: faithful to the references without the
+    // occasional low-temp artifacts. Identity comes from the image + ordering,
+    // not from cranking temperature.
+    temperature: 0.3,
     safetySettings: [
       { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
       { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
@@ -244,14 +251,14 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
 
   const buildPrompt = (variant: number): string =>
     [
-      `Create a photorealistic fashion photoshoot photograph of this exact person wearing the garment.`,
+      // Identity first — short and direct. The face reference image does the
+      // heavy lifting; the prompt just reminds the model to keep that person.
+      `Photorealistic fashion photoshoot photo of the SAME person from the face reference (Image 1), keeping their exact face and identity, wearing the garment.`,
       sceneBlock,
       garmentDesc ? `GARMENT: ${garmentDesc}.` : '',
-      `POSE: ${POSE_VARIATIONS[variant % POSE_VARIATIONS.length]}.`,
+      `POSE: ${POSE_VARIATIONS[variant % POSE_VARIATIONS.length]}. Keep the face clearly visible and facing roughly toward the camera.`,
       preset && input.customScene ? `EXTRA DIRECTION: ${input.customScene}.` : '',
-      `IDENTITY: the face, hairline, beard, eyewear, and skin tone must be IDENTICAL to the close-up face reference — do not alter the face shape or features in any way.`,
-      `REALISM: this must look like a real photograph shot on a full-frame camera. The background must be a believable real location with correct perspective and natural depth of field; lighting on the person must match the scene's direction and color. No CGI/video-game look, no plastic skin, no warped or floating objects.`,
-      `Avoid: ${negative}.`,
+      `Make it look like a real photograph (natural skin texture, real lighting). Avoid: ${negative}.`,
     ]
       .filter(Boolean)
       .join('\n')
