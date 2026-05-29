@@ -85,13 +85,13 @@ const POSE_VARIATIONS = [
 // of facial features — and a long, background-heavy prompt dilutes the face.
 const FACE_LOCK_SYSTEM_INSTRUCTION = `You are generating a photorealistic PHOTOSHOOT photograph of a REAL, specific person. It must look like a genuine camera photo, never an AI render.
 
-KEEP THE PERSON — THIS IS THE #1 PRIORITY:
-- The face and head in the output MUST be the SAME person shown in the FIRST image (the face reference). Reproduce that exact face: same face shape, features, skin tone, hair, facial hair, and any eyewear. Do NOT beautify, smooth, slim, re-age, or average it into a different-looking model. Their friends must recognise them instantly.
-- Keep the head facing roughly toward the camera so the face stays clearly visible and easy to match. Avoid extreme head rotations.
+KEEP THE PERSON — TOP PRIORITY:
+- The face/head in the output MUST be the SAME person shown in the reference photos (use the close-up face crop as the definitive identity reference). Reproduce that exact face — same features, skin tone, hair, facial hair, and any eyewear. Do NOT beautify, smooth, slim, re-age, or turn them into a different-looking model. Their friends must recognise them instantly.
+- FRAMING (critical for identity): shoot a MEDIUM portrait from roughly the waist or chest up so the FACE IS LARGE and clearly resolved in the frame. Do NOT render a small full-body figure where the face loses detail. Keep the head facing roughly toward the camera; avoid extreme head turns.
 
 DRESS THEM in the garment from the garment image — copy its exact color, pattern, texture, and cut. If the garment image shows a model, copy ONLY the garment, never that model's face.
 
-BUILD THE NEW SCENE described in the prompt (background, pose, lighting). Keep lighting on the person physically consistent with the scene.
+BUILD THE NEW SCENE described in the prompt (background, pose, lighting). Keep lighting on the person physically consistent with the scene, and prefer soft, even light on the face over harsh flat flash that washes out features.
 
 REALISM: real photographic skin texture, natural fabric drape, true-to-life color, real depth of field. No plastic/CGI skin, no video-game look, no warped or floating objects.
 
@@ -131,29 +131,24 @@ async function generateOneVariant(opts: {
   prompt: string
   aspectRatio: string
 }): Promise<string> {
-  // Identity reference FIRST (research + Google guidance: put the character
-  // reference first and label each image's role). When we have a tight face
-  // crop, lead with it as the locked identity; otherwise lead with the full photo.
-  const contents: ContentListUnion = []
+  // Full person photo FIRST (anchors a coherent subject — empirically the
+  // ordering that preserved identity best), then the close-up face crop as the
+  // definitive identity detail, then the garment.
+  const contents: ContentListUnion = [
+    { inlineData: { data: opts.personB64, mimeType: 'image/jpeg' } } as any,
+    'Image 1 — the person (full photo): the SAME person, keep their exact face and identity.',
+  ]
   if (opts.faceCropB64) {
     contents.push(
       { inlineData: { data: opts.faceCropB64, mimeType: 'image/jpeg' } } as any,
-      'Image 1 — the person\'s FACE: this is the locked identity. The output face must be this exact person.',
-      { inlineData: { data: opts.personB64, mimeType: 'image/jpeg' } } as any,
-      'Image 2 — the SAME person (full photo): use for body build, proportions, and skin tone.',
-      { inlineData: { data: opts.garmentB64, mimeType: 'image/jpeg' } } as any,
-      'Image 3 — the garment to wear: copy its exact color, pattern, texture, and cut.',
-      opts.prompt,
-    )
-  } else {
-    contents.push(
-      { inlineData: { data: opts.personB64, mimeType: 'image/jpeg' } } as any,
-      'Image 1 — the person: keep this exact face and identity in the output.',
-      { inlineData: { data: opts.garmentB64, mimeType: 'image/jpeg' } } as any,
-      'Image 2 — the garment to wear: copy its exact color, pattern, texture, and cut.',
-      opts.prompt,
+      'Image 2 — close-up of the SAME person\'s face: the definitive identity reference; the output face MUST match it exactly.',
     )
   }
+  contents.push(
+    { inlineData: { data: opts.garmentB64, mimeType: 'image/jpeg' } } as any,
+    'Image — the garment to wear: copy its exact color, pattern, texture, and cut.',
+    opts.prompt,
+  )
 
   const imageConfig: ImageConfig = {
     aspectRatio: opts.aspectRatio as any,
@@ -164,10 +159,9 @@ async function generateOneVariant(opts: {
     responseModalities: ['TEXT', 'IMAGE'],
     systemInstruction: FACE_LOCK_SYSTEM_INSTRUCTION,
     imageConfig,
-    // Moderate-low temperature: faithful to the references without the
-    // occasional low-temp artifacts. Identity comes from the image + ordering,
-    // not from cranking temperature.
-    temperature: 0.3,
+    // 0.4 matched the earlier good results; identity comes from image ordering
+    // + close framing, not from temperature.
+    temperature: 0.4,
     safetySettings: [
       { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
       { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
@@ -251,14 +245,17 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
 
   const buildPrompt = (variant: number): string =>
     [
-      // Identity first — short and direct. The face reference image does the
-      // heavy lifting; the prompt just reminds the model to keep that person.
-      `Photorealistic fashion photoshoot photo of the SAME person from the face reference (Image 1), keeping their exact face and identity, wearing the garment.`,
+      // Identity first — short and direct. The reference images do the heavy
+      // lifting; the prompt just reminds the model to keep that person + frame close.
+      `Photorealistic fashion photoshoot photo of the SAME person from the reference photos, keeping their exact face and identity, wearing the garment.`,
       sceneBlock,
       garmentDesc ? `GARMENT: ${garmentDesc}.` : '',
       `POSE: ${POSE_VARIATIONS[variant % POSE_VARIATIONS.length]}. Keep the face clearly visible and facing roughly toward the camera.`,
       preset && input.customScene ? `EXTRA DIRECTION: ${input.customScene}.` : '',
-      `Make it look like a real photograph (natural skin texture, real lighting). Avoid: ${negative}.`,
+      // FRAMING last so it OVERRIDES any "full-body" wording in the preset camera:
+      // a large, close face holds identity; a tiny full-body face drifts.
+      `IMPORTANT FRAMING: regardless of the camera note above, shoot a MEDIUM portrait from roughly the waist or chest up so the face is LARGE and clearly visible — do not produce a small full-body figure.`,
+      `Make it look like a real photograph (natural skin texture, soft even light on the face, real lighting). Avoid: ${negative}.`,
     ]
       .filter(Boolean)
       .join('\n')
