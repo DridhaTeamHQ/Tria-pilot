@@ -24,6 +24,14 @@ RUN mkdir -p /app/.insightface/models && \
     curl -fSL "$INSWAPPER_URL" -o /app/.insightface/models/inswapper_128.onnx && \
     test -s /app/.insightface/models/inswapper_128.onnx
 
+# CodeFormer face-restoration model (crispness). Optional — the service runs
+# fine without it (enhancement just no-ops), so a download failure here is
+# non-fatal. Override with --build-arg CODEFORMER_URL=... if the mirror moves.
+ARG CODEFORMER_URL="https://github.com/facefusion/facefusion-assets/releases/download/models-3.0.0/codeformer.onnx"
+RUN curl -fSL "$CODEFORMER_URL" -o /app/.insightface/models/codeformer.onnx \
+    && test -s /app/.insightface/models/codeformer.onnx \
+    || (echo "WARN: codeformer.onnx download failed — enhancement disabled" && rm -f /app/.insightface/models/codeformer.onnx)
+
 COPY . .
 
 ENV PORT=8000

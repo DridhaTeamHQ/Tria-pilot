@@ -51,6 +51,14 @@ IDENTITY_STRENGTH = float(os.getenv("FACE_SWAP_IDENTITY_STRENGTH", "1.0"))
 MASK_STRENGTH = float(os.getenv("FACE_SWAP_MASK_STRENGTH", "1.0"))
 SPOT_SUPPRESSION_STRENGTH = float(os.getenv("FACE_SWAP_SPOT_SUPPRESSION_STRENGTH", "0.3"))
 
+# CodeFormer face enhancement (crispness). Graceful: if the model is missing or
+# anything fails, the swap is returned un-enhanced (never breaks generation).
+ENHANCE_ENABLED = os.getenv("FACE_SWAP_ENHANCE", "1") not in ("0", "false", "False")
+# How much of the enhanced (sharpened) face to blend in. 0.8 = crisp but keeps
+# the swapped identity + natural texture; lower = more faithful to the raw swap.
+ENHANCE_BLEND = float(os.getenv("FACE_SWAP_ENHANCE_BLEND", "0.8"))
+CODEFORMER_MODEL = "codeformer.onnx"
+
 ARCFACE_DST = np.array(
     [
         [38.2946, 51.6963],
@@ -586,6 +594,37 @@ class FaceSwapperModel:
         return np.clip(merged, 0, 255).astype(np.uint8)
 
 
+class CodeFormerEnhancer:
+    """CodeFormer ONNX face restoration — sharpens the swapped 128px face to
+    high detail. Self-detecting input layout; fully optional."""
+
+    def __init__(self, model_path: str):
+        self.session = ort.InferenceSession(model_path, providers=["CPUExecutionProvider"])
+        self.inputs = self.session.get_inputs()
+        self.input_name = self.inputs[0].name
+        # Some CodeFormer ONNX exports take a second "weight"/fidelity input.
+        self.has_weight_input = len(self.inputs) > 1
+        self.weight_name = self.inputs[1].name if self.has_weight_input else None
+        self.size = 512
+
+    def enhance_aligned(self, aligned_bgr: np.ndarray) -> np.ndarray:
+        face = cv2.resize(aligned_bgr, (self.size, self.size))
+        rgb = cv2.cvtColor(face, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
+        rgb = (rgb - 0.5) / 0.5  # normalize to [-1, 1]
+        blob = np.transpose(rgb, (2, 0, 1))[None].astype(np.float32)
+        feeds = {self.input_name: blob}
+        if self.has_weight_input and self.weight_name:
+            feeds[self.weight_name] = np.array([0.9], dtype=np.float64)
+        out = self.session.run(None, feeds)[0]
+        out = out[0] if out.ndim == 4 else out
+        out = np.transpose(out, (1, 2, 0))
+        out = np.clip((out + 1.0) / 2.0, 0.0, 1.0) * 255.0
+        restored = cv2.cvtColor(out.astype(np.uint8), cv2.COLOR_RGB2BGR)
+        if restored.shape[:2] != aligned_bgr.shape[:2]:
+            restored = cv2.resize(restored, (aligned_bgr.shape[1], aligned_bgr.shape[0]))
+        return restored
+
+
 class FaceSwapper:
     def __init__(self):
         _download_buffalo_l()
@@ -606,7 +645,38 @@ class FaceSwapper:
         self.detector = FaceDetector(det_path)
         self.recognizer = FaceRecognizer(rec_path)
         self.swapper_model = FaceSwapperModel(swap_path)
+
+        # Optional CodeFormer enhancer — loaded only if present + enabled.
+        self.enhancer = None
+        if ENHANCE_ENABLED:
+            cf_candidates = [
+                MODEL_DIR / "models" / CODEFORMER_MODEL,
+                MODEL_DIR / CODEFORMER_MODEL,
+                Path(__file__).parent / "models" / CODEFORMER_MODEL,
+            ]
+            cf_path = next((str(p) for p in cf_candidates if p.exists()), None)
+            if cf_path:
+                try:
+                    self.enhancer = CodeFormerEnhancer(cf_path)
+                    logger.info(f"CodeFormer enhancer loaded ({cf_path})")
+                except Exception as e:
+                    logger.warning(f"CodeFormer load failed, continuing without enhancement: {e}")
+            else:
+                logger.info("CodeFormer model not found — running without face enhancement")
+
         logger.info("FaceSwapper ready (official SCRFD + inswapper ONNX)")
+
+    def _embed_source(self, img: np.ndarray, face_index: int = 0):
+        """Detect the most prominent face in img and return its identity
+        embedding, or None if no usable face."""
+        faces = self.detector.detect(img, max_num=5)
+        if not faces:
+            return None
+        idx = min(face_index, len(faces) - 1)
+        _, kps, _ = faces[idx]
+        if kps is None or kps.shape[0] < 5:
+            return None
+        return self.recognizer.get_embedding(img, kps)
 
     def swap(
         self,
@@ -615,6 +685,7 @@ class FaceSwapper:
         source_for_detection: np.ndarray | None = None,
         source_face_index: int = 0,
         target_face_index: int = 0,
+        extra_source_imgs: list[np.ndarray] | None = None,
     ) -> tuple[np.ndarray, dict]:
         detect_img = source_for_detection if source_for_detection is not None else source_img
         source_face_img = detect_img
@@ -637,7 +708,24 @@ class FaceSwapper:
         if source_kps is None or target_kps is None or source_kps.shape[0] < 5 or target_kps.shape[0] < 5:
             raise ValueError("Could not detect sufficient facial landmarks")
 
-        source_embedding = self.recognizer.get_embedding(source_face_img, source_kps)
+        # Identity embedding: average across ALL provided source photos so the
+        # result doesn't depend on which single photo was chosen (robustness).
+        primary_embedding = self.recognizer.get_embedding(source_face_img, source_kps)
+        embeddings = [primary_embedding]
+        for extra in (extra_source_imgs or []):
+            try:
+                e = self._embed_source(extra, 0)
+                if e is not None:
+                    embeddings.append(e)
+            except Exception:
+                pass
+        if len(embeddings) > 1:
+            avg = np.mean(np.stack(embeddings, axis=0), axis=0).astype(np.float32)
+            norm = np.linalg.norm(avg)
+            source_embedding = avg / norm if norm > 0 else primary_embedding
+            logger.info(f"Averaged identity from {len(embeddings)} source photos")
+        else:
+            source_embedding = primary_embedding
         target_embedding_before = self.recognizer.get_embedding(target_img, target_kps)
         source_aligned = align_face(source_face_img, source_kps, self.swapper_model.input_size[0])
         target_before_aligned = align_face(target_img, target_kps, self.swapper_model.input_size[0])
@@ -655,6 +743,31 @@ class FaceSwapper:
             _, detected_result_kps, _ = result_faces[ti2]
             if detected_result_kps is not None and detected_result_kps.shape[0] >= 5:
                 result_kps = detected_result_kps
+
+        # ── CodeFormer enhancement (crispness) — fully optional/graceful ──
+        if self.enhancer is not None:
+            try:
+                aligned512, M512 = norm_crop2(result, result_kps[:5], 512)
+                enhanced = self.enhancer.enhance_aligned(aligned512)
+                blended = (
+                    enhanced.astype(np.float32) * ENHANCE_BLEND
+                    + aligned512.astype(np.float32) * (1.0 - ENHANCE_BLEND)
+                ).astype(np.uint8)
+                mask512 = build_soft_face_mask(512)
+                IM = cv2.invertAffineTransform(M512)
+                warped = cv2.warpAffine(blended, IM, (result.shape[1], result.shape[0]), borderValue=0.0)
+                wmask = cv2.warpAffine(mask512, IM, (result.shape[1], result.shape[0]), borderValue=0.0)
+                wmask = np.clip(wmask, 0.0, 1.0)
+                blur = max(int(max(result.shape[:2]) / 80) | 1, 11)
+                wmask = np.clip(cv2.GaussianBlur(wmask, (blur, blur), 0), 0.0, 1.0)
+                alpha = wmask[:, :, None]
+                result = np.clip(
+                    warped.astype(np.float32) * alpha + result.astype(np.float32) * (1.0 - alpha),
+                    0, 255,
+                ).astype(np.uint8)
+                logger.info("CodeFormer enhancement applied")
+            except Exception as e:
+                logger.warning(f"CodeFormer enhancement skipped: {e}")
 
         target_embedding_after = self.recognizer.get_embedding(result, result_kps)
         result_aligned = align_face(result, result_kps, self.swapper_model.input_size[0])

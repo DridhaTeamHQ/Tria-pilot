@@ -50,9 +50,10 @@ async def startup():
 
 
 class SwapRequest(BaseModel):
-    source_image: str       # base64 — the REAL person (identity source)
+    source_image: str       # base64 — the REAL person (primary identity source)
     target_image: str       # base64 — the generated try-on image (face to replace)
     face_crop: str | None = None  # base64 — optional face close-up for better detection
+    source_images: list[str] | None = None  # base64[] — ADDITIONAL angles of the same person; embeddings averaged for a robust identity
     source_face_index: int = 0
     target_face_index: int = 0
 
@@ -108,12 +109,22 @@ async def swap_face(req: SwapRequest):
             except Exception:
                 pass
 
+        # Additional source faces (same person, different angles) → averaged
+        # embedding for a stable identity that doesn't depend on one photo.
+        extra_source_imgs = []
+        for b64 in (req.source_images or []):
+            try:
+                extra_source_imgs.append(decode_base64_image(b64))
+            except Exception:
+                pass
+
         result, metrics = swapper.swap(
             source_img=source_img,
             target_img=target_img,
             source_for_detection=source_for_detection,
             source_face_index=req.source_face_index,
             target_face_index=req.target_face_index,
+            extra_source_imgs=extra_source_imgs or None,
         )
 
         elapsed_ms = int((time.time() - t0) * 1000)

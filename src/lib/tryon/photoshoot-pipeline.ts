@@ -392,6 +392,9 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
         generatedImageBase64: generated,
         personImageBase64: selectedPerson,
         faceCropBase64: faceCrop || undefined,
+        // All OTHER candidate photos of the same person → averaged identity
+        // on the service so the swap doesn't depend on a single photo.
+        sourceImagesBase64: candidatePersonImages.filter((b) => b !== selectedPerson),
         generatedFace,
         personFace: personFace || DEFAULT_FACE_BOX,
         aspectRatio,

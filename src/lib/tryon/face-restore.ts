@@ -32,6 +32,9 @@ export interface FaceRestoreInput {
     generatedImageBase64: string
     personImageBase64: string
     faceCropBase64?: string
+    /** Additional source photos of the SAME person — InsightFace averages their
+     *  embeddings with the primary for a robust identity (not photo-dependent). */
+    sourceImagesBase64?: string[]
     generatedFace: FaceCoordinates
     personFace: FaceCoordinates
     aspectRatio?: string
@@ -209,6 +212,7 @@ async function restoreViaInsightFace(
         source_image: cleanBase64(input.personImageBase64),
         target_image: cleanBase64(input.generatedImageBase64),
         face_crop: input.faceCropBase64 ? cleanBase64(input.faceCropBase64) : null,
+        source_images: (input.sourceImagesBase64 || []).map(cleanBase64),
         source_face_index: 0,
         target_face_index: 0,
     }
