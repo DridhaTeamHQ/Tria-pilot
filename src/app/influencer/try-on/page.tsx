@@ -783,8 +783,15 @@ function TryOnPageContent() {
   }, [aspectRatio, currentRecommendations.isReadyForTryOn, currentRecommendations.photosNeeded, pollTryOnJob, polishNotes, productId, resolution, selectedProductImage, selectedReferenceIds, selectionMode])
 
   const submitPhotoshoot = useCallback(async () => {
-    const sourceId = selectedReferenceIds.filter(Boolean)[0] || selectedReferencePhoto?.id || approvedPhotos[0]?.id
-    if (!sourceId) {
+    // Multi-reference: send up to 3 of the user's photos (different angles of
+    // the same person) — this is the #1 lever for face consistency.
+    const selectedIds = selectedReferenceIds.filter(Boolean)
+    const sourceIds = (
+      selectedIds.length
+        ? selectedIds
+        : [selectedReferencePhoto?.id, ...approvedPhotos.map((p: any) => p?.id)]
+    ).filter(Boolean).slice(0, 3) as string[]
+    if (sourceIds.length === 0) {
       showWarningToast('Pick a source photo', 'Select at least one of your photos so we can keep your face.')
       return
     }
@@ -799,7 +806,7 @@ function TryOnPageContent() {
 
     const isGarmentBase64 = Boolean(selectedProductImage?.startsWith('data:image/'))
     const payload: Record<string, unknown> = {
-      referenceImageId: sourceId,
+      referenceImageIds: sourceIds,
       clothingImage: isGarmentBase64 ? selectedProductImage : undefined,
       garmentImageUrl: !isGarmentBase64 ? (selectedProductImage || undefined) : undefined,
       presetId: selectedPresetId,
@@ -1011,7 +1018,7 @@ function TryOnPageContent() {
             )}
             <div className="rounded-[24px] border-[3px] border-black bg-white p-5 shadow-[5px_5px_0_0_#000]">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">{genMode === 'photoshoot' ? 'Your Face (pick 1)' : `Photos (${selectedPhotos.length}/3)`}</div>
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">{genMode === 'photoshoot' ? `Your Face — pick up to 3 (${selectedPhotos.length}/3, more angles = better)` : `Photos (${selectedPhotos.length}/3)`}</div>
                 <button type="button" onClick={() => setLibraryModalOpen(true)} className="rounded-full border-[2px] border-black bg-[#FFD93D] px-3 py-1 text-[10px] font-black uppercase shadow-[2px_2px_0_0_#000]">Edit Sources</button>
               </div>
               <p className="mt-2 text-xs font-semibold text-black/60">{selectionMode === 'manual' ? 'Using your manual selection.' : 'AI automatically picked the best photos.'}</p>

@@ -41,8 +41,14 @@ function strip(b64: string): string {
 }
 
 export interface PhotoshootInput {
-  /** Source person photo, base64 (with or without data: prefix). */
+  /** Primary source person photo (used for the face crop), base64. */
   personImageBase64: string
+  /**
+   * Additional reference photos of the SAME person from different angles.
+   * Multi-reference is the #1 identity technique: it gives the model a 3D
+   * understanding of the head and dramatically cuts face drift.
+   */
+  extraPersonImagesBase64?: string[]
   /** Product garment image, base64. May be a flat-lay or worn-on-model. */
   garmentImageBase64: string
   /** Curated scene preset id (see photoshoot-presets.ts). */
@@ -97,7 +103,7 @@ const POSE_VARIATIONS = [
 const FACE_LOCK_SYSTEM_INSTRUCTION = `You are generating a photorealistic PHOTOSHOOT photograph of a REAL, specific person. It must look like a genuine camera photo, never an AI render.
 
 KEEP THE PERSON — TOP PRIORITY:
-- The face/head in the output MUST be the SAME person shown in the reference photos (use the close-up face crop as the definitive identity reference). Reproduce that exact face — same features, skin tone, hair, facial hair, and any eyewear. Do NOT beautify, smooth, slim, re-age, or turn them into a different-looking model. Their friends must recognise them instantly.
+- The face/head in the output MUST be the SAME person shown in the reference photos — you are given MULTIPLE ANGLES of this one real person plus a close-up face crop; study them together to lock their 3D facial structure. Maintain the EXACT same facial features as the references — same eye shape, nose shape, jawline contour, cheekbones, skin tone and skin texture, hair, facial hair, and any eyewear. Do NOT beautify, smooth, slim, re-age, or average them into a different-looking model. Their friends must recognise them instantly.
 - FRAMING (critical for identity): shoot a MEDIUM portrait from roughly the waist or chest up so the FACE IS LARGE and clearly resolved in the frame. Do NOT render a small full-body figure where the face loses detail. Keep the head facing roughly toward the camera; avoid extreme head turns.
 
 DRESS THEM in the garment from the garment image — copy its exact color, pattern, texture, and cut. If the garment image shows a model, copy ONLY the garment, never that model's face.
@@ -136,28 +142,31 @@ function extractImageFromResponse(response: any): string | null {
 }
 
 async function generateOneVariant(opts: {
-  personB64: string
+  personImages: string[]
   faceCropB64: string | null
   garmentB64: string
   prompt: string
   aspectRatio: string
 }): Promise<string> {
-  // Full person photo FIRST (anchors a coherent subject — empirically the
-  // ordering that preserved identity best), then the close-up face crop as the
-  // definitive identity detail, then the garment.
-  const contents: ContentListUnion = [
-    { inlineData: { data: opts.personB64, mimeType: 'image/jpeg' } } as any,
-    'Image 1 — the person (full photo): the SAME person, keep their exact face and identity.',
-  ]
+  // MULTIPLE angles of the SAME person FIRST (multi-reference = the model gets
+  // a 3D understanding of the head → far less drift), then the close-up face
+  // crop as the definitive identity detail, then the garment.
+  const contents: ContentListUnion = []
+  opts.personImages.forEach((img, i) => {
+    contents.push(
+      { inlineData: { data: img, mimeType: 'image/jpeg' } } as any,
+      `Reference photo ${i + 1} — the SAME real person (a different angle of the one person you must reproduce): keep this exact face and identity.`,
+    )
+  })
   if (opts.faceCropB64) {
     contents.push(
       { inlineData: { data: opts.faceCropB64, mimeType: 'image/jpeg' } } as any,
-      'Image 2 — close-up of the SAME person\'s face: the definitive identity reference; the output face MUST match it exactly.',
+      'Close-up of the SAME person\'s face — the definitive identity reference; the output face MUST match it exactly.',
     )
   }
   contents.push(
     { inlineData: { data: opts.garmentB64, mimeType: 'image/jpeg' } } as any,
-    'Image — the garment to wear: copy its exact color, pattern, texture, and cut.',
+    'The garment to wear: copy its exact color, pattern, texture, and cut.',
     opts.prompt,
   )
 
@@ -220,6 +229,12 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
 
   const person = strip(input.personImageBase64)
   if (!person || person.length < 100) throw new Error('Source person image is missing or too small')
+  // Multi-reference: primary photo + any extra angles of the SAME person.
+  // Dedupe and cap at 3 total (guides: 3-6 is the sweet spot; >10 hurts).
+  const extraPersons = (input.extraPersonImagesBase64 || [])
+    .map(strip)
+    .filter((b) => b && b.length > 100)
+  const personImages = Array.from(new Set([person, ...extraPersons])).slice(0, 3)
   const garmentRaw = strip(input.garmentImageBase64)
   if (!garmentRaw || garmentRaw.length < 100) throw new Error('Garment image is missing or too small')
 
@@ -258,7 +273,7 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
     [
       // Identity first — short and direct. The reference images do the heavy
       // lifting; the prompt just reminds the model to keep that person + frame close.
-      `Photorealistic fashion photoshoot photo of the SAME person from the reference photos, keeping their exact face and identity, wearing the garment.`,
+      `Photorealistic fashion photoshoot photo of the SAME person from the reference photos, wearing the garment. Maintain the exact same facial features as the reference photos — same eye shape, nose, jawline contour, skin tone and texture; do not change their face.`,
       sceneBlock,
       garmentDesc ? `GARMENT: ${garmentDesc}.` : '',
       `POSE: ${POSE_VARIATIONS[variant % POSE_VARIATIONS.length]}. Keep the face clearly visible and facing roughly toward the camera.`,
@@ -311,7 +326,7 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
     const prompt = buildPrompt(variant)
     try {
       let outputBase64 = await generateOneVariant({
-        personB64: person,
+        personImages,
         faceCropB64: faceCrop,
         garmentB64: cleanedGarment,
         prompt,

@@ -33,7 +33,11 @@ const LIMITER_ACTIVE =
 
 const bodySchema = z
   .object({
-    referenceImageId: z.string().trim().min(1).max(120),
+    // Multi-reference: 1-3 photos of the SAME person (different angles) for
+    // stronger identity. `referenceImageId` (single) is still accepted for
+    // backward compatibility.
+    referenceImageIds: z.array(z.string().trim().min(1).max(120)).min(1).max(3).optional(),
+    referenceImageId: z.string().trim().min(1).max(120).optional(),
     garmentImageUrl: z.string().trim().min(1).max(4096).optional(),
     clothingImage: z.string().min(1).max(15_000_000).optional(),
     presetId: z.string().trim().min(1).max(60),
@@ -44,6 +48,10 @@ const bodySchema = z
   .refine((v) => Boolean(v.garmentImageUrl || v.clothingImage), {
     message: 'A product garment (garmentImageUrl or clothingImage) is required.',
     path: ['garmentImageUrl'],
+  })
+  .refine((v) => Boolean((v.referenceImageIds && v.referenceImageIds.length) || v.referenceImageId), {
+    message: 'At least one source photo is required.',
+    path: ['referenceImageIds'],
   })
 
 export async function POST(request: Request) {
@@ -95,18 +103,37 @@ export async function POST(request: Request) {
 
     const service = createServiceClient()
 
-    // ── Resolve the source person photo (base64) ──────────────────────
-    const photos = await getReferencePhotosByIds(service, userId, [input.referenceImageId])
-    const personPhoto = photos[0]
-    if (!personPhoto?.image_url) {
+    // ── Resolve the source person photos (base64) — multi-reference ───
+    const requestedIds = (
+      input.referenceImageIds && input.referenceImageIds.length
+        ? input.referenceImageIds
+        : input.referenceImageId
+          ? [input.referenceImageId]
+          : []
+    ).slice(0, 3)
+    const uniqueIds = Array.from(new Set(requestedIds))
+
+    const photos = await getReferencePhotosByIds(service, userId, uniqueIds)
+    // Keep the caller's order (the first id is the primary face source).
+    const orderedPhotos = uniqueIds
+      .map((id) => photos.find((p) => p.id === id))
+      .filter((p): p is NonNullable<typeof p> => Boolean(p?.image_url))
+    if (orderedPhotos.length === 0) {
       return NextResponse.json({ error: 'Source photo not found' }, { status: 404 })
     }
-    let personImageBase64: string
-    try {
-      personImageBase64 = await fetchReferencePhotoAsBase64(personPhoto.image_url)
-    } catch {
+
+    const personBase64s = (
+      await Promise.all(
+        orderedPhotos.map((p) =>
+          fetchReferencePhotoAsBase64(p.image_url).catch(() => ''),
+        ),
+      )
+    ).filter((b) => b && b.length > 100)
+    if (personBase64s.length === 0) {
       return NextResponse.json({ error: 'Could not load the source photo' }, { status: 502 })
     }
+    const personImageBase64 = personBase64s[0]
+    const extraPersonImagesBase64 = personBase64s.slice(1)
 
     // ── Resolve the garment (base64) ──────────────────────────────────
     let garmentImageBase64: string
@@ -123,6 +150,7 @@ export async function POST(request: Request) {
     try {
       result = await runPhotoshoot({
         personImageBase64,
+        extraPersonImagesBase64,
         garmentImageBase64,
         presetId: input.presetId,
         customScene: input.customScene,
