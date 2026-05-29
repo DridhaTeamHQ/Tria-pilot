@@ -193,42 +193,42 @@ export const PHOTOSHOOT_PRESETS: PhotoshootPreset[] = [
   },
   {
     id: 'lofi_digicam',
-    label: 'Lo-Fi Digicam',
+    label: 'Urban Alley',
     category: 'Urban',
-    blurb: 'Cramped alley, harsh flash, 2000s digicam.',
+    blurb: 'Gritty alley, soft daylight, candid editorial.',
     scene:
-      'A cramped urban alley against green construction fencing with weathered signage, tall glass-and-metal-framed buildings in the background, gritty pavement.',
+      'A narrow urban alley between tall glass-and-metal buildings, green construction hoarding with weathered signage and gritty pavement, layered city depth receding behind.',
     lighting:
-      'Lo-fi early-2000s digicam look with harsh direct on-camera flash, hard shadows, flat uniform bright exposure, desaturated slightly-cool skin tones.',
+      'Soft, even overcast daylight gently and evenly illuminating the face with natural skin tones, subtle ambient bounce from the surrounding walls, neutral 5600K. No harsh flash, no hard shadows.',
     camera:
-      'Compact point-and-shoot framing, visible digital noise, hard flash falloff, soft-neutral desaturated lo-fi editorial palette.',
-    negativeBias: 'no cinematic grading, no soft glamour light, no plastic skin, no readable signage text, no CGI look',
+      'Casual editorial framing, 50mm, natural true-to-life color with a touch of fine grain, the face clearly and softly lit — candid street-photography feel without any washed-out flash look.',
+    negativeBias: 'no harsh on-camera flash, no hard flash shadows, no blown highlights, no heavy desaturation, no flattened/washed-out face, no plastic skin, no readable signage text, no CGI look',
   },
   {
     id: 'film_snapshot_store',
-    label: '90s Film Snapshot',
+    label: 'Corner Store',
     category: 'Urban',
-    blurb: 'Convenience-store sidewalk, 35mm flash, lived-in.',
+    blurb: 'Convenience-store sidewalk, soft daylight, lived-in.',
     scene:
-      'A gray urban sidewalk near a run-down convenience store entrance, a stickered post and gritty pavement in frame, bland out-of-focus signage and a pop of color from a red curb.',
+      'A gray urban sidewalk near a run-down convenience store entrance, a stickered post and gritty pavement in frame, bland softly out-of-focus signage and a pop of color from a red curb.',
     lighting:
-      'Raw 35mm point-and-shoot flash creating distinct shadow falloff and highlights, subdued urban palette, late-night film-scan feel.',
+      'Soft natural daylight with gentle, even fill on the face and true-to-life skin tones, a faint nostalgic film tone, subtle soft shadow. No harsh flash, no washed-out exposure.',
     camera:
-      'Off-axis slightly-misaligned snapshot framing with the subject cropped close to one edge, subtle grain, light vignetting, minimal halation and dust specks — unposed documentary vibe.',
-    negativeBias: 'no posed studio look, no clean lighting, no plastic skin, no readable text, no CGI look',
+      'Relaxed candid framing slightly off-axis, 35-50mm, fine grain and light vignette for a lived-in documentary vibe while keeping the face clearly and softly resolved.',
+    negativeBias: 'no harsh on-camera flash, no blown highlights, no heavy desaturation, no flattened/washed-out face, no plastic skin, no readable text, no CGI look',
   },
   {
     id: 'euro_street_flash',
     label: 'European Street',
     category: 'Urban',
-    blurb: 'Stately facade, lo-fi flash, fashion-forward.',
+    blurb: 'Stately facade, soft daylight, fashion-forward.',
     scene:
       'A city sidewalk in front of a stately European building facade with classical detailing and muted, softly blurred street activity behind.',
     lighting:
-      'Direct on-camera flash in a lo-fi digicam style, flat even lighting with digital noise, pastel and neutral greys and beiges with soft darks.',
+      'Soft natural daylight with gentle directional modeling and even fill on the face, refined pastel-neutral greys and beiges, low contrast. No harsh flash.',
     camera:
-      'Full-body to three-quarter framing, editorial nostalgic mood, lo-fi compact-camera rendering with gentle grain.',
-    negativeBias: 'no harsh cinematic contrast, no plastic skin, no readable signage text, no warped architecture, no CGI look',
+      'Three-quarter editorial framing, 50-85mm, natural true-to-life color with subtle grain, the face clearly and softly lit, nostalgic fashion-magazine mood.',
+    negativeBias: 'no harsh on-camera flash, no flat washed-out lighting, no heavy desaturation, no plastic skin, no readable signage text, no warped architecture, no CGI look',
   },
   {
     id: 'distressed_wall',
