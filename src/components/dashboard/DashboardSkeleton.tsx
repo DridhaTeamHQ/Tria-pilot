@@ -206,42 +206,91 @@ export function MarketplaceSkeleton() {
 
 export function ProductDetailSkeleton() {
   return (
-    <div className="min-h-screen bg-[#FDF6EC] pt-20 sm:pt-24">
-      <div className="container mx-auto px-4 py-5 sm:px-6 sm:py-8">
-        <Skeleton className="h-6 w-32 mb-8 bg-gray-200" />
+    <div className="relative min-h-screen bg-[#FAFAF8]">
+      {/* Aesthetic background (matching the page) */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-20 -left-20 h-72 w-72 rounded-full bg-[#FFD93D]/15 blur-3xl" />
+        <div className="absolute top-1/2 -right-16 h-56 w-56 rounded-full bg-[#A78BFA]/12 blur-3xl" />
+        <div className="absolute bottom-10 left-1/3 h-48 w-48 rounded-full bg-[#B4F056]/12 blur-3xl" />
+      </div>
 
-        <div className="mb-12 grid gap-6 lg:grid-cols-2 lg:gap-10 xl:gap-12 sm:mb-16">
-          <Skeleton className="aspect-square rounded-2xl border-[3px] border-black bg-gray-200 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]" />
+      <div className="relative z-10 w-full pt-[100px] px-4 sm:px-6 lg:px-8 pb-8 max-w-[1600px] mx-auto">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,45%)_minmax(0,55%)] lg:gap-12">
+          
+          {/* LEFT: Image Gallery */}
+          <div className="w-full">
+            <div className="overflow-hidden rounded-2xl border-2 border-black bg-white p-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] lg:sticky lg:top-[96px]">
+              <Skeleton className="w-full aspect-[3/4] bg-gray-200 rounded-xl" />
+            </div>
+          </div>
 
-          <div className="space-y-5 sm:space-y-6">
-            <div className="space-y-3">
-              <Skeleton className="h-6 w-24 rounded-full bg-gray-200" />
-              <Skeleton className="h-4 w-32 bg-gray-200" />
+          {/* RIGHT: Product Info */}
+          <div className="flex flex-col space-y-6 lg:py-4">
+            
+            {/* Badges */}
+            <div className="flex flex-wrap items-center gap-2">
+              <Skeleton className="h-6 w-16 bg-gray-200 rounded-lg" />
+              <Skeleton className="h-6 w-20 bg-gray-200 rounded-md" />
+              <Skeleton className="h-6 w-24 bg-gray-200 rounded-md" />
             </div>
 
-            <div className="border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:p-8 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] space-y-4">
-              <Skeleton className="h-12 w-3/4 bg-gray-200" />
-              <Skeleton className="h-10 w-1/2 bg-gray-200" />
+            {/* Title */}
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-full bg-gray-200" />
+              <Skeleton className="h-8 w-3/4 bg-gray-200" />
             </div>
 
-            <div className="space-y-3 pt-1 sm:pt-4">
-              <Skeleton className="h-16 w-full border-[3px] border-black bg-gray-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" />
-              <Skeleton className="h-16 w-full border-[3px] border-black bg-gray-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" />
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <Skeleton className="h-14 w-full border-[3px] border-black bg-gray-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" />
-                <Skeleton className="h-14 w-full border-[3px] border-black bg-gray-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" />
-                <Skeleton className="h-14 w-full border-[3px] border-black bg-gray-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" />
+            {/* Price */}
+            <div>
+              <Skeleton className="h-11 w-24 bg-gray-200 rounded-xl" />
+            </div>
+
+            {/* CTA Buttons */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 pt-2">
+              <Skeleton className="h-[52px] w-full rounded-xl bg-gray-200 border-[3px] border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]" />
+              <Skeleton className="h-[52px] w-full rounded-xl bg-gray-200 border-[3px] border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]" />
+            </div>
+
+            {/* Affiliate Link */}
+            <div className="pt-2">
+              <Skeleton className="h-[68px] w-full rounded-xl bg-gray-200 border-2 border-black" />
+            </div>
+
+            <hr className="border-2 border-black/10" />
+
+            {/* Actions Row */}
+            <div className="flex items-center gap-3 sm:gap-4 py-2 w-full">
+              <Skeleton className="h-[42px] flex-1 rounded-none bg-gray-200 border-[3px] border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]" />
+              <Skeleton className="h-[42px] flex-1 rounded-none bg-gray-200 border-[3px] border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]" />
+              <Skeleton className="h-[42px] flex-1 rounded-none bg-gray-200 border-[3px] border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]" />
+            </div>
+
+            <hr className="border-2 border-black/10" />
+
+            {/* Bottom Details Grid */}
+            <div className="grid grid-cols-1 gap-x-8 gap-y-6 pt-2 sm:grid-cols-2">
+              <div>
+                <Skeleton className="h-3 w-20 mb-2 bg-gray-200" />
+                <Skeleton className="h-5 w-32 mb-2 bg-gray-200" />
+                <div className="space-y-1.5 mt-2">
+                  <Skeleton className="h-4 w-full bg-gray-200" />
+                  <Skeleton className="h-4 w-full bg-gray-200" />
+                  <Skeleton className="h-4 w-3/4 bg-gray-200" />
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div>
+                  <Skeleton className="h-3 w-24 mb-1 bg-gray-200" />
+                  <Skeleton className="h-5 w-32 bg-gray-200" />
+                </div>
+                <div>
+                  <Skeleton className="h-3 w-16 mb-1 bg-gray-200" />
+                  <Skeleton className="h-5 w-24 bg-gray-200" />
+                </div>
               </div>
             </div>
 
-            <div className="border-[3px] border-black bg-white p-4 sm:p-8 space-y-4 mt-8">
-              <Skeleton className="h-6 w-32 bg-gray-200" />
-              <Skeleton className="h-20 w-full bg-gray-200" />
-              <div className="flex gap-2">
-                <Skeleton className="h-8 w-16 bg-gray-200" />
-                <Skeleton className="h-8 w-16 bg-gray-200" />
-              </div>
-            </div>
           </div>
         </div>
       </div>
