@@ -97,8 +97,9 @@ const POSE_VARIATIONS = [
 const FACE_LOCK_SYSTEM_INSTRUCTION = `You are generating a photorealistic PHOTOSHOOT photograph of a REAL, specific person. It must look like a genuine camera photo, never an AI render.
 
 KEEP THE PERSON — TOP PRIORITY:
-- The face/head in the output MUST be the SAME person shown in the reference photos (use the close-up face crop as the definitive identity reference). Reproduce that exact face — same features, skin tone, hair, facial hair, and any eyewear. Do NOT beautify, smooth, slim, re-age, or turn them into a different-looking model. Their friends must recognise them instantly.
-- FRAMING (critical for identity): shoot a MEDIUM portrait from roughly the waist or chest up so the FACE IS LARGE and clearly resolved in the frame. Do NOT render a small full-body figure where the face loses detail. Keep the head facing roughly toward the camera; avoid extreme head turns.
+- The face/head in the output MUST be the SAME person shown in the reference photos (use the close-up face crop as the definitive identity reference). Reproduce that exact face — same features, skin tone, hair, facial hair, and any eyewear. Their friends must recognise them instantly.
+- PRESERVE EXACT FACIAL STRUCTURE: keep the same eye shape, jawline, cheekbones, nose, and natural facial proportions and bone structure as the reference. Do NOT round, widen, puff, or fatten the face; do NOT make it doll-like, airbrushed, or waxy. Keep realistic skin with visible pores and texture (never plastic-smooth). Do NOT beautify, slim differently, or re-age them.
+- FRAMING (critical for identity): shoot a MEDIUM, eye-level 3/4 portrait from roughly the waist or chest up so the FACE IS LARGE and clearly resolved in the frame. Do NOT render a small full-body figure where the face loses detail. Keep the head facing roughly toward the camera; avoid extreme head turns.
 
 DRESS THEM in the garment from the garment image — copy its exact color, pattern, texture, and cut. If the garment image shows a model, copy ONLY the garment, never that model's face.
 
@@ -259,6 +260,7 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
       // Identity first — short and direct. The reference images do the heavy
       // lifting; the prompt just reminds the model to keep that person + frame close.
       `Photorealistic fashion photoshoot photo of the SAME person from the reference photos, keeping their exact face and identity, wearing the garment.`,
+      `Preserve the exact facial structure, eye shape, jawline and natural face proportions from the reference — do NOT round, puff, widen or smooth the face.`,
       sceneBlock,
       garmentDesc ? `GARMENT: ${garmentDesc}.` : '',
       `POSE: ${POSE_VARIATIONS[variant % POSE_VARIATIONS.length]}. Keep the face clearly visible and facing roughly toward the camera.`,
