@@ -78,21 +78,26 @@ const POSE_VARIATIONS = [
   'a dynamic editorial pose with a natural turn of the shoulders',
 ]
 
-const FACE_LOCK_SYSTEM_INSTRUCTION = `You are a professional fashion photographer's AI generating a photorealistic PHOTOSHOOT image of a real person.
+const FACE_LOCK_SYSTEM_INSTRUCTION = `You are a professional fashion photographer's AI generating a photorealistic PHOTOSHOOT image of a real person. The result must look like a genuine photograph taken on a real camera — NOT an AI render.
 
 IDENTITY (NON-NEGOTIABLE — this is the whole point):
-- The output person MUST be the EXACT SAME person as the close-up face reference (Image 2). Match their facial features, bone structure, eyes, nose, lips, eyebrows, skin tone, facial hair, and hairstyle EXACTLY — their friends must instantly recognize them.
+- The output person MUST be the EXACT SAME person as the close-up face reference (Image 2). Replicate their face with forensic precision: exact face shape, jawline, cheekbones, eye shape and spacing, nose, lips, eyebrows, forehead, skin tone and complexion, moles/marks, facial hair shape and density, hairline and hairstyle, and any eyewear.
 - Image 1 is the same person's full photo — use it for body build, proportions, height, and skin tone.
-- Do NOT beautify, slim, age, lighten, or otherwise alter the face or body. No face swap to a generic model.
+- Do NOT beautify, slim, sharpen, smooth, lighten, change the age, or "improve" the face. Do NOT average it toward a generic model face. Their close friends and family must instantly recognise them with zero doubt.
+- Keep the head at a natural angle close to the references; avoid extreme rotations that would force you to invent unseen facial geometry.
 
 WARDROBE:
-- Dress the person in the garment shown in Image 3 (the product). Reproduce its exact color, pattern, texture, fabric, neckline, sleeves, and length. If Image 3 shows the garment on a model, copy ONLY the garment, never that model's face or body.
+- Dress the person in the garment shown in Image 3 (the product). Reproduce its exact color, pattern, texture, fabric, neckline, sleeves, length, and any print/logo. If Image 3 shows the garment on a model, copy ONLY the garment, never that model's face or body.
 
 SCENE (GENERATE FRESH — this is a NEW photoshoot, not an edit of the original photo):
 - Build the NEW background, pose, framing, and lighting described in the prompt. You MAY change the background, body pose, camera angle, and lighting completely.
-- Keep it photorealistic: natural skin texture with visible pores, realistic fabric drape, real-world lighting and contact shadows, authentic shot-on-camera depth of field. No AI smoothing, no plastic/CGI skin, no HDR halos, no over-saturation.
 
-OUTPUT: a single photorealistic photograph. No text, no borders, no collage.`
+PHOTOREALISM (critical — the previous attempts looked fake):
+- The BACKGROUND must look like a real, physically plausible location: correct perspective and scale, real architecture/objects, natural depth-of-field falloff, accurate reflections and shadows. NO video-game/CGI look, NO floating or warped objects, NO impossible geometry, NO over-smooth painterly surfaces.
+- The PERSON must have natural skin texture with visible pores and fine detail, realistic fabric drape and wrinkles, true-to-life color, and lighting that is physically consistent between subject and background (same direction, color temperature, and softness).
+- Emulate a full-frame DSLR/mirrorless photo with an 85mm or 50mm lens: subtle natural grain, gentle highlight roll-off, realistic contact shadows where the body meets surfaces. Avoid HDR halos, plastic skin, over-saturation, waxy smoothing, and obvious AI artifacts.
+
+OUTPUT: a single photorealistic photograph. No text, no borders, no collage, no watermark.`
 
 function resolveModelsToTry(): string[] {
   // Default to Flash: it has ~10 RPM/key + higher concurrency, so parallel
@@ -153,7 +158,9 @@ async function generateOneVariant(opts: {
     responseModalities: ['TEXT', 'IMAGE'],
     systemInstruction: FACE_LOCK_SYSTEM_INSTRUCTION,
     imageConfig,
-    temperature: 0.4,
+    // Lower temperature = more faithful to the face/garment references and
+    // fewer invented details (better identity + realism).
+    temperature: 0.2,
     safetySettings: [
       { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
       { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
@@ -242,7 +249,8 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
       garmentDesc ? `GARMENT: ${garmentDesc}.` : '',
       `POSE: ${POSE_VARIATIONS[variant % POSE_VARIATIONS.length]}.`,
       preset && input.customScene ? `EXTRA DIRECTION: ${input.customScene}.` : '',
-      `The face must exactly match the close-up face reference. Photorealistic, natural skin texture, realistic fabric and lighting.`,
+      `IDENTITY: the face, hairline, beard, eyewear, and skin tone must be IDENTICAL to the close-up face reference — do not alter the face shape or features in any way.`,
+      `REALISM: this must look like a real photograph shot on a full-frame camera. The background must be a believable real location with correct perspective and natural depth of field; lighting on the person must match the scene's direction and color. No CGI/video-game look, no plastic skin, no warped or floating objects.`,
       `Avoid: ${negative}.`,
     ]
       .filter(Boolean)

@@ -1001,6 +1001,12 @@ function TryOnPageContent() {
                   placeholder="e.g. holding a coffee, looking away, warm tones"
                   className="mt-1 h-16 w-full rounded-xl border-2 border-black bg-[#F9F8F4] p-3 text-xs font-semibold outline-none focus:bg-white"
                 />
+                <div className="mt-4 flex items-start gap-2 rounded-2xl border-2 border-black bg-[#FFF4E0] px-3 py-2">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#FF8C69]" />
+                  <p className="text-[11px] font-semibold leading-snug text-black/75">
+                    <span className="font-black uppercase">Beta:</span> AI photoshoot is experimental. Results won&apos;t be 100% exact — the face, scene, or details may vary slightly. Generate a few times and pick the best look.
+                  </p>
+                </div>
               </div>
             )}
             <div className="rounded-[24px] border-[3px] border-black bg-white p-5 shadow-[5px_5px_0_0_#000]">
