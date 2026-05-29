@@ -306,10 +306,16 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
   // we pass a best-effort box and let the service handle it.
   const DEFAULT_FACE_BOX: FaceCoordinates = { ymin: 120, xmin: 280, ymax: 620, xmax: 720, confidence: 0.4 }
 
-  // Detect the source person's face ONCE (reused across variants) when the
-  // face-restore post-pass is enabled.
+  // The InsightFace service self-detects faces server-side and ignores the
+  // coordinates we pass, so when it's configured we SKIP the (slow, billable)
+  // Gemini face-detection entirely — fewer calls, less latency, fewer failure
+  // points. Detection is only worthwhile for the Gemini-only fallback path.
+  const INSIGHTFACE_CONFIGURED = Boolean((process.env.FACE_SWAP_SERVICE_URL || '').trim())
+
+  // Detect the source person's face ONCE (reused across variants) — only when
+  // we'd actually use it (Gemini fallback path).
   let personFace: FaceCoordinates | null = null
-  if (FACE_RESTORE_ENABLED) {
+  if (FACE_RESTORE_ENABLED && !INSIGHTFACE_CONFIGURED) {
     personFace = await detectFaceCoordinates(person, { allowHeuristicFallback: true }).catch(() => null)
   }
 
@@ -321,9 +327,11 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
   ): Promise<{ image: string; method: 'insightface' | 'gemini' | null }> => {
     if (!FACE_RESTORE_ENABLED) return { image: generated, method: null }
     try {
-      const generatedFace =
-        (await detectFaceCoordinates(generated, { allowHeuristicFallback: true }).catch(() => null)) ||
-        DEFAULT_FACE_BOX
+      // Skip Gemini detection when InsightFace handles detection itself.
+      const generatedFace = INSIGHTFACE_CONFIGURED
+        ? DEFAULT_FACE_BOX
+        : (await detectFaceCoordinates(generated, { allowHeuristicFallback: true }).catch(() => null)) ||
+          DEFAULT_FACE_BOX
       const restored = await restoreFaceIdentity({
         generatedImageBase64: generated,
         personImageBase64: person,
