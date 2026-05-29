@@ -106,6 +106,7 @@ const FACE_LOCK_SYSTEM_INSTRUCTION = `You are generating a photorealistic PHOTOS
 
 KEEP THE PERSON — TOP PRIORITY:
 - The face/head in the output MUST be the SAME person shown in the reference photos — you are given MULTIPLE ANGLES of this one real person plus a close-up face crop; study them together to lock their 3D facial structure. Maintain the EXACT same facial features as the references — same eye shape, nose shape, jawline contour, cheekbones, skin tone and skin texture, hair, facial hair, and any eyewear. Do NOT beautify, smooth, slim, re-age, or average them into a different-looking model. Their friends must recognise them instantly.
+- BODY (do NOT reimagine): keep the person's REAL body type, build, weight, height and natural proportions from the reference photos — same shoulder width, torso, waist, arms and overall figure and skin tone. Do NOT slim them down, make them taller, more "model-like", curvier, or otherwise idealize/alter their physique. Reproduce the actual person, not an improved version.
 - FRAMING (critical for identity): shoot a MEDIUM portrait from roughly the waist or chest up so the FACE IS LARGE and clearly resolved in the frame. Do NOT render a small full-body figure where the face loses detail. Keep the head facing roughly toward the camera; avoid extreme head turns.
 
 DRESS THEM in the garment from the garment image — copy its exact color, pattern, texture, and cut. If the garment image shows a model, copy ONLY the garment, never that model's face.

@@ -834,7 +834,17 @@ function TryOnPageContent() {
       setResult(normalized)
       setSelectedOutputIndex(0)
       const total = normalized.outputs.length
-      showSuccessToast('Photoshoot ready', total > 1 ? `${total} looks generated.` : 'Your photoshoot image is ready.')
+      // Surface whether the InsightFace face-lock actually applied, so it's
+      // obvious on-screen (no DevTools needed).
+      const methods: string[] = Array.isArray(data?.faceRestore?.methodsApplied) ? data.faceRestore.methodsApplied : []
+      const faceConfigured = Boolean(data?.faceRestore?.configured)
+      if (methods.includes('insightface')) {
+        showSuccessToast('Photoshoot ready', `${total} look${total > 1 ? 's' : ''} • face lock: InsightFace ✓`)
+      } else if (faceConfigured) {
+        showWarningToast('Face lock did NOT apply', 'The face-swap service is connected but the swap did not apply to these images — likely a slow/failed swap. We can fix the service side.')
+      } else {
+        showSuccessToast('Photoshoot ready', `${total} look${total > 1 ? 's' : ''} generated.`)
+      }
     } catch (error) {
       console.error('[photoshoot] caught error:', error)
       const rawMsg = error instanceof Error ? error.message : 'Generation failed. Please try again.'
