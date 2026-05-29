@@ -42,9 +42,14 @@ SWAP_MODEL = "inswapper_128.onnx"
 # "looks similar but isn't her". For the photoshoot use case we want the REAL
 # person, so apply the source identity at near-full strength and composite the
 # swapped face strongly. Still env-overridable on the service.
-IDENTITY_STRENGTH = float(os.getenv("FACE_SWAP_IDENTITY_STRENGTH", "0.95"))
-MASK_STRENGTH = float(os.getenv("FACE_SWAP_MASK_STRENGTH", "0.9"))
-SPOT_SUPPRESSION_STRENGTH = float(os.getenv("FACE_SWAP_SPOT_SUPPRESSION_STRENGTH", "0.9"))
+# FULL identity transfer. 1.0 = pure source face latent (no blend toward the
+# generated face), 1.0 mask = composite the swapped face at full strength (the
+# soft mask still feathers the edges for a clean blend). Spot-suppression
+# lowered so it stops pulling the generated face back into shadowed regions.
+# These are what make the output ACTUALLY the person, not a 65% blend.
+IDENTITY_STRENGTH = float(os.getenv("FACE_SWAP_IDENTITY_STRENGTH", "1.0"))
+MASK_STRENGTH = float(os.getenv("FACE_SWAP_MASK_STRENGTH", "1.0"))
+SPOT_SUPPRESSION_STRENGTH = float(os.getenv("FACE_SWAP_SPOT_SUPPRESSION_STRENGTH", "0.3"))
 
 ARCFACE_DST = np.array(
     [
