@@ -783,16 +783,15 @@ function TryOnPageContent() {
   }, [aspectRatio, currentRecommendations.isReadyForTryOn, currentRecommendations.photosNeeded, pollTryOnJob, polishNotes, productId, resolution, selectedProductImage, selectedReferenceIds, selectionMode])
 
   const submitPhotoshoot = useCallback(async () => {
-    // Multi-reference: send up to 3 of the user's photos (different angles of
-    // the same person) — this is the #1 lever for face consistency.
+    // STABLE identity set: send ALL the user's approved face photos every run
+    // (not the volatile auto-picked 3), so the averaged swap identity is the
+    // SAME every time — that's what stops the "great this time, bad next time"
+    // swings. GPT still picks the single best of these for the generation.
     const selectedIds = selectedReferenceIds.filter(Boolean)
-    const sourceIds = (
-      selectedIds.length
-        ? selectedIds
-        : [selectedReferencePhoto?.id, ...approvedPhotos.map((p: any) => p?.id)]
-    ).filter(Boolean).slice(0, 3) as string[]
+    const allApprovedIds = approvedPhotos.map((p: any) => p?.id).filter(Boolean) as string[]
+    const sourceIds = Array.from(new Set([...selectedIds, ...allApprovedIds])).slice(0, 6)
     if (sourceIds.length === 0) {
-      showWarningToast('Pick a source photo', 'Select at least one of your photos so we can keep your face.')
+      showWarningToast('Add a face photo', 'Add at least one clear, front-facing face photo so we can keep your identity.')
       return
     }
     if (!productId && !selectedProductImage) {

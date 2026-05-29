@@ -293,7 +293,7 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
   const extraPersons = (input.extraPersonImagesBase64 || [])
     .map(strip)
     .filter((b) => b && b.length > 100)
-  const candidatePersonImages = Array.from(new Set([person, ...extraPersons])).slice(0, 4)
+  const candidatePersonImages = Array.from(new Set([person, ...extraPersons])).slice(0, 6)
   // Passing MULTIPLE face references confuses the generator and the swap.
   // Have GPT pick the SINGLE clearest, most front-facing face and use ONLY that
   // — both as the generation reference and as the face-swap source.

@@ -36,7 +36,7 @@ const bodySchema = z
     // Multi-reference: 1-3 photos of the SAME person (different angles) for
     // stronger identity. `referenceImageId` (single) is still accepted for
     // backward compatibility.
-    referenceImageIds: z.array(z.string().trim().min(1).max(120)).min(1).max(3).optional(),
+    referenceImageIds: z.array(z.string().trim().min(1).max(120)).min(1).max(6).optional(),
     referenceImageId: z.string().trim().min(1).max(120).optional(),
     garmentImageUrl: z.string().trim().min(1).max(4096).optional(),
     clothingImage: z.string().min(1).max(15_000_000).optional(),
@@ -149,7 +149,7 @@ export async function POST(request: Request) {
         : input.referenceImageId
           ? [input.referenceImageId]
           : []
-    ).slice(0, 3)
+    ).slice(0, 6)
     const uniqueIds = Array.from(new Set(requestedIds))
 
     const photos = await getReferencePhotosByIds(service, userId, uniqueIds)
