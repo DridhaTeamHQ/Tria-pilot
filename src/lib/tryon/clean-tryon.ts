@@ -544,6 +544,45 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
       `Photorealistic, natural fabric drape with realistic shadows; no overlay, sticker, decal or pasted-on effect.`
     ).slice(0, 6000)
 
+    // ── ENGINE SWITCH: GEMINI PRIMARY ───────────────────────────────────
+    // When TRYON_ENGINE=gemini, run the primary swap through Gemini (Nano
+    // Banana) instead of FLUX, reusing the existing generateTryOnDirect
+    // transport. Temporary / reversible via env — unset or TRYON_ENGINE=flux
+    // keeps FLUX as the engine. If Gemini fails or returns empty we fall
+    // through to the FLUX path below as a safety net. Optional
+    // TRYON_RENDER_MODEL picks the Gemini model.
+    const primaryEngine = (process.env.TRYON_ENGINE || '').trim().toLowerCase()
+    if (primaryEngine === 'gemini') {
+      try {
+        if (isDev) console.log(`🍌 [clean] Slot ${idx + 1} → Gemini primary (TRYON_ENGINE=gemini)`)
+        const geminiOut = await generateTryOnDirect({
+          personImageBase64: personBase64,
+          garmentImageBase64: cleanedGarment,
+          faceCropBase64: hasFace ? faceCropBase64 : undefined,
+          prompt: fluxPrompt,
+          aspectRatio: input.aspectRatio || '4:5',
+          model: (process.env.TRYON_RENDER_MODEL?.trim() || 'gemini-3-pro-image-preview') as any,
+          garmentIntel: intel,
+          // Force Gemini for THIS call regardless of env race conditions.
+          engineOverride: 'gemini',
+        } as any)
+        if (geminiOut && geminiOut.length > 100) {
+          const identityAssessment = await validateIdentity(geminiOut)
+          if (isDev) console.log(`✨ [clean] Slot ${idx + 1} done via Gemini in ${Date.now() - slotStart}ms`)
+          return {
+            photoId: sel.photoId, prompt: sel.prompt, reasoning: sel.reasoning,
+            outputBase64: geminiOut, jobId: `gemini-primary-${Date.now()}-${idx}`,
+            identityAssessment: identityAssessment || undefined,
+            durationMs: Date.now() - slotStart,
+          }
+        }
+        if (isDev) console.warn(`⚠️ [clean] Slot ${idx + 1} Gemini primary returned empty — falling through to FLUX`)
+      } catch (gemErr) {
+        const gmsg = gemErr instanceof Error ? gemErr.message : String(gemErr)
+        if (isDev) console.warn(`⚠️ [clean] Slot ${idx + 1} Gemini primary failed: ${gmsg.slice(0, 150)} — falling through to FLUX`)
+      }
+    }
+
     const dims = await detectDims(personBase64)
     const seed = (Date.now() % 1_000_000_000) + idx * 9973
     // person, garment, [face crop]. Face crop = identity anchor.
