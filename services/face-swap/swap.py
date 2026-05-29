@@ -54,9 +54,12 @@ SPOT_SUPPRESSION_STRENGTH = float(os.getenv("FACE_SWAP_SPOT_SUPPRESSION_STRENGTH
 # CodeFormer face enhancement (crispness). Graceful: if the model is missing or
 # anything fails, the swap is returned un-enhanced (never breaks generation).
 ENHANCE_ENABLED = os.getenv("FACE_SWAP_ENHANCE", "1") not in ("0", "false", "False")
-# How much of the enhanced (sharpened) face to blend in. 0.8 = crisp but keeps
-# the swapped identity + natural texture; lower = more faithful to the raw swap.
-ENHANCE_BLEND = float(os.getenv("FACE_SWAP_ENHANCE_BLEND", "0.8"))
+# How much of the enhanced (sharpened) face to blend in. 0.85 = crisp + detailed
+# while keeping the swapped identity + natural texture; lower = closer to raw swap.
+ENHANCE_BLEND = float(os.getenv("FACE_SWAP_ENHANCE_BLEND", "0.85"))
+# Light unsharp-mask sharpening applied to the restored face for extra "pop".
+# 0 = off. ~0.4 is a tasteful amount; >0.8 starts to look crunchy.
+SHARPEN_STRENGTH = float(os.getenv("FACE_SWAP_SHARPEN", "0.4"))
 CODEFORMER_MODEL = "codeformer.onnx"
 
 ARCFACE_DST = np.array(
@@ -620,6 +623,10 @@ class CodeFormerEnhancer:
         out = np.transpose(out, (1, 2, 0))
         out = np.clip((out + 1.0) / 2.0, 0.0, 1.0) * 255.0
         restored = cv2.cvtColor(out.astype(np.uint8), cv2.COLOR_RGB2BGR)
+        # Light unsharp mask for extra crispness/detail.
+        if SHARPEN_STRENGTH > 0:
+            blurred = cv2.GaussianBlur(restored, (0, 0), 2.0)
+            restored = cv2.addWeighted(restored, 1.0 + SHARPEN_STRENGTH, blurred, -SHARPEN_STRENGTH, 0)
         if restored.shape[:2] != aligned_bgr.shape[:2]:
             restored = cv2.resize(restored, (aligned_bgr.shape[1], aligned_bgr.shape[0]))
         return restored
