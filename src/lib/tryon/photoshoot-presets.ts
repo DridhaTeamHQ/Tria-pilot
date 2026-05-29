@@ -40,7 +40,7 @@ export const PHOTOSHOOT_PRESETS: PhotoshootPreset[] = [
     lighting:
       'Large softbox key front-left at 45°, matched fill front-right one stop lower, overhead silk for edge separation, neutral 5500K daylight, soft realistic falloff.',
     camera:
-      'Shot on a full-frame camera, 85mm f/2.0, three-quarter to full-body framing, tack-sharp on the eyes, clean backdrop falloff, subtle natural grain.',
+      'Shot on a full-frame camera, 85mm f/2.0, three-quarter waist-up (face large and clear, not a tiny full-body figure) framing, tack-sharp on the eyes, clean backdrop falloff, subtle natural grain.',
     negativeBias: 'no colored gels, no harsh shadows, no visible stands, no oversaturation, no plastic skin, no beauty filter, no CGI look',
   },
   {
@@ -127,7 +127,7 @@ export const PHOTOSHOOT_PRESETS: PhotoshootPreset[] = [
     scene:
       'Open grassy field at golden hour with soft rolling hills, tall sunlit grass, a distant treeline, warm hazy atmosphere and gentle natural lens flare.',
     lighting: 'Low warm backlight from the setting sun creating a rim/hair glow, soft frontal fill, golden 3200-3800K warmth.',
-    camera: '85mm f/1.8, three-quarter to full-body, backlit with warm bokeh, sharp on the eyes, subtle film grain.',
+    camera: '85mm f/1.8, three-quarter waist-up (face large and clear, not a tiny full-body figure), backlit with warm bokeh, sharp on the eyes, subtle film grain.',
     negativeBias: 'no blown-out sky, no orange oversaturation, no haloing, no plastic skin, no CGI look',
   },
   {
@@ -140,7 +140,7 @@ export const PHOTOSHOOT_PRESETS: PhotoshootPreset[] = [
     lighting:
       'Even directional natural golden-hour sunlight from camera-left casting a soft long shadow, warm glow softening the canvas, no harsh contrast.',
     camera:
-      'Medium-format film look (Pentax 67 / Mamiya 7), Kodak Portra 800 grain, painterly soft-focus background with sharp focus on the subject, centered symmetrical full-body composition, nostalgic 90s magazine-spread mood.',
+      'Medium-format film look (Pentax 67 / Mamiya 7), Kodak Portra 800 grain, painterly soft-focus background with sharp focus on the subject, centered symmetrical waist-up composition (face large and clear), nostalgic 90s magazine-spread mood.',
     negativeBias: 'no readable signage text, no warped architecture, no harsh midday contrast, no plastic skin, no CGI look',
   },
   {
@@ -162,7 +162,7 @@ export const PHOTOSHOOT_PRESETS: PhotoshootPreset[] = [
     scene:
       'Sunny beach with soft sand, gentle turquoise waves and a clear bright sky, breezy relaxed coastal atmosphere with soft background haze.',
     lighting: 'Bright natural sunlight with soft fill from sand bounce, airy high-key feel, 5800K with warm skin rendering.',
-    camera: '50mm f/2.5, three-quarter to full-body, breezy candid framing, subtle grain.',
+    camera: '50mm f/2.5, three-quarter waist-up (face large and clear, not a tiny full-body figure), breezy candid framing, subtle grain.',
     negativeBias: 'no harsh squinting, no blown-out sky, no plastic skin, no oversaturation, no CGI look',
   },
 
@@ -175,7 +175,7 @@ export const PHOTOSHOOT_PRESETS: PhotoshootPreset[] = [
     scene:
       'Contemporary city street with textured concrete walls, subtle graffiti, parked bikes and softly blurred pedestrians and storefronts in the background.',
     lighting: 'Overcast soft daylight for even skin rendering, gentle directional bounce from buildings, neutral 5600K.',
-    camera: '35mm f/2.8, full-body to three-quarter, street-photography framing with environmental context, subtle grain.',
+    camera: '35mm f/2.8, three-quarter waist-up framing (face large and clear, not a tiny full-body figure), street-photography environmental context, subtle grain.',
     negativeBias: 'no harsh midday shadows, no readable signage or license-plate text, no distorted limbs, no CGI look',
   },
   {
