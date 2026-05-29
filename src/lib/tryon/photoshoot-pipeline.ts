@@ -85,10 +85,10 @@ export function isPhotoshootSlotSuccess(s: PhotoshootSlot | PhotoshootFailure): 
 // face toward camera. Big head turns / off-camera gazes are a top cause of face
 // drift, so all variations keep the face clearly visible and matchable.
 const POSE_VARIATIONS = [
-  'a relaxed head-and-shoulders pose facing the camera, calm natural expression',
-  'a confident chest-up pose with a subtle shoulder turn, looking toward the camera',
-  'a poised upper-body pose, chin level, steady gaze toward the camera',
-  'a calm editorial chest-up stance facing the camera, shoulders relaxed',
+  'a relaxed, confident standing pose facing the camera, weight on one leg, calm natural expression',
+  'a natural three-quarter stance facing the camera, hands relaxed at the sides',
+  'a poised pose with one hand near the waist, shoulders square, looking toward the camera',
+  'a calm editorial stance facing the camera, steady direct gaze',
 ]
 
 // Kept deliberately SHORT and identity-first. Google's own guidance: the model
@@ -97,9 +97,8 @@ const POSE_VARIATIONS = [
 const FACE_LOCK_SYSTEM_INSTRUCTION = `You are generating a photorealistic PHOTOSHOOT photograph of a REAL, specific person. It must look like a genuine camera photo, never an AI render.
 
 KEEP THE PERSON — TOP PRIORITY:
-- The face/head in the output MUST be the SAME person shown in the reference photos (use the close-up face crop as the definitive identity reference). Reproduce that exact face — same features, skin tone, hair, facial hair, and any eyewear. Their friends must recognise them instantly.
-- PRESERVE EXACT FACIAL STRUCTURE: keep the same eye shape, jawline, cheekbones, nose, and natural facial proportions and bone structure as the reference. Do NOT round, widen, puff, or fatten the face; do NOT make it doll-like, airbrushed, or waxy. Keep realistic skin with visible pores and texture (never plastic-smooth). Do NOT beautify, slim differently, or re-age them.
-- FRAMING (critical for identity): shoot a MEDIUM, eye-level 3/4 portrait from roughly the waist or chest up so the FACE IS LARGE and clearly resolved in the frame. Do NOT render a small full-body figure where the face loses detail. Keep the head facing roughly toward the camera; avoid extreme head turns.
+- The face/head in the output MUST be the SAME person shown in the reference photos (use the close-up face crop as the definitive identity reference). Reproduce that exact face — same features, skin tone, hair, facial hair, and any eyewear. Do NOT beautify, smooth, slim, re-age, or turn them into a different-looking model. Their friends must recognise them instantly.
+- FRAMING (critical for identity): shoot a MEDIUM portrait from roughly the waist or chest up so the FACE IS LARGE and clearly resolved in the frame. Do NOT render a small full-body figure where the face loses detail. Keep the head facing roughly toward the camera; avoid extreme head turns.
 
 DRESS THEM in the garment from the garment image — copy its exact color, pattern, texture, and cut. If the garment image shows a model, copy ONLY the garment, never that model's face.
 
@@ -260,15 +259,13 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
       // Identity first — short and direct. The reference images do the heavy
       // lifting; the prompt just reminds the model to keep that person + frame close.
       `Photorealistic fashion photoshoot photo of the SAME person from the reference photos, keeping their exact face and identity, wearing the garment.`,
-      `Preserve the exact facial structure, eye shape, jawline and natural face proportions from the reference — do NOT round, puff, widen or smooth the face.`,
       sceneBlock,
       garmentDesc ? `GARMENT: ${garmentDesc}.` : '',
       `POSE: ${POSE_VARIATIONS[variant % POSE_VARIATIONS.length]}. Keep the face clearly visible and facing roughly toward the camera.`,
       preset && input.customScene ? `EXTRA DIRECTION: ${input.customScene}.` : '',
-      // FRAMING last so it OVERRIDES any wider wording: a large, close face
-      // holds identity; a small full-body face drifts. Tight chest-up is the
-      // single most reliable identity lever.
-      `IMPORTANT FRAMING: shoot a TIGHT CHEST-UP portrait so the FACE IS LARGE and prominent (head and shoulders dominate the frame). Do NOT produce a full-body, knees-up, or wide shot where the face becomes small — a large, clearly-resolved face is required.`,
+      // FRAMING last so it OVERRIDES any "full-body" wording in the preset camera:
+      // a large, close face holds identity; a tiny full-body face drifts.
+      `IMPORTANT FRAMING: regardless of the camera note above, shoot a MEDIUM portrait from roughly the waist or chest up so the face is LARGE and clearly visible — do not produce a small full-body figure.`,
       `Make it look like a real photograph (natural skin texture, soft even light on the face, real lighting). Avoid: ${negative}.`,
     ]
       .filter(Boolean)
