@@ -114,6 +114,14 @@ REALISM: real photographic skin texture, natural fabric drape, true-to-life colo
 
 OUTPUT: one photorealistic photograph. No text, no borders, no watermark.`
 
+// Hard FACE LOCK block appended to EVERY generation prompt (kept verbatim).
+const FACE_LOCK_BLOCK = `IMPORTANT - FACE LOCK
+Keep the subject's real face exactly the same as the reference image.
+Do NOT change facial structure, jawline, eyes shape, nose, lips, skin tone, beard, hairline, age, or expression.
+Maintain 100% identity accuracy.
+No beautification, no face swapping, no AI alteration.
+Preserve natural skin texture, pores, asymmetry, and imperfections.`
+
 function resolveModelsToTry(): string[] {
   // Default to Flash: it has ~10 RPM/key + higher concurrency, so parallel
   // variants on a single Gemini key succeed. Pro (better quality) is opt-in
@@ -282,6 +290,8 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
       // a large, close face holds identity; a tiny full-body face drifts.
       `IMPORTANT FRAMING: regardless of the camera note above, shoot a MEDIUM portrait from roughly the waist or chest up so the face is LARGE and clearly visible — do not produce a small full-body figure.`,
       `Make it look like a real photograph (natural skin texture, soft even light on the face, real lighting). Avoid: ${negative}.`,
+      // FACE LOCK appended last (strongest recency) on every generation.
+      FACE_LOCK_BLOCK,
     ]
       .filter(Boolean)
       .join('\n')
